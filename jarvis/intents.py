@@ -58,6 +58,7 @@ from jarvis.installed import find_installed, scan_start_menu
 from jarvis.steam import find_game, scan_steam_games
 from jarvis import modes
 from jarvis import packs
+from jarvis import memory
 
 log = logging.getLogger("jarvis.intents")
 
@@ -201,6 +202,9 @@ class IntentHandler:
         self.last_file = None
         self.last_folder = None
         self.dialog = deque(maxlen=40)
+        # подгружаем память с диска
+        for msg in memory.load()[-40:]:
+            self.dialog.append(msg)
         self.last_was_chat = False
         self.mode = modes.get_mode(config)
         self.active_packs = list(config.get("active_packs", []))
@@ -254,6 +258,8 @@ class IntentHandler:
         # сохраняем в историю диалога — для LLM-контекста
         self.dialog.append({"role": "user", "content": cmd})
         self.dialog.append({"role": "assistant", "content": reply})
+	# автосохранение памяти на диск
+        memory.save(list(self.dialog))
         return reply
 
     # --------------------------------------------------------
@@ -277,6 +283,13 @@ class IntentHandler:
             config_copy = {"active_packs": new_active, "custom_commands": []}
             self.custom = [c for c in self.custom if c not in self._load_packs_as_custom({"active_packs": [], "custom_commands": []})]
             self.custom.extend(self._load_packs_as_custom(config_copy))
+            return reply
+
+        # --- память диалога ---
+        reply, clear_flag = memory.handle_memory_command(cmd, list(self.dialog))
+        if reply:
+            if clear_flag:
+                self.dialog.clear()
             return reply
 
         # --- режим «только LLM»: пропускаем правила, кроме скриншота ---
