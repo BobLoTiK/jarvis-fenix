@@ -79,7 +79,7 @@ ollama pull qwen2.5:7b-instruct
 copy config.example.json config.json
 ```
 И поправить под себя (см. раздел Команды и Свои команды).
-Первый запуск
+## Первый запуск
 ```bash
 
 python -m jarvis
