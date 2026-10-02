@@ -34,7 +34,8 @@ DEFAULT_CONFIG = {
     # model: auto (GPU -> large-v3-turbo, CPU -> small) или имя модели
     "use_whisper": True,
     "whisper_model": "auto",
-    "whisper_device": "auto",
+    "whisper_device": "auto", 
+    "mode": "combo",
     # LLM-фолбэк через Ollama: разбирает команды, которые не поняли правила.
     # Требует установленной Ollama (winget install Ollama.Ollama) и модели
     # (ollama pull qwen2.5:1.5b-instruct). Если Ollama нет — просто выключится.

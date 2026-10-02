@@ -1,4 +1,46 @@
-"""Разбор команды (уже без wake-слова) и выбор действия."""
+"""Разбор команды (уже без wake-слова) и выбор действия.
+
+ОГЛАВЛЕНИЕ (поиск по Ctrl+F в блокноте):
+
+    # ==== ИМПОРТЫ ====
+    # ==== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====
+        _is_open_verb / _is_close_verb     — определение глаголов «открой», «закрой»
+        _engine_in                         — поисковый движок из фразы
+        parse_search                       — «найди X» → (движок, X)
+        parse_engine_tail                  — «найди на ютубе X» → (youtube, X)
+        normalize                          — нижний регистр, чистка знаков
+
+    # ==== КОНСТАНТЫ ====
+        FILLER, BROWSER_WORDS, CANCEL
+        SITES     — известные сайты
+        MONTHS, WEEKDAYS
+        ENGINES   — поисковые движки
+
+    # ==== КЛАСС IntentHandler ====
+        __init__                — инициализация
+        handle                  — точка входа (разбор цепочек)
+        _handle_single          — разбор одной команды
+        _execute_steps          — выполнение цепочек шагов
+        _execute_intent         — выполнение интента от LLM
+
+    # ==== БЛОКИ ОБРАБОТКИ (внутри класса) ====
+        _match_custom           — свои команды из config.json
+        _media                  — музыка, громкость, треки
+        _music_on               — запуск плеера
+        _files                  — создание файлов и папок, содержимое
+        _do_open                — открытие приложений/сайтов/папок
+        _open_site              — открытие конкретного сайта
+        _do_close               — закрытие приложений
+        _open_last_file         — «открой его» → последний файл
+        _small_talk             — время, дата, «как дела», «привет»
+
+    # ==== ФУНКЦИИ-ХЕЛПЕРЫ (вне класса) ====
+        _hours, _minutes        — падежи для «час/часа/часов»
+"""
+
+# ============================================================
+# ==== ИМПОРТЫ ====
+# ============================================================
 
 import datetime
 import logging
@@ -14,25 +56,47 @@ from jarvis import APP_NAME, __version__, actions, files
 from jarvis.apps import find_app
 from jarvis.installed import find_installed, scan_start_menu
 from jarvis.steam import find_game, scan_steam_games
+from jarvis import modes
 
 log = logging.getLogger("jarvis.intents")
+
+
+# ============================================================
+# ==== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====
+# ============================================================
 
 OPEN_STEMS = ("откр", "запус", "включ", "вруб")
 CLOSE_STEMS = ("закр", "выключ", "выруб", "заверш", "убей")
 
 
 def _is_open_verb(tok: str) -> bool:
+    """Токен похож на «открой/запусти/включи/вруби»."""
     return any(tok.startswith(s) for s in OPEN_STEMS)
 
 
 def _is_close_verb(tok: str) -> bool:
+    """Токен похож на «закрой/выключи/убей»."""
     return any(tok.startswith(s) for s in CLOSE_STEMS)
 
+
+def _engine_in(text: str):
+    """Возвращает (ключ_движка, как_сказать) или None, если движок не упомянут."""
+    for stem, val in ENGINES.items():
+        if stem in text:
+            return val
+    return None
+
+
+# ============================================================
+# ==== КОНСТАНТЫ ====
+# ============================================================
 
 FILLER = {"пожалуйста", "мне", "ка", "давай", "быстро", "срочно", "будь", "добр",
           "в", "на", "и", "а", "но", "ну", "от", "до", "же", "бы", "то", "это", "там",
           "игру", "игра", "приложение", "программу", "программа"}
+
 BROWSER_WORDS = {"браузер", "браузере", "браузером", "хром", "хроме", "интернет", "интернете"}
+
 CANCEL = {"отмена", "стоп", "ничего", "забудь", "отбой"}
 
 SITES = {
@@ -50,6 +114,7 @@ SITES = {
 
 MONTHS = ["января", "февраля", "марта", "апреля", "мая", "июня",
           "июля", "августа", "сентября", "октября", "ноября", "декабря"]
+
 WEEKDAYS = ["понедельник", "вторник", "среда", "четверг", "пятница", "суббота", "воскресенье"]
 
 ENGINES = {
@@ -62,14 +127,15 @@ ENGINES = {
 }
 
 
-def _engine_in(text: str):
-    for stem, val in ENGINES.items():
-        if stem in text:
-            return val
-    return None
-
+# ============================================================
+# ==== ПОИСК: «найди X», «найди на ютубе X» ====
+# ============================================================
 
 def parse_search(cmd: str):
+    """Понимает: «найди X», «поищи на ютубе X», «загугли X».
+
+    Возвращает (движок, 'где_сказать', запрос) или None.
+    """
     m = re.search(r"\bпоиск\w*\s+(.+)$", cmd)
     if m:
         engine = _engine_in(cmd[:m.start()]) or ENGINES["гугл"]
@@ -89,6 +155,7 @@ def parse_search(cmd: str):
 
 
 def parse_engine_tail(cmd: str):
+    """Движок с запросом в любом порядке: «открой на ютубе видео котиков»."""
     tokens = cmd.split()
     for i, tok in enumerate(tokens):
         engine = _engine_in(tok)
@@ -107,12 +174,22 @@ def parse_engine_tail(cmd: str):
 
 
 def normalize(text: str) -> str:
+    """Нижний регистр, ё→е, чистка знаков, схлопывание пробелов."""
     text = text.lower().replace("ё", "е")
     text = re.sub(r"[^\w\s]", " ", text)
     return re.sub(r"\s+", " ", text).strip()
 
 
+# ============================================================
+# ==== КЛАСС IntentHandler ====
+# ============================================================
+
 class IntentHandler:
+
+    # --------------------------------------------------------
+    # Инициализация
+    # --------------------------------------------------------
+
     def __init__(self, config: dict, apps: list, brain=None):
         self.apps = apps
         self.brain = brain
@@ -124,12 +201,17 @@ class IntentHandler:
         self.last_folder = None
         self.dialog = deque(maxlen=40)
         self.last_was_chat = False
+        self.mode = modes.get_mode(config)
         self.custom = []
         for entry in config.get("custom_commands", []):
             phrases = [normalize(p) for p in entry.get("phrases", []) if p.strip()]
             action = entry.get("action", "").strip() or entry.get("steps")
             if phrases and action:
                 self.custom.append((phrases, action, entry.get("reply", "Выполняю.")))
+
+    # --------------------------------------------------------
+    # Разбор цепочек: «сделай скриншот и открой его»
+    # --------------------------------------------------------
 
     _CHAIN_SEP = re.compile(r"\s+(?:а\s+)?(?:и|потом|затем|после этого)\s+")
     _CHAIN_STARTERS = {"сделай", "сними", "найди", "поищи", "загугли", "погугли",
@@ -138,6 +220,7 @@ class IntentHandler:
                       "погромче", "потише", "дальше"}
 
     def _split_chain(self, cmd: str) -> list[str]:
+        """Делит «сделай X и сделай Y» на шаги. Если не похоже — возвращает [cmd]."""
         parts = [p.strip() for p in self._CHAIN_SEP.split(cmd) if p.strip()]
         if len(parts) < 2:
             return [cmd]
@@ -152,6 +235,10 @@ class IntentHandler:
                 return [cmd]
         return parts
 
+    # --------------------------------------------------------
+    # Точка входа: разбирает фразу, возвращает ответ
+    # --------------------------------------------------------
+
     def handle(self, cmd: str) -> str:
         self.last_was_chat = False
         parts = self._split_chain(cmd)
@@ -161,37 +248,75 @@ class IntentHandler:
             reply = " ".join(r for r in replies if r)
         else:
             reply = self._handle_single(cmd)
+        # сохраняем в историю диалога — для LLM-контекста
         self.dialog.append({"role": "user", "content": cmd})
         self.dialog.append({"role": "assistant", "content": reply})
         return reply
+
+    # --------------------------------------------------------
+    # Разбор одной команды (главный диспетчер)
+    # --------------------------------------------------------
 
     def _handle_single(self, cmd: str) -> str:
         if cmd in CANCEL:
             return "Хорошо."
 
+        # --- режимы работы ---
+        reply, new_mode = modes.handle_mode_command(cmd, self.mode)
+        if reply:
+            self.mode = new_mode
+            return reply
+
+        # --- режим «только LLM»: пропускаем правила, кроме скриншота ---
+        if self.mode == "llm":
+            if re.search(r"скрин|снимок экрана", cmd):
+                path = actions.take_screenshot()
+                self.last_file = path
+                return f"Скриншот сохранён в папку {path.parent.name}."
+            if self.brain is not None and self.brain.available:
+                intent = self.brain.parse(cmd)
+                if intent and intent.get("action") not in ("answer", "none"):
+                    if isinstance(intent.get("steps"), list):
+                        r = self._execute_steps(intent["steps"])
+                    else:
+                        r = self._execute_intent(intent)
+                    if r:
+                        return r
+                text = self.brain.chat(cmd, list(self.dialog))
+                if text:
+                    self.last_was_chat = True
+                    return text
+            return "LLM недоступна. Скажите «режим команды»."
+
+        # --- свои команды из config.json ---
         reply = self._match_custom(cmd)
         if reply:
             return reply
 
+        # --- медиа ---
         reply = self._media(cmd)
         if reply:
             return reply
 
+        # --- файлы ---
         reply = self._files(cmd)
         if reply:
             return reply
 
+        # --- печать в активное окно ---
         m = re.match(r"^(?:напечатай|напиши|введи|набери)\s+(.+)$", cmd)
         if m:
             text = m.group(1).strip()
             actions.type_text(text)
             return f"Печатаю: {text}."
 
+        # --- свернуть ВСЁ (проверять ДО именованных окон) ---
         if re.search(r"(сверни|свернуть|убери)\s+(вс[её]|все окна|рабочий стол)", cmd) \
                 or cmd in {"покажи рабочий стол", "сверни все окна", "сверни всё", "сверни все"}:
             actions.minimize_all()
             return "Сворачиваю всё."
 
+        # --- относительные окна: активное ---
         if re.search(r"^сверни\s+(это|текущ|активн)", cmd) or cmd in {"сверни окно", "сверни"}:
             actions.minimize_active()
             return "Сворачиваю активное окно."
@@ -201,6 +326,7 @@ class IntentHandler:
             actions.maximize_active()
             return "Разворачиваю активное окно."
 
+        # --- переключение окон ---
         if re.search(r"^(переключи|смени|следующ\w*)\s+(окно|вкладк)", cmd) \
                 or cmd in {"переключи окно", "следующее окно", "дальше окно"}:
             actions.switch_window(back=False)
@@ -211,6 +337,8 @@ class IntentHandler:
             actions.switch_window(back=True)
             return "Возвращаю окно."
 
+        # --- свернуть/развернуть именованное окно ---
+        # Если не нашли — не возвращаем ошибку, падаем в LLM ниже.
         m = re.match(r"^(сверни|разверни|развернуть|свернуть)\s+(.+)$", cmd)
         if m:
             verb, name = m.group(1), m.group(2).strip()
@@ -221,12 +349,14 @@ class IntentHandler:
                 if actions.maximize_window_by_title(name):
                     return f"Разворачиваю {name}."
 
+        # --- переключиться на окно ---
         m = re.match(r"^(переключись|перейди)\s+(?:на\s+)?(.+)$", cmd)
         if m:
             name = m.group(2).strip()
             if actions.activate_window_by_title(name):
                 return f"Переключаюсь на {name}."
 
+        # --- скриншот ---
         if re.search(r"скрин|снимок экрана", cmd):
             tokens_ = cmd.split()
             has_open = any(_is_open_verb(t) or t == "покажи" for t in tokens_)
@@ -240,12 +370,14 @@ class IntentHandler:
                 return "Скриншот сделан, открываю."
             return f"Скриншот сохранён в папку {path.parent.name}."
 
+        # --- поиск в интернете (только по явному «найди»/«загугли») ---
         search = parse_search(cmd) or parse_engine_tail(cmd)
         if search:
             engine, where, query = search
             actions.open_search(engine, query)
             return f"Ищу {where}: {query}."
 
+        # --- открыть/закрыть ---
         tokens = [t for t in cmd.split() if t not in FILLER]
         verb_open = any(_is_open_verb(t) for t in tokens)
         verb_close = any(_is_close_verb(t) for t in tokens)
@@ -256,11 +388,17 @@ class IntentHandler:
         if verb_close:
             return self._do_close(target)
 
+        # --- простые вопросы (время, дата, «как дела») ---
         reply = self._small_talk(cmd)
         if reply:
             return reply
 
-        if self.brain is not None:
+        # --- режим «только команды»: LLM не вызываем ---
+        if self.mode == "commands":
+            return "Я не понял команду. Скажите, например: открой стим."
+
+        # --- LLM ---
+        if self.brain is not None and self.brain.available:
             intent = self.brain.parse(cmd)
             if intent and intent.get("action") not in ("answer", "none"):
                 if isinstance(intent.get("steps"), list):
@@ -275,7 +413,12 @@ class IntentHandler:
                 return text
         return "Я не понял команду. Скажите, например: открой стим."
 
+    # --------------------------------------------------------
+    # Выполнение цепочек и интентов от LLM
+    # --------------------------------------------------------
+
     def _execute_steps(self, steps: list) -> str | None:
+        """Выполняет цепочку шагов (от LLM или из custom_commands)."""
         reply = None
         for step in steps[:6]:
             if not isinstance(step, dict):
@@ -293,9 +436,11 @@ class IntentHandler:
         return reply
 
     def _execute_intent(self, intent: dict) -> str | None:
+        """Выполняет интент от LLM средствами обычного пайплайна."""
         action = intent.get("action")
         target = normalize(str(intent.get("target") or ""))
         query = str(intent.get("query") or "").strip()
+
         if action == "open_app" and target:
             if intent.get("minimized"):
                 hit = find_installed(self.installed, target)
@@ -374,7 +519,12 @@ class IntentHandler:
             return "Переключаю окно."
         return None
 
+    # ========================================================
+    # БЛОК: СВОИ КОМАНДЫ ИЗ CONFIG.JSON
+    # ========================================================
+
     def _match_custom(self, cmd: str) -> str | None:
+        """Ищет совпадение в custom_commands (точное или ≥0.85 по ratio)."""
         for phrases, action, reply in self.custom:
             for phrase in phrases:
                 if cmd == phrase or SequenceMatcher(None, cmd, phrase).ratio() >= 0.85:
@@ -384,7 +534,12 @@ class IntentHandler:
                     return reply
         return None
 
+    # ========================================================
+    # БЛОК: МЕДИА (музыка, громкость, треки)
+    # ========================================================
+
     def _media(self, cmd: str) -> str | None:
+        """Музыка, пауза, треки, громкость. Возвращает ответ или None."""
         musicy = re.search(r"музык|трек|песн|волн", cmd) is not None
         if "пауз" in cmd or (musicy and re.search(r"выключ|выруб|останов|стоп", cmd)):
             actions.media_key("play")
@@ -412,6 +567,7 @@ class IntentHandler:
         return None
 
     def _music_on(self) -> str:
+        """Запускает плеер и жмёт play (или открывает веб-версию)."""
         if actions.find_process(self.music_app, threshold=0.8):
             actions.ensure_music_playing()
             return "Включаю."
@@ -426,11 +582,9 @@ class IntentHandler:
         actions.open_url("https://music.yandex.ru/personal/my-wave")
         return "Плеер не найден, открываю Мою волну в браузере."
 
-    def _open_last_file(self) -> str:
-        if self.last_file:
-            actions.open_path(self.last_file)
-            return "Открываю."
-        return "Пока нечего открывать."
+    # ========================================================
+    # БЛОК: ФАЙЛЫ И ПАПКИ
+    # ========================================================
 
     _FOLDER_TITLES = {"Desktop": "на рабочем столе", "Downloads": "в загрузках",
                       "Documents": "в документах", "Pictures": "в изображениях",
@@ -438,9 +592,11 @@ class IntentHandler:
                       "Screenshots": "в скриншотах"}
 
     def _folder_title(self, path: Path) -> str:
+        """«на рабочем столе», «в документах» и т.п. для озвучки."""
         return self._FOLDER_TITLES.get(path.name, f"в папке {path.name}")
 
     def _files(self, cmd: str) -> str | None:
+        """Создание файлов/папок и «что лежит в …»."""
         m = re.match(r"^созда\w*\s+(файл|папку|документ|заметку)\s*(.*)$", cmd)
         if m:
             kind, rest = m.group(1), m.group(2)
@@ -479,7 +635,19 @@ class IntentHandler:
             return "Какую папку посмотреть?"
         return None
 
+    # ========================================================
+    # БЛОК: ОТКРЫТИЕ (приложения, сайты, папки)
+    # ========================================================
+
+    def _open_last_file(self) -> str:
+        """«Открой его» → последний созданный/скриншотный файл."""
+        if self.last_file:
+            actions.open_path(self.last_file)
+            return "Открываю."
+        return "Пока нечего открывать."
+
     def _do_open(self, target: str) -> str:
+        """Открывает приложение, игру, сайт или папку по названию."""
         if not target:
             return "Что именно открыть?"
 
@@ -499,6 +667,7 @@ class IntentHandler:
         if site_only:
             return self._open_site(site_target)
 
+        # 1. Встроенный каталог приложений
         app = find_app(self.apps, target)
         if app:
             spec = app.resolve_open()
@@ -507,32 +676,38 @@ class IntentHandler:
             actions.run_spec(spec)
             return f"Открываю {app.title}."
 
+        # 2. Известные сайты
         for key, (title, url) in SITES.items():
             if key in target.split() or target == key:
                 actions.open_url(url)
                 return f"Открываю {title}."
 
+        # 3. Папки пользователя
         folder = files.resolve_folder(target, explicit="папк" in target)
         if folder:
             self.last_folder = folder
             files.open_folder(folder)
             return f"Открываю папку {folder.name}."
 
+        # 4. Игры Steam
         game = find_game(self.steam_games, target)
         if game:
             title, appid = game
             actions.run_spec(("uri", f"steam://rungameid/{appid}"))
             return f"Запускаю {title}."
 
+        # 5. Любая установленная программа из меню «Пуск»
         hit = find_installed(self.installed, target)
         if hit:
             name, lnk = hit
             actions.open_path(lnk)
             return f"Открываю {name}."
 
+        # 6. Не нашли — пробуем как сайт
         return self._open_site(target)
 
     def _open_site(self, name: str) -> str:
+        """Открывает сайт: из известных, по домену, или говорит «не нашёл»."""
         if not name:
             return "Какой сайт открыть?"
         for key, (title, url) in SITES.items():
@@ -543,13 +718,14 @@ class IntentHandler:
         if url:
             actions.open_url(url)
             return f"Открываю сайт {name}."
-        if len(name.split()) <= 3:
-            actions.open_site_lucky(name)
-            return f"Открываю {name}."
-        actions.google_search(name)
-        return f"Ищу {name}."
+        return f"Сайт {name} не нашёл. Скажите «найди {name}», и я поищу."
+
+    # ========================================================
+    # БЛОК: ЗАКРЫТИЕ
+    # ========================================================
 
     def _do_close(self, target: str) -> str:
+        """Закрывает приложение или браузер по названию."""
         if not target:
             return "Что именно закрыть?"
         if any(w in target for w in ("браузер", "интернет", "хром")):
@@ -567,7 +743,12 @@ class IntentHandler:
             return f"{app.title} сейчас не запущен."
         return f"Не нашёл запущенной программы {target}."
 
+    # ========================================================
+    # БЛОК: SMALL TALK (время, дата, «как дела»)
+    # ========================================================
+
     def _small_talk(self, cmd: str) -> str | None:
+        """Простые вопросы: время, дата, «как дела», «привет»."""
         now = datetime.datetime.now()
         if any(p in cmd for p in ("который час", "сколько времени", "время")):
             return f"Сейчас {now.hour} {_hours(now.hour)} {now.minute} {_minutes(now.minute)}."
@@ -600,7 +781,12 @@ class IntentHandler:
         return None
 
 
+# ============================================================
+# ==== ФУНКЦИИ-ХЕЛПЕРЫ (вне класса) ====
+# ============================================================
+
 def _hours(n: int) -> str:
+    """Падеж для часов: 1 час, 2 часа, 5 часов."""
     if n % 10 == 1 and n % 100 != 11:
         return "час"
     if n % 10 in (2, 3, 4) and n % 100 not in (12, 13, 14):
@@ -609,6 +795,7 @@ def _hours(n: int) -> str:
 
 
 def _minutes(n: int) -> str:
+    """Падеж для минут: 1 минута, 2 минуты, 5 минут."""
     if n % 10 == 1 and n % 100 != 11:
         return "минута"
     if n % 10 in (2, 3, 4) and n % 100 not in (12, 13, 14):
