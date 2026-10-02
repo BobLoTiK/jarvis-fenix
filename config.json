@@ -67,4 +67,6 @@
   ],
   "mode": "combo"
   "active_packs": ["apps", "sites", "system"],
+  "memory_file": "dialog.json",
+  "memory_max": 200,
 }
