@@ -198,29 +198,25 @@ python scripts/build_exe.py
 Win+R → shell:startup → Enter. Скопируй туда ярлык на Феникс.exe или на pythonw -m jarvis.
 
 Отключить — удалить ярлык или снять галку в «Диспетчер задач → Автозагрузка».
-Траблшутинг
+## Траблшутинг
 
-Консоль вернула приглашение после запуска — процесс упал, смотри лог.
+- **Консоль вернула приглашение после запуска** — процесс упал, смотри лог.
 
-Failed to create a model (Vosk) — модель не загрузилась. Проверь models/vosk-model-small-ru-0.22/am/final.mdl.
+- **Failed to create a model (Vosk)** — модель не загрузилась. Проверь models/vosk-model-small-ru-0.22/am/final.mdl.
 
-Error processing file ... phonetab (Piper) — не установлен eSpeak NG.
+- **Error processing file ... phonetab (Piper)** — не установлен eSpeak NG.
 
-HTTP Error 404 про LLM — Ollama не запущена или модель не скачана. Проверь ollama list.
+- **HTTP Error 404** про LLM — Ollama не запущена или модель не скачана. Проверь ollama list.
 
-IndentationError после правки — сломал отступы. Используй Notepad++ с отображением пробелов.
+- **Wake-слово не срабатывает** — говори «ФЕ-НИКС» чётко, по слогам. Или попробуй «джарвис».
 
-Wake-слово не срабатывает — говори «ФЕ-НИКС» чётко, по слогам. Или попробуй «джарвис».
-
-Постоянно ищет в поиске — проверь промпт SYSTEM в brain.py, там должно быть «search — только для свежих данных».
-
-Отказывается от безобидных просьб — маленькая модель. Перейди на qwen2.5:7b-instruct.
-Технологии
-Компонент	Решение
-Wake-слово	Vosk (vosk-model-small-ru-0.22)
-Расшифровка	faster-whisper (large-v3-turbo на GPU, small на CPU)
-Синтез речи	Piper TTS (ruslan/dmitri), фолбэк — SAPI
-LLM	Qwen 2.5 через Ollama
-Микрофон	sounddevice (PortAudio)
-Трей	pystray + Pillow
-Печать/окна	pyautogui + pygetwindow
+- **Отказывается от безобидных просьб** — маленькая модель. Перейди на qwen2.5:7b-instruct или более новую.
+## Технологии
+**Компонент** **Решение**
+- Wake-слово	Vosk (vosk-model-small-ru-0.22)
+- Расшифровка	faster-whisper (large-v3-turbo на GPU, small на CPU)
+- Синтез речи	Piper TTS (ruslan/dmitri), фолбэк — SAPI
+- LLM	Qwen 2.5 через Ollama
+- Микрофон	sounddevice (PortAudio)
+- Трей	pystray + Pillow
+- Печать/окна	pyautogui + pygetwindow
