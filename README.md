@@ -44,5 +44,5 @@
 ### 1. Клонировать репозиторий
 
 ```bash
-git clone https://github.com/ТВОЙ_НИК/jarvis-fenix.git
+git clone https://github.com/MaxkopylovKryt/jarvis-fenix.git
 cd jarvis-fenix
