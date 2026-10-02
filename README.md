@@ -46,3 +46,197 @@
 ```bash
 git clone https://github.com/MaxkopylovKryt/jarvis-fenix.git
 cd jarvis-fenix
+2. Установить зависимости
+bash
+
+pip install -r requirements.txt
+pip install pyautogui pygetwindow
+
+3. Установить eSpeak NG (для Piper TTS)
+
+Без него Piper падает с ошибкой phonetab.
+
+    Скачай: https://github.com/espeak-ng/espeak-ng/releases
+
+    Установи espeak-ng-X.X.X-x64.msi со стандартными настройками.
+
+    Закрой и открой cmd заново.
+
+    Проверь: espeak-ng --version.
+
+4. Установить Ollama (опционально)
+bash
+
+winget install Ollama.Ollama
+ollama pull qwen2.5:1.5b-instruct
+
+Для 12+ ГБ VRAM лучше:
+bash
+
+ollama pull qwen2.5:7b-instruct
+
+5. Скопировать конфиг
+bash
+
+copy config.example.json config.json
+
+И поправить под себя (см. раздел Команды и Свои команды).
+Первый запуск
+bash
+
+python -m jarvis
+
+Что произойдёт:
+
+    Скачается Vosk (vosk-model-small-ru-0.22, ~45 МБ) в папку models/.
+
+    Скачается Whisper (large-v3-turbo на GPU, small на CPU).
+
+    Скачается голос Piper (ruslan) при первом синтезе.
+
+    Феникс скажет: «Феникс запущен и готов к работе».
+
+    Появится иконка в трее.
+
+Если консоль вернула приглашение C:\jarvis> — процесс упал. Смотри лог.
+Настройка LLM (Ollama)
+
+В config.json:
+json
+
+"llm_model": "qwen2.5:7b-instruct",
+"use_llm": true,
+"ollama_url": "http://127.0.0.1:11434"
+
+Проверка: ollama run qwen2.5:1.5b-instruct "расскажи шутку"
+Модель	VRAM	Качество
+qwen2.5:1.5b-instruct	~1.5 ГБ	Базовое, иногда путается
+qwen2.5:3b-instruct	~3 ГБ	Заметно лучше
+qwen2.5:7b-instruct	~5–6 ГБ	Отличное, не отказывается
+qwen2.5:14b-instruct	~10 ГБ	Максимум для 12 ГБ VRAM
+Команды
+
+Приложения: «открой стим», «закрой дискорд», «запусти сабнатику».
+
+Сайты: «открой ютуб», «открой сайт хабр», «хабр точка ру».
+
+Поиск: «загугли погоду», «найди на ютубе лофи», «найди статью в википедии».
+
+Печать: «напечатай привет мир» (курсор должен быть в нужном окне).
+
+Окна: «сверни все окна», «сверни дискорд», «разверни браузер».
+
+Скриншот: «сделай скриншот».
+
+Файлы: «создай файл список покупок», «создай папку проекты», «что на рабочем столе».
+
+Музыка: «включи музыку», «пауза», «следующий трек», «громче», «тише».
+
+Время: «который час», «какое сегодня число», «какой сегодня день».
+
+Разговор: «как дела», «расскажи шутку», «что такое фотосинтез» (LLM ответит).
+
+Своё: «открой конфиг», «покажи ip», «открой терминал».
+Свои команды в custom_commands
+
+В config.json:
+json
+
+{
+  "phrases": ["открой конфиг"],
+  "action": "C:\\jarvis\\config.json",
+  "reply": "Открываю конфиг."
+}
+
+Типы действий:
+
+    Путь к файлу: C:\\jarvis\\config.json
+
+    Путь к .bat: C:\\jarvis\\cmds\\show_ip.bat
+
+    URL: https://example.com
+
+    Steam-URI: steam://rungameid/570
+
+    Цепочка шагов:
+
+json
+
+{
+  "phrases": ["запусти игру"],
+  "steps": [
+    {"action": "open_app", "target": "steam"},
+    {"action": "wait", "seconds": 5},
+    {"action": "open_app", "target": "dota 2"}
+  ],
+  "reply": "Запускаю Доту."
+}
+
+Голос
+
+По умолчанию — Piper (ruslan). Смена в config.json:
+json
+
+"tts_voice": "dmitri",
+"voice_rate": 1.0
+
+Доступные голоса: ruslan, dmitri, irina, denis.
+
+Прослушать: python scripts/voicedemo.py
+
+Клонирование голоса (XTTS-v2): положи voices/jarvis.wav (10–30 секунд чистой речи) — при наличии NVIDIA GPU заговорит этим голосом. Медленнее Piper (2–5 секунд на фразу), но голос как в фильме.
+Печать и окна
+
+Печать: скажи «Феникс, напечатай привет мир». Перед командой поставь курсор в нужное окно. Работает через pyautogui.typewrite().
+
+Окна:
+
+    «сверни все окна» → Win+D
+
+    «сверни дискорд» → ищет окно с «дискорд» в заголовке
+
+    «разверни браузер» → разворачивает окно
+
+Работает через pygetwindow. Имя ищется по подстроке в заголовке, регистронезависимо. Если окно свёрнуто — сначала restore(), потом maximize().
+Запуск без консоли
+bash
+
+pythonw -m jarvis
+
+Либо собрать .exe:
+bash
+
+python scripts/build_exe.py
+
+Создаст Феникс.exe в корне проекта (~7 МБ).
+Автозапуск
+
+Win+R → shell:startup → Enter. Скопируй туда ярлык на Феникс.exe или на pythonw -m jarvis.
+
+Отключить — удалить ярлык или снять галку в «Диспетчер задач → Автозагрузка».
+Траблшутинг
+
+Консоль вернула приглашение после запуска — процесс упал, смотри лог.
+
+Failed to create a model (Vosk) — модель не загрузилась. Проверь models/vosk-model-small-ru-0.22/am/final.mdl.
+
+Error processing file ... phonetab (Piper) — не установлен eSpeak NG.
+
+HTTP Error 404 про LLM — Ollama не запущена или модель не скачана. Проверь ollama list.
+
+IndentationError после правки — сломал отступы. Используй Notepad++ с отображением пробелов.
+
+Wake-слово не срабатывает — говори «ФЕ-НИКС» чётко, по слогам. Или попробуй «джарвис».
+
+Постоянно ищет в поиске — проверь промпт SYSTEM в brain.py, там должно быть «search — только для свежих данных».
+
+Отказывается от безобидных просьб — маленькая модель. Перейди на qwen2.5:7b-instruct.
+Технологии
+Компонент	Решение
+Wake-слово	Vosk (vosk-model-small-ru-0.22)
+Расшифровка	faster-whisper (large-v3-turbo на GPU, small на CPU)
+Синтез речи	Piper TTS (ruslan/dmitri), фолбэк — SAPI
+LLM	Qwen 2.5 через Ollama
+Микрофон	sounddevice (PortAudio)
+Трей	pystray + Pillow
+Печать/окна	pyautogui + pygetwindow
