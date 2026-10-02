@@ -46,12 +46,13 @@
 ```bash
 git clone https://github.com/MaxkopylovKryt/jarvis-fenix.git
 cd jarvis-fenix
+```
 2. Установить зависимости
-bash
+```bash
 
 pip install -r requirements.txt
 pip install pyautogui pygetwindow
-
+```
 3. Установить eSpeak NG (для Piper TTS)
 
 Без него Piper падает с ошибкой phonetab.
@@ -65,27 +66,27 @@ pip install pyautogui pygetwindow
     Проверь: espeak-ng --version.
 
 4. Установить Ollama (опционально)
-bash
+```bash
 
 winget install Ollama.Ollama
 ollama pull qwen2.5:1.5b-instruct
-
+```
 Для 12+ ГБ VRAM лучше:
-bash
+```bash
 
 ollama pull qwen2.5:7b-instruct
-
+```
 5. Скопировать конфиг
-bash
+```bash
 
 copy config.example.json config.json
-
+```
 И поправить под себя (см. раздел Команды и Свои команды).
 Первый запуск
-bash
+```bash
 
 python -m jarvis
-
+```
 Что произойдёт:
 
     Скачается Vosk (vosk-model-small-ru-0.22, ~45 МБ) в папку models/.
