@@ -47,13 +47,13 @@
 git clone https://github.com/MaxkopylovKryt/jarvis-fenix.git
 cd jarvis-fenix
 ```
-2. Установить зависимости
+### 2. Установить зависимости
 ```bash
 
 pip install -r requirements.txt
 pip install pyautogui pygetwindow
 ```
-3. Установить eSpeak NG (для Piper TTS)
+### 3. Установить eSpeak NG (для Piper TTS)
 
 Без него Piper падает с ошибкой phonetab.
 
@@ -65,7 +65,7 @@ pip install pyautogui pygetwindow
 
     Проверь: espeak-ng --version.
 
-4. Установить Ollama (опционально)
+### 4. Установить Ollama (опционально)
 ```bash
 
 winget install Ollama.Ollama
@@ -76,7 +76,7 @@ ollama pull qwen2.5:1.5b-instruct
 
 ollama pull qwen2.5:7b-instruct
 ```
-5. Скопировать конфиг
+### 5. Скопировать конфиг
 ```bash
 
 copy config.example.json config.json
