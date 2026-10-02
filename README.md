@@ -212,7 +212,6 @@ Win+R → shell:startup → Enter. Скопируй туда ярлык на Ф�
 
 - **Отказывается от безобидных просьб** — маленькая модель. Перейди на qwen2.5:7b-instruct или более новую.
 ## Технологии
-**Компонент** **Решение**
 - Wake-слово	Vosk (vosk-model-small-ru-0.22)
 - Расшифровка	faster-whisper (large-v3-turbo на GPU, small на CPU)
 - Синтез речи	Piper TTS (ruslan/dmitri), фолбэк — SAPI
