@@ -57,6 +57,7 @@ from jarvis.apps import find_app
 from jarvis.installed import find_installed, scan_start_menu
 from jarvis.steam import find_game, scan_steam_games
 from jarvis import modes
+from jarvis import packs
 
 log = logging.getLogger("jarvis.intents")
 
@@ -202,7 +203,9 @@ class IntentHandler:
         self.dialog = deque(maxlen=40)
         self.last_was_chat = False
         self.mode = modes.get_mode(config)
+        self.active_packs = list(config.get("active_packs", []))
         self.custom = []
+        self.custom.extend(self._load_packs_as_custom(config))
         for entry in config.get("custom_commands", []):
             phrases = [normalize(p) for p in entry.get("phrases", []) if p.strip()]
             action = entry.get("action", "").strip() or entry.get("steps")
@@ -265,6 +268,15 @@ class IntentHandler:
         reply, new_mode = modes.handle_mode_command(cmd, self.mode)
         if reply:
             self.mode = new_mode
+            return reply
+
+        # --- паки ---
+        reply, new_active = packs.handle_pack_command(cmd, self.active_packs)
+        if reply:
+            self.active_packs = new_active
+            config_copy = {"active_packs": new_active, "custom_commands": []}
+            self.custom = [c for c in self.custom if c not in self._load_packs_as_custom({"active_packs": [], "custom_commands": []})]
+            self.custom.extend(self._load_packs_as_custom(config_copy))
             return reply
 
         # --- режим «только LLM»: пропускаем правила, кроме скриншота ---
@@ -746,6 +758,16 @@ class IntentHandler:
     # ========================================================
     # БЛОК: SMALL TALK (время, дата, «как дела»)
     # ========================================================
+
+    def _load_packs_as_custom(self, config):
+        """Загружает активные паки в формате custom_commands."""
+        result = []
+        for entry in packs.load_active(config):
+            phrases = [normalize(p) for p in entry.get("phrases", []) if p.strip()]
+            action = entry.get("action", "").strip() or entry.get("steps")
+            if phrases and action:
+                result.append((phrases, action, entry.get("reply", "Выполняю.")))
+        return result
 
     def _small_talk(self, cmd: str) -> str | None:
         """Простые вопросы: время, дата, «как дела», «привет»."""
