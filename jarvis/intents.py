@@ -59,6 +59,8 @@ from jarvis.steam import find_game, scan_steam_games
 from jarvis import modes
 from jarvis import packs
 from jarvis import memory
+from jarvis import voices
+from jarvis import recorder
 
 log = logging.getLogger("jarvis.intents")
 
@@ -208,6 +210,7 @@ class IntentHandler:
         self.last_was_chat = False
         self.mode = modes.get_mode(config)
         self.active_packs = list(config.get("active_packs", []))
+        self.last_macro = None
         self.custom = []
         self.custom.extend(self._load_packs_as_custom(config))
         for entry in config.get("custom_commands", []):
@@ -291,6 +294,33 @@ class IntentHandler:
             if clear_flag:
                 self.dialog.clear()
             return reply
+
+        # --- голоса ---
+        reply = voices.handle_voice_command(cmd)
+        if reply:
+            return reply
+
+        # --- запись действий ---
+        if re.search(r"(запиши|начни запись)\s*(действие|действий|макрос)?", cmd):
+            if recorder.start():
+                return "Записываю. Скажите «стоп запись», когда закончите."
+            return "Не удалось начать запись. Проверьте права администратора."
+
+        if re.search(r"(стоп|останови|закончи|прекрати)\s*(запись|действие|макрос)", cmd):
+            if recorder.is_recording():
+                macro = recorder.stop()
+                if macro:
+                    self.last_macro = macro
+                    return "Запись остановлена. " + recorder.describe(macro)
+                return "Запись была пустой."
+
+        if re.search(r"(повтори|воспроизведи)\s*(последн|это|макрос)", cmd) \
+                or cmd in {"повтори", "повтори последнее", "воспроизведи"}:
+            if self.last_macro:
+                if recorder.play(self.last_macro):
+                    return "Воспроизвожу макрос."
+                return "Не удалось воспроизвести."
+            return "Нет сохранённого макроса."
 
         # --- режим «только LLM»: пропускаем правила, кроме скриншота ---
         if self.mode == "llm":
