@@ -318,3 +318,67 @@ def find_process(target: str, threshold: float = 0.8) -> str | None:
         return best_exe
     log.info("Процесс для %r не найден (лучший score %.2f, %r)", target, best_score, best_exe)
     return None
+# --- новые действия: печать и управление окнами ---------------------------
+
+def type_text(text: str) -> bool:
+    """Печатает текст в активное окно."""
+    if not text:
+        return False
+    try:
+        import pyautogui
+        pyautogui.typewrite(text, interval=0.02)
+        return True
+    except Exception:
+        log.exception("type_text не удался")
+        return False
+
+
+def minimize_all() -> bool:
+    """Свернуть все окна (Win+D)."""
+    try:
+        import pyautogui
+        pyautogui.hotkey("win", "d")
+        return True
+    except Exception:
+        log.exception("minimize_all не удался")
+        return False
+
+
+def _find_window(name: str):
+    """Ищет окно по подстроке в заголовке (регистронезависимо)."""
+    try:
+        import pygetwindow as gw
+    except ImportError:
+        return None
+    name_low = name.lower()
+    for w in gw.getAllWindows():
+        if w.title and name_low in w.title.lower():
+            return w
+    return None
+
+
+def minimize_window_by_title(name: str) -> bool:
+    """Сворачивает окно, в заголовке которого есть name."""
+    w = _find_window(name)
+    if not w:
+        return False
+    try:
+        w.minimize()
+        return True
+    except Exception:
+        log.exception("minimize_window_by_title не удался")
+        return False
+
+
+def maximize_window_by_title(name: str) -> bool:
+    """Разворачивает окно, в заголовке которого есть name."""
+    w = _find_window(name)
+    if not w:
+        return False
+    try:
+        w.maximize()
+        w.activate()
+        return True
+    except Exception:
+        log.exception("maximize_window_by_title не удался")
+        return False

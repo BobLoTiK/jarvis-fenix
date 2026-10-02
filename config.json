@@ -7,16 +7,16 @@
   "voice": "Pavel",
   "music_app": "яндекс музыка",
   "music_wait_sec": 6,
-  "dialog_window_sec": 8,
+  "dialog_window_sec": 9,
   "sample_rate": 16000,
   "input_device": null,
   "mic_check_sec": 20,
-  "command_window_sec": 8,
+  "command_window_sec": 9,
   "use_whisper": true,
   "whisper_model": "auto",
   "whisper_device": "auto",
   "use_llm": true,
-  "llm_model": "qwen2.5:1.5b-instruct",
+  "llm_model": "qwen2.5:7b-instruct",
   "ollama_url": "http://127.0.0.1:11434",
   "app_paths": {},
   "custom_commands": [
@@ -24,6 +24,21 @@
       "phrases": ["запусти игру", "врубай катку"],
       "action": "steam://rungameid/570",
       "reply": "Запускаю Доту. Удачной игры."
+    },
+    {
+      "phrases": ["открой свой конфиг", "открой конфиг", "открой настройки", "покажи конфиг"],
+      "action": "C:\\jarvis\\config.json",
+      "reply": "Открываю свой конфиг."
+    },
+    {
+      "phrases": ["покажи ip", "узнай ip", "какой у меня ip"],
+      "action": "C:\\jarvis\\cmds\\show_ip.bat",
+      "reply": "Показываю сетевые настройки."
+    },
+    {
+      "phrases": ["открой терминал", "открой консоль", "открой командную строку"],
+      "action": "C:\\jarvis\\cmds\\open_terminal.bat",
+      "reply": "Открываю терминал в папке проекта."
     }
   ]
 }

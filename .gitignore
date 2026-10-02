@@ -1,15 +1,11 @@
 __pycache__/
 *.pyc
-.venv/
-venv/
+*.pyo
 models/
+voices/
+log.txt
 *.log
-*.wav
-selftest_out.txt
-
-# Артефакты сборки exe (PyInstaller)
-build/
-dist/
-*.spec
-*.exe
-jarvis/icon.ico
+.env
+config.json
+.idea/
+.vscode/
