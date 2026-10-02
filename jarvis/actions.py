@@ -1,327 +1,249 @@
-"""Низкоуровневые действия: запуск, завершение процессов, скриншоты, ссылки."""
+"""Действия: запуск приложений, открытие сайтов, скриншоты, медиа, печать, окна."""
 
-import ctypes
-import datetime
 import logging
 import os
 import re
-import socket
 import subprocess
-import webbrowser
+import time
+import urllib.parse
 from pathlib import Path
-from urllib.parse import quote_plus
-
-from PIL import ImageGrab
-
-from jarvis.matching import match_score, translit
 
 log = logging.getLogger("jarvis.actions")
 
-BROWSER_PROCS = ["chrome.exe", "msedge.exe", "firefox.exe", "opera.exe", "brave.exe", "browser.exe"]
-SCREENSHOTS_DIR = Path.home() / "Pictures" / "Screenshots"
+
+# --- запуск приложений и файлов -------------------------------------------
+
+def spec_from_string(s: str):
+    s = s.strip()
+    if s.startswith(("http://", "https://")):
+        return ("url", s)
+    if s.startswith("steam://"):
+        return ("uri", s)
+    if s.lower().endswith((".bat", ".cmd")):
+        return ("path", s)
+    if os.path.exists(s):
+        return ("path", s)
+    return ("path", s)
 
 
-def run_spec(spec) -> None:
-    """Выполняет открывающее действие: ("uri"|"exe"|"cmd", значение)."""
+def run_spec(spec) -> bool:
+    if not spec:
+        return False
     kind, value = spec
-    log.info("Запуск: %s %s", kind, value)
-    if kind == "cmd":
-        subprocess.Popen(value)
-    elif kind == "exe":
-        os.startfile(value)
-    else:  # uri / ссылка / всё, что умеет оболочка
-        os.startfile(value)
-
-
-def spec_from_string(action: str):
-    """Превращает строку из config.json в spec для run_spec."""
-    action = os.path.expandvars(action.strip())
-    if "://" in action:
-        return ("uri", action)
-    return ("exe", action)
-
-
-def open_url(url: str) -> None:
-    log.info("Открываю ссылку: %s", url)
-    webbrowser.open(url, new=2)
-
-
-def open_browser() -> None:
-    webbrowser.open("https://www.google.com", new=1)
-
-
-def kill_process(image_name: str) -> bool:
-    res = subprocess.run(
-        ["taskkill", "/IM", image_name, "/F", "/T"],
-        capture_output=True,
-        creationflags=subprocess.CREATE_NO_WINDOW,
-    )
-    ok = res.returncode == 0
-    log.info("taskkill %s -> %s", image_name, "ok" if ok else "не запущен")
-    return ok
-
-
-def close_browser() -> bool:
-    return any([kill_process(p) for p in BROWSER_PROCS])
-
-
-def minimize_window(title_part: str) -> bool:
-    """Сворачивает первое видимое окно, в заголовке которого есть подстрока."""
-    user32 = ctypes.windll.user32
-    found = []
-
-    @ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
-    def _enum(hwnd, _):
-        if user32.IsWindowVisible(hwnd):
-            buf = ctypes.create_unicode_buffer(256)
-            user32.GetWindowTextW(hwnd, buf, 256)
-            if title_part.lower() in buf.value.lower():
-                found.append(hwnd)
-                return False
-        return True
-
-    user32.EnumWindows(_enum, 0)
-    if found:
-        user32.ShowWindow(found[0], 6)  # SW_MINIMIZE
-        log.info("Свернул окно с %r", title_part)
-        return True
+    try:
+        if kind == "url":
+            open_url(value)
+            return True
+        if kind == "uri":
+            os.startfile(value)
+            return True
+        if kind in ("path", "exe"):
+            os.startfile(value)
+            return True
+    except Exception:
+        log.exception("run_spec не удался: %s", spec)
     return False
 
 
-def uri_scheme_exists(scheme: str) -> bool:
-    """Зарегистрирован ли URL-протокол (yandexmusic:// и т.п.)."""
-    import winreg
-
+def open_path(path, minimized: bool = False) -> bool:
     try:
-        with winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, scheme) as k:
-            winreg.QueryValueEx(k, "URL Protocol")
+        if minimized and str(path).lower().endswith(".lnk"):
+            subprocess.Popen(["cmd", "/c", "start", "/min", "", str(path)],
+                             creationflags=subprocess.CREATE_NO_WINDOW)
             return True
-    except OSError:
+        os.startfile(str(path))
+        return True
+    except Exception:
+        log.exception("open_path не удался: %s", path)
         return False
 
 
-def ensure_music_playing(hint: str = "музык|yandex|music", attempts: int = 2) -> None:
-    """Если плеер запущен, но не играет — жмёт play именно его медиа-сессии.
+def open_url(url: str) -> bool:
+    try:
+        os.startfile(url)
+        return True
+    except Exception:
+        log.exception("open_url не удался: %s", url)
+        return False
 
-    Свежезапущенный плеер регистрирует сессию не сразу, поэтому при её
-    отсутствии повторяем попытку, в конце — общая медиа-клавиша.
-    """
-    import asyncio
-    import threading
 
-    async def _try() -> str:
+def open_browser() -> bool:
+    try:
+        os.startfile("https://www.google.com")
+        return True
+    except Exception:
+        log.exception("open_browser не удался")
+        return False
+
+
+# --- поиск и сайты ---------------------------------------------------------
+
+def open_search(engine: str, query: str) -> bool:
+    q = urllib.parse.quote(query)
+    if engine == "youtube":
+        url = f"https://www.youtube.com/results?search_query={q}"
+    elif engine == "wiki":
+        url = f"https://ru.wikipedia.org/w/index.php?search={q}"
+    else:
+        url = f"https://www.google.com/search?q={q}"
+    return open_url(url)
+
+
+def google_search(query: str) -> bool:
+    return open_search("google", query)
+
+
+def open_site_lucky(name: str) -> bool:
+    q = urllib.parse.quote(name)
+    return open_url(f"https://duckduckgo.com/?q=!ducky+{q}")
+
+
+def spoken_domain(name: str):
+    text = name.lower().replace("точка", ".").replace(" точка ", ".").strip()
+    text = re.sub(r"\s+", "", text)
+    if "." in text and " " not in text:
+        return "https://" + text
+    return None
+
+
+def guess_site(name: str):
+    slug = re.sub(r"[^a-z0-9]", "", name.lower())
+    if not slug:
+        return None
+    return f"https://{slug}.ru"
+
+
+# --- скриншоты -------------------------------------------------------------
+
+def take_screenshot():
+    try:
+        from PIL import ImageGrab
+        folder = Path.home() / "Pictures" / "Screenshots"
+        folder.mkdir(parents=True, exist_ok=True)
+        path = folder / f"screenshot_{time.strftime('%Y-%m-%d_%H-%M-%S')}.png"
+        img = ImageGrab.grab()
+        img.save(path)
+        return path
+    except Exception:
+        log.exception("take_screenshot не удался")
+        raise
+
+
+# --- медиа -----------------------------------------------------------------
+
+def media_key(key: str, times: int = 1) -> bool:
+    try:
         from winrt.windows.media.control import (
             GlobalSystemMediaTransportControlsSessionManager as Manager,
         )
-
-        mgr = await Manager.request_async()
-        sessions = list(mgr.get_sessions())
-        matched = [s for s in sessions
-                   if re.search(hint, s.source_app_user_model_id.lower())] or sessions
-        for s in matched:
-            status = s.get_playback_info().playback_status
-            if status == 4:  # уже играет
-                return "playing"
-            await s.try_play_async()
-            return "started"
-        return "no_session"
-
-    try:
-        result = asyncio.run(_try())
-    except Exception:
-        log.exception("Media Control недоступен")
-        result = "error"
-    log.info("ensure_music_playing: %s (осталось попыток %d)", result, attempts)
-    if result == "no_session" and attempts > 1:
-        threading.Timer(5.0, ensure_music_playing, args=(hint, attempts - 1)).start()
-    elif result in ("no_session", "error"):
-        media_key("play")  # последний шанс — системная клавиша
-
-
-def take_screenshot() -> Path:
-    SCREENSHOTS_DIR.mkdir(parents=True, exist_ok=True)
-    stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    path = SCREENSHOTS_DIR / f"jarvis_{stamp}.png"
-    img = ImageGrab.grab(all_screens=True)
-    img.save(path)
-    log.info("Скриншот: %s", path)
-    return path
-
-
-SEARCH_URLS = {
-    "google": "https://www.google.com/search?q={}",
-    "youtube": "https://www.youtube.com/results?search_query={}",
-    "wiki": "https://ru.wikipedia.org/w/index.php?search={}",
-}
-
-
-def open_search(engine: str, query: str) -> None:
-    open_url(SEARCH_URLS.get(engine, SEARCH_URLS["google"]).format(quote_plus(query)))
-
-
-def open_site_lucky(name: str) -> None:
-    """Открывает сайт по названию через DuckDuckGo «мне повезёт» (редирект
-    на первый результат). Работает для любого сайта и не зависит от DNS."""
-    open_url("https://duckduckgo.com/?q=" + quote_plus("\\" + name))
-
-
-def google_search(query: str) -> None:
-    open_search("google", query)
-
-
-def open_path(path, minimized: bool = False) -> None:
-    log.info("Открываю%s: %s", " свёрнуто" if minimized else "", path)
-    if minimized:
-        # start /min работает и для exe, и для .lnk, и для URI
-        subprocess.Popen(f'start /min "" "{path}"', shell=True,
-                         creationflags=subprocess.CREATE_NO_WINDOW)
-        return
-    try:
-        os.startfile(path)
-    except OSError:
-        # сломанная ассоциация файла — показываем в браузере или в проводнике
-        log.warning("Нет ассоциации для %s, открываю через браузер", path)
-        try:
-            webbrowser.open(Path(path).absolute().as_uri())
-        except Exception:
-            subprocess.Popen(["explorer", "/select,", str(path)])
-
-
-# --- мультимедийные клавиши -------------------------------------------------
-
-_VK = {"play": 0xB3, "stop": 0xB2, "next": 0xB0, "prev": 0xB1,
-       "mute": 0xAD, "vol_up": 0xAF, "vol_down": 0xAE}
-# LLM любит синонимы — приводим к play/pause-тогглу
-_VK_ALIASES = {"pause": "play", "play_pause": "play", "toggle": "play", "resume": "play"}
-_KEYUP = 0x0002
-
-
-def media_key(name: str, times: int = 1) -> bool:
-    """Жмёт системную медиа-клавишу (как на клавиатуре): play/next/vol_up..."""
-    name = _VK_ALIASES.get(name, name)
-    vk = _VK.get(name)
-    if vk is None:
+    except ImportError:
+        log.warning("WinRT Media Control недоступен")
         return False
-    log.info("Медиа-клавиша: %s x%d", name, times)
-    for _ in range(times):
-        ctypes.windll.user32.keybd_event(vk, 0, 0, 0)
-        ctypes.windll.user32.keybd_event(vk, 0, _KEYUP, 0)
-    return True
+    try:
+        import asyncio
+
+        async def _press():
+            mgr = await Manager.request_async()
+            session = mgr.get_current_session()
+            if not session:
+                return False
+            for _ in range(max(1, times)):
+                if key == "play":
+                    await session.try_toggle_play_pause_async()
+                elif key == "next":
+                    await session.try_skip_next_async()
+                elif key == "prev":
+                    await session.try_skip_previous_async()
+                elif key == "vol_up":
+                    _volume_up()
+                elif key == "vol_down":
+                    _volume_down()
+                elif key == "mute":
+                    _volume_mute()
+                time.sleep(0.05)
+            return True
+
+        return asyncio.run(_press())
+    except Exception:
+        log.exception("media_key не удался: %s", key)
+        return False
 
 
-# --- произвольные сайты ---------------------------------------------------
+def _volume_up():
+    import ctypes
+    for _ in range(2):
+        ctypes.windll.user32.keybd_event(0xAF, 0, 0, 0)
+        ctypes.windll.user32.keybd_event(0xAF, 0, 2, 0)
 
-_TLD_WORDS = {"ру": "ru", "ком": "com", "орг": "org", "нет": "net",
-              "ио": "io", "рф": "xn--p1ai", "точка": ""}
+
+def _volume_down():
+    import ctypes
+    for _ in range(2):
+        ctypes.windll.user32.keybd_event(0xAE, 0, 0, 0)
+        ctypes.windll.user32.keybd_event(0xAE, 0, 2, 0)
 
 
-def spoken_domain(spoken: str) -> str | None:
-    """«хабр точка ру» -> https://habr.ru (домен, продиктованный через «точка»)."""
-    if "точка" not in spoken:
+def _volume_mute():
+    import ctypes
+    ctypes.windll.user32.keybd_event(0xAD, 0, 0, 0)
+    ctypes.windll.user32.keybd_event(0xAD, 0, 2, 0)
+
+
+def ensure_music_playing() -> bool:
+    return media_key("play")
+
+
+# --- процессы --------------------------------------------------------------
+
+def find_process(name: str, threshold: float = 0.7):
+    try:
+        import psutil
+    except ImportError:
         return None
-    parts = [p.strip() for p in spoken.split("точка") if p.strip()]
-    if len(parts) < 2:
-        return None
-    tld = _TLD_WORDS.get(parts[-1], translit(parts[-1].replace(" ", "")))
-    host = ".".join(translit(p.replace(" ", "")) for p in parts[:-1]) + "." + tld
-    if re.fullmatch(r"[a-z0-9.\-]+\.[a-z0-9\-]{2,}", host):
-        return "https://" + host
-    return None
-
-
-_dns_trust: bool | None = None
-
-
-def _dns_trustworthy() -> bool:
-    """Паркинг/провайдерский DNS «резолвит» любую абракадабру — тогда
-    угадывать домены по DNS бессмысленно и опасно. Проверяем один раз."""
-    global _dns_trust
-    if _dns_trust is None:
-        import random
-        import string
-
-        junk = "".join(random.choices(string.ascii_lowercase, k=16))
-        _dns_trust = True
-        for tld in (".ru", ".com"):
-            try:
-                socket.getaddrinfo(junk + tld, 443)
-                log.warning("DNS отвечает на мусорный домен %s — угадывание сайтов отключено", junk + tld)
-                _dns_trust = False
-                break
-            except OSError:
-                continue
-    return _dns_trust
-
-
-def guess_site(spoken: str) -> str | None:
-    """Пробует превратить «хабр» в живой домен: habr.ru / habr.com / ...
-
-    Только короткие цели: длинная фраза — это почти наверняка ошибка
-    распознавания, а паркинг-DNS «отвечает» на любую абракадабру.
-    """
-    if len(spoken.split()) > 2:
-        return None
-    base = translit(spoken.replace(" ", "").replace("-", ""))
-    if not re.fullmatch(r"[a-z0-9]{2,14}", base):
-        return None
-    if not _dns_trustworthy():
-        return None
-    for tld in (".ru", ".com", ".net", ".org", ".io"):
-        host = base + tld
-        try:
-            socket.getaddrinfo(host, 443)
-            log.info("Сайт угадан: %r -> %s", spoken, host)
-            return "https://" + host
-        except OSError:
+    from difflib import SequenceMatcher
+    name_low = name.lower()
+    for proc in psutil.process_iter(["name"]):
+        pname = (proc.info.get("name") or "").lower()
+        if not pname:
             continue
+        base = pname.removesuffix(".exe")
+        if name_low in base or SequenceMatcher(None, name_low, base).ratio() >= threshold:
+            return proc.info["name"]
     return None
 
 
-# --- закрытие произвольных программ ----------------------------------------
-
-# Эти процессы нельзя убивать ни при каком совпадении
-_KILL_BLACKLIST = {"system", "svchost", "csrss", "winlogon", "wininit", "services",
-                   "lsass", "dwm", "smss", "fontdrvhost", "registry", "idle",
-                   "explorer", "python", "pythonw", "conhost", "audiodg"}
-
-
-def list_processes() -> set[str]:
-    res = subprocess.run(
-        ["tasklist", "/FO", "CSV", "/NH"],
-        capture_output=True, text=True, encoding="cp866",
-        creationflags=subprocess.CREATE_NO_WINDOW,
-    )
-    names = set()
-    for line in res.stdout.splitlines():
-        if line.startswith('"'):
-            names.add(line.split('","')[0].strip('"'))
-    return names
+def kill_process(name: str) -> bool:
+    protected = {"system", "svchost.exe", "csrss.exe", "wininit.exe",
+                 "services.exe", "lsass.exe", "explorer.exe"}
+    if name.lower() in protected:
+        return False
+    try:
+        import psutil
+        killed = False
+        for proc in psutil.process_iter(["name"]):
+            if (proc.info.get("name") or "").lower() == name.lower():
+                proc.kill()
+                killed = True
+        return killed
+    except Exception:
+        log.exception("kill_process не удался: %s", name)
+        return False
 
 
-def find_process(target: str, threshold: float = 0.8) -> str | None:
-    """Имя exe запущенного процесса, лучше всего похожего на сказанное."""
-    best_exe, best_score = None, 0.0
-    for exe in list_processes():
-        raw = exe.removesuffix(".exe").removesuffix(".EXE")
-        base = raw.lower()
-        if base in _KILL_BLACKLIST:
-            continue
-        clean = re.sub(r"\d+$", "", base)  # obs64 -> obs
-        # RobloxPlayerInstaller -> roblox player installer
-        spaced = re.sub(r"(?<=[a-zа-я0-9])(?=[A-ZА-Я])", " ", raw).lower()
-        score = max(match_score(target, base), match_score(target, clean),
-                    match_score(target, spaced))
-        if score > best_score:
-            best_exe, best_score = exe, score
-    if best_score >= threshold:
-        log.info("Процесс: %r -> %s (score %.2f)", target, best_exe, best_score)
-        return best_exe
-    log.info("Процесс для %r не найден (лучший score %.2f, %r)", target, best_score, best_exe)
-    return None
-# --- новые действия: печать и управление окнами ---------------------------
+def close_browser() -> bool:
+    for name in ("chrome.exe", "firefox.exe", "msedge.exe", "opera.exe", "brave.exe"):
+        if find_process(name.removesuffix(".exe")) and kill_process(name):
+            return True
+    return False
+
+
+def minimize_window(name: str) -> bool:
+    return minimize_window_by_title(name)
+
+
+# --- печать и окна ---------------------------------------------------------
 
 def type_text(text: str) -> bool:
-    """Печатает текст в активное окно."""
     if not text:
         return False
     try:
@@ -334,7 +256,6 @@ def type_text(text: str) -> bool:
 
 
 def minimize_all() -> bool:
-    """Свернуть все окна (Win+D)."""
     try:
         import pyautogui
         pyautogui.hotkey("win", "d")
@@ -344,21 +265,101 @@ def minimize_all() -> bool:
         return False
 
 
+# Синонимы для окон: что сказать -> подстроки, которые искать в заголовках.
+# Регистр не важен. Порядок — от специфичных к общим.
+_WINDOW_SYNONYMS = {
+    "консоль": ["cmd.exe", "powershell", "command prompt", "c:\\users\\", "c:\\windows\\", "c:\\jarvis"],
+    "терминал": ["cmd.exe", "powershell", "command prompt", "c:\\users\\", "c:\\windows\\", "c:\\jarvis"],
+    "командную строку": ["cmd.exe", "command prompt", "c:\\users\\", "c:\\windows\\"],
+    "командная строка": ["cmd.exe", "command prompt", "c:\\users\\", "c:\\windows\\"],
+    "cmd": ["cmd.exe", "command prompt", "c:\\users\\", "c:\\windows\\"],
+    "браузер": ["chrome", "firefox", "яндекс", "yandex", "edge", "opera", "brave"],
+    "хром": ["chrome"],
+    "яндекс браузер": ["яндекс", "yandex"],
+    "firefox": ["firefox"],
+    "файрфокс": ["firefox"],
+    "edge": ["edge"],
+    "эдж": ["edge"],
+    "телега": ["telegram"],
+    "телеграм": ["telegram"],
+    "тг": ["telegram"],
+    "дискорд": ["discord"],
+    "дс": ["discord"],
+    "стим": ["steam"],
+    "steam": ["steam"],
+    "проводник": ["проводник", "explorer"],
+    "explorer": ["проводник", "explorer"],
+    "папку": ["проводник", "explorer"],
+    "настройки": ["настройки", "settings", "параметры"],
+    "параметры": ["параметры", "settings", "настройки"],
+    "оллама": ["ollama"],
+    "ollama": ["ollama"],
+    "радмин": ["radmin"],
+    "radmin": ["radmin"],
+    "овервульф": ["overwolf"],
+    "overwolf": ["overwolf"],
+}
+
+
 def _find_window(name: str):
-    """Ищет окно по подстроке в заголовке (регистронезависимо)."""
+    """Ищет окно по подстроке в заголовке с учётом синонимов."""
     try:
         import pygetwindow as gw
     except ImportError:
         return None
-    name_low = name.lower()
-    for w in gw.getAllWindows():
-        if w.title and name_low in w.title.lower():
-            return w
-    return None
+
+    windows = [w for w in gw.getAllWindows() if w.title]
+    name_low = name.lower().strip()
+
+    # 1. Прямое совпадение подстроки
+    direct = [w for w in windows if name_low in w.title.lower()]
+    if direct:
+        for w in direct:
+            try:
+                if w.visible and not w.isMinimized:
+                    return w
+            except Exception:
+                pass
+        return direct[0]
+
+    # 2. Синонимы: ищем по списку подстрок
+    subs = None
+    for key, values in _WINDOW_SYNONYMS.items():
+        if key == name_low or key in name_low or name_low in key:
+            subs = values
+            break
+    if subs:
+        for sub in subs:
+            sub_low = sub.lower()
+            for w in windows:
+                if sub_low in w.title.lower():
+                    try:
+                        if w.visible and not w.isMinimized:
+                            return w
+                    except Exception:
+                        pass
+        # второй проход — берём любое, даже свёрнутое
+        for sub in subs:
+            sub_low = sub.lower()
+            for w in windows:
+                if sub_low in w.title.lower():
+                    return w
+
+    # 3. Нечёткое совпадение (SequenceMatcher) по началу заголовка
+    from difflib import SequenceMatcher
+    best = None
+    best_ratio = 0.6
+    for w in windows:
+        title_low = w.title.lower()
+        # сравниваем с началом заголовка (первые 40 символов) — там обычно имя программы
+        ratio = SequenceMatcher(None, name_low, title_low[:40]).ratio()
+        if ratio > best_ratio:
+            best_ratio = ratio
+            best = w
+    return best
 
 
 def minimize_window_by_title(name: str) -> bool:
-    """Сворачивает окно, в заголовке которого есть name."""
     w = _find_window(name)
     if not w:
         return False
@@ -371,14 +372,93 @@ def minimize_window_by_title(name: str) -> bool:
 
 
 def maximize_window_by_title(name: str) -> bool:
-    """Разворачивает окно, в заголовке которого есть name."""
     w = _find_window(name)
     if not w:
         return False
     try:
+        if getattr(w, "isMinimized", False):
+            w.restore()
+            time.sleep(0.15)
         w.maximize()
-        w.activate()
+        try:
+            w.activate()
+        except Exception:
+            pass
         return True
     except Exception:
         log.exception("maximize_window_by_title не удался")
         return False
+
+
+def activate_window_by_title(name: str) -> bool:
+    """Переключается на окно по имени (активирует его)."""
+    w = _find_window(name)
+    if not w:
+        return False
+    try:
+        if getattr(w, "isMinimized", False):
+            w.restore()
+            time.sleep(0.15)
+        w.activate()
+        return True
+    except Exception:
+        log.exception("activate_window_by_title не удался")
+        return False
+
+
+# --- относительные окна: активное, переключение ---------------------------
+
+def minimize_active() -> bool:
+    try:
+        import pyautogui
+        pyautogui.hotkey("win", "down")
+        return True
+    except Exception:
+        log.exception("minimize_active не удался")
+        return False
+
+
+def maximize_active() -> bool:
+    try:
+        import pyautogui
+        pyautogui.hotkey("win", "up")
+        return True
+    except Exception:
+        log.exception("maximize_active не удался")
+        return False
+
+
+def switch_window(back: bool = False) -> bool:
+    try:
+        import pyautogui
+        if back:
+            pyautogui.hotkey("alt", "shift", "tab")
+        else:
+            pyautogui.hotkey("alt", "tab")
+        return True
+    except Exception:
+        log.exception("switch_window не удался")
+        return False
+
+
+# --- папки пользователя ----------------------------------------------------
+
+_USER_FOLDERS = {
+    "загрузки": Path.home() / "Downloads",
+    "скачанное": Path.home() / "Downloads",
+    "документы": Path.home() / "Documents",
+    "рабочий стол": Path.home() / "Desktop",
+    "изображения": Path.home() / "Pictures",
+    "картинки": Path.home() / "Pictures",
+    "музыка": Path.home() / "Music",
+    "видео": Path.home() / "Videos",
+    "скриншоты": Path.home() / "Pictures" / "Screenshots",
+}
+
+
+def resolve_user_folder(name: str):
+    name = name.lower().strip()
+    for key, path in _USER_FOLDERS.items():
+        if key in name:
+            return path
+    return None
