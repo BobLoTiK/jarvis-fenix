@@ -50,8 +50,6 @@ class Jarvis:
         self.stop_event.set()
 
     def mic_watchdog(self) -> None:
-        """Если за первые секунды с микрофона тишина и ни одной фразы —
-        устройство, скорее всего, выключено (частый случай с беспроводным)."""
         delay = float(self.config.get("mic_check_sec", 20))
         if self.stop_event.wait(delay):
             return
@@ -80,7 +78,7 @@ class Jarvis:
         if cmd is None:
             return  # обращались не к нам
         if cmd == "":
-            # Просто «Джарвис» — ждём команду следующей фразой
+            # Просто «Феникс» — ждём команду следующей фразой
             self.say("Слушаю.")
             self._awaiting_until = time.time() + self.config["command_window_sec"]
             return
@@ -92,12 +90,11 @@ class Jarvis:
                 return
             if refined:
                 cmd = refined
-        self._awaiting_until = 0.0
-        self.say(self.handler.handle(cmd))
-        # после разговорного ответа ждём реплику без wake-слова — живой диалог
-        if getattr(self.handler, "last_was_chat", False):
-            self._awaiting_until = time.time() + float(
-                self.config.get("dialog_window_sec", 8))
+        reply = self.handler.handle(cmd)
+        self.say(reply)
+        # после ЛЮБОГО ответа — окно на продолжение диалога без wake-слова
+        self._awaiting_until = time.time() + float(
+            self.config.get("dialog_window_sec", 8))
 
     def _refine(self, audio: bytes, awaiting: bool):
         """Пере-распознаёт фразу Whisper'ом и убирает из неё wake-слово.
@@ -135,8 +132,6 @@ class Jarvis:
         return None
 
     def _is_wake(self, token: str) -> bool:
-        # wake_score транслитерирует (ловит «финикс», латинское «fenix»),
-        # но без бонуса за подстроку — «фен» будить не должен
         return token in self._wake_words or any(
             wake_score(token, w) >= 0.8 for w in self._wake_words
         )
@@ -160,7 +155,6 @@ def main() -> None:
     config = load_config(BASE_DIR)
     model_dir = ensure_model(BASE_DIR / "models")
 
-    # Whisper грузим строго до первого использования WinRT (см. WhisperTranscriber)
     whisper = None
     if config.get("use_whisper", True):
         try:

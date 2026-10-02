@@ -122,7 +122,7 @@ class IntentHandler:
         self.music_wait = float(config.get("music_wait_sec", 6))
         self.last_file = None
         self.last_folder = None
-        self.dialog = deque(maxlen=12)
+        self.dialog = deque(maxlen=40)
         self.last_was_chat = False
         self.custom = []
         for entry in config.get("custom_commands", []):
@@ -181,28 +181,51 @@ class IntentHandler:
         if reply:
             return reply
 
-        # «напечатай ...» — диктовка в активное окно
         m = re.match(r"^(?:напечатай|напиши|введи|набери)\s+(.+)$", cmd)
         if m:
             text = m.group(1).strip()
             actions.type_text(text)
             return f"Печатаю: {text}."
 
-        # «сверни все окна» / «покажи рабочий стол»
-        if re.search(r"сверни\s+вс[её]|покажи\s+рабочий\s+стол|свернуть\s+вс[её]", cmd):
+        if re.search(r"(сверни|свернуть|убери)\s+(вс[её]|все окна|рабочий стол)", cmd) \
+                or cmd in {"покажи рабочий стол", "сверни все окна", "сверни всё", "сверни все"}:
             actions.minimize_all()
             return "Сворачиваю всё."
 
-        # «сверни <окно>» / «разверни <окно>»
+        if re.search(r"^сверни\s+(это|текущ|активн)", cmd) or cmd in {"сверни окно", "сверни"}:
+            actions.minimize_active()
+            return "Сворачиваю активное окно."
+
+        if re.search(r"^(разверни|развернуть)\s+(это|текущ|активн)", cmd) \
+                or cmd in {"разверни окно", "разверни"}:
+            actions.maximize_active()
+            return "Разворачиваю активное окно."
+
+        if re.search(r"^(переключи|смени|следующ\w*)\s+(окно|вкладк)", cmd) \
+                or cmd in {"переключи окно", "следующее окно", "дальше окно"}:
+            actions.switch_window(back=False)
+            return "Переключаю окно."
+
+        if re.search(r"^(предыдущ\w*|назад)\s+(окно|вкладк)", cmd) \
+                or cmd in {"предыдущее окно", "назад окно"}:
+            actions.switch_window(back=True)
+            return "Возвращаю окно."
+
         m = re.match(r"^(сверни|разверни|развернуть|свернуть)\s+(.+)$", cmd)
         if m:
             verb, name = m.group(1), m.group(2).strip()
             if verb.startswith("сверн"):
-                ok = actions.minimize_window_by_title(name)
-                return f"Сворачиваю {name}." if ok else f"Окно {name} не нашёл."
+                if actions.minimize_window_by_title(name):
+                    return f"Сворачиваю {name}."
             else:
-                ok = actions.maximize_window_by_title(name)
-                return f"Разворачиваю {name}." if ok else f"Окно {name} не нашёл."
+                if actions.maximize_window_by_title(name):
+                    return f"Разворачиваю {name}."
+
+        m = re.match(r"^(переключись|перейди)\s+(?:на\s+)?(.+)$", cmd)
+        if m:
+            name = m.group(2).strip()
+            if actions.activate_window_by_title(name):
+                return f"Переключаюсь на {name}."
 
         if re.search(r"скрин|снимок экрана", cmd):
             tokens_ = cmd.split()
@@ -323,7 +346,7 @@ class IntentHandler:
             self.last_file = path
             return f"Скриншот сохранён в папку {path.parent.name}."
         if action == "answer" and intent.get("reply"):
-            return str(intent["reply"])[:300]
+            return str(intent["reply"])[:600]
         if action == "type_text":
             text = str(intent.get("text") or intent.get("target") or "").strip()
             ok = actions.type_text(text)
@@ -337,6 +360,18 @@ class IntentHandler:
         if action == "maximize_window" and target:
             ok = actions.maximize_window_by_title(target)
             return f"Разворачиваю {target}." if ok else f"Окно {target} не нашёл."
+        if action == "activate_window" and target:
+            ok = actions.activate_window_by_title(target)
+            return f"Переключаюсь на {target}." if ok else f"Окно {target} не нашёл."
+        if action == "minimize_active":
+            actions.minimize_active()
+            return "Сворачиваю активное окно."
+        if action == "maximize_active":
+            actions.maximize_active()
+            return "Разворачиваю активное окно."
+        if action == "switch_window":
+            actions.switch_window(back=bool(intent.get("back")))
+            return "Переключаю окно."
         return None
 
     def _match_custom(self, cmd: str) -> str | None:
@@ -554,8 +589,8 @@ class IntentHandler:
             return f"Я {APP_NAME}, локальный голосовой ассистент, версия {__version__}."
         if any(p in cmd for p in ("что ты умеешь", "помощь", "что умеешь", "команды")):
             return ("Я умею открывать и закрывать приложения и сайты, делать скриншоты, "
-                    "искать в интернете и отвечать на простые вопросы. "
-                    "Свои команды можно добавить в конфиг.")
+                    "искать в интернете, печатать текст, управлять окнами и отвечать "
+                    "на вопросы. Свои команды можно добавить в конфиг.")
         if any(p in cmd for p in ("спасибо", "благодарю")):
             return "Всегда пожалуйста."
         if any(p in cmd for p in ("привет", "здравствуй", "добрый день", "доброе утро", "добрый вечер")):
