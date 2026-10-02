@@ -139,13 +139,6 @@ json
 - **Разговор:** «как дела», «расскажи шутку», «что такое фотосинтез» (LLM должна ответить).
 
 В config.json:
-json
-
-{
-  "phrases": ["открой конфиг"],
-  "action": "C:\\jarvis\\config.json",
-  "reply": "Открываю конфиг."
-}
 
 ### Типы действий:
 
@@ -158,19 +151,7 @@ json
     Steam-URI: steam://rungameid/570
 
     Цепочка шагов:
-
-### json
-
-{
-  "phrases": ["запусти игру"],
-  "steps": [
-    {"action": "open_app", "target": "steam"},
-    {"action": "wait", "seconds": 5},
-    {"action": "open_app", "target": "dota 2"}
-  ],
-  "reply": "Запускаю Доту."
-}
-
+    
 ### Голос
 
 **По умолчанию — Piper (ruslan).** Смена в config.json:
