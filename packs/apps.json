@@ -1,0 +1,22 @@
+[
+  {"phrases": ["открой дискорд", "открой дс"], "action": "open_app:discord", "reply": "Открываю Discord."},
+  {"phrases": ["открой телеграм", "открой тг", "открой телегу"], "action": "open_app:telegram", "reply": "Открываю Telegram."},
+  {"phrases": ["открой обс", "открой обс студио"], "action": "open_app:obs", "reply": "Открываю OBS Studio."},
+  {"phrases": ["открой вс код", "открой вскод", "открой код"], "action": "open_app:code", "reply": "Открываю VS Code."},
+  {"phrases": ["открой спотифай", "открой споти"], "action": "open_app:spotify", "reply": "Открываю Spotify."},
+  {"phrases": ["открой яндекс музыку"], "action": "open_app:яндекс музыка", "reply": "Открываю Яндекс Музыку."},
+  {"phrases": ["открой стим"], "action": "open_app:steam", "reply": "Открываю Steam."},
+  {"phrases": ["открой эпик геймс", "открой эпик"], "action": "open_app:epic", "reply": "Открываю Epic Games."},
+  {"phrases": ["открой фотошоп"], "action": "open_app:photoshop", "reply": "Открываю Photoshop."},
+  {"phrases": ["открой браузер"], "action": "browser", "reply": "Открываю браузер."},
+  {"phrases": ["открой проводник", "открой мой компьютер"], "action": "explorer.exe", "reply": "Открываю проводник."},
+  {"phrases": ["открой калькулятор", "открой калк"], "action": "calc.exe", "reply": "Открываю калькулятор."},
+  {"phrases": ["открой блокнот"], "action": "notepad.exe", "reply": "Открываю блокнот."},
+  {"phrases": ["открой диспетчер задач", "открой таск менеджер"], "action": "taskmgr.exe", "reply": "Открываю диспетчер задач."},
+  {"phrases": ["открой настройки", "открой параметры"], "action": "ms-settings:", "reply": "Открываю настройки."},
+  {"phrases": ["открой панель управления"], "action": "control.exe", "reply": "Открываю панель управления."},
+  {"phrases": ["открой терминал", "открой консоль"], "action": "cmd.exe", "reply": "Открываю терминал."},
+  {"phrases": ["открой павершелл", "открой powershell"], "action": "powershell.exe", "reply": "Открываю PowerShell."},
+  {"phrases": ["открой часы", "открой будильник"], "action": "ms-clock:", "reply": "Открываю часы."},
+  {"phrases": ["открой камеру"], "action": "microsoft.windows.camera:", "reply": "Открываю камеру."}
+]

@@ -15,12 +15,16 @@ log = logging.getLogger("jarvis.actions")
 
 def spec_from_string(s: str):
     s = s.strip()
+    if s.startswith("open_app:"):
+        return ("open_app", s[len("open_app:"):])
     if s.startswith(("http://", "https://")):
         return ("url", s)
     if s.startswith("steam://"):
         return ("uri", s)
     if s.lower().endswith((".bat", ".cmd")):
         return ("path", s)
+    if s.lower() in ("browser", "браузер"):
+        return ("browser", None)
     if os.path.exists(s):
         return ("path", s)
     return ("path", s)
@@ -31,6 +35,18 @@ def run_spec(spec) -> bool:
         return False
     kind, value = spec
     try:
+        if kind == "open_app":
+            from jarvis.installed import scan_start_menu, find_installed
+            apps = scan_start_menu()
+            hit = find_installed(apps, value)
+            if hit:
+                os.startfile(str(hit[1]))
+                return True
+            log.warning("Приложение '%s' не найдено в меню Пуск", value)
+            return False
+        if kind == "browser":
+            open_browser()
+            return True
         if kind == "url":
             open_url(value)
             return True
@@ -43,7 +59,6 @@ def run_spec(spec) -> bool:
     except Exception:
         log.exception("run_spec не удался: %s", spec)
     return False
-
 
 def open_path(path, minimized: bool = False) -> bool:
     try:

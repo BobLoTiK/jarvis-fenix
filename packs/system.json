@@ -1,0 +1,17 @@
+[
+  {"phrases": ["заблокируй компьютер", "заблокируй пк", "залочь пк"], "action": "rundll32.exe user32.dll,LockWorkStation", "reply": "Блокирую компьютер."},
+  {"phrases": ["спящий режим", "усни", "сон пк"], "action": "rundll32.exe powrprof.dll,SetSuspendState 0,1,0", "reply": "Ухожу в спящий режим."},
+  {"phrases": ["перезагрузи компьютер", "перезагрузка"], "action": "shutdown /r /t 10", "reply": "Перезагружаю через 10 секунд."},
+  {"phrases": ["выключи компьютер", "отключи пк"], "action": "shutdown /s /t 10", "reply": "Выключаю через 10 секунд."},
+  {"phrases": ["отмени выключение", "отмена выключения"], "action": "shutdown /a", "reply": "Отменяю выключение."},
+  {"phrases": ["открой диспетчер устройств"], "action": "devmgmt.msc", "reply": "Открываю диспетчер устройств."},
+  {"phrases": ["открой редактор реестра"], "action": "regedit.exe", "reply": "Открываю редактор реестра."},
+  {"phrases": ["открой управление дисками"], "action": "diskmgmt.msc", "reply": "Открываю управление дисками."},
+  {"phrases": ["покажи ip", "какой у меня ip"], "action": "cmd /k ipconfig", "reply": "Показываю IP."},
+  {"phrases": ["покажи процессы", "список процессов"], "action": "cmd /k tasklist", "reply": "Показываю процессы."},
+  {"phrases": ["покажи версию винды"], "action": "cmd /k winver", "reply": "Показываю версию Windows."},
+  {"phrases": ["открой монитор ресурсов"], "action": "resmon.exe", "reply": "Открываю монитор ресурсов."},
+  {"phrases": ["открой службы"], "action": "services.msc", "reply": "Открываю службы."},
+  {"phrases": ["открой планировщик задач"], "action": "taskschd.msc", "reply": "Открываю планировщик."},
+  {"phrases": ["открой программы и компоненты"], "action": "appwiz.cpl", "reply": "Открываю список программ."}
+]

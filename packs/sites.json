@@ -1,0 +1,22 @@
+[
+  {"phrases": ["открой ютуб", "открой youtube"], "action": "https://www.youtube.com", "reply": "Открываю YouTube."},
+  {"phrases": ["открой твич", "открой twitch"], "action": "https://www.twitch.tv", "reply": "Открываю Twitch."},
+  {"phrases": ["открой гитхаб", "открой github"], "action": "https://github.com", "reply": "Открываю GitHub."},
+  {"phrases": ["открой вк", "открой вконтакте"], "action": "https://vk.com", "reply": "Открываю ВКонтакте."},
+  {"phrases": ["открой телегу веб", "открой веб телеграм"], "action": "https://web.telegram.org", "reply": "Открываю Telegram Web."},
+  {"phrases": ["открой кинопоиск"], "action": "https://www.kinopoisk.ru", "reply": "Открываю Кинопоиск."},
+  {"phrases": ["открой хабр", "открой habr"], "action": "https://habr.com", "reply": "Открываю Хабр."},
+  {"phrases": ["открой википедию"], "action": "https://ru.wikipedia.org", "reply": "Открываю Википедию."},
+  {"phrases": ["открой почту", "открой gmail"], "action": "https://mail.google.com", "reply": "Открываю почту."},
+  {"phrases": ["открой яндекс"], "action": "https://ya.ru", "reply": "Открываю Яндекс."},
+  {"phrases": ["открой гугл"], "action": "https://www.google.com", "reply": "Открываю Google."},
+  {"phrases": ["открой авито"], "action": "https://www.avito.ru", "reply": "Открываю Авито."},
+  {"phrases": ["открой озон", "открой ozon"], "action": "https://www.ozon.ru", "reply": "Открываю Ozon."},
+  {"phrases": ["открой вайлдберриз", "открой вб"], "action": "https://www.wildberries.ru", "reply": "Открываю Wildberries."},
+  {"phrases": ["открой дзен"], "action": "https://dzen.ru", "reply": "Открываю Дзен."},
+  {"phrases": ["открой пикабу"], "action": "https://pikabu.ru", "reply": "Открываю Пикабу."},
+  {"phrases": ["открой реддит"], "action": "https://www.reddit.com", "reply": "Открываю Reddit."},
+  {"phrases": ["открой тикток"], "action": "https://www.tiktok.com", "reply": "Открываю TikTok."},
+  {"phrases": ["открой инстаграм"], "action": "https://www.instagram.com", "reply": "Открываю Instagram."},
+  {"phrases": ["открой стим комьюнити"], "action": "https://steamcommunity.com", "reply": "Открываю Steam Community."}
+]
