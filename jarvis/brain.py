@@ -13,6 +13,8 @@ SYSTEM = """Ты разбираешь команды голосового асс
 Действия: open_app (открыть программу; minimized=true — свёрнуто), close_app, open_site, search (поиск), screenshot, open_file, media_key (key: play|next|prev|vol_up|vol_down|mute), wait (seconds), answer, none, open_folder, list_folder, create_file, type_text (text), minimize_all (свернуть все окна), minimize_window (target), maximize_window (target), activate_window (target — переключиться на окно), minimize_active, maximize_active, switch_window (back=true — на предыдущее).
 Поля: action; target; query; engine (google|youtube|wiki); reply; text.
 
+ВАЖНО про паки: команды «активируй паки», «загрузи паки», «выгрузи паки», «какие паки» — НЕ трогай. Это команды системы паков, они обрабатываются отдельно. НИКОГДА не возвращай minimize_all, maximize_all или что-то с окнами в ответ на слова «паки», «активируй», «загрузи».
+
 ВАЖНО про окна:
 - «консоль», «терминал», «командная строка», «cmd» → target: "cmd"
 - «браузер» → target: "браузер"

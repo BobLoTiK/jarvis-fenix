@@ -101,7 +101,7 @@ FILLER = {"пожалуйста", "мне", "ка", "давай", "быстро"
 
 BROWSER_WORDS = {"браузер", "браузере", "браузером", "хром", "хроме", "интернет", "интернете"}
 
-CANCEL = {"отмена", "стоп", "ничего", "забудь", "отбой"}
+CANCEL = {"отмена", "стоп", "стой", "хватит", "замолчи", "ничего", "забудь", "отбой"}
 
 SITES = {
     "ютуб": ("Ютуб", "https://www.youtube.com"),
@@ -211,6 +211,7 @@ class IntentHandler:
         self.mode = modes.get_mode(config)
         self.active_packs = list(config.get("active_packs", []))
         self.last_macro = None
+        self._reset_requested = False
         self.custom = []
         self.custom.extend(self._load_packs_as_custom(config))
         for entry in config.get("custom_commands", []):
@@ -271,7 +272,9 @@ class IntentHandler:
 
     def _handle_single(self, cmd: str) -> str:
         if cmd in CANCEL:
-            return "Хорошо."
+            # сигнал main.py: закрыть окно диалога
+            self._reset_requested = True
+            return "Жду обращение, сэр."
 
         # --- режимы работы ---
         reply, new_mode = modes.handle_mode_command(cmd, self.mode)

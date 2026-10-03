@@ -15,16 +15,26 @@
   "voice": "Pavel",
   "music_app": "яндекс музыка",
   "music_wait_sec": 6,
-  "dialog_window_sec": 9,
+  "dialog_window_sec": 20,
   "sample_rate": 16000,
   "input_device": null,
   "mic_check_sec": 20,
   "command_window_sec": 9,
+  "mode": "combo",
+  "active_packs": [
+    "apps",
+    "games",
+    "sites",
+    "system",
+    "work"
+  ],
+  "memory_file": "dialog.json",
+  "memory_max": 200,
   "use_whisper": true,
   "whisper_model": "auto",
   "whisper_device": "auto",
   "use_llm": true,
-  "llm_model": "qwen2.5:7b-instruct",
+  "llm_model": "qwen2.5:1.5b-instruct",
   "ollama_url": "http://127.0.0.1:11434",
   "app_paths": {},
   "custom_commands": [
@@ -64,9 +74,5 @@
       "action": "C:\\jarvis\\cmds\\open_terminal.bat",
       "reply": "Открываю терминал в папке проекта."
     }
-  ],
-  "mode": "combo"
-  "active_packs": ["apps", "sites", "system"],
-  "memory_file": "dialog.json",
-  "memory_max": 200,
+  ]
 }

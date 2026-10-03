@@ -1,18 +1,21 @@
 """Синтез речи.
 
 Бэкенды по приоритету:
-1. xtts — клонирование голоса (XTTS-v2, GPU, ~2-4 с): кладёте референс
-   voices/jarvis.wav (10-30 с чистой речи) — Феникс говорит этим голосом;
-2. piper — локальный нейро-TTS (ONNX, CPU, ~0.2 с), голоса ru_RU dmitri/ruslan;
-3. winrt — системный OneCore-голос Microsoft Pavel (его нет в классическом SAPI);
+1. xtts — клонирование голоса (XTTS-v2, GPU, ~2-4 с);
+2. piper — локальный нейро-TTS (ONNX, CPU, ~0.2 с), голоса ru_RU dmitri/ruslan/irina/denis;
+3. winrt — системный OneCore-голос Microsoft Pavel;
 4. sapi — pyttsx3/Ирина, аварийный.
 
-tts_backend: "auto" (xtts при наличии референса, иначе piper) / xtts / piper / winrt.
+tts_backend: "auto" / xtts / piper / winrt.
 Скорость дикции: voice_rate (1.0 = обычная).
+
+Смена голоса на лету: при каждом speak() перечитываем config.json.
+Если tts_voice изменился — перезагружаем Piper с новым голосом.
 """
 
 import asyncio
 import io
+import json
 import logging
 import os
 import wave
@@ -23,15 +26,19 @@ log = logging.getLogger("jarvis.tts")
 
 PIPER_REPO = "rhasspy/piper-voices"
 BASE_DIR = Path(__file__).resolve().parent.parent
+CONFIG_PATH = BASE_DIR / "config.json"
 
 
 class Speaker:
     def __init__(self, config: dict | None = None):
         cfg = config or {}
         self.rate = float(cfg.get("voice_rate", 1.15))
+        self.voice = cfg.get("tts_voice", "ruslan")
         self._voice_hint = cfg.get("voice", "Pavel")
         self._mode = None
         self._engine = None
+        self._piper = None
+        self._piper_cfg = None
 
         backend = cfg.get("tts_backend", "auto")
         ref = BASE_DIR / cfg.get("xtts_ref", "voices/jarvis.wav")
@@ -45,7 +52,7 @@ class Speaker:
                 log.warning("Референс голоса не найден: %s — переключаюсь на piper", ref)
         if self._mode is None and backend in ("auto", "xtts", "piper"):
             try:
-                self._init_piper(cfg.get("tts_voice", "ruslan"))
+                self._init_piper(self.voice)
             except Exception:
                 log.exception("Piper не завёлся, переключаюсь на WinRT")
         if self._mode is None:
@@ -59,7 +66,41 @@ class Speaker:
                 log.exception("WinRT недоступен, переключаюсь на SAPI (pyttsx3)")
                 self._init_sapi()
 
-    # --- xtts (клонирование голоса) --------------------------------------
+    # --- перечитывание конфига при каждом speak() ------------------------
+
+    def _reload_config(self) -> None:
+        """Перечитывает голос и скорость из config.json.
+
+        Если голос изменился, а бэкенд — piper, перезагружает Piper с новым голосом.
+        """
+        try:
+            if not CONFIG_PATH.exists():
+                return
+            cfg = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+        except Exception:
+            log.exception("Не удалось перечитать config.json")
+            return
+
+        new_rate = float(cfg.get("voice_rate", self.rate))
+        self.rate = new_rate
+        if self._piper_cfg is not None:
+            try:
+                from piper import SynthesisConfig
+                self._piper_cfg = SynthesisConfig(length_scale=round(1.0 / self.rate, 2))
+            except Exception:
+                pass
+
+        new_voice = cfg.get("tts_voice", self.voice)
+        if new_voice != self.voice:
+            log.info("Голос изменился: %s → %s", self.voice, new_voice)
+            self.voice = new_voice
+            if self._mode == "piper":
+                try:
+                    self._init_piper(new_voice)
+                except Exception:
+                    log.exception("Не удалось переключить Piper на %s", new_voice)
+
+    # --- xtts ------------------------------------------------------------
 
     def _init_xtts(self, ref: Path) -> None:
         os.environ.setdefault("COQUI_TOS_AGREED", "1")
@@ -87,7 +128,7 @@ class Speaker:
             wf.writeframes(pcm.tobytes())
         winsound.PlaySound(buf.getvalue(), winsound.SND_MEMORY)
 
-    # --- piper ---------------------------------------------------------
+    # --- piper -----------------------------------------------------------
 
     def _init_piper(self, voice: str) -> None:
         from huggingface_hub import hf_hub_download
@@ -107,7 +148,7 @@ class Speaker:
             self._piper.synthesize_wav(text, wf, self._piper_cfg)
         winsound.PlaySound(buf.getvalue(), winsound.SND_MEMORY)
 
-    # --- winrt / sapi ---------------------------------------------------
+    # --- winrt / sapi ----------------------------------------------------
 
     def _init_sapi(self) -> None:
         import pyttsx3
@@ -136,7 +177,7 @@ class Speaker:
         try:
             synth.options.speaking_rate = self.rate
         except Exception:
-            pass  # старые сборки Windows без опции — говорим с обычной скоростью
+            pass
         stream = await synth.synthesize_text_to_stream_async(text)
         reader = DataReader(stream.get_input_stream_at(0))
         await reader.load_async(stream.size)
@@ -145,9 +186,10 @@ class Speaker:
     # --- общий вход ------------------------------------------------------
 
     def speak(self, text: str) -> None:
-        """Блокирующее проговаривание фразы."""
+        """Блокирующее проговаривание фразы. Перечитывает конфиг перед речью."""
         if not text:
             return
+        self._reload_config()
         log.info("Говорю: %s", text)
         try:
             if self._mode == "xtts":
