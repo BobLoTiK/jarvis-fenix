@@ -41,6 +41,7 @@ def run_spec(spec) -> bool:
             hit = find_installed(apps, value)
             if hit:
                 os.startfile(str(hit[1]))
+                _schedule_activation(value, hit[0])
                 return True
             log.warning("Приложение '%s' не найдено в меню Пуск", value)
             return False
@@ -59,6 +60,39 @@ def run_spec(spec) -> bool:
     except Exception:
         log.exception("run_spec не удался: %s", spec)
     return False
+
+
+def _schedule_activation(name: str, app_title: str | None = None) -> None:
+    """Через 2 сек после запуска пытается активировать окно приложения."""
+    import threading
+    targets = [name]
+    if app_title and app_title.lower() != name.lower():
+        targets.append(app_title)
+
+    def _run():
+        time.sleep(2.0)
+        try:
+            import pygetwindow as gw
+            for t in targets:
+                t_low = t.lower()
+                for w in gw.getAllWindows():
+                    if not w.title:
+                        continue
+                    if t_low in w.title.lower():
+                        try:
+                            if getattr(w, "isMinimized", False):
+                                w.restore()
+                                time.sleep(0.1)
+                            w.activate()
+                            log.info("Активировал окно: %s", w.title)
+                        except Exception:
+                            pass
+                        return
+        except Exception:
+            log.exception("Не удалось активировать окно %r", name)
+
+    threading.Thread(target=_run, daemon=True, name=f"activate-{name}").start()
+
 
 def open_path(path, minimized: bool = False) -> bool:
     try:
@@ -138,6 +172,7 @@ def take_screenshot():
         path = folder / f"screenshot_{time.strftime('%Y-%m-%d_%H-%M-%S')}.png"
         img = ImageGrab.grab()
         img.save(path)
+        log.info("Скриншот: %s", path)
         return path
     except Exception:
         log.exception("take_screenshot не удался")
@@ -263,6 +298,17 @@ def type_text(text: str) -> bool:
         return False
     try:
         import pyautogui
+        try:
+            import pyperclip
+            old = pyperclip.paste()
+            pyperclip.copy(text)
+            time.sleep(0.05)
+            pyautogui.hotkey("ctrl", "v")
+            time.sleep(0.15)
+            pyperclip.copy(old)
+            return True
+        except Exception:
+            log.debug("pyperclip не сработал, пробую pyautogui.typewrite")
         pyautogui.typewrite(text, interval=0.02)
         return True
     except Exception:
@@ -272,16 +318,27 @@ def type_text(text: str) -> bool:
 
 def minimize_all() -> bool:
     try:
-        import pyautogui
-        pyautogui.hotkey("win", "d")
+        import pygetwindow as gw
+        count = 0
+        for w in gw.getAllWindows():
+            try:
+                if w.title and w.visible and not w.isMinimized:
+                    w.minimize()
+                    count += 1
+            except Exception:
+                pass
+        log.info("Свёрнуто окон: %d", count)
         return True
     except Exception:
-        log.exception("minimize_all не удался")
-        return False
+        try:
+            import pyautogui
+            pyautogui.hotkey("win", "d")
+            return True
+        except Exception:
+            log.exception("minimize_all не удался")
+            return False
 
 
-# Синонимы для окон: что сказать -> подстроки, которые искать в заголовках.
-# Регистр не важен. Порядок — от специфичных к общим.
 _WINDOW_SYNONYMS = {
     "консоль": ["cmd.exe", "powershell", "command prompt", "c:\\users\\", "c:\\windows\\", "c:\\jarvis"],
     "терминал": ["cmd.exe", "powershell", "command prompt", "c:\\users\\", "c:\\windows\\", "c:\\jarvis"],
@@ -317,7 +374,6 @@ _WINDOW_SYNONYMS = {
 
 
 def _find_window(name: str):
-    """Ищет окно по подстроке в заголовке с учётом синонимов."""
     try:
         import pygetwindow as gw
     except ImportError:
@@ -326,7 +382,12 @@ def _find_window(name: str):
     windows = [w for w in gw.getAllWindows() if w.title]
     name_low = name.lower().strip()
 
-    # 1. Прямое совпадение подстроки
+    # убираем лишние уточнения, которые LLM любит добавлять
+    # («яндекс музыка» → «яндекс», «яндекс браузер» → «яндекс»)
+    for noise in (" музыка", " browser", " браузер"):
+        if name_low.endswith(noise):
+            name_low = name_low[: -len(noise)].strip()
+
     direct = [w for w in windows if name_low in w.title.lower()]
     if direct:
         for w in direct:
@@ -337,7 +398,6 @@ def _find_window(name: str):
                 pass
         return direct[0]
 
-    # 2. Синонимы: ищем по списку подстрок
     subs = None
     for key, values in _WINDOW_SYNONYMS.items():
         if key == name_low or key in name_low or name_low in key:
@@ -353,20 +413,17 @@ def _find_window(name: str):
                             return w
                     except Exception:
                         pass
-        # второй проход — берём любое, даже свёрнутое
         for sub in subs:
             sub_low = sub.lower()
             for w in windows:
                 if sub_low in w.title.lower():
                     return w
 
-    # 3. Нечёткое совпадение (SequenceMatcher) по началу заголовка
     from difflib import SequenceMatcher
     best = None
     best_ratio = 0.6
     for w in windows:
         title_low = w.title.lower()
-        # сравниваем с началом заголовка (первые 40 символов) — там обычно имя программы
         ratio = SequenceMatcher(None, name_low, title_low[:40]).ratio()
         if ratio > best_ratio:
             best_ratio = ratio
@@ -406,7 +463,6 @@ def maximize_window_by_title(name: str) -> bool:
 
 
 def activate_window_by_title(name: str) -> bool:
-    """Переключается на окно по имени (активирует его)."""
     w = _find_window(name)
     if not w:
         return False
@@ -420,8 +476,6 @@ def activate_window_by_title(name: str) -> bool:
         log.exception("activate_window_by_title не удался")
         return False
 
-
-# --- относительные окна: активное, переключение ---------------------------
 
 def minimize_active() -> bool:
     try:

@@ -31,6 +31,14 @@ log = logging.getLogger("jarvis.stt")
 
 TURBO_MODEL = "deepdml/faster-whisper-large-v3-turbo-ct2"
 
+# Промпт для Whisper — держим его на русском
+WHISPER_PROMPT = (
+    "Это русская речь. Пожалуйста, транскрибируй текст на русском языке. "
+    "Частые слова: Феникс, Джарвис, открой, закрой, найди, включи, выключи, "
+    "сверни, разверни, продолжай, напечатай, расскажи, покажи, погода, "
+    "напоминание, задача, голос, режим, паки."
+)
+
 # Barge-in — константы (дефолты, если не заданы в config.json)
 ECHO_WINDOW_SEC = 0.5      # слепое окно — не меряем эхо
 BARGE_LOG_INTERVAL = 0.5   # как часто логировать
@@ -63,7 +71,6 @@ class Listener:
         self.peak = 0
         self.utterances = 0
 
-        # --- читаем параметры barge-in из config.json ---
         try:
             cfg_path = Path(__file__).resolve().parent.parent / "config.json"
             _cfg = json.loads(cfg_path.read_text(encoding="utf-8")) if cfg_path.exists() else {}
@@ -76,7 +83,6 @@ class Listener:
         self._barge_min_threshold = int(_cfg.get("barge_min_threshold", 400))
         self._barge_min_ms = int(_cfg.get("barge_min_ms", 150))
 
-        # --- состояние barge-in ---
         self.muted = False
         self.barge_flag = False
         self._barge_threshold = self._barge_min_threshold
@@ -93,10 +99,7 @@ class Listener:
                  self.barge_enabled, self._barge_mult,
                  self._barge_min_threshold, self._barge_min_ms)
 
-    # --- barge-in API ---
-
     def barge_start(self) -> None:
-        """Вызывается перед началом речи Феникса."""
         self.barge_flag = False
         self._barge_echo = 0
         self._barge_echo_samples = []
@@ -109,29 +112,24 @@ class Listener:
         log.info("Barge-in: старт (порог %d)", self._barge_threshold)
 
     def barge_end(self) -> None:
-        """Вызывается после завершения речи Феникса."""
         self._speech_active = False
         log.info("Barge-in: стоп (эхо=%d, порог=%d, речь=%d мс)",
                  self._barge_echo, self._barge_threshold, self._barge_speech_ms)
 
     def barge_reset(self) -> None:
-        """Сброс флага перед новым say()."""
         self.barge_flag = False
         self._barge_speech_ms = 0
 
     def _process_barge(self, rms: int) -> None:
-        """Вызывается в _callback для каждого блока аудио."""
         if not self._speech_active or not self.barge_enabled:
             return
 
         now = time.time()
         elapsed = now - self._speech_started_at
 
-        # слепое окно — ничего не делаем
         if elapsed < ECHO_WINDOW_SEC:
             return
 
-        # окно замера эха — копим 0.5 сек
         if not self._barge_echo_done:
             self._barge_echo_samples.append(rms)
             if elapsed >= ECHO_WINDOW_SEC + 0.5:
@@ -148,7 +146,6 @@ class Listener:
                          self._barge_echo, self._barge_threshold)
             return
 
-        # детектор речи юзера (каждый блок = 500 мс при 8000 сэмплов)
         if rms > self._barge_threshold:
             self._barge_speech_ms += int(self._block_size / 16)
             if self._barge_speech_ms >= self._barge_min_ms:
@@ -161,8 +158,6 @@ class Listener:
                      rms, self._barge_echo, self._barge_threshold,
                      self._barge_speech_ms, self.barge_flag)
             self._last_barge_log = now
-
-    # --- стандартные методы ---
 
     @staticmethod
     def resolve_device(device):
@@ -195,10 +190,8 @@ class Listener:
         else:
             rms = 0
 
-        # barge-in — всегда, даже если muted
         self._process_barge(rms)
 
-        # в очередь Vosk — только если не muted
         if not self.muted:
             self._audio.put(bytes(indata))
 
@@ -213,7 +206,6 @@ class Listener:
         self._rec.Reset()
 
     def phrases(self, stop_event):
-        """Генератор (текст Vosk, сырое аудио фразы int16 PCM)."""
         max_buf = self._sample_rate * 2 * 30
         with sd.RawInputStream(
             samplerate=self._sample_rate,
@@ -281,6 +273,7 @@ class WhisperTranscriber:
             beam_size=2,
             vad_filter=True,
             condition_on_previous_text=False,
+            initial_prompt=WHISPER_PROMPT,
         )
         text = " ".join(s.text.strip() for s in segments).strip()
         log.info("Распознано (whisper): %s", text)
