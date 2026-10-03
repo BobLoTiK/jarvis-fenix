@@ -2,6 +2,7 @@
 
 Barge-in: во время речи Феникса микрофон НЕ глушится, а следит за громкостью.
 Если юзер заговорил — TTS прерывается через speaker.stop().
+После barge-in окно диалога открывается заново — можно продолжать без wake-слова.
 """
 
 import logging
@@ -43,35 +44,41 @@ class Jarvis:
         self.barge_enabled = bool(config.get("barge_enabled", True))
         if self.listener is not None:
             self.listener.barge_enabled = self.barge_enabled
+        # флаг: был ли barge-in в последнем say()
+        self._barge_just_happened = False
 
     # --- barge-in-совместимый say() --------------------------------------
 
-    def say(self, text) -> None:
-        """Озвучивает строку или генератор. Во время речи следит за barge_flag."""
+    def say(self, text) -> bool:
+        """Озвучивает строку или генератор. Возвращает True, если был barge-in."""
         if not text:
-            return
+            return False
 
         is_stream = hasattr(text, "__iter__") and not isinstance(text, str)
 
-        # barge-in: микрофон НЕ глушим, начинаем окно слежки
         if self.barge_enabled and self.listener is not None:
             self.listener.barge_start()
         else:
             self.listener.muted = True
 
+        barge_happened = False
         try:
             if is_stream:
                 self._say_stream(text)
             else:
                 self._say_text(text)
+            # проверяем флаг после завершения речи
+            barge_happened = self.barge_enabled and self.listener.barge_flag
         finally:
             if self.barge_enabled and self.listener is not None:
                 self.listener.barge_end()
+            # при barge-in НЕ flush'им буфер — там может быть фраза юзера
+            # (но в простой версии она всё равно потеряется — это ок)
             self.listener.flush()
             self.listener.muted = False
+        return barge_happened
 
     def _say_text(self, text: str) -> None:
-        """Обычная строка: play_async + слежка за barge_flag."""
         self.speaker.play_async(text)
         while self.speaker.is_playing():
             if self.barge_enabled and self.listener.barge_flag:
@@ -82,7 +89,6 @@ class Jarvis:
         self.speaker.wait_end(timeout=30.0)
 
     def _say_stream(self, gen) -> None:
-        """Стриминг: запускаем speak_stream в потоке + следим за barge_flag."""
         result = {"text": ""}
 
         def _run():
@@ -94,18 +100,15 @@ class Jarvis:
         t = threading.Thread(target=_run, daemon=True, name="tts-stream")
         t.start()
 
-        # следим за прерыванием
         while t.is_alive():
             if self.barge_enabled and self.listener.barge_flag:
                 log.info("Barge-in сработал — прерываю стриминг")
                 self.speaker.stop()
-                # даём потоку завершиться
                 t.join(timeout=1.0)
                 break
             time.sleep(0.05)
         t.join(timeout=5.0)
 
-        # сохраняем полный текст в память
         if result["text"] and hasattr(self.handler, "finalize_stream"):
             self.handler.finalize_stream("", result["text"])
 
@@ -154,15 +157,21 @@ class Jarvis:
             if refined:
                 cmd = refined
         reply = self.handler.handle(cmd)
-        self.say(reply)
+        barge_happened = self.say(reply)
+
         # сброс «стой»
         if getattr(self.handler, "_reset_requested", False):
             self._awaiting_until = 0.0
             self.handler._reset_requested = False
             log.info("Сброс: жду wake-слово")
-        else:
-            self._awaiting_until = time.time() + float(
-                self.config.get("dialog_window_sec", 8))
+            return
+
+        # после ЛЮБОГО ответа — окно на продолжение диалога без wake-слова.
+        # После barge-in — тоже (и особенно полезно).
+        if barge_happened:
+            log.info("Barge-in: открываю окно диалога (без wake-слова)")
+        self._awaiting_until = time.time() + float(
+            self.config.get("dialog_window_sec", 8))
 
     def _refine(self, audio: bytes, awaiting: bool):
         try:
