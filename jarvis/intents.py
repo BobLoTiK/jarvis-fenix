@@ -61,6 +61,8 @@ from jarvis import packs
 from jarvis import memory
 from jarvis import voices
 from jarvis import recorder
+from jarvis import timers
+from jarvis import tasks
 
 log = logging.getLogger("jarvis.intents")
 
@@ -292,6 +294,21 @@ class IntentHandler:
             # сигнал main.py: закрыть окно диалога
             self._reset_requested = True
             return "Жду обращение, сэр."
+            
+        # если фраза похожа на вопрос/диалог — сразу в чат, минуя parse
+        question_markers = ("расскажи", "объясни", "что такое", "почему", "как дела",
+                            "как ты", "посоветуй", "придумай", "сочини", "как же",
+                            "что ты думаешь", "правда ли", "верно ли")
+        is_question = (
+            cmd.startswith(question_markers)
+            or "?" in cmd
+            or cmd.startswith(("а ", "и ", "но "))
+        )
+        if is_question and self.mode != "commands":
+            gen = self.brain.chat_stream(cmd, list(self.dialog))
+            if gen is not None:
+                self.last_was_chat = True
+                return gen
 
         # --- режимы работы ---
         reply, new_mode = modes.handle_mode_command(cmd, self.mode)
@@ -317,6 +334,16 @@ class IntentHandler:
 
         # --- голоса ---
         reply = voices.handle_voice_command(cmd)
+        if reply:
+            return reply
+            
+        # --- таймеры ---
+        reply = timers.handle_timer_command(cmd)
+        if reply:
+            return reply
+
+        # --- списки задач ---
+        reply = tasks.handle_task_command(cmd)
         if reply:
             return reply
 
@@ -357,7 +384,10 @@ class IntentHandler:
                         r = self._execute_intent(intent)
                     if r:
                         return r
-                text = self.brain.chat(cmd, list(self.dialog))
+                gen = self.brain.chat_stream(cmd, list(self.dialog))
+                if gen is not None:
+                    self.last_was_chat = True
+                    return gen
                 if text:
                     self.last_was_chat = True
                     return text
@@ -472,21 +502,28 @@ class IntentHandler:
         if self.mode == "commands":
             return "Я не понял команду. Скажите, например: открой стим."
 
-                # --- LLM ---
+        # --- LLM ---
         if self.brain is not None and self.brain.available:
-            intent = self.brain.parse(cmd)
-            if intent and intent.get("action") not in ("answer", "none"):
-                if isinstance(intent.get("steps"), list):
-                    reply = self._execute_steps(intent["steps"])
-                else:
-                    reply = self._execute_intent(intent)
-                if reply:
-                    return reply
-            # СТРИМИНГ: возвращаем генератор, main.py его озвучит через speak_stream
+            # parse нужен ТОЛЬКО для команд — если фраза не похожа на команду, сразу в чат
+            command_verbs = ("откр", "закр", "запус", "включ", "выключ", "найди",
+                             "поищи", "загугли", "сверни", "разверни", "переключи",
+                             "сделай", "поставь", "напечатай", "покажи", "создай",
+                             "убери", "удали", "выруби", "активируй", "загрузи")
+            is_command_like = any(v in cmd for v in command_verbs)
+            if is_command_like:
+                intent = self.brain.parse(cmd)
+                if intent and intent.get("action") not in ("answer", "none"):
+                    if isinstance(intent.get("steps"), list):
+                        reply = self._execute_steps(intent["steps"])
+                    else:
+                        reply = self._execute_intent(intent)
+                    if reply:
+                        return reply
+            # стриминг
             gen = self.brain.chat_stream(cmd, list(self.dialog))
             if gen is not None:
                 self.last_was_chat = True
-                return gen  # ← генератор, не строка
+                return gen
         return "Я не понял команду. Скажите, например: открой стим."
 
     # --------------------------------------------------------

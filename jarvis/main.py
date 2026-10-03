@@ -19,6 +19,7 @@ from jarvis.intents import IntentHandler, normalize
 from jarvis.model import ensure_model
 from jarvis.stt import Listener
 from jarvis.tray import build_tray
+from jarvis import timers
 from jarvis.tts import Speaker
 
 log = logging.getLogger("jarvis")
@@ -248,6 +249,18 @@ def main() -> None:
     listener = Listener(model_dir, config["sample_rate"], config.get("input_device"))
     handler = IntentHandler(config, build_apps(config), brain)
     jarvis = Jarvis(config, listener, speaker, handler, BASE_DIR, whisper)
+    
+    # таймеры: callback + восстановление сохранённых
+    def _on_timer_fire(timer: dict):
+        text = timer.get("text") or "время вышло"
+        msg = f"Напоминание: {text}."
+        log.info("Таймер сработал: %s", msg)
+        jarvis.say(msg)
+
+    timers.set_on_fire(_on_timer_fire)
+    restored = timers.restore_all()
+    if restored:
+        log.info("Восстановлено напоминаний: %d", restored)
 
     worker = threading.Thread(target=jarvis.run_loop, daemon=True, name="jarvis-listener")
     worker.start()
