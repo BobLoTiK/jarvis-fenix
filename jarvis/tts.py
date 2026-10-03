@@ -4,6 +4,8 @@
 Смена голоса на лету: при каждом speak() перечитываем config.json.
 Streaming: speak_stream(iterator) — озвучивает по предложениям.
 Barge-in: play_async() + stop() — играет в потоке, можно прервать.
+Предобработка текста: _prepare_text() — раскрывает сокращения (м/с, км/ч, °C)
+и чистит markdown перед озвучкой.
 """
 
 import asyncio
@@ -27,6 +29,79 @@ CONFIG_PATH = BASE_DIR / "config.json"
 _SENTENCE_END = re.compile(r"[.!?…]+\s+")
 
 
+# ---------------------------------------------------------------
+# Предобработка текста: сокращения → как произносить
+# ---------------------------------------------------------------
+
+# Замены: (регулярка, чем заменить). Порядок — от специфичных к общим.
+_REPLACEMENTS = [
+    # единицы измерения (с пробелом и без)
+    (r"\bм/с\b", "метров в секунду"),
+    (r"\bкм/ч\b", "километров в час"),
+    (r"\bкм/с\b", "километров в секунду"),
+    (r"\bм/c\b", "метров в секунду"),
+    (r"\bкм/ч\.", "километров в час"),
+    # температура
+    (r"([+-]?\d+)\s*°\s*[CFЦ]?\b", r"\1 градусов"),
+    (r"°\s*[CFЦ]?\b", " градусов"),
+    # проценты
+    (r"(\d+)\s*%", r"\1 процентов"),
+    # распространённые сокращения
+    (r"\bт\.\s*д\.", "так далее"),
+    (r"\bт\.\s*е\.", "то есть"),
+    (r"\bт\.\s*к\.", "так как"),
+    (r"\bт\.\s*п\.", "тому подобное"),
+    (r"\bдр\.", "другие"),
+    (r"\bг\.", "год"),
+    (r"\bгг\.", "годы"),
+    (r"\bруб\.", "рублей"),
+    (r"\bкоп\.", "копеек"),
+    (r"\bтыс\.", "тысяч"),
+    (r"\bмлн\.", "миллионов"),
+    (r"\bмлрд\.", "миллиардов"),
+    # единицы измерения (после цифры)
+    (r"\b(\d+)\s*см\b", r"\1 сантиметров"),
+    (r"\b(\d+)\s*мм\b", r"\1 миллиметров"),
+    (r"\b(\d+)\s*км\b", r"\1 километров"),
+    (r"\b(\d+)\s*кг\b", r"\1 килограммов"),
+    (r"\b(\d+)\s*мг\b", r"\1 миллиграммов"),
+    (r"\b(\d+)\s*МБ\b", r"\1 мегабайт"),
+    (r"\b(\d+)\s*ГБ\b", r"\1 гигабайт"),
+    (r"\b(\d+)\s*КБ\b", r"\1 килобайт"),
+    (r"\b(\d+)\s*м\b", r"\1 метров"),
+    (r"\b(\d+)\s*г\b", r"\1 граммов"),
+    # стрелки, символы
+    (r"→", " стремится к "),
+    (r"←", " из "),
+    (r"≈", " примерно "),
+    (r"≥", " больше или равно "),
+    (r"≤", " меньше или равно "),
+    (r"≠", " не равно "),
+    (r"&", " и "),
+    (r"\+", " плюс "),
+    (r"(?<!\w)-(?!\w)", " минус "),  # отдельный дефис = минус
+    # markdown-мусор
+    (r"\*+", ""),
+    (r"_+", ""),
+    (r"#+\s*", ""),
+    (r"`+", ""),
+    (r"^\s*[-•]\s+", ""),  # маркеры списка в начале строки
+]
+
+_RE_COMPILED = [(re.compile(pat), repl) for pat, repl in _REPLACEMENTS]
+
+
+def _prepare_text(text: str) -> str:
+    """Чистит текст перед озвучкой: раскрывает сокращения, убирает markdown."""
+    if not text:
+        return text
+    for pattern, repl in _RE_COMPILED:
+        text = pattern.sub(repl, text)
+    # схлопываем лишние пробелы
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+
 class Speaker:
     def __init__(self, config: dict | None = None):
         cfg = config or {}
@@ -38,7 +113,7 @@ class Speaker:
         self._piper = None
         self._piper_cfg = None
 
-        # barge-in: поток воспроизведения и флаг прерывания
+        # barge-in
         self._play_thread = None
         self._stop_flag = threading.Event()
         self._playing = False
@@ -70,7 +145,7 @@ class Speaker:
                 log.exception("WinRT недоступен, переключаюсь на SAPI (pyttsx3)")
                 self._init_sapi()
 
-    # --- перечитывание конфига при каждом speak() ------------------------
+    # --- перечитывание конфига -------------------------------------------
 
     def _reload_config(self) -> None:
         try:
@@ -186,8 +261,8 @@ class Speaker:
     # --- общий вход ------------------------------------------------------
 
     def _speak_one(self, text: str) -> None:
-        """Синтез и воспроизведение одного куска. Блокирующий."""
-        text = text.strip()
+        """Синтез и воспроизведение одного куска. С предобработкой текста."""
+        text = _prepare_text(text)
         if not text or self._stop_flag.is_set():
             return
         log.info("Говорю: %s", text)
@@ -207,7 +282,6 @@ class Speaker:
             log.exception("Ошибка синтеза речи")
 
     def speak(self, text: str) -> None:
-        """Блокирующий синтез (для старых вызовов)."""
         if not text:
             return
         self._reload_config()
@@ -216,7 +290,6 @@ class Speaker:
     # --- barge-in API ----------------------------------------------------
 
     def play_async(self, text: str) -> None:
-        """Играет в отдельном потоке. Можно прервать через stop()."""
         self._reload_config()
         self._stop_flag.clear()
         self._playing = True
@@ -232,7 +305,6 @@ class Speaker:
         self._play_thread.start()
 
     def stop(self) -> None:
-        """Прерывает текущее воспроизведение."""
         log.info("TTS: прерывание (barge-in)")
         self._stop_flag.set()
         try:
@@ -244,17 +316,12 @@ class Speaker:
         return self._playing and self._play_thread is not None and self._play_thread.is_alive()
 
     def wait_end(self, timeout: float = 30.0) -> None:
-        """Ждёт окончания потока воспроизведения."""
         if self._play_thread is not None:
             self._play_thread.join(timeout=timeout)
         self._playing = False
 
     def speak_stream(self, text_iter, timeout: float = 30.0) -> str:
-        """Streaming TTS. Буферизует куски по предложениям и играет по мере готовности.
-
-        Прерывается через stop() (barge-in работает).
-        Возвращает полный текст ответа.
-        """
+        """Streaming TTS. С предобработкой каждого предложения."""
         self._reload_config()
         self._stop_flag.clear()
         self._playing = True
