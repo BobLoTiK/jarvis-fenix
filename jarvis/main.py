@@ -90,11 +90,17 @@ class Jarvis:
                 return
             if refined:
                 cmd = refined
-        reply = self.handler.handle(cmd)
+            reply = self.handler.handle(cmd)
         self.say(reply)
-        # после ЛЮБОГО ответа — окно на продолжение диалога без wake-слова
-        self._awaiting_until = time.time() + float(
-            self.config.get("dialog_window_sec", 8))
+        # если интент попросил сброс («стой») — закрываем окно диалога
+        if getattr(self.handler, "_reset_requested", False):
+            self._awaiting_until = 0.0
+            self.handler._reset_requested = False
+            log.info("Сброс: жду wake-слово")
+        else:
+            # после ЛЮБОГО ответа — окно на продолжение диалога без wake-слова
+            self._awaiting_until = time.time() + float(
+                self.config.get("dialog_window_sec", 8))
 
     def _refine(self, audio: bytes, awaiting: bool):
         """Пере-распознаёт фразу Whisper'ом и убирает из неё wake-слово.

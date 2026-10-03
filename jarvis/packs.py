@@ -1,8 +1,16 @@
-"""Загрузка и выгрузка паков команд из папки packs/."""
+"""Загрузка и выгрузка паков команд из папки packs/.
+
+Пак — JSON-файл с массивом команд в формате custom_commands.
+Активные паки хранятся в config.json в поле "active_packs".
+
+Голосом: «загрузи пак игр», «выгрузи пак игр», «какие паки».
+Запись в config.json — атомарная, с мьютексом.
+"""
 
 import json
 import logging
 import re
+import threading
 from pathlib import Path
 
 log = logging.getLogger("jarvis.packs")
@@ -10,6 +18,17 @@ log = logging.getLogger("jarvis.packs")
 BASE_DIR = Path(__file__).resolve().parent.parent
 PACKS_DIR = BASE_DIR / "packs"
 CONFIG_PATH = BASE_DIR / "config.json"
+_write_lock = threading.Lock()
+
+
+def _atomic_write(path: Path, data: dict) -> None:
+    with _write_lock:
+        tmp = path.with_suffix(path.suffix + ".tmp")
+        tmp.write_text(
+            json.dumps(data, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        tmp.replace(path)
 
 
 def list_available() -> list[str]:
@@ -49,10 +68,7 @@ def save_active(active: list[str]) -> None:
         if CONFIG_PATH.exists():
             data = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
             data["active_packs"] = sorted(set(active))
-            CONFIG_PATH.write_text(
-                json.dumps(data, ensure_ascii=False, indent=2),
-                encoding="utf-8",
-            )
+            _atomic_write(CONFIG_PATH, data)
             log.info("Активные паки сохранены: %s", active)
     except Exception:
         log.exception("Не удалось сохранить active_packs")
@@ -78,6 +94,21 @@ def handle_pack_command(cmd: str, current_active: list[str]) -> tuple[str | None
         new_active = current_active + [name]
         save_active(new_active)
         return f"Пак '{name}' загружен.", new_active
+
+    # «активируй все паки» / «загрузи все паки»
+    if re.search(r"(активируй|загрузи|включи|подключи)\s+все\s+пак", cmd) \
+            or cmd in {"активируй все паки", "загрузи все паки", "включи все паки"}:
+        if not available:
+            return "Папка packs пуста.", current_active
+        new_active = sorted(set(current_active + available))
+        save_active(new_active)
+        return f"Активированы все паки: {', '.join(available)}.", new_active
+
+    # «выгрузи все паки» / «отключи все паки»
+    if re.search(r"(выгрузи|отключи|убери)\s+все\s+пак", cmd) \
+            or cmd in {"выгрузи все паки", "отключи все паки"}:
+        save_active([])
+        return "Все паки выгружены.", []
 
     m = re.search(r"(выгрузи|отключи|убери)\s+пак\s+(\S+)", cmd)
     if m:

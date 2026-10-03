@@ -1,10 +1,162 @@
 [
   {
     "role": "user",
-    "content": "привет"
+    "content": "режиме"
   },
   {
     "role": "assistant",
-    "content": "Привет! Чем могу помочь?"
+    "content": "Повторяю: режим ИИ."
+  },
+  {
+    "role": "user",
+    "content": "комбинированный режим"
+  },
+  {
+    "role": "assistant",
+    "content": "Режим: комбинированный."
+  },
+  {
+    "role": "user",
+    "content": "режим команды"
+  },
+  {
+    "role": "assistant",
+    "content": "Режим: только команды."
+  },
+  {
+    "role": "user",
+    "content": "расскажи шутку"
+  },
+  {
+    "role": "assistant",
+    "content": "Я не понял команду. Скажите, например: открой стим."
+  },
+  {
+    "role": "user",
+    "content": "резюми"
+  },
+  {
+    "role": "assistant",
+    "content": "Я не понял команду. Скажите, например: открой стим."
+  },
+  {
+    "role": "user",
+    "content": "режим i"
+  },
+  {
+    "role": "assistant",
+    "content": "Я не понял команду. Скажите, например: открой стим."
+  },
+  {
+    "role": "user",
+    "content": "режим ии"
+  },
+  {
+    "role": "assistant",
+    "content": "Режим: только ИИ."
+  },
+  {
+    "role": "user",
+    "content": "расскажи шутку"
+  },
+  {
+    "role": "assistant",
+    "content": "Вот вам шутка: \"Какой вред от пенного бицепса?\" - \"Всегда больше.\""
+  },
+  {
+    "role": "user",
+    "content": "режим комбинированный"
+  },
+  {
+    "role": "assistant",
+    "content": "Режим: комбинированный."
+  },
+  {
+    "role": "user",
+    "content": "смени голос на ирину"
+  },
+  {
+    "role": "assistant",
+    "content": "Голос переключён на Irina."
+  },
+  {
+    "role": "user",
+    "content": "фенингс как и пакет"
+  },
+  {
+    "role": "assistant",
+    "content": "Феникс и пакет - это два разных проекта. Феникс - это приложение для вoice-команд, а пакет - это набор программ для Windows. Ваши запросы могут быть разными, и я помогу вам с вами в любой ситуации, как можно лучше и оперативно."
+  },
+  {
+    "role": "user",
+    "content": "какие паки"
+  },
+  {
+    "role": "assistant",
+    "content": "Доступны: apps, games, sites, system, work. Активны: apps, sites, system."
+  },
+  {
+    "role": "user",
+    "content": "активируй все"
+  },
+  {
+    "role": "assistant",
+    "content": "Сворачиваю всё."
+  },
+  {
+    "role": "user",
+    "content": "активируй все паки"
+  },
+  {
+    "role": "assistant",
+    "content": "Сворачиваю всё."
+  },
+  {
+    "role": "user",
+    "content": "смени голос на руслан"
+  },
+  {
+    "role": "assistant",
+    "content": "Голос переключён на Ruslan."
+  },
+  {
+    "role": "user",
+    "content": "активируй все паки"
+  },
+  {
+    "role": "assistant",
+    "content": "Активированы все паки: apps, games, sites, system, work."
+  },
+  {
+    "role": "user",
+    "content": "смени голос на ирину"
+  },
+  {
+    "role": "assistant",
+    "content": "Голос переключён на Irina."
+  },
+  {
+    "role": "user",
+    "content": "верни голос"
+  },
+  {
+    "role": "assistant",
+    "content": "Режим вернул."
+  },
+  {
+    "role": "user",
+    "content": "какой голос"
+  },
+  {
+    "role": "assistant",
+    "content": "Сейчас голос: Irina."
+  },
+  {
+    "role": "user",
+    "content": "поставь голос руслан"
+  },
+  {
+    "role": "assistant",
+    "content": "Голос переключён на Ruslan."
   }
 ]
