@@ -1,22 +1,6 @@
 [
   {
     "role": "user",
-    "content": "режиме"
-  },
-  {
-    "role": "assistant",
-    "content": "Повторяю: режим ИИ."
-  },
-  {
-    "role": "user",
-    "content": "комбинированный режим"
-  },
-  {
-    "role": "assistant",
-    "content": "Режим: комбинированный."
-  },
-  {
-    "role": "user",
     "content": "режим команды"
   },
   {
@@ -158,5 +142,21 @@
   {
     "role": "assistant",
     "content": "Голос переключён на Ruslan."
+  },
+  {
+    "role": "user",
+    "content": "привет"
+  },
+  {
+    "role": "assistant",
+    "content": "Привет! Чем могу помочь?"
+  },
+  {
+    "role": "user",
+    "content": "все хорошо помолчи"
+  },
+  {
+    "role": "assistant",
+    "content": "Извините, что помолчал. Чем еще могу помочь?"
   }
 ]
