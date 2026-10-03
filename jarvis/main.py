@@ -1,4 +1,8 @@
-"""Точка входа: связывает распознавание, интенты, синтез речи и трей."""
+"""Точка входа: связывает распознавание, интенты, синтез речи и трей.
+
+Barge-in: во время речи Феникса микрофон НЕ глушится, а следит за громкостью.
+Если юзер заговорил — TTS прерывается через speaker.stop().
+"""
 
 import logging
 import threading
@@ -19,7 +23,7 @@ from jarvis.tts import Speaker
 log = logging.getLogger("jarvis")
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-_REJECT = object()  # сигнал «ложное срабатывание, команду не выполнять»
+_REJECT = object()
 
 
 class Jarvis:
@@ -35,24 +39,77 @@ class Jarvis:
         self.stop_event = threading.Event()
         self._awaiting_until = 0.0
         self._wake_words = [normalize(w) for w in config["wake_words"]]
+        # barge-in — из конфига
+        self.barge_enabled = bool(config.get("barge_enabled", True))
+        if self.listener is not None:
+            self.listener.barge_enabled = self.barge_enabled
+
+    # --- barge-in-совместимый say() --------------------------------------
 
     def say(self, text) -> None:
-        """Озвучивает строку или стриминг-генератор."""
+        """Озвучивает строку или генератор. Во время речи следит за barge_flag."""
         if not text:
             return
-        self.listener.muted = True
+
+        is_stream = hasattr(text, "__iter__") and not isinstance(text, str)
+
+        # barge-in: микрофон НЕ глушим, начинаем окно слежки
+        if self.barge_enabled and self.listener is not None:
+            self.listener.barge_start()
+        else:
+            self.listener.muted = True
+
         try:
-            # если генератор — streaming TTS
-            if hasattr(text, "__iter__") and not isinstance(text, str):
-                full = self.speaker.speak_stream(text)
-                # сообщаем handler полный текст — он допишет в память
-                if full and hasattr(self.handler, "finalize_stream"):
-                    self.handler.finalize_stream("", full)
+            if is_stream:
+                self._say_stream(text)
             else:
-                self.speaker.speak(text)
+                self._say_text(text)
         finally:
+            if self.barge_enabled and self.listener is not None:
+                self.listener.barge_end()
             self.listener.flush()
             self.listener.muted = False
+
+    def _say_text(self, text: str) -> None:
+        """Обычная строка: play_async + слежка за barge_flag."""
+        self.speaker.play_async(text)
+        while self.speaker.is_playing():
+            if self.barge_enabled and self.listener.barge_flag:
+                log.info("Barge-in сработал — прерываю TTS")
+                self.speaker.stop()
+                break
+            time.sleep(0.05)
+        self.speaker.wait_end(timeout=30.0)
+
+    def _say_stream(self, gen) -> None:
+        """Стриминг: запускаем speak_stream в потоке + следим за barge_flag."""
+        result = {"text": ""}
+
+        def _run():
+            try:
+                result["text"] = self.speaker.speak_stream(gen)
+            except Exception:
+                log.exception("Ошибка в speak_stream")
+
+        t = threading.Thread(target=_run, daemon=True, name="tts-stream")
+        t.start()
+
+        # следим за прерыванием
+        while t.is_alive():
+            if self.barge_enabled and self.listener.barge_flag:
+                log.info("Barge-in сработал — прерываю стриминг")
+                self.speaker.stop()
+                # даём потоку завершиться
+                t.join(timeout=1.0)
+                break
+            time.sleep(0.05)
+        t.join(timeout=5.0)
+
+        # сохраняем полный текст в память
+        if result["text"] and hasattr(self.handler, "finalize_stream"):
+            self.handler.finalize_stream("", result["text"])
+
+    # --- служебное -------------------------------------------------------
 
     def shutdown(self) -> None:
         self.stop_event.set()
@@ -84,13 +141,11 @@ class Jarvis:
         awaiting = time.time() < self._awaiting_until
         cmd = self._extract_command(normalize(phrase))
         if cmd is None:
-            return  # обращались не к нам
+            return
         if cmd == "":
-            # Просто «Феникс» — ждём команду следующей фразой
             self.say("Слушаю.")
             self._awaiting_until = time.time() + self.config["command_window_sec"]
             return
-        # Vosk разбудил — точную расшифровку команды даёт Whisper
         if self.whisper is not None and audio:
             refined = self._refine(audio, awaiting)
             if refined is _REJECT:
@@ -100,58 +155,40 @@ class Jarvis:
                 cmd = refined
         reply = self.handler.handle(cmd)
         self.say(reply)
-        # если интент попросил сброс («стой») — закрываем окно диалога
+        # сброс «стой»
         if getattr(self.handler, "_reset_requested", False):
             self._awaiting_until = 0.0
             self.handler._reset_requested = False
             log.info("Сброс: жду wake-слово")
         else:
-            # после ЛЮБОГО ответа — окно на продолжение диалога без wake-слова
-            self._awaiting_until = time.time() + float(
-                self.config.get("dialog_window_sec", 8))
-        # если интент попросил сброс («стой») — закрываем окно диалога
-        if getattr(self.handler, "_reset_requested", False):
-            self._awaiting_until = 0.0
-            self.handler._reset_requested = False
-            log.info("Сброс: жду wake-слово")
-        else:
-            # после ЛЮБОГО ответа — окно на продолжение диалога без wake-слова
             self._awaiting_until = time.time() + float(
                 self.config.get("dialog_window_sec", 8))
 
     def _refine(self, audio: bytes, awaiting: bool):
-        """Пере-распознаёт фразу Whisper'ом и убирает из неё wake-слово.
-
-        Возвращает команду, None (использовать текст Vosk) или _REJECT —
-        Whisper не услышал ничего похожего на имя, значит Vosk разбудился зря.
-        """
         try:
             text = normalize(self.whisper.transcribe(audio))
         except Exception:
             log.exception("Whisper не справился, использую текст Vosk")
             return None
         if not text:
-            return _REJECT  # Vosk что-то слышал, Whisper (с VAD) — тишину
+            return _REJECT
         tokens = text.split()
         for i, tok in enumerate(tokens):
             if self._is_wake(tok):
                 return " ".join(tokens[i + 1:])
         if awaiting:
-            return text  # окно после «Слушаю» — wake-слова и не должно быть
-        # Vosk слышал wake-слово, а Whisper расслышал его иначе —
-        # принимаем, только если первый токен хотя бы отдалённо похож на имя
+            return text
         if tokens and wake_score(tokens[0], self._wake_words[0]) >= 0.5:
             return " ".join(tokens[1:])
         return _REJECT
 
     def _extract_command(self, text: str) -> str | None:
-        """Команда после wake-слова, '' если только wake-слово, None если его нет."""
         tokens = text.split()
         for i, tok in enumerate(tokens):
             if self._is_wake(tok):
                 return " ".join(tokens[i + 1:])
         if time.time() < self._awaiting_until:
-            return text  # окно после «Слушаю» — wake-слово не нужно
+            return text
         return None
 
     def _is_wake(self, token: str) -> bool:
@@ -209,7 +246,7 @@ def main() -> None:
     threading.Thread(target=jarvis.mic_watchdog, daemon=True, name="mic-watchdog").start()
 
     tray = build_tray(jarvis)
-    tray.run()  # блокирует до «Выход»
+    tray.run()
     jarvis.shutdown()
     log.info("Завершение работы")
 

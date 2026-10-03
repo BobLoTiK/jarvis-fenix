@@ -1,18 +1,9 @@
 """Синтез речи.
 
-Бэкенды по приоритету:
-1. xtts — клонирование голоса (XTTS-v2, GPU, ~2-4 с);
-2. piper — локальный нейро-TTS (ONNX, CPU, ~0.2 с), голоса ru_RU dmitri/ruslan/irina/denis;
-3. winrt — системный OneCore-голос Microsoft Pavel;
-4. sapi — pyttsx3/Ирина, аварийный.
-
-tts_backend: "auto" / xtts / piper / winrt.
-Скорость дикции: voice_rate (1.0 = обычная).
-
+Бэкенды: xtts / piper / winrt / sapi.
 Смена голоса на лету: при каждом speak() перечитываем config.json.
-
-Streaming: speak_stream(iterator) — принимает генератор кусков текста,
-буферизует в предложения и озвучивает по мере готовности.
+Streaming: speak_stream(iterator) — озвучивает по предложениям.
+Barge-in: play_async() + stop() — играет в потоке, можно прервать.
 """
 
 import asyncio
@@ -22,6 +13,7 @@ import logging
 import os
 import re
 import threading
+import time
 import wave
 import winsound
 from pathlib import Path
@@ -32,7 +24,6 @@ PIPER_REPO = "rhasspy/piper-voices"
 BASE_DIR = Path(__file__).resolve().parent.parent
 CONFIG_PATH = BASE_DIR / "config.json"
 
-# границы предложений — по ним режем стриминг на куски
 _SENTENCE_END = re.compile(r"[.!?…]+\s+")
 
 
@@ -46,6 +37,12 @@ class Speaker:
         self._engine = None
         self._piper = None
         self._piper_cfg = None
+
+        # barge-in: поток воспроизведения и флаг прерывания
+        self._play_thread = None
+        self._stop_flag = threading.Event()
+        self._playing = False
+        self._play_lock = threading.Lock()
 
         backend = cfg.get("tts_backend", "auto")
         ref = BASE_DIR / cfg.get("xtts_ref", "voices/jarvis.wav")
@@ -111,7 +108,7 @@ class Speaker:
         from TTS.api import TTS as CoquiTTS
 
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        log.info("Загрузка XTTS-v2 на %s (это десятки секунд)...", device)
+        log.info("Загрузка XTTS-v2 на %s...", device)
         self._xtts = CoquiTTS("tts_models/multilingual/multi-dataset/xtts_v2").to(device)
         self._xtts_ref = str(ref)
         self._mode = "xtts"
@@ -191,7 +188,7 @@ class Speaker:
     def _speak_one(self, text: str) -> None:
         """Синтез и воспроизведение одного куска. Блокирующий."""
         text = text.strip()
-        if not text:
+        if not text or self._stop_flag.is_set():
             return
         log.info("Говорю: %s", text)
         try:
@@ -201,7 +198,8 @@ class Speaker:
                 self._speak_piper(text)
             elif self._mode == "winrt":
                 wav = asyncio.run(self._synthesize(text))
-                winsound.PlaySound(wav, winsound.SND_MEMORY)
+                if not self._stop_flag.is_set():
+                    winsound.PlaySound(wav, winsound.SND_MEMORY)
             else:
                 self._engine.say(text)
                 self._engine.runAndWait()
@@ -209,29 +207,63 @@ class Speaker:
             log.exception("Ошибка синтеза речи")
 
     def speak(self, text: str) -> None:
-        """Блокирующее проговаривание полной фразы."""
+        """Блокирующий синтез (для старых вызовов)."""
         if not text:
             return
         self._reload_config()
         self._speak_one(text)
 
+    # --- barge-in API ----------------------------------------------------
+
+    def play_async(self, text: str) -> None:
+        """Играет в отдельном потоке. Можно прервать через stop()."""
+        self._reload_config()
+        self._stop_flag.clear()
+        self._playing = True
+
+        def _run():
+            try:
+                self._speak_one(text)
+            finally:
+                with self._play_lock:
+                    self._playing = False
+
+        self._play_thread = threading.Thread(target=_run, daemon=True, name="tts-play")
+        self._play_thread.start()
+
+    def stop(self) -> None:
+        """Прерывает текущее воспроизведение."""
+        log.info("TTS: прерывание (barge-in)")
+        self._stop_flag.set()
+        try:
+            winsound.PlaySound(None, winsound.SND_PURGE)
+        except Exception:
+            pass
+
+    def is_playing(self) -> bool:
+        return self._playing and self._play_thread is not None and self._play_thread.is_alive()
+
+    def wait_end(self, timeout: float = 30.0) -> None:
+        """Ждёт окончания потока воспроизведения."""
+        if self._play_thread is not None:
+            self._play_thread.join(timeout=timeout)
+        self._playing = False
+
     def speak_stream(self, text_iter, timeout: float = 30.0) -> str:
-        """Streaming TTS: озвучивает куски текста по мере поступления.
+        """Streaming TTS. Буферизует куски по предложениям и играет по мере готовности.
 
-        text_iter — итератор строк (например, brain.chat_stream()).
-        Буферизует в предложения по знакам .!?…
-        Каждое готовое предложение → сразу в синтез + воспроизведение.
-
-        Возвращает полный текст ответа (для истории диалога).
+        Прерывается через stop() (barge-in работает).
+        Возвращает полный текст ответа.
         """
         self._reload_config()
+        self._stop_flag.clear()
+        self._playing = True
 
         buffer = ""
         full_text_parts = []
         pending = []
 
         def _flush_sentences(force: bool = False):
-            """Отправляет готовые предложения в очередь."""
             nonlocal buffer
             while True:
                 m = _SENTENCE_END.search(buffer)
@@ -245,22 +277,25 @@ class Speaker:
                 pending.append(buffer.strip())
                 buffer = ""
 
-        # читаем генератор, как только появится предложение — отдаём в очередь
         try:
             for chunk in text_iter:
+                if self._stop_flag.is_set():
+                    log.info("TTS: стриминг прерван")
+                    break
                 buffer += chunk
                 full_text_parts.append(chunk)
                 _flush_sentences()
-                # играем то, что накопилось в очереди
-                while pending:
+                while pending and not self._stop_flag.is_set():
                     sentence = pending.pop(0)
                     self._speak_one(sentence)
-            # остаток буфера — как последнее предложение
-            _flush_sentences(force=True)
-            while pending:
-                sentence = pending.pop(0)
-                self._speak_one(sentence)
+            if not self._stop_flag.is_set():
+                _flush_sentences(force=True)
+                while pending and not self._stop_flag.is_set():
+                    sentence = pending.pop(0)
+                    self._speak_one(sentence)
         except Exception:
             log.exception("Ошибка в speak_stream")
+        finally:
+            self._playing = False
 
         return "".join(full_text_parts).strip()

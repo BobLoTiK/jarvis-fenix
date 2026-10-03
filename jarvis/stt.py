@@ -3,12 +3,24 @@
 Гибридная схема: Vosk (стриминг, лёгкий) непрерывно слушает и ловит wake-слово,
 а точную расшифровку команды делает Whisper (faster-whisper, int8, CPU) по
 аудиобуферу той же фразы. Если Whisper выключен/не встал — работаем по Vosk.
+
+Barge-in: во время речи Феникса микрофон НЕ глушится, а следит за громкостью.
+Первые ECHO_WINDOW_SEC секунд — слепое окно (эхо не меряется).
+Потом замеряется фоновое эхо от колонок и ставится порог = echo * barge_mult.
+Если юзер громче — выставляется barge_flag.
+
+Параметры barge-in читаются из config.json:
+    barge_enabled       (bool)  — включён ли
+    barge_mult          (float) — множитель эха (порог = echo * barge_mult)
+    barge_min_threshold (int)   — минимальный порог (для наушников)
+    barge_min_ms        (int)   — минимум мс речи юзера
 """
 
 import json
 import logging
 import os
 import queue
+import time
 from pathlib import Path
 
 import numpy as np
@@ -17,16 +29,14 @@ from vosk import KaldiRecognizer, Model, SetLogLevel
 
 log = logging.getLogger("jarvis.stt")
 
-# CT2-конверсия large-v3-turbo: на GPU быстрее и точнее, чем small на CPU
 TURBO_MODEL = "deepdml/faster-whisper-large-v3-turbo-ct2"
+
+# Barge-in — константы (дефолты, если не заданы в config.json)
+ECHO_WINDOW_SEC = 0.5      # слепое окно — не меряем эхо
+BARGE_LOG_INTERVAL = 0.5   # как часто логировать
 
 
 def _enable_cuda_dlls() -> None:
-    """Добавляет cuBLAS/cuDNN из pip-пакетов nvidia-* в PATH.
-
-    ctranslate2 ищет cublas64_12.dll через обычный порядок поиска DLL (PATH),
-    os.add_dll_directory ему недостаточно.
-    """
     try:
         import nvidia
     except ImportError:
@@ -48,17 +58,114 @@ class Listener:
         self.device_name = self._current_device_name()
         log.info("Микрофон: %s", self.device_name)
         self._audio: queue.Queue[bytes] = queue.Queue()
-        self._utt_buf: list[bytes] = []  # сырое аудио текущей фразы (для Whisper)
+        self._utt_buf: list[bytes] = []
         self._utt_len = 0
-        # Диагностика «глухого» микрофона: пик амплитуды и счётчик фраз
         self.peak = 0
         self.utterances = 0
-        # Пока ассистент говорит — микрофон игнорируется, чтобы он не слышал сам себя
+
+        # --- читаем параметры barge-in из config.json ---
+        try:
+            cfg_path = Path(__file__).resolve().parent.parent / "config.json"
+            _cfg = json.loads(cfg_path.read_text(encoding="utf-8")) if cfg_path.exists() else {}
+        except Exception:
+            log.exception("Не удалось прочитать config.json для barge-in, использую дефолты")
+            _cfg = {}
+
+        self.barge_enabled = bool(_cfg.get("barge_enabled", True))
+        self._barge_mult = float(_cfg.get("barge_mult", 1.8))
+        self._barge_min_threshold = int(_cfg.get("barge_min_threshold", 400))
+        self._barge_min_ms = int(_cfg.get("barge_min_ms", 150))
+
+        # --- состояние barge-in ---
         self.muted = False
+        self.barge_flag = False
+        self._barge_threshold = self._barge_min_threshold
+        self._barge_echo = 0
+        self._barge_echo_samples = []
+        self._barge_echo_done = False
+        self._barge_speech_ms = 0
+        self._speech_active = False
+        self._speech_started_at = 0.0
+        self._last_barge_log = 0.0
+        self._block_size = 1600
+
+        log.info("Barge-in: enabled=%s, mult=%.1f, min_thr=%d, min_ms=%d",
+                 self.barge_enabled, self._barge_mult,
+                 self._barge_min_threshold, self._barge_min_ms)
+
+    # --- barge-in API ---
+
+    def barge_start(self) -> None:
+        """Вызывается перед началом речи Феникса."""
+        self.barge_flag = False
+        self._barge_echo = 0
+        self._barge_echo_samples = []
+        self._barge_echo_done = False
+        self._barge_speech_ms = 0
+        self._speech_active = True
+        self._speech_started_at = time.time()
+        self._last_barge_log = 0.0
+        self._barge_threshold = self._barge_min_threshold
+        log.info("Barge-in: старт (порог %d)", self._barge_threshold)
+
+    def barge_end(self) -> None:
+        """Вызывается после завершения речи Феникса."""
+        self._speech_active = False
+        log.info("Barge-in: стоп (эхо=%d, порог=%d, речь=%d мс)",
+                 self._barge_echo, self._barge_threshold, self._barge_speech_ms)
+
+    def barge_reset(self) -> None:
+        """Сброс флага перед новым say()."""
+        self.barge_flag = False
+        self._barge_speech_ms = 0
+
+    def _process_barge(self, rms: int) -> None:
+        """Вызывается в _callback для каждого блока аудио."""
+        if not self._speech_active or not self.barge_enabled:
+            return
+
+        now = time.time()
+        elapsed = now - self._speech_started_at
+
+        # слепое окно — ничего не делаем
+        if elapsed < ECHO_WINDOW_SEC:
+            return
+
+        # окно замера эха — копим 0.5 сек
+        if not self._barge_echo_done:
+            self._barge_echo_samples.append(rms)
+            if elapsed >= ECHO_WINDOW_SEC + 0.5:
+                if self._barge_echo_samples:
+                    arr = sorted(self._barge_echo_samples)
+                    idx = int(len(arr) * 0.7)
+                    self._barge_echo = arr[min(idx, len(arr) - 1)]
+                self._barge_threshold = max(
+                    int(self._barge_echo * self._barge_mult),
+                    self._barge_min_threshold,
+                )
+                self._barge_echo_done = True
+                log.info("Barge-in: эхо=%d, порог=%d",
+                         self._barge_echo, self._barge_threshold)
+            return
+
+        # детектор речи юзера (каждый блок = 100 мс, если _block_size = 1600)
+        if rms > self._barge_threshold:
+            self._barge_speech_ms += int(self._block_size / 16)
+            if self._barge_speech_ms >= self._barge_min_ms:
+                self.barge_flag = True
+        else:
+            self._barge_speech_ms = 0
+
+        if now - self._last_barge_log >= BARGE_LOG_INTERVAL:
+            log.info("barge: peak=%d, echo=%d, thr=%d, speech_ms=%d, flag=%s",
+                     rms, self._barge_echo, self._barge_threshold,
+                     self._barge_speech_ms, self.barge_flag)
+            self._last_barge_log = now
+
+    # --- стандартные методы ---
 
     @staticmethod
     def resolve_device(device):
-        """null -> устройство по умолчанию; int -> индекс; строка -> поиск по имени."""
         if device is None or device == "":
             return None
         if isinstance(device, int):
@@ -81,14 +188,21 @@ class Listener:
     def _callback(self, indata, frames, time_info, status) -> None:
         if status:
             log.warning("Аудиопоток: %s", status)
+        arr = np.frombuffer(indata, dtype=np.int16)
+        if arr.size:
+            self.peak = max(self.peak, int(np.abs(arr).max()))
+            rms = int(np.sqrt(np.mean(arr.astype(np.float32) ** 2)))
+        else:
+            rms = 0
+
+        # barge-in — всегда, даже если muted
+        self._process_barge(rms)
+
+        # в очередь Vosk — только если не muted
         if not self.muted:
             self._audio.put(bytes(indata))
-            arr = np.frombuffer(indata, dtype=np.int16)
-            if arr.size:
-                self.peak = max(self.peak, int(np.abs(arr).max()))
 
     def flush(self) -> None:
-        """Сброс буфера и распознавателя (после собственной речи)."""
         while not self._audio.empty():
             try:
                 self._audio.get_nowait()
@@ -100,10 +214,10 @@ class Listener:
 
     def phrases(self, stop_event):
         """Генератор (текст Vosk, сырое аудио фразы int16 PCM)."""
-        max_buf = self._sample_rate * 2 * 30  # не больше 30 секунд аудио
+        max_buf = self._sample_rate * 2 * 30
         with sd.RawInputStream(
             samplerate=self._sample_rate,
-            blocksize=8000,
+            blocksize=self._block_size,
             dtype="int16",
             channels=1,
             device=self._device,
@@ -131,11 +245,7 @@ class Listener:
 
 
 class WhisperTranscriber:
-    """Точная расшифровка короткого фрагмента аудио (faster-whisper, CPU, int8).
-
-    ВАЖНО: создавать ДО первого вызова WinRT-синтеза речи — загрузка CTranslate2
-    после использования WinRT роняет процесс (access violation 0xC0000005).
-    """
+    """Точная расшифровка короткого фрагмента аудио (faster-whisper)."""
 
     def __init__(self, model_name: str = "auto", device: str = "auto"):
         _enable_cuda_dlls()
@@ -147,7 +257,7 @@ class WhisperTranscriber:
         if device == "cuda":
             name = TURBO_MODEL if model_name == "auto" else model_name
             try:
-                log.info("Загрузка Whisper (%s) на GPU... при первом запуске модель скачается", name)
+                log.info("Загрузка Whisper (%s) на GPU...", name)
                 self._model = WhisperModel(name, device="cuda", compute_type="int8_float16")
                 log.info("Whisper готов (GPU)")
                 return
@@ -159,8 +269,6 @@ class WhisperTranscriber:
         log.info("Whisper готов (CPU)")
 
     def transcribe(self, pcm: bytes, sample_rate: int = 16000) -> str:
-        import numpy as np
-
         audio = np.frombuffer(pcm, dtype=np.int16).astype(np.float32) / 32768.0
         if sample_rate != 16000 and len(audio) > 1:
             n = int(len(audio) * 16000 / sample_rate)
