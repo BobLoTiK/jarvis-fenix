@@ -87,7 +87,7 @@ class Listener:
         self._speech_active = False
         self._speech_started_at = 0.0
         self._last_barge_log = 0.0
-        self._block_size = 1600
+        self._block_size = 8000
 
         log.info("Barge-in: enabled=%s, mult=%.1f, min_thr=%d, min_ms=%d",
                  self.barge_enabled, self._barge_mult,
@@ -148,7 +148,7 @@ class Listener:
                          self._barge_echo, self._barge_threshold)
             return
 
-        # детектор речи юзера (каждый блок = 100 мс, если _block_size = 1600)
+        # детектор речи юзера (каждый блок = 500 мс при 8000 сэмплов)
         if rms > self._barge_threshold:
             self._barge_speech_ms += int(self._block_size / 16)
             if self._barge_speech_ms >= self._barge_min_ms:

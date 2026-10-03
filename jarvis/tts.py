@@ -91,16 +91,26 @@ _REPLACEMENTS = [
 _RE_COMPILED = [(re.compile(pat), repl) for pat, repl in _REPLACEMENTS]
 
 
+_CJK_RE = re.compile(
+    r"[\u4e00-\u9fff"
+    r"\u3040-\u309f"
+    r"\u30a0-\u30ff"
+    r"\uac00-\ud7af"
+    r"\u3000-\u303f"
+    r"\uff00-\uffef]+"
+)
+
+
 def _prepare_text(text: str) -> str:
-    """Чистит текст перед озвучкой: раскрывает сокращения, убирает markdown."""
+    """Чистит текст перед озвучкой: CJK, сокращения, markdown."""
     if not text:
         return text
+    text = _CJK_RE.sub(" ", text)
     for pattern, repl in _RE_COMPILED:
         text = pattern.sub(repl, text)
-    # схлопываем лишние пробелы
     text = re.sub(r"\s+", " ", text).strip()
+    text = re.sub(r"\s+([,.!?;:])", r"\1", text)
     return text
-
 
 class Speaker:
     def __init__(self, config: dict | None = None):
