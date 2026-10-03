@@ -36,12 +36,20 @@ class Jarvis:
         self._awaiting_until = 0.0
         self._wake_words = [normalize(w) for w in config["wake_words"]]
 
-    def say(self, text: str) -> None:
+    def say(self, text) -> None:
+        """Озвучивает строку или стриминг-генератор."""
         if not text:
             return
         self.listener.muted = True
         try:
-            self.speaker.speak(text)
+            # если генератор — streaming TTS
+            if hasattr(text, "__iter__") and not isinstance(text, str):
+                full = self.speaker.speak_stream(text)
+                # сообщаем handler полный текст — он допишет в память
+                if full and hasattr(self.handler, "finalize_stream"):
+                    self.handler.finalize_stream("", full)
+            else:
+                self.speaker.speak(text)
         finally:
             self.listener.flush()
             self.listener.muted = False
@@ -90,8 +98,17 @@ class Jarvis:
                 return
             if refined:
                 cmd = refined
-            reply = self.handler.handle(cmd)
+        reply = self.handler.handle(cmd)
         self.say(reply)
+        # если интент попросил сброс («стой») — закрываем окно диалога
+        if getattr(self.handler, "_reset_requested", False):
+            self._awaiting_until = 0.0
+            self.handler._reset_requested = False
+            log.info("Сброс: жду wake-слово")
+        else:
+            # после ЛЮБОГО ответа — окно на продолжение диалога без wake-слова
+            self._awaiting_until = time.time() + float(
+                self.config.get("dialog_window_sec", 8))
         # если интент попросил сброс («стой») — закрываем окно диалога
         if getattr(self.handler, "_reset_requested", False):
             self._awaiting_until = 0.0

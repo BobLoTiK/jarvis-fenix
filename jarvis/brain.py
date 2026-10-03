@@ -1,4 +1,7 @@
-"""LLM-фолбэк: локальная нейронка (Ollama) разбирает команду в структурный интент."""
+"""LLM-фолбэк: локальная нейронка (Ollama) разбирает команду в структурный интент.
+
+Плюс streaming: chat_stream() отдаёт ответ по кускам (для streaming TTS).
+"""
 
 import json
 import logging
@@ -26,7 +29,7 @@ SYSTEM = """Ты разбираешь команды голосового асс
 ВАЖНО про search vs answer:
 По умолчанию отвечай САМ через answer — даже на вопросы о фактах, объяснения, мнения, советы, шутки, историю, погоду.
 НИКОГДА не используй search, если пользователь явно не сказал: «найди», «поищи», «ищи», «загугли», «погугли», «поиск», «найди в интернете», «найди на ютубе», «найди в википедии».
-Свежесть данных (погода, курс, новости) — НЕ повод для search, если глагола поиска нет. В этом случае либо ответь тем, что знаешь, либо скажи: «Скажите "найди ...", и я посмотрю в интернете».
+Свежесть данных (погода, курс, новости) — НЕ повод для search, если глагола поиска нет.
 
 Примеры:
 открой стим -> {"action":"open_app","target":"стим"}
@@ -129,12 +132,14 @@ class Brain:
                                      {"Content-Type": "application/json"})
         with urllib.request.urlopen(req, timeout=timeout) as r:
             return json.loads(r.read())["message"]["content"]
-
+            
     def _chat(self, cmd: str, timeout: float):
         return self._request([{"role": "system", "content": SYSTEM},
-                              {"role": "user", "content": cmd}], timeout)
+                              {"role": "user", "content": cmd}], timeout,
+                             num_predict=250)
 
     def chat(self, cmd: str, history: list | None = None) -> str | None:
+        """Обычный (нестриминговый) разговорный ответ."""
         if not self.available:
             return None
         msgs = ([{"role": "system", "content": CHAT_SYSTEM}]
@@ -149,6 +154,54 @@ class Brain:
         except Exception:
             log.exception("LLM-диалог не удался")
             return None
+
+    def chat_stream(self, cmd: str, history: list | None = None):
+        """Стриминговый разговорный ответ.
+
+        Генерирует куски текста по мере генерации (yield str).
+        Используется для streaming TTS — чтобы начать говорить,
+        не дожидаясь полного ответа.
+
+        Возвращает: генератор строк (может быть пустым).
+        """
+        if not self.available:
+            return
+        msgs = ([{"role": "system", "content": CHAT_SYSTEM}]
+                + list(history or [])[-40:]
+                + [{"role": "user", "content": cmd}])
+        payload = {
+            "model": self.model,
+            "messages": msgs,
+            "stream": True,
+            "keep_alive": -1,
+            "options": {"temperature": 0.7, "num_predict": 600},
+        }
+        req = urllib.request.Request(self.url + "/api/chat",
+                                     json.dumps(payload).encode(),
+                                     {"Content-Type": "application/json"})
+        try:
+            t0 = time.time()
+            first_chunk_time = None
+            with urllib.request.urlopen(req, timeout=self.timeout) as r:
+                for line in r:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        data = json.loads(line.decode("utf-8"))
+                    except Exception:
+                        continue
+                    chunk = data.get("message", {}).get("content", "")
+                    if chunk:
+                        if first_chunk_time is None:
+                            first_chunk_time = time.time() - t0
+                            log.info("LLM-стриминг: первый чанк за %.2f с", first_chunk_time)
+                        yield chunk
+                    if data.get("done"):
+                        break
+            log.info("LLM-стриминг: полный ответ за %.2f с", time.time() - t0)
+        except Exception:
+            log.exception("LLM-стриминг не удался")
 
     def _warmup(self) -> None:
         try:
@@ -168,6 +221,11 @@ class Brain:
             intent = json.loads(raw)
             log.info("LLM (%.2f с): %r -> %s", time.time() - t0, cmd,
                      json.dumps(intent, ensure_ascii=False))
+        except json.JSONDecodeError:
+            # модель не выдала валидный JSON (оборвалась, ошиблась) —
+            # это НОРМАЛЬНО, фраза просто уйдёт в chat_stream. Без стектрейса.
+            log.debug("LLM не вернула JSON на %r — уходим в диалог", cmd)
+            return None
         except Exception:
             log.exception("LLM не справилась с %r", cmd)
             return None

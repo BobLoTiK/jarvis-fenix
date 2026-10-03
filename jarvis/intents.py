@@ -250,7 +250,13 @@ class IntentHandler:
     # Точка входа: разбирает фразу, возвращает ответ
     # --------------------------------------------------------
 
-    def handle(self, cmd: str) -> str:
+    def handle(self, cmd: str):
+        """Возвращает строку (обычная команда) или генератор (стриминг LLM).
+
+        Память диалога сохраняется:
+        - для строки — здесь, сразу;
+        - для генератора — в main.py, после speak_stream.
+        """
         self.last_was_chat = False
         parts = self._split_chain(cmd)
         if len(parts) > 1:
@@ -259,12 +265,23 @@ class IntentHandler:
             reply = " ".join(r for r in replies if r)
         else:
             reply = self._handle_single(cmd)
-        # сохраняем в историю диалога — для LLM-контекста
+
+        # если это генератор (стриминг) — память сохранит main.py
+        if hasattr(reply, "__iter__") and not isinstance(reply, str):
+            self.dialog.append({"role": "user", "content": cmd})
+            # ответ допишет main.py после стриминга
+            return reply
+
+        # обычная строка — сохраняем память здесь
         self.dialog.append({"role": "user", "content": cmd})
         self.dialog.append({"role": "assistant", "content": reply})
-	# автосохранение памяти на диск
         memory.save(list(self.dialog))
         return reply
+
+    def finalize_stream(self, cmd: str, full_text: str) -> None:
+        """Вызывается main.py после speak_stream: дописывает ответ в память."""
+        self.dialog.append({"role": "assistant", "content": full_text})
+        memory.save(list(self.dialog))
 
     # --------------------------------------------------------
     # Разбор одной команды (главный диспетчер)
@@ -455,7 +472,7 @@ class IntentHandler:
         if self.mode == "commands":
             return "Я не понял команду. Скажите, например: открой стим."
 
-        # --- LLM ---
+                # --- LLM ---
         if self.brain is not None and self.brain.available:
             intent = self.brain.parse(cmd)
             if intent and intent.get("action") not in ("answer", "none"):
@@ -465,10 +482,11 @@ class IntentHandler:
                     reply = self._execute_intent(intent)
                 if reply:
                     return reply
-            text = self.brain.chat(cmd, list(self.dialog))
-            if text:
+            # СТРИМИНГ: возвращаем генератор, main.py его озвучит через speak_stream
+            gen = self.brain.chat_stream(cmd, list(self.dialog))
+            if gen is not None:
                 self.last_was_chat = True
-                return text
+                return gen  # ← генератор, не строка
         return "Я не понял команду. Скажите, например: открой стим."
 
     # --------------------------------------------------------

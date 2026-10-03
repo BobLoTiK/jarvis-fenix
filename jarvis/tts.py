@@ -10,7 +10,9 @@ tts_backend: "auto" / xtts / piper / winrt.
 Скорость дикции: voice_rate (1.0 = обычная).
 
 Смена голоса на лету: при каждом speak() перечитываем config.json.
-Если tts_voice изменился — перезагружаем Piper с новым голосом.
+
+Streaming: speak_stream(iterator) — принимает генератор кусков текста,
+буферизует в предложения и озвучивает по мере готовности.
 """
 
 import asyncio
@@ -18,6 +20,8 @@ import io
 import json
 import logging
 import os
+import re
+import threading
 import wave
 import winsound
 from pathlib import Path
@@ -27,6 +31,9 @@ log = logging.getLogger("jarvis.tts")
 PIPER_REPO = "rhasspy/piper-voices"
 BASE_DIR = Path(__file__).resolve().parent.parent
 CONFIG_PATH = BASE_DIR / "config.json"
+
+# границы предложений — по ним режем стриминг на куски
+_SENTENCE_END = re.compile(r"[.!?…]+\s+")
 
 
 class Speaker:
@@ -69,10 +76,6 @@ class Speaker:
     # --- перечитывание конфига при каждом speak() ------------------------
 
     def _reload_config(self) -> None:
-        """Перечитывает голос и скорость из config.json.
-
-        Если голос изменился, а бэкенд — piper, перезагружает Piper с новым голосом.
-        """
         try:
             if not CONFIG_PATH.exists():
                 return
@@ -185,11 +188,11 @@ class Speaker:
 
     # --- общий вход ------------------------------------------------------
 
-    def speak(self, text: str) -> None:
-        """Блокирующее проговаривание фразы. Перечитывает конфиг перед речью."""
+    def _speak_one(self, text: str) -> None:
+        """Синтез и воспроизведение одного куска. Блокирующий."""
+        text = text.strip()
         if not text:
             return
-        self._reload_config()
         log.info("Говорю: %s", text)
         try:
             if self._mode == "xtts":
@@ -204,3 +207,60 @@ class Speaker:
                 self._engine.runAndWait()
         except Exception:
             log.exception("Ошибка синтеза речи")
+
+    def speak(self, text: str) -> None:
+        """Блокирующее проговаривание полной фразы."""
+        if not text:
+            return
+        self._reload_config()
+        self._speak_one(text)
+
+    def speak_stream(self, text_iter, timeout: float = 30.0) -> str:
+        """Streaming TTS: озвучивает куски текста по мере поступления.
+
+        text_iter — итератор строк (например, brain.chat_stream()).
+        Буферизует в предложения по знакам .!?…
+        Каждое готовое предложение → сразу в синтез + воспроизведение.
+
+        Возвращает полный текст ответа (для истории диалога).
+        """
+        self._reload_config()
+
+        buffer = ""
+        full_text_parts = []
+        pending = []
+
+        def _flush_sentences(force: bool = False):
+            """Отправляет готовые предложения в очередь."""
+            nonlocal buffer
+            while True:
+                m = _SENTENCE_END.search(buffer)
+                if not m:
+                    break
+                sentence = buffer[:m.end()].strip()
+                buffer = buffer[m.end():]
+                if sentence:
+                    pending.append(sentence)
+            if force and buffer.strip():
+                pending.append(buffer.strip())
+                buffer = ""
+
+        # читаем генератор, как только появится предложение — отдаём в очередь
+        try:
+            for chunk in text_iter:
+                buffer += chunk
+                full_text_parts.append(chunk)
+                _flush_sentences()
+                # играем то, что накопилось в очереди
+                while pending:
+                    sentence = pending.pop(0)
+                    self._speak_one(sentence)
+            # остаток буфера — как последнее предложение
+            _flush_sentences(force=True)
+            while pending:
+                sentence = pending.pop(0)
+                self._speak_one(sentence)
+        except Exception:
+            log.exception("Ошибка в speak_stream")
+
+        return "".join(full_text_parts).strip()
