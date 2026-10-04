@@ -1,16 +1,4 @@
-"""Разбор команды: быстрые правила + LLM.
-
-Архитектура LLM-first:
-    1. CANCEL — мгновенно.
-    2. Ответ на уточняющий вопрос (если был задан).
-    3. Буфер обмена — быстрые правила.
-    4. Быстрая проверка режимов — до LLM.
-    5. custom_commands — точное совпадение.
-    6. small_talk — время, дата, «как дела».
-    7. скриншот — быстро.
-    8. Всё остальное — LLM: parse() → интент → _execute_intent().
-    9. Если не команда — chat_stream() → диалог (со историей).
-"""
+"""Разбор команды: быстрые правила + LLM."""
 
 import datetime
 import logging
@@ -76,10 +64,18 @@ _FOLDER_TITLES = {
     "Screenshots": "в скриншотах",
 }
 
+# Мусор, который LLM иногда подсовывает в target от get_weather
+_WEATHER_BAD_TARGET = (
+    "курс", "доллар", "рубл", "евро", "юан", "валют",
+    "цену", "цена", "поиск", "найди", "погод", "прогноз",
+    "пожалуйста", "сколько", "стоит",
+)
+
 
 class IntentHandler:
 
-    def __init__(self, config: dict, apps: list, brain=None):
+    def __init__(self, config, apps, brain=None):
+        self.config = config
         self.apps = apps
         self.brain = brain
         self.installed = scan_start_menu()
@@ -97,8 +93,6 @@ class IntentHandler:
         self.last_macro = None
         self._reset_requested = False
         self._last_reply = ""
-        # Ожидающий уточняющий вопрос (город для погоды и т.п.).
-        # Формат: {"type": "...", "expires_at": time.time() + N, ...}
         self._pending_question = None
 
         self._config_custom_original = []
@@ -137,18 +131,16 @@ class IntentHandler:
             self._last_reply = full_text
 
     def _handle_single(self, cmd: str):
-        # 1. CANCEL
         if cmd in CANCEL:
             self._reset_requested = True
             return "Жду обращение, сэр."
 
-        # 1.5. Ответ на уточняющий вопрос
         if self._pending_question and time.time() < self._pending_question.get("expires_at", 0):
             return self._handle_pending_answer(cmd)
         else:
             self._pending_question = None
 
-        # 2. Буфер обмена — быстрые правила
+        # Буфер обмена
         if re.search(r"скопируй\s+(выделенное|выделенный|это\s+выделенное)", cmd) \
                 or re.search(r"(выдели|выделенное)\s+(и\s+)?скопируй", cmd) \
                 or cmd in {"скопируй выделенное", "скопируй это выделенное"}:
@@ -167,36 +159,30 @@ class IntentHandler:
                 or cmd in {"очисти буфер", "сотри буфер"}:
             return self._execute_intent({"action": "clipboard_clear"})
 
-        # 3. Быстрая проверка режимов — ДО LLM
+        # Режимы
         if any(w in cmd for w in ("режим", "комбо", "комбинирован")):
-            reply, new_mode = modes.handle_mode_command(cmd, self.mode)
+            reply, new_mode = modes.handle_mode_command(cmd, self.mode, self.config)
             if reply:
                 self.mode = new_mode
                 return reply
 
-        # 4. Свои команды
         reply = self._match_custom(cmd)
         if reply:
             return reply
 
-        # 5. Small talk
         reply = self._small_talk(cmd)
         if reply:
             return reply
 
-        # 6. Скриншот
         if re.search(r"скрин|снимок экрана", cmd):
             return self._take_screenshot(cmd)
 
-        # 7. Режим «только команды»
         if self.mode == "commands":
             return "Я не понял команду. Скажите «режим ИИ» или добавьте фразу в конфиг."
 
-        # 8. LLM недоступна
         if self.brain is None or not self.brain.available:
             return "LLM недоступна. Скажите «режим команды»."
 
-        # 9. LLM parse → интент
         intent = self.brain.parse(cmd)
         if intent and intent.get("action") not in ("answer", "none"):
             if intent.get("action") == "search" \
@@ -209,7 +195,6 @@ class IntentHandler:
             if reply:
                 return reply
 
-        # 10. LLM вернула answer — но отвечаем через chat_stream (в контексте!)
         if intent and intent.get("action") == "answer":
             gen = self.brain.chat_stream(cmd, list(self.dialog))
             if gen is not None:
@@ -218,7 +203,6 @@ class IntentHandler:
             if intent.get("reply"):
                 return str(intent["reply"])[:600]
 
-        # 11. Диалог (стриминг)
         gen = self.brain.chat_stream(cmd, list(self.dialog))
         if gen is not None:
             self.last_was_chat = True
@@ -226,7 +210,6 @@ class IntentHandler:
         return "Я не понял команду."
 
     def _handle_pending_answer(self, cmd: str) -> str:
-        """Обрабатывает ответ пользователя на уточняющий вопрос."""
         pending = self._pending_question
         self._pending_question = None
 
@@ -234,7 +217,6 @@ class IntentHandler:
             city = cmd.strip()
             if not city or len(city) > 60:
                 return "Не расслышал город. Повторите, пожалуйста."
-            # Сохраняем как ввёл пользователь — LLM позже нормализует
             profile.set("default_city", city)
             log.info("Запомнил город по умолчанию: %s", city)
 
@@ -412,27 +394,27 @@ class IntentHandler:
             mode = str(intent.get("mode") or "combo").lower()
             if mode not in ("commands", "llm", "combo"):
                 mode = "combo"
-            reply = modes.set_mode(mode)
+            reply = modes.set_mode(mode, self.config)
             self.mode = mode
             return reply
 
         if action == "load_pack":
-            name = str(intent.get("name") or "").strip().lower()
+            name = packs.normalize_name(str(intent.get("name") or ""))
             available = packs.list_available()
             if name not in available:
                 return f"Пак '{name}' не найден. Доступны: {', '.join(available)}."
             if name in self.active_packs:
                 return f"Пак '{name}' уже активен."
             self.active_packs.append(name)
-            packs.save_active(self.active_packs)
+            packs.save_active(self.active_packs, self.config)
             self._reload_packs()
             return f"Пак '{name}' загружен."
         if action == "unload_pack":
-            name = str(intent.get("name") or "").strip().lower()
+            name = packs.normalize_name(str(intent.get("name") or ""))
             if name not in self.active_packs:
                 return f"Пак '{name}' и так не активен."
             self.active_packs.remove(name)
-            packs.save_active(self.active_packs)
+            packs.save_active(self.active_packs, self.config)
             self._reload_packs()
             return f"Пак '{name}' выгружен."
         if action == "list_packs":
@@ -442,9 +424,9 @@ class IntentHandler:
 
         if action == "change_voice":
             voice = str(intent.get("voice") or "").strip().lower()
-            return voices.switch(voice)
+            return voices.switch(voice, self.config)
         if action == "list_voices":
-            return voices.handle_voice_command("список голосов")
+            return voices.handle_voice_command("список голосов", self.config)
 
         if action == "set_timer":
             text = str(intent.get("text") or "").strip()
@@ -507,9 +489,13 @@ class IntentHandler:
             return "Открываю журнал."
 
         if action == "get_weather":
-            # LLM уже нормализовала город (именительный падеж).
             city = str(intent.get("target") or "").strip()
             day = "tomorrow" if intent.get("day") == "tomorrow" else "today"
+
+            # Отсеиваем мусор от LLM
+            if any(w in city.lower() for w in _WEATHER_BAD_TARGET):
+                log.warning("get_weather: LLM подсунула мусор target=%r — игнорирую", city)
+                city = ""
 
             if not city:
                 city = profile.get("default_city")
@@ -527,7 +513,6 @@ class IntentHandler:
             return weather.describe_weather(w)
 
         if action == "get_currency":
-            # LLM нормализует валюту в ISO-код (USD, BYN, KZT, ...).
             code = str(intent.get("target") or "").strip().upper()
             r = weather.get_currency_rates()
             return weather.describe_currency(r, code=code)
