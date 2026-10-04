@@ -1,11 +1,30 @@
+# Python
 __pycache__/
 *.pyc
 *.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+
+# Модели и голоса
 models/
 voices/
 log.txt
 *.log
+
+# Окружение
 .env
-config.json
+.venv/
+venv/
+
+# Редакторы
 .idea/
 .vscode/
+
+# === Пользовательские данные — НЕ В ГИТ ===
+config.json
+user_profile.json
+dialog.json
+timers.json
+tasks.json
+logs/

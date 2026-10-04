@@ -2,12 +2,13 @@
 
 Архитектура LLM-first:
     1. CANCEL — мгновенно.
-    2. Быстрая проверка режимов — до LLM.
-    3. custom_commands — точное совпадение.
-    4. small_talk — время, дата, «как дела».
-    5. скриншот — быстро.
-    6. Всё остальное — LLM: parse() → интент → _execute_intent().
-    7. Если не команда — chat_stream() → диалог (со историей).
+    2. Буфер обмена — быстрые правила.
+    3. Быстрая проверка режимов — до LLM.
+    4. custom_commands — точное совпадение.
+    5. small_talk — время, дата, «как дела».
+    6. скриншот — быстро.
+    7. Всё остальное — LLM: parse() → интент → _execute_intent().
+    8. Если не команда — chat_stream() → диалог (со историей).
 """
 
 import datetime
@@ -29,8 +30,10 @@ from jarvis import memory
 from jarvis import voices
 from jarvis import timers
 from jarvis import tasks
+from jarvis import weather
 
 log = logging.getLogger("jarvis.intents")
+actions_log = logging.getLogger("jarvis.actions")
 
 
 def normalize(text: str) -> str:
@@ -90,6 +93,7 @@ class IntentHandler:
         self.active_packs = list(config.get("active_packs", []))
         self.last_macro = None
         self._reset_requested = False
+        self._last_reply = ""
 
         self._config_custom_original = []
         for entry in config.get("custom_commands", []):
@@ -103,6 +107,8 @@ class IntentHandler:
 
     def handle(self, cmd: str):
         self.last_was_chat = False
+        actions_log.info("Команда: %r (режим: %s)", cmd, self.mode)
+
         reply = self._handle_single(cmd)
 
         if hasattr(reply, "__iter__") and not isinstance(reply, str):
@@ -112,48 +118,77 @@ class IntentHandler:
         self.dialog.append({"role": "user", "content": cmd})
         self.dialog.append({"role": "assistant", "content": reply})
         memory.save(list(self.dialog))
+
+        if isinstance(reply, str):
+            actions_log.info("Ответ: %r", reply[:120])
+            self._last_reply = reply
         return reply
 
     def finalize_stream(self, cmd: str, full_text: str) -> None:
         self.dialog.append({"role": "assistant", "content": full_text})
         memory.save(list(self.dialog))
+        if full_text:
+            self._last_reply = full_text
 
     def _handle_single(self, cmd: str):
         # 1. CANCEL
         if cmd in CANCEL:
             self._reset_requested = True
             return "Жду обращение, сэр."
+            
+        # 2. Буфер обмена — быстрые правила
+        # «скопируй выделенное» — жмёт Ctrl+C в активном окне
+        if re.search(r"скопируй\s+(выделенное|выделенный|это\s+выделенное)", cmd) \
+                or re.search(r"(выдели|выделенное)\s+(и\s+)?скопируй", cmd) \
+                or cmd in {"скопируй выделенное", "скопируй это выделенное"}:
+            return self._execute_intent({"action": "copy_selection"})
 
-        # 2. Быстрая проверка режимов — ДО LLM
+        # «скопируй свой ответ» — копирует последний ответ Феникса
+        if re.search(r"скопируй\s+(свой\s+)?(ответ|ответь|последнее|сказанное)", cmd) \
+                or cmd in {"скопируй свой ответ", "скопируй ответ", "скопируй что ты сказал"}:
+            return self._execute_intent({"action": "clipboard_copy_last"})
+
+        # «что в буфере» — читает
+        if re.search(r"(что|чё)\s+(в\s+)?буфере", cmd) \
+                or re.search(r"(покажи|прочитай|что)\s+буфер", cmd) \
+                or cmd in {"что скопировано", "что в буфере"}:
+            return self._execute_intent({"action": "clipboard_read"})
+
+        # «очисти буфер»
+        if re.search(r"(очисти|сотри|удали)\s+буфер", cmd) \
+                or cmd in {"очисти буфер", "сотри буфер"}:
+            return self._execute_intent({"action": "clipboard_clear"})
+        
+        # 3. Быстрая проверка режимов — ДО LLM
         if any(w in cmd for w in ("режим", "комбо", "комбинирован")):
             reply, new_mode = modes.handle_mode_command(cmd, self.mode)
             if reply:
                 self.mode = new_mode
                 return reply
 
-        # 3. Свои команды
+        # 4. Свои команды
         reply = self._match_custom(cmd)
         if reply:
             return reply
 
-        # 4. Small talk
+        # 5. Small talk
         reply = self._small_talk(cmd)
         if reply:
             return reply
 
-        # 5. Скриншот
+        # 6. Скриншот
         if re.search(r"скрин|снимок экрана", cmd):
             return self._take_screenshot(cmd)
 
-        # 6. Режим «только команды»
+        # 7. Режим «только команды»
         if self.mode == "commands":
             return "Я не понял команду. Скажите «режим ИИ» или добавьте фразу в конфиг."
 
-        # 7. LLM недоступна
+        # 8. LLM недоступна
         if self.brain is None or not self.brain.available:
             return "LLM недоступна. Скажите «режим команды»."
 
-        # 8. LLM parse → интент
+        # 9. LLM parse → интент
         intent = self.brain.parse(cmd)
         if intent and intent.get("action") not in ("answer", "none"):
             if intent.get("action") == "search" \
@@ -166,7 +201,7 @@ class IntentHandler:
             if reply:
                 return reply
 
-        # 9. LLM вернула answer — но отвечаем через chat_stream (в контексте!)
+        # 10. LLM вернула answer — но отвечаем через chat_stream (в контексте!)
         if intent and intent.get("action") == "answer":
             gen = self.brain.chat_stream(cmd, list(self.dialog))
             if gen is not None:
@@ -175,7 +210,7 @@ class IntentHandler:
             if intent.get("reply"):
                 return str(intent["reply"])[:600]
 
-        # 10. Диалог (стриминг)
+        # 11. Диалог (стриминг)
         gen = self.brain.chat_stream(cmd, list(self.dialog))
         if gen is not None:
             self.last_was_chat = True
@@ -203,6 +238,8 @@ class IntentHandler:
         action = intent.get("action")
         target = normalize(str(intent.get("target") or ""))
         query = str(intent.get("query") or "").strip()
+
+        actions_log.info("Интент: %s (target=%r, query=%r)", action, target, query)
 
         if action == "open_app" and target:
             if intent.get("minimized"):
@@ -291,6 +328,35 @@ class IntentHandler:
         if action == "mute":
             actions.media_key("mute")
             return "Без звука."
+
+        if action == "clipboard_read":
+            text = actions.clipboard_read()
+            if not text:
+                return "Буфер обмена пуст."
+            return f"В буфере: {text[:400]}"
+
+        if action == "copy_selection":
+            ok = actions.copy_selection()
+            if not ok:
+                return "Не удалось скопировать."
+            # Читаем, что скопировалось
+            time.sleep(0.15)
+            text = actions.clipboard_read()
+            if text:
+                short = text[:200] + ("..." if len(text) > 200 else "")
+                return f"Скопировал: {short}"
+            return "Скопировал выделенное."
+
+        if action == "clipboard_copy_last":
+            last = self._last_reply
+            if not last:
+                return "Нечего копировать."
+            ok = actions.clipboard_write(last)
+            return "Скопировал свой ответ в буфер." if ok else "Не удалось скопировать."
+
+        if action == "clipboard_clear":
+            ok = actions.clipboard_clear()
+            return "Буфер очищен." if ok else "Не удалось очистить буфер."
 
         if action == "minimize_all":
             actions.minimize_all()
@@ -408,7 +474,7 @@ class IntentHandler:
             actions.open_path(cfg_path)
             return "Открываю конфиг."
         if action == "open_log":
-            log_path = Path(__file__).resolve().parent.parent / "jarvis.log"
+            log_path = Path(__file__).resolve().parent.parent / "logs" / "jarvis.log"
             actions.open_path(log_path)
             return "Открываю журнал."
 

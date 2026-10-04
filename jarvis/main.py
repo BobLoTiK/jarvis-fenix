@@ -6,6 +6,7 @@ Barge-in: во время речи Феникса микрофон НЕ глуш
 """
 
 import logging
+import logging.handlers
 import threading
 import time
 from pathlib import Path
@@ -206,16 +207,63 @@ class Jarvis:
             wake_score(token, w) >= 0.8 for w in self._wake_words
         )
 
-
 def setup_logging() -> None:
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(name)s %(levelname)s %(message)s",
-        handlers=[
-            logging.StreamHandler(),
-            logging.FileHandler(BASE_DIR / "jarvis.log", encoding="utf-8"),
-        ],
+    # Заглушаем болтливые библиотеки
+    logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    """Настраивает логирование: общий лог, лог действий, лог ошибок."""
+    LOGS_DIR = BASE_DIR / "logs"
+    LOGS_DIR.mkdir(exist_ok=True)
+
+    fmt = "%(asctime)s %(name)s %(levelname)s %(message)s"
+    formatter = logging.Formatter(fmt)
+
+    root = logging.getLogger()
+    root.setLevel(logging.INFO)
+    for h in list(root.handlers):
+        root.removeHandler(h)
+
+    # 1) Консоль
+    console = logging.StreamHandler()
+    console.setFormatter(formatter)
+    console.setLevel(logging.INFO)
+    root.addHandler(console)
+
+    # 2) Общий лог jarvis.log
+    jarvis_handler = logging.handlers.RotatingFileHandler(
+        LOGS_DIR / "jarvis.log",
+        maxBytes=5 * 1024 * 1024,
+        backupCount=3,
+        encoding="utf-8",
     )
+    jarvis_handler.setFormatter(formatter)
+    jarvis_handler.setLevel(logging.INFO)
+    root.addHandler(jarvis_handler)
+
+    # 3) Лог ошибок errors.log
+    errors_handler = logging.handlers.RotatingFileHandler(
+        LOGS_DIR / "errors.log",
+        maxBytes=5 * 1024 * 1024,
+        backupCount=3,
+        encoding="utf-8",
+    )
+    errors_handler.setFormatter(formatter)
+    errors_handler.setLevel(logging.WARNING)
+    root.addHandler(errors_handler)
+
+    # 4) Лог действий actions.log
+    actions_logger = logging.getLogger("jarvis.actions")
+    actions_logger.setLevel(logging.INFO)
+    actions_logger.propagate = False
+    actions_handler = logging.handlers.RotatingFileHandler(
+        LOGS_DIR / "actions.log",
+        maxBytes=5 * 1024 * 1024,
+        backupCount=3,
+        encoding="utf-8",
+    )
+    actions_handler.setFormatter(formatter)
+    actions_logger.addHandler(actions_handler)
 
 
 def main() -> None:

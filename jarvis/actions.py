@@ -34,6 +34,7 @@ def run_spec(spec) -> bool:
     if not spec:
         return False
     kind, value = spec
+    log.info("Запуск: %s %s", kind, value)
     try:
         if kind == "open_app":
             from jarvis.installed import scan_start_menu, find_installed
@@ -95,6 +96,7 @@ def _schedule_activation(name: str, app_title: str | None = None) -> None:
 
 
 def open_path(path, minimized: bool = False) -> bool:
+    log.info("Открываю путь: %s (minimized=%s)", path, minimized)
     try:
         if minimized and str(path).lower().endswith(".lnk"):
             subprocess.Popen(["cmd", "/c", "start", "/min", "", str(path)],
@@ -108,6 +110,7 @@ def open_path(path, minimized: bool = False) -> bool:
 
 
 def open_url(url: str) -> bool:
+    log.info("Открываю URL: %s", url)
     try:
         os.startfile(url)
         return True
@@ -117,6 +120,7 @@ def open_url(url: str) -> bool:
 
 
 def open_browser() -> bool:
+    log.info("Открываю браузер")
     try:
         os.startfile("https://www.google.com")
         return True
@@ -128,6 +132,7 @@ def open_browser() -> bool:
 # --- поиск и сайты ---------------------------------------------------------
 
 def open_search(engine: str, query: str) -> bool:
+    log.info("Поиск: %s, запрос=%r", engine, query)
     q = urllib.parse.quote(query)
     if engine == "youtube":
         url = f"https://www.youtube.com/results?search_query={q}"
@@ -182,6 +187,7 @@ def take_screenshot():
 # --- медиа -----------------------------------------------------------------
 
 def media_key(key: str, times: int = 1) -> bool:
+    log.info("Медиа-клавиша: %s x%d", key, times)
     try:
         from winrt.windows.media.control import (
             GlobalSystemMediaTransportControlsSessionManager as Manager,
@@ -266,7 +272,9 @@ def kill_process(name: str) -> bool:
     protected = {"system", "svchost.exe", "csrss.exe", "wininit.exe",
                  "services.exe", "lsass.exe", "explorer.exe"}
     if name.lower() in protected:
+        log.warning("Запрещено убивать защищённый процесс: %s", name)
         return False
+    log.info("Убиваю процесс: %s", name)
     try:
         import psutil
         killed = False
@@ -296,6 +304,7 @@ def minimize_window(name: str) -> bool:
 def type_text(text: str) -> bool:
     if not text:
         return False
+    log.info("Печатаю: %r", text)
     try:
         import pyautogui
         try:
@@ -434,9 +443,11 @@ def _find_window(name: str):
 def minimize_window_by_title(name: str) -> bool:
     w = _find_window(name)
     if not w:
+        log.warning("Окно не найдено для сворачивания: %s", name)
         return False
     try:
         w.minimize()
+        log.info("Свернул окно: %s", w.title)
         return True
     except Exception:
         log.exception("minimize_window_by_title не удался")
@@ -446,6 +457,7 @@ def minimize_window_by_title(name: str) -> bool:
 def maximize_window_by_title(name: str) -> bool:
     w = _find_window(name)
     if not w:
+        log.warning("Окно не найдено для разворачивания: %s", name)
         return False
     try:
         if getattr(w, "isMinimized", False):
@@ -456,6 +468,7 @@ def maximize_window_by_title(name: str) -> bool:
             w.activate()
         except Exception:
             pass
+        log.info("Развернул окно: %s", w.title)
         return True
     except Exception:
         log.exception("maximize_window_by_title не удался")
@@ -465,12 +478,14 @@ def maximize_window_by_title(name: str) -> bool:
 def activate_window_by_title(name: str) -> bool:
     w = _find_window(name)
     if not w:
+        log.warning("Окно не найдено для активации: %s", name)
         return False
     try:
         if getattr(w, "isMinimized", False):
             w.restore()
             time.sleep(0.15)
         w.activate()
+        log.info("Активировал окно: %s", w.title)
         return True
     except Exception:
         log.exception("activate_window_by_title не удался")
@@ -481,6 +496,7 @@ def minimize_active() -> bool:
     try:
         import pyautogui
         pyautogui.hotkey("win", "down")
+        log.info("Свернул активное окно")
         return True
     except Exception:
         log.exception("minimize_active не удался")
@@ -491,6 +507,7 @@ def maximize_active() -> bool:
     try:
         import pyautogui
         pyautogui.hotkey("win", "up")
+        log.info("Развернул активное окно")
         return True
     except Exception:
         log.exception("maximize_active не удался")
@@ -502,8 +519,10 @@ def switch_window(back: bool = False) -> bool:
         import pyautogui
         if back:
             pyautogui.hotkey("alt", "shift", "tab")
+            log.info("Переключил окно назад")
         else:
             pyautogui.hotkey("alt", "tab")
+            log.info("Переключил окно")
         return True
     except Exception:
         log.exception("switch_window не удался")
@@ -531,19 +550,34 @@ def resolve_user_folder(name: str):
         if key in name:
             return path
     return None
-    
-# --- буфер обмена -----------------------------------------------------------
 
+
+# --- буфер обмена -----------------------------------------------------------
+def copy_selection() -> bool:
+    """Нажимает Ctrl+C, чтобы скопировать выделенное в активном окне."""
+    log.info("Копирую выделенное (Ctrl+C)")
+    try:
+        import pyautogui
+        pyautogui.hotkey("ctrl", "c")
+        return True
+    except Exception:
+        log.exception("copy_selection не удался")
+        return False
+        
 def clipboard_read() -> str:
+    log.info("Читаю буфер обмена")
     try:
         import pyperclip
-        return pyperclip.paste() or ""
+        text = pyperclip.paste() or ""
+        log.info("Буфер обмена: %r", text[:80])
+        return text
     except Exception:
         log.exception("clipboard_read не удался")
         return ""
 
 
 def clipboard_write(text: str) -> bool:
+    log.info("Пишу в буфер обмена: %r", text[:80])
     try:
         import pyperclip
         pyperclip.copy(text)
@@ -554,4 +588,5 @@ def clipboard_write(text: str) -> bool:
 
 
 def clipboard_clear() -> bool:
+    log.info("Очищаю буфер обмена")
     return clipboard_write("")
