@@ -18,3 +18,4 @@ winrt-Windows.Foundation.Collections>=3.2
 winrt-Windows.Media.SpeechSynthesis>=3.2
 winrt-Windows.Media.Control>=3.2
 winrt-Windows.Storage.Streams>=3.2
+filelock>=3.13

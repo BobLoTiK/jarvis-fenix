@@ -4,31 +4,20 @@
 Активные паки хранятся в config.json в поле "active_packs".
 
 Голосом: «загрузи пак игр», «выгрузи пак игр», «какие паки».
-Запись в config.json — атомарная, с мьютексом.
+Запись — через config_manager (единый FileLock, атомарная замена).
 """
 
 import json
 import logging
 import re
-import threading
 from pathlib import Path
+
+from jarvis import config_manager
 
 log = logging.getLogger("jarvis.packs")
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 PACKS_DIR = BASE_DIR / "packs"
-CONFIG_PATH = BASE_DIR / "config.json"
-_write_lock = threading.Lock()
-
-
-def _atomic_write(path: Path, data: dict) -> None:
-    with _write_lock:
-        tmp = path.with_suffix(path.suffix + ".tmp")
-        tmp.write_text(
-            json.dumps(data, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
-        tmp.replace(path)
 
 
 def list_available() -> list[str]:
@@ -64,14 +53,10 @@ def load_active(config: dict) -> list:
 
 
 def save_active(active: list[str]) -> None:
-    try:
-        if CONFIG_PATH.exists():
-            data = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
-            data["active_packs"] = sorted(set(active))
-            _atomic_write(CONFIG_PATH, data)
-            log.info("Активные паки сохранены: %s", active)
-    except Exception:
-        log.exception("Не удалось сохранить active_packs")
+    if config_manager.update("active_packs", sorted(set(active))):
+        log.info("Активные паки сохранены: %s", active)
+    else:
+        log.error("Не удалось сохранить active_packs")
 
 
 def handle_pack_command(cmd: str, current_active: list[str]) -> tuple[str | None, list[str]]:

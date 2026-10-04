@@ -1,20 +1,16 @@
 """Управление голосами Piper: ruslan, dmitri, irina, denis.
 
 Голосом: «смени голос на ирину», «голос дмитрий», «какой голос», «список голосов».
-Сохраняется в config.json → tts_voice. Запись атомарная, с мьютексом.
+Сохраняется в config.json → tts_voice.
+Запись — через config_manager (единый FileLock, атомарная замена).
 """
 
-import json
 import logging
 import re
-import threading
-from pathlib import Path
+
+from jarvis import config_manager
 
 log = logging.getLogger("jarvis.voices")
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-CONFIG_PATH = BASE_DIR / "config.json"
-_write_lock = threading.Lock()
 
 PIPER_VOICES = {
     "ruslan": "Руслан — мужской, спокойный",
@@ -33,42 +29,18 @@ ALIASES = {
 }
 
 
-def _atomic_write(path: Path, data: dict) -> None:
-    with _write_lock:
-        tmp = path.with_suffix(path.suffix + ".tmp")
-        tmp.write_text(
-            json.dumps(data, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
-        tmp.replace(path)
-
-
-def _read_config() -> dict:
-    if not CONFIG_PATH.exists():
-        return {}
-    try:
-        return json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
-    except Exception:
-        log.exception("Не удалось прочитать config.json")
-        return {}
-
-
 def current_voice() -> str:
-    cfg = _read_config()
+    cfg = config_manager.load()
     return cfg.get("tts_voice", "ruslan")
 
 
 def switch(voice: str) -> str:
     if voice not in PIPER_VOICES:
         return f"Голос '{voice}' не знаю. Доступны: {', '.join(PIPER_VOICES)}."
-    try:
-        cfg = _read_config()
-        cfg["tts_voice"] = voice
-        _atomic_write(CONFIG_PATH, cfg)
-        log.info("Голос переключён на %s", voice)
-    except Exception:
-        log.exception("Не удалось сохранить голос")
+    if not config_manager.update("tts_voice", voice):
+        log.error("Не удалось сохранить голос")
         return f"Не удалось переключить голос на {voice}."
+    log.info("Голос переключён на %s", voice)
     return f"Голос переключён на {voice.capitalize()}."
 
 
