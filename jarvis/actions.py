@@ -531,3 +531,27 @@ def resolve_user_folder(name: str):
         if key in name:
             return path
     return None
+    
+# --- буфер обмена -----------------------------------------------------------
+
+def clipboard_read() -> str:
+    try:
+        import pyperclip
+        return pyperclip.paste() or ""
+    except Exception:
+        log.exception("clipboard_read не удался")
+        return ""
+
+
+def clipboard_write(text: str) -> bool:
+    try:
+        import pyperclip
+        pyperclip.copy(text)
+        return True
+    except Exception:
+        log.exception("clipboard_write не удался")
+        return False
+
+
+def clipboard_clear() -> bool:
+    return clipboard_write("")

@@ -20,7 +20,7 @@
   "input_device": null,
   "mic_check_sec": 20,
   "command_window_sec": 9,
-  "mode": "combo",
+  "mode": "llm",
   "barge_enabled": true,
   "barge_mult": 1.5,
   "barge_min_threshold": 150,
