@@ -1,7 +1,7 @@
 # SNAPSHOT проекта «Феникс»
 
 _Автоматически сгенерировано `snapshot.py`. Обновляется при `git push`._
-_Файлов в снимке: 53_
+_Файлов в снимке: 52_
 
 ---
 
@@ -54,7 +54,6 @@ jarvis/
 ├── tests/
 │   ├── test_config_manager.py
 │   ├── test_weather.py
-├── (новый)
 ├── ARCHITECTURE.md
 ├── check_syntax.bat
 ├── check_syntax.py
@@ -72,12 +71,6 @@ jarvis/
 ---
 
 ## 📄 Содержимое файлов
-
-### `(новый)`
-
-```
-
-```
 
 ### `ARCHITECTURE.md`
 
