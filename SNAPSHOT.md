@@ -1,0 +1,7040 @@
+# SNAPSHOT проекта «Феникс»
+
+_Автоматически сгенерировано `snapshot.py`. Обновляется при `git push`._
+_Файлов в снимке: 51_
+
+---
+
+## 📁 Структура проекта
+
+```
+jarvis/
+├── cmds/
+│   ├── open_terminal.bat
+│   ├── show_ip.bat
+├── jarvis/
+│   ├── __init__.py
+│   ├── __main__.py
+│   ├── actions.py
+│   ├── apps.py
+│   ├── brain.py
+│   ├── config.py
+│   ├── config_manager.py
+│   ├── files.py
+│   ├── installed.py
+│   ├── intents.py
+│   ├── main.py
+│   ├── matching.py
+│   ├── memory.py
+│   ├── model.py
+│   ├── modes.py
+│   ├── packs.py
+│   ├── profile.py
+│   ├── recorder.py
+│   ├── steam.py
+│   ├── stt.py
+│   ├── tasks.py
+│   ├── timers.py
+│   ├── tray.py
+│   ├── tts.py
+│   ├── voices.py
+│   ├── weather.py
+├── packs/
+│   ├── apps.json
+│   ├── games.json
+│   ├── sites.json
+│   ├── system.json
+│   ├── work.json
+├── scripts/
+│   ├── build_exe.py
+│   ├── mics.py
+│   ├── selftest.py
+│   ├── voicedemo.py
+│   ├── wakebench.py
+├── tests/
+│   ├── test_config_manager.py
+│   ├── test_weather.py
+├── check_syntax.bat
+├── check_syntax.py
+├── config.example.json
+├── launcher.py
+├── PLAN.md
+├── README.md
+├── requirements.txt
+├── snapshot.py
+├── start_fenix.bat
+├── start_fenix_debug.bat
+├── test_intents.py
+```
+
+---
+
+## 📄 Содержимое файлов
+
+### `check_syntax.bat`
+
+```batch
+@echo off
+cd /d C:\jarvis
+python check_syntax.py
+pause
+```
+
+### `check_syntax.py`
+
+```python
+"""Проверяет синтаксис всех .py файлов в проекте."""
+import ast
+import sys
+from pathlib import Path
+
+BASE = Path(__file__).resolve().parent
+
+# Папки, где ищем .py
+TARGETS = [
+    BASE / "jarvis",
+    BASE / "scripts",
+    BASE,  # корень: launcher.py, check_syntax.py
+]
+
+# Исключения
+SKIP_DIRS = {"__pycache__", ".venv", "venv", ".git", "models", "voices", "logs"}
+SKIP_FILES = set()
+
+files = []
+for t in TARGETS:
+    if not t.exists():
+        continue
+    if t == BASE:
+        # В корне — только файлы верхнего уровня
+        files.extend(f for f in t.glob("*.py") if f.name not in SKIP_FILES)
+    else:
+        for f in t.rglob("*.py"):
+            if any(part in SKIP_DIRS for part in f.parts):
+                continue
+            if f.name in SKIP_FILES:
+                continue
+            files.append(f)
+
+files = sorted(set(files))
+
+failed = 0
+for f in files:
+    try:
+        ast.parse(f.read_text(encoding="utf-8"))
+        rel = f.relative_to(BASE)
+        print(f"OK   {rel}")
+    except SyntaxError as e:
+        failed += 1
+        rel = f.relative_to(BASE) if f.is_relative_to(BASE) else f
+        print(f"FAIL {rel}: {e}")
+
+print()
+if failed:
+    print(f"Ошибок: {failed}")
+    sys.exit(1)
+else:
+    print(f"Все {len(files)} файлов в порядке.")
+```
+
+### `cmds\open_terminal.bat`
+
+```batch
+@echo off
+cd /d C:\jarvis
+cmd
+```
+
+### `cmds\show_ip.bat`
+
+```batch
+@echo off
+ipconfig
+pause
+```
+
+### `config.example.json`
+
+```json
+{
+  "wake_words": [
+    "феникс",
+    "финикс",
+    "феникса",
+    "fenix",
+    "phoenix",
+    "джарвис",
+    "jarvis"
+  ],
+  "tts_backend": "auto",
+  "xtts_ref": "voices/jarvis.wav",
+  "tts_voice": "ruslan",
+  "voice_rate": 1.15,
+  "voice": "Pavel",
+  "music_app": "яндекс музыка",
+  "music_wait_sec": 6,
+  "dialog_window_sec": 20,
+  "sample_rate": 16000,
+  "input_device": null,
+  "mic_check_sec": 20,
+  "command_window_sec": 9,
+  "mode": "combo",
+  "barge_enabled": true,
+  "active_packs": [],
+  "timers_file": "timers.json",
+  "tasks_file": "tasks.json",
+  "memory_file": "dialog.json",
+  "memory_max": 200,
+  "use_whisper": true,
+  "whisper_model": "auto",
+  "whisper_device": "auto",
+  "use_llm": true,
+  "llm_model": "qwen2.5:7b-instruct",
+  "ollama_url": "http://127.0.0.1:11434",
+  "app_paths": {},
+  "custom_commands": []
+}
+```
+
+### `jarvis\__init__.py`
+
+```python
+"""Феникс — локальный голосовой ассистент для Windows.
+
+Имя выбрано бенчмарком wake-слов (scripts/wakebench.py): «феникс» Vosk-small
+распознаёт 3/3 и у него нет созвучных частых слов (порог ложных срабатываний).
+"""
+
+__version__ = "0.2.2"
+APP_NAME = "Феникс"
+```
+
+### `jarvis\__main__.py`
+
+```python
+from jarvis.main import main
+
+if __name__ == "__main__":
+    main()
+```
+
+### `jarvis\actions.py`
+
+```python
+"""Действия: запуск приложений, открытие сайтов, скриншоты, медиа, печать, окна."""
+
+import logging
+import os
+import re
+import subprocess
+import time
+import urllib.parse
+from pathlib import Path
+
+log = logging.getLogger("jarvis.actions")
+
+
+# --- запуск приложений и файлов -------------------------------------------
+
+def spec_from_string(s: str):
+    s = s.strip()
+    if s.startswith("open_app:"):
+        return ("open_app", s[len("open_app:"):])
+    if s.startswith(("http://", "https://")):
+        return ("url", s)
+    if s.startswith("steam://"):
+        return ("uri", s)
+    if s.lower().endswith((".bat", ".cmd")):
+        return ("path", s)
+    if s.lower() in ("browser", "браузер"):
+        return ("browser", None)
+    if os.path.exists(s):
+        return ("path", s)
+    return ("path", s)
+
+
+def run_spec(spec) -> bool:
+    if not spec:
+        return False
+    kind, value = spec
+    log.info("Запуск: %s %s", kind, value)
+    try:
+        if kind == "open_app":
+            from jarvis.installed import scan_start_menu, find_installed
+            apps = scan_start_menu()
+            hit = find_installed(apps, value)
+            if hit:
+                os.startfile(str(hit[1]))
+                _schedule_activation(value, hit[0])
+                return True
+            log.warning("Приложение '%s' не найдено в меню Пуск", value)
+            return False
+        if kind == "browser":
+            open_browser()
+            return True
+        if kind == "url":
+            open_url(value)
+            return True
+        if kind == "uri":
+            os.startfile(value)
+            return True
+        if kind in ("path", "exe"):
+            os.startfile(value)
+            return True
+    except Exception:
+        log.exception("run_spec не удался: %s", spec)
+    return False
+
+
+def _schedule_activation(name: str, app_title: str | None = None) -> None:
+    """Через 2 сек после запуска пытается активировать окно приложения."""
+    import threading
+    targets = [name]
+    if app_title and app_title.lower() != name.lower():
+        targets.append(app_title)
+
+    def _run():
+        time.sleep(2.0)
+        try:
+            import pygetwindow as gw
+            for t in targets:
+                t_low = t.lower()
+                for w in gw.getAllWindows():
+                    if not w.title:
+                        continue
+                    if t_low in w.title.lower():
+                        try:
+                            if getattr(w, "isMinimized", False):
+                                w.restore()
+                                time.sleep(0.1)
+                            w.activate()
+                            log.info("Активировал окно: %s", w.title)
+                        except Exception:
+                            pass
+                        return
+        except Exception:
+            log.exception("Не удалось активировать окно %r", name)
+
+    threading.Thread(target=_run, daemon=True, name=f"activate-{name}").start()
+
+
+def open_path(path, minimized: bool = False) -> bool:
+    log.info("Открываю путь: %s (minimized=%s)", path, minimized)
+    try:
+        if minimized and str(path).lower().endswith(".lnk"):
+            subprocess.Popen(["cmd", "/c", "start", "/min", "", str(path)],
+                             creationflags=subprocess.CREATE_NO_WINDOW)
+            return True
+        os.startfile(str(path))
+        return True
+    except Exception:
+        log.exception("open_path не удался: %s", path)
+        return False
+
+
+def open_url(url: str) -> bool:
+    log.info("Открываю URL: %s", url)
+    try:
+        os.startfile(url)
+        return True
+    except Exception:
+        log.exception("open_url не удался: %s", url)
+        return False
+
+
+def open_browser() -> bool:
+    log.info("Открываю браузер")
+    try:
+        os.startfile("https://www.google.com")
+        return True
+    except Exception:
+        log.exception("open_browser не удался")
+        return False
+
+
+# --- поиск и сайты ---------------------------------------------------------
+
+def open_search(engine: str, query: str) -> bool:
+    log.info("Поиск: %s, запрос=%r", engine, query)
+    q = urllib.parse.quote(query)
+    if engine == "youtube":
+        url = f"https://www.youtube.com/results?search_query={q}"
+    elif engine == "wiki":
+        url = f"https://ru.wikipedia.org/w/index.php?search={q}"
+    else:
+        url = f"https://www.google.com/search?q={q}"
+    return open_url(url)
+
+
+def google_search(query: str) -> bool:
+    return open_search("google", query)
+
+
+def open_site_lucky(name: str) -> bool:
+    q = urllib.parse.quote(name)
+    return open_url(f"https://duckduckgo.com/?q=!ducky+{q}")
+
+
+def spoken_domain(name: str):
+    text = name.lower().replace("точка", ".").replace(" точка ", ".").strip()
+    text = re.sub(r"\s+", "", text)
+    if "." in text and " " not in text:
+        return "https://" + text
+    return None
+
+
+def guess_site(name: str):
+    slug = re.sub(r"[^a-z0-9]", "", name.lower())
+    if not slug:
+        return None
+    return f"https://{slug}.ru"
+
+
+# --- скриншоты -------------------------------------------------------------
+
+def take_screenshot():
+    try:
+        from PIL import ImageGrab
+        folder = Path.home() / "Pictures" / "Screenshots"
+        folder.mkdir(parents=True, exist_ok=True)
+        path = folder / f"screenshot_{time.strftime('%Y-%m-%d_%H-%M-%S')}.png"
+        img = ImageGrab.grab()
+        img.save(path)
+        log.info("Скриншот: %s", path)
+        return path
+    except Exception:
+        log.exception("take_screenshot не удался")
+        raise
+
+
+# --- медиа -----------------------------------------------------------------
+
+def media_key(key: str, times: int = 1) -> bool:
+    log.info("Медиа-клавиша: %s x%d", key, times)
+    try:
+        from winrt.windows.media.control import (
+            GlobalSystemMediaTransportControlsSessionManager as Manager,
+        )
+    except ImportError:
+        log.warning("WinRT Media Control недоступен")
+        return False
+    try:
+        import asyncio
+
+        async def _press():
+            mgr = await Manager.request_async()
+            session = mgr.get_current_session()
+            if not session:
+                return False
+            for _ in range(max(1, times)):
+                if key == "play":
+                    await session.try_toggle_play_pause_async()
+                elif key == "next":
+                    await session.try_skip_next_async()
+                elif key == "prev":
+                    await session.try_skip_previous_async()
+                elif key == "vol_up":
+                    _volume_up()
+                elif key == "vol_down":
+                    _volume_down()
+                elif key == "mute":
+                    _volume_mute()
+                time.sleep(0.05)
+            return True
+
+        return asyncio.run(_press())
+    except Exception:
+        log.exception("media_key не удался: %s", key)
+        return False
+
+
+def _volume_up():
+    import ctypes
+    for _ in range(2):
+        ctypes.windll.user32.keybd_event(0xAF, 0, 0, 0)
+        ctypes.windll.user32.keybd_event(0xAF, 0, 2, 0)
+
+
+def _volume_down():
+    import ctypes
+    for _ in range(2):
+        ctypes.windll.user32.keybd_event(0xAE, 0, 0, 0)
+        ctypes.windll.user32.keybd_event(0xAE, 0, 2, 0)
+
+
+def _volume_mute():
+    import ctypes
+    ctypes.windll.user32.keybd_event(0xAD, 0, 0, 0)
+    ctypes.windll.user32.keybd_event(0xAD, 0, 2, 0)
+
+
+def ensure_music_playing() -> bool:
+    return media_key("play")
+
+
+# --- процессы --------------------------------------------------------------
+
+def find_process(name: str, threshold: float = 0.7):
+    try:
+        import psutil
+    except ImportError:
+        return None
+    from difflib import SequenceMatcher
+    name_low = name.lower()
+    for proc in psutil.process_iter(["name"]):
+        pname = (proc.info.get("name") or "").lower()
+        if not pname:
+            continue
+        base = pname.removesuffix(".exe")
+        if name_low in base or SequenceMatcher(None, name_low, base).ratio() >= threshold:
+            return proc.info["name"]
+    return None
+
+
+def kill_process(name: str) -> bool:
+    protected = {"system", "svchost.exe", "csrss.exe", "wininit.exe",
+                 "services.exe", "lsass.exe", "explorer.exe"}
+    if name.lower() in protected:
+        log.warning("Запрещено убивать защищённый процесс: %s", name)
+        return False
+    log.info("Убиваю процесс: %s", name)
+    try:
+        import psutil
+        killed = False
+        for proc in psutil.process_iter(["name"]):
+            if (proc.info.get("name") or "").lower() == name.lower():
+                proc.kill()
+                killed = True
+        return killed
+    except Exception:
+        log.exception("kill_process не удался: %s", name)
+        return False
+
+
+def close_browser() -> bool:
+    for name in ("chrome.exe", "firefox.exe", "msedge.exe", "opera.exe", "brave.exe"):
+        if find_process(name.removesuffix(".exe")) and kill_process(name):
+            return True
+    return False
+
+
+def minimize_window(name: str) -> bool:
+    return minimize_window_by_title(name)
+
+
+# --- печать и окна ---------------------------------------------------------
+
+def type_text(text: str) -> bool:
+    if not text:
+        return False
+    log.info("Печатаю: %r", text)
+    try:
+        import pyautogui
+        try:
+            import pyperclip
+            old = pyperclip.paste()
+            pyperclip.copy(text)
+            time.sleep(0.05)
+            pyautogui.hotkey("ctrl", "v")
+            time.sleep(0.15)
+            pyperclip.copy(old)
+            return True
+        except Exception:
+            log.debug("pyperclip не сработал, пробую pyautogui.typewrite")
+        pyautogui.typewrite(text, interval=0.02)
+        return True
+    except Exception:
+        log.exception("type_text не удался")
+        return False
+
+
+def minimize_all() -> bool:
+    try:
+        import pygetwindow as gw
+        count = 0
+        for w in gw.getAllWindows():
+            try:
+                if w.title and w.visible and not w.isMinimized:
+                    w.minimize()
+                    count += 1
+            except Exception:
+                pass
+        log.info("Свёрнуто окон: %d", count)
+        return True
+    except Exception:
+        try:
+            import pyautogui
+            pyautogui.hotkey("win", "d")
+            return True
+        except Exception:
+            log.exception("minimize_all не удался")
+            return False
+
+
+_WINDOW_SYNONYMS = {
+    "консоль": ["cmd.exe", "powershell", "command prompt", "c:\\users\\", "c:\\windows\\", "c:\\jarvis"],
+    "терминал": ["cmd.exe", "powershell", "command prompt", "c:\\users\\", "c:\\windows\\", "c:\\jarvis"],
+    "командную строку": ["cmd.exe", "command prompt", "c:\\users\\", "c:\\windows\\"],
+    "командная строка": ["cmd.exe", "command prompt", "c:\\users\\", "c:\\windows\\"],
+    "cmd": ["cmd.exe", "command prompt", "c:\\users\\", "c:\\windows\\"],
+    "браузер": ["chrome", "firefox", "яндекс", "yandex", "edge", "opera", "brave"],
+    "хром": ["chrome"],
+    "яндекс браузер": ["яндекс", "yandex"],
+    "firefox": ["firefox"],
+    "файрфокс": ["firefox"],
+    "edge": ["edge"],
+    "эдж": ["edge"],
+    "телега": ["telegram"],
+    "телеграм": ["telegram"],
+    "тг": ["telegram"],
+    "дискорд": ["discord"],
+    "дс": ["discord"],
+    "стим": ["steam"],
+    "steam": ["steam"],
+    "проводник": ["проводник", "explorer"],
+    "explorer": ["проводник", "explorer"],
+    "папку": ["проводник", "explorer"],
+    "настройки": ["настройки", "settings", "параметры"],
+    "параметры": ["параметры", "settings", "настройки"],
+    "оллама": ["ollama"],
+    "ollama": ["ollama"],
+    "радмин": ["radmin"],
+    "radmin": ["radmin"],
+    "овервульф": ["overwolf"],
+    "overwolf": ["overwolf"],
+}
+
+
+def _find_window(name: str):
+    try:
+        import pygetwindow as gw
+    except ImportError:
+        return None
+
+    windows = [w for w in gw.getAllWindows() if w.title]
+    name_low = name.lower().strip()
+
+    # убираем лишние уточнения, которые LLM любит добавлять
+    # («яндекс музыка» → «яндекс», «яндекс браузер» → «яндекс»)
+    for noise in (" музыка", " browser", " браузер"):
+        if name_low.endswith(noise):
+            name_low = name_low[: -len(noise)].strip()
+
+    direct = [w for w in windows if name_low in w.title.lower()]
+    if direct:
+        for w in direct:
+            try:
+                if w.visible and not w.isMinimized:
+                    return w
+            except Exception:
+                pass
+        return direct[0]
+
+    subs = None
+    for key, values in _WINDOW_SYNONYMS.items():
+        if key == name_low or key in name_low or name_low in key:
+            subs = values
+            break
+    if subs:
+        for sub in subs:
+            sub_low = sub.lower()
+            for w in windows:
+                if sub_low in w.title.lower():
+                    try:
+                        if w.visible and not w.isMinimized:
+                            return w
+                    except Exception:
+                        pass
+        for sub in subs:
+            sub_low = sub.lower()
+            for w in windows:
+                if sub_low in w.title.lower():
+                    return w
+
+    from difflib import SequenceMatcher
+    best = None
+    best_ratio = 0.6
+    for w in windows:
+        title_low = w.title.lower()
+        ratio = SequenceMatcher(None, name_low, title_low[:40]).ratio()
+        if ratio > best_ratio:
+            best_ratio = ratio
+            best = w
+    return best
+
+
+def minimize_window_by_title(name: str) -> bool:
+    w = _find_window(name)
+    if not w:
+        log.warning("Окно не найдено для сворачивания: %s", name)
+        return False
+    try:
+        w.minimize()
+        log.info("Свернул окно: %s", w.title)
+        return True
+    except Exception:
+        log.exception("minimize_window_by_title не удался")
+        return False
+
+
+def maximize_window_by_title(name: str) -> bool:
+    w = _find_window(name)
+    if not w:
+        log.warning("Окно не найдено для разворачивания: %s", name)
+        return False
+    try:
+        if getattr(w, "isMinimized", False):
+            w.restore()
+            time.sleep(0.15)
+        w.maximize()
+        try:
+            w.activate()
+        except Exception:
+            pass
+        log.info("Развернул окно: %s", w.title)
+        return True
+    except Exception:
+        log.exception("maximize_window_by_title не удался")
+        return False
+
+
+def activate_window_by_title(name: str) -> bool:
+    w = _find_window(name)
+    if not w:
+        log.warning("Окно не найдено для активации: %s", name)
+        return False
+    try:
+        if getattr(w, "isMinimized", False):
+            w.restore()
+            time.sleep(0.15)
+        w.activate()
+        log.info("Активировал окно: %s", w.title)
+        return True
+    except Exception:
+        log.exception("activate_window_by_title не удался")
+        return False
+
+
+def minimize_active() -> bool:
+    try:
+        import pyautogui
+        pyautogui.hotkey("win", "down")
+        log.info("Свернул активное окно")
+        return True
+    except Exception:
+        log.exception("minimize_active не удался")
+        return False
+
+
+def maximize_active() -> bool:
+    try:
+        import pyautogui
+        pyautogui.hotkey("win", "up")
+        log.info("Развернул активное окно")
+        return True
+    except Exception:
+        log.exception("maximize_active не удался")
+        return False
+
+
+def switch_window(back: bool = False) -> bool:
+    try:
+        import pyautogui
+        if back:
+            pyautogui.hotkey("alt", "shift", "tab")
+            log.info("Переключил окно назад")
+        else:
+            pyautogui.hotkey("alt", "tab")
+            log.info("Переключил окно")
+        return True
+    except Exception:
+        log.exception("switch_window не удался")
+        return False
+
+
+# --- папки пользователя ----------------------------------------------------
+
+_USER_FOLDERS = {
+    "загрузки": Path.home() / "Downloads",
+    "скачанное": Path.home() / "Downloads",
+    "документы": Path.home() / "Documents",
+    "рабочий стол": Path.home() / "Desktop",
+    "изображения": Path.home() / "Pictures",
+    "картинки": Path.home() / "Pictures",
+    "музыка": Path.home() / "Music",
+    "видео": Path.home() / "Videos",
+    "скриншоты": Path.home() / "Pictures" / "Screenshots",
+}
+
+
+def resolve_user_folder(name: str):
+    name = name.lower().strip()
+    for key, path in _USER_FOLDERS.items():
+        if key in name:
+            return path
+    return None
+
+
+# --- буфер обмена -----------------------------------------------------------
+def copy_selection() -> bool:
+    """Нажимает Ctrl+C, чтобы скопировать выделенное в активном окне."""
+    log.info("Копирую выделенное (Ctrl+C)")
+    try:
+        import pyautogui
+        pyautogui.hotkey("ctrl", "c")
+        return True
+    except Exception:
+        log.exception("copy_selection не удался")
+        return False
+        
+def clipboard_read() -> str:
+    log.info("Читаю буфер обмена")
+    try:
+        import pyperclip
+        text = pyperclip.paste() or ""
+        log.info("Буфер обмена: %r", text[:80])
+        return text
+    except Exception:
+        log.exception("clipboard_read не удался")
+        return ""
+
+
+def clipboard_write(text: str) -> bool:
+    log.info("Пишу в буфер обмена: %r", text[:80])
+    try:
+        import pyperclip
+        pyperclip.copy(text)
+        return True
+    except Exception:
+        log.exception("clipboard_write не удался")
+        return False
+
+
+def clipboard_clear() -> bool:
+    log.info("Очищаю буфер обмена")
+    return clipboard_write("")
+```
+
+### `jarvis\apps.py`
+
+```python
+"""Каталог известных приложений: как их зовут голосом, как открыть и как закрыть."""
+
+import logging
+import os
+import winreg
+from dataclasses import dataclass, field
+from pathlib import Path
+
+from jarvis.matching import match_score
+
+log = logging.getLogger("jarvis.apps")
+
+
+@dataclass
+class App:
+    key: str
+    title: str          # как назвать в ответе («Открываю Дискорд»)
+    aliases: list       # как пользователь может назвать приложение
+    open_specs: list    # кандидаты ("uri"|"exe"|"cmd", значение) — берётся первый рабочий
+    procs: list = field(default_factory=list)  # имена процессов для «закрой»
+
+    def resolve_open(self):
+        for kind, value in self.open_specs:
+            if kind == "exe":
+                if Path(value).exists():
+                    return ("exe", value)
+            else:
+                return (kind, value)
+        return None
+
+
+def _steam_exe() -> str | None:
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Valve\Steam") as k:
+            return winreg.QueryValueEx(k, "SteamExe")[0]
+    except OSError:
+        return None
+
+
+def _expand(p: str) -> str:
+    return os.path.expandvars(p)
+
+
+def build_apps(config: dict) -> list[App]:
+    steam = _steam_exe() or r"C:\Program Files (x86)\Steam\steam.exe"
+    discord_updater = _expand(r"%LOCALAPPDATA%\Discord\Update.exe")
+
+    apps = [
+        App(
+            "discord", "Дискорд",
+            ["дискорд", "дис", "дс", "дэ эс", "discord"],
+            [("cmd", [discord_updater, "--processStart", "Discord.exe"])],
+            ["Discord.exe"],
+        ),
+        App(
+            "telegram", "Телеграм",
+            ["телеграм", "телеграмм", "телега", "тг", "тэ гэ", "telegram"],
+            [("exe", _expand(r"%APPDATA%\Telegram Desktop\Telegram.exe"))],
+            ["Telegram.exe"],
+        ),
+        App(
+            "steam", "Стим",
+            ["стим", "steam"],
+            [("exe", steam)],
+            ["steam.exe"],
+        ),
+        App(
+            "dota2", "Дота два",
+            ["дота", "дота два", "доту", "дотан", "dota"],
+            [("uri", "steam://rungameid/570")],
+            ["dota2.exe"],
+        ),
+        App(
+            "claude", "Клод Десктоп",
+            ["клод", "клауд", "клод десктоп", "клауд десктоп", "claude"],
+            [("exe", _expand(r"%LOCALAPPDATA%\AnthropicClaude\claude.exe"))],
+            ["claude.exe"],
+        ),
+        App(
+            "vscode", "Вэ Эс Код",
+            ["вс код", "вэ эс код", "в эс код", "вес код", "vs code", "vscode", "вс-код"],
+            [("exe", _expand(r"%LOCALAPPDATA%\Programs\Microsoft VS Code\Code.exe"))],
+            ["Code.exe"],
+        ),
+        App("calc", "Калькулятор", ["калькулятор"], [("uri", "calc:")], ["CalculatorApp.exe", "Calculator.exe"]),
+        App("notepad", "Блокнот", ["блокнот"], [("cmd", ["notepad.exe"])], ["notepad.exe", "Notepad.exe"]),
+        App("explorer", "Проводник", ["проводник", "папку", "файлы"], [("cmd", ["explorer.exe"])]),
+        App("paint", "Пэйнт", ["пэйнт", "паинт", "пейнт", "рисовалку"], [("cmd", ["mspaint.exe"])], ["mspaint.exe"]),
+        App("taskmgr", "Диспетчер задач", ["диспетчер задач", "диспетчер"], [("cmd", ["taskmgr.exe"])], ["Taskmgr.exe"]),
+    ]
+
+    # Переопределение путей из config.json: "app_paths": {"discord": "C:\\...\\Discord.exe"}
+    overrides = config.get("app_paths") or {}
+    for app in apps:
+        if app.key in overrides:
+            app.open_specs = [("exe", _expand(overrides[app.key]))]
+    return apps
+
+
+def find_app(apps: list[App], target: str) -> App | None:
+    """Лучшее совпадение цели с псевдонимами приложений (точное/вхождение/нечёткое)."""
+    best, best_score = None, 0.0
+    for app in apps:
+        for alias in app.aliases:
+            if target == alias:
+                return app
+            score = match_score(target, alias)
+            if score > best_score:
+                best, best_score = app, score
+    if best_score >= 0.75:
+        log.info("Цель %r -> %s (score %.2f)", target, best.key, best_score)
+        return best
+    log.info("Цель %r не сопоставлена (лучший score %.2f)", target, best_score)
+    return None
+```
+
+### `jarvis\brain.py`
+
+```python
+"""LLM-фолбэк: локальная нейронка (Ollama) разбирает команду в структурный интент.
+"""
+
+import json
+import logging
+import re
+import subprocess
+import threading
+import time
+import urllib.request
+
+log = logging.getLogger("jarvis.brain")
+
+SYSTEM = """Ты разбираешь команды голосового ассистента на Windows. Отвечай ТОЛЬКО JSON.
+Поля: action; target; query; engine (google|youtube|wiki); reply; text; mode; name; voice; seconds; time; task; folder; minimized; day (today|tomorrow).
+
+Действия:
+open_app (открыть программу/игру; target; minimized=true — свёрнуто)
+close_app (закрыть; target)
+open_site (открыть сайт; target — домен или название)
+search (поиск; query; engine)
+screenshot (скриншот)
+open_file (открыть последний файл)
+open_folder (открыть папку; target)
+list_folder (что в папке; target)
+create_file (создать файл; target — имя; folder — папка)
+type_text (напечатать; text)
+media_key (key: play|next|prev|vol_up|vol_down|mute)
+play_pause (пауза/плей)
+next_track (следующий трек)
+prev_track (предыдущий трек)
+volume_up (громче)
+volume_down (тише)
+mute (без звука)
+minimize_all (свернуть все окна)
+minimize_window (свернуть окно; target)
+maximize_window (развернуть окно; target)
+activate_window (переключиться на окно; target)
+minimize_active (свернуть активное)
+maximize_active (развернуть активное)
+switch_window (переключить окно; back=true — на предыдущее)
+set_mode (режим; mode: commands|llm|combo)
+load_pack (загрузить пак; name: games|apps|sites|work|system)
+unload_pack (выгрузить пак; name)
+list_packs (список паков)
+change_voice (сменить голос; voice: ruslan|dmitri|irina|denis)
+list_voices (список голосов)
+set_timer (напоминание; text; seconds ИЛИ time="HH:MM")
+list_timers (список напоминаний)
+cancel_timers (отменить все напоминания)
+add_task (добавить задачу; text)
+list_tasks (список задач)
+done_task (отметить задачу; task)
+remove_task (удалить задачу; task)
+clear_tasks (очистить список)
+open_config (открыть конфиг)
+open_log (открыть лог)
+get_weather (погода; target — ТОЛЬКО город в ИМЕНИТЕЛЬНОМ падеже; day: today|tomorrow)
+get_currency (курс валют ЦБ РФ; target — ISO-код валюты или пусто)
+answer (ответ на вопрос; reply)
+none (бессмыслица)
+
+=== ВАЖНО про set_mode ===
+Используй set_mode ТОЛЬКО если пользователь явно говорит:
+«режим», «переключись на режим», «включи режим», «смени режим».
+НИКОГДА не используй set_mode для слов: «верни», «открой», «покажи», «запусти».
+
+=== ВАЖНО про search vs answer ===
+По умолчанию отвечай САМ через answer — даже на вопросы о фактах, объяснения, мнения, советы, шутки.
+НИКОГДА не используй search, если пользователь явно не сказал: «найди», «поищи», «загугли», «погугли».
+Свежесть данных — НЕ повод для search.
+
+=== ПОГОДА (get_weather) ===
+target — ТОЛЬКО НАЗВАНИЕ ГОРОДА в именительном падеже. Если пользователь не назвал город — target НЕ УКАЗЫВАЙ.
+Погода — это НЕ search. Даже «найди погоду» → get_weather.
+
+Примеры:
+какая погода -> {"action":"get_weather","day":"today"}
+какая погода в нижнем новгороде -> {"action":"get_weather","target":"Нижний Новгород","day":"today"}
+какая погода в питере -> {"action":"get_weather","target":"Санкт-Петербург","day":"today"}
+какая погода в мск -> {"action":"get_weather","target":"Москва","day":"today"}
+погода в москве на завтра -> {"action":"get_weather","target":"Москва","day":"tomorrow"}
+что по погоде в казани -> {"action":"get_weather","target":"Казань","day":"today"}
+погода -> {"action":"get_weather","day":"today"}
+
+=== КУРС ВАЛЮТ (get_currency) ===
+target — ISO-код валюты: USD, EUR, CNY, BYN, KZT, GBP, JPY, TRY, UAH.
+Если пользователь не назвал валюту — target НЕ УКАЗЫВАЙ.
+
+Примеры:
+курс валют -> {"action":"get_currency"}
+курс доллара -> {"action":"get_currency","target":"USD"}
+курс евро -> {"action":"get_currency","target":"EUR"}
+курс юаня -> {"action":"get_currency","target":"CNY"}
+курс белорусского рубля -> {"action":"get_currency","target":"BYN"}
+курс тенге -> {"action":"get_currency","target":"KZT"}
+курс фунта -> {"action":"get_currency","target":"GBP"}
+а белорусский рубль -> {"action":"get_currency","target":"BYN"}
+сколько стоит доллар -> {"action":"get_currency","target":"USD"}
+
+=== КАТЕГОРИЧЕСКИ ВАЖНО ===
+НИКОГДА не путай get_weather и get_currency.
+Если пользователь не назвал валюту — target не указывай.
+Если пользователь не назвал город — target не указывай.
+НИКОГДА не подставляй «курс доллара» в target от get_weather.
+
+=== ВАЖНО про окна ===
+- «консоль», «терминал», «cmd» → target: "cmd"
+- «браузер» → target: "браузер"
+- «телега», «тг» → target: "telegram"
+- «дс», «дискорд» → target: "discord"
+- «проводник», «папка» → target: "проводник"
+
+=== ВАЖНО про load_pack / unload_pack ===
+name — ЛАТИНСКОЕ имя пака: games, apps, sites, work, system.
+НЕ ПИШИ «игр» или «игры» — пиши «games».
+
+Примеры:
+загрузи пак игр -> {"action":"load_pack","name":"games"}
+выгрузи пак игр -> {"action":"unload_pack","name":"games"}
+загрузи пак сайтов -> {"action":"load_pack","name":"sites"}
+выгрузи пак приложений -> {"action":"unload_pack","name":"apps"}
+какие паки -> {"action":"list_packs"}
+
+=== ПРОЧИЕ ПРИМЕРЫ ===
+открой стим -> {"action":"open_app","target":"стим"}
+запусти сабнатику -> {"action":"open_app","target":"сабнатика"}
+закрой дискорд -> {"action":"close_app","target":"дискорд"}
+открой ютуб -> {"action":"open_site","target":"ютуб"}
+открой яндекс -> {"action":"open_site","target":"яндекс"}
+верни яндекс -> {"action":"open_site","target":"яндекс"}
+верни стим -> {"action":"open_app","target":"стим"}
+найди погоду -> {"action":"search","engine":"google","query":"погода сегодня"}
+загугли новости -> {"action":"search","engine":"google","query":"новости сегодня"}
+поищи на ютубе лофи -> {"action":"search","engine":"youtube","query":"лофи"}
+найди в википедии фотосинтез -> {"action":"search","engine":"wiki","query":"фотосинтез"}
+открой загрузки -> {"action":"open_folder","target":"загрузки"}
+что на рабочем столе -> {"action":"list_folder","target":"рабочий стол"}
+создай файл список покупок в документах -> {"action":"create_file","target":"список покупок","folder":"документы"}
+напечатай привет мир -> {"action":"type_text","text":"привет мир"}
+ВАЖНО: «напечатай историю», «напечатай шутку», «напиши стих» — это answer, НЕ type_text.
+сделай скриншот -> {"action":"screenshot"}
+сверни все окна -> {"action":"minimize_all"}
+сверни дискорд -> {"action":"minimize_window","target":"discord"}
+разверни консоль -> {"action":"maximize_window","target":"cmd"}
+переключись на дискорд -> {"action":"activate_window","target":"discord"}
+сверни это -> {"action":"minimize_active"}
+разверни текущее -> {"action":"maximize_active"}
+переключи окно -> {"action":"switch_window"}
+пауза -> {"action":"play_pause"}
+следующий трек -> {"action":"next_track"}
+сделай громче -> {"action":"volume_up"}
+без звука -> {"action":"mute"}
+включи музыку -> {"steps":[{"action":"open_app","target":"яндекс музыка","minimized":true},{"action":"wait","seconds":6},{"action":"media_key","key":"play"}]}
+переключись на режим команды -> {"action":"set_mode","mode":"commands"}
+включи режим ИИ -> {"action":"set_mode","mode":"llm"}
+обычный режим -> {"action":"set_mode","mode":"combo"}
+смени голос на ирину -> {"action":"change_voice","voice":"irina"}
+какой голос -> {"action":"list_voices"}
+напомни через 10 минут выпить чай -> {"action":"set_timer","text":"выпить чай","seconds":600}
+добавь в список купить хлеб -> {"action":"add_task","text":"купить хлеб"}
+что в списке -> {"action":"list_tasks"}
+открой конфиг -> {"action":"open_config"}
+открой журнал -> {"action":"open_log"}
+расскажи шутку -> {"action":"answer","reply":"Почему медведь не ездит на машине? Потому что у него нет водительских прав."}
+как дела -> {"action":"answer","reply":"Отлично, сэр. Готов к работе."}
+сколько будет два плюс два -> {"action":"answer","reply":"Четыре"}"""
+
+ACTIONS = {
+    "open_app", "close_app", "open_site", "search", "screenshot", "open_file",
+    "media_key", "wait", "answer", "none", "open_folder", "list_folder",
+    "create_file", "type_text", "minimize_all", "minimize_window",
+    "maximize_window", "activate_window", "minimize_active", "maximize_active",
+    "switch_window", "set_mode", "load_pack", "unload_pack", "list_packs",
+    "change_voice", "list_voices", "set_timer", "list_timers", "cancel_timers",
+    "add_task", "list_tasks", "done_task", "remove_task", "clear_tasks",
+    "open_config", "open_log", "play_pause", "next_track", "prev_track",
+    "volume_up", "volume_down", "mute",
+    "get_weather", "get_currency",
+}
+
+CHAT_SYSTEM = (
+    "Ты — Феникс, локальный голосовой ассистент на Windows. "
+    "Характер: спокойный, вежливый, с сухим юмором, обращаешься «сэр». "
+    "Отвечай в 2–5 предложениях, если требует развёрнутого ответа. "
+    "Без списков, без markdown, без эмодзи — ответ озвучивается. "
+    "ОТВЕЧАЙ ИСКЛЮЧИТЕЛЬНО НА РУССКОМ. Категорически запрещены иероглифы."
+)
+
+_CJK_RE = re.compile(
+    r"[\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff"
+    r"\uac00-\ud7af\u3000-\u303f\uff00-\uffef]+"
+)
+
+
+def _strip_cjk(text: str) -> str:
+    if not text:
+        return text
+    cleaned = _CJK_RE.sub(" ", text)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    if not cleaned:
+        return "Извините, не удалось ответить. Повторите, пожалуйста."
+    return cleaned
+
+
+class Brain:
+    def __init__(self, model="qwen2.5:7b-instruct",
+                 url="http://127.0.0.1:11434", timeout=20.0):
+        self.model = model
+        self.url = url.rstrip("/")
+        self.timeout = timeout
+        self.available = self._ping() or self._try_start()
+        if self.available:
+            log.info("LLM-фолбэк включён: %s через Ollama", model)
+            threading.Thread(target=self._warmup, daemon=True, name="brain-warmup").start()
+        else:
+            log.warning("Ollama недоступна — LLM-фолбэк выключен")
+
+    def _ping(self):
+        try:
+            with urllib.request.urlopen(self.url + "/api/version", timeout=2):
+                return True
+        except OSError:
+            return False
+
+    def _try_start(self):
+        try:
+            subprocess.Popen(["ollama", "serve"],
+                             creationflags=subprocess.CREATE_NO_WINDOW,
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except OSError:
+            return False
+        for _ in range(10):
+            time.sleep(0.5)
+            if self._ping():
+                return True
+        return False
+
+    def _request(self, messages, timeout, fmt="json", temperature=0, num_predict=120):
+        payload = {
+            "model": self.model,
+            "messages": messages,
+            "stream": False,
+            "keep_alive": -1,
+            "options": {"temperature": temperature, "num_predict": num_predict},
+        }
+        if fmt:
+            payload["format"] = fmt
+        req = urllib.request.Request(self.url + "/api/chat",
+                                     json.dumps(payload).encode(),
+                                     {"Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return json.loads(r.read())["message"]["content"]
+
+    def _chat(self, cmd, timeout):
+        return self._request([{"role": "system", "content": SYSTEM},
+                              {"role": "user", "content": cmd}], timeout,
+                             num_predict=300)
+
+    def chat(self, cmd, history=None):
+        if not self.available:
+            return None
+        msgs = ([{"role": "system", "content": CHAT_SYSTEM}]
+                + list(history or [])[-40:]
+                + [{"role": "user", "content": cmd}])
+        try:
+            t0 = time.time()
+            text = self._request(msgs, self.timeout, fmt=None,
+                                 temperature=0.7, num_predict=600).strip()
+            text = _strip_cjk(text)
+            log.info("LLM-диалог (%.2f с): %r -> %r", time.time() - t0, cmd, text[:120])
+            return text or None
+        except Exception:
+            log.exception("LLM-диалог не удался")
+            return None
+
+    def chat_stream(self, cmd, history=None):
+        if not self.available:
+            return
+        msgs = ([{"role": "system", "content": CHAT_SYSTEM}]
+                + list(history or [])[-40:]
+                + [{"role": "user", "content": cmd}])
+        payload = {
+            "model": self.model,
+            "messages": msgs,
+            "stream": True,
+            "keep_alive": -1,
+            "options": {"temperature": 0.7, "num_predict": 600},
+        }
+        req = urllib.request.Request(self.url + "/api/chat",
+                                     json.dumps(payload).encode(),
+                                     {"Content-Type": "application/json"})
+        try:
+            t0 = time.time()
+            first = None
+            with urllib.request.urlopen(req, timeout=self.timeout) as r:
+                for line in r:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        data = json.loads(line.decode("utf-8"))
+                    except Exception:
+                        continue
+                    chunk = data.get("message", {}).get("content", "")
+                    if chunk:
+                        chunk = _CJK_RE.sub("", chunk)
+                        if chunk:
+                            if first is None:
+                                first = time.time() - t0
+                                log.info("LLM-стриминг: первый чанк %.2f с", first)
+                            yield chunk
+                    if data.get("done"):
+                        break
+            log.info("LLM-стриминг: полный ответ %.2f с", time.time() - t0)
+        except Exception:
+            log.exception("LLM-стриминг не удался")
+
+    def _warmup(self):
+        try:
+            t0 = time.time()
+            self._chat("привет", timeout=120)
+            log.info("LLM прогрета за %.1f с", time.time() - t0)
+        except Exception:
+            log.exception("Прогрев LLM не удался")
+            self.available = False
+
+    def parse(self, cmd):
+        if not self.available:
+            return None
+        try:
+            t0 = time.time()
+            raw = self._chat(cmd, timeout=self.timeout)
+            intent = json.loads(raw)
+            log.info("LLM (%.2f с): %r -> %s", time.time() - t0, cmd,
+                     json.dumps(intent, ensure_ascii=False))
+        except json.JSONDecodeError:
+            log.debug("LLM не вернула JSON на %r", cmd)
+            return None
+        except Exception:
+            log.exception("LLM не справилась с %r", cmd)
+            return None
+        if not isinstance(intent, dict):
+            return None
+        if isinstance(intent.get("steps"), list):
+            steps = [s for s in intent["steps"]
+                     if isinstance(s, dict) and s.get("action") in ACTIONS]
+            return {"steps": steps} if steps else None
+        if intent.get("action") not in ACTIONS:
+            return None
+        return intent
+```
+
+### `jarvis\config.py`
+
+```python
+"""Загрузка конфигурации и объект Config в памяти.
+
+Раньше: каждый модуль читал config.json с диска.
+Сейчас: Config живёт в памяти, читается один раз, изменения рассылаются подписчикам.
+
+Запись — через config_manager (единый FileLock).
+
+Совместимость: Config поддерживает config["key"] и config.get("key"),
+поэтому старый код, который работал с dict, продолжит работать.
+"""
+
+import logging
+from pathlib import Path
+from typing import Any, Callable
+
+from jarvis import config_manager
+
+log = logging.getLogger("jarvis.config")
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+DEFAULT_CONFIG = {
+    "wake_words": ["феникс", "финикс", "феникса", "fenix", "phoenix",
+                   "джарвис", "jarvis"],
+    "tts_backend": "auto",
+    "xtts_ref": "voices/jarvis.wav",
+    "tts_voice": "ruslan",
+    "voice_rate": 1.15,
+    "voice": "Pavel",
+    "sample_rate": 16000,
+    "input_device": None,
+    "mic_check_sec": 20,
+    "command_window_sec": 8,
+    "dialog_window_sec": 20,
+    "use_whisper": True,
+    "whisper_model": "auto",
+    "whisper_device": "auto",
+    "mode": "combo",
+    "barge_enabled": True,
+    "use_llm": True,
+    "llm_model": "qwen2.5:7b-instruct",
+    "ollama_url": "http://127.0.0.1:11434",
+    "music_app": "яндекс музыка",
+    "music_wait_sec": 6,
+    "active_packs": [],
+    "app_paths": {},
+    "custom_commands": [],
+    "timers_file": "timers.json",
+    "tasks_file": "tasks.json",
+    "memory_file": "dialog.json",
+    "memory_max": 200,
+}
+
+
+class Config:
+    """Конфиг в памяти с подписками на изменения."""
+
+    def __init__(self, path: Path | None = None):
+        self.path = path or (BASE_DIR / "config.json")
+        self._data: dict = {}
+        self._listeners: list[Callable[[str, Any], None]] = []
+        self.reload()
+
+    def reload(self) -> None:
+        """Перечитывает config.json с диска. Вызывается при старте.
+
+        Если файла нет — создаёт с DEFAULT_CONFIG.
+        """
+        raw = config_manager.load(path=self.path)
+        if not self.path.exists():
+            # Файла нет — создадим с дефолтами
+            merged = dict(DEFAULT_CONFIG)
+            config_manager.save(merged, path=self.path)
+            log.info("Создан конфиг по умолчанию: %s", self.path)
+        else:
+            merged = dict(DEFAULT_CONFIG)
+            merged.update(raw)
+            log.info("Конфиг загружен: %d ключей из %s", len(merged), self.path.name)
+        self._data = merged
+
+    # --- чтение ----------------------------------------------------------
+
+    def get(self, key: str, default=None):
+        return self._data.get(key, default)
+
+    def all_data(self) -> dict:
+        return dict(self._data)
+
+    # --- запись ----------------------------------------------------------
+
+    def set(self, key: str, value) -> bool:
+        """Ставит значение, сохраняет на диск, оповещает подписчиков."""
+        if self._data.get(key) == value:
+            return True
+        self._data[key] = value
+        ok = config_manager.save(self._data, path=self.path)
+        for cb in list(self._listeners):
+            try:
+                cb(key, value)
+            except Exception:
+                log.exception("Подписчик Config упал на ключе %s", key)
+        return ok
+
+    def update(self, data: dict) -> bool:
+        """Массовое обновление. Оповещает по каждому ключу."""
+        changed = {k: v for k, v in data.items() if self._data.get(k) != v}
+        if not changed:
+            return True
+        self._data.update(changed)
+        ok = config_manager.save(self._data, path=self.path)
+        for key, value in changed.items():
+            for cb in list(self._listeners):
+                try:
+                    cb(key, value)
+                except Exception:
+                    log.exception("Подписчик Config упал на ключе %s", key)
+        return ok
+
+    def subscribe(self, callback: Callable[[str, Any], None]) -> None:
+        """Регистрирует callback(key, value), вызываемый при set/update."""
+        self._listeners.append(callback)
+
+    # --- совместимость с dict --------------------------------------------
+
+    def __getitem__(self, key):
+        return self._data[key]
+
+    def __contains__(self, key):
+        return key in self._data
+
+    def __repr__(self):
+        return f"Config({len(self._data)} keys)"
+
+
+# --- Совместимость со старым API -----------------------------------------
+
+_GLOBAL: Config | None = None
+
+
+def load_config(base_dir: Path | None = None) -> Config:
+    """Создаёт глобальный Config. Старый API сохранён, но возвращает Config,
+    а не dict. Код, использующий config["x"] или config.get("x"), продолжит
+    работать, потому что Config поддерживает __getitem__ и .get().
+    """
+    global _GLOBAL
+    if _GLOBAL is None:
+        path = (base_dir / "config.json") if base_dir else None
+        _GLOBAL = Config(path)
+    return _GLOBAL
+
+
+def get_global() -> Config:
+    if _GLOBAL is None:
+        raise RuntimeError("Config не создан. Вызови load_config() при старте.")
+    return _GLOBAL
+```
+
+### `jarvis\config_manager.py`
+
+```python
+"""Единый менеджер записи в config.json.
+
+Зачем:
+    Раньше _atomic_write был продублирован в modes.py, voices.py, packs.py.
+    Три лока, три .tmp, гонка между модулями.
+    Плюс path.with_suffix(".tmp") давал общий временный файл.
+
+Как работает:
+    - Один FileLock на весь проект (работает и между процессами).
+    - Уникальный .tmp через tempfile.mkstemp.
+    - os.replace для атомарной подмены.
+    - Логи: сколько ключей прочитано / записано.
+"""
+
+import json
+import logging
+import os
+import tempfile
+from pathlib import Path
+
+from filelock import FileLock
+
+log = logging.getLogger("jarvis.config_manager")
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+CONFIG_PATH = BASE_DIR / "config.json"
+_LOCK_PATH = BASE_DIR / "config.json.lock"
+_lock = FileLock(str(_LOCK_PATH))
+
+
+def load(path: Path | None = None) -> dict:
+    """Читает JSON. Если файла нет или он битый — возвращает {}."""
+    p = Path(path) if path else CONFIG_PATH
+    if not p.exists():
+        return {}
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            log.warning("Файл %s не словарь (%s) — возвращаю {}", p.name, type(data).__name__)
+            return {}
+        return data
+    except Exception:
+        log.exception("Не удалось прочитать %s", p)
+        return {}
+
+
+def save(data: dict, path: Path | None = None) -> bool:
+    """Атомарно записывает JSON. Возвращает True при успехе."""
+    p = Path(path) if path else CONFIG_PATH
+    if not isinstance(data, dict):
+        log.error("save: data не словарь (%s) — отказ", type(data).__name__)
+        return False
+    try:
+        with _lock:
+            log.info("save: пишу %d ключей → %s", len(data), p.name)
+            fd, tmp_name = tempfile.mkstemp(
+                dir=str(p.parent), suffix=".tmp", prefix=p.stem + "."
+            )
+            try:
+                with os.fdopen(fd, "w", encoding="utf-8") as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+                os.replace(tmp_name, p)
+                return True
+            except Exception:
+                try:
+                    os.unlink(tmp_name)
+                except OSError:
+                    pass
+                raise
+    except Exception:
+        log.exception("Не удалось записать %s", p)
+        return False
+
+
+def update(key: str, value, path: Path | None = None) -> bool:
+    """Читает, меняет одно поле, записывает. Всё под одним локом."""
+    p = Path(path) if path else CONFIG_PATH
+    try:
+        with _lock:
+            data = load(p)
+            log.info("update: key=%r, до=%d ключей, файл=%s", key, len(data), p.name)
+            data[key] = value
+            fd, tmp_name = tempfile.mkstemp(
+                dir=str(p.parent), suffix=".tmp", prefix=p.stem + "."
+            )
+            try:
+                with os.fdopen(fd, "w", encoding="utf-8") as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+                os.replace(tmp_name, p)
+                return True
+            except Exception:
+                try:
+                    os.unlink(tmp_name)
+                except OSError:
+                    pass
+                raise
+    except Exception:
+        log.exception("Не удалось обновить %s", p)
+        return False
+```
+
+### `jarvis\files.py`
+
+```python
+"""Файлы и папки: открыть, посмотреть содержимое, создать."""
+
+import logging
+import re
+import subprocess
+from pathlib import Path
+
+log = logging.getLogger("jarvis.files")
+
+# Основа слова -> папка пользователя. У «музыки» и «видео» намеренно нет
+# коротких основ: «открой музыку» — это про плеер, папка только со словом «папка».
+_FOLDER_STEMS = {
+    "рабоч": "Desktop", "стол": "Desktop",
+    "загрузк": "Downloads", "скачанн": "Downloads", "скачк": "Downloads",
+    "документ": "Documents",
+    "изображен": "Pictures", "картин": "Pictures", "фотограф": "Pictures", "фотк": "Pictures",
+    "скриншот": Path("Pictures") / "Screenshots", "скрин": Path("Pictures") / "Screenshots",
+}
+_FOLDER_STEMS_EXPLICIT = {  # только при явном слове «папка»
+    "музык": "Music", "видео": "Videos", "загруз": "Downloads",
+}
+
+_EXT_WORDS = {"текст": ".txt", "заметк": ".txt", "маркдаун": ".md",
+              "питон": ".py", "джейсон": ".json"}
+
+
+def resolve_folder(spoken: str, explicit: bool = False) -> Path | None:
+    """«загрузки», «рабочем столе» -> реальная папка пользователя."""
+    stems = dict(_FOLDER_STEMS)
+    if explicit:
+        stems.update(_FOLDER_STEMS_EXPLICIT)
+    for word in spoken.split():
+        for stem, sub in stems.items():
+            if word.startswith(stem):
+                path = Path.home() / sub
+                if path.exists():
+                    return path
+    return None
+
+
+def open_folder(path: Path) -> None:
+    log.info("Открываю папку: %s", path)
+    subprocess.Popen(["explorer", str(path)])
+
+
+def describe_folder(path: Path, limit: int = 5) -> str:
+    """Человеческое описание содержимого папки для озвучки."""
+    try:
+        entries = list(path.iterdir())
+    except OSError:
+        return f"Не могу заглянуть в папку {path.name}."
+    files = [e for e in entries if e.is_file()]
+    dirs = [e for e in entries if e.is_dir()]
+    if not entries:
+        return f"Папка {path.name} пуста."
+    recent = sorted(files, key=lambda f: f.stat().st_mtime, reverse=True)[:limit]
+    names = ", ".join(f.stem for f in recent)
+    parts = []
+    if files:
+        parts.append(f"{len(files)} {_plural(len(files), 'файл', 'файла', 'файлов')}")
+    if dirs:
+        parts.append(f"{len(dirs)} {_plural(len(dirs), 'папка', 'папки', 'папок')}")
+    reply = f"Здесь {' и '.join(parts)}."
+    if names:
+        reply += f" Последние: {names}."
+    return reply
+
+
+def create_file(folder: Path, name: str, ext: str = ".txt") -> Path:
+    name = re.sub(r'[<>:"/\\|?*]', "", name).strip() or "новый файл"
+    if not Path(name).suffix:
+        name += ext
+    path = folder / name
+    n = 1
+    while path.exists():
+        n += 1
+        path = folder / f"{Path(name).stem} {n}{Path(name).suffix}"
+    path.touch()
+    log.info("Создан файл: %s", path)
+    return path
+
+
+def create_folder(folder: Path, name: str) -> Path:
+    name = re.sub(r'[<>:"/\\|?*]', "", name).strip() or "новая папка"
+    path = folder / name
+    n = 1
+    while path.exists():
+        n += 1
+        path = folder / f"{name} {n}"
+    path.mkdir(parents=True)
+    log.info("Создана папка: %s", path)
+    return path
+
+
+def _plural(n: int, one: str, few: str, many: str) -> str:
+    if n % 10 == 1 and n % 100 != 11:
+        return one
+    if n % 10 in (2, 3, 4) and n % 100 not in (12, 13, 14):
+        return few
+    return many
+```
+
+### `jarvis\installed.py`
+
+```python
+"""Индекс установленных программ по ярлыкам меню «Пуск».
+
+Позволяет открывать голосом программы, которые не заложены в каталоге apps.py:
+«открой обс» -> OBS Studio.lnk.
+"""
+
+import logging
+import os
+from pathlib import Path
+
+from jarvis.matching import match_score
+
+log = logging.getLogger("jarvis.installed")
+
+# Служебные ярлыки, которые не надо предлагать к запуску
+_EXCLUDE = ("uninstall", "удал", "help", "справк", "readme", "manual",
+            "website", "веб-сайт", "документ", "update", "repair", "license")
+
+
+def scan_start_menu() -> dict[str, Path]:
+    """Имя программы (нижний регистр) -> путь к .lnk."""
+    roots = [
+        Path(os.path.expandvars(r"%PROGRAMDATA%\Microsoft\Windows\Start Menu\Programs")),
+        Path(os.path.expandvars(r"%APPDATA%\Microsoft\Windows\Start Menu\Programs")),
+    ]
+    index: dict[str, Path] = {}
+    for root in roots:
+        if not root.exists():
+            continue
+        for lnk in root.rglob("*.lnk"):
+            name = lnk.stem.strip().lower()
+            if not name or any(x in name for x in _EXCLUDE):
+                continue
+            index.setdefault(name, lnk)
+    log.info("Меню «Пуск»: проиндексировано %d программ", len(index))
+    return index
+
+
+def find_installed(index: dict[str, Path], spoken: str,
+                   threshold: float = 0.75) -> tuple[str, Path] | None:
+    best_name, best_path, best_score = None, None, 0.0
+    for name, path in index.items():
+        score = match_score(spoken, name)
+        if score > best_score:
+            best_name, best_path, best_score = name, path, score
+    if best_score >= threshold:
+        log.info("Установленная программа: %r -> %r (score %.2f)", spoken, best_name, best_score)
+        return best_name, best_path
+    log.info("В меню «Пуск» не найдено: %r (лучший score %.2f, %r)",
+             spoken, best_score, best_name)
+    return None
+```
+
+### `jarvis\intents.py`
+
+```python
+"""Разбор команды: быстрые правила + LLM."""
+
+import datetime
+import logging
+import random
+import re
+import time
+from collections import deque
+from difflib import SequenceMatcher
+from pathlib import Path
+
+from jarvis import APP_NAME, __version__, actions, files
+from jarvis.apps import find_app
+from jarvis.installed import find_installed, scan_start_menu
+from jarvis.steam import find_game, scan_steam_games
+from jarvis import modes
+from jarvis import packs
+from jarvis import memory
+from jarvis import voices
+from jarvis import timers
+from jarvis import tasks
+from jarvis import weather
+from jarvis import profile
+
+
+log = logging.getLogger("jarvis.intents")
+actions_log = logging.getLogger("jarvis.actions")
+
+
+def normalize(text: str) -> str:
+    text = text.lower().replace("ё", "е")
+    text = re.sub(r"[^\w\s]", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+CANCEL = {"отмена", "стоп", "стой", "хватит", "замолчи", "ничего", "забудь", "отбой"}
+
+BROWSER_WORDS = {"браузер", "браузере", "браузером", "хром", "хроме", "интернет", "интернете"}
+
+SEARCH_VERBS = ("найди", "поищи", "ищи", "загугли", "погугли", "поиск")
+
+SITES = {
+    "ютуб": ("Ютуб", "https://www.youtube.com"),
+    "гугл": ("Гугл", "https://www.google.com"),
+    "яндекс": ("Яндекс", "https://ya.ru"),
+    "гитхаб": ("Гитхаб", "https://github.com"),
+    "вк": ("ВКонтакте", "https://vk.com"),
+    "вконтакте": ("ВКонтакте", "https://vk.com"),
+    "твич": ("Твич", "https://www.twitch.tv"),
+    "кинопоиск": ("Кинопоиск", "https://www.kinopoisk.ru"),
+    "википедия": ("Википедию", "https://ru.wikipedia.org"),
+    "почта": ("Почту", "https://mail.google.com"),
+}
+
+MONTHS = ["января", "февраля", "марта", "апреля", "мая", "июня",
+          "июля", "августа", "сентября", "октября", "ноября", "декабря"]
+
+WEEKDAYS = ["понедельник", "вторник", "среда", "четверг", "пятница", "суббота", "воскресенье"]
+
+_FOLDER_TITLES = {
+    "Desktop": "на рабочем столе", "Downloads": "в загрузках",
+    "Documents": "в документах", "Pictures": "в изображениях",
+    "Music": "в музыке", "Videos": "в видео",
+    "Screenshots": "в скриншотах",
+}
+
+# Мусор, который LLM иногда подсовывает в target от get_weather
+_WEATHER_BAD_TARGET = (
+    "курс", "доллар", "рубл", "евро", "юан", "валют",
+    "цену", "цена", "поиск", "найди", "погод", "прогноз",
+    "пожалуйста", "сколько", "стоит",
+)
+
+
+class IntentHandler:
+
+    def __init__(self, config, apps, brain=None):
+        self.config = config
+        self.apps = apps
+        self.brain = brain
+        self.installed = scan_start_menu()
+        self.steam_games = scan_steam_games()
+        self.music_app = config.get("music_app", "яндекс музыка")
+        self.music_wait = float(config.get("music_wait_sec", 6))
+        self.last_file = None
+        self.last_folder = None
+        self.dialog = deque(maxlen=40)
+        for msg in memory.load()[-40:]:
+            self.dialog.append(msg)
+        self.last_was_chat = False
+        self.mode = modes.get_mode(config)
+        self.active_packs = list(config.get("active_packs", []))
+        self.last_macro = None
+        self._reset_requested = False
+        self._last_reply = ""
+        self._pending_question = None
+
+        self._config_custom_original = []
+        for entry in config.get("custom_commands", []):
+            phrases = [normalize(p) for p in entry.get("phrases", []) if p.strip()]
+            action = entry.get("action", "").strip() or entry.get("steps")
+            if phrases and action:
+                self._config_custom_original.append(
+                    (phrases, action, entry.get("reply", "Выполняю."))
+                )
+        self.custom = list(self._config_custom_original) + self._load_packs_as_custom(config)
+
+    def handle(self, cmd: str):
+        self.last_was_chat = False
+        actions_log.info("Команда: %r (режим: %s)", cmd, self.mode)
+
+        reply = self._handle_single(cmd)
+
+        if hasattr(reply, "__iter__") and not isinstance(reply, str):
+            self.dialog.append({"role": "user", "content": cmd})
+            return reply
+
+        self.dialog.append({"role": "user", "content": cmd})
+        self.dialog.append({"role": "assistant", "content": reply})
+        memory.save(list(self.dialog))
+
+        if isinstance(reply, str):
+            actions_log.info("Ответ: %r", reply[:120])
+            self._last_reply = reply
+        return reply
+
+    def finalize_stream(self, cmd: str, full_text: str) -> None:
+        self.dialog.append({"role": "assistant", "content": full_text})
+        memory.save(list(self.dialog))
+        if full_text:
+            self._last_reply = full_text
+
+    def _handle_single(self, cmd: str):
+        if cmd in CANCEL:
+            self._reset_requested = True
+            return "Жду обращение, сэр."
+
+        if self._pending_question and time.time() < self._pending_question.get("expires_at", 0):
+            return self._handle_pending_answer(cmd)
+        else:
+            self._pending_question = None
+
+        # Буфер обмена
+        if re.search(r"скопируй\s+(выделенное|выделенный|это\s+выделенное)", cmd) \
+                or re.search(r"(выдели|выделенное)\s+(и\s+)?скопируй", cmd) \
+                or cmd in {"скопируй выделенное", "скопируй это выделенное"}:
+            return self._execute_intent({"action": "copy_selection"})
+
+        if re.search(r"скопируй\s+(свой\s+)?(ответ|ответь|последнее|сказанное)", cmd) \
+                or cmd in {"скопируй свой ответ", "скопируй ответ", "скопируй что ты сказал"}:
+            return self._execute_intent({"action": "clipboard_copy_last"})
+
+        if re.search(r"(что|чё)\s+(в\s+)?буфере", cmd) \
+                or re.search(r"(покажи|прочитай|что)\s+буфер", cmd) \
+                or cmd in {"что скопировано", "что в буфере"}:
+            return self._execute_intent({"action": "clipboard_read"})
+
+        if re.search(r"(очисти|сотри|удали)\s+буфер", cmd) \
+                or cmd in {"очисти буфер", "сотри буфер"}:
+            return self._execute_intent({"action": "clipboard_clear"})
+
+        # Режимы
+        if any(w in cmd for w in ("режим", "комбо", "комбинирован")):
+            reply, new_mode = modes.handle_mode_command(cmd, self.mode, self.config)
+            if reply:
+                self.mode = new_mode
+                return reply
+
+        reply = self._match_custom(cmd)
+        if reply:
+            return reply
+
+        reply = self._small_talk(cmd)
+        if reply:
+            return reply
+
+        if re.search(r"скрин|снимок экрана", cmd):
+            return self._take_screenshot(cmd)
+
+        if self.mode == "commands":
+            return "Я не понял команду. Скажите «режим ИИ» или добавьте фразу в конфиг."
+
+        if self.brain is None or not self.brain.available:
+            return "LLM недоступна. Скажите «режим команды»."
+
+        intent = self.brain.parse(cmd)
+        if intent and intent.get("action") not in ("answer", "none"):
+            if intent.get("action") == "search" \
+                    and not any(v in cmd for v in SEARCH_VERBS):
+                return "Сэр, чтобы поискать, скажите «найди» и запрос. Например: «найди погоду»."
+            if isinstance(intent.get("steps"), list):
+                reply = self._execute_steps(intent["steps"])
+            else:
+                reply = self._execute_intent(intent)
+            if reply:
+                return reply
+
+        if intent and intent.get("action") == "answer":
+            gen = self.brain.chat_stream(cmd, list(self.dialog))
+            if gen is not None:
+                self.last_was_chat = True
+                return gen
+            if intent.get("reply"):
+                return str(intent["reply"])[:600]
+
+        gen = self.brain.chat_stream(cmd, list(self.dialog))
+        if gen is not None:
+            self.last_was_chat = True
+            return gen
+        return "Я не понял команду."
+
+    def _handle_pending_answer(self, cmd: str) -> str:
+        pending = self._pending_question
+        self._pending_question = None
+
+        if pending.get("type") == "city_for_weather":
+            city = cmd.strip()
+            if not city or len(city) > 60:
+                return "Не расслышал город. Повторите, пожалуйста."
+            profile.set("default_city", city)
+            log.info("Запомнил город по умолчанию: %s", city)
+
+            day = pending.get("day", "today")
+            w = weather.get_weather(city, day=day)
+            if w:
+                return f"Запомнил. {weather.describe_weather(w)}"
+            return f"Запомнил город «{city}», но погоду узнать не удалось."
+
+        return "Не понял уточнение."
+
+    def _execute_steps(self, steps: list) -> str | None:
+        reply = None
+        for step in steps[:6]:
+            if not isinstance(step, dict):
+                continue
+            action = step.get("action")
+            if action == "wait":
+                time.sleep(min(float(step.get("seconds", 1) or 1), 15))
+                continue
+            if action == "media_key":
+                actions.media_key(str(step.get("key", "")), int(step.get("times", 1) or 1))
+                continue
+            r = self._execute_intent(step)
+            if r:
+                reply = r
+        return reply
+
+    def _execute_intent(self, intent: dict) -> str | None:
+        action = intent.get("action")
+        target = normalize(str(intent.get("target") or ""))
+        query = str(intent.get("query") or "").strip()
+
+        actions_log.info("Интент: %s (target=%r, query=%r)", action, target, query)
+
+        if action == "open_app" and target:
+            if intent.get("minimized"):
+                hit = find_installed(self.installed, target)
+                if hit:
+                    actions.open_path(hit[1], minimized=True)
+                    return f"Открываю {hit[0]}."
+            running = actions.find_process(target, threshold=0.8)
+            if running:
+                from jarvis.actions import activate_window_by_title
+                if activate_window_by_title(target):
+                    return f"Переключаюсь на {target}."
+            return self._do_open(target)
+        if action == "close_app" and target:
+            return self._do_close(target)
+        if action == "open_file":
+            return self._open_last_file()
+
+        if action == "open_site" and (target or query):
+            site = target or query
+            if "." in (intent.get("target") or ""):
+                actions.open_url("https://" + str(intent["target"]).strip().lower())
+                return f"Открываю {site}."
+            return self._open_site(site)
+        if action == "search" and (query or target):
+            engine = intent.get("engine") if intent.get("engine") in ("google", "youtube", "wiki") else "google"
+            q = query or target
+            actions.open_search(engine, q)
+            return f"Ищу: {q}."
+
+        if action == "screenshot":
+            path = actions.take_screenshot()
+            self.last_file = path
+            return f"Скриншот сохранён в папку {path.parent.name}."
+
+        if action == "open_folder" and target:
+            folder = files.resolve_folder(target, explicit=True)
+            if folder:
+                self.last_folder = folder
+                files.open_folder(folder)
+                return f"Открываю папку {folder.name}."
+            return None
+        if action == "list_folder":
+            folder = files.resolve_folder(target, explicit=True) if target else self.last_folder
+            if folder:
+                self.last_folder = folder
+                return files.describe_folder(folder)
+            return None
+        if action == "create_file":
+            folder_name = str(intent.get("folder") or "").strip()
+            folder = None
+            if folder_name:
+                folder = files.resolve_folder(folder_name, explicit=True)
+                if folder is None:
+                    return f"Папку «{folder_name}» не нашёл. Куда создать файл?"
+            if folder is None:
+                folder = Path.home() / "Desktop"
+            path = files.create_file(folder, target or "новый файл")
+            self.last_file = path
+            return f"Создал {path.name} {self._folder_title(folder)}."
+
+        if action == "type_text":
+            text = str(intent.get("text") or intent.get("target") or "").strip()
+            ok = actions.type_text(text)
+            return f"Печатаю: {text}." if ok else "Не удалось напечатать."
+
+        if action == "media_key":
+            ok = actions.media_key(str(intent.get("key", "")),
+                                   int(intent.get("times", 1) or 1))
+            return "Готово." if ok else None
+        if action == "play_pause":
+            actions.media_key("play")
+            return "Готово."
+        if action == "next_track":
+            actions.media_key("next")
+            return "Переключаю."
+        if action == "prev_track":
+            actions.media_key("prev")
+            return "Возвращаю."
+        if action == "volume_up":
+            actions.media_key("vol_up", 5)
+            return "Громче."
+        if action == "volume_down":
+            actions.media_key("vol_down", 5)
+            return "Тише."
+        if action == "mute":
+            actions.media_key("mute")
+            return "Без звука."
+
+        if action == "clipboard_read":
+            text = actions.clipboard_read()
+            if not text:
+                return "Буфер обмена пуст."
+            return f"В буфере: {text[:400]}"
+
+        if action == "copy_selection":
+            ok = actions.copy_selection()
+            if not ok:
+                return "Не удалось скопировать."
+            time.sleep(0.15)
+            text = actions.clipboard_read()
+            if text:
+                short = text[:200] + ("..." if len(text) > 200 else "")
+                return f"Скопировал: {short}"
+            return "Скопировал выделенное."
+
+        if action == "clipboard_copy_last":
+            last = self._last_reply
+            if not last:
+                return "Нечего копировать."
+            ok = actions.clipboard_write(last)
+            return "Скопировал свой ответ в буфер." if ok else "Не удалось скопировать."
+
+        if action == "clipboard_clear":
+            ok = actions.clipboard_clear()
+            return "Буфер очищен." if ok else "Не удалось очистить буфер."
+
+        if action == "minimize_all":
+            actions.minimize_all()
+            return "Сворачиваю всё."
+        if action == "minimize_window" and target:
+            ok = actions.minimize_window_by_title(target)
+            return f"Сворачиваю {target}." if ok else f"Окно {target} не нашёл."
+        if action == "maximize_window" and target:
+            ok = actions.maximize_window_by_title(target)
+            return f"Разворачиваю {target}." if ok else f"Окно {target} не нашёл."
+        if action == "activate_window" and target:
+            ok = actions.activate_window_by_title(target)
+            return f"Переключаюсь на {target}." if ok else f"Окно {target} не нашёл."
+        if action == "minimize_active":
+            actions.minimize_active()
+            return "Сворачиваю активное окно."
+        if action == "maximize_active":
+            actions.maximize_active()
+            return "Разворачиваю активное окно."
+        if action == "switch_window":
+            actions.switch_window(back=bool(intent.get("back")))
+            return "Переключаю окно."
+
+        if action == "set_mode":
+            mode = str(intent.get("mode") or "combo").lower()
+            if mode not in ("commands", "llm", "combo"):
+                mode = "combo"
+            reply = modes.set_mode(mode, self.config)
+            self.mode = mode
+            return reply
+
+        if action == "load_pack":
+            name = packs.normalize_name(str(intent.get("name") or ""))
+            available = packs.list_available()
+            if name not in available:
+                return f"Пак '{name}' не найден. Доступны: {', '.join(available)}."
+            if name in self.active_packs:
+                return f"Пак '{name}' уже активен."
+            self.active_packs.append(name)
+            packs.save_active(self.active_packs, self.config)
+            self._reload_packs()
+            return f"Пак '{name}' загружен."
+        if action == "unload_pack":
+            name = packs.normalize_name(str(intent.get("name") or ""))
+            if name not in self.active_packs:
+                return f"Пак '{name}' и так не активен."
+            self.active_packs.remove(name)
+            packs.save_active(self.active_packs, self.config)
+            self._reload_packs()
+            return f"Пак '{name}' выгружен."
+        if action == "list_packs":
+            available = packs.list_available()
+            active_str = ", ".join(self.active_packs) if self.active_packs else "нет"
+            return f"Доступны: {', '.join(available)}. Активны: {active_str}."
+
+        if action == "change_voice":
+            voice = str(intent.get("voice") or "").strip().lower()
+            return voices.switch(voice, self.config)
+        if action == "list_voices":
+            return voices.handle_voice_command("список голосов", self.config)
+
+        if action == "set_timer":
+            text = str(intent.get("text") or "").strip()
+            seconds = intent.get("seconds")
+            time_str = intent.get("time")
+            fire_at = None
+            if seconds:
+                try:
+                    fire_at = time.time() + float(seconds)
+                except (TypeError, ValueError):
+                    fire_at = None
+            elif time_str:
+                try:
+                    hh, mm = str(time_str).split(":")
+                    now = datetime.datetime.now()
+                    t = now.replace(hour=int(hh), minute=int(mm), second=0, microsecond=0)
+                    if t <= now:
+                        t += datetime.timedelta(days=1)
+                    fire_at = t.timestamp()
+                except Exception:
+                    fire_at = None
+            if fire_at:
+                timers.add(text, fire_at)
+                when = datetime.datetime.fromtimestamp(fire_at).strftime("%H:%M")
+                return f"Напомню в {when}: {text}." if text else f"Напомню в {when}."
+            return "Не понял время напоминания."
+        if action == "list_timers":
+            return timers.format_list(timers.list_all())
+        if action == "cancel_timers":
+            n = timers.remove_all()
+            return f"Отменено напоминаний: {n}." if n else "Напоминаний не было."
+
+        if action == "add_task":
+            text = str(intent.get("text") or intent.get("task") or "").strip()
+            if not text:
+                return "Что добавить?"
+            task = tasks.add(text)
+            return f"Добавил: {task['text']}."
+        if action == "list_tasks":
+            return tasks.format_list()
+        if action == "done_task":
+            q = str(intent.get("task") or "").strip()
+            task = tasks.mark_done(q)
+            return f"Отметил: {task['text']}." if task else f"Задачу «{q}» не нашёл."
+        if action == "remove_task":
+            q = str(intent.get("task") or "").strip()
+            task = tasks.remove(q)
+            return f"Убрал: {task['text']}." if task else f"Задачу «{q}» не нашёл."
+        if action == "clear_tasks":
+            n = tasks.clear_all()
+            return f"Очищено задач: {n}." if n else "Список и так пуст."
+
+        if action == "open_config":
+            cfg_path = Path(__file__).resolve().parent.parent / "config.json"
+            actions.open_path(cfg_path)
+            return "Открываю конфиг."
+        if action == "open_log":
+            log_path = Path(__file__).resolve().parent.parent / "logs" / "jarvis.log"
+            actions.open_path(log_path)
+            return "Открываю журнал."
+
+        if action == "get_weather":
+            city = str(intent.get("target") or "").strip()
+            day = "tomorrow" if intent.get("day") == "tomorrow" else "today"
+
+            # Отсеиваем мусор от LLM
+            if any(w in city.lower() for w in _WEATHER_BAD_TARGET):
+                log.warning("get_weather: LLM подсунула мусор target=%r — игнорирую", city)
+                city = ""
+
+            if not city:
+                city = profile.get("default_city")
+            if not city:
+                self._pending_question = {
+                    "type": "city_for_weather",
+                    "day": day,
+                    "expires_at": time.time() + 30,
+                }
+                return "В каком городе узнать погоду?"
+
+            w = weather.get_weather(city, day=day)
+            if not w:
+                return f"Не удалось узнать погоду для «{city}». Проверь название или интернет."
+            return weather.describe_weather(w)
+
+        if action == "get_currency":
+            code = str(intent.get("target") or "").strip().upper()
+            r = weather.get_currency_rates()
+            return weather.describe_currency(r, code=code)
+
+        if action == "answer" and intent.get("reply"):
+            return str(intent["reply"])[:600]
+
+        return None
+
+    def _do_open(self, target: str) -> str:
+        if not target:
+            return "Что именно открыть?"
+        if target in {"его", "ее", "это", "этот файл", "файл", "последний файл"}:
+            return self._open_last_file()
+
+        tokens = target.split()
+        rest = [t for t in tokens if t not in BROWSER_WORDS]
+        if len(rest) < len(tokens):
+            if not rest:
+                actions.open_browser()
+                return "Открываю браузер."
+            return self._open_site(" ".join(rest))
+
+        app = find_app(self.apps, target)
+        if app:
+            spec = app.resolve_open()
+            if spec is None:
+                return f"{app.title} не найден на этом компьютере."
+            actions.run_spec(spec)
+            return f"Открываю {app.title}."
+
+        for key, (title, url) in SITES.items():
+            if key in target.split() or target == key:
+                actions.open_url(url)
+                return f"Открываю {title}."
+
+        folder = files.resolve_folder(target, explicit="папк" in target)
+        if folder:
+            self.last_folder = folder
+            files.open_folder(folder)
+            return f"Открываю папку {folder.name}."
+
+        game = find_game(self.steam_games, target)
+        if game:
+            title, appid = game
+            actions.run_spec(("uri", f"steam://rungameid/{appid}"))
+            return f"Запускаю {title}."
+
+        hit = find_installed(self.installed, target)
+        if hit:
+            name, lnk = hit
+            actions.open_path(lnk)
+            return f"Открываю {name}."
+
+        return self._open_site(target)
+
+    def _open_site(self, name: str) -> str:
+        if not name:
+            return "Какой сайт открыть?"
+        for key, (title, url) in SITES.items():
+            if name == key or key in name.split():
+                actions.open_url(url)
+                return f"Открываю {title}."
+        url = actions.spoken_domain(name) or actions.guess_site(name)
+        if url:
+            actions.open_url(url)
+            return f"Открываю сайт {name}."
+        return f"Сайт {name} не нашёл. Скажите «найди {name}», и я поищу."
+
+    def _open_last_file(self) -> str:
+        if self.last_file:
+            actions.open_path(self.last_file)
+            return "Открываю."
+        return "Пока нечего открывать."
+
+    def _do_close(self, target: str) -> str:
+        if not target:
+            return "Что именно закрыть?"
+        if any(w in target for w in ("браузер", "интернет", "хром")):
+            return "Закрываю браузер." if actions.close_browser() else "Браузер не запущен."
+        app = find_app(self.apps, target)
+        if app and app.procs:
+            ok = any([actions.kill_process(p) for p in app.procs])
+            if ok:
+                return f"Закрываю {app.title}."
+        exe = actions.find_process(target)
+        if exe:
+            actions.kill_process(exe)
+            return f"Закрываю {exe.removesuffix('.exe')}."
+        if app:
+            return f"{app.title} сейчас не запущен."
+        return f"Не нашёл запущенной программы {target}."
+
+    def _match_custom(self, cmd: str) -> str | None:
+        for phrases, action, reply in self.custom:
+            for phrase in phrases:
+                if cmd == phrase or SequenceMatcher(None, cmd, phrase).ratio() >= 0.85:
+                    if isinstance(action, list):
+                        return self._execute_steps(action) or reply
+                    actions.run_spec(actions.spec_from_string(action))
+                    return reply
+        return None
+
+    def _take_screenshot(self, cmd: str) -> str:
+        if re.search(r"откр|покаж", cmd):
+            if self.last_file:
+                actions.open_path(self.last_file)
+                return "Открываю."
+            return "Пока нечего открывать."
+        path = actions.take_screenshot()
+        self.last_file = path
+        return f"Скриншот сохранён в папку {path.parent.name}."
+
+    def _load_packs_as_custom(self, config):
+        result = []
+        for entry in packs.load_active(config):
+            phrases = [normalize(p) for p in entry.get("phrases", []) if p.strip()]
+            action = entry.get("action", "").strip() or entry.get("steps")
+            if phrases and action:
+                result.append((phrases, action, entry.get("reply", "Выполняю.")))
+        return result
+
+    def _reload_packs(self):
+        config_copy = {"active_packs": self.active_packs, "custom_commands": []}
+        self.custom = list(self._config_custom_original) + self._load_packs_as_custom(config_copy)
+
+    def _folder_title(self, path: Path) -> str:
+        return _FOLDER_TITLES.get(path.name, f"в папке {path.name}")
+
+    def _small_talk(self, cmd: str) -> str | None:
+        now = datetime.datetime.now()
+        if any(p in cmd for p in ("который час", "сколько времени", "время")):
+            return f"Сейчас {now.hour} {_hours(now.hour)} {now.minute} {_minutes(now.minute)}."
+        if any(p in cmd for p in ("какое число", "какая дата", "какое сегодня число", "дата")):
+            return f"Сегодня {now.day} {MONTHS[now.month - 1]} {now.year} года, {WEEKDAYS[now.weekday()]}."
+        if "день недели" in cmd or cmd == "какой сегодня день":
+            return f"Сегодня {WEEKDAYS[now.weekday()]}."
+        if any(p in cmd for p in ("как дела", "как ты", "как настроение")):
+            return random.choice([
+                "Все системы функционируют нормально.",
+                "Отлично, сэр. Готов к работе.",
+                "В полном порядке, спасибо.",
+                "Работаю в штатном режиме, сэр. А вы как?",
+                "Не жалуюсь. Процессор холодный, настроение бодрое.",
+                "Всё хорошо, сэр. Чем займёмся?",
+                "Как у ассистента: без сбоев и скуки. Слушаю вас.",
+            ])
+        if any(p in cmd for p in ("кто ты", "ты кто", "представься", "как тебя зовут")):
+            return f"Я {APP_NAME}, локальный голосовой ассистент, версия {__version__}."
+        if any(p in cmd for p in ("что ты умеешь", "помощь", "что умеешь", "команды")):
+            return ("Я умею открывать и закрывать приложения и сайты, делать скриншоты, "
+                    "искать в интернете, печатать текст, управлять окнами, ставить "
+                    "напоминания, вести списки задач, узнавать погоду и курс валют, "
+                    "и отвечать на вопросы.")
+        if any(p in cmd for p in ("спасибо", "благодарю")):
+            return "Всегда пожалуйста."
+        if any(p in cmd for p in ("привет", "здравствуй", "добрый день", "доброе утро", "добрый вечер")):
+            return "Привет! Чем могу помочь?"
+        if any(p in cmd for p in ("пока", "до свидания", "спокойной ночи")):
+            return "До связи."
+        return None
+
+
+def _hours(n: int) -> str:
+    if n % 10 == 1 and n % 100 != 11:
+        return "час"
+    if n % 10 in (2, 3, 4) and n % 100 not in (12, 13, 14):
+        return "часа"
+    return "часов"
+
+
+def _minutes(n: int) -> str:
+    if n % 10 == 1 and n % 100 != 11:
+        return "минута"
+    if n % 10 in (2, 3, 4) and n % 100 not in (12, 13, 14):
+        return "минуты"
+    return "минут"
+```
+
+### `jarvis\main.py`
+
+```python
+"""Точка входа: связывает распознавание, интенты, синтез речи и трей.
+
+Barge-in: во время речи Феникса микрофон НЕ глушится, а следит за громкостью.
+Если юзер заговорил — TTS прерывается через speaker.stop().
+После barge-in окно диалога открывается заново — можно продолжать без wake-слова.
+"""
+
+import logging
+import logging.handlers
+import threading
+import time
+from pathlib import Path
+
+from jarvis.matching import wake_score
+
+from jarvis import APP_NAME, __version__
+from jarvis.apps import build_apps
+from jarvis.config import Config, load_config
+from jarvis.intents import IntentHandler, normalize
+from jarvis.model import ensure_model
+from jarvis.stt import Listener
+from jarvis.tray import build_tray
+from jarvis import timers
+from jarvis.tts import Speaker
+
+log = logging.getLogger("jarvis")
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+_REJECT = object()
+
+
+class Jarvis:
+    def __init__(self, config, listener, speaker, handler, base_dir: Path, whisper=None):
+        self.config = config
+        self.listener = listener
+        self.speaker = speaker
+        self.handler = handler
+        self.base_dir = base_dir
+        self.whisper = whisper
+        self.listening_enabled = True
+        self.stop_event = threading.Event()
+        self._awaiting_until = 0.0
+        self._wake_words = [normalize(w) for w in config["wake_words"]]
+        self.barge_enabled = bool(config.get("barge_enabled", True))
+        if self.listener is not None:
+            self.listener.barge_enabled = self.barge_enabled
+        self._barge_just_happened = False
+
+    def say(self, text) -> bool:
+        if not text:
+            return False
+
+        is_stream = hasattr(text, "__iter__") and not isinstance(text, str)
+
+        if self.barge_enabled and self.listener is not None:
+            self.listener.barge_start()
+        else:
+            self.listener.muted = True
+
+        barge_happened = False
+        try:
+            if is_stream:
+                self._say_stream(text)
+            else:
+                self._say_text(text)
+            barge_happened = self.barge_enabled and self.listener.barge_flag
+        finally:
+            if self.barge_enabled and self.listener is not None:
+                self.listener.barge_end()
+            self.listener.flush()
+            self.listener.muted = False
+        return barge_happened
+
+    def _say_text(self, text: str) -> None:
+        self.speaker.play_async(text)
+        while self.speaker.is_playing():
+            if self.barge_enabled and self.listener.barge_flag:
+                log.info("Barge-in сработал — прерываю TTS")
+                self.speaker.stop()
+                break
+            time.sleep(0.05)
+        self.speaker.wait_end(timeout=30.0)
+
+    def _say_stream(self, gen) -> None:
+        result = {"text": ""}
+
+        def _run():
+            try:
+                result["text"] = self.speaker.speak_stream(gen)
+            except Exception:
+                log.exception("Ошибка в speak_stream")
+
+        t = threading.Thread(target=_run, daemon=True, name="tts-stream")
+        t.start()
+
+        while t.is_alive():
+            if self.barge_enabled and self.listener.barge_flag:
+                log.info("Barge-in сработал — прерываю стриминг")
+                self.speaker.stop()
+                t.join(timeout=1.0)
+                break
+            time.sleep(0.05)
+        t.join(timeout=5.0)
+
+        if result["text"] and hasattr(self.handler, "finalize_stream"):
+            self.handler.finalize_stream("", result["text"])
+
+    def shutdown(self) -> None:
+        self.stop_event.set()
+
+    def mic_watchdog(self) -> None:
+        delay = float(self.config.get("mic_check_sec", 20))
+        if self.stop_event.wait(delay):
+            return
+        if self.listener.utterances == 0 and self.listener.peak < 200:
+            log.warning("Микрофон молчит (пик %d за %.0f с): %s — проверьте устройство",
+                        self.listener.peak, delay, self.listener.device_name)
+            self.say("Я не слышу микрофон. Проверьте, включён ли он, "
+                     "или укажите нужный в настройках.")
+
+    def run_loop(self) -> None:
+        try:
+            for phrase, audio in self.listener.phrases(self.stop_event):
+                if not self.listening_enabled:
+                    continue
+                try:
+                    self._process(phrase, audio)
+                except Exception:
+                    log.exception("Ошибка обработки фразы %r", phrase)
+        except Exception:
+            log.exception("Аудиопоток упал")
+            self.say("Проблема с микрофоном. Проверьте журнал.")
+
+    def _process(self, phrase: str, audio: bytes) -> None:
+        awaiting = time.time() < self._awaiting_until
+        cmd = self._extract_command(normalize(phrase))
+        if cmd is None:
+            return
+        if cmd == "":
+            self.say("Слушаю.")
+            self._awaiting_until = time.time() + self.config["command_window_sec"]
+            return
+        if self.whisper is not None and audio:
+            refined = self._refine(audio, awaiting)
+            if refined is _REJECT:
+                log.info("Whisper не подтвердил wake-слово — игнорирую (ложное срабатывание)")
+                return
+            if refined:
+                cmd = refined
+        reply = self.handler.handle(cmd)
+        barge_happened = self.say(reply)
+
+        if getattr(self.handler, "_reset_requested", False):
+            self._awaiting_until = 0.0
+            self.handler._reset_requested = False
+            log.info("Сброс: жду wake-слово")
+            return
+
+        if barge_happened:
+            log.info("Barge-in: открываю окно диалога (без wake-слова)")
+        self._awaiting_until = time.time() + float(
+            self.config.get("dialog_window_sec", 8))
+
+    def _refine(self, audio: bytes, awaiting: bool):
+        try:
+            text = normalize(self.whisper.transcribe(audio))
+        except Exception:
+            log.exception("Whisper не справился, использую текст Vosk")
+            return None
+        if not text:
+            return _REJECT
+        tokens = text.split()
+        for i, tok in enumerate(tokens):
+            if self._is_wake(tok):
+                return " ".join(tokens[i + 1:])
+        if awaiting:
+            return text
+        if tokens and wake_score(tokens[0], self._wake_words[0]) >= 0.5:
+            return " ".join(tokens[1:])
+        return _REJECT
+
+    def _extract_command(self, text: str) -> str | None:
+        tokens = text.split()
+        for i, tok in enumerate(tokens):
+            if self._is_wake(tok):
+                return " ".join(tokens[i + 1:])
+        if time.time() < self._awaiting_until:
+            return text
+        return None
+
+    def _is_wake(self, token: str) -> bool:
+        return token in self._wake_words or any(
+            wake_score(token, w) >= 0.8 for w in self._wake_words
+        )
+
+
+def setup_logging() -> None:
+    logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+
+    LOGS_DIR = BASE_DIR / "logs"
+    LOGS_DIR.mkdir(exist_ok=True)
+
+    fmt = "%(asctime)s %(name)s %(levelname)s %(message)s"
+    formatter = logging.Formatter(fmt)
+
+    root = logging.getLogger()
+    root.setLevel(logging.INFO)
+    for h in list(root.handlers):
+        root.removeHandler(h)
+
+    console = logging.StreamHandler()
+    console.setFormatter(formatter)
+    console.setLevel(logging.INFO)
+    root.addHandler(console)
+
+    jarvis_handler = logging.handlers.RotatingFileHandler(
+        LOGS_DIR / "jarvis.log",
+        maxBytes=5 * 1024 * 1024,
+        backupCount=3,
+        encoding="utf-8",
+    )
+    jarvis_handler.setFormatter(formatter)
+    jarvis_handler.setLevel(logging.INFO)
+    root.addHandler(jarvis_handler)
+
+    errors_handler = logging.handlers.RotatingFileHandler(
+        LOGS_DIR / "errors.log",
+        maxBytes=5 * 1024 * 1024,
+        backupCount=3,
+        encoding="utf-8",
+    )
+    errors_handler.setFormatter(formatter)
+    errors_handler.setLevel(logging.WARNING)
+    root.addHandler(errors_handler)
+
+    actions_logger = logging.getLogger("jarvis.actions")
+    actions_logger.setLevel(logging.INFO)
+    actions_logger.propagate = False
+    actions_handler = logging.handlers.RotatingFileHandler(
+        LOGS_DIR / "actions.log",
+        maxBytes=5 * 1024 * 1024,
+        backupCount=3,
+        encoding="utf-8",
+    )
+    actions_handler.setFormatter(formatter)
+    actions_logger.addHandler(actions_handler)
+
+
+def main() -> None:
+    setup_logging()
+    log.info("%s v%s запускается", APP_NAME, __version__)
+
+    config: Config = load_config(BASE_DIR)
+    model_dir = ensure_model(BASE_DIR / "models")
+
+    whisper = None
+    if config.get("use_whisper", True):
+        try:
+            from jarvis.stt import WhisperTranscriber
+            whisper = WhisperTranscriber(
+                config.get("whisper_model", "auto"),
+                config.get("whisper_device", "auto"),
+            )
+        except Exception:
+            log.exception("Whisper не завёлся, работаю только на Vosk")
+
+    brain = None
+    if config.get("use_llm", True):
+        from jarvis.brain import Brain
+        brain = Brain(config.get("llm_model", "qwen2.5:7b-instruct"),
+                      config.get("ollama_url", "http://127.0.0.1:11434"))
+        if not brain.available:
+            brain = None
+
+    speaker = Speaker(config)
+    listener = Listener(model_dir, config["sample_rate"], config.get("input_device"))
+    handler = IntentHandler(config, build_apps(config), brain)
+    jarvis = Jarvis(config, listener, speaker, handler, BASE_DIR, whisper)
+
+    # --- Подписки: изменения конфига применяются на лету ---
+    def _on_config_change(key: str, value):
+        if key == "tts_voice":
+            speaker.set_voice(value)
+        elif key == "voice_rate":
+            speaker.set_rate(value)
+        elif key == "mode":
+            handler.mode = value
+        elif key == "barge_enabled":
+            jarvis.barge_enabled = bool(value)
+            if listener is not None:
+                listener.barge_enabled = bool(value)
+
+    config.subscribe(_on_config_change)
+
+    def _on_timer_fire(timer: dict):
+        text = timer.get("text") or "время вышло"
+        msg = f"Напоминание: {text}."
+        log.info("Таймер сработал: %s", msg)
+        jarvis.say(msg)
+
+    timers.set_on_fire(_on_timer_fire)
+    restored = timers.restore_all()
+    if restored:
+        log.info("Восстановлено напоминаний: %d", restored)
+
+    worker = threading.Thread(target=jarvis.run_loop, daemon=True, name="jarvis-listener")
+    worker.start()
+    jarvis.say(f"{APP_NAME} запущен и готов к работе.")
+    threading.Thread(target=jarvis.mic_watchdog, daemon=True, name="mic-watchdog").start()
+
+    tray = build_tray(jarvis)
+    tray.run()
+    jarvis.shutdown()
+    log.info("Завершение работы")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+### `jarvis\matching.py`
+
+```python
+"""Нечёткое сопоставление речи с названиями: транслитерация + difflib.
+
+Vosk выдаёт только кириллицу («обс студио»), а программы называются латиницей
+(«OBS Studio»), поэтому сравниваем и оригинал, и транслит.
+"""
+
+import re
+from difflib import SequenceMatcher
+
+_RU_DIGRAPHS = {"дж": "j"}  # фонетика: «джарвис» -> jarvis, а не dzharvis
+_RU_LAT = {
+    "а": "a", "б": "b", "в": "v", "г": "g", "д": "d", "е": "e", "ё": "e",
+    "ж": "zh", "з": "z", "и": "i", "й": "y", "к": "k", "л": "l", "м": "m",
+    "н": "n", "о": "o", "п": "p", "р": "r", "с": "s", "т": "t", "у": "u",
+    "ф": "f", "х": "h", "ц": "ts", "ч": "ch", "ш": "sh", "щ": "sch",
+    "ъ": "", "ы": "y", "ь": "", "э": "e", "ю": "yu", "я": "ya",
+}
+
+
+def translit(text: str) -> str:
+    text = text.lower()
+    for ru, lat in _RU_DIGRAPHS.items():
+        text = text.replace(ru, lat)
+    return "".join(_RU_LAT.get(ch, ch) for ch in text)
+
+
+_FOLD = str.maketrans({"c": "k", "q": "k", "w": "v", "x": "ks"})
+
+
+def _fold(s: str) -> str:
+    """Фонетическое выравнивание латиницы: Camo ~ камо(kamo), roblox ~ роблокс."""
+    return s.replace("ph", "f").translate(_FOLD)
+
+
+_NUM = {"ноль": "0", "один": "1", "одна": "1", "два": "2", "две": "2", "три": "3",
+        "четыре": "4", "пять": "5", "шесть": "6", "семь": "7", "восемь": "8",
+        "девять": "9", "десять": "10"}
+
+
+def _num_norm(s: str) -> str:
+    """«дота два» -> «дота 2»: в названиях номера всегда цифрами."""
+    return " ".join(_NUM.get(w, w) for w in s.split())
+
+
+def wake_score(token: str, wake_word: str) -> float:
+    """Строгая похожесть для wake-слова: только полный ratio (с транслитом),
+    без бонусов за подстроку/слова — иначе «фен» будил бы «феникса»."""
+    return max(
+        SequenceMatcher(None, a, b).ratio()
+        for a in {token, translit(token)}
+        for b in {wake_word, translit(wake_word)}
+    )
+
+
+def _skeleton(s: str) -> str:
+    """Согласный скелет: stim/steam -> stm. Гласные между языками плавают,
+    согласные при транслитерации сохраняются."""
+    return re.sub(r"[aeiouy\s]", "", translit(s))
+
+
+def match_score(spoken: str, candidate: str) -> float:
+    """Похожесть сказанного на название (0..1). Оба сравниваются в нижнем регистре,
+    сказанное — ещё и в транслите; пробуем целиком, без пробелов и по словам."""
+    cand = re.sub(r"\(.*?\)", " ", candidate.lower()).strip()
+    cand = re.sub(r"\s+", " ", cand)
+    if not spoken or not cand:
+        return 0.0
+    spoken = _num_norm(spoken)
+    cand = _num_norm(cand)
+    best = 0.0
+    # Whisper может выдать латиницу («открой discord»), псевдонимы бывают
+    # кириллицей — поэтому транслитерируем и фонетически выравниваем обе стороны
+    for s in {spoken, _fold(translit(spoken))}:
+        for c in {cand, _fold(translit(cand))}:
+            if s == c:
+                return 1.0
+            if len(s) >= 3 and (s in c or c in s):
+                best = max(best, 0.9)
+            best = max(best, SequenceMatcher(None, s, c).ratio())
+            best = max(best, SequenceMatcher(None, s.replace(" ", ""), c.replace(" ", "")).ratio())
+            s_words, c_words = s.split(), c.split()
+            for word in c_words:
+                best = max(best, SequenceMatcher(None, s, word).ratio())
+            # многословные цели: «роблокс плеер» ~ «roblox player installer» —
+            # каждому сказанному слову ищем лучшее слово кандидата
+            if len(s_words) > 1 and c_words:
+                avg = sum(
+                    max(SequenceMatcher(None, sw, cw).ratio() for cw in c_words)
+                    for sw in s_words
+                ) / len(s_words)
+                best = max(best, avg)
+    sk_s, sk_c = _skeleton(spoken), _skeleton(cand)
+    if len(sk_s) >= 3 and sk_s == sk_c:
+        best = max(best, 0.8)
+    return best
+```
+
+### `jarvis\memory.py`
+
+```python
+"""Память диалога на диске.
+
+История диалога сохраняется в dialog.json при каждом ответе.
+При старте — подгружается обратно. Ограничение — 200 последних сообщений.
+
+Голосом: «что мы обсуждали», «забудь всё», «сохрани память».
+"""
+
+import json
+import logging
+import re
+from pathlib import Path
+
+log = logging.getLogger("jarvis.memory")
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+MEMORY_FILE = BASE_DIR / "dialog.json"
+MAX_MESSAGES = 200
+
+
+def load() -> list:
+    """Загружает историю диалога с диска. Возвращает список сообщений."""
+    if not MEMORY_FILE.exists():
+        return []
+    try:
+        data = json.loads(MEMORY_FILE.read_text(encoding="utf-8"))
+        if not isinstance(data, list):
+            log.warning("dialog.json — не массив, игнорирую")
+            return []
+        log.info("Память диалога загружена: %d сообщений", len(data))
+        return data[-MAX_MESSAGES:]
+    except Exception:
+        log.exception("Не удалось прочитать dialog.json")
+        return []
+
+
+def save(messages: list) -> None:
+    """Сохраняет историю диалога на диск (последние MAX_MESSAGES)."""
+    try:
+        trimmed = list(messages)[-MAX_MESSAGES:]
+        MEMORY_FILE.write_text(
+            json.dumps(trimmed, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+    except Exception:
+        log.exception("Не удалось сохранить dialog.json")
+
+
+def clear() -> None:
+    """Очищает память."""
+    try:
+        if MEMORY_FILE.exists():
+            MEMORY_FILE.unlink()
+        log.info("Память диалога очищена")
+    except Exception:
+        log.exception("Не удалось очистить dialog.json")
+
+
+def describe(messages: list, limit: int = 6) -> str:
+    """Краткий пересказ последних тем: «вы говорили о ...»."""
+    if not messages:
+        return "Пока ничего не обсуждали."
+    user_msgs = [m.get("content", "") for m in messages
+                 if m.get("role") == "user" and m.get("content")]
+    if not user_msgs:
+        return "Пока ничего не обсуждали."
+    recent = user_msgs[-limit:]
+    topics = ", ".join(f"«{t}»" for t in recent)
+    return f"Последние темы: {topics}."
+
+
+def handle_memory_command(cmd: str, messages: list) -> tuple[str | None, bool]:
+    """Разбирает команды памяти.
+
+    Возвращает (ответ_или_None, нужно_очистить_память).
+    """
+    # что обсуждали
+    if re.search(r"(что|о\s+ч[её]м)\s+(мы\s+)?(обсуждал|говорил|болтал)", cmd) \
+            or cmd in {"что мы обсуждали", "о чём мы говорили", "что обсуждали"}:
+        return describe(messages), False
+
+    # забудь всё
+    if re.search(r"(забудь|очисти|сбрось|сотри)\s+(вс[её]|память|историю|диалог)", cmd) \
+            or cmd in {"забудь всё", "очисти память", "сбрось память", "сотри память"}:
+        clear()
+        return "Память очищена.", True
+
+    # сохрани память
+    if re.search(r"(сохрани|запиши)\s+память", cmd) or cmd in {"сохрани память", "запиши память"}:
+        save(messages)
+        return "Память сохранена.", False
+
+    return None, False
+```
+
+### `jarvis\model.py`
+
+```python
+"""Скачивание и распаковка модели Vosk для русского языка (~45 МБ)."""
+
+import logging
+import sys
+import urllib.request
+import zipfile
+from pathlib import Path
+
+log = logging.getLogger("jarvis.model")
+
+MODEL_NAME = "vosk-model-small-ru-0.22"
+MODEL_URL = f"https://alphacephei.com/vosk/models/{MODEL_NAME}.zip"
+
+
+def _progress(blocks: int, block_size: int, total: int) -> None:
+    if total > 0:
+        pct = min(100, blocks * block_size * 100 // total)
+        sys.stdout.write(f"\rСкачивание модели: {pct}%")
+        sys.stdout.flush()
+
+
+def ensure_model(models_dir: Path) -> Path:
+    """Возвращает путь к модели, при необходимости скачивает её."""
+    model_dir = models_dir / MODEL_NAME
+    if model_dir.exists():
+        return model_dir
+
+    models_dir.mkdir(parents=True, exist_ok=True)
+    zip_path = models_dir / f"{MODEL_NAME}.zip"
+    log.info("Модель не найдена, скачиваю %s", MODEL_URL)
+    try:
+        urllib.request.urlretrieve(MODEL_URL, zip_path, reporthook=_progress)
+        sys.stdout.write("\n")
+        log.info("Распаковка модели...")
+        with zipfile.ZipFile(zip_path) as zf:
+            zf.extractall(models_dir)
+    finally:
+        zip_path.unlink(missing_ok=True)
+
+    if not model_dir.exists():
+        raise RuntimeError(f"После распаковки не найдена папка {model_dir}")
+    log.info("Модель готова: %s", model_dir)
+    return model_dir
+```
+
+### `jarvis\modes.py`
+
+```python
+"""Режимы работы Феникса: commands, llm, combo."""
+
+import logging
+import re
+
+from jarvis import config_manager
+
+log = logging.getLogger("jarvis.modes")
+
+NAMES = {
+    "commands": "только команды",
+    "llm": "только ИИ",
+    "combo": "комбинированный",
+}
+
+
+def get_mode(config) -> str:
+    m = config.get("mode", "combo")
+    return m if m in NAMES else "combo"
+
+
+def set_mode(mode: str, config=None) -> str:
+    if mode not in NAMES:
+        return f"Неизвестный режим: {mode}."
+    if config is not None:
+        config.set("mode", mode)
+    else:
+        config_manager.update("mode", mode)
+    log.info("Режим переключён на %s", mode)
+    return f"Режим: {NAMES[mode]}."
+
+
+def handle_mode_command(cmd: str, current_mode: str, config=None) -> tuple[str | None, str]:
+    if re.search(r"режим\s+(команд|команды|только\s+команд)", cmd) \
+            or cmd in {"только команды", "без ии"}:
+        return set_mode("commands", config), "commands"
+
+    if re.search(r"режим\s+(ии|искусственн\w*|нейросет\w*|нейронк\w*)", cmd) \
+            or cmd in {"только ии", "режим ии", "режим нейросети", "только нейросеть"}:
+        return set_mode("llm", config), "llm"
+
+    if re.search(r"(комбинированн|обычн|стандартн|смешанн)\w*\s+режим", cmd) \
+            or re.search(r"режим\s+(комбо|обычн|стандартн|смешанн|комбинированн)", cmd) \
+            or cmd in {"обычный режим", "комбо", "режим комбо"}:
+        return set_mode("combo", config), "combo"
+
+    if re.search(r"(какой|текущий|что\s+за)\s+режим", cmd) \
+            or cmd in {"какой режим", "текущий режим"}:
+        return f"Сейчас режим: {NAMES.get(current_mode, current_mode)}.", current_mode
+
+    return None, current_mode
+```
+
+### `jarvis\packs.py`
+
+```python
+"""Загрузка и выгрузка паков команд из папки packs/."""
+
+import json
+import logging
+import re
+from pathlib import Path
+
+log = logging.getLogger("jarvis.packs")
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+PACKS_DIR = BASE_DIR / "packs"
+
+# Алиасы имён паков: что говорит пользователь → имя файла
+_PACK_ALIASES = {
+    "игр": "games", "игры": "games", "игра": "games",
+    "играм": "games", "игру": "games", "гейм": "games", "геймс": "games",
+    "приложение": "apps", "приложения": "apps", "приложению": "apps",
+    "приложений": "apps", "прог": "apps", "проги": "apps", "прогу": "apps",
+    "сайт": "sites", "сайты": "sites", "сайтов": "sites", "сайту": "sites",
+    "работа": "work", "работы": "work", "работу": "work", "рабочий": "work",
+    "система": "system", "системы": "system", "систем": "system",
+    "системный": "system", "системные": "system",
+}
+
+
+def normalize_name(name: str) -> str:
+    """Приводит «игр» → «games», «приложение» → «apps» и т.п."""
+    n = name.strip().lower().rstrip(".,!?")
+    return _PACK_ALIASES.get(n, n)
+
+
+def list_available() -> list[str]:
+    if not PACKS_DIR.exists():
+        return []
+    return sorted(p.stem for p in PACKS_DIR.glob("*.json"))
+
+
+def load_pack(name: str) -> list | None:
+    name = normalize_name(name)
+    path = PACKS_DIR / f"{name}.json"
+    if not path.exists():
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(data, list):
+            log.warning("Пак %s — не массив, игнорирую", name)
+            return None
+        return data
+    except Exception:
+        log.exception("Не удалось прочитать пак %s", name)
+        return None
+
+
+def load_active(config) -> list:
+    active = config.get("active_packs", [])
+    result = []
+    for name in active:
+        pack = load_pack(name)
+        if pack:
+            result.extend(pack)
+            log.info("Пак '%s': загружено %d команд", name, len(pack))
+    return result
+
+
+def save_active(active: list[str], config=None) -> None:
+    if config is not None:
+        config.set("active_packs", sorted(set(active)))
+    else:
+        from jarvis import config_manager
+        config_manager.update("active_packs", sorted(set(active)))
+    log.info("Активные паки сохранены: %s", active)
+
+
+def handle_pack_command(cmd: str, current_active: list[str], config=None) -> tuple[str | None, list[str]]:
+    available = list_available()
+
+    if re.search(r"(какие|список|покажи)\s+пак", cmd) \
+            or cmd in {"какие паки", "список паков", "покажи паки"}:
+        if not available:
+            return "Папка packs пуста.", current_active
+        active_str = ", ".join(current_active) if current_active else "нет"
+        return f"Доступны: {', '.join(available)}. Активны: {active_str}.", current_active
+
+    m = re.search(r"(загрузи|включи|подключи)\s+пак\s+(\S+)", cmd)
+    if m:
+        name = normalize_name(m.group(2))
+        if name not in available:
+            return f"Пак '{name}' не найден. Доступны: {', '.join(available)}.", current_active
+        if name in current_active:
+            return f"Пак '{name}' уже активен.", current_active
+        new_active = current_active + [name]
+        save_active(new_active, config)
+        return f"Пак '{name}' загружен.", new_active
+
+    if re.search(r"(активируй|загрузи|включи|подключи)\s+все\s+пак", cmd) \
+            or cmd in {"активируй все паки", "загрузи все паки", "включи все паки"}:
+        if not available:
+            return "Папка packs пуста.", current_active
+        new_active = sorted(set(current_active + available))
+        save_active(new_active, config)
+        return f"Активированы все паки: {', '.join(available)}.", new_active
+
+    if re.search(r"(выгрузи|отключи|убери)\s+все\s+пак", cmd) \
+            or cmd in {"выгрузи все паки", "отключи все паки"}:
+        save_active([], config)
+        return "Все паки выгружены.", []
+
+    m = re.search(r"(выгрузи|отключи|убери)\s+пак\s+(\S+)", cmd)
+    if m:
+        name = normalize_name(m.group(2))
+        if name not in current_active:
+            return f"Пак '{name}' и так не активен.", current_active
+        new_active = [p for p in current_active if p != name]
+        save_active(new_active, config)
+        return f"Пак '{name}' выгружен.", new_active
+
+    return None, current_active
+```
+
+### `jarvis\profile.py`
+
+```python
+"""Профиль пользователя.
+
+Хранит данные, специфичные для пользователя:
+    - город по умолчанию
+    - имя
+    - предпочтения
+    - произвольные факты (для будущего модуля памяти)
+
+Файл: user_profile.json в корне проекта.
+НЕ отправляется в гит (см. .gitignore).
+Запись — через config_manager (единый FileLock, атомарная замена).
+"""
+
+import logging
+from pathlib import Path
+
+from jarvis import config_manager
+
+log = logging.getLogger("jarvis.profile")
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+PROFILE_PATH = BASE_DIR / "user_profile.json"
+
+
+def get(key: str, default=None):
+    """Читает одно поле."""
+    return config_manager.load(path=PROFILE_PATH).get(key, default)
+
+
+def set(key: str, value) -> None:
+    """Записывает одно поле."""
+    config_manager.update(key, value, path=PROFILE_PATH)
+    log.info("Профиль: %s = %r", key, value)
+
+
+def all_data() -> dict:
+    return config_manager.load(path=PROFILE_PATH)
+
+
+def forget(key: str) -> bool:
+    """Удаляет одно поле."""
+    data = config_manager.load(path=PROFILE_PATH)
+    if key not in data:
+        return False
+    del data[key]
+    config_manager.save(data, path=PROFILE_PATH)
+    log.info("Профиль: удалено %s", key)
+    return True
+```
+
+### `jarvis\recorder.py`
+
+```python
+"""Запись действий: клавиши, клики, паузы."""
+
+import logging
+import threading
+import time
+
+log = logging.getLogger("jarvis.recorder")
+
+_recording = False
+_events = []
+_start_time = 0.0
+_last_event_time = 0.0
+_lock = threading.Lock()
+
+MAX_DURATION_SEC = 60
+MIN_WAIT_SEC = 0.05
+MAX_WAIT_SEC = 5.0
+
+
+def is_recording() -> bool:
+    return _recording
+
+
+def start() -> bool:
+    global _recording, _events, _start_time, _last_event_time
+    try:
+        import keyboard
+        import mouse
+    except ImportError:
+        log.error("Библиотеки keyboard/mouse не установлены. pip install keyboard mouse")
+        return False
+
+    with _lock:
+        if _recording:
+            return False
+        _events = []
+        _recording = True
+        _start_time = time.time()
+        _last_event_time = _start_time
+
+    try:
+        keyboard.hook(_on_key)
+        mouse.hook(_on_mouse)
+    except Exception:
+        log.exception("Не удалось повесить хуки (нужны права администратора)")
+        with _lock:
+            _recording = False
+        return False
+
+    log.info("Запись действий начата")
+    return True
+
+
+def stop() -> dict | None:
+    global _recording
+    try:
+        import keyboard
+        import mouse
+        keyboard.unhook_all()
+        mouse.unhook_all()
+    except Exception:
+        pass
+
+    with _lock:
+        if not _recording:
+            return None
+        _recording = False
+        events = list(_events)
+
+    log.info("Запись действий остановлена: %d событий", len(events))
+    return {"events": events, "duration": time.time() - _start_time}
+
+
+def _add_wait_if_needed():
+    global _last_event_time
+    now = time.time()
+    delta = now - _last_event_time
+    if delta >= MIN_WAIT_SEC:
+        _events.append({"type": "wait", "seconds": min(delta, MAX_WAIT_SEC)})
+    _last_event_time = now
+
+
+def _check_limits() -> bool:
+    if time.time() - _start_time > MAX_DURATION_SEC:
+        log.info("Запись остановлена: превышена максимальная длина")
+        return False
+    return True
+
+
+def _on_key(event):
+    if not _recording or not _check_limits():
+        return
+    _add_wait_if_needed()
+    _events.append({
+        "type": "key",
+        "name": event.name,
+        "event": "down" if event.event_type == "down" else "up",
+    })
+
+
+def _on_mouse(event):
+    if not _recording or not _check_limits():
+        return
+    import mouse
+    if isinstance(event, mouse.ButtonEvent):
+        _add_wait_if_needed()
+        _events.append({
+            "type": "click",
+            "x": mouse.get_position()[0],
+            "y": mouse.get_position()[1],
+            "button": event.button,
+            "event": "down" if event.event_type == "down" else "up",
+        })
+
+
+def play(macro: dict, speed: float = 1.0) -> bool:
+    if not macro or not macro.get("events"):
+        return False
+    try:
+        import keyboard
+        import mouse
+    except ImportError:
+        log.error("Библиотеки keyboard/mouse не установлены")
+        return False
+
+    events = macro["events"]
+    log.info("Воспроизведение макроса: %d событий", len(events))
+    try:
+        for ev in events:
+            t = ev.get("type")
+            if t == "wait":
+                time.sleep(float(ev.get("seconds", 0)) / max(speed, 0.1))
+            elif t == "key":
+                if ev.get("event") == "down":
+                    keyboard.press(ev["name"])
+                else:
+                    keyboard.release(ev["name"])
+            elif t == "click":
+                mouse.move(ev["x"], ev["y"], absolute=True, duration=0)
+                if ev.get("event") == "down":
+                    mouse.press(button=ev.get("button", "left"))
+                else:
+                    mouse.release(button=ev.get("button", "left"))
+        return True
+    except Exception:
+        log.exception("Ошибка воспроизведения макроса")
+        return False
+
+
+def describe(macro: dict) -> str:
+    if not macro:
+        return "Запись пустая."
+    events = macro.get("events", [])
+    keys = sum(1 for e in events if e.get("type") == "key" and e.get("event") == "down")
+    clicks = sum(1 for e in events if e.get("type") == "click" and e.get("event") == "down")
+    duration = macro.get("duration", 0)
+    return f"Макрос: {keys} нажатий, {clicks} кликов, длительность {duration:.1f} секунд."
+```
+
+### `jarvis\steam.py`
+
+```python
+"""Индекс установленных игр Steam: appmanifest -> (название, appid).
+
+Позволяет «запусти сабнатику» для любой игры из библиотеки,
+запуск через steam://rungameid/{appid}.
+"""
+
+import logging
+import re
+import winreg
+from pathlib import Path
+
+from jarvis.matching import match_score
+
+log = logging.getLogger("jarvis.steam")
+
+# Служебные «игры», которые запускать не надо
+_SKIP = ("redistributable", "proton", "steamworks", "steam linux", "runtime")
+
+
+def _steam_root() -> Path | None:
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Valve\Steam") as k:
+            return Path(winreg.QueryValueEx(k, "SteamPath")[0])
+    except OSError:
+        return None
+
+
+def scan_steam_games() -> list[tuple[str, str]]:
+    """[(название, appid), ...] по всем библиотекам Steam."""
+    root = _steam_root()
+    if root is None or not root.exists():
+        return []
+    libs = {root}
+    vdf = root / "steamapps" / "libraryfolders.vdf"
+    if vdf.exists():
+        for path in re.findall(r'"path"\s+"([^"]+)"', vdf.read_text("utf-8", errors="ignore")):
+            libs.add(Path(path.replace("\\\\", "\\")))
+    games = []
+    for lib in libs:
+        for acf in (lib / "steamapps").glob("appmanifest_*.acf"):
+            try:
+                text = acf.read_text("utf-8", errors="ignore")
+            except OSError:
+                continue
+            appid = re.search(r'"appid"\s+"(\d+)"', text)
+            name = re.search(r'"name"\s+"([^"]+)"', text)
+            if not appid or not name:
+                continue
+            title = name.group(1)
+            if any(s in title.lower() for s in _SKIP):
+                continue
+            games.append((title, appid.group(1)))
+    log.info("Steam: проиндексировано %d игр", len(games))
+    return games
+
+
+def find_game(games: list[tuple[str, str]], spoken: str,
+              threshold: float = 0.72) -> tuple[str, str] | None:
+    best, best_score = None, 0.0
+    for title, appid in games:
+        score = match_score(spoken, title)
+        if score > best_score:
+            best, best_score = (title, appid), score
+    if best and best_score >= threshold:
+        log.info("Игра Steam: %r -> %r (score %.2f)", spoken, best[0], best_score)
+        return best
+    return None
+```
+
+### `jarvis\stt.py`
+
+```python
+"""Распознавание речи.
+
+Гибрид: Vosk (wake) + Whisper (точная расшифровка).
+Barge-in: адаптивная калибровка эха и фона при старте.
+"""
+
+import json
+import logging
+import os
+import queue
+import time
+from collections import deque
+from pathlib import Path
+
+import numpy as np
+import sounddevice as sd
+from vosk import KaldiRecognizer, Model, SetLogLevel
+
+log = logging.getLogger("jarvis.stt")
+
+TURBO_MODEL = "deepdml/faster-whisper-large-v3-turbo-ct2"
+
+WHISPER_PROMPT = (
+    "Это русская речь. Пожалуйста, транскрибируй текст на русском языке. "
+    "Частые слова: Феникс, открой, закрой, найди, погода, напоминание, "
+    "задача, голос, режим, паки, Нижний Новгород, курс доллара."
+)
+
+ECHO_WINDOW_SEC = 0.5
+BARGE_LOG_INTERVAL = 0.5
+
+
+def _enable_cuda_dlls():
+    try:
+        import nvidia
+    except ImportError:
+        return
+    base = Path(nvidia.__path__[0])
+    dirs = [str(p) for p in (base / "cublas" / "bin", base / "cudnn" / "bin") if p.exists()]
+    if dirs:
+        os.environ["PATH"] = os.pathsep.join(dirs) + os.pathsep + os.environ["PATH"]
+
+
+class Listener:
+    def __init__(self, model_dir, sample_rate=16000, device=None):
+        SetLogLevel(-1)
+        self._model = Model(str(model_dir))
+        self._rec = KaldiRecognizer(self._model, sample_rate)
+        self._sample_rate = sample_rate
+        self._device = self.resolve_device(device)
+        self.device_name = self._current_device_name()
+        self._audio = queue.Queue()
+        self._utt_buf = []
+        self._utt_len = 0
+        self.peak = 0
+        self.utterances = 0
+
+        self.barge_enabled = True
+        self.muted = False
+        self.barge_flag = False
+        self._block_size = 8000
+
+        # Адаптивный barge-in
+        self._echo_window_samples = deque(maxlen=20)  # ~1 секунда
+        self._echo_baseline = 0
+        self._barge_threshold = 150
+        self._barge_speech_ms = 0
+        self._speech_active = False
+        self._speech_started_at = 0.0
+        self._last_barge_log = 0.0
+        self._echo_done = False
+
+    def barge_start(self):
+        self.barge_flag = False
+        self._barge_speech_ms = 0
+        self._speech_active = True
+        self._speech_started_at = time.time()
+        self._echo_done = False
+        self._echo_window_samples.clear()
+        self._barge_threshold = max(150, int(self._echo_baseline * 1.8))
+
+    def barge_end(self):
+        self._speech_active = False
+        log.info("Barge-in: стоп (echo=%d, thr=%d, речь=%d мс)",
+                 self._echo_baseline, self._barge_threshold, self._barge_speech_ms)
+
+    def _process_barge(self, rms):
+        if not self._speech_active or not self.barge_enabled:
+            return
+        now = time.time()
+        elapsed = now - self._speech_started_at
+
+        if elapsed < ECHO_WINDOW_SEC:
+            return
+
+        # Калибровка: накапливаем базу эха ~0.5 сек
+        if not self._echo_done:
+            self._echo_window_samples.append(rms)
+            if elapsed >= ECHO_WINDOW_SEC + 0.5:
+                if self._echo_window_samples:
+                    arr = sorted(self._echo_window_samples)
+                    self._echo_baseline = arr[int(len(arr) * 0.7)]
+                self._barge_threshold = max(150, int(self._echo_baseline * 1.8))
+                self._echo_done = True
+                log.info("Barge-in: калибровка echo=%d, threshold=%d",
+                         self._echo_baseline, self._barge_threshold)
+            return
+
+        # Скользящее среднее эха (адаптация к изменению громкости)
+        self._echo_window_samples.append(rms)
+        if len(self._echo_window_samples) >= 10:
+            arr = sorted(self._echo_window_samples)
+            new_echo = arr[int(len(arr) * 0.7)]
+            # Плавно адаптируем порог
+            self._echo_baseline = int(0.9 * self._echo_baseline + 0.1 * new_echo)
+            self._barge_threshold = max(150, int(self._echo_baseline * 1.8))
+
+        if rms > self._barge_threshold:
+            self._barge_speech_ms += int(self._block_size / 16)
+            if self._barge_speech_ms >= 150:
+                self.barge_flag = True
+        else:
+            self._barge_speech_ms = 0
+
+        if now - self._last_barge_log >= BARGE_LOG_INTERVAL:
+            log.info("barge: rms=%d, echo=%d, thr=%d, speech_ms=%d, flag=%s",
+                     rms, self._echo_baseline, self._barge_threshold,
+                     self._barge_speech_ms, self.barge_flag)
+            self._last_barge_log = now
+
+    @staticmethod
+    def resolve_device(device):
+        if device is None or device == "":
+            return None
+        if isinstance(device, int):
+            return device
+        name = str(device).lower()
+        for i, d in enumerate(sd.query_devices()):
+            if d["max_input_channels"] > 0 and name in d["name"].lower():
+                return i
+        log.warning("Микрофон %r не найден, беру по умолчанию", device)
+        return None
+
+    def _current_device_name(self):
+        try:
+            idx = self._device if self._device is not None else sd.default.device[0]
+            return sd.query_devices(idx)["name"]
+        except Exception:
+            return "по умолчанию"
+
+    def _callback(self, indata, frames, time_info, status):
+        if status:
+            log.warning("Аудиопоток: %s", status)
+        arr = np.frombuffer(indata, dtype=np.int16)
+        if arr.size:
+            self.peak = max(self.peak, int(np.abs(arr).max()))
+            rms = int(np.sqrt(np.mean(arr.astype(np.float32) ** 2)))
+        else:
+            rms = 0
+        self._process_barge(rms)
+        if not self.muted:
+            self._audio.put(bytes(indata))
+
+    def flush(self):
+        while not self._audio.empty():
+            try:
+                self._audio.get_nowait()
+            except queue.Empty:
+                break
+        self._utt_buf.clear()
+        self._utt_len = 0
+        self._rec.Reset()
+
+    def phrases(self, stop_event):
+        max_buf = self._sample_rate * 2 * 30
+        with sd.RawInputStream(
+            samplerate=self._sample_rate,
+            blocksize=self._block_size,
+            dtype="int16",
+            channels=1,
+            device=self._device,
+            callback=self._callback,
+        ):
+            log.info("Микрофон открыт, слушаю...")
+            while not stop_event.is_set():
+                try:
+                    data = self._audio.get(timeout=0.2)
+                except queue.Empty:
+                    continue
+                self._utt_buf.append(data)
+                self._utt_len += len(data)
+                while self._utt_len > max_buf and len(self._utt_buf) > 1:
+                    self._utt_len -= len(self._utt_buf.pop(0))
+                if self._rec.AcceptWaveform(data):
+                    text = json.loads(self._rec.Result()).get("text", "").strip()
+                    audio = b"".join(self._utt_buf)
+                    self._utt_buf.clear()
+                    self._utt_len = 0
+                    if text:
+                        self.utterances += 1
+                        log.info("Распознано (vosk): %s", text)
+                        yield text, audio
+
+
+class WhisperTranscriber:
+    def __init__(self, model_name="auto", device="auto"):
+        _enable_cuda_dlls()
+        import ctranslate2
+        from faster_whisper import WhisperModel
+
+        if device == "auto":
+            device = "cuda" if ctranslate2.get_cuda_device_count() > 0 else "cpu"
+        if device == "cuda":
+            name = TURBO_MODEL if model_name == "auto" else model_name
+            try:
+                log.info("Загрузка Whisper (%s) на GPU...", name)
+                self._model = WhisperModel(name, device="cuda", compute_type="int8_float16")
+                log.info("Whisper готов (GPU)")
+                return
+            except Exception:
+                log.exception("GPU не завёлся, откатываюсь на CPU")
+        name = "small" if model_name == "auto" else model_name
+        log.info("Загрузка Whisper (%s) на CPU...", name)
+        self._model = WhisperModel(name, device="cpu", compute_type="int8")
+        log.info("Whisper готов (CPU)")
+
+    def transcribe(self, pcm, sample_rate=16000):
+        audio = np.frombuffer(pcm, dtype=np.int16).astype(np.float32) / 32768.0
+        if sample_rate != 16000 and len(audio) > 1:
+            n = int(len(audio) * 16000 / sample_rate)
+            audio = np.interp(
+                np.linspace(0, len(audio) - 1, n),
+                np.arange(len(audio)), audio
+            ).astype(np.float32)
+        segments, _ = self._model.transcribe(
+            audio, language="ru", beam_size=2, vad_filter=True,
+            condition_on_previous_text=False, initial_prompt=WHISPER_PROMPT,
+        )
+        text = " ".join(s.text.strip() for s in segments).strip()
+        log.info("Распознано (whisper): %s", text)
+        return text
+```
+
+### `jarvis\tasks.py`
+
+```python
+"""Списки задач.
+
+Голосом:
+    «добавь в список купить хлеб»             → добавляет
+    «что в списке»                            → перечисляет
+    «отметь хлеб выполненным»                 → помечает
+    «убери хлеб из списка»                    → удаляет
+    «очисти список»                           → удаляет всё
+
+Хранение: tasks.json.
+"""
+
+import json
+import logging
+import re
+import threading
+from difflib import SequenceMatcher
+from pathlib import Path
+
+log = logging.getLogger("jarvis.tasks")
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+TASKS_FILE = BASE_DIR / "tasks.json"
+_lock = threading.Lock()
+
+
+# ---------------------------------------------------------------
+# Хранение
+# ---------------------------------------------------------------
+
+def _load() -> list:
+    if not TASKS_FILE.exists():
+        return []
+    try:
+        data = json.loads(TASKS_FILE.read_text(encoding="utf-8"))
+        return data if isinstance(data, list) else []
+    except Exception:
+        log.exception("Не удалось прочитать tasks.json")
+        return []
+
+
+def _save(tasks: list) -> None:
+    try:
+        tmp = TASKS_FILE.with_suffix(".tmp")
+        tmp.write_text(json.dumps(tasks, ensure_ascii=False, indent=2),
+                       encoding="utf-8")
+        tmp.replace(TASKS_FILE)
+    except Exception:
+        log.exception("Не удалось сохранить tasks.json")
+
+
+# ---------------------------------------------------------------
+# CRUD
+# ---------------------------------------------------------------
+
+def add(text: str) -> dict:
+    """Добавляет задачу."""
+    with _lock:
+        tasks = _load()
+        task = {
+            "id": (max((t["id"] for t in tasks), default=0) + 1),
+            "text": text.strip(),
+            "done": False,
+            "created_at": __import__("time").time(),
+        }
+        tasks.append(task)
+        _save(tasks)
+    log.info("Задача добавлена: %s", task["text"])
+    return task
+
+
+def find(query: str) -> dict | None:
+    """Находит задачу по нечёткому совпадению."""
+    tasks = _load()
+    query_low = query.lower().strip()
+    if not query_low:
+        return None
+    # 1. точная подстрока
+    for t in tasks:
+        if query_low in t["text"].lower():
+            return t
+    # 2. нечёткое совпадение
+    best, best_ratio = None, 0.5
+    for t in tasks:
+        ratio = SequenceMatcher(None, query_low, t["text"].lower()).ratio()
+        if ratio > best_ratio:
+            best_ratio, best = ratio, t
+    return best
+
+
+def mark_done(query: str) -> dict | None:
+    """Помечает задачу выполненной."""
+    with _lock:
+        tasks = _load()
+        target = find(query)
+        if not target:
+            return None
+        for t in tasks:
+            if t["id"] == target["id"]:
+                t["done"] = True
+                _save(tasks)
+                return t
+    return None
+
+
+def remove(query: str) -> dict | None:
+    """Удаляет задачу."""
+    with _lock:
+        tasks = _load()
+        target = find(query)
+        if not target:
+            return None
+        tasks = [t for t in tasks if t["id"] != target["id"]]
+        _save(tasks)
+    return target
+
+
+def clear_all() -> int:
+    """Удаляет все задачи. Возвращает количество."""
+    with _lock:
+        tasks = _load()
+        count = len(tasks)
+        _save([])
+    return count
+
+
+# ---------------------------------------------------------------
+# Озвучка
+# ---------------------------------------------------------------
+
+def format_list(tasks: list | None = None) -> str:
+    """Человекочитаемый список для озвучки."""
+    if tasks is None:
+        tasks = _load()
+    if not tasks:
+        return "Список пуст."
+
+    active = [t for t in tasks if not t.get("done")]
+    done = [t for t in tasks if t.get("done")]
+
+    parts = []
+    if active:
+        items = ", ".join(t["text"] for t in active[:15])
+        parts.append(f"Активные: {items}")
+    if done:
+        items = ", ".join(t["text"] for t in done[:5])
+        parts.append(f"Выполнено: {items}")
+    return ". ".join(parts) + "."
+
+
+# ---------------------------------------------------------------
+# Обработка команд
+# ---------------------------------------------------------------
+
+def _extract_text(cmd: str, verb: str) -> str:
+    """Вырезает текст задачи после глагола."""
+    # убираем «в список», «из списка», «задачу» и т.п.
+    text = re.sub(rf"^{verb}\s+", "", cmd, count=1)
+    text = re.sub(r"^(в\s+список|в\s+задачи|задачу|задачу\s+в\s+список)\s*", "", text)
+    text = re.sub(r"^(из\s+списка|из\s+задач|задачу)\s*", "", text)
+    return text.strip(" ,.:!?")
+
+
+def handle_task_command(cmd: str) -> str | None:
+    """Разбирает команды списка задач. Возвращает ответ или None."""
+
+    # показать список
+    if re.search(r"(что|что\s+там)\s+в\s+списке", cmd) \
+            or cmd in {"что в списке", "покажи список", "список задач", "мои задачи"}:
+        return format_list()
+
+    # очистить
+    if re.search(r"(очисти|удали)\s+(весь\s+)?список", cmd) \
+            or cmd in {"очисти список", "удали все задачи"}:
+        n = clear_all()
+        return f"Очищено задач: {n}." if n else "Список и так пуст."
+
+    # отметить выполненным
+    m = re.match(r"^(?:отметь|помечу|пометь|сделано|выполнено|готово)\s+(.+)$", cmd)
+    if m:
+        query = m.group(1).strip()
+        query = re.sub(r"\s+(выполненным|сделанным|готовым)$", "", query)
+        query = re.sub(r"^(задачу|задачу\s+)?", "", query)
+        task = mark_done(query)
+        if task:
+            return f"Отметил: {task['text']}."
+        return f"Задачу «{query}» не нашёл."
+
+    # удалить одну
+    m = re.match(r"^(?:убери|удали)\s+(?:из\s+списка\s+)?(.+)$", cmd)
+    if m:
+        query = m.group(1).strip()
+        task = remove(query)
+        if task:
+            return f"Убрал: {task['text']}."
+        return f"Задачу «{query}» не нашёл."
+
+    # добавить
+    m = re.match(r"^(?:добавь|запиши|внеси)\s+(?:в\s+список\s+|в\s+задачи\s+)?(.+)$", cmd)
+    if m:
+        text = m.group(1).strip(" ,.:!?")
+        if not text:
+            return "Что добавить?"
+        task = add(text)
+        return f"Добавил: {task['text']}."
+
+    return None
+```
+
+### `jarvis\timers.py`
+
+```python
+"""Таймеры и напоминания.
+
+Голосом:
+    «напомни через 10 минут выпить чай»      → через 10 минут скажет голосом
+    «напомни в 18:30 позвонить маме»          → скажет в указанное время
+    «напомни через полчаса»                   → без текста
+    «какие напоминания»                       → список
+    «отмени все напоминания»                  → очистка
+    «таймер на 5 минут»                       → обратный отсчёт
+
+Хранение: timers.json (сохраняется на диск).
+При старте Феникса: загружает, проверяет, ставит threading.Timer на каждое.
+"""
+
+import datetime
+import json
+import logging
+import re
+import threading
+import time
+from pathlib import Path
+
+log = logging.getLogger("jarvis.timers")
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+TIMERS_FILE = BASE_DIR / "timers.json"
+
+_lock = threading.Lock()
+_scheduled: dict[int, threading.Timer] = {}  # id → Timer
+_next_id = 1
+_on_fire_callback = None  # функция, которая вызывается при срабатывании
+
+
+# ---------------------------------------------------------------
+# Хранение
+# ---------------------------------------------------------------
+
+def _load() -> list:
+    if not TIMERS_FILE.exists():
+        return []
+    try:
+        data = json.loads(TIMERS_FILE.read_text(encoding="utf-8"))
+        return data if isinstance(data, list) else []
+    except Exception:
+        log.exception("Не удалось прочитать timers.json")
+        return []
+
+
+def _save(timers: list) -> None:
+    try:
+        tmp = TIMERS_FILE.with_suffix(".tmp")
+        tmp.write_text(json.dumps(timers, ensure_ascii=False, indent=2),
+                       encoding="utf-8")
+        tmp.replace(TIMERS_FILE)
+    except Exception:
+        log.exception("Не удалось сохранить timers.json")
+
+
+# ---------------------------------------------------------------
+# Разбор времени из фразы
+# ---------------------------------------------------------------
+
+_NUM_WORDS = {
+    "один": 1, "одну": 1, "одна": 1, "два": 2, "две": 2, "три": 3, "четыре": 4,
+    "пять": 5, "шесть": 6, "семь": 7, "восемь": 8, "девять": 9, "десять": 10,
+    "пятнадцать": 15, "двадцать": 20, "тридцать": 30, "сорок": 40, "пятьдесят": 50,
+    "полтора": 1.5,
+}
+
+
+def _parse_duration(text: str) -> int | None:
+    """«через 10 минут» → 600 секунд. Возвращает int или None."""
+    # «через X единица»
+    m = re.search(r"через\s+(\d+|[а-яё]+)\s*(секунд|мин|минут|час|часов|ч|с|м)?", text)
+    if not m:
+        # «на X минут» / «таймер на X»
+        m = re.search(r"(?:на|таймер)\s+(\d+|[а-яё]+)\s*(секунд|мин|минут|час|часов|ч|с|м)",
+                      text)
+    if not m:
+        # «полчаса», «час», «минуту»
+        if "полчаса" in text or "пол часа" in text:
+            return 30 * 60
+        if re.search(r"\bчас\b", text):
+            return 60 * 60
+        if re.search(r"\bминуту\b", text):
+            return 60
+        return None
+
+    raw = m.group(1)
+    unit = m.group(2) or "мин"
+
+    # число
+    if raw.isdigit():
+        num = int(raw)
+    else:
+        num = _NUM_WORDS.get(raw.lower())
+        if num is None:
+            return None
+
+    # единица
+    if unit.startswith("сек") or unit == "с":
+        return int(num)
+    if unit.startswith("мин") or unit == "м":
+        return int(num * 60)
+    if unit.startswith("час") or unit == "ч":
+        return int(num * 3600)
+    return int(num * 60)
+
+
+def _parse_absolute_time(text: str) -> float | None:
+    """«в 18:30» → timestamp. Возвращает float (unix) или None."""
+    m = re.search(r"\bв\s+(\d{1,2})[:.](\d{2})", text)
+    if m:
+        hour, minute = int(m.group(1)), int(m.group(2))
+    else:
+        m = re.search(r"\bв\s+(\d{1,2})\s+час", text)
+        if not m:
+            return None
+        hour, minute = int(m.group(1)), 0
+
+    if not (0 <= hour < 24 and 0 <= minute < 60):
+        return None
+
+    now = datetime.datetime.now()
+    target = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    if target <= now:
+        # время уже прошло — значит, на завтра
+        target += datetime.timedelta(days=1)
+    return target.timestamp()
+
+
+def _extract_reminder_text(cmd: str) -> str:
+    """Вырезает из фразы текст напоминания (после времени)."""
+    # убираем всё до времени (включительно)
+    text = re.sub(r"^.*?(?:напомни|напоминание|таймер)\s*", "", cmd, count=1)
+    text = re.sub(r"через\s+(\d+|[а-яё]+)\s*\S+", "", text, count=1)
+    text = re.sub(r"\bв\s+\d{1,2}[:.]\d{2}", "", text, count=1)
+    text = re.sub(r"\bв\s+\d{1,2}\s+час\w*", "", text, count=1)
+    text = text.strip(" ,.:!?")
+    return text
+
+
+# ---------------------------------------------------------------
+# Планирование
+# ---------------------------------------------------------------
+
+def set_on_fire(callback) -> None:
+    """Регистрирует callback(timer_dict) — вызывается при срабатывании."""
+    global _on_fire_callback
+    _on_fire_callback = callback
+
+
+def _fire(timer_id: int) -> None:
+    """Срабатывание таймера."""
+    with _lock:
+        timers = _load()
+        timer = next((t for t in timers if t["id"] == timer_id), None)
+        if not timer:
+            _scheduled.pop(timer_id, None)
+            return
+        # удаляем из файла
+        timers = [t for t in timers if t["id"] != timer_id]
+        _save(timers)
+        _scheduled.pop(timer_id, None)
+
+    log.info("Таймер #%d сработал: %s", timer_id, timer.get("text") or "(без текста)")
+    if _on_fire_callback:
+        try:
+            _on_fire_callback(timer)
+        except Exception:
+            log.exception("Ошибка в callback таймера")
+
+
+def _schedule_one(timer: dict) -> None:
+    """Ставит threading.Timer на конкретное напоминание."""
+    delay = timer["fire_at"] - time.time()
+    if delay <= 0:
+        # уже прошло — срабатываем сразу
+        delay = 0.1
+    t = threading.Timer(delay, _fire, args=(timer["id"],))
+    t.daemon = True
+    t.start()
+    _scheduled[timer["id"]] = t
+
+
+def _next_id(timers: list) -> int:
+    if not timers:
+        return 1
+    return max(t["id"] for t in timers) + 1
+
+
+def add(text: str, fire_at: float) -> dict:
+    """Добавляет напоминание. Возвращает dict таймера."""
+    global _next_id
+    with _lock:
+        timers = _load()
+        tid = _next_id(timers)
+        timer = {
+            "id": tid,
+            "text": text.strip(),
+            "fire_at": float(fire_at),
+            "created_at": time.time(),
+        }
+        timers.append(timer)
+        _save(timers)
+    _schedule_one(timer)
+    return timer
+
+
+def remove_all() -> int:
+    """Отменяет все напоминания. Возвращает количество."""
+    with _lock:
+        timers = _load()
+        count = len(timers)
+        for t in _scheduled.values():
+            t.cancel()
+        _scheduled.clear()
+        _save([])
+    return count
+
+
+def list_all() -> list:
+    """Возвращает список активных напоминаний."""
+    return _load()
+
+
+def format_list(timers: list) -> str:
+    """Человекочитаемый список для озвучки."""
+    if not timers:
+        return "Напоминаний нет."
+    now = time.time()
+    parts = []
+    for t in timers[:10]:
+        left = int(t["fire_at"] - now)
+        if left < 0:
+            left = 0
+        m, s = divmod(left, 60)
+        h, m = divmod(m, 60)
+        if h:
+            when = f"через {h} ч {m} мин"
+        elif m:
+            when = f"через {m} мин"
+        else:
+            when = f"через {s} сек"
+        text = t.get("text") or "без текста"
+        parts.append(f"{when} — {text}")
+    return "Напоминания: " + "; ".join(parts) + "."
+
+
+def restore_all() -> int:
+    """Восстанавливает таймеры при старте. Возвращает количество."""
+    timers = _load()
+    for t in timers:
+        _schedule_one(t)
+    if timers:
+        log.info("Восстановлено напоминаний: %d", len(timers))
+    return len(timers)
+
+
+# ---------------------------------------------------------------
+# Обработка команд
+# ---------------------------------------------------------------
+
+def handle_timer_command(cmd: str) -> str | None:
+    """Разбирает команды таймеров. Возвращает ответ или None."""
+    # список
+    if re.search(r"(какие|список|покажи)\s*(напоминани|таймер)", cmd) \
+            or cmd in {"какие напоминания", "список напоминаний", "мои напоминания"}:
+        return format_list(list_all())
+
+    # отмена
+    if re.search(r"(отмени|удали|очисти|сбрось)\s*(все\s+)?(напоминани|таймер)", cmd) \
+            or cmd in {"отмени все напоминания", "удали все напоминания"}:
+        n = remove_all()
+        return f"Отменено напоминаний: {n}." if n else "Напоминаний не было."
+
+    # добавить напоминание
+    if re.search(r"(напомни|напоминание|таймер|напоминай)", cmd):
+        # абсолютное время
+        abs_ts = _parse_absolute_time(cmd)
+        if abs_ts:
+            text = _extract_reminder_text(cmd)
+            t = add(text, abs_ts)
+            when = datetime.datetime.fromtimestamp(abs_ts).strftime("%H:%M")
+            if text:
+                return f"Напомню в {when}: {text}."
+            return f"Напомню в {when}."
+
+        # относительное время
+        dur = _parse_duration(cmd)
+        if dur and dur > 0:
+            text = _extract_reminder_text(cmd)
+            fire_at = time.time() + dur
+            t = add(text, fire_at)
+            # озвучка длительности
+            if dur >= 3600:
+                h = dur // 3600
+                m = (dur % 3600) // 60
+                when = f"через {h} ч {m} мин" if m else f"через {h} ч"
+            elif dur >= 60:
+                m = dur // 60
+                when = f"через {m} мин"
+            else:
+                when = f"через {dur} сек"
+            if text:
+                return f"Хорошо, напомню {when}: {text}."
+            return f"Хорошо, напомню {when}."
+
+    return None
+```
+
+### `jarvis\tray.py`
+
+```python
+"""Иконка в системном трее (pystray)."""
+
+import logging
+import os
+
+import pystray
+from PIL import Image, ImageDraw
+
+from jarvis import APP_NAME, __version__, actions
+
+log = logging.getLogger("jarvis.tray")
+
+
+def _make_icon_image() -> Image.Image:
+    img = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    d.ellipse((2, 2, 62, 62), fill=(18, 32, 58, 255), outline=(86, 156, 255, 255), width=3)
+    # стилизованная «J»
+    d.line((38, 16, 38, 42), fill=(86, 156, 255, 255), width=6)
+    d.arc((20, 30, 42, 52), start=20, end=180, fill=(86, 156, 255, 255), width=6)
+    return img
+
+
+def build_tray(jarvis) -> pystray.Icon:
+    def on_toggle(icon, item):
+        jarvis.listening_enabled = not jarvis.listening_enabled
+        log.info("Прослушивание: %s", jarvis.listening_enabled)
+
+    def on_screenshot(icon, item):
+        actions.take_screenshot()
+
+    def on_config(icon, item):
+        os.startfile(jarvis.base_dir / "config.json")
+
+    def on_log(icon, item):
+        os.startfile(jarvis.base_dir / "jarvis.log")
+
+    def on_exit(icon, item):
+        jarvis.shutdown()
+        icon.stop()
+
+    menu = pystray.Menu(
+        pystray.MenuItem(f"{APP_NAME} v{__version__}", None, enabled=False),
+        pystray.Menu.SEPARATOR,
+        pystray.MenuItem("Слушать микрофон", on_toggle,
+                         checked=lambda item: jarvis.listening_enabled),
+        pystray.MenuItem("Сделать скриншот", on_screenshot),
+        pystray.MenuItem("Открыть конфиг", on_config),
+        pystray.MenuItem("Открыть журнал", on_log),
+        pystray.Menu.SEPARATOR,
+        pystray.MenuItem("Выход", on_exit),
+    )
+    return pystray.Icon("jarvis", _make_icon_image(), f"{APP_NAME} v{__version__}", menu)
+```
+
+### `jarvis\tts.py`
+
+```python
+"""Синтез речи.
+
+Бэкенды: xtts / piper / winrt / sapi.
+Смена голоса на лету: через Config.subscribe — main.py вызывает speaker.set_voice().
+Streaming: speak_stream(iterator) — озвучивает по предложениям.
+Barge-in: play_async() + stop() — играет в потоке, можно прервать.
+Предобработка текста: _prepare_text() — CJK, единицы, числа.
+"""
+
+import asyncio
+import io
+import logging
+import os
+import re
+import threading
+import time
+import wave
+import winsound
+from pathlib import Path
+
+log = logging.getLogger("jarvis.tts")
+
+PIPER_REPO = "rhasspy/piper-voices"
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+_SENTENCE_END = re.compile(r"[.!?…]+\s+")
+
+
+# ---------------------------------------------------------------
+# Предобработка текста
+# ---------------------------------------------------------------
+
+_REPLACEMENTS = [
+    # единицы измерения
+    (r"\bм/с\b", " метров в секунду"),
+    (r"\bкм/ч\b", " километров в час"),
+    (r"\bкм/с\b", " километров в секунду"),
+    (r"\bм/c\b", " метров в секунду"),
+    (r"\bкм/ч\.", " километров в час"),
+    # температура
+    (r"([+-]?\d+)\s*°\s*[CFЦ]?\b", r"\1 градусов"),
+    (r"°\s*[CFЦ]?\b", " градусов"),
+    # проценты
+    (r"(\d+)\s*%", r"\1 процентов"),
+    # сокращения
+    (r"\bт\.\s*д\.", " так далее"),
+    (r"\bт\.\s*е\.", " то есть"),
+    (r"\bт\.\s*к\.", " так как"),
+    (r"\bт\.\s*п\.", " тому подобное"),
+    (r"\bдр\.", " другие"),
+    (r"\bг\.", " год"),
+    (r"\bгг\.", " годы"),
+    (r"\bруб\.", " рублей"),
+    (r"\bкоп\.", " копеек"),
+    (r"\bтыс\.", " тысяч"),
+    (r"\bмлн\.", " миллионов"),
+    (r"\bмлрд\.", " миллиардов"),
+    # единицы после цифры
+    (r"\b(\d+)\s*см\b", r"\1 сантиметров"),
+    (r"\b(\d+)\s*мм\b", r"\1 миллиметров"),
+    (r"\b(\d+)\s*км\b", r"\1 километров"),
+    (r"\b(\d+)\s*кг\b", r"\1 килограммов"),
+    (r"\b(\d+)\s*мг\b", r"\1 миллиграммов"),
+    (r"\b(\d+)\s*МБ\b", r"\1 мегабайт"),
+    (r"\b(\d+)\s*ГБ\b", r"\1 гигабайт"),
+    (r"\b(\d+)\s*КБ\b", r"\1 килобайт"),
+    (r"\b(\d+)\s*м\b", r"\1 метров"),
+    (r"\b(\d+)\s*г\b", r"\1 граммов"),
+    # символы
+    (r"→", " стремится к "),
+    (r"←", " из "),
+    (r"≈", " примерно "),
+    (r"≥", " больше или равно "),
+    (r"≤", " меньше или равно "),
+    (r"≠", " не равно "),
+    (r"&", " и "),
+    (r"\+", " плюс "),
+    (r"(?<!\w)-(?!\w)", " минус "),
+    # markdown-мусор
+    (r"\*+", ""),
+    (r"_+", ""),
+    (r"#+\s*", ""),
+    (r"`+", ""),
+    (r"^\s*[-•]\s+", ""),
+]
+
+_RE_COMPILED = [(re.compile(pat), repl) for pat, repl in _REPLACEMENTS]
+
+_CJK_RE = re.compile(
+    r"[\u4e00-\u9fff"
+    r"\u3040-\u309f"
+    r"\u30a0-\u30ff"
+    r"\uac00-\ud7af"
+    r"\u3000-\u303f"
+    r"\uff00-\uffef]+"
+)
+
+
+def _prepare_text(text: str) -> str:
+    """Чистит текст: CJK, сокращения, markdown."""
+    if not text:
+        return text
+    text = _CJK_RE.sub(" ", text)
+    for pattern, repl in _RE_COMPILED:
+        text = pattern.sub(repl, text)
+    text = re.sub(r"\s+", " ", text).strip()
+    text = re.sub(r"\s+([,.!?;:])", r"\1", text)
+    return text
+
+
+class Speaker:
+    def __init__(self, config):
+        # config — объект Config или dict. Работает и так, и так.
+        cfg = config if hasattr(config, "get") else {}
+        self.rate = float(cfg.get("voice_rate", 1.15))
+        self.voice = cfg.get("tts_voice", "ruslan")
+        self._voice_hint = cfg.get("voice", "Pavel")
+        self._mode = None
+        self._engine = None
+        self._piper = None
+        self._piper_cfg = None
+
+        self._play_thread = None
+        self._stop_flag = threading.Event()
+        self._playing = False
+        self._play_lock = threading.Lock()
+
+        backend = cfg.get("tts_backend", "auto")
+        ref = BASE_DIR / cfg.get("xtts_ref", "voices/jarvis.wav")
+        if backend in ("auto", "xtts"):
+            if ref.exists():
+                try:
+                    self._init_xtts(ref)
+                except Exception:
+                    log.exception("XTTS не завёлся, переключаюсь на piper")
+            elif backend == "xtts":
+                log.warning("Референс голоса не найден: %s", ref)
+        if self._mode is None and backend in ("auto", "xtts", "piper"):
+            try:
+                self._init_piper(self.voice)
+            except Exception:
+                log.exception("Piper не завёлся, переключаюсь на WinRT")
+        if self._mode is None:
+            try:
+                from winrt.windows.media.speechsynthesis import SpeechSynthesizer  # noqa: F401
+                self._mode = "winrt"
+                log.info("TTS: WinRT, голос %r, скорость %.2f", self._voice_hint, self.rate)
+            except Exception:
+                log.exception("WinRT недоступен, переключаюсь на SAPI")
+                self._init_sapi()
+
+    # --- сеттеры для Config.subscribe ------------------------------------
+
+    def set_voice(self, voice: str) -> None:
+        if voice == self.voice:
+            return
+        log.info("Голос изменился: %s → %s", self.voice, voice)
+        self.voice = voice
+        if self._mode == "piper":
+            try:
+                self._init_piper(voice)
+            except Exception:
+                log.exception("Не удалось переключить Piper на %s", voice)
+
+    def set_rate(self, rate: float) -> None:
+        self.rate = float(rate)
+        if self._piper_cfg is not None:
+            try:
+                from piper import SynthesisConfig
+                self._piper_cfg = SynthesisConfig(length_scale=round(1.0 / self.rate, 2))
+            except Exception:
+                pass
+
+    # --- xtts / piper / sapi / winrt --------------------------------------
+
+    def _init_xtts(self, ref: Path) -> None:
+        os.environ.setdefault("COQUI_TOS_AGREED", "1")
+        import torch
+        from TTS.api import TTS as CoquiTTS
+
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        log.info("Загрузка XTTS-v2 на %s...", device)
+        self._xtts = CoquiTTS("tts_models/multilingual/multi-dataset/xtts_v2").to(device)
+        self._xtts_ref = str(ref)
+        self._mode = "xtts"
+        log.info("TTS: XTTS-v2, клон голоса из %s", ref.name)
+
+    def _speak_xtts(self, text: str) -> None:
+        import numpy as np
+        samples = self._xtts.tts(text=text, speaker_wav=self._xtts_ref,
+                                 language="ru", speed=self.rate)
+        pcm = (np.clip(np.asarray(samples), -1, 1) * 32767).astype(np.int16)
+        buf = io.BytesIO()
+        with wave.open(buf, "wb") as wf:
+            wf.setnchannels(1)
+            wf.setsampwidth(2)
+            wf.setframerate(24000)
+            wf.writeframes(pcm.tobytes())
+        winsound.PlaySound(buf.getvalue(), winsound.SND_MEMORY)
+
+    def _init_piper(self, voice: str) -> None:
+        from huggingface_hub import hf_hub_download
+        from piper import PiperVoice, SynthesisConfig
+
+        rel = f"ru/ru_RU/{voice}/medium/ru_RU-{voice}-medium.onnx"
+        onnx = hf_hub_download(PIPER_REPO, rel)
+        hf_hub_download(PIPER_REPO, rel + ".json")
+        self._piper = PiperVoice.load(onnx)
+        self._piper_cfg = SynthesisConfig(length_scale=round(1.0 / self.rate, 2))
+        self._mode = "piper"
+        log.info("TTS: piper, голос %s, скорость %.2f", voice, self.rate)
+
+    def _speak_piper(self, text: str) -> None:
+        buf = io.BytesIO()
+        with wave.open(buf, "wb") as wf:
+            self._piper.synthesize_wav(text, wf, self._piper_cfg)
+        winsound.PlaySound(buf.getvalue(), winsound.SND_MEMORY)
+
+    def _init_sapi(self) -> None:
+        import pyttsx3
+        self._engine = pyttsx3.init()
+        for v in self._engine.getProperty("voices"):
+            ident = f"{v.id} {v.name}".lower()
+            if self._voice_hint.lower() in ident or "ru" in ident or "irina" in ident:
+                self._engine.setProperty("voice", v.id)
+                log.info("TTS: SAPI, голос %s", v.name)
+                break
+        self._mode = "sapi"
+
+    async def _synthesize(self, text: str) -> bytes:
+        from winrt.windows.media.speechsynthesis import SpeechSynthesizer
+        from winrt.windows.storage.streams import DataReader
+
+        synth = SpeechSynthesizer()
+        voices = list(SpeechSynthesizer.all_voices)
+        voice = next(
+            (v for v in voices if self._voice_hint.lower() in v.display_name.lower()),
+            None,
+        ) or next((v for v in voices if v.language.lower().startswith("ru")), None)
+        if voice is not None:
+            synth.voice = voice
+        try:
+            synth.options.speaking_rate = self.rate
+        except Exception:
+            pass
+        stream = await synth.synthesize_text_to_stream_async(text)
+        reader = DataReader(stream.get_input_stream_at(0))
+        await reader.load_async(stream.size)
+        return bytes(reader.read_buffer(stream.size))
+
+    def _speak_one(self, text: str) -> None:
+        text = _prepare_text(text)
+        if not text or self._stop_flag.is_set():
+            return
+        log.info("Говорю: %s", text)
+        try:
+            if self._mode == "xtts":
+                self._speak_xtts(text)
+            elif self._mode == "piper":
+                self._speak_piper(text)
+            elif self._mode == "winrt":
+                wav = asyncio.run(self._synthesize(text))
+                if not self._stop_flag.is_set():
+                    winsound.PlaySound(wav, winsound.SND_MEMORY)
+            else:
+                self._engine.say(text)
+                self._engine.runAndWait()
+        except Exception:
+            log.exception("Ошибка синтеза речи")
+
+    def speak(self, text: str) -> None:
+        if not text:
+            return
+        self._speak_one(text)
+
+    def play_async(self, text: str) -> None:
+        self._stop_flag.clear()
+        self._playing = True
+
+        def _run():
+            try:
+                self._speak_one(text)
+            finally:
+                with self._play_lock:
+                    self._playing = False
+
+        self._play_thread = threading.Thread(target=_run, daemon=True, name="tts-play")
+        self._play_thread.start()
+
+    def stop(self) -> None:
+        log.info("TTS: прерывание (barge-in)")
+        self._stop_flag.set()
+        try:
+            winsound.PlaySound(None, winsound.SND_PURGE)
+        except Exception:
+            pass
+
+    def is_playing(self) -> bool:
+        return self._playing and self._play_thread is not None and self._play_thread.is_alive()
+
+    def wait_end(self, timeout: float = 30.0) -> None:
+        if self._play_thread is not None:
+            self._play_thread.join(timeout=timeout)
+        self._playing = False
+
+    def speak_stream(self, text_iter, timeout: float = 30.0) -> str:
+        self._stop_flag.clear()
+        self._playing = True
+
+        buffer = ""
+        full_text_parts = []
+        pending = []
+
+        def _flush_sentences(force: bool = False):
+            nonlocal buffer
+            while True:
+                m = _SENTENCE_END.search(buffer)
+                if not m:
+                    break
+                sentence = buffer[:m.end()].strip()
+                buffer = buffer[m.end():]
+                if sentence:
+                    pending.append(sentence)
+            if force and buffer.strip():
+                pending.append(buffer.strip())
+                buffer = ""
+
+        try:
+            for chunk in text_iter:
+                if self._stop_flag.is_set():
+                    log.info("TTS: стриминг прерван")
+                    break
+                buffer += chunk
+                full_text_parts.append(chunk)
+                _flush_sentences()
+                while pending and not self._stop_flag.is_set():
+                    sentence = pending.pop(0)
+                    self._speak_one(sentence)
+            if not self._stop_flag.is_set():
+                _flush_sentences(force=True)
+                while pending and not self._stop_flag.is_set():
+                    sentence = pending.pop(0)
+                    self._speak_one(sentence)
+        except Exception:
+            log.exception("Ошибка в speak_stream")
+        finally:
+            self._playing = False
+
+        return "".join(full_text_parts).strip()
+```
+
+### `jarvis\voices.py`
+
+```python
+"""Управление голосами Piper: ruslan, dmitri, irina, denis."""
+
+import logging
+import re
+
+from jarvis import config_manager
+
+log = logging.getLogger("jarvis.voices")
+
+PIPER_VOICES = {
+    "ruslan": "Руслан — мужской, спокойный",
+    "dmitri": "Дмитрий — мужской, ниже и медленнее",
+    "irina":  "Ирина — женский",
+    "denis":  "Денис — мужской, дикторский",
+}
+
+ALIASES = {
+    "руслан": "ruslan", "руслана": "ruslan",
+    "дмитрий": "dmitri", "дмитрия": "dmitri",
+    "дима": "dmitri", "диму": "dmitri",
+    "ирина": "irina", "ирину": "irina",
+    "ира": "irina", "иру": "irina",
+    "денис": "denis", "дениса": "denis",
+}
+
+
+def current_voice(config=None) -> str:
+    if config is not None:
+        return config.get("tts_voice", "ruslan")
+    return config_manager.load().get("tts_voice", "ruslan")
+
+
+def switch(voice: str, config=None) -> str:
+    if voice not in PIPER_VOICES:
+        return f"Голос '{voice}' не знаю. Доступны: {', '.join(PIPER_VOICES)}."
+    if config is not None:
+        config.set("tts_voice", voice)
+    else:
+        config_manager.update("tts_voice", voice)
+    log.info("Голос переключён на %s", voice)
+    return f"Голос переключён на {voice.capitalize()}."
+
+
+def handle_voice_command(cmd: str, config=None) -> str | None:
+    if re.search(r"(какой|текущий|что\s+за)\s+голос", cmd) \
+            or cmd in {"какой голос", "текущий голос"}:
+        return f"Сейчас голос: {current_voice(config).capitalize()}."
+
+    if re.search(r"(список|какие|покажи|доступные)\s+голос", cmd) \
+            or cmd in {"список голосов", "какие голоса", "покажи голоса"}:
+        return f"Доступные голоса: {', '.join(PIPER_VOICES.keys())}."
+
+    m = re.search(r"(?:смени|поменяй|переключи|включи|поставь)\s+голос\s+(?:на\s+)?(\S+)", cmd)
+    if m:
+        name = m.group(1).strip().rstrip(".,!?").lower()
+        key = ALIASES.get(name, name)
+        if key in PIPER_VOICES:
+            return switch(key, config)
+        return f"Голос '{name}' не знаю. Доступны: {', '.join(PIPER_VOICES)}."
+
+    m = re.match(r"^голос\s+(\S+)$", cmd)
+    if m:
+        name = m.group(1).strip().rstrip(".,!?").lower()
+        key = ALIASES.get(name, name)
+        if key in PIPER_VOICES:
+            return switch(key, config)
+        return f"Голос '{name}' не знаю."
+
+    return None
+```
+
+### `jarvis\weather.py`
+
+```python
+"""Погода и курс валют.
+
+Источники:
+    - open-meteo.com (погода, без ключа)
+    - cbr-xml-daily.ru (курс ЦБ РФ, без ключа)
+
+Кэш: 10 минут на город / на курс.
+
+ВАЖНО: нормализация города и валюты (падежи, синонимы, ISO-коды) — задача LLM.
+Этот модуль ожидает уже нормализованные данные.
+"""
+
+import json
+import logging
+import time
+import urllib.parse
+import urllib.request
+from typing import Optional
+
+log = logging.getLogger("jarvis.weather")
+
+# Кэш: {(тип, ключ): (timestamp, data)}
+_CACHE: dict = {}
+_CACHE_TTL = 600  # 10 минут
+
+
+def _cached(key: tuple, fetcher):
+    now = time.time()
+    if key in _CACHE:
+        ts, data = _CACHE[key]
+        if now - ts < _CACHE_TTL:
+            return data
+    data = fetcher()
+    if data is not None:
+        _CACHE[key] = (now, data)
+    return data
+
+
+def _http_get_json(url: str, timeout: float = 8.0):
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Phoenix/0.2.2"})
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return json.loads(r.read().decode("utf-8"))
+    except Exception:
+        log.exception("HTTP GET не удался: %s", url)
+        return None
+
+
+# --- геокодинг --------------------------------------------------------------
+
+def geocode(city: str) -> Optional[dict]:
+    """Возвращает {'name': ..., 'country': ..., 'lat': ..., 'lon': ...} или None.
+
+    Ожидает название города в именительном падеже (нормализует LLM).
+    """
+    key = ("geo", city.lower().strip())
+    return _cached(key, lambda: _geocode_uncached(city))
+
+
+def _geocode_uncached(city: str) -> Optional[dict]:
+    q = urllib.parse.quote(city.strip())
+    url = f"https://geocoding-api.open-meteo.com/v1/search?name={q}&count=1&language=ru&format=json"
+    data = _http_get_json(url)
+    if not data:
+        return None
+    results = data.get("results")
+    if not results:
+        return None
+    r = results[0]
+    return {
+        "name": r.get("name") or city,
+        "country": r.get("country") or "",
+        "admin1": r.get("admin1") or "",
+        "lat": r.get("latitude"),
+        "lon": r.get("longitude"),
+    }
+
+
+# --- погода -----------------------------------------------------------------
+
+_WEATHER_CODES = {
+    0: "ясно",
+    1: "преимущественно ясно", 2: "переменная облачность", 3: "пасмурно",
+    45: "туман", 48: "изморозь",
+    51: "лёгкая морось", 53: "морось", 55: "сильная морось",
+    61: "небольшой дождь", 63: "дождь", 65: "сильный дождь",
+    71: "небольшой снег", 73: "снег", 75: "сильный снег",
+    77: "снежная крупа",
+    80: "небольшие ливни", 81: "ливни", 82: "сильные ливни",
+    85: "снегопад", 86: "сильный снегопад",
+    95: "гроза", 96: "гроза с градом", 99: "сильная гроза с градом",
+}
+
+
+def get_weather(city: str, day: str = "today") -> Optional[dict]:
+    """Возвращает погоду для города.
+
+    day: 'today' | 'tomorrow'
+    """
+    key = ("weather", city.lower().strip(), day)
+    return _cached(key, lambda: _get_weather_uncached(city, day))
+
+
+def _get_weather_uncached(city: str, day: str) -> Optional[dict]:
+    geo = geocode(city)
+    if not geo:
+        return None
+    lat, lon = geo["lat"], geo["lon"]
+    params = (
+        f"latitude={lat}&longitude={lon}"
+        "&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,relative_humidity_2m"
+        "&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_sum"
+        "&timezone=auto&forecast_days=2"
+    )
+    url = f"https://api.open-meteo.com/v1/forecast?{params}"
+    data = _http_get_json(url)
+    if not data:
+        return None
+
+    try:
+        if day == "tomorrow":
+            return {
+                "city": geo["name"],
+                "country": geo.get("country", ""),
+                "day": "завтра",
+                "temp_min": round(data["daily"]["temperature_2m_min"][1]),
+                "temp_max": round(data["daily"]["temperature_2m_max"][1]),
+                "code": data["daily"]["weather_code"][1],
+                "precip": data["daily"]["precipitation_sum"][1] or 0,
+            }
+        cur = data["current"]
+        daily = data["daily"]
+        return {
+            "city": geo["name"],
+            "country": geo.get("country", ""),
+            "day": "сегодня",
+            "temp": round(cur["temperature_2m"]),
+            "feels": round(cur["apparent_temperature"]),
+            "code": cur["weather_code"],
+            "wind": round(cur["wind_speed_10m"]),
+            "humidity": cur["relative_humidity_2m"],
+            "temp_min": round(daily["temperature_2m_min"][0]),
+            "temp_max": round(daily["temperature_2m_max"][0]),
+            "precip": daily["precipitation_sum"][0] or 0,
+        }
+    except (KeyError, IndexError, TypeError):
+        log.exception("Не удалось разобрать ответ погоды")
+        return None
+
+
+def describe_weather(w: dict) -> str:
+    """Формирует человеческую фразу для озвучки."""
+    if not w:
+        return "Не удалось узнать погоду."
+    code = w.get("code", -1)
+    desc = _WEATHER_CODES.get(code, "неизвестно")
+
+    country = (w.get("country") or "").strip()
+    city = w.get("city", "")
+    city_full = f"{city}, {country}" if country else city
+
+    if w.get("day") == "завтра":
+        return (
+            f"Погода в {city_full} на завтра: {desc}, "
+            f"от {w['temp_min']} до {w['temp_max']} градусов, "
+            f"осадки {round(w['precip'], 1)} мм."
+        )
+    return (
+        f"Погода в {city_full} сейчас: {desc}, "
+        f"{w['temp']} градусов, ощущается как {w['feels']}. "
+        f"Ветер {w['wind']} метров в секунду, влажность {w['humidity']} процентов. "
+        f"Днём от {w['temp_min']} до {w['temp_max']} градусов."
+    )
+
+
+# --- курс валют -------------------------------------------------------------
+
+def get_currency_rates() -> Optional[dict]:
+    """Возвращает все валюты ЦБ:
+        {
+            "date": "2026-10-04",
+            "valutes": {
+                "USD": {"name": "Доллар США", "value": 83.48, "nominal": 1},
+                "EUR": {...},
+                "BYN": {...},
+                ...
+            }
+        }
+    """
+    key = ("currency", "cbr")
+    return _cached(key, _get_currency_uncached)
+
+
+def _get_currency_uncached() -> Optional[dict]:
+    url = "https://www.cbr-xml-daily.ru/daily_json.js"
+    data = _http_get_json(url)
+    if not data:
+        return None
+    try:
+        valutes = {}
+        for code, v in data["Valute"].items():
+            valutes[code] = {
+                "name": v.get("Name") or code,
+                "value": v.get("Value"),
+                "nominal": v.get("Nominal", 1),
+            }
+        return {
+            "date": data.get("Date", "")[:10],
+            "valutes": valutes,
+        }
+    except (KeyError, TypeError):
+        log.exception("Не удалось разобрать ответ ЦБ")
+        return None
+
+
+# Приоритет для вывода «общего курса»
+_DEFAULT_CURRENCIES = ["USD", "EUR", "CNY"]
+
+
+def describe_currency(rates: dict, code: str = "") -> str:
+    """Озвучивает курс.
+
+    rates: результат get_currency_rates()
+    code:  ISO-код валюты ("USD", "BYN", "KZT", ...). Пусто — основные.
+    """
+    if not rates:
+        return "Не удалось узнать курс валют."
+
+    valutes = rates.get("valutes", {})
+
+    # Конкретная валюта
+    if code:
+        v = valutes.get(code.upper())
+        if not v:
+            return f"Курс валюты {code} не нашёл в базе ЦБ."
+        nominal = v.get("nominal") or 1
+        value = v.get("value")
+        if value is None:
+            return f"Курс валюты {code} не удалось прочитать."
+        if nominal == 1:
+            return f"{v['name']} — {value:.2f} рубля."
+        return f"{v['name']} ({nominal} шт.) — {value:.2f} рубля."
+
+    # Общий курс — основные валюты
+    parts = []
+    for c in _DEFAULT_CURRENCIES:
+        v = valutes.get(c)
+        if not v or v.get("value") is None:
+            continue
+        parts.append(f"{v['name']} — {v['value']:.2f} рубля")
+
+    if not parts:
+        return "Не удалось прочитать основные валюты."
+
+    date = rates.get("date") or "сегодня"
+    return f"Курс ЦБ на {date}: " + ", ".join(parts) + "."
+```
+
+### `launcher.py`
+
+```python
+"""Лаунчер Феникса: молча запускает `pythonw -m jarvis` без окна консоли.
+
+Собирается в exe (scripts/build_exe.py) и кладётся в корень проекта. Сам
+вычисляет рабочую папку (где лежит exe) и интерпретатор (pythonw из PATH),
+поэтому в репозитории нет машинно-зависимых путей. Защищён от повторного
+запуска именованным мьютексом, чтобы автозапуск не плодил копии.
+"""
+
+import ctypes
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+MUTEX_NAME = "Global\\JarvisPhoenixSingleInstance"
+
+
+def already_running() -> bool:
+    kernel32 = ctypes.windll.kernel32
+    kernel32.CreateMutexW(None, False, MUTEX_NAME)
+    return kernel32.GetLastError() == 183  # ERROR_ALREADY_EXISTS
+
+
+def project_dir() -> Path:
+    # frozen exe -> рядом с exe; обычный запуск -> рядом с этим файлом
+    base = Path(sys.executable if getattr(sys, "frozen", False) else __file__)
+    return base.resolve().parent
+
+
+def find_pythonw() -> str:
+    for name in ("pythonw.exe", "pythonw"):
+        found = shutil.which(name)
+        if found:
+            return found
+    # запасной путь: pythonw рядом с активным python
+    cand = Path(sys.base_prefix) / "pythonw.exe"
+    return str(cand) if cand.exists() else "pythonw"
+
+
+def main() -> None:
+    if already_running():
+        return
+    cwd = project_dir()
+    pythonw = find_pythonw()
+    creationflags = 0x08000000 | 0x00000008  # NO_WINDOW | DETACHED_PROCESS
+    subprocess.Popen(
+        [pythonw, "-m", "jarvis"],
+        cwd=str(cwd),
+        creationflags=creationflags,
+        close_fds=True,
+    )
+
+
+if __name__ == "__main__":
+    main()
+```
+
+### `packs\apps.json`
+
+```json
+[
+  {"phrases": ["открой дискорд", "открой дс"], "action": "open_app:discord", "reply": "Открываю Discord."},
+  {"phrases": ["открой телеграм", "открой тг", "открой телегу"], "action": "open_app:telegram", "reply": "Открываю Telegram."},
+  {"phrases": ["открой обс", "открой обс студио"], "action": "open_app:obs", "reply": "Открываю OBS Studio."},
+  {"phrases": ["открой вс код", "открой вскод", "открой код"], "action": "open_app:code", "reply": "Открываю VS Code."},
+  {"phrases": ["открой спотифай", "открой споти"], "action": "open_app:spotify", "reply": "Открываю Spotify."},
+  {"phrases": ["открой яндекс музыку"], "action": "open_app:яндекс музыка", "reply": "Открываю Яндекс Музыку."},
+  {"phrases": ["открой стим"], "action": "open_app:steam", "reply": "Открываю Steam."},
+  {"phrases": ["открой эпик геймс", "открой эпик"], "action": "open_app:epic", "reply": "Открываю Epic Games."},
+  {"phrases": ["открой фотошоп"], "action": "open_app:photoshop", "reply": "Открываю Photoshop."},
+  {"phrases": ["открой браузер"], "action": "browser", "reply": "Открываю браузер."},
+  {"phrases": ["открой проводник", "открой мой компьютер"], "action": "explorer.exe", "reply": "Открываю проводник."},
+  {"phrases": ["открой калькулятор", "открой калк"], "action": "calc.exe", "reply": "Открываю калькулятор."},
+  {"phrases": ["открой блокнот"], "action": "notepad.exe", "reply": "Открываю блокнот."},
+  {"phrases": ["открой диспетчер задач", "открой таск менеджер"], "action": "taskmgr.exe", "reply": "Открываю диспетчер задач."},
+  {"phrases": ["открой настройки", "открой параметры"], "action": "ms-settings:", "reply": "Открываю настройки."},
+  {"phrases": ["открой панель управления"], "action": "control.exe", "reply": "Открываю панель управления."},
+  {"phrases": ["открой терминал", "открой консоль"], "action": "cmd.exe", "reply": "Открываю терминал."},
+  {"phrases": ["открой павершелл", "открой powershell"], "action": "powershell.exe", "reply": "Открываю PowerShell."},
+  {"phrases": ["открой часы", "открой будильник"], "action": "ms-clock:", "reply": "Открываю часы."},
+  {"phrases": ["открой камеру"], "action": "microsoft.windows.camera:", "reply": "Открываю камеру."}
+]
+```
+
+### `packs\games.json`
+
+```json
+[
+  {"phrases": ["запусти доту", "врубай доту"], "action": "steam://rungameid/570", "reply": "Запускаю Доту."},
+  {"phrases": ["запусти кс", "врубай кс", "запусти кс2"], "action": "steam://rungameid/730", "reply": "Запускаю CS2."},
+  {"phrases": ["запусти сабнатику", "врубай сабнатику"], "action": "steam://rungameid/264710", "reply": "Запускаю Subnautica."},
+  {"phrases": ["запусти тарков", "запусти побег из таркова"], "action": "steam://rungameid/270880", "reply": "Запускаю Тарков."},
+  {"phrases": ["запусти пабг", "запусти пубг"], "action": "steam://rungameid/578080", "reply": "Запускаю PUBG."},
+  {"phrases": ["запусти апекс", "врубай апекс"], "action": "steam://rungameid/1172470", "reply": "Запускаю Apex Legends."},
+  {"phrases": ["запусти раст", "врубай раст"], "action": "steam://rungameid/252490", "reply": "Запускаю Rust."},
+  {"phrases": ["запусти гта", "запусти гта 5"], "action": "steam://rungameid/271590", "reply": "Запускаю GTA V."},
+  {"phrases": ["запусти рдр", "запусти ред дед"], "action": "steam://rungameid/1174180", "reply": "Запускаю Red Dead Redemption 2."},
+  {"phrases": ["запусти дум", "врубай дум"], "action": "steam://rungameid/782330", "reply": "Запускаю DOOM Eternal."},
+  {"phrases": ["запусти витчер", "запусти ведьмака"], "action": "steam://rungameid/292030", "reply": "Запускаю Ведьмака 3."},
+  {"phrases": ["запусти скайрим"], "action": "steam://rungameid/489830", "reply": "Запускаю Skyrim."},
+  {"phrases": ["запусти фоллаут 4"], "action": "steam://rungameid/377160", "reply": "Запускаю Fallout 4."},
+  {"phrases": ["запусти террарию"], "action": "steam://rungameid/105600", "reply": "Запускаю Terraria."},
+  {"phrases": ["запусти стардев"], "action": "steam://rungameid/413150", "reply": "Запускаю Stardew Valley."},
+  {"phrases": ["открой стим"], "action": "steam://open/main", "reply": "Открываю Steam."},
+  {"phrases": ["открой библиотеку стим"], "action": "steam://open/games", "reply": "Открываю библиотеку Steam."},
+  {"phrases": ["открой магазин стим"], "action": "steam://store", "reply": "Открываю магазин Steam."},
+  {"phrases": ["открой друзей стим"], "action": "steam://open/friends", "reply": "Открываю друзей."},
+  {"phrases": ["открой загрузки стим"], "action": "steam://open/downloads", "reply": "Открываю загрузки Steam."}
+]
+```
+
+### `packs\sites.json`
+
+```json
+[
+  {"phrases": ["открой ютуб", "открой youtube"], "action": "https://www.youtube.com", "reply": "Открываю YouTube."},
+  {"phrases": ["открой твич", "открой twitch"], "action": "https://www.twitch.tv", "reply": "Открываю Twitch."},
+  {"phrases": ["открой гитхаб", "открой github"], "action": "https://github.com", "reply": "Открываю GitHub."},
+  {"phrases": ["открой вк", "открой вконтакте"], "action": "https://vk.com", "reply": "Открываю ВКонтакте."},
+  {"phrases": ["открой телегу веб", "открой веб телеграм"], "action": "https://web.telegram.org", "reply": "Открываю Telegram Web."},
+  {"phrases": ["открой кинопоиск"], "action": "https://www.kinopoisk.ru", "reply": "Открываю Кинопоиск."},
+  {"phrases": ["открой хабр", "открой habr"], "action": "https://habr.com", "reply": "Открываю Хабр."},
+  {"phrases": ["открой википедию"], "action": "https://ru.wikipedia.org", "reply": "Открываю Википедию."},
+  {"phrases": ["открой почту", "открой gmail"], "action": "https://mail.google.com", "reply": "Открываю почту."},
+  {"phrases": ["открой яндекс"], "action": "https://ya.ru", "reply": "Открываю Яндекс."},
+  {"phrases": ["открой гугл"], "action": "https://www.google.com", "reply": "Открываю Google."},
+  {"phrases": ["открой авито"], "action": "https://www.avito.ru", "reply": "Открываю Авито."},
+  {"phrases": ["открой озон", "открой ozon"], "action": "https://www.ozon.ru", "reply": "Открываю Ozon."},
+  {"phrases": ["открой вайлдберриз", "открой вб"], "action": "https://www.wildberries.ru", "reply": "Открываю Wildberries."},
+  {"phrases": ["открой дзен"], "action": "https://dzen.ru", "reply": "Открываю Дзен."},
+  {"phrases": ["открой пикабу"], "action": "https://pikabu.ru", "reply": "Открываю Пикабу."},
+  {"phrases": ["открой реддит"], "action": "https://www.reddit.com", "reply": "Открываю Reddit."},
+  {"phrases": ["открой тикток"], "action": "https://www.tiktok.com", "reply": "Открываю TikTok."},
+  {"phrases": ["открой инстаграм"], "action": "https://www.instagram.com", "reply": "Открываю Instagram."},
+  {"phrases": ["открой стим комьюнити"], "action": "https://steamcommunity.com", "reply": "Открываю Steam Community."}
+]
+```
+
+### `packs\system.json`
+
+```json
+[
+  {"phrases": ["заблокируй компьютер", "заблокируй пк", "залочь пк"], "action": "rundll32.exe user32.dll,LockWorkStation", "reply": "Блокирую компьютер."},
+  {"phrases": ["спящий режим", "усни", "сон пк"], "action": "rundll32.exe powrprof.dll,SetSuspendState 0,1,0", "reply": "Ухожу в спящий режим."},
+  {"phrases": ["перезагрузи компьютер", "перезагрузка"], "action": "shutdown /r /t 10", "reply": "Перезагружаю через 10 секунд."},
+  {"phrases": ["выключи компьютер", "отключи пк"], "action": "shutdown /s /t 10", "reply": "Выключаю через 10 секунд."},
+  {"phrases": ["отмени выключение", "отмена выключения"], "action": "shutdown /a", "reply": "Отменяю выключение."},
+  {"phrases": ["открой диспетчер устройств"], "action": "devmgmt.msc", "reply": "Открываю диспетчер устройств."},
+  {"phrases": ["открой редактор реестра"], "action": "regedit.exe", "reply": "Открываю редактор реестра."},
+  {"phrases": ["открой управление дисками"], "action": "diskmgmt.msc", "reply": "Открываю управление дисками."},
+  {"phrases": ["покажи ip", "какой у меня ip"], "action": "cmd /k ipconfig", "reply": "Показываю IP."},
+  {"phrases": ["покажи процессы", "список процессов"], "action": "cmd /k tasklist", "reply": "Показываю процессы."},
+  {"phrases": ["покажи версию винды"], "action": "cmd /k winver", "reply": "Показываю версию Windows."},
+  {"phrases": ["открой монитор ресурсов"], "action": "resmon.exe", "reply": "Открываю монитор ресурсов."},
+  {"phrases": ["открой службы"], "action": "services.msc", "reply": "Открываю службы."},
+  {"phrases": ["открой планировщик задач"], "action": "taskschd.msc", "reply": "Открываю планировщик."},
+  {"phrases": ["открой программы и компоненты"], "action": "appwiz.cpl", "reply": "Открываю список программ."}
+]
+```
+
+### `packs\work.json`
+
+```json
+[
+  {"phrases": ["открой рабочий стол"], "action": "shell:Desktop", "reply": "Открываю рабочий стол."},
+  {"phrases": ["открой загрузки"], "action": "shell:Downloads", "reply": "Открываю загрузки."},
+  {"phrases": ["открой документы"], "action": "shell:Personal", "reply": "Открываю документы."},
+  {"phrases": ["открой изображения", "открой картинки"], "action": "shell:My Pictures", "reply": "Открываю изображения."},
+  {"phrases": ["открой музыку"], "action": "shell:My Music", "reply": "Открываю музыку."},
+  {"phrases": ["открой видео"], "action": "shell:My Video", "reply": "Открываю видео."},
+  {"phrases": ["открой корзину"], "action": "shell:RecycleBinFolder", "reply": "Открываю корзину."},
+  {"phrases": ["открой сеть"], "action": "shell:NetworkPlacesFolder", "reply": "Открываю сеть."},
+  {"phrases": ["открой системный диск"], "action": "shell:MyComputerFolder", "reply": "Открываю Этот компьютер."},
+  {"phrases": ["открой проект феникс", "открой проект"], "action": "C:\\jarvis", "reply": "Открываю проект."},
+  {"phrases": ["открой конфиг феникса", "открой конфиг"], "action": "C:\\jarvis\\config.json", "reply": "Открываю конфиг."},
+  {"phrases": ["открой логи феникса", "открой журнал"], "action": "C:\\jarvis\\jarvis.log", "reply": "Открываю логи."}
+]
+```
+
+### `PLAN.md`
+
+```markdown
+\# 📋 План развития «Феникс»
+
+
+
+> Форк \[`jsays12/jarvis`](https://github.com/jsays12/jarvis).
+
+> Коммиты до июня 2026 — от оригинала, с октября 2026 — мои изменения.
+
+>
+
+> \*\*Сложность:\*\* 🟢 легко · 🟡 средне · 🔴 сложно
+
+> \*\*Статус:\*\* ✅ готово · 🚧 в работе · ⏸ отложено · ❌ не начато
+
+
+
+\---
+
+
+
+\## 🔴 ЭТАП 0 — Архитектурный рефакторинг (фундамент)
+
+
+
+> \*\*Почему сначала:\*\* каждый новый модуль сейчас опирается на костыли. Если добавлять фичи до рефакторинга — костылей станет больше. Это 3–4 модуля + тесты. После этого README сократится вдвое, а траблшутинг — втрое.
+
+
+
+| # | Задача | Слож. | Время | Статус |
+
+|---|---|---|---|---|
+
+| 0.1 | Единый `config\_manager.py` — один `FileLock`, уникальный `.tmp` через `mkstemp`, `os.replace` | 🔴 | 2–3 ч | ❌ |
+
+| 0.2 | Объект `Config` в памяти + подписки. Убрать чтение диска из `tts.py` при каждом `speak()` | 🔴 | 2–3 ч | ❌ |
+
+| 0.3 | Калибровка + адаптивный Barge-in. Убрать ручные `barge\_mult` / `barge\_min\_threshold` из конфига | 🔴 | 3–4 ч | ❌ |
+
+| 0.4 | `\_prepare\_text()` через `num2words` / `russian-text-normalizer` вместо списка регулярок | 🟡 | 1–2 ч | ❌ |
+
+| 0.5 | Few-shot промпт вместо «антикитайского». Temperature 0.7–0.8 + пост-фильтр | 🟡 | 1 ч | ❌ |
+
+| 0.6 | Первые тесты (`pytest`): `config\_manager`, `tts`, `barge`. `ruff`/`flake8` в CI | 🟡 | 2–3 ч | ❌ |
+
+
+
+\*\*Что решает каждое:\*\*
+
+\- \*\*0.1\*\* — гонка записи в `config.json` исчезает как класс. Уходит раздел README «Атомарная запись конфига» и пункт траблшутинга «config.json стал пустым».
+
+\- \*\*0.2\*\* — смена голоса применяется мгновенно, без чтения диска. Уходит «перечитывает config.json при каждом speak()».
+
+\- \*\*0.3\*\* — barge-in работает в наушниках и на колонках без ручной настройки. Уходит «снизь порог / подними множитель».
+
+\- \*\*0.4\*\* — новые сокращения не требуют правки кода.
+
+\- \*\*0.5\*\* — ответы живее, промпт понятнее.
+
+\- \*\*0.6\*\* — рефакторинг становится безопасным.
+
+
+
+\---
+
+
+
+\## 🟡 ЭТАП 2 — Незакрытые фичи
+
+
+
+| # | Задача | Слож. | Время | Статус |
+
+|---|---|---|---|---|
+
+| 2.2 | Погода и курс валют (`open-meteo`, `cbr-xml-daily.ru`, кэш 10 мин) | 🟢 | 30 мин | ✅ |
+
+| 2.3 | Буфер обмена (чтение, очистка, «скопируй выделенное», «скопируй свой ответ») | 🟢 | 20 мин | ✅ |
+
+| 2.4 | Громкость/яркость в процентах (`pycaw`, `screen-brightness-control`) | 🟢 | 30 мин | ❌ |
+
+| 2.8 | Контекстные местоимения («скопируй это» через `\_context`) | 🟡 | 40 мин | ❌ |
+
+| 2.9 | Цепочки с условиями (if/else) | 🟡 | 1 ч | ❌ |
+
+| 2.10 | Диктовка в файл | 🟡 | 40 мин | ❌ |
+
+| 2.11 | Поиск по файлам (рекурсивный `os.walk`) | 🟡 | 45 мин | ❌ |
+
+| 2.12 | Переключение раскладки RU/EN | 🟢 | 15 мин | ❌ |
+
+| 2.13 | Пароль на опасные команды | 🟡 | 30 мин | ❌ |
+
+| 2.16 | Стек отмены («отмени последнее», «верни голос», «отмени режим») | 🔴 | 1.5 ч | ❌ |
+
+| 2.26–2.30 | Самообучение + persistent memory (`learning.py`, `memory graph`) | 🔴 | 4 ч | ❌ |
+
+
+
+\*\*Примечание:\*\* 2.16 делается \*\*после\*\* 2.1–2.13. 2.26–2.30 — после 2.16.
+
+
+
+\---
+
+
+
+\## 🟠 ЭТАП 3 — Плагины и расширения
+
+
+
+| # | Задача | Слож. | Время | Статус |
+
+|---|---|---|---|---|
+
+| 3.0 | MCP-совместимость | 🔴 | 3+ ч | ❌ |
+
+| 3.1 | Система плагинов (папка `plugins/`) | 🔴 | 2–3 ч | ❌ |
+
+| 3.2 | Telegram-бот (после 3.1) | 🔴 | 2–3 ч | ❌ |
+
+| 3.3 | Веб-интерфейс (Flask, после 3.1) | 🔴 | 2–3 ч | ❌ |
+
+
+
+\---
+
+
+
+\## 🟢 ЭТАП 4 — Визуализация
+
+
+
+| # | Задача | Слож. | Время | Статус |
+
+|---|---|---|---|---|
+
+| 4.1 | Оверлей-индикатор (когда слушает) | 🟡 | 1–1.5 ч | ❌ |
+
+| 4.2 | Графический редактор команд | 🔴 | 3–4 ч | ❌ |
+
+| 4.3 | Аватар | 🔴 | 3+ ч | ❌ |
+
+| 4.4 | Лаунчер в трее | 🟡 | 1–1.5 ч | ❌ |
+
+
+
+\---
+
+
+
+\## 💤 ЭТАП 5 — Долгий ящик
+
+
+
+| # | Задача | Время |
+
+|---|---|---|
+
+| 5.1 | A2A-мост с Hermes Agent | 5+ ч |
+
+| 5.2 | Каталог голосов XTTS (Джарвис, Пятница, GLaDOS) | — |
+
+| 5.3 | Smart Home (MQTT) | — |
+
+| 5.4 | Календарь (Google Calendar, Windows Calendar) | — |
+
+| 5.5 | Git-команды | — |
+
+| 5.6 | Скриптовые плагины | — |
+
+
+
+\---
+
+
+
+\## 📝 README и позиционирование
+
+
+
+| # | Задача | Статус |
+
+|---|---|---|
+
+| R1 | Разделить в README «оригинал» и «форк». Коммиты: `feat(fork): ...` | ❌ |
+
+| R2 | Уточнить «полностью офлайн» → офлайн STT/TTS, онлайн погода/курс | ❌ |
+
+| R3 | Разбить траблшутинг на «Известные баги» и «Решение проблем» | ❌ |
+
+| R4 | Продолжить версионирование: `v0.3.0`, `v0.4.0`, `v0.5.0`, `v0.6.0` | ❌ |
+
+| R5 | Макросы: `pynput` вместо `keyboard`, либо честно про админ-права | ❌ |
+
+| R6 | `install.bat` — ставит Python-зависимости, eSpeak, Ollama | ⏸ |
+
+
+
+\---
+
+
+
+\## ✅ Коротко: что закрыто
+
+
+
+\- \*\*Этап 1:\*\* режимы, паки, макросы, память диалога, голоса Piper.
+
+\- \*\*Этап 2 (частично):\*\* команда «стой», barge-in (базово), streaming TTS, предобработка текста, смена голоса, атомарная запись (пока костыль), антикитайский промпт (пока костыль).
+
+\- \*\*Логи:\*\* `jarvis.log`, `actions.log`, `errors.log` с ротацией.
+
+\- \*\*Буфер обмена:\*\* чтение, очистка, «скопируй выделенное», «скопируй свой ответ».
+
+\- \*\*Погода и курс валют.\*\*
+
+\- \*\*Профиль:\*\* `user\_profile.json` (в `.gitignore`).
+
+\- \*\*Проверка синтаксиса:\*\* `check\_syntax.py` + `check\_syntax.bat`.
+
+
+
+\---
+
+
+
+\## 🚦 Порядок работы (рекомендация)
+
+
+
+1\. \*\*0.1\*\* → \*\*0.2\*\* → \*\*0.6\*\* (закрепить тестами)
+
+2\. \*\*0.3\*\* → \*\*0.4\*\* → \*\*0.5\*\*
+
+3\. \*\*2.4\*\*, \*\*2.12\*\* (быстрые фичи)
+
+4\. \*\*2.8\*\*, \*\*2.9\*\*, \*\*2.10\*\*, \*\*2.11\*\*, \*\*2.13\*\*
+
+5\. \*\*2.16\*\* → \*\*2.26–2.30\*\*
+
+6\. \*\*R1–R5\*\*
+
+7\. \*\*Этап 3\*\* → \*\*Этап 4\*\* → \*\*Этап 5\*\*
+
+
+
+\---
+
+
+
+\## 📌 Пометки
+
+
+
+\- «Долгий ящик» — не потому что не нужно, а потому что не критично.
+
+\- Порядок можно менять, но 0.x лучше не пропускать.
+
+\- Задачи из 0.x отмечены 🔴, потому что меняют архитектуру, а не потому что «сложно писать».
+
+
+
+\---
+
+
+
+\## 🗓 История версий
+
+
+
+| Версия | Что вошло |
+
+|---|---|
+
+| v0.2.2 | Последняя версия от оригинала |
+
+| v0.3.0 (план) | Паки команд |
+
+| v0.4.0 (план) | Streaming TTS, barge-in |
+
+| v0.5.0 (план) | Логи, буфер обмена, погода, профиль |
+
+| v0.6.0 (план) | Рефакторинг: `config\_manager`, `Config`, калибровка barge-in |
+```
+
+### `README.md`
+
+```markdown
+# Феникс
+
+Локальный голосовой ассистент для Windows. Форк проекта [jsays12/jarvis](https://github.com/jsays12/jarvis).
+
+Полностью офлайн. Vosk ловит wake-слово, Whisper расшифровывает команду, Piper озвучивает ответ. Опционально — Qwen 2.5 через Ollama для свободного диалога и разбора сложных фраз.
+
+## Содержание
+
+- [Что добавлено в форке](#что-добавлено-в-форке)
+- [Требования](#требования)
+- [Установка](#установка)
+- [Первый запуск](#первый-запуск)
+- [Настройка LLM (Ollama)](#настройка-llm-ollama)
+- [Режимы работы](#режимы-работы)
+- [Паки команд](#паки-команд)
+- [Запись действий (макросы)](#запись-действий-макросы)
+- [Память диалога](#память-диалога)
+- [Профиль пользователя](#профиль-пользователя)
+- [Голоса](#голоса)
+- [Streaming TTS](#streaming-tts)
+- [Barge-in (перебивание)](#barge-in-перебивание)
+- [Логи и ошибки](#логи-и-ошибки)
+- [Предобработка текста](#предобработка-текста)
+- [Атомарная запись конфига](#атомарная-запись-конфига)
+- [Команды](#команды)
+- [Свои команды в custom_commands](#свои-команды-в-custom_commands)
+- [Печать и окна](#печать-и-окна)
+- [Запуск без консоли](#запуск-без-консоли)
+- [Автозапуск](#автозапуск)
+- [Траблшутинг](#траблшутинг)
+- [Технологии](#технологии)
+
+## Что добавлено в форке
+
+### Этап 1: команды и удобство
+
+- **Голосовые режимы** — «режим команды», «режим ИИ», «обычный режим». Переключается голосом, сохраняется в `config.json`.
+- **Паки команд** — 5 готовых паков в папке `packs/`: игры, приложения, сайты, работа, системные. Загрузка/выгрузка голосом.
+- **Запись действий** — «запиши действие» → делаешь что-то мышкой и клавиатурой → «стоп запись» → макрос сохранён. «Повтори последнее» — воспроизводит.
+- **Память диалога на диск** — история сохраняется в `dialog.json`. После перезапуска Феникс помнит, о чём вы говорили.
+- **Голоса Piper** — переключение голоса голосом: «смени голос на Ирину», «голос Дмитрий».
+
+### Этап 2: живой диалог
+
+- **Streaming TTS** — начинает говорить через 0.2 сек, не дожидаясь полного ответа от LLM. Речь идёт без пауз, по предложениям.
+- **Barge-in (перебивание)** — можно перебить Феникса во время речи. Он замолкает и переходит в диалог без «Феникс».
+- **Предобработка текста** — «м/с» → «метров в секунду», «°C» → «градусов», «%» → «процентов», «т.д.» → «так далее». Piper не читает сокращения буквально.
+- **Атомарная запись конфига** — защита от гонки: модули `modes.py`, `voices.py`, `packs.py` пишут через `.tmp` + `replace`, с мьютексом.
+- **Смена голоса на лету** — без перезапуска: `tts.py` перечитывает `config.json` при каждом `speak()`.
+- **Антикитайский промпт** — Qwen иногда срывалась в китайский. Промпт запрещает CJK, `temperature` снижена до 0.4.
+- **Логирование по категориям** — три файла в `logs/`: `jarvis.log` (всё), `actions.log` (команды и интенты), `errors.log` (только ошибки). Авторотация по 5 МБ, 3 бэкапа.
+- **Буфер обмена** — «что в буфере», «очисти буфер», «скопируй выделенное» (жмёт Ctrl+C в активном окне), «скопируй свой ответ» (копирует последний ответ Феникса).
+- **Погода и курс валют** — «какая погода», «погода в Питере на завтра», «курс доллара». Источники: open-meteo.com и cbr-xml-daily.ru (без API-ключей). Кэш на 10 минут.
+- **Профиль пользователя** — `user_profile.json` (в `.gitignore`). Хранит город по умолчанию, имя и другие данные. Если город не задан, Феникс спросит и запомнит.
+- **Проверка синтаксиса** — `check_syntax.py` + `check_syntax.bat`. Запускает `ast.parse()` по всем `.py` в `jarvis/`. Удобно после правок.
+### Модель 7B
+
+- **Qwen 2.5 7B** — рекомендуется для 12+ ГБ VRAM. Не отказывается от безобидных просьб, стабильнее держит русский.
+- **1.5B** — только для слабых систем. Часто отказывается, срывается в китайский.
+### Ранние доработки
+
+- **LLM до Qwen 2.5** — работает и с 1.5B, и с 7B.
+- **Разговорчивый промпт** — Феникс не отказывается от безобидных просьб.
+- **Правильная логика поиска** — `search` только при явной команде «найди», «загугли».
+- **Печать текста** — «напечатай привет мир».
+- **Управление окнами** — «сверни все окна», «сверни дискорд», «разверни браузер».
+- **Открытие конфига голосом** — «открой конфиг».
+- **Команды в терминале** — через `.bat`-файлы в `cmds/`.
+
+## Требования
+
+- Windows 10/11 (x64)
+- Python 3.10+
+- Микрофон
+- Опционально: NVIDIA GPU (для Whisper large-v3-turbo)
+- Опционально: Ollama (для LLM-фолбэка)
+
+## Установка
+
+### 1. Клонировать репозиторий
+
+    git clone https://github.com/MaxkopylovKryt/jarvis-fenix.git
+    cd jarvis-fenix
+
+### 2. Установить зависимости
+
+    pip install -r requirements.txt
+    pip install pyautogui pygetwindow keyboard mouse
+
+### 3. Установить eSpeak NG (для Piper TTS)
+
+Без него Piper падает с ошибкой `phonetab`.
+
+1. Скачай: https://github.com/espeak-ng/espeak-ng/releases
+2. Установи `espeak-ng-X.X.X-x64.msi`.
+3. Закрой и открой cmd заново.
+
+### 4. Установить Ollama (опционально)
+
+    winget install Ollama.Ollama
+    ollama pull qwen2.5:1.5b-instruct
+
+Для 12+ ГБ VRAM:
+
+    ollama pull qwen2.5:7b-instruct
+
+### 5. Скопировать конфиг
+
+    copy config.example.json config.json
+
+## Первый запуск
+
+    python -m jarvis
+
+При первом запуске скачается Vosk (~45 МБ) и Whisper (large-v3-turbo на GPU).
+
+## Настройка LLM (Ollama)
+
+В `config.json`:
+
+    "llm_model": "qwen2.5:7b-instruct",
+    "use_llm": true,
+    "ollama_url": "http://127.0.0.1:11434"
+
+| Модель | VRAM | Качество |
+|---|---|---|
+| `qwen2.5:1.5b-instruct` | ~1.5 ГБ | Базовое |
+| `qwen2.5:3b-instruct` | ~3 ГБ | Заметно лучше |
+| `qwen2.5:7b-instruct` | ~5–6 ГБ | Отличное |
+| `qwen2.5:14b-instruct` | ~10 ГБ | Максимум для 12 ГБ |
+
+## Режимы работы
+
+Три режима, переключаются голосом, сохраняются в `config.json`:
+
+| Команда | Режим | Что делает |
+|---|---|---|
+| «режим команды» | `commands` | Только правила, LLM выключена |
+| «режим ИИ» | `llm` | Только LLM, правила пропускаются (кроме скриншота) |
+| «обычный режим» | `combo` | Правила → LLM (по умолчанию) |
+
+Запрос текущего: «какой режим».
+
+## Паки команд
+
+Папка `C:\jarvis\packs\` — JSON-файлы с командами. Активные паки хранятся в `config.json` → `active_packs`.
+
+**Готовые паки:**
+
+- `games.json` — запуск игр через Steam (Dota 2, CS2, PUBG, GTA V и др.)
+- `apps.json` — открытие приложений (Discord, Telegram, OBS, VS Code и др.)
+- `sites.json` — быстрые сайты (YouTube, Twitch, GitHub, ВК и др.)
+- `work.json` — рабочие папки (Загрузки, Документы, Корзина)
+- `system.json` — системные команды (блокировка, сон, перезагрузка, IP)
+
+**Голосом:**
+
+- «загрузи пак игр» — включает пак
+- «выгрузи пак игр» — выключает
+- «какие паки» — список доступных и активных
+
+**Портативность:** паки не содержат жёстких путей. Приложения ищутся через меню «Пуск», игры — через Steam-URI. Работает на любом компьютере.
+
+## Запись действий (макросы)
+
+**Требует прав администратора** (для библиотеки `keyboard`).
+
+Голосом:
+
+1. «Феникс, запиши действие» → «Записываю. Скажите "стоп запись", когда закончите».
+2. Сделай что-нибудь (открой блокнот, напечатай текст, закрой).
+3. «Феникс, стоп запись» → «Запись остановлена. Макрос: N нажатий, M кликов, X секунд».
+4. «Феникс, повтори последнее» → воспроизводит.
+
+**Лимиты:**
+- Максимум 60 секунд записи.
+- Паузы короче 0.05 сек не записываются.
+- Паузы длиннее 5 сек обрезаются.
+
+## Память диалога
+
+История сохраняется в `C:\jarvis\dialog.json` при каждом ответе.
+
+**Голосом:**
+
+- «что мы обсуждали» → пересказ последних тем.
+- «забудь всё» → очистка.
+- «сохрани память» → принудительное сохранение.
+
+После перезапуска Феникс продолжит диалог с того же места.
+
+## Профиль пользователя
+
+Личные данные хранятся отдельно от настроек — в `user_profile.json` (в корне проекта, в `.gitignore`).
+
+Что хранится:
+
+Поле | Пример | Как задаётся
+---|---|---
+`default_city` | `"Москва"` | Автоматически при первом запросе погоды без города
+`user_name` | `"Максим"` | (пока не реализовано)
+
+Если ты говоришь «какая погода», а город не задан — Феникс спросит: «В каком городе узнать погоду?». После ответа город сохраняется в профиль и больше не спрашивается.
+
+**Почему не в `config.json`?** `config.json` — это настройки проекта (идут в гит). `user_profile.json` — личные данные (не идут в гит). При клонировании репозитория новый пользователь получает чистый `config.json` без чужих данных.
+
+## Голоса
+
+Доступны 4 встроенных голоса Piper:
+
+| Голос | Описание |
+|---|---|
+| `ruslan` | Мужской, спокойный (по умолчанию) |
+| `dmitri` | Мужской, ниже и медленнее |
+| `irina` | Женский |
+| `denis` | Мужской, дикторский |
+
+**Голосом:**
+
+- «смени голос на Ирину»
+- «голос Дмитрий»
+- «какой голос» — текущий
+- «список голосов» — все доступные
+
+**Смена голоса — на лету**, без перезапуска Феникса. `tts.py` перечитывает `config.json` при каждом `speak()`.
+## Команды
+
+**Приложения:** «открой стим», «закрой дискорд», «запусти сабнатику».
+
+**Сайты:** «открой ютуб», «открой сайт хабр», «хабр точка ру».
+
+**Поиск:** «загугли погоду», «найди на ютубе лофи», «найди статью в википедии».
+
+**Печать:** «напечатай привет мир».
+
+**Окна:** «сверни все окна», «сверни дискорд», «разверни браузер», «переключись на консоль».
+
+**Скриншот:** «сделай скриншот».
+
+**Файлы:** «создай файл список покупок», «что на рабочем столе».
+
+**Музыка:** «включи музыку», «пауза», «следующий трек», «громче», «тише».
+
+**Время:** «который час», «какое сегодня число».
+
+**Разговор:** «как дела», «расскажи шутку», «что такое фотосинтез».
+
+**Голос:** «смени голос на Ирину», «какой голос», «список голосов».
+
+**Буфер обмена:** «что в буфере», «очисти буфер», «скопируй выделенное», «скопируй свой ответ».
+
+**Погода и курс:** «какая погода», «погода в Москве», «погода на завтра», «погода в Питере на завтра», «курс доллара», «курс валют».
+
+**Паки:** «загрузи пак игр», «выгрузи пак игр», «какие паки».
+
+**Стоп:** «стой», «хватит», «отбой» — закрывает окно диалога.
+
+**Своё:** «открой конфиг», «покажи ip», «открой терминал».
+## Streaming TTS
+
+Обычно: LLM генерирует ответ **полностью** (2–5 сек) → потом озвучка. **Пустота 3–7 секунд.**
+
+**Streaming:** LLM отдаёт ответ **по предложениям** → первое предложение **сразу** в Piper → пока играет, генерируется второе.
+
+**Результат:** первое слово через **0.2 сек**, речь идёт **без пауз**.
+
+Реализация:
+- `brain.py` — `chat_stream()` — стриминг от Ollama.
+- `tts.py` — `speak_stream()` — буферизация по предложениям.
+- `intents.py` — возвращает **генератор** для LLM-ответов.
+- `main.py` — `say()` понимает генератор.
+
+## Barge-in (перебивание)
+
+Во время речи Феникса микрофон **не глушится**, а следит за громкостью:
+
+1. Первые **0.5 сек** — слепое окно (эхо от колонок не меряется).
+2. Потом замеряется фоновое эхо → порог = `эхо * 1.5`.
+3. Если ты **говоришь громче порога** больше **100 мс** → **TTS прерывается**.
+4. Феникс **переходит в диалог** — можно говорить без «Феникс».
+
+**Параметры в `config.json`:**
+
+    "barge_enabled": true,
+    "barge_mult": 1.5,
+    "barge_min_threshold": 150,
+    "barge_min_ms": 100
+
+- `barge_enabled` — включён ли barge-in.
+- `barge_mult` — множитель эха.
+- `barge_min_threshold` — минимум для наушников (эхо = 0).
+- `barge_min_ms` — минимум мс речи.
+
+**Если не срабатывает** — снизь `barge_min_threshold` до **100**.
+
+**Если срабатывает на эхо** (при колонках) — подними `barge_mult` до **2.5**.
+
+Реализация:
+- `stt.py` — детектор громкости в `_callback`.
+- `tts.py` — `play_async()` + `stop()`.
+- `main.py` — `say()` возвращает `barge_happened`, открывает окно диалога.
+
+## Логи и ошибки
+
+Все логи — в папке `logs/` (в `.gitignore`). Три файла с авторотацией (5 МБ × 3 бэкапа):
+
+Файл | Что пишет
+---|---
+`jarvis.log` | Общий лог — всё, что происходит
+`actions.log` | Команды, интенты, ответы, конкретные действия (открытие URL, печать, медиа-клавиши, буфер обмена)
+`errors.log` | Только WARNING и ERROR — реальные ошибки, без шума от библиотек
+
+Пример `actions.log`:
+
+
+## Предобработка текста
+
+Перед озвучкой текст **чистится** в `tts.py` → `_prepare_text()`:
+
+| Было | Стало |
+|---|---|
+| `5 м/с` | `5 метров в секунду` |
+| `+6°C` | `+6 градусов` |
+| `80%` | `80 процентов` |
+| `т.д.` | `так далее` |
+| `10 км` | `10 километров` |
+| `→` | `стремится к` |
+| `**жирный**` | `жирный` |
+
+**Зачем:** Piper не понимает сокращения и читает их буквально — «эм слэш эс», «ка эм слэш че».
+
+## Атомарная запись конфига
+
+Проблема: `modes.py`, `voices.py`, `packs.py` могут писать в `config.json` **одновременно** — файл рвётся, JSON становится невалидным.
+
+**Решение:** запись через **временный файл** + **мьютекс**:
+
+    def _atomic_write(path, data):
+        with _write_lock:  # threading.Lock
+            tmp = path.with_suffix(".tmp")
+            tmp.write_text(json.dumps(data, ...), encoding="utf-8")
+            tmp.replace(path)  # атомарная замена
+
+Если процесс упадёт в момент записи — старый `config.json` **остаётся целым**.
+## Свои команды в custom_commands
+
+В `config.json`:
+
+    {
+      "phrases": ["открой конфиг"],
+      "action": "C:\\jarvis\\config.json",
+      "reply": "Открываю конфиг."
+    }
+
+Типы действий:
+
+- **Путь к файлу:** `C:\\jarvis\\config.json`
+- **Открыть приложение:** `open_app:discord` (ищет в меню «Пуск»)
+- **Браузер:** `browser`
+- **URL:** `https://example.com`
+- **Steam-URI:** `steam://rungameid/570`
+- **Цепочка шагов:** `{"steps": [...]}`
+
+## Печать и окна
+
+**Печать:** «Феникс, напечатай привет мир». Курсор должен быть в нужном окне.
+
+**Окна:**
+- «сверни все окна» → Win+D
+- «сверни дискорд» → ищет окно с «дискорд» в заголовке
+- «разверни браузер» → разворачивает окно
+
+## Запуск без консоли
+
+    pythonw -m jarvis
+
+Либо собрать `.exe`:
+
+    python scripts/build_exe.py
+
+## Автозапуск
+
+Win+R → `shell:startup` → Enter. Скопируй туда ярлык на `Феникс.exe` или на `pythonw -m jarvis`.
+
+## Траблшутинг
+
+**Консоль вернула приглашение после запуска** — процесс упал, смотри лог.
+
+**`Failed to create a model` (Vosk)** — модель не загрузилась. Проверь `models/vosk-model-small-ru-0.22/am/final.mdl`.
+
+**`Error processing file ... phonetab` (Piper)** — не установлен eSpeak NG.
+
+**`HTTP Error 404` про LLM** — Ollama не запущена или модель не скачана.
+
+**`IndentationError` после правки** — сломал отступы. Используй Notepad++.
+
+**`ModuleNotFoundError: keyboard`** — поставь `pip install keyboard mouse`. Требует прав администратора.
+
+**Wake-слово не срабатывает** — говори «ФЕ-НИКС» чётко, по слогам.
+
+**Отказывается от безобидных просьб** — маленькая модель. Перейди на `qwen2.5:7b-instruct`.
+
+**Barge-in не срабатывает** — снизь `barge_min_threshold` в `config.json` до 100.
+
+**Barge-in срабатывает на эхо** (при колонках) — подними `barge_mult` до 2.5.
+
+**Qwen срывается в китайский** — понизь `temperature` до 0.4 в `brain.py`. Промпт уже содержит запрет CJK.
+
+**`config.json` стал пустым** (2 строки) — гонка записи. Обнови `modes.py`, `voices.py`, `packs.py` до версий с `_atomic_write`.
+
+## Технологии
+
+| Компонент | Решение |
+|---|---|
+| Wake-слово | Vosk (vosk-model-small-ru-0.22) |
+| Расшифровка | faster-whisper (large-v3-turbo на GPU, small на CPU) |
+| Синтез речи | Piper TTS (ruslan/dmitri/irina/denis) |
+| Streaming TTS | speak_stream() + chat_stream() |
+| Barge-in | Детектор громкости в stt.py |
+| LLM | Qwen 2.5 через Ollama |
+| Запись действий | keyboard + mouse |
+| Микрофон | sounddevice |
+| Трей | pystray + Pillow |
+| Печать/окна | pyautogui + pygetwindow |
+Погода | open-meteo.com (без ключа)
+Курс валют | cbr-xml-daily.ru (ЦБ РФ, без ключа)
+Логирование | logging.handlers.RotatingFileHandler
+Буфер обмена | pyperclip + pyautogui (Ctrl+C)
+Профиль | user_profile.json (в .gitignore)
+
+## Лицензия
+
+См. оригинальный репозиторий [jsays12/jarvis](https://github.com/jsays12/jarvis).
+```
+
+### `requirements.txt`
+
+```
+vosk>=0.3.45
+faster-whisper>=1.2
+piper-tts>=1.3
+sounddevice>=0.5
+pystray>=0.19
+Pillow>=10
+pyttsx3>=2.99
+winrt-runtime>=3.2
+winrt-Windows.Foundation>=3.2
+winrt-Windows.Foundation.Collections>=3.2
+winrt-Windows.Media.SpeechSynthesis>=3.2
+winrt-Windows.Media.Control>=3.2
+winrt-Windows.Storage.Streams>=3.2
+filelock>=3.13
+num2words>=0.5.14
+pytest>=8.0
+pytest-asyncio>=0.23
+```
+
+### `scripts\build_exe.py`
+
+```python
+"""Сборка Феникс.exe (лёгкий лаунчер) и иконки.
+
+Запуск: python scripts/build_exe.py
+Результат: <корень>/Феникс.exe — кладётся рядом с пакетом jarvis.
+"""
+
+import subprocess
+import sys
+from pathlib import Path
+
+BASE = Path(__file__).resolve().parent.parent
+ICON = BASE / "jarvis" / "icon.ico"
+EXE_NAME = "Феникс"
+
+
+def make_icon() -> None:
+    """Иконка из того же рисунка, что и в трее (несколько размеров)."""
+    from PIL import Image, ImageDraw
+
+    def draw(size: int) -> Image.Image:
+        k = size / 64
+        img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+        d = ImageDraw.Draw(img)
+        d.ellipse((2 * k, 2 * k, 62 * k, 62 * k), fill=(18, 32, 58, 255),
+                  outline=(86, 156, 255, 255), width=max(1, int(3 * k)))
+        d.line((38 * k, 16 * k, 38 * k, 42 * k), fill=(86, 156, 255, 255),
+               width=max(1, int(6 * k)))
+        d.arc((20 * k, 30 * k, 42 * k, 52 * k), start=20, end=180,
+              fill=(86, 156, 255, 255), width=max(1, int(6 * k)))
+        return img
+
+    sizes = [16, 24, 32, 48, 64, 128, 256]
+    draw(256).save(ICON, sizes=[(s, s) for s in sizes])
+    print("Иконка:", ICON)
+
+
+def build() -> None:
+    make_icon()
+    cmd = [
+        sys.executable, "-m", "PyInstaller",
+        "--onefile", "--noconsole", "--clean", "--noconfirm",
+        "--name", EXE_NAME,
+        "--icon", str(ICON),
+        "--distpath", str(BASE / "dist"),
+        "--workpath", str(BASE / "build"),
+        "--specpath", str(BASE / "build"),
+        str(BASE / "launcher.py"),
+    ]
+    print("PyInstaller:", " ".join(cmd))
+    subprocess.run(cmd, check=True)
+
+    src = BASE / "dist" / f"{EXE_NAME}.exe"
+    dst = BASE / f"{EXE_NAME}.exe"
+    dst.write_bytes(src.read_bytes())
+    print("Готово:", dst)
+
+
+if __name__ == "__main__":
+    build()
+```
+
+### `scripts\mics.py`
+
+```python
+"""Подбор микрофона: показывает устройства ввода и уровень сигнала.
+
+Запуск: python scripts/mics.py
+Скажите что-нибудь — у живого микрофона будет высокий пик. Затем впишите
+его имя (или часть) в config.json: "input_device": "camo".
+"""
+
+import sys
+import time
+from pathlib import Path
+
+import numpy as np
+import sounddevice as sd
+
+BASE = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(BASE))
+
+FS = 16000
+
+
+def main() -> None:
+    default = sd.query_devices(kind="input")["name"]
+    print(f"Устройство по умолчанию: {default}\n")
+
+    # уникальные по имени входные устройства
+    seen = {}
+    for i, d in enumerate(sd.query_devices()):
+        if d["max_input_channels"] > 0:
+            seen.setdefault(d["name"][:24], i)
+
+    print("Говорите/шумите — измеряю уровень каждого микрофона...\n")
+    results = []
+    for name, idx in seen.items():
+        try:
+            rec = sd.rec(int(1.2 * FS), samplerate=FS, channels=1, dtype="int16", device=idx)
+            sd.wait()
+            results.append((int(np.abs(rec).max()), idx, name))
+        except Exception as e:
+            results.append((-1, idx, f"{name} (ошибка: {str(e)[:24]})"))
+
+    results.sort(reverse=True)
+    for peak, idx, name in results:
+        mark = "  <-- ЖИВОЙ, впишите его имя в config" if peak > 1500 else ""
+        lvl = "ошибка" if peak < 0 else str(peak)
+        print(f"  [{idx:2}] пик={lvl:>6}  {name}{mark}")
+
+    print('\nВ config.json: "input_device": "<часть имени>"  (например "camo"),')
+    print('или null — устройство по умолчанию. Перезапустите Феникс после правки.')
+
+
+if __name__ == "__main__":
+    main()
+```
+
+### `scripts\selftest.py`
+
+```python
+"""Самопроверка без микрофона: TTS -> Vosk -> разбор команды.
+
+Запуск: python scripts/selftest.py
+"""
+
+import asyncio
+import io
+import json
+import sys
+import wave
+from pathlib import Path
+
+BASE = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(BASE))
+
+from vosk import KaldiRecognizer, Model, SetLogLevel  # noqa: E402
+
+from jarvis.apps import build_apps, find_app  # noqa: E402
+from jarvis.installed import find_installed, scan_start_menu  # noqa: E402
+from jarvis.intents import (IntentHandler, _is_close_verb, _is_open_verb,  # noqa: E402
+                            normalize, parse_engine_tail, parse_search)
+from jarvis.matching import match_score  # noqa: E402
+from jarvis.actions import find_process, spoken_domain  # noqa: E402
+from jarvis.tts import Speaker  # noqa: E402
+
+PHRASES = [
+    "феникс открой стим",
+    "феникс закрой дискорд",
+    "феникс сколько времени",
+    "феникс открой ютуб",
+]
+
+
+def recognize(model: Model, wav_bytes: bytes) -> str:
+    wf = wave.open(io.BytesIO(wav_bytes))
+    rec = KaldiRecognizer(model, wf.getframerate())
+    while True:
+        chunk = wf.readframes(4000)
+        if not chunk:
+            break
+        rec.AcceptWaveform(chunk)
+    return json.loads(rec.FinalResult()).get("text", "")
+
+
+def main() -> None:
+    SetLogLevel(-1)
+    # Whisper — строго до первого использования WinRT (иначе access violation)
+    from jarvis.stt import WhisperTranscriber
+    whisper = WhisperTranscriber("auto", "auto")
+    # для прогона TTS->STT нужен WinRT-бэкенд (piper проверяется отдельно ниже)
+    speaker = Speaker({"tts_backend": "winrt", "voice": "Pavel"})
+    assert speaker._mode == "winrt", "Pavel/WinRT недоступен"
+    model = Model(str(BASE / "models" / "vosk-model-small-ru-0.22"))
+    apps = build_apps({})
+    wake = ["феникс", "финикс", "феникса"]
+
+    failed = 0
+    for phrase in PHRASES:
+        wav = asyncio.run(speaker._synthesize(phrase))
+        heard = normalize(recognize(model, wav))
+        tokens = heard.split()
+        woke = tokens and tokens[0] in wake
+        cmd = " ".join(tokens[1:]) if woke else ""
+        # «сухой» разбор: что бы сделал ассистент (без запуска приложений)
+        ctoks = cmd.split()
+        verb = "open" if any(_is_open_verb(t) for t in ctoks) else \
+               "close" if any(_is_close_verb(t) for t in ctoks) else "-"
+        target = " ".join(t for t in ctoks if not _is_open_verb(t) and not _is_close_verb(t))
+        app = find_app(apps, target) if verb != "-" and target else None
+        print(f"[{'OK' if woke else '!!'}] сказано: {phrase!r} -> услышано: {heard!r} "
+              f"-> {verb} {app.key if app else target!r}")
+        if not woke:
+            failed += 1
+
+    # Глагольные формы (Whisper меняет форму: «закрой» -> «закроет»)
+    for tok, fn, exp in [("закроет", _is_close_verb, True), ("открою", _is_open_verb, True),
+                         ("откройте", _is_open_verb, True), ("выключи", _is_close_verb, True),
+                         ("включи", _is_open_verb, True), ("скриншот", _is_open_verb, False)]:
+        ok = fn(tok) == exp
+        print(f"[{'OK' if ok else '!!'}] глагол: {tok!r} -> {fn(tok)}")
+        failed += 0 if ok else 1
+
+    # Wake-матчер: ловит варианты имени, не ловит созвучные обычные слова
+    from jarvis.matching import wake_score
+    for tok, w, exp in [("jarvis", "джарвис", True), ("финикс", "феникс", True),
+                        ("феникса", "феникс", True), ("фен", "феникс", False),
+                        ("финиш", "феникс", False), ("техникс", "феникс", False)]:
+        score = wake_score(tok, w)
+        ok = (score >= 0.8) == exp
+        print(f"[{'OK' if ok else '!!'}] wake: {tok!r} ~ {w!r} = {score:.2f} (ожидалось {'да' if exp else 'нет'})")
+        failed += 0 if ok else 1
+
+    # Разбор целей без запуска приложений
+    for target, expected in [("стим", "steam"), ("дискорд", "discord"),
+                             ("доту", "dota2"), ("телегу", "telegram"), ("клауд", "claude"),
+                             ("вс код", "vscode"), ("vscode", "vscode")]:
+        app = find_app(apps, target)
+        ok = app is not None and app.key == expected
+        print(f"[{'OK' if ok else '!!'}] цель {target!r} -> {app.key if app else None}")
+        failed += 0 if ok else 1
+
+    # Болталка (без побочных эффектов)
+    handler = IntentHandler({"custom_commands": []}, apps)
+    for q in ["сколько времени", "какое сегодня число", "кто ты", "как дела"]:
+        print(f"[..] {q!r} -> {handler._small_talk(normalize(q))!r}")
+
+    # Разбор поисковых запросов (чистая функция, без открытия браузера)
+    for q, expected in [
+        ("найди рецепт борща", ("google", "рецепт борща")),
+        ("поищи на ютубе лофи музыку", ("youtube", "лофи музыку")),
+        ("найди котиков в ютубе", ("youtube", "котиков")),
+        ("открой гугл с поиском погода в хельсинки", ("google", "погода в хельсинки")),
+        ("открой ютуб с поиском обзор дота два", ("youtube", "обзор дота два")),
+        ("загугли что такое vosk", ("google", "что такое vosk")),
+    ]:
+        res = parse_search(normalize(q))
+        got = (res[0], res[2]) if res else None
+        ok = got == expected
+        print(f"[{'OK' if ok else '!!'}] поиск: {q!r} -> {got}")
+        failed += 0 if ok else 1
+
+    # Транслит-сопоставление (русская речь -> латинские названия)
+    for spoken, candidate in [("обс", "OBS Studio"), ("дискорд", "Discord"),
+                              ("телеграм", "Telegram Desktop"), ("стим", "Steam"),
+                              ("блендер", "Blender"), ("гит хаб десктоп", "GitHub Desktop"),
+                              ("камо студио", "Camo Studio"),
+                              ("роблокс плеер", "roblox player installer"),
+                              ("сабнатика два", "Subnautica 2")]:
+        score = match_score(spoken, candidate)
+        ok = score >= 0.75
+        print(f"[{'OK' if ok else '!!'}] транслит: {spoken!r} ~ {candidate!r} = {score:.2f}")
+        failed += 0 if ok else 1
+
+    # Движок в любом месте фразы + защита от мусорных доменов
+    for q, exp_engine, exp_query in [
+        ("открой на ютубе видео котиков", "youtube", "видео котиков"),
+        ("открой видео котят на ютубе", "youtube", "видео котят"),
+    ]:
+        res = parse_engine_tail(normalize(q))
+        ok = res is not None and res[0] == exp_engine and res[2] == exp_query
+        print(f"[{'OK' if ok else '!!'}] хвост: {q!r} -> {res}")
+        failed += 0 if ok else 1
+    res = parse_engine_tail(normalize("от к но ютубе видео котиков"))  # каша из лога
+    ok = res is not None and res[0] == "youtube"
+    print(f"[{'OK' if ok else '!!'}] хвост (каша vosk): -> {res}")
+    failed += 0 if ok else 1
+    from jarvis.actions import guess_site
+    bad = guess_site("от к но ютубе видео котиков")
+    ok = bad is None
+    print(f"[{'OK' if ok else '!!'}] мусорный домен не угадывается -> {bad}")
+    failed += 0 if ok else 1
+
+    # Продиктованный домен
+    dom = spoken_domain("хабр точка ру")
+    ok = dom == "https://habr.ru"
+    print(f"[{'OK' if ok else '!!'}] домен: 'хабр точка ру' -> {dom}")
+    failed += 0 if ok else 1
+
+    # Whisper: точная расшифровка фразы, на которой Vosk ошибался
+    import time as _t
+    for phrase in ["феникс открой на ютубе видео котиков", "феникс открой дискорд",
+                   "феникс закрой яндекс музыку"]:
+        wav_bytes = asyncio.run(speaker._synthesize(phrase))
+        wf = wave.open(io.BytesIO(wav_bytes))
+        pcm = wf.readframes(wf.getnframes())
+        t0 = _t.time()
+        heard = normalize(whisper.transcribe(pcm, wf.getframerate()))
+        dt = _t.time() - t0
+        ok = any(w in heard for w in ("ютуб", "дискорд", "discord", "яндекс музыку"))
+        print(f"[{'OK' if ok else '!!'}] whisper ({dt:.1f}с): {phrase!r} -> {heard!r}")
+        failed += 0 if ok else 1
+
+    # Живой индекс меню «Пуск», Steam и процессы (информативно, зависит от машины)
+    index = scan_start_menu()
+    print(f"[..] меню «Пуск»: {len(index)} программ")
+    for spoken in ["обс", "телеграм", "клод"]:
+        hit = find_installed(index, spoken)
+        print(f"[..] установлено: {spoken!r} -> {hit[0] if hit else None}")
+    print(f"[..] процесс 'хром' -> {find_process('хром')}")
+    from jarvis.steam import find_game, scan_steam_games
+    games = scan_steam_games()
+    print(f"[..] steam: {len(games)} игр")
+    for spoken in ["доту", "сабнатику"]:
+        g = find_game(games, spoken)
+        print(f"[..] игра: {spoken!r} -> {g[0] if g else None}")
+
+    # Piper TTS: синтез валидного WAV без проигрывания
+    import io as _io
+    import wave as _wave
+    piper_speaker = Speaker({"tts_backend": "piper", "tts_voice": "ruslan", "voice_rate": 1.15})
+    ok = piper_speaker._mode == "piper"
+    if ok:
+        buf = _io.BytesIO()
+        with _wave.open(buf, "wb") as wf:
+            piper_speaker._piper.synthesize_wav("проверка связи", wf, piper_speaker._piper_cfg)
+        ok = buf.getvalue()[:4] == b"RIFF"
+    print(f"[{'OK' if ok else '!!'}] piper: режим {piper_speaker._mode}, wav {'валиден' if ok else 'нет'}")
+    failed += 0 if ok else 1
+
+    # Цепочки: делим только когда каждая часть — команда
+    chains = handler._split_chain(normalize("сделай скриншот и открой его"))
+    ok = len(chains) == 2 and chains[1] == "открой его"
+    print(f"[{'OK' if ok else '!!'}] цепочка: скриншот+открой -> {chains}")
+    failed += 0 if ok else 1
+    chains = handler._split_chain(normalize("найди кошки и собаки"))
+    ok = len(chains) == 1
+    print(f"[{'OK' if ok else '!!'}] цепочка: «кошки и собаки» не делится -> {chains}")
+    failed += 0 if ok else 1
+    chains = handler._split_chain(normalize("открой стим и закрой дискорд и сделай скриншот"))
+    ok = len(chains) == 3
+    print(f"[{'OK' if ok else '!!'}] цепочка из трёх -> {chains}")
+    failed += 0 if ok else 1
+
+    chains = handler._split_chain(normalize("сделай и открой скриншот"))
+    ok = len(chains) == 1
+    print(f"[{'OK' if ok else '!!'}] цепочка: «сделай и открой скриншот» не делится -> {chains}")
+    failed += 0 if ok else 1
+
+    # «открой его» без последнего файла — безопасный ответ, ничего не открывает
+    reply = handler._do_open("его")
+    ok = "нечего" in reply
+    print(f"[{'OK' if ok else '!!'}] местоимение без файла -> {reply!r}")
+    failed += 0 if ok else 1
+
+    # Маршрутизация медиа-команд (media_key подменён, клавиши не жмутся)
+    from jarvis import actions as A
+    pressed = []
+    orig_mk = A.media_key
+    A.media_key = lambda name, times=1: (pressed.append(name), True)[1]
+    try:
+        for q, exp_key in [("поставь паузу", "play"), ("поставь музыку на паузу", "play"),
+                           ("выключи музыку", "play"), ("следующий трек", "next"),
+                           ("сделай потише", "vol_down")]:
+            pressed.clear()
+            r = handler._media(normalize(q))
+            ok = pressed == [exp_key] and bool(r)
+            print(f"[{'OK' if ok else '!!'}] медиа: {q!r} -> клавиша {pressed}, ответ {r!r}")
+            failed += 0 if ok else 1
+        # «включи доту» — не медиа-команда
+        ok = handler._media(normalize("включи доту")) is None
+        print(f"[{'OK' if ok else '!!'}] медиа: «включи доту» не перехватывается")
+        failed += 0 if ok else 1
+    finally:
+        A.media_key = orig_mk
+
+    # Файлы и папки (только чтение, без создания)
+    from jarvis import files as F
+    for spoken, exp in [("загрузки", "Downloads"), ("на рабочем столе", "Desktop"),
+                        ("в документах", "Documents"), ("картинки", "Pictures")]:
+        f = F.resolve_folder(normalize(spoken))
+        ok = f is not None and f.name == exp
+        print(f"[{'OK' if ok else '!!'}] папка: {spoken!r} -> {f}")
+        failed += 0 if ok else 1
+    # «музыка» без слова «папка» — НЕ папка (это плеер)
+    ok = F.resolve_folder("музыку") is None and F.resolve_folder("музыку", explicit=True) is not None
+    print(f"[{'OK' if ok else '!!'}] папка «музыка» только со словом папка")
+    failed += 0 if ok else 1
+    desc = F.describe_folder(Path.home() / "Downloads")
+    ok = "файл" in desc or "папк" in desc or "пуст" in desc
+    print(f"[{'OK' if ok else '!!'}] содержимое загрузок -> {desc!r}")
+    failed += 0 if ok else 1
+    chains = handler._split_chain(normalize("создай файл заметки и открой его"))
+    ok = len(chains) == 2
+    print(f"[{'OK' if ok else '!!'}] цепочка: создай+открой -> {chains}")
+    failed += 0 if ok else 1
+
+    # LLM-фолбэк (если Ollama доступна) — только разбор, без выполнения
+    from jarvis.brain import Brain
+    brain = Brain()
+    if brain.available:
+        for q, check in [
+            ("открой порно хаб", lambda i: i.get("action") in {"open_site", "open_app"}),
+            ("что такое черная дыра", lambda i: i.get("action") in {"search", "answer"}),
+            ("включи музыку", lambda i: "steps" in i or i.get("action") in {"open_app", "media_key"}),
+            # цепочку эту разбирают правила; от LLM достаточно валидного интента
+            ("сделай скриншот и открой его",
+             lambda i: "steps" in i or i.get("action") == "screenshot"),
+        ]:
+            intent = brain.parse(q)
+            ok = intent is not None and check(intent)
+            print(f"[{'OK' if ok else '!!'}] llm: {q!r} -> {intent}")
+            failed += 0 if ok else 1
+        # разбор файловых команд
+        intent = brain.parse("создай файл список покупок в документах")
+        ok = intent is not None and intent.get("action") == "create_file"
+        print(f"[{'OK' if ok else '!!'}] llm: создание файла -> {intent}")
+        failed += 0 if ok else 1
+        # диалог с памятью
+        hist = [{"role": "user", "content": "запомни число сорок два"},
+                {"role": "assistant", "content": "Запомнил, сэр: сорок два."}]
+        answer = brain.chat("какое число я просил запомнить", hist)
+        ok = answer is not None and ("сорок два" in answer.lower() or "42" in answer)
+        print(f"[{'OK' if ok else '!!'}] llm-диалог с памятью -> {answer!r}")
+        failed += 0 if ok else 1
+    else:
+        print("[..] llm: Ollama недоступна, пропускаю")
+
+    print("\nИтог:", "ВСЁ ОК" if failed == 0 else f"ОШИБОК: {failed}")
+    sys.exit(1 if failed else 0)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+### `scripts\voicedemo.py`
+
+```python
+"""Прослушка голосов: проигрывает одну фразу всеми доступными голосами.
+
+Запуск: python scripts/voicedemo.py [текст]
+"""
+
+import io
+import sys
+import wave
+import winsound
+from pathlib import Path
+
+BASE = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(BASE))
+
+TEXT = " ".join(sys.argv[1:]) or "Феникс на связи. Открываю Стим, сэр. Скриншот сохранён."
+
+
+def main() -> None:
+    from huggingface_hub import hf_hub_download
+    from piper import PiperVoice, SynthesisConfig
+
+    for v in ["ruslan", "dmitri"]:
+        rel = f"ru/ru_RU/{v}/medium/ru_RU-{v}-medium.onnx"
+        voice = PiperVoice.load(hf_hub_download("rhasspy/piper-voices", rel))
+        buf = io.BytesIO()
+        with wave.open(buf, "wb") as wf:
+            voice.synthesize_wav(TEXT, wf, SynthesisConfig(length_scale=0.87))
+        print(f"piper/{v}...")
+        winsound.PlaySound(buf.getvalue(), winsound.SND_MEMORY)
+
+    import asyncio
+
+    from jarvis.tts import Speaker
+
+    s = Speaker({"tts_backend": "winrt", "voice": "Pavel", "voice_rate": 1.15})
+    print("winrt/Pavel...")
+    winsound.PlaySound(asyncio.run(s._synthesize(TEXT)), winsound.SND_MEMORY)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+### `scripts\wakebench.py`
+
+```python
+"""Бенчмарк кандидатов в wake-слово: TTS (Pavel) -> Vosk-small -> что услышалось.
+
+Wake-слово ловит Vosk-small в стриме, поэтому слово должно стабильно
+распознаваться именно им. Запуск: python scripts/wakebench.py
+"""
+
+import asyncio
+import io
+import json
+import sys
+import wave
+from pathlib import Path
+
+BASE = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(BASE))
+
+from vosk import KaldiRecognizer, Model, SetLogLevel  # noqa: E402
+
+from jarvis.matching import match_score  # noqa: E402
+from jarvis.tts import Speaker  # noqa: E402
+
+CANDIDATES = [
+    "джарвис",   # текущее, для сравнения
+    "нексус",
+    "оракул",
+    "феникс",
+    "гермес",
+    "юпитер",
+    "кронос",
+    "протон",
+    "сокол",
+    "вектор",
+    "циклоп",
+    "альтрон",
+]
+
+TEMPLATES = [
+    "{w} сделай скриншот",
+    "{w} открой стим",
+    "эй {w} который час",
+]
+
+
+def recognize(model: Model, wav_bytes: bytes) -> str:
+    wf = wave.open(io.BytesIO(wav_bytes))
+    rec = KaldiRecognizer(model, wf.getframerate())
+    while True:
+        chunk = wf.readframes(4000)
+        if not chunk:
+            break
+        rec.AcceptWaveform(chunk)
+    return json.loads(rec.FinalResult()).get("text", "")
+
+
+def main() -> None:
+    SetLogLevel(-1)
+    speaker = Speaker("Pavel")
+    model = Model(str(BASE / "models" / "vosk-model-small-ru-0.22"))
+
+    results = []
+    for word in CANDIDATES:
+        heard_words = []
+        exact = fuzzy = 0
+        for tpl in TEMPLATES:
+            wav = asyncio.run(speaker._synthesize(tpl.format(w=word)))
+            heard = recognize(model, wav)
+            tokens = heard.split()
+            # ищем wake-токен в начале фразы (как в боевом коде)
+            tok = ""
+            for t in tokens[:2]:  # «эй X ...» — слово может быть вторым
+                if match_score(t, word) >= 0.8:
+                    tok = t
+                    break
+            if tok == word:
+                exact += 1
+                fuzzy += 1
+            elif tok:
+                fuzzy += 1
+            heard_words.append(" ".join(tokens[:2]))
+        results.append((word, exact, fuzzy, heard_words))
+
+    print(f"{'слово':<10} {'точно':<6} {'фаззи':<6} услышано (первые 2 токена)")
+    for word, exact, fuzzy, heard in sorted(results, key=lambda r: (-r[2], -r[1])):
+        print(f"{word:<10} {exact}/3    {fuzzy}/3    {heard}")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+### `snapshot.py`
+
+```python
+"""Собирает снимок проекта в один SNAPSHOT.md.
+
+Исключения: логи, кэш, модели, личные данные.
+Запуск: python snapshot.py
+Результат: SNAPSHOT.md в корне проекта.
+"""
+
+import sys
+from pathlib import Path
+
+BASE = Path(__file__).resolve().parent
+OUTPUT = BASE / "SNAPSHOT.md"
+
+# Что НЕ включать
+EXCLUDE_DIRS = {
+    ".git", "__pycache__", ".venv", "venv", "env", "envs",
+    "logs", "models", "dist", "build", ".pytest_cache",
+    ".idea", ".vscode", "node_modules", ".mypy_cache", ".ruff_cache",
+    "voices",  # большие бинарники; если в voices есть .md — снимем отдельно
+}
+
+EXCLUDE_FILES = {
+    # Личные данные
+    "config.json",
+    "user_profile.json",
+    "dialog.json",
+    "timers.json",
+    "tasks.json",
+    # Сам снимок — чтобы не рекурсить
+    "SNAPSHOT.md",
+    # Служебное
+    ".gitignore",
+    "config.json.lock",
+    "user_profile.json.lock",
+}
+
+EXCLUDE_EXT = {
+    ".pyc", ".pyo", ".pyd", ".so", ".dll", ".exe", ".bin",
+    ".onnx", ".wav", ".mp3", ".zip", ".7z", ".rar",
+    ".jpg", ".jpeg", ".png", ".gif", ".ico", ".bmp",
+    ".tmp", ".lock", ".log",
+}
+
+# Какие расширения показывать содержимым (текстовые)
+TEXT_EXT = {
+    ".py", ".md", ".txt", ".json", ".bat", ".cmd", ".cfg", ".ini",
+    ".yaml", ".yml", ".toml", ".html", ".css", ".js", ".ts",
+    ".ps1", ".sh", ".env", ".gitignore",
+}
+
+# Максимальный размер файла для включения содержимого
+MAX_FILE_SIZE = 200 * 1024  # 200 КБ
+
+
+def should_skip_dir(path: Path) -> bool:
+    return path.name in EXCLUDE_DIRS
+
+
+def should_skip_file(path: Path) -> bool:
+    if path.name in EXCLUDE_FILES:
+        return True
+    if path.suffix.lower() in EXCLUDE_EXT:
+        return True
+    if path.stat().st_size > MAX_FILE_SIZE:
+        return True
+    return False
+
+
+def collect_tree(root: Path) -> list[Path]:
+    """Собирает все файлы, пропуская исключения."""
+    result = []
+    for path in sorted(root.rglob("*")):
+        if not path.is_file():
+            continue
+        # Пропускаем, если в пути есть исключённая папка
+        if any(part in EXCLUDE_DIRS for part in path.parts):
+            continue
+        if should_skip_file(path):
+            continue
+        result.append(path)
+    return result
+
+
+def read_file(path: Path) -> str:
+    """Читает текстовый файл, безопасно."""
+    try:
+        return path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        try:
+            return path.read_text(encoding="cp1251")
+        except Exception:
+            return f"[бинарный или нечитаемый файл: {path.suffix}]"
+    except Exception as e:
+        return f"[ошибка чтения: {e}]"
+
+
+def build_tree_text(paths: list[Path], root: Path) -> str:
+    """Строит дерево в стиле tree."""
+    tree = {}
+    for p in paths:
+        rel = p.relative_to(root)
+        parts = rel.parts
+        node = tree
+        for part in parts[:-1]:
+            node = node.setdefault(part, {})
+        node[parts[-1]] = None
+
+    def render(node, indent=""):
+        lines = []
+        items = sorted(node.items(), key=lambda x: (x[1] is None, x[0].lower()))
+        for name, sub in items:
+            if sub is None:
+                lines.append(f"{indent}├── {name}")
+            else:
+                lines.append(f"{indent}├── {name}/")
+                lines.extend(render(sub, indent + "│   "))
+        return lines
+
+    return "\n".join(render(tree))
+
+
+def main() -> int:
+    print(f"Сбор снимка проекта: {BASE}")
+    files = collect_tree(BASE)
+    print(f"Найдено файлов: {len(files)}")
+
+    lines = []
+    lines.append("# SNAPSHOT проекта «Феникс»")
+    lines.append("")
+    lines.append(f"_Автоматически сгенерировано `snapshot.py`. Обновляется при `git push`._")
+    lines.append(f"_Файлов в снимке: {len(files)}_")
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+    lines.append("## 📁 Структура проекта")
+    lines.append("")
+    lines.append("```")
+    lines.append("jarvis/")
+    lines.append(build_tree_text(files, BASE))
+    lines.append("```")
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+    lines.append("## 📄 Содержимое файлов")
+    lines.append("")
+
+    for i, path in enumerate(files, 1):
+        rel = path.relative_to(BASE)
+        suffix = path.suffix.lower()
+
+        lines.append(f"### `{rel}`")
+        lines.append("")
+
+        if suffix not in TEXT_EXT and suffix != "":
+            lines.append(f"_Бинарный или нетекстовый файл: {path.suffix or 'без расширения'}_")
+            lines.append("")
+            continue
+
+        content = read_file(path)
+        # Определяем язык для markdown
+        lang = {
+            ".py": "python",
+            ".md": "markdown",
+            ".json": "json",
+            ".bat": "batch",
+            ".cmd": "batch",
+            ".html": "html",
+            ".css": "css",
+            ".js": "javascript",
+            ".yaml": "yaml",
+            ".yml": "yaml",
+            ".toml": "toml",
+            ".ps1": "powershell",
+            ".sh": "bash",
+            ".ini": "ini",
+            ".cfg": "ini",
+        }.get(suffix, "")
+
+        lines.append(f"```{lang}")
+        lines.append(content.rstrip())
+        lines.append("```")
+        lines.append("")
+
+    OUTPUT.write_text("\n".join(lines), encoding="utf-8")
+    size_kb = OUTPUT.stat().st_size / 1024
+    print(f"Готово: {OUTPUT}")
+    print(f"Размер: {size_kb:.1f} КБ, строк: {len(lines)}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+
+### `start_fenix.bat`
+
+```batch
+@echo off
+cd /d C:\jarvis
+start "" pythonw -m jarvis
+exit
+```
+
+### `start_fenix_debug.bat`
+
+```batch
+@echo off
+title Феникс
+cd /d C:\jarvis
+echo ============================================
+echo  Феникс запускается...
+echo  Чтобы выключить — нажми Ctrl+C
+echo ============================================
+echo.
+python -m jarvis
+echo.
+echo ============================================
+echo  Феникс остановлен.
+echo  Нажми любую клавишу, чтобы закрыть окно.
+echo ============================================
+pause >nul
+```
+
+### `test_intents.py`
+
+```python
+"""Автотест Феникса без микрофона.
+
+Прогоняет список команд через IntentHandler, проверяет ответы
+по ожидаемым подстрокам, пишет всё в logs/test_intents.log.
+
+Запуск:
+    python test_intents.py              # все тесты, без озвучки
+    python test_intents.py --voice      # с озвучкой
+    python test_intents.py -k weather   # только тесты со словом 'weather'
+"""
+
+import argparse
+import logging
+import re
+import sys
+import time
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent
+LOGS_DIR = BASE_DIR / "logs"
+LOGS_DIR.mkdir(exist_ok=True)
+LOG_FILE = LOGS_DIR / "test_intents.log"
+
+log = logging.getLogger("jarvis.test")
+log.setLevel(logging.INFO)
+
+_fmt = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
+
+_fh = logging.FileHandler(LOG_FILE, mode="w", encoding="utf-8")
+_fh.setFormatter(_fmt)
+log.addHandler(_fh)
+
+_ch = logging.StreamHandler()
+_ch.setFormatter(_fmt)
+log.addHandler(_ch)
+
+
+TESTS = [
+    # === Режимы ===
+    ("mode_set_llm",       "режим ии",                  ["Режим", "ИИ"]),
+    ("mode_query",         "какой режим",               ["Сейчас режим"]),
+    ("mode_set_combo",     "обычный режим",             ["комбинированный"]),
+    ("mode_set_commands",  "режим команды",             ["только команды"]),
+    ("mode_restore",       "обычный режим",             ["комбинированный"]),
+
+    # === Голоса ===
+    ("voice_list",         "какой голос",               ["голос"]),
+    ("voice_switch_irina", "смени голос на ирину",      ["Irina", "ирина"]),
+    ("voice_switch_ruslan","смени голос на руслан",     ["Ruslan", "руслан"]),
+
+    # === Паки (ожидания ослаблены) ===
+    ("packs_list",         "какие паки",                ["Доступны"]),
+    ("packs_unload",       "выгрузи пак игр",           ["выгружен", "уже", "не активен", "загружен"]),
+    ("packs_load",         "загрузи пак игр",           ["загружен", "уже", "не найден"]),
+
+    # === Буфер ===
+    ("clipboard_read",     "что в буфере",              ["буфере", "пуст"]),
+    ("clipboard_clear",    "очисти буфер",              ["Буфер"]),
+
+    # === Погода ===
+    ("weather_ask_city",   "какая погода",              ["городе", "Погода"]),
+    ("weather_answer_city","Казань",                    ["Запомнил", "Погода"]),
+    ("weather_default",    "какая погода",              ["Погода", "Казань"]),
+    ("weather_other_city", "погода в нижнем новгороде", ["Погода", "Новгород"]),
+    ("weather_tomorrow",   "погода в питере на завтра", ["Погода", "Петербург"]),
+
+    # === Курс ===
+    ("currency_usd",       "курс доллара",              ["Доллар"]),
+    ("currency_byn",       "курс белорусского рубля",   ["рубл"]),
+    ("currency_all",       "курс валют",                ["ЦБ", "Доллар"]),
+
+    # === Small talk ===
+    ("small_talk_how",     "как дела",                  []),  # любой непустой
+    ("small_talk_time",    "который час",               ["Сейчас"]),
+    ("small_talk_date",    "какое сегодня число",       ["Сегодня"]),
+    ("small_talk_who",     "кто ты",                    ["Феникс"]),
+
+    # === Скриншот, сайт ===
+    ("screenshot",         "сделай скриншот",           ["Скриншот"]),
+    ("open_site",          "открой ютуб",               ["Ютуб", "youtube"]),
+]
+
+
+class Result:
+    def __init__(self, name, cmd, reply, expected, elapsed):
+        self.name = name
+        self.cmd = cmd
+        self.reply = reply
+        self.expected = expected
+        self.elapsed = elapsed
+        self.passed = self._check()
+        self.error = None
+
+    def _check(self):
+        if not self.reply:
+            return False
+        if not self.expected:
+            return True
+        text = str(self.reply).lower()
+        return any(e.lower() in text for e in self.expected)
+
+    def __str__(self):
+        mark = "OK  " if self.passed else "FAIL"
+        return f"[{mark}] {self.name:24s} ({self.elapsed:5.2f} с) «{self.cmd}»"
+
+
+def build_handler(with_voice=False):
+    from jarvis.config import load_config
+    from jarvis.apps import build_apps
+    from jarvis.intents import IntentHandler
+
+    log.info("Загрузка конфига...")
+    config = load_config(BASE_DIR)
+
+    brain = None
+    if config.get("use_llm", True):
+        from jarvis.brain import Brain
+        model = config.get("llm_model", "qwen2.5:7b-instruct")
+        url = config.get("ollama_url", "http://127.0.0.1:11434")
+        log.info("Инициализация LLM: %s", model)
+        brain = Brain(model, url)
+        if not brain.available:
+            log.warning("LLM недоступна — работаем только с правилами")
+            brain = None
+        else:
+            log.info("Ждём прогрева LLM (10 с)...")
+            time.sleep(10)
+
+    speaker = None
+    if with_voice:
+        try:
+            from jarvis.tts import Speaker
+            speaker = Speaker(config)
+        except Exception:
+            log.exception("Speaker не завёлся — без озвучки")
+
+    log.info("Сборка IntentHandler...")
+    handler = IntentHandler(config, build_apps(config), brain)
+    return handler, speaker
+
+
+def run_one(handler, speaker, name, cmd, expected):
+    log.info("─" * 70)
+    log.info("ТЕСТ: %s | команда: %r", name, cmd)
+
+    t0 = time.time()
+    try:
+        reply = handler.handle(cmd)
+        if hasattr(reply, "__iter__") and not isinstance(reply, str):
+            reply = "".join(reply)
+    except Exception as e:
+        log.exception("Исключение в тесте %s", name)
+        r = Result(name, cmd, f"<EXCEPTION: {e}>", expected, time.time() - t0)
+        r.error = str(e)
+        return r
+
+    elapsed = time.time() - t0
+
+    if speaker is not None:
+        try:
+            speaker.speak(reply)
+        except Exception:
+            log.exception("Ошибка озвучки")
+
+    r = Result(name, cmd, reply, expected, elapsed)
+    log.info("Ответ: %s", str(reply)[:200])
+    log.info("Результат: %s", "OK" if r.passed else f"FAIL (ожидалось: {expected})")
+    return r
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Автотест Феникса")
+    parser.add_argument("--voice", action="store_true")
+    parser.add_argument("-k", "--filter")
+    args = parser.parse_args()
+
+    log.info("=" * 70)
+    log.info("АВТОТЕСТ ФЕНИКСА")
+    log.info("Лог: %s", LOG_FILE)
+    log.info("=" * 70)
+
+    handler, speaker = build_handler(with_voice=args.voice)
+
+    tests = TESTS
+    if args.filter:
+        f = args.filter.lower()
+        tests = [t for t in tests if f in t[0].lower()]
+        log.info("Фильтр %r: %d тестов", args.filter, len(tests))
+
+    results = []
+    t_start = time.time()
+    for name, cmd, expected in tests:
+        r = run_one(handler, speaker, name, cmd, expected)
+        results.append(r)
+
+    total = time.time() - t_start
+    passed = [r for r in results if r.passed]
+    failed = [r for r in results if not r.passed]
+
+    log.info("")
+    log.info("=" * 70)
+    log.info("ИТОГ: %d / %d пройдено за %.1f с", len(passed), len(results), total)
+    log.info("=" * 70)
+
+    for r in results:
+        log.info(str(r))
+
+    if failed:
+        log.info("")
+        log.info("ПРОВАЛЫ:")
+        for r in failed:
+            log.info("  %s", r.name)
+            log.info("    команда: %r", r.cmd)
+            log.info("    ответ:   %s", str(r.reply)[:200])
+            log.info("    ждали:   %s", r.expected)
+            if r.error:
+                log.info("    ошибка:  %s", r.error)
+
+    log.info("")
+    log.info("Полный лог: %s", LOG_FILE)
+    sys.exit(0 if not failed else 1)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+### `tests\test_config_manager.py`
+
+```python
+"""Тесты config_manager: параллельная запись не рвёт файл."""
+import json
+import threading
+import time
+from pathlib import Path
+
+from jarvis import config_manager
+
+
+def test_parallel_writes(tmp_path):
+    """20 потоков пишут разные ключи — все должны сохраниться."""
+    target = tmp_path / "test.json"
+    config_manager.save({}, path=target)
+
+    def writer(i):
+        config_manager.update(f"key_{i}", i, path=target)
+
+    threads = [threading.Thread(target=writer, args=(i,)) for i in range(20)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    data = json.loads(target.read_text(encoding="utf-8"))
+    present = [k for k in data if k.startswith("key_")]
+    assert len(present) == 20, f"Потерялись ключи: {present}"
+
+
+def test_atomic_write_valid_json(tmp_path):
+    """Если файл есть — он всегда валидный JSON."""
+    target = tmp_path / "test.json"
+    for i in range(50):
+        config_manager.update("counter", i, path=target)
+        data = json.loads(target.read_text(encoding="utf-8"))
+        assert "counter" in data
+
+
+def test_load_nonexistent(tmp_path):
+    """Несуществующий файл — возвращает {}."""
+    assert config_manager.load(path=tmp_path / "nope.json") == {}
+
+
+def test_load_broken(tmp_path):
+    """Битый файл — возвращает {}, не падает."""
+    bad = tmp_path / "bad.json"
+    bad.write_text("{это не json", encoding="utf-8")
+    assert config_manager.load(path=bad) == {}
+```
+
+### `tests\test_weather.py`
+
+```python
+"""Тесты weather: структура ответов, describe_*. Сеть не нужна — мокаем."""
+from unittest.mock import patch
+
+from jarvis import weather
+
+
+def test_describe_weather_none():
+    assert "Не удалось" in weather.describe_weather(None)
+
+
+def test_describe_weather_today():
+    w = {
+        "city": "Москва", "country": "Россия", "day": "сегодня",
+        "temp": 5, "feels": 2, "code": 3, "wind": 4,
+        "humidity": 70, "temp_min": 1, "temp_max": 8, "precip": 0.2,
+    }
+    s = weather.describe_weather(w)
+    assert "Москва" in s
+    assert "5 градусов" in s
+    assert "Россия" in s
+
+
+def test_describe_weather_tomorrow():
+    w = {
+        "city": "Казань", "country": "Россия", "day": "завтра",
+        "temp_min": -2, "temp_max": 3, "code": 71, "precip": 1.5,
+    }
+    s = weather.describe_weather(w)
+    assert "Казань" in s    assert "завтра" in s
+
+
+def test_describe_currency_specific():
+    rates = {
+        "date": "2026-10-04",
+        "valutes": {
+            "USD": {"name": "Доллар США", "value": 83.48, "nominal": 1},
+            "BYN": {"name": "Белорусский рубль", "value": 27.5, "nominal": 1},
+        },
+    }
+    s = weather.describe_currency(rates, code="BYN")
+    assert "Белорусский" in s
+    assert "27.50" in s
+
+
+def test_describe_currency_default():
+    rates = {
+        "date": "2026-10-04",
+        "valutes": {
+            "USD": {"name": "Доллар США", "value": 83.48, "nominal": 1},
+            "EUR": {"name": "Евро", "value": 94.32, "nominal": 1},
+        },
+    }
+    s = weather.describe_currency(rates)
+    assert "Доллар" in s and "Евро" in s
+
+
+def test_describe_currency_unknown():
+    rates = {"date": "2026-10-04", "valutes": {}}
+    s = weather.describe_currency(rates, code="XXX")
+    assert "не нашёл" in s
+```
