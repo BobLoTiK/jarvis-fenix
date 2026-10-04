@@ -1,72 +1,155 @@
-"""Загрузка конфигурации из config.json рядом с проектом."""
+"""Загрузка конфигурации и объект Config в памяти.
 
-import json
+Раньше: каждый модуль читал config.json с диска.
+Сейчас: Config живёт в памяти, читается один раз, изменения рассылаются подписчикам.
+
+Запись — через config_manager (единый FileLock).
+
+Совместимость: Config поддерживает config["key"] и config.get("key"),
+поэтому старый код, который работал с dict, продолжит работать.
+"""
+
 import logging
 from pathlib import Path
+from typing import Any, Callable
+
+from jarvis import config_manager
 
 log = logging.getLogger("jarvis.config")
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+
 DEFAULT_CONFIG = {
-    # Имя + варианты, в которые его превращает распознавание.
-    # Подбор нового имени: python scripts/wakebench.py
     "wake_words": ["феникс", "финикс", "феникса", "fenix", "phoenix",
                    "джарвис", "jarvis"],
-    # Синтез речи: auto (клон голоса из voices/jarvis.wav, если файл есть,
-    # иначе piper) / xtts / piper / winrt / sapi
     "tts_backend": "auto",
-    # Референс для клонирования (XTTS-v2): 10-30 с чистой речи без музыки
     "xtts_ref": "voices/jarvis.wav",
-    # Голоса piper: ruslan (чёткий) / dmitri (глубже); сэмплы — scripts/voicedemo.py
     "tts_voice": "ruslan",
-    # Скорость дикции: 1.0 — обычная, 1.15 — слегка быстрее
     "voice_rate": 1.15,
     "voice": "Pavel",
     "sample_rate": 16000,
-    # Микрофон: null — устройство по умолчанию; число — индекс; строка — поиск
-    # по имени (напр. "camo"). Подобрать: python scripts/mics.py
     "input_device": None,
-    # Через сколько секунд предупредить голосом, если микрофон молчит
     "mic_check_sec": 20,
-    # Сколько секунд ждать команду после отклика «Слушаю»
     "command_window_sec": 8,
-    # Whisper уточняет команду после wake-слова.
-    # device: auto (GPU при наличии CUDA, иначе CPU) / cuda / cpu
-    # model: auto (GPU -> large-v3-turbo, CPU -> small) или имя модели
+    "dialog_window_sec": 20,
     "use_whisper": True,
     "whisper_model": "auto",
-    "whisper_device": "auto", 
+    "whisper_device": "auto",
     "mode": "combo",
-    # LLM-фолбэк через Ollama: разбирает команды, которые не поняли правила.
-    # Требует установленной Ollama (winget install Ollama.Ollama) и модели
-    # (ollama pull qwen2.5:1.5b-instruct). Если Ollama нет — просто выключится.
+    "barge_enabled": True,
     "use_llm": True,
-    "llm_model": "qwen2.5:1.5b-instruct",
+    "llm_model": "qwen2.5:7b-instruct",
     "ollama_url": "http://127.0.0.1:11434",
-    # «Включи музыку»: запущенному плееру жмётся play (медиа-сессия),
-    # иначе плеер из меню «Пуск» запускается и сворачивается после старта
     "music_app": "яндекс музыка",
     "music_wait_sec": 6,
-    # Сколько секунд после разговорного ответа слушать без wake-слова
-    "dialog_window_sec": 8,
-    # Переопределение путей встроенных приложений: {"discord": "C:\\...\\Discord.exe"}
+    "active_packs": [],
     "app_paths": {},
-    # Свои команды: фразы -> действие (путь к exe, ссылка или steam-URI)
     "custom_commands": [],
+    "timers_file": "timers.json",
+    "tasks_file": "tasks.json",
+    "memory_file": "dialog.json",
+    "memory_max": 200,
 }
 
 
-def load_config(base_dir: Path) -> dict:
-    cfg = dict(DEFAULT_CONFIG)
-    path = base_dir / "config.json"
-    if path.exists():
-        try:
-            user = json.loads(path.read_text(encoding="utf-8"))
-            cfg.update(user)
-        except Exception:
-            log.exception("Не удалось прочитать %s, использую настройки по умолчанию", path)
-    else:
-        path.write_text(
-            json.dumps(DEFAULT_CONFIG, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
-        log.info("Создан конфиг по умолчанию: %s", path)
-    return cfg
+class Config:
+    """Конфиг в памяти с подписками на изменения."""
+
+    def __init__(self, path: Path | None = None):
+        self.path = path or (BASE_DIR / "config.json")
+        self._data: dict = {}
+        self._listeners: list[Callable[[str, Any], None]] = []
+        self.reload()
+
+    def reload(self) -> None:
+        """Перечитывает config.json с диска. Вызывается при старте.
+
+        Если файла нет — создаёт с DEFAULT_CONFIG.
+        """
+        raw = config_manager.load(path=self.path)
+        if not self.path.exists():
+            # Файла нет — создадим с дефолтами
+            merged = dict(DEFAULT_CONFIG)
+            config_manager.save(merged, path=self.path)
+            log.info("Создан конфиг по умолчанию: %s", self.path)
+        else:
+            merged = dict(DEFAULT_CONFIG)
+            merged.update(raw)
+            log.info("Конфиг загружен: %d ключей из %s", len(merged), self.path.name)
+        self._data = merged
+
+    # --- чтение ----------------------------------------------------------
+
+    def get(self, key: str, default=None):
+        return self._data.get(key, default)
+
+    def all_data(self) -> dict:
+        return dict(self._data)
+
+    # --- запись ----------------------------------------------------------
+
+    def set(self, key: str, value) -> bool:
+        """Ставит значение, сохраняет на диск, оповещает подписчиков."""
+        if self._data.get(key) == value:
+            return True
+        self._data[key] = value
+        ok = config_manager.save(self._data, path=self.path)
+        for cb in list(self._listeners):
+            try:
+                cb(key, value)
+            except Exception:
+                log.exception("Подписчик Config упал на ключе %s", key)
+        return ok
+
+    def update(self, data: dict) -> bool:
+        """Массовое обновление. Оповещает по каждому ключу."""
+        changed = {k: v for k, v in data.items() if self._data.get(k) != v}
+        if not changed:
+            return True
+        self._data.update(changed)
+        ok = config_manager.save(self._data, path=self.path)
+        for key, value in changed.items():
+            for cb in list(self._listeners):
+                try:
+                    cb(key, value)
+                except Exception:
+                    log.exception("Подписчик Config упал на ключе %s", key)
+        return ok
+
+    def subscribe(self, callback: Callable[[str, Any], None]) -> None:
+        """Регистрирует callback(key, value), вызываемый при set/update."""
+        self._listeners.append(callback)
+
+    # --- совместимость с dict --------------------------------------------
+
+    def __getitem__(self, key):
+        return self._data[key]
+
+    def __contains__(self, key):
+        return key in self._data
+
+    def __repr__(self):
+        return f"Config({len(self._data)} keys)"
+
+
+# --- Совместимость со старым API -----------------------------------------
+
+_GLOBAL: Config | None = None
+
+
+def load_config(base_dir: Path | None = None) -> Config:
+    """Создаёт глобальный Config. Старый API сохранён, но возвращает Config,
+    а не dict. Код, использующий config["x"] или config.get("x"), продолжит
+    работать, потому что Config поддерживает __getitem__ и .get().
+    """
+    global _GLOBAL
+    if _GLOBAL is None:
+        path = (base_dir / "config.json") if base_dir else None
+        _GLOBAL = Config(path)
+    return _GLOBAL
+
+
+def get_global() -> Config:
+    if _GLOBAL is None:
+        raise RuntimeError("Config не создан. Вызови load_config() при старте.")
+    return _GLOBAL

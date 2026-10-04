@@ -1,9 +1,4 @@
-"""Управление голосами Piper: ruslan, dmitri, irina, denis.
-
-Голосом: «смени голос на ирину», «голос дмитрий», «какой голос», «список голосов».
-Сохраняется в config.json → tts_voice.
-Запись — через config_manager (единый FileLock, атомарная замена).
-"""
+"""Управление голосами Piper: ruslan, dmitri, irina, denis."""
 
 import logging
 import re
@@ -29,25 +24,27 @@ ALIASES = {
 }
 
 
-def current_voice() -> str:
-    cfg = config_manager.load()
-    return cfg.get("tts_voice", "ruslan")
+def current_voice(config=None) -> str:
+    if config is not None:
+        return config.get("tts_voice", "ruslan")
+    return config_manager.load().get("tts_voice", "ruslan")
 
 
-def switch(voice: str) -> str:
+def switch(voice: str, config=None) -> str:
     if voice not in PIPER_VOICES:
         return f"Голос '{voice}' не знаю. Доступны: {', '.join(PIPER_VOICES)}."
-    if not config_manager.update("tts_voice", voice):
-        log.error("Не удалось сохранить голос")
-        return f"Не удалось переключить голос на {voice}."
+    if config is not None:
+        config.set("tts_voice", voice)
+    else:
+        config_manager.update("tts_voice", voice)
     log.info("Голос переключён на %s", voice)
     return f"Голос переключён на {voice.capitalize()}."
 
 
-def handle_voice_command(cmd: str) -> str | None:
+def handle_voice_command(cmd: str, config=None) -> str | None:
     if re.search(r"(какой|текущий|что\s+за)\s+голос", cmd) \
             or cmd in {"какой голос", "текущий голос"}:
-        return f"Сейчас голос: {current_voice().capitalize()}."
+        return f"Сейчас голос: {current_voice(config).capitalize()}."
 
     if re.search(r"(список|какие|покажи|доступные)\s+голос", cmd) \
             or cmd in {"список голосов", "какие голоса", "покажи голоса"}:
@@ -58,7 +55,7 @@ def handle_voice_command(cmd: str) -> str | None:
         name = m.group(1).strip().rstrip(".,!?").lower()
         key = ALIASES.get(name, name)
         if key in PIPER_VOICES:
-            return switch(key)
+            return switch(key, config)
         return f"Голос '{name}' не знаю. Доступны: {', '.join(PIPER_VOICES)}."
 
     m = re.match(r"^голос\s+(\S+)$", cmd)
@@ -66,7 +63,7 @@ def handle_voice_command(cmd: str) -> str | None:
         name = m.group(1).strip().rstrip(".,!?").lower()
         key = ALIASES.get(name, name)
         if key in PIPER_VOICES:
-            return switch(key)
+            return switch(key, config)
         return f"Голос '{name}' не знаю."
 
     return None

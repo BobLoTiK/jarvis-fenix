@@ -1,16 +1,14 @@
 """Синтез речи.
 
 Бэкенды: xtts / piper / winrt / sapi.
-Смена голоса на лету: при каждом speak() перечитываем config.json.
+Смена голоса на лету: через Config.subscribe — main.py вызывает speaker.set_voice().
 Streaming: speak_stream(iterator) — озвучивает по предложениям.
 Barge-in: play_async() + stop() — играет в потоке, можно прервать.
-Предобработка текста: _prepare_text() — раскрывает сокращения (м/с, км/ч, °C)
-и чистит markdown перед озвучкой.
+Предобработка текста: _prepare_text() — CJK, единицы, числа.
 """
 
 import asyncio
 import io
-import json
 import logging
 import os
 import re
@@ -24,42 +22,40 @@ log = logging.getLogger("jarvis.tts")
 
 PIPER_REPO = "rhasspy/piper-voices"
 BASE_DIR = Path(__file__).resolve().parent.parent
-CONFIG_PATH = BASE_DIR / "config.json"
 
 _SENTENCE_END = re.compile(r"[.!?…]+\s+")
 
 
 # ---------------------------------------------------------------
-# Предобработка текста: сокращения → как произносить
+# Предобработка текста
 # ---------------------------------------------------------------
 
-# Замены: (регулярка, чем заменить). Порядок — от специфичных к общим.
 _REPLACEMENTS = [
-    # единицы измерения (с пробелом и без)
-    (r"\bм/с\b", "метров в секунду"),
-    (r"\bкм/ч\b", "километров в час"),
-    (r"\bкм/с\b", "километров в секунду"),
-    (r"\bм/c\b", "метров в секунду"),
-    (r"\bкм/ч\.", "километров в час"),
+    # единицы измерения
+    (r"\bм/с\b", " метров в секунду"),
+    (r"\bкм/ч\b", " километров в час"),
+    (r"\bкм/с\b", " километров в секунду"),
+    (r"\bм/c\b", " метров в секунду"),
+    (r"\bкм/ч\.", " километров в час"),
     # температура
     (r"([+-]?\d+)\s*°\s*[CFЦ]?\b", r"\1 градусов"),
     (r"°\s*[CFЦ]?\b", " градусов"),
     # проценты
     (r"(\d+)\s*%", r"\1 процентов"),
-    # распространённые сокращения
-    (r"\bт\.\s*д\.", "так далее"),
-    (r"\bт\.\s*е\.", "то есть"),
-    (r"\bт\.\s*к\.", "так как"),
-    (r"\bт\.\s*п\.", "тому подобное"),
-    (r"\bдр\.", "другие"),
-    (r"\bг\.", "год"),
-    (r"\bгг\.", "годы"),
-    (r"\bруб\.", "рублей"),
-    (r"\bкоп\.", "копеек"),
-    (r"\bтыс\.", "тысяч"),
-    (r"\bмлн\.", "миллионов"),
-    (r"\bмлрд\.", "миллиардов"),
-    # единицы измерения (после цифры)
+    # сокращения
+    (r"\bт\.\s*д\.", " так далее"),
+    (r"\bт\.\s*е\.", " то есть"),
+    (r"\bт\.\s*к\.", " так как"),
+    (r"\bт\.\s*п\.", " тому подобное"),
+    (r"\bдр\.", " другие"),
+    (r"\bг\.", " год"),
+    (r"\bгг\.", " годы"),
+    (r"\bруб\.", " рублей"),
+    (r"\bкоп\.", " копеек"),
+    (r"\bтыс\.", " тысяч"),
+    (r"\bмлн\.", " миллионов"),
+    (r"\bмлрд\.", " миллиардов"),
+    # единицы после цифры
     (r"\b(\d+)\s*см\b", r"\1 сантиметров"),
     (r"\b(\d+)\s*мм\b", r"\1 миллиметров"),
     (r"\b(\d+)\s*км\b", r"\1 километров"),
@@ -70,7 +66,7 @@ _REPLACEMENTS = [
     (r"\b(\d+)\s*КБ\b", r"\1 килобайт"),
     (r"\b(\d+)\s*м\b", r"\1 метров"),
     (r"\b(\d+)\s*г\b", r"\1 граммов"),
-    # стрелки, символы
+    # символы
     (r"→", " стремится к "),
     (r"←", " из "),
     (r"≈", " примерно "),
@@ -79,17 +75,16 @@ _REPLACEMENTS = [
     (r"≠", " не равно "),
     (r"&", " и "),
     (r"\+", " плюс "),
-    (r"(?<!\w)-(?!\w)", " минус "),  # отдельный дефис = минус
+    (r"(?<!\w)-(?!\w)", " минус "),
     # markdown-мусор
     (r"\*+", ""),
     (r"_+", ""),
     (r"#+\s*", ""),
     (r"`+", ""),
-    (r"^\s*[-•]\s+", ""),  # маркеры списка в начале строки
+    (r"^\s*[-•]\s+", ""),
 ]
 
 _RE_COMPILED = [(re.compile(pat), repl) for pat, repl in _REPLACEMENTS]
-
 
 _CJK_RE = re.compile(
     r"[\u4e00-\u9fff"
@@ -102,7 +97,7 @@ _CJK_RE = re.compile(
 
 
 def _prepare_text(text: str) -> str:
-    """Чистит текст перед озвучкой: CJK, сокращения, markdown."""
+    """Чистит текст: CJK, сокращения, markdown."""
     if not text:
         return text
     text = _CJK_RE.sub(" ", text)
@@ -112,9 +107,11 @@ def _prepare_text(text: str) -> str:
     text = re.sub(r"\s+([,.!?;:])", r"\1", text)
     return text
 
+
 class Speaker:
-    def __init__(self, config: dict | None = None):
-        cfg = config or {}
+    def __init__(self, config):
+        # config — объект Config или dict. Работает и так, и так.
+        cfg = config if hasattr(config, "get") else {}
         self.rate = float(cfg.get("voice_rate", 1.15))
         self.voice = cfg.get("tts_voice", "ruslan")
         self._voice_hint = cfg.get("voice", "Pavel")
@@ -123,7 +120,6 @@ class Speaker:
         self._piper = None
         self._piper_cfg = None
 
-        # barge-in
         self._play_thread = None
         self._stop_flag = threading.Event()
         self._playing = False
@@ -138,7 +134,7 @@ class Speaker:
                 except Exception:
                     log.exception("XTTS не завёлся, переключаюсь на piper")
             elif backend == "xtts":
-                log.warning("Референс голоса не найден: %s — переключаюсь на piper", ref)
+                log.warning("Референс голоса не найден: %s", ref)
         if self._mode is None and backend in ("auto", "xtts", "piper"):
             try:
                 self._init_piper(self.voice)
@@ -147,27 +143,27 @@ class Speaker:
         if self._mode is None:
             try:
                 from winrt.windows.media.speechsynthesis import SpeechSynthesizer  # noqa: F401
-
                 self._mode = "winrt"
-                log.info("TTS: WinRT, голос с подсказкой %r, скорость %.2f",
-                         self._voice_hint, self.rate)
+                log.info("TTS: WinRT, голос %r, скорость %.2f", self._voice_hint, self.rate)
             except Exception:
-                log.exception("WinRT недоступен, переключаюсь на SAPI (pyttsx3)")
+                log.exception("WinRT недоступен, переключаюсь на SAPI")
                 self._init_sapi()
 
-    # --- перечитывание конфига -------------------------------------------
+    # --- сеттеры для Config.subscribe ------------------------------------
 
-    def _reload_config(self) -> None:
-        try:
-            if not CONFIG_PATH.exists():
-                return
-            cfg = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
-        except Exception:
-            log.exception("Не удалось перечитать config.json")
+    def set_voice(self, voice: str) -> None:
+        if voice == self.voice:
             return
+        log.info("Голос изменился: %s → %s", self.voice, voice)
+        self.voice = voice
+        if self._mode == "piper":
+            try:
+                self._init_piper(voice)
+            except Exception:
+                log.exception("Не удалось переключить Piper на %s", voice)
 
-        new_rate = float(cfg.get("voice_rate", self.rate))
-        self.rate = new_rate
+    def set_rate(self, rate: float) -> None:
+        self.rate = float(rate)
         if self._piper_cfg is not None:
             try:
                 from piper import SynthesisConfig
@@ -175,17 +171,7 @@ class Speaker:
             except Exception:
                 pass
 
-        new_voice = cfg.get("tts_voice", self.voice)
-        if new_voice != self.voice:
-            log.info("Голос изменился: %s → %s", self.voice, new_voice)
-            self.voice = new_voice
-            if self._mode == "piper":
-                try:
-                    self._init_piper(new_voice)
-                except Exception:
-                    log.exception("Не удалось переключить Piper на %s", new_voice)
-
-    # --- xtts ------------------------------------------------------------
+    # --- xtts / piper / sapi / winrt --------------------------------------
 
     def _init_xtts(self, ref: Path) -> None:
         os.environ.setdefault("COQUI_TOS_AGREED", "1")
@@ -201,7 +187,6 @@ class Speaker:
 
     def _speak_xtts(self, text: str) -> None:
         import numpy as np
-
         samples = self._xtts.tts(text=text, speaker_wav=self._xtts_ref,
                                  language="ru", speed=self.rate)
         pcm = (np.clip(np.asarray(samples), -1, 1) * 32767).astype(np.int16)
@@ -212,8 +197,6 @@ class Speaker:
             wf.setframerate(24000)
             wf.writeframes(pcm.tobytes())
         winsound.PlaySound(buf.getvalue(), winsound.SND_MEMORY)
-
-    # --- piper -----------------------------------------------------------
 
     def _init_piper(self, voice: str) -> None:
         from huggingface_hub import hf_hub_download
@@ -233,11 +216,8 @@ class Speaker:
             self._piper.synthesize_wav(text, wf, self._piper_cfg)
         winsound.PlaySound(buf.getvalue(), winsound.SND_MEMORY)
 
-    # --- winrt / sapi ----------------------------------------------------
-
     def _init_sapi(self) -> None:
         import pyttsx3
-
         self._engine = pyttsx3.init()
         for v in self._engine.getProperty("voices"):
             ident = f"{v.id} {v.name}".lower()
@@ -268,10 +248,7 @@ class Speaker:
         await reader.load_async(stream.size)
         return bytes(reader.read_buffer(stream.size))
 
-    # --- общий вход ------------------------------------------------------
-
     def _speak_one(self, text: str) -> None:
-        """Синтез и воспроизведение одного куска. С предобработкой текста."""
         text = _prepare_text(text)
         if not text or self._stop_flag.is_set():
             return
@@ -294,13 +271,9 @@ class Speaker:
     def speak(self, text: str) -> None:
         if not text:
             return
-        self._reload_config()
         self._speak_one(text)
 
-    # --- barge-in API ----------------------------------------------------
-
     def play_async(self, text: str) -> None:
-        self._reload_config()
         self._stop_flag.clear()
         self._playing = True
 
@@ -331,8 +304,6 @@ class Speaker:
         self._playing = False
 
     def speak_stream(self, text_iter, timeout: float = 30.0) -> str:
-        """Streaming TTS. С предобработкой каждого предложения."""
-        self._reload_config()
         self._stop_flag.clear()
         self._playing = True
 

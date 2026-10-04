@@ -1,11 +1,4 @@
-"""Режимы работы Феникса: commands, llm, combo.
-
-- commands — работают только правила, LLM выключена.
-- llm      — все фразы идут в LLM, правила пропускаются (кроме скриншота).
-- combo    — правила → LLM (по умолчанию).
-
-Запись в config.json — через config_manager (единый FileLock, атомарная замена).
-"""
+"""Режимы работы Феникса: commands, llm, combo."""
 
 import logging
 import re
@@ -21,36 +14,35 @@ NAMES = {
 }
 
 
-def get_mode(config: dict) -> str:
+def get_mode(config) -> str:
     m = config.get("mode", "combo")
     return m if m in NAMES else "combo"
 
 
-def set_mode(mode: str) -> str:
-    """Сохраняет режим в config.json атомарно через config_manager."""
+def set_mode(mode: str, config=None) -> str:
     if mode not in NAMES:
         return f"Неизвестный режим: {mode}."
-    if config_manager.update("mode", mode):
-        log.info("Режим переключён на %s", mode)
+    if config is not None:
+        config.set("mode", mode)
     else:
-        log.error("Не удалось сохранить режим")
+        config_manager.update("mode", mode)
+    log.info("Режим переключён на %s", mode)
     return f"Режим: {NAMES[mode]}."
 
 
-def handle_mode_command(cmd: str, current_mode: str) -> tuple[str | None, str]:
-    """Возвращает (ответ_или_None, новый_режим)."""
+def handle_mode_command(cmd: str, current_mode: str, config=None) -> tuple[str | None, str]:
     if re.search(r"режим\s+(команд|команды|только\s+команд)", cmd) \
             or cmd in {"только команды", "без ии"}:
-        return set_mode("commands"), "commands"
+        return set_mode("commands", config), "commands"
 
     if re.search(r"режим\s+(ии|искусственн\w*|нейросет\w*|нейронк\w*)", cmd) \
             or cmd in {"только ии", "режим ии", "режим нейросети", "только нейросеть"}:
-        return set_mode("llm"), "llm"
+        return set_mode("llm", config), "llm"
 
     if re.search(r"(комбинированн|обычн|стандартн|смешанн)\w*\s+режим", cmd) \
             or re.search(r"режим\s+(комбо|обычн|стандартн|смешанн|комбинированн)", cmd) \
             or cmd in {"обычный режим", "комбо", "режим комбо"}:
-        return set_mode("combo"), "combo"
+        return set_mode("combo", config), "combo"
 
     if re.search(r"(какой|текущий|что\s+за)\s+режим", cmd) \
             or cmd in {"какой режим", "текущий режим"}:

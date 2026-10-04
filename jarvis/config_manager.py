@@ -2,15 +2,14 @@
 
 Зачем:
     Раньше _atomic_write был продублирован в modes.py, voices.py, packs.py.
-    Три лока — три разных процесса не защищены, а между модулями
-    всё равно была гонка. Плюс path.with_suffix(".tmp") давал общий
-    временный файл, и два потока могли перетереть данные друг друга.
+    Три лока, три .tmp, гонка между модулями.
+    Плюс path.with_suffix(".tmp") давал общий временный файл.
 
 Как работает:
     - Один FileLock на весь проект (работает и между процессами).
-    - Уникальный .tmp через tempfile.mkstemp (никто не пересечётся).
-    - os.replace для атомарной подмены (уровень ОС, а не "надеемся").
-    - Если что-то упало — .tmp удаляется, старый config.json цел.
+    - Уникальный .tmp через tempfile.mkstemp.
+    - os.replace для атомарной подмены.
+    - Логи: сколько ключей прочитано / записано.
 """
 
 import json
@@ -35,7 +34,11 @@ def load(path: Path | None = None) -> dict:
     if not p.exists():
         return {}
     try:
-        return json.loads(p.read_text(encoding="utf-8"))
+        data = json.loads(p.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            log.warning("Файл %s не словарь (%s) — возвращаю {}", p.name, type(data).__name__)
+            return {}
+        return data
     except Exception:
         log.exception("Не удалось прочитать %s", p)
         return {}
@@ -44,8 +47,12 @@ def load(path: Path | None = None) -> dict:
 def save(data: dict, path: Path | None = None) -> bool:
     """Атомарно записывает JSON. Возвращает True при успехе."""
     p = Path(path) if path else CONFIG_PATH
+    if not isinstance(data, dict):
+        log.error("save: data не словарь (%s) — отказ", type(data).__name__)
+        return False
     try:
         with _lock:
+            log.info("save: пишу %d ключей → %s", len(data), p.name)
             fd, tmp_name = tempfile.mkstemp(
                 dir=str(p.parent), suffix=".tmp", prefix=p.stem + "."
             )
@@ -71,6 +78,7 @@ def update(key: str, value, path: Path | None = None) -> bool:
     try:
         with _lock:
             data = load(p)
+            log.info("update: key=%r, до=%d ключей, файл=%s", key, len(data), p.name)
             data[key] = value
             fd, tmp_name = tempfile.mkstemp(
                 dir=str(p.parent), suffix=".tmp", prefix=p.stem + "."

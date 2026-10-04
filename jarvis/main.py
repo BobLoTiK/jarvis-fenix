@@ -15,7 +15,7 @@ from jarvis.matching import wake_score
 
 from jarvis import APP_NAME, __version__
 from jarvis.apps import build_apps
-from jarvis.config import load_config
+from jarvis.config import Config, load_config
 from jarvis.intents import IntentHandler, normalize
 from jarvis.model import ensure_model
 from jarvis.stt import Listener
@@ -30,8 +30,7 @@ _REJECT = object()
 
 
 class Jarvis:
-    def __init__(self, config: dict, listener: Listener, speaker: Speaker,
-                 handler: IntentHandler, base_dir: Path, whisper=None):
+    def __init__(self, config, listener, speaker, handler, base_dir: Path, whisper=None):
         self.config = config
         self.listener = listener
         self.speaker = speaker
@@ -42,17 +41,12 @@ class Jarvis:
         self.stop_event = threading.Event()
         self._awaiting_until = 0.0
         self._wake_words = [normalize(w) for w in config["wake_words"]]
-        # barge-in — из конфига
         self.barge_enabled = bool(config.get("barge_enabled", True))
         if self.listener is not None:
             self.listener.barge_enabled = self.barge_enabled
-        # флаг: был ли barge-in в последнем say()
         self._barge_just_happened = False
 
-    # --- barge-in-совместимый say() --------------------------------------
-
     def say(self, text) -> bool:
-        """Озвучивает строку или генератор. Возвращает True, если был barge-in."""
         if not text:
             return False
 
@@ -69,13 +63,10 @@ class Jarvis:
                 self._say_stream(text)
             else:
                 self._say_text(text)
-            # проверяем флаг после завершения речи
             barge_happened = self.barge_enabled and self.listener.barge_flag
         finally:
             if self.barge_enabled and self.listener is not None:
                 self.listener.barge_end()
-            # при barge-in НЕ flush'им буфер — там может быть фраза юзера
-            # (но в простой версии она всё равно потеряется — это ок)
             self.listener.flush()
             self.listener.muted = False
         return barge_happened
@@ -113,8 +104,6 @@ class Jarvis:
 
         if result["text"] and hasattr(self.handler, "finalize_stream"):
             self.handler.finalize_stream("", result["text"])
-
-    # --- служебное -------------------------------------------------------
 
     def shutdown(self) -> None:
         self.stop_event.set()
@@ -161,15 +150,12 @@ class Jarvis:
         reply = self.handler.handle(cmd)
         barge_happened = self.say(reply)
 
-        # сброс «стой»
         if getattr(self.handler, "_reset_requested", False):
             self._awaiting_until = 0.0
             self.handler._reset_requested = False
             log.info("Сброс: жду wake-слово")
             return
 
-        # после ЛЮБОГО ответа — окно на продолжение диалога без wake-слова.
-        # После barge-in — тоже (и особенно полезно).
         if barge_happened:
             log.info("Barge-in: открываю окно диалога (без wake-слова)")
         self._awaiting_until = time.time() + float(
@@ -207,12 +193,12 @@ class Jarvis:
             wake_score(token, w) >= 0.8 for w in self._wake_words
         )
 
+
 def setup_logging() -> None:
-    # Заглушаем болтливые библиотеки
     logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("urllib3").setLevel(logging.WARNING)
-    """Настраивает логирование: общий лог, лог действий, лог ошибок."""
+
     LOGS_DIR = BASE_DIR / "logs"
     LOGS_DIR.mkdir(exist_ok=True)
 
@@ -224,13 +210,11 @@ def setup_logging() -> None:
     for h in list(root.handlers):
         root.removeHandler(h)
 
-    # 1) Консоль
     console = logging.StreamHandler()
     console.setFormatter(formatter)
     console.setLevel(logging.INFO)
     root.addHandler(console)
 
-    # 2) Общий лог jarvis.log
     jarvis_handler = logging.handlers.RotatingFileHandler(
         LOGS_DIR / "jarvis.log",
         maxBytes=5 * 1024 * 1024,
@@ -241,7 +225,6 @@ def setup_logging() -> None:
     jarvis_handler.setLevel(logging.INFO)
     root.addHandler(jarvis_handler)
 
-    # 3) Лог ошибок errors.log
     errors_handler = logging.handlers.RotatingFileHandler(
         LOGS_DIR / "errors.log",
         maxBytes=5 * 1024 * 1024,
@@ -252,7 +235,6 @@ def setup_logging() -> None:
     errors_handler.setLevel(logging.WARNING)
     root.addHandler(errors_handler)
 
-    # 4) Лог действий actions.log
     actions_logger = logging.getLogger("jarvis.actions")
     actions_logger.setLevel(logging.INFO)
     actions_logger.propagate = False
@@ -270,16 +252,16 @@ def main() -> None:
     setup_logging()
     log.info("%s v%s запускается", APP_NAME, __version__)
 
-    config = load_config(BASE_DIR)
+    config: Config = load_config(BASE_DIR)
     model_dir = ensure_model(BASE_DIR / "models")
 
     whisper = None
     if config.get("use_whisper", True):
         try:
             from jarvis.stt import WhisperTranscriber
-
             whisper = WhisperTranscriber(
-                config.get("whisper_model", "auto"), config.get("whisper_device", "auto")
+                config.get("whisper_model", "auto"),
+                config.get("whisper_device", "auto"),
             )
         except Exception:
             log.exception("Whisper не завёлся, работаю только на Vosk")
@@ -287,8 +269,7 @@ def main() -> None:
     brain = None
     if config.get("use_llm", True):
         from jarvis.brain import Brain
-
-        brain = Brain(config.get("llm_model", "qwen2.5:1.5b-instruct"),
+        brain = Brain(config.get("llm_model", "qwen2.5:7b-instruct"),
                       config.get("ollama_url", "http://127.0.0.1:11434"))
         if not brain.available:
             brain = None
@@ -297,8 +278,22 @@ def main() -> None:
     listener = Listener(model_dir, config["sample_rate"], config.get("input_device"))
     handler = IntentHandler(config, build_apps(config), brain)
     jarvis = Jarvis(config, listener, speaker, handler, BASE_DIR, whisper)
-    
-    # таймеры: callback + восстановление сохранённых
+
+    # --- Подписки: изменения конфига применяются на лету ---
+    def _on_config_change(key: str, value):
+        if key == "tts_voice":
+            speaker.set_voice(value)
+        elif key == "voice_rate":
+            speaker.set_rate(value)
+        elif key == "mode":
+            handler.mode = value
+        elif key == "barge_enabled":
+            jarvis.barge_enabled = bool(value)
+            if listener is not None:
+                listener.barge_enabled = bool(value)
+
+    config.subscribe(_on_config_change)
+
     def _on_timer_fire(timer: dict):
         text = timer.get("text") or "время вышло"
         msg = f"Напоминание: {text}."
