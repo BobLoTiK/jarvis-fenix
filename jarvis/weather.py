@@ -5,6 +5,9 @@
     - cbr-xml-daily.ru (курс ЦБ РФ, без ключа)
 
 Кэш: 10 минут на город / на курс.
+
+ВАЖНО: нормализация города и валюты (падежи, синонимы, ISO-коды) — задача LLM.
+Этот модуль ожидает уже нормализованные данные.
 """
 
 import json
@@ -46,7 +49,10 @@ def _http_get_json(url: str, timeout: float = 8.0):
 # --- геокодинг --------------------------------------------------------------
 
 def geocode(city: str) -> Optional[dict]:
-    """Возвращает {'name': ..., 'lat': ..., 'lon': ...} или None."""
+    """Возвращает {'name': ..., 'country': ..., 'lat': ..., 'lon': ...} или None.
+
+    Ожидает название города в именительном падеже (нормализует LLM).
+    """
     key = ("geo", city.lower().strip())
     return _cached(key, lambda: _geocode_uncached(city))
 
@@ -63,6 +69,8 @@ def _geocode_uncached(city: str) -> Optional[dict]:
     r = results[0]
     return {
         "name": r.get("name") or city,
+        "country": r.get("country") or "",
+        "admin1": r.get("admin1") or "",
         "lat": r.get("latitude"),
         "lon": r.get("longitude"),
     }
@@ -86,7 +94,7 @@ _WEATHER_CODES = {
 
 def get_weather(city: str, day: str = "today") -> Optional[dict]:
     """Возвращает погоду для города.
-    
+
     day: 'today' | 'tomorrow'
     """
     key = ("weather", city.lower().strip(), day)
@@ -113,6 +121,7 @@ def _get_weather_uncached(city: str, day: str) -> Optional[dict]:
         if day == "tomorrow":
             return {
                 "city": geo["name"],
+                "country": geo.get("country", ""),
                 "day": "завтра",
                 "temp_min": round(data["daily"]["temperature_2m_min"][1]),
                 "temp_max": round(data["daily"]["temperature_2m_max"][1]),
@@ -123,6 +132,7 @@ def _get_weather_uncached(city: str, day: str) -> Optional[dict]:
         daily = data["daily"]
         return {
             "city": geo["name"],
+            "country": geo.get("country", ""),
             "day": "сегодня",
             "temp": round(cur["temperature_2m"]),
             "feels": round(cur["apparent_temperature"]),
@@ -144,14 +154,19 @@ def describe_weather(w: dict) -> str:
         return "Не удалось узнать погоду."
     code = w.get("code", -1)
     desc = _WEATHER_CODES.get(code, "неизвестно")
+
+    country = (w.get("country") or "").strip()
+    city = w.get("city", "")
+    city_full = f"{city}, {country}" if country else city
+
     if w.get("day") == "завтра":
         return (
-            f"Погода в {w['city']} на завтра: {desc}, "
+            f"Погода в {city_full} на завтра: {desc}, "
             f"от {w['temp_min']} до {w['temp_max']} градусов, "
             f"осадки {round(w['precip'], 1)} мм."
         )
     return (
-        f"Погода в {w['city']} сейчас: {desc}, "
+        f"Погода в {city_full} сейчас: {desc}, "
         f"{w['temp']} градусов, ощущается как {w['feels']}. "
         f"Ветер {w['wind']} метров в секунду, влажность {w['humidity']} процентов. "
         f"Днём от {w['temp_min']} до {w['temp_max']} градусов."
@@ -161,7 +176,17 @@ def describe_weather(w: dict) -> str:
 # --- курс валют -------------------------------------------------------------
 
 def get_currency_rates() -> Optional[dict]:
-    """Возвращает {'USD': ..., 'EUR': ..., 'date': ...} (рублей за единицу)."""
+    """Возвращает все валюты ЦБ:
+        {
+            "date": "2026-10-04",
+            "valutes": {
+                "USD": {"name": "Доллар США", "value": 83.48, "nominal": 1},
+                "EUR": {...},
+                "BYN": {...},
+                ...
+            }
+        }
+    """
     key = ("currency", "cbr")
     return _cached(key, _get_currency_uncached)
 
@@ -172,22 +197,60 @@ def _get_currency_uncached() -> Optional[dict]:
     if not data:
         return None
     try:
-        val = data["Valute"]
+        valutes = {}
+        for code, v in data["Valute"].items():
+            valutes[code] = {
+                "name": v.get("Name") or code,
+                "value": v.get("Value"),
+                "nominal": v.get("Nominal", 1),
+            }
         return {
             "date": data.get("Date", "")[:10],
-            "USD": val["USD"]["Value"],
-            "EUR": val["EUR"]["Value"],
-            "CNY": val.get("CNY", {}).get("Value"),
+            "valutes": valutes,
         }
     except (KeyError, TypeError):
         log.exception("Не удалось разобрать ответ ЦБ")
         return None
 
 
-def describe_currency(rates: dict) -> str:
+# Приоритет для вывода «общего курса»
+_DEFAULT_CURRENCIES = ["USD", "EUR", "CNY"]
+
+
+def describe_currency(rates: dict, code: str = "") -> str:
+    """Озвучивает курс.
+
+    rates: результат get_currency_rates()
+    code:  ISO-код валюты ("USD", "BYN", "KZT", ...). Пусто — основные.
+    """
     if not rates:
         return "Не удалось узнать курс валют."
-    parts = [f"Доллар — {rates['USD']:.2f} рубля", f"евро — {rates['EUR']:.2f} рубля"]
-    if rates.get("CNY"):
-        parts.append(f"юань — {rates['CNY']:.2f} рубля")
-    return "Курс ЦБ на сегодня: " + ", ".join(parts) + "."
+
+    valutes = rates.get("valutes", {})
+
+    # Конкретная валюта
+    if code:
+        v = valutes.get(code.upper())
+        if not v:
+            return f"Курс валюты {code} не нашёл в базе ЦБ."
+        nominal = v.get("nominal") or 1
+        value = v.get("value")
+        if value is None:
+            return f"Курс валюты {code} не удалось прочитать."
+        if nominal == 1:
+            return f"{v['name']} — {value:.2f} рубля."
+        return f"{v['name']} ({nominal} шт.) — {value:.2f} рубля."
+
+    # Общий курс — основные валюты
+    parts = []
+    for c in _DEFAULT_CURRENCIES:
+        v = valutes.get(c)
+        if not v or v.get("value") is None:
+            continue
+        parts.append(f"{v['name']} — {v['value']:.2f} рубля")
+
+    if not parts:
+        return "Не удалось прочитать основные валюты."
+
+    date = rates.get("date") or "сегодня"
+    return f"Курс ЦБ на {date}: " + ", ".join(parts) + "."

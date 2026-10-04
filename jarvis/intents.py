@@ -2,13 +2,14 @@
 
 Архитектура LLM-first:
     1. CANCEL — мгновенно.
-    2. Буфер обмена — быстрые правила.
-    3. Быстрая проверка режимов — до LLM.
-    4. custom_commands — точное совпадение.
-    5. small_talk — время, дата, «как дела».
-    6. скриншот — быстро.
-    7. Всё остальное — LLM: parse() → интент → _execute_intent().
-    8. Если не команда — chat_stream() → диалог (со историей).
+    2. Ответ на уточняющий вопрос (если был задан).
+    3. Буфер обмена — быстрые правила.
+    4. Быстрая проверка режимов — до LLM.
+    5. custom_commands — точное совпадение.
+    6. small_talk — время, дата, «как дела».
+    7. скриншот — быстро.
+    8. Всё остальное — LLM: parse() → интент → _execute_intent().
+    9. Если не команда — chat_stream() → диалог (со историей).
 """
 
 import datetime
@@ -31,6 +32,7 @@ from jarvis import voices
 from jarvis import timers
 from jarvis import tasks
 from jarvis import weather
+from jarvis import profile
 
 
 log = logging.getLogger("jarvis.intents")
@@ -95,6 +97,9 @@ class IntentHandler:
         self.last_macro = None
         self._reset_requested = False
         self._last_reply = ""
+        # Ожидающий уточняющий вопрос (город для погоды и т.п.).
+        # Формат: {"type": "...", "expires_at": time.time() + N, ...}
+        self._pending_question = None
 
         self._config_custom_original = []
         for entry in config.get("custom_commands", []):
@@ -136,30 +141,32 @@ class IntentHandler:
         if cmd in CANCEL:
             self._reset_requested = True
             return "Жду обращение, сэр."
-            
+
+        # 1.5. Ответ на уточняющий вопрос
+        if self._pending_question and time.time() < self._pending_question.get("expires_at", 0):
+            return self._handle_pending_answer(cmd)
+        else:
+            self._pending_question = None
+
         # 2. Буфер обмена — быстрые правила
-        # «скопируй выделенное» — жмёт Ctrl+C в активном окне
         if re.search(r"скопируй\s+(выделенное|выделенный|это\s+выделенное)", cmd) \
                 or re.search(r"(выдели|выделенное)\s+(и\s+)?скопируй", cmd) \
                 or cmd in {"скопируй выделенное", "скопируй это выделенное"}:
             return self._execute_intent({"action": "copy_selection"})
 
-        # «скопируй свой ответ» — копирует последний ответ Феникса
         if re.search(r"скопируй\s+(свой\s+)?(ответ|ответь|последнее|сказанное)", cmd) \
                 or cmd in {"скопируй свой ответ", "скопируй ответ", "скопируй что ты сказал"}:
             return self._execute_intent({"action": "clipboard_copy_last"})
 
-        # «что в буфере» — читает
         if re.search(r"(что|чё)\s+(в\s+)?буфере", cmd) \
                 or re.search(r"(покажи|прочитай|что)\s+буфер", cmd) \
                 or cmd in {"что скопировано", "что в буфере"}:
             return self._execute_intent({"action": "clipboard_read"})
 
-        # «очисти буфер»
         if re.search(r"(очисти|сотри|удали)\s+буфер", cmd) \
                 or cmd in {"очисти буфер", "сотри буфер"}:
             return self._execute_intent({"action": "clipboard_clear"})
-        
+
         # 3. Быстрая проверка режимов — ДО LLM
         if any(w in cmd for w in ("режим", "комбо", "комбинирован")):
             reply, new_mode = modes.handle_mode_command(cmd, self.mode)
@@ -217,6 +224,27 @@ class IntentHandler:
             self.last_was_chat = True
             return gen
         return "Я не понял команду."
+
+    def _handle_pending_answer(self, cmd: str) -> str:
+        """Обрабатывает ответ пользователя на уточняющий вопрос."""
+        pending = self._pending_question
+        self._pending_question = None
+
+        if pending.get("type") == "city_for_weather":
+            city = cmd.strip()
+            if not city or len(city) > 60:
+                return "Не расслышал город. Повторите, пожалуйста."
+            # Сохраняем как ввёл пользователь — LLM позже нормализует
+            profile.set("default_city", city)
+            log.info("Запомнил город по умолчанию: %s", city)
+
+            day = pending.get("day", "today")
+            w = weather.get_weather(city, day=day)
+            if w:
+                return f"Запомнил. {weather.describe_weather(w)}"
+            return f"Запомнил город «{city}», но погоду узнать не удалось."
+
+        return "Не понял уточнение."
 
     def _execute_steps(self, steps: list) -> str | None:
         reply = None
@@ -340,7 +368,6 @@ class IntentHandler:
             ok = actions.copy_selection()
             if not ok:
                 return "Не удалось скопировать."
-            # Читаем, что скопировалось
             time.sleep(0.15)
             text = actions.clipboard_read()
             if text:
@@ -478,6 +505,32 @@ class IntentHandler:
             log_path = Path(__file__).resolve().parent.parent / "logs" / "jarvis.log"
             actions.open_path(log_path)
             return "Открываю журнал."
+
+        if action == "get_weather":
+            # LLM уже нормализовала город (именительный падеж).
+            city = str(intent.get("target") or "").strip()
+            day = "tomorrow" if intent.get("day") == "tomorrow" else "today"
+
+            if not city:
+                city = profile.get("default_city")
+            if not city:
+                self._pending_question = {
+                    "type": "city_for_weather",
+                    "day": day,
+                    "expires_at": time.time() + 30,
+                }
+                return "В каком городе узнать погоду?"
+
+            w = weather.get_weather(city, day=day)
+            if not w:
+                return f"Не удалось узнать погоду для «{city}». Проверь название или интернет."
+            return weather.describe_weather(w)
+
+        if action == "get_currency":
+            # LLM нормализует валюту в ISO-код (USD, BYN, KZT, ...).
+            code = str(intent.get("target") or "").strip().upper()
+            r = weather.get_currency_rates()
+            return weather.describe_currency(r, code=code)
 
         if action == "answer" and intent.get("reply"):
             return str(intent["reply"])[:600]
@@ -627,7 +680,8 @@ class IntentHandler:
         if any(p in cmd for p in ("что ты умеешь", "помощь", "что умеешь", "команды")):
             return ("Я умею открывать и закрывать приложения и сайты, делать скриншоты, "
                     "искать в интернете, печатать текст, управлять окнами, ставить "
-                    "напоминания, вести списки задач и отвечать на вопросы.")
+                    "напоминания, вести списки задач, узнавать погоду и курс валют, "
+                    "и отвечать на вопросы.")
         if any(p in cmd for p in ("спасибо", "благодарю")):
             return "Всегда пожалуйста."
         if any(p in cmd for p in ("привет", "здравствуй", "добрый день", "доброе утро", "добрый вечер")):

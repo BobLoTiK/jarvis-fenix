@@ -13,7 +13,7 @@ import urllib.request
 log = logging.getLogger("jarvis.brain")
 
 SYSTEM = """Ты разбираешь команды голосового ассистента на Windows. Отвечай ТОЛЬКО JSON.
-Поля: action; target; query; engine (google|youtube|wiki); reply; text; mode; name; voice; seconds; time; task; folder; minimized.
+Поля: action; target; query; engine (google|youtube|wiki); reply; text; mode; name; voice; seconds; time; task; folder; minimized; day (today|tomorrow).
 
 Действия:
 open_app (открыть программу/игру; target; minimized=true — свёрнуто)
@@ -56,6 +56,8 @@ remove_task (удалить задачу; task)
 clear_tasks (очистить список)
 open_config (открыть конфиг)
 open_log (открыть лог)
+get_weather (узнать погоду; target — название города В ИМЕНИТЕЛЬНОМ ПАДЕЖЕ; day: today|tomorrow)
+get_currency (курс валют ЦБ РФ; target — ISO-код валюты или пусто)
 answer (ответ на вопрос; reply)
 none (бессмыслица)
 
@@ -65,9 +67,36 @@ none (бессмыслица)
 НИКОГДА не используй set_mode для слов: «верни», «открой», «покажи», «запусти», «включи музыку».
 
 ВАЖНО про search vs answer:
-По умолчанию отвечай САМ через answer — даже на вопросы о фактах, объяснения, мнения, советы, шутки, историю, погоду.
+По умолчанию отвечай САМ через answer — даже на вопросы о фактах, объяснения, мнения, советы, шутки, историю.
 НИКОГДА не используй search, если пользователь явно не сказал: «найди», «поищи», «ищи», «загугли», «погугли», «поиск».
 Свежесть данных — НЕ повод для search, если глагола поиска нет.
+
+ВАЖНО про погоду:
+Для погоды используй get_weather, НЕ search. Даже если пользователь говорит «найди погоду» — это get_weather.
+target — название города в ИМЕНИТЕЛЬНОМ падеже (как в справочнике).
+Примеры нормализации:
+  «в нижнем новгороде» → target: "Нижний Новгород"
+  «в питере» → target: "Санкт-Петербург"
+  «в мск» → target: "Москва"
+  «в екб» → target: "Екатеринбург"
+  «в нижнем» (если контекст понятен) → target: "Нижний Новгород"
+Если город не назван — не указывай target. Ассистент сам спросит или возьмёт из профиля.
+Если day не указан — оставь today. «на завтра» → day: tomorrow.
+
+ВАЖНО про курс валют:
+Для курса используй get_currency, НЕ search.
+target — это ISO-код валюты (USD, EUR, CNY, BYN, KZT, UAH, GBP, JPY, TRY, ...).
+Примеры нормализации:
+  «курс доллара» → target: "USD"
+  «курс евро» → target: "EUR"
+  «курс юаня» → target: "CNY"
+  «курс белорусского рубля» → target: "BYN"
+  «курс тенге» → target: "KZT"
+  «курс фунта» → target: "GBP"
+  «курс лиры» → target: "TRY"
+  «курс валют» (без конкретной) → target не указывай.
+Если пользователь называет валюту — ОБЯЗАТЕЛЬНО ставь target с ISO-кодом.
+Если не уверен в коде — не указывай target.
 
 ВАЖНО про окна:
 - «консоль», «терминал», «командная строка», «cmd» → target: "cmd"
@@ -135,6 +164,21 @@ none (бессмыслица)
 очисти список -> {"action":"clear_tasks"}
 открой конфиг -> {"action":"open_config"}
 открой журнал -> {"action":"open_log"}
+какая погода -> {"action":"get_weather","day":"today"}
+какая погода в нижнем новгороде -> {"action":"get_weather","target":"Нижний Новгород","day":"today"}
+какая погода в питере -> {"action":"get_weather","target":"Санкт-Петербург","day":"today"}
+какая погода в мск -> {"action":"get_weather","target":"Москва","day":"today"}
+погода в москве на завтра -> {"action":"get_weather","target":"Москва","day":"tomorrow"}
+что по погоде в казани -> {"action":"get_weather","target":"Казань","day":"today"}
+курс валют -> {"action":"get_currency"}
+курс доллара -> {"action":"get_currency","target":"USD"}
+курс евро -> {"action":"get_currency","target":"EUR"}
+курс юаня -> {"action":"get_currency","target":"CNY"}
+курс белорусского рубля -> {"action":"get_currency","target":"BYN"}
+курс тенге -> {"action":"get_currency","target":"KZT"}
+курс фунта -> {"action":"get_currency","target":"GBP"}
+сколько стоит доллар -> {"action":"get_currency","target":"USD"}
+а белорусский рубль -> {"action":"get_currency","target":"BYN"}
 расскажи шутку -> {"action":"answer","reply":"Почему медведь не ездит на машине? Потому что у него нет водительских прав."}
 что такое чёрная дыра -> {"action":"answer","reply":"Это область пространства, откуда не может вырваться даже свет."}
 как дела -> {"action":"answer","reply":"Отлично, сэр. Готов к работе."}
@@ -150,6 +194,7 @@ ACTIONS = {
     "add_task", "list_tasks", "done_task", "remove_task", "clear_tasks",
     "open_config", "open_log", "play_pause", "next_track", "prev_track",
     "volume_up", "volume_down", "mute",
+    "get_weather", "get_currency",
 }
 
 CHAT_SYSTEM = (
