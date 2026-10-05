@@ -1,5 +1,7 @@
 # Феникс
 
+[![tests](https://github.com/BobLoTiK/jarvis-fenix/actions/workflows/test.yml/badge.svg)](https://github.com/BobLoTiK/jarvis-fenix/actions/workflows/test.yml)
+
 Локальный голосовой ассистент для Windows. Форк проекта [jsays12/jarvis](https://github.com/jsays12/jarvis).
 
 Коммиты до июня 2026 — от оригинала, с октября 2026 — мои изменения.
@@ -31,6 +33,7 @@
 - [Автозапуск](#автозапуск)
 - [Права администратора](#права-администратора)
 - [Инструменты разработчика](#инструменты-разработчика)
+- [CI (Continuous Integration)](#ci-continuous-integration)
 - [Траблшутинг](#траблшутинг)
 - [Технологии](#технологии)
 
@@ -61,6 +64,15 @@
 - **Буфер обмена** — «что в буфере», «очисти буфер», «скопируй выделенное» (Ctrl+C), «скопируй свой ответ».
 - **Погода и курс валют** — через `open-meteo.com` и `cbr-xml-daily.ru` без ключей. Кэш 10 минут.
 - **Профиль пользователя** — `user_profile.json` (в `.gitignore`). Хранит город по умолчанию.
+
+### Этап 3: Reply + CI
+
+- **`jarvis/reply.py`** — явный тип `Reply` (`text` | `stream`) вместо `hasattr(reply, "__iter__")`.
+- **Быстрые правила без LLM** — голоса, паки, таймеры, задачи, простая погода/курс.
+- **`_open_fast`** — открытие приложений/сайтов/папок без LLM.
+- **GitHub Actions** — CI на `windows-latest`: синтаксис + pytest + test_intents.
+- **UTF-8 fix** — `reconfigure` в скриптах + `PYTHONUTF8=1` в CI.
+- **Документация** — `CHANGELOG.md`, `CONTRIBUTING.md`, `CI.md`.
 
 ### Инструменты
 
@@ -357,8 +369,9 @@ Streaming: LLM отдаёт ответ по предложениям → пер�
 
     pythonw -m jarvis
 
-Либо собрать `.exe`:
+Либо собрать `.exe` (нужен `pyinstaller`):
 
+    pip install pyinstaller
     python scripts/build_exe.py
 
 ## Автозапуск
@@ -396,19 +409,42 @@ Win+R → `shell:startup` → Enter. Скопируй туда ярлык на `
 | `start_fenix.bat` | Запуск без консоли (через `pythonw`) |
 | `start_fenix_debug.bat` | Запуск с логами в консоли |
 | `check_syntax.py` | `ast.parse()` по всем `.py` в проекте |
-| `test_intents.py` | 27 сценариев без микрофона |
+| `test_intents.py` | 27 сценариев без микрофона (флаги `--llm`, `--network`, `--voice`) |
 | `snapshot.py` | Собирает проект в `SNAPSHOT.md` |
 | `scripts/selftest.py` | Самопроверка TTS → Vosk → разбор |
 | `scripts/mics.py` | Выбор микрофона |
 | `scripts/wakebench.py` | Бенчмарк wake-слов |
 | `scripts/voicedemo.py` | Прослушка голосов |
 | `scripts/build_exe.py` | Сборка лаунчера в `.exe` |
+| `.github/workflows/test.yml` | CI: синтаксис + pytest + test_intents (см. `CI.md`) |
 
 Запуск тестов:
 
     python check_syntax.py
     python -m pytest tests/ -v
     python test_intents.py
+
+## CI (Continuous Integration)
+
+При каждом push GitHub автоматически:
+1. Проверяет синтаксис (`check_syntax.py`).
+2. Гоняет юнит-тесты (`pytest tests/`).
+3. Гоняет интент-тесты (`test_intents.py`, без LLM и без сети).
+
+Результат — на вкладке **Actions** или рядом с коммитом: ✅ / ❌.
+
+**Подробнее** — см. `CI.md`.
+
+### Тесты локально
+
+```
+python test_intents.py                  # без LLM, без сети
+python test_intents.py --network        # + погода/курс
+python test_intents.py --llm            # + LLM (нужна Ollama)
+python test_intents.py --llm --network  # всё
+python test_intents.py --voice          # с озвучкой
+python test_intents.py -k weather       # фильтр по имени
+```
 
 ## Траблшутинг
 
@@ -444,6 +480,8 @@ Win+R → `shell:startup` → Enter. Скопируй туда ярлык на `
 
 **`pytest` падает на `SyntaxError` в тесте** — при копировании из чата слиплись строки. Открой файл, найди строку из ошибки, разбей правильно.
 
+**CI упал на `UnicodeEncodeError`** — Windows-консоль в cp1252 не может напечатать русский. Уже пофикшено (`reconfigure` + `PYTHONUTF8=1`). Если повторится — проверь, что правки на месте.
+
 ## Технологии
 
 | Компонент | Решение |
@@ -464,6 +502,7 @@ Win+R → `shell:startup` → Enter. Скопируй туда ярлык на `
 | Буфер обмена | pyperclip + pyautogui |
 | Атомарная запись | filelock + os.replace |
 | Профиль | user_profile.json (в `.gitignore`) |
+| CI | GitHub Actions (`windows-latest`, Python 3.11) |
 
 ## Лицензия
 
