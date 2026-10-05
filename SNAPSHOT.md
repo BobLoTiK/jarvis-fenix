@@ -3104,11 +3104,6 @@ class FenixGUI:
                     label="Микрофон",
                 ),
                 ft.NavigationRailDestination(
-                    icon=ft.Icons.HISTORY_OUTLINED,
-                    selected_icon=ft.Icons.HISTORY,
-                    label="История",
-                ),
-                ft.NavigationRailDestination(
                     icon=ft.Icons.SETTINGS_OUTLINED,
                     selected_icon=ft.Icons.SETTINGS,
                     label="Настройки",
@@ -3118,8 +3113,15 @@ class FenixGUI:
         )
 
         # Контент-область (переключается)
+        # ВАЖНО: разделы создаются ОДИН РАЗ и кешируются.
+        # Иначе при переключении теряется история чата.
+        self._tabs = {
+            0: self._build_main_tab(),
+            1: self._build_mic_tab(),
+            2: self._build_settings_tab(),
+        }
         self._content_area = ft.Container(
-            content=self._build_main_tab(),
+            content=self._tabs[0],
             expand=True,
             padding=0,
         )
@@ -3199,10 +3201,34 @@ class FenixGUI:
         )
 
     def _build_mic_tab(self) -> ft.Control:
-        """Раздел «Микрофон»."""
+        """Раздел «Микрофон» — выбор устройства."""
         name = "—"
         if self.jarvis and self.jarvis.listener:
             name = self.jarvis.listener.device_name
+
+        # Собираем список устройств
+        devices = ["по умолчанию"]
+        try:
+            import sounddevice as sd
+            for d in sd.query_devices():
+                if d["max_input_channels"] > 0:
+                    n = d["name"][:50]
+                    if n not in devices:
+                        devices.append(n)
+        except Exception:
+            log.exception("Не удалось получить список устройств")
+
+        # Текущее устройство
+        current = self.config.get("input_device") or "по умолчанию"
+        if current not in devices:
+            devices.append(current)
+
+        self._mic_dropdown = ft.Dropdown(
+            value=current,
+            options=[ft.dropdown.Option(d) for d in devices],
+            width=400,
+            on_select=self._on_mic_change,
+        )
 
         return ft.Container(
             content=ft.Column(
@@ -3210,7 +3236,17 @@ class FenixGUI:
                     ft.Text("🎤 Микрофон", size=24, weight=ft.FontWeight.BOLD),
                     ft.Container(height=20),
                     ft.Text(f"Текущее устройство: {name}", size=14),
+                    ft.Container(height=20),
+                    ft.Text("Выбрать устройство:", size=14),
+                    self._mic_dropdown,
                     ft.Container(height=10),
+                    ft.Text(
+                        "⚠ После смены устройства перезапусти Феникса, "
+                        "чтобы микрофон переключился.",
+                        size=12,
+                        color=ft.Colors.AMBER_400,
+                    ),
+                    ft.Container(height=20),
                     ft.Text(
                         "Проверить микрофон: python scripts/mics.py",
                         size=12,
@@ -3223,19 +3259,13 @@ class FenixGUI:
             expand=True,
         )
 
-    def _build_history_tab(self) -> ft.Control:
-        """Полная история."""
-        return ft.Container(
-            content=ft.Column(
-                controls=[
-                    ft.Text("📜 История", size=24, weight=ft.FontWeight.BOLD),
-                    ft.Text("Полный лог — смотри в logs/jarvis.log", size=12, color=ft.Colors.GREY_500),
-                ],
-                spacing=10,
-            ),
-            padding=ft.Padding(left=30, top=30, right=30, bottom=30),
-            expand=True,
-        )
+    def _on_mic_change(self, e) -> None:
+        """Сохраняет выбранное устройство в config."""
+        value = e.control.value
+        if value == "по умолчанию":
+            value = None
+        self.config.set("input_device", value)
+        log.info("Микрофон сохранён: %r (перезапусти Феникса)", value)
 
     def _build_settings_tab(self) -> ft.Control:
         """Настройки."""
@@ -3525,19 +3555,13 @@ class FenixGUI:
     # ---------------------------------------------------------------
 
     def _on_nav_change(self, e) -> None:
-        """Переключение раздела."""
+        """Переключение раздела (без пересоздания — история сохраняется)."""
         idx = e.control.selected_index
         self._current_tab = idx
         log.info("Навигация: %d", idx)
 
-        if idx == 0:
-            self._content_area.content = self._build_main_tab()
-        elif idx == 1:
-            self._content_area.content = self._build_mic_tab()
-        elif idx == 2:
-            self._content_area.content = self._build_history_tab()
-        elif idx == 3:
-            self._content_area.content = self._build_settings_tab()
+        if idx in self._tabs:
+            self._content_area.content = self._tabs[idx]
 
         try:
             self._page.update()
