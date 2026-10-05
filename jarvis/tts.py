@@ -181,7 +181,11 @@ class Speaker:
             import numpy as np
             import sounddevice as sd
         except ImportError:
-            log.warning("sounddevice/numpy недоступны, играю через winsound (barge-in будет с задержкой)")
+            log.warning(
+                "sounddevice/numpy недоступны — играю через winsound. "
+                "ВАЖНО: barge-in (перебивание) НЕ БУДЕТ РАБОТАТЬ. "
+                "Установи: pip install sounddevice numpy"
+            )
             import winsound
             winsound.PlaySound(wav_bytes, winsound.SND_MEMORY)
             return
