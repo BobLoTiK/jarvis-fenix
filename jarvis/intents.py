@@ -74,6 +74,14 @@ _WEATHER_BAD_TARGET = (
     "пожалуйста", "сколько", "стоит",
 )
 
+# Слова-маркеры «это не город» — защита от перехвата pending_question
+_NOT_A_CITY = (
+    "открой", "закрой", "найди", "включи", "выключи",
+    "как дела", "кто ты", "спасибо", "привет", "пока",
+    "который час", "какое число", "сделай скриншот",
+    "загугли", "поищи", "напечатай",
+)
+
 
 class IntentHandler:
 
@@ -188,6 +196,12 @@ class IntentHandler:
             return self._take_screenshot(cmd)
 
         # --- Быстрые правила без LLM ---
+
+        # Открытие приложений/сайтов/папок — до всего остального.
+        reply = self._open_fast(cmd)
+        if reply:
+            return reply
+
         # Голоса
         reply = voices.handle_voice_command(cmd, self.config)
         if reply:
@@ -248,6 +262,21 @@ class IntentHandler:
             return gen
         return "Я не понял команду."
 
+    def _open_fast(self, cmd: str) -> str | None:
+        """Быстрое открытие приложений/сайтов/папок — без LLM.
+
+        Срабатывает только на явных глаголах «открой/запусти/врубай».
+        Сложные формулировки («запусти то, во что я играл вчера»)
+        уходят в LLM.
+        """
+        m = re.match(r"^(?:открой|запусти|врубай|включи|открывай)\s+(.+)$", cmd)
+        if not m:
+            return None
+        target = m.group(1).strip()
+        if not target:
+            return None
+        return self._do_open(target)
+
     def _weather_currency_fast(self, cmd: str) -> str | None:
         """Простые правила для погоды и курса — без LLM.
 
@@ -305,8 +334,20 @@ class IntentHandler:
 
         if pending.get("type") == "city_for_weather":
             city = cmd.strip()
-            if not city or len(city) > 60:
+            words = city.split()
+
+            # Город — это 1-3 слова, без глаголов и служебных фраз.
+            # Иначе «как дела» попадёт в город.
+            if not city or len(city) > 60 or len(words) > 3:
                 return "Не расслышал город. Повторите, пожалуйста."
+
+            if any(w in city for w in _NOT_A_CITY):
+                # Это не город — обрабатываем как обычную команду.
+                # _pending_question уже сброшен, рекурсии не будет.
+                log.info("pending_question: %r не похоже на город — обрабатываю как команду", city)
+                result = self._handle_single(cmd)
+                return result if isinstance(result, str) else "Не понял команду."
+
             profile.set("default_city", city)
             log.info("Запомнил город по умолчанию: %s", city)
 
