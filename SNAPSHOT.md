@@ -1,7 +1,7 @@
 # SNAPSHOT проекта «Феникс»
 
 _Автоматически сгенерировано `snapshot.py`. Обновляется при `git push`._
-_Файлов в снимке: 56_
+_Файлов в снимке: 59_
 
 ---
 
@@ -9,6 +9,9 @@ _Файлов в снимке: 56_
 
 ```
 jarvis/
+├── .github/
+│   ├── workflows/
+│   │   ├── test.yml
 ├── cmds/
 │   ├── open_terminal.bat
 │   ├── show_ip.bat
@@ -31,6 +34,7 @@ jarvis/
 │   ├── packs.py
 │   ├── profile.py
 │   ├── recorder.py
+│   ├── reply.py
 │   ├── steam.py
 │   ├── stt.py
 │   ├── tasks.py
@@ -65,6 +69,7 @@ jarvis/
 ├── PLAN.md
 ├── profile.py
 ├── README.md
+├── requirements-ci.txt
 ├── requirements.txt
 ├── snapshot.py
 ├── start_fenix.bat
@@ -75,6 +80,76 @@ jarvis/
 ---
 
 ## 📄 Содержимое файлов
+
+### `.github\workflows\test.yml`
+
+```yaml
+# ============================================================
+# GitHub Actions: автоматическая проверка при каждом push.
+#
+# Что делает:
+#   1. Поднимает виртуалку с Windows.
+#   2. Ставит Python 3.11.
+#   3. Ставит лёгкие зависимости (requirements-ci.txt).
+#   4. Проверяет синтаксис (check_syntax.py).
+#   5. Гоняет pytest (tests/).
+#   6. Гоняет test_intents.py (без LLM и без озвучки).
+#
+# Где смотреть результат:
+#   На GitHub → вкладка "Actions" → последний запуск.
+#   Или рядом с коммитом: ✅ или ❌.
+#
+# Файл лежит в: .github/workflows/test.yml
+# ============================================================
+
+name: tests
+
+# Когда запускать:
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    # Виртуалка с Windows — на ней есть winreg, os.startfile и т.п.
+    runs-on: windows-latest
+
+    # Если что-то зависнет — убьёт через 15 минут, не будет висеть час.
+    timeout-minutes: 15
+
+    steps:
+      # 1. Скачивает код репозитория на виртуалку.
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Ставит Python 3.11 и включает кэш pip.
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      # 3. Ставит зависимости для CI.
+      #    requirements-ci.txt — облегчённая версия, без звука и GUI.
+      - name: Install dependencies
+        run: pip install -r requirements-ci.txt
+
+      # 4. Проверяет синтаксис всех .py файлов.
+      - name: Check syntax
+        run: python check_syntax.py
+
+      # 5. Гоняет юнит-тесты (tests/).
+      - name: Unit tests (pytest)
+        run: python -m pytest tests/ -q
+
+      # 6. Гоняет интент-тесты.
+      #    По умолчанию test_intents.py НЕ поднимает LLM и НЕ озвучивает.
+      #    Поэтому на сервере без Ollama и без звука всё работает.
+      - name: Intent tests (без LLM и озвучки)
+        run: python test_intents.py
+```
 
 ### `ARCHITECTURE.md`
 
@@ -2433,6 +2508,7 @@ from pathlib import Path
 from types import MappingProxyType
 
 from jarvis import APP_NAME, __version__, actions, files
+from jarvis.reply import Reply
 from jarvis.apps import find_app
 from jarvis.installed import find_installed, scan_start_menu
 from jarvis.steam import find_game, scan_steam_games
@@ -2528,24 +2604,23 @@ class IntentHandler:
                 )
         self.custom = list(self._config_custom_original) + self._load_packs_as_custom(config)
 
-    def handle(self, cmd: str):
+    def handle(self, cmd: str) -> Reply:
         self.last_was_chat = False
         actions_log.info("Команда: %r (режим: %s)", cmd, self.mode)
 
-        reply = self._handle_single(cmd)
-
-        if hasattr(reply, "__iter__") and not isinstance(reply, str):
-            self.dialog.append({"role": "user", "content": cmd})
-            return reply
+        result = self._handle_single(cmd)
 
         self.dialog.append({"role": "user", "content": cmd})
-        self.dialog.append({"role": "assistant", "content": reply})
-        memory.save(list(self.dialog))
 
-        if isinstance(reply, str):
-            actions_log.info("Ответ: %r", reply[:120])
-            self._last_reply = reply
-        return reply
+        if isinstance(result, str):
+            self.dialog.append({"role": "assistant", "content": result})
+            memory.save(list(self.dialog))
+            actions_log.info("Ответ: %r", result[:120])
+            self._last_reply = result
+            return Reply(text=result)
+
+        # result — генератор (chat_stream)
+        return Reply(stream=result)
 
     def finalize_stream(self, cmd: str, full_text: str) -> None:
         self.dialog.append({"role": "assistant", "content": full_text})
@@ -2553,7 +2628,7 @@ class IntentHandler:
         if full_text:
             self._last_reply = full_text
 
-    def _handle_single(self, cmd: str):
+    def _handle_single(self, cmd: str) -> str | Iterator[str]:
         if cmd in CANCEL:
             self._reset_requested = True
             return "Жду обращение, сэр."
@@ -3147,6 +3222,7 @@ from jarvis.apps import build_apps
 from jarvis.config import Config, load_config
 from jarvis.intents import IntentHandler, normalize
 from jarvis.model import ensure_model
+from jarvis.reply import Reply
 from jarvis.stt import Listener
 from jarvis.tray import build_tray
 from jarvis import timers
@@ -3175,11 +3251,15 @@ class Jarvis:
             self.listener.barge_enabled = self.barge_enabled
         self._barge_just_happened = False
 
-    def say(self, text) -> bool:
-        if not text:
-            return False
+    def say(self, reply: Reply) -> bool:
+        """Озвучивает Reply. Возвращает True, если сработал barge-in.
 
-        is_stream = hasattr(text, "__iter__") and not isinstance(text, str)
+        reply — всегда Reply (из handler.handle или собранный вручную).
+        """
+        if reply is None:
+            return False
+        if not reply.is_stream and not reply.text:
+            return False
 
         if self.barge_enabled and self.listener is not None:
             self.listener.barge_start()
@@ -3188,10 +3268,10 @@ class Jarvis:
 
         barge_happened = False
         try:
-            if is_stream:
-                self._say_stream(text)
+            if reply.is_stream:
+                self._say_stream(reply.stream)
             else:
-                self._say_text(text)
+                self._say_text(reply.text)
             barge_happened = self.barge_enabled and self.listener.barge_flag
         finally:
             if self.barge_enabled and self.listener is not None:
@@ -3244,8 +3324,8 @@ class Jarvis:
         if self.listener.utterances == 0 and self.listener.peak < 200:
             log.warning("Микрофон молчит (пик %d за %.0f с): %s — проверьте устройство",
                         self.listener.peak, delay, self.listener.device_name)
-            self.say("Я не слышу микрофон. Проверьте, включён ли он, "
-                     "или укажите нужный в настройках.")
+            self.say(Reply(text="Я не слышу микрофон. Проверьте, включён ли он, "
+                               "или укажите нужный в настройках."))
 
     def run_loop(self) -> None:
         try:
@@ -3258,7 +3338,7 @@ class Jarvis:
                     log.exception("Ошибка обработки фразы %r", phrase)
         except Exception:
             log.exception("Аудиопоток упал")
-            self.say("Проблема с микрофоном. Проверьте журнал.")
+            self.say(Reply(text="Проблема с микрофоном. Проверьте журнал."))
 
     def _process(self, phrase: str, audio: bytes) -> None:
         awaiting = time.time() < self._awaiting_until
@@ -3266,7 +3346,7 @@ class Jarvis:
         if cmd is None:
             return
         if cmd == "":
-            self.say("Слушаю.")
+            self.say(Reply(text="Слушаю."))
             self._awaiting_until = time.time() + self.config["command_window_sec"]
             return
         if self.whisper is not None and audio:
@@ -3438,7 +3518,7 @@ def main() -> None:
         text = timer.get("text") or "время вышло"
         msg = f"Напоминание: {text}."
         log.info("Таймер сработал: %s", msg)
-        jarvis.say(msg)
+        jarvis.say(Reply(text=msg))
 
     timers.set_on_fire(_on_timer_fire)
     restored = timers.restore_all()
@@ -3447,7 +3527,7 @@ def main() -> None:
 
     worker = threading.Thread(target=jarvis.run_loop, daemon=True, name="jarvis-listener")
     worker.start()
-    jarvis.say(f"{APP_NAME} запущен и готов к работе.")
+    jarvis.say(Reply(text=f"{APP_NAME} запущен и готов к работе."))
     threading.Thread(target=jarvis.mic_watchdog, daemon=True, name="mic-watchdog").start()
 
     tray = build_tray(jarvis)
@@ -4107,6 +4187,36 @@ def describe(macro: dict) -> str:
     clicks = sum(1 for e in events if e.get("type") == "click" and e.get("event") == "down")
     duration = macro.get("duration", 0)
     return f"Макрос: {keys} нажатий, {clicks} кликов, длительность {duration:.1f} секунд."
+```
+
+### `jarvis\reply.py`
+
+```python
+"""Reply — результат IntentHandler.handle().
+
+Ровно одно из двух:
+    - text   — готовая строка (озвучить целиком)
+    - stream — итератор строк (озвучивать по мере поступления)
+
+Никаких «Reply ведёт себя как строка». Либо text, либо stream.
+"""
+
+from dataclasses import dataclass
+from typing import Iterator, Optional
+
+
+@dataclass
+class Reply:
+    text: Optional[str] = None
+    stream: Optional[Iterator[str]] = None
+
+    def __post_init__(self) -> None:
+        if (self.text is None) == (self.stream is None):
+            raise ValueError("Reply: ровно одно из text/stream должно быть задано")
+
+    @property
+    def is_stream(self) -> bool:
+        return self.stream is not None
 ```
 
 ### `jarvis\steam.py`
@@ -6600,6 +6710,31 @@ Win+R → `shell:startup` → Enter. Скопируй туда ярлык на `
 См. оригинальный репозиторий [jsays12/jarvis](https://github.com/jsays12/jarvis).
 ```
 
+### `requirements-ci.txt`
+
+```
+# Зависимости для CI (GitHub Actions) и минимального прогона тестов.
+#
+# Здесь НЕТ:
+#   - piper-tts, faster-whisper, sounddevice, vosk, winrt-* — на сервере нет звука
+#   - pycaw, screen-brightness-control — тяжёлые, Windows-специфичные
+#   - pyautogui, pygetwindow, keyboard, mouse — GUI
+#
+# Здесь ЕСТЬ только то, что реально импортируется IntentHandler
+# и тестами (tests/, test_intents.py).
+
+# --- Утилиты ---
+filelock>=3.13
+num2words>=0.5.14
+psutil>=5.9
+pyperclip>=1.8
+Pillow>=10
+
+# --- Тесты ---
+pytest>=8.0
+pytest-asyncio>=0.23
+```
+
 ### `requirements.txt`
 
 ```
@@ -7232,15 +7367,19 @@ pause >nul
 Прогоняет список команд через IntentHandler, проверяет ответы
 по ожидаемым подстрокам, пишет всё в logs/test_intents.log.
 
+По умолчанию:
+    - Без LLM (Brain не создаётся). Хочешь с LLM — флаг --llm.
+    - Без озвучки. Хочешь озвучку — флаг --voice.
+
 Запуск:
-    python test_intents.py              # все тесты, без озвучки
-    python test_intents.py --voice      # с озвучкой
-    python test_intents.py -k weather   # только тесты со словом 'weather'
+    python test_intents.py                  # правила, без LLM, без озвучки
+    python test_intents.py --llm            # с LLM (нужна Ollama)
+    python test_intents.py --voice          # с озвучкой
+    python test_intents.py -k weather       # только тесты со словом 'weather'
 """
 
 import argparse
 import logging
-import re
 import sys
 import time
 from pathlib import Path
@@ -7277,7 +7416,7 @@ TESTS = [
     ("voice_switch_irina", "смени голос на ирину",      ["Irina", "ирина"]),
     ("voice_switch_ruslan","смени голос на руслан",     ["Ruslan", "руслан"]),
 
-    # === Паки (ожидания ослаблены) ===
+    # === Паки ===
     ("packs_list",         "какие паки",                ["Доступны"]),
     ("packs_unload",       "выгрузи пак игр",           ["выгружен", "уже", "не активен", "загружен"]),
     ("packs_load",         "загрузи пак игр",           ["загружен", "уже", "не найден"]),
@@ -7299,7 +7438,7 @@ TESTS = [
     ("currency_all",       "курс валют",                ["ЦБ", "Доллар"]),
 
     # === Small talk ===
-    ("small_talk_how",     "как дела",                  []),  # любой непустой
+    ("small_talk_how",     "как дела",                  []),
     ("small_talk_time",    "который час",               ["Сейчас"]),
     ("small_talk_date",    "какое сегодня число",       ["Сегодня"]),
     ("small_talk_who",     "кто ты",                    ["Феникс"]),
@@ -7311,21 +7450,21 @@ TESTS = [
 
 
 class Result:
-    def __init__(self, name, cmd, reply, expected, elapsed):
+    def __init__(self, name, cmd, reply_text, expected, elapsed):
         self.name = name
         self.cmd = cmd
-        self.reply = reply
+        self.reply_text = reply_text
         self.expected = expected
         self.elapsed = elapsed
         self.passed = self._check()
         self.error = None
 
     def _check(self):
-        if not self.reply:
+        if not self.reply_text:
             return False
         if not self.expected:
             return True
-        text = str(self.reply).lower()
+        text = str(self.reply_text).lower()
         return any(e.lower() in text for e in self.expected)
 
     def __str__(self):
@@ -7333,7 +7472,11 @@ class Result:
         return f"[{mark}] {self.name:24s} ({self.elapsed:5.2f} с) «{self.cmd}»"
 
 
-def build_handler(with_voice=False):
+def build_handler(use_llm=False):
+    """Собирает IntentHandler.
+
+    use_llm=False (по умолчанию) — brain=None, только правила.
+    """
     from jarvis.config import load_config
     from jarvis.apps import build_apps
     from jarvis.intents import IntentHandler
@@ -7342,7 +7485,7 @@ def build_handler(with_voice=False):
     config = load_config(BASE_DIR)
 
     brain = None
-    if config.get("use_llm", True):
+    if use_llm:
         from jarvis.brain import Brain
         model = config.get("llm_model", "qwen2.5:7b-instruct")
         url = config.get("ollama_url", "http://127.0.0.1:11434")
@@ -7355,17 +7498,8 @@ def build_handler(with_voice=False):
             log.info("Ждём прогрева LLM (10 с)...")
             time.sleep(10)
 
-    speaker = None
-    if with_voice:
-        try:
-            from jarvis.tts import Speaker
-            speaker = Speaker(config)
-        except Exception:
-            log.exception("Speaker не завёлся — без озвучки")
-
     log.info("Сборка IntentHandler...")
-    handler = IntentHandler(config, build_apps(config), brain)
-    return handler, speaker
+    return IntentHandler(config, build_apps(config), brain)
 
 
 def run_one(handler, speaker, name, cmd, expected):
@@ -7375,8 +7509,11 @@ def run_one(handler, speaker, name, cmd, expected):
     t0 = time.time()
     try:
         reply = handler.handle(cmd)
-        if hasattr(reply, "__iter__") and not isinstance(reply, str):
-            reply = "".join(reply)
+        if reply.is_stream:
+            reply_text = "".join(reply.stream)
+            handler.finalize_stream(cmd, reply_text)
+        else:
+            reply_text = reply.text
     except Exception as e:
         log.exception("Исключение в тесте %s", name)
         r = Result(name, cmd, f"<EXCEPTION: {e}>", expected, time.time() - t0)
@@ -7385,30 +7522,44 @@ def run_one(handler, speaker, name, cmd, expected):
 
     elapsed = time.time() - t0
 
-    if speaker is not None:
+    if speaker is not None and reply_text:
         try:
-            speaker.speak(reply)
+            speaker.speak(reply_text)
         except Exception:
             log.exception("Ошибка озвучки")
 
-    r = Result(name, cmd, reply, expected, elapsed)
-    log.info("Ответ: %s", str(reply)[:200])
+    r = Result(name, cmd, reply_text, expected, elapsed)
+    log.info("Ответ: %s", str(reply_text)[:200])
     log.info("Результат: %s", "OK" if r.passed else f"FAIL (ожидалось: {expected})")
     return r
 
 
 def main():
     parser = argparse.ArgumentParser(description="Автотест Феникса")
-    parser.add_argument("--voice", action="store_true")
-    parser.add_argument("-k", "--filter")
+    parser.add_argument("--llm", action="store_true",
+                        help="Использовать LLM (нужна Ollama)")
+    parser.add_argument("--voice", action="store_true",
+                        help="Озвучивать ответы")
+    parser.add_argument("-k", "--filter",
+                        help="Фильтр по имени теста")
     args = parser.parse_args()
 
     log.info("=" * 70)
     log.info("АВТОТЕСТ ФЕНИКСА")
+    log.info("LLM: %s | Озвучка: %s", "вкл" if args.llm else "выкл",
+             "вкл" if args.voice else "выкл")
     log.info("Лог: %s", LOG_FILE)
     log.info("=" * 70)
 
-    handler, speaker = build_handler(with_voice=args.voice)
+    handler = build_handler(use_llm=args.llm)
+
+    speaker = None
+    if args.voice:
+        try:
+            from jarvis.tts import Speaker
+            speaker = Speaker(handler.config)
+        except Exception:
+            log.exception("Speaker не завёлся — без озвучки")
 
     tests = TESTS
     if args.filter:
@@ -7440,7 +7591,7 @@ def main():
         for r in failed:
             log.info("  %s", r.name)
             log.info("    команда: %r", r.cmd)
-            log.info("    ответ:   %s", str(r.reply)[:200])
+            log.info("    ответ:   %s", str(r.reply_text)[:200])
             log.info("    ждали:   %s", r.expected)
             if r.error:
                 log.info("    ошибка:  %s", r.error)
@@ -7509,11 +7660,17 @@ def test_load_broken(tmp_path):
 ### `tests\test_weather.py`
 
 ```python
-"""Тесты weather: структура ответов, describe_*. Сеть не нужна — мокаем."""
+"""Тесты weather: структура ответов, describe_*, geocode с моками.
+
+Сеть не нужна — мокаем _http_get_json.
+"""
+
 from unittest.mock import patch
 
 from jarvis import weather
 
+
+# --- describe_weather ------------------------------------------------------
 
 def test_describe_weather_none():
     assert "Не удалось" in weather.describe_weather(None)
@@ -7540,6 +7697,8 @@ def test_describe_weather_tomorrow():
     assert "Казань" in s
     assert "завтра" in s
 
+
+# --- describe_currency -----------------------------------------------------
 
 def test_describe_currency_specific():
     rates = {
@@ -7570,4 +7729,172 @@ def test_describe_currency_unknown():
     rates = {"date": "2026-10-04", "valutes": {}}
     s = weather.describe_currency(rates, code="XXX")
     assert "не нашёл" in s
+
+
+# --- geocode с моками ------------------------------------------------------
+
+def test_geocode_ok():
+    """geocode возвращает нормализованный dict при успешном ответе."""
+    fake = {
+        "results": [{
+            "name": "Москва",
+            "country": "Россия",
+            "admin1": "Москва",
+            "latitude": 55.75,
+            "longitude": 37.62,
+        }],
+    }
+    with patch.object(weather, "_http_get_json", return_value=fake):
+        weather._CACHE.clear()
+        geo = weather.geocode("Москва")
+    assert geo is not None
+    assert geo["name"] == "Москва"
+    assert geo["country"] == "Россия"
+    assert geo["lat"] == 55.75
+    assert geo["lon"] == 37.62
+
+
+def test_geocode_not_found():
+    """geocode возвращает None, если результатов нет."""
+    with patch.object(weather, "_http_get_json", return_value={"results": []}):
+        weather._CACHE.clear()
+        assert weather.geocode("НесуществующийГород12345") is None
+
+
+def test_geocode_http_error():
+    """geocode возвращает None, если _http_get_json вернул None (сеть упала)."""
+    with patch.object(weather, "_http_get_json", return_value=None):
+        weather._CACHE.clear()
+        assert weather.geocode("Москва") is None
+
+
+# --- _get_weather_uncached с моками ----------------------------------------
+
+def test_get_weather_today_ok():
+    """get_weather парсит ответ open-meteo и возвращает dict."""
+    geo = {"name": "Москва", "country": "Россия", "lat": 55.75, "lon": 37.62}
+    api = {
+        "current": {
+            "temperature_2m": 5.4,
+            "apparent_temperature": 2.1,
+            "weather_code": 3,
+            "wind_speed_10m": 4.2,
+            "relative_humidity_2m": 70,
+        },
+        "daily": {
+            "temperature_2m_min": [1.0, -2.0],
+            "temperature_2m_max": [8.0, 3.0],
+            "weather_code": [3, 71],
+            "precipitation_sum": [0.2, 1.5],
+        },
+    }
+    with patch.object(weather, "geocode", return_value=geo), \
+         patch.object(weather, "_http_get_json", return_value=api):
+        weather._CACHE.clear()
+        w = weather.get_weather("Москва", day="today")
+    assert w is not None
+    assert w["city"] == "Москва"
+    assert w["temp"] == 5
+    assert w["feels"] == 2
+    assert w["code"] == 3
+    assert w["wind"] == 4
+    assert w["humidity"] == 70
+    assert w["temp_min"] == 1
+    assert w["temp_max"] == 8
+
+
+def test_get_weather_tomorrow_ok():
+    """get_weather(day='tomorrow') берёт индексы [1] из daily."""
+    geo = {"name": "Казань", "country": "Россия", "lat": 55.79, "lon": 49.11}
+    api = {
+        "current": {
+            "temperature_2m": 5.4, "apparent_temperature": 2.1,
+            "weather_code": 3, "wind_speed_10m": 4.2, "relative_humidity_2m": 70,
+        },
+        "daily": {
+            "temperature_2m_min": [1.0, -2.0],
+            "temperature_2m_max": [8.0, 3.0],
+            "weather_code": [3, 71],
+            "precipitation_sum": [0.2, 1.5],
+        },
+    }
+    with patch.object(weather, "geocode", return_value=geo), \
+         patch.object(weather, "_http_get_json", return_value=api):
+        weather._CACHE.clear()
+        w = weather.get_weather("Казань", day="tomorrow")
+    assert w is not None
+    assert w["day"] == "завтра"
+    assert w["temp_min"] == -2
+    assert w["temp_max"] == 3
+    assert w["code"] == 71
+
+
+def test_get_weather_no_geocode():
+    """Если geocode не нашёл город — get_weather возвращает None."""
+    with patch.object(weather, "geocode", return_value=None):
+        weather._CACHE.clear()
+        assert weather.get_weather("НесуществующийГород12345") is None
+
+
+# --- get_currency_rates с моками -------------------------------------------
+
+def test_get_currency_rates_ok():
+    """get_currency_rates парсит ответ ЦБ."""
+    api = {
+        "Date": "2026-10-04T11:30:00+03:00",
+        "Valute": {
+            "USD": {"Name": "Доллар США", "Value": 83.48, "Nominal": 1},
+            "EUR": {"Name": "Евро", "Value": 94.32, "Nominal": 1},
+            "BYN": {"Name": "Белорусский рубль", "Value": 27.5, "Nominal": 1},
+        },
+    }
+    with patch.object(weather, "_http_get_json", return_value=api):
+        weather._CACHE.clear()
+        r = weather.get_currency_rates()
+    assert r is not None
+    assert r["date"] == "2026-10-04"
+    assert r["valutes"]["USD"]["value"] == 83.48
+    assert r["valutes"]["BYN"]["name"] == "Белорусский рубль"
+
+
+def test_get_currency_rates_http_error():
+    """get_currency_rates возвращает None при падении сети."""
+    with patch.object(weather, "_http_get_json", return_value=None):
+        weather._CACHE.clear()
+        assert weather.get_currency_rates() is None
+
+
+# --- кэш -------------------------------------------------------------------
+
+def test_cache_used():
+    """Второй вызов geocode не дёргает _http_get_json — берёт из кэша."""
+    fake = {
+        "results": [{
+            "name": "Москва", "country": "Россия",
+            "latitude": 55.75, "longitude": 37.62,
+        }],
+    }
+    weather._CACHE.clear()
+    with patch.object(weather, "_http_get_json", return_value=fake) as mock:
+        weather.geocode("Москва")
+        weather.geocode("Москва")
+    assert mock.call_count == 1, "Второй вызов должен брать из кэша"
+
+
+def test_cache_different_cities():
+    """Разные города — разные ключи кэша, _http_get_json вызывается дважды."""
+    fake_msk = {
+        "results": [{"name": "Москва", "country": "Россия",
+                     "latitude": 55.75, "longitude": 37.62}],
+    }
+    fake_kzn = {
+        "results": [{"name": "Казань", "country": "Россия",
+                     "latitude": 55.79, "longitude": 49.11}],
+    }
+    weather._CACHE.clear()
+    with patch.object(weather, "_http_get_json") as mock:
+        mock.side_effect = [fake_msk, fake_kzn]
+        weather.geocode("Москва")
+        weather.geocode("Казань")
+    assert mock.call_count == 2
 ```

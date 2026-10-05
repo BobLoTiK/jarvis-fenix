@@ -18,6 +18,7 @@ from jarvis.apps import build_apps
 from jarvis.config import Config, load_config
 from jarvis.intents import IntentHandler, normalize
 from jarvis.model import ensure_model
+from jarvis.reply import Reply
 from jarvis.stt import Listener
 from jarvis.tray import build_tray
 from jarvis import timers
@@ -46,11 +47,15 @@ class Jarvis:
             self.listener.barge_enabled = self.barge_enabled
         self._barge_just_happened = False
 
-    def say(self, text) -> bool:
-        if not text:
-            return False
+    def say(self, reply: Reply) -> bool:
+        """Озвучивает Reply. Возвращает True, если сработал barge-in.
 
-        is_stream = hasattr(text, "__iter__") and not isinstance(text, str)
+        reply — всегда Reply (из handler.handle или собранный вручную).
+        """
+        if reply is None:
+            return False
+        if not reply.is_stream and not reply.text:
+            return False
 
         if self.barge_enabled and self.listener is not None:
             self.listener.barge_start()
@@ -59,10 +64,10 @@ class Jarvis:
 
         barge_happened = False
         try:
-            if is_stream:
-                self._say_stream(text)
+            if reply.is_stream:
+                self._say_stream(reply.stream)
             else:
-                self._say_text(text)
+                self._say_text(reply.text)
             barge_happened = self.barge_enabled and self.listener.barge_flag
         finally:
             if self.barge_enabled and self.listener is not None:
@@ -115,8 +120,8 @@ class Jarvis:
         if self.listener.utterances == 0 and self.listener.peak < 200:
             log.warning("Микрофон молчит (пик %d за %.0f с): %s — проверьте устройство",
                         self.listener.peak, delay, self.listener.device_name)
-            self.say("Я не слышу микрофон. Проверьте, включён ли он, "
-                     "или укажите нужный в настройках.")
+            self.say(Reply(text="Я не слышу микрофон. Проверьте, включён ли он, "
+                               "или укажите нужный в настройках."))
 
     def run_loop(self) -> None:
         try:
@@ -129,7 +134,7 @@ class Jarvis:
                     log.exception("Ошибка обработки фразы %r", phrase)
         except Exception:
             log.exception("Аудиопоток упал")
-            self.say("Проблема с микрофоном. Проверьте журнал.")
+            self.say(Reply(text="Проблема с микрофоном. Проверьте журнал."))
 
     def _process(self, phrase: str, audio: bytes) -> None:
         awaiting = time.time() < self._awaiting_until
@@ -137,7 +142,7 @@ class Jarvis:
         if cmd is None:
             return
         if cmd == "":
-            self.say("Слушаю.")
+            self.say(Reply(text="Слушаю."))
             self._awaiting_until = time.time() + self.config["command_window_sec"]
             return
         if self.whisper is not None and audio:
@@ -309,7 +314,7 @@ def main() -> None:
         text = timer.get("text") or "время вышло"
         msg = f"Напоминание: {text}."
         log.info("Таймер сработал: %s", msg)
-        jarvis.say(msg)
+        jarvis.say(Reply(text=msg))
 
     timers.set_on_fire(_on_timer_fire)
     restored = timers.restore_all()
@@ -318,7 +323,7 @@ def main() -> None:
 
     worker = threading.Thread(target=jarvis.run_loop, daemon=True, name="jarvis-listener")
     worker.start()
-    jarvis.say(f"{APP_NAME} запущен и готов к работе.")
+    jarvis.say(Reply(text=f"{APP_NAME} запущен и готов к работе."))
     threading.Thread(target=jarvis.mic_watchdog, daemon=True, name="mic-watchdog").start()
 
     tray = build_tray(jarvis)

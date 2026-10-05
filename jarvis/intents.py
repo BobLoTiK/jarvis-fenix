@@ -11,6 +11,7 @@ from pathlib import Path
 from types import MappingProxyType
 
 from jarvis import APP_NAME, __version__, actions, files
+from jarvis.reply import Reply
 from jarvis.apps import find_app
 from jarvis.installed import find_installed, scan_start_menu
 from jarvis.steam import find_game, scan_steam_games
@@ -106,24 +107,23 @@ class IntentHandler:
                 )
         self.custom = list(self._config_custom_original) + self._load_packs_as_custom(config)
 
-    def handle(self, cmd: str):
+    def handle(self, cmd: str) -> Reply:
         self.last_was_chat = False
         actions_log.info("Команда: %r (режим: %s)", cmd, self.mode)
 
-        reply = self._handle_single(cmd)
-
-        if hasattr(reply, "__iter__") and not isinstance(reply, str):
-            self.dialog.append({"role": "user", "content": cmd})
-            return reply
+        result = self._handle_single(cmd)
 
         self.dialog.append({"role": "user", "content": cmd})
-        self.dialog.append({"role": "assistant", "content": reply})
-        memory.save(list(self.dialog))
 
-        if isinstance(reply, str):
-            actions_log.info("Ответ: %r", reply[:120])
-            self._last_reply = reply
-        return reply
+        if isinstance(result, str):
+            self.dialog.append({"role": "assistant", "content": result})
+            memory.save(list(self.dialog))
+            actions_log.info("Ответ: %r", result[:120])
+            self._last_reply = result
+            return Reply(text=result)
+
+        # result — генератор (chat_stream)
+        return Reply(stream=result)
 
     def finalize_stream(self, cmd: str, full_text: str) -> None:
         self.dialog.append({"role": "assistant", "content": full_text})
@@ -131,7 +131,7 @@ class IntentHandler:
         if full_text:
             self._last_reply = full_text
 
-    def _handle_single(self, cmd: str):
+    def _handle_single(self, cmd: str) -> str | Iterator[str]:
         if cmd in CANCEL:
             self._reset_requested = True
             return "Жду обращение, сэр."

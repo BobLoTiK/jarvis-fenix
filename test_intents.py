@@ -3,15 +3,19 @@
 Прогоняет список команд через IntentHandler, проверяет ответы
 по ожидаемым подстрокам, пишет всё в logs/test_intents.log.
 
+По умолчанию:
+    - Без LLM (Brain не создаётся). Хочешь с LLM — флаг --llm.
+    - Без озвучки. Хочешь озвучку — флаг --voice.
+
 Запуск:
-    python test_intents.py              # все тесты, без озвучки
-    python test_intents.py --voice      # с озвучкой
-    python test_intents.py -k weather   # только тесты со словом 'weather'
+    python test_intents.py                  # правила, без LLM, без озвучки
+    python test_intents.py --llm            # с LLM (нужна Ollama)
+    python test_intents.py --voice          # с озвучкой
+    python test_intents.py -k weather       # только тесты со словом 'weather'
 """
 
 import argparse
 import logging
-import re
 import sys
 import time
 from pathlib import Path
@@ -48,7 +52,7 @@ TESTS = [
     ("voice_switch_irina", "смени голос на ирину",      ["Irina", "ирина"]),
     ("voice_switch_ruslan","смени голос на руслан",     ["Ruslan", "руслан"]),
 
-    # === Паки (ожидания ослаблены) ===
+    # === Паки ===
     ("packs_list",         "какие паки",                ["Доступны"]),
     ("packs_unload",       "выгрузи пак игр",           ["выгружен", "уже", "не активен", "загружен"]),
     ("packs_load",         "загрузи пак игр",           ["загружен", "уже", "не найден"]),
@@ -70,7 +74,7 @@ TESTS = [
     ("currency_all",       "курс валют",                ["ЦБ", "Доллар"]),
 
     # === Small talk ===
-    ("small_talk_how",     "как дела",                  []),  # любой непустой
+    ("small_talk_how",     "как дела",                  []),
     ("small_talk_time",    "который час",               ["Сейчас"]),
     ("small_talk_date",    "какое сегодня число",       ["Сегодня"]),
     ("small_talk_who",     "кто ты",                    ["Феникс"]),
@@ -82,21 +86,21 @@ TESTS = [
 
 
 class Result:
-    def __init__(self, name, cmd, reply, expected, elapsed):
+    def __init__(self, name, cmd, reply_text, expected, elapsed):
         self.name = name
         self.cmd = cmd
-        self.reply = reply
+        self.reply_text = reply_text
         self.expected = expected
         self.elapsed = elapsed
         self.passed = self._check()
         self.error = None
 
     def _check(self):
-        if not self.reply:
+        if not self.reply_text:
             return False
         if not self.expected:
             return True
-        text = str(self.reply).lower()
+        text = str(self.reply_text).lower()
         return any(e.lower() in text for e in self.expected)
 
     def __str__(self):
@@ -104,7 +108,11 @@ class Result:
         return f"[{mark}] {self.name:24s} ({self.elapsed:5.2f} с) «{self.cmd}»"
 
 
-def build_handler(with_voice=False):
+def build_handler(use_llm=False):
+    """Собирает IntentHandler.
+
+    use_llm=False (по умолчанию) — brain=None, только правила.
+    """
     from jarvis.config import load_config
     from jarvis.apps import build_apps
     from jarvis.intents import IntentHandler
@@ -113,7 +121,7 @@ def build_handler(with_voice=False):
     config = load_config(BASE_DIR)
 
     brain = None
-    if config.get("use_llm", True):
+    if use_llm:
         from jarvis.brain import Brain
         model = config.get("llm_model", "qwen2.5:7b-instruct")
         url = config.get("ollama_url", "http://127.0.0.1:11434")
@@ -126,17 +134,8 @@ def build_handler(with_voice=False):
             log.info("Ждём прогрева LLM (10 с)...")
             time.sleep(10)
 
-    speaker = None
-    if with_voice:
-        try:
-            from jarvis.tts import Speaker
-            speaker = Speaker(config)
-        except Exception:
-            log.exception("Speaker не завёлся — без озвучки")
-
     log.info("Сборка IntentHandler...")
-    handler = IntentHandler(config, build_apps(config), brain)
-    return handler, speaker
+    return IntentHandler(config, build_apps(config), brain)
 
 
 def run_one(handler, speaker, name, cmd, expected):
@@ -146,8 +145,11 @@ def run_one(handler, speaker, name, cmd, expected):
     t0 = time.time()
     try:
         reply = handler.handle(cmd)
-        if hasattr(reply, "__iter__") and not isinstance(reply, str):
-            reply = "".join(reply)
+        if reply.is_stream:
+            reply_text = "".join(reply.stream)
+            handler.finalize_stream(cmd, reply_text)
+        else:
+            reply_text = reply.text
     except Exception as e:
         log.exception("Исключение в тесте %s", name)
         r = Result(name, cmd, f"<EXCEPTION: {e}>", expected, time.time() - t0)
@@ -156,30 +158,44 @@ def run_one(handler, speaker, name, cmd, expected):
 
     elapsed = time.time() - t0
 
-    if speaker is not None:
+    if speaker is not None and reply_text:
         try:
-            speaker.speak(reply)
+            speaker.speak(reply_text)
         except Exception:
             log.exception("Ошибка озвучки")
 
-    r = Result(name, cmd, reply, expected, elapsed)
-    log.info("Ответ: %s", str(reply)[:200])
+    r = Result(name, cmd, reply_text, expected, elapsed)
+    log.info("Ответ: %s", str(reply_text)[:200])
     log.info("Результат: %s", "OK" if r.passed else f"FAIL (ожидалось: {expected})")
     return r
 
 
 def main():
     parser = argparse.ArgumentParser(description="Автотест Феникса")
-    parser.add_argument("--voice", action="store_true")
-    parser.add_argument("-k", "--filter")
+    parser.add_argument("--llm", action="store_true",
+                        help="Использовать LLM (нужна Ollama)")
+    parser.add_argument("--voice", action="store_true",
+                        help="Озвучивать ответы")
+    parser.add_argument("-k", "--filter",
+                        help="Фильтр по имени теста")
     args = parser.parse_args()
 
     log.info("=" * 70)
     log.info("АВТОТЕСТ ФЕНИКСА")
+    log.info("LLM: %s | Озвучка: %s", "вкл" if args.llm else "выкл",
+             "вкл" if args.voice else "выкл")
     log.info("Лог: %s", LOG_FILE)
     log.info("=" * 70)
 
-    handler, speaker = build_handler(with_voice=args.voice)
+    handler = build_handler(use_llm=args.llm)
+
+    speaker = None
+    if args.voice:
+        try:
+            from jarvis.tts import Speaker
+            speaker = Speaker(handler.config)
+        except Exception:
+            log.exception("Speaker не завёлся — без озвучки")
 
     tests = TESTS
     if args.filter:
@@ -211,7 +227,7 @@ def main():
         for r in failed:
             log.info("  %s", r.name)
             log.info("    команда: %r", r.cmd)
-            log.info("    ответ:   %s", str(r.reply)[:200])
+            log.info("    ответ:   %s", str(r.reply_text)[:200])
             log.info("    ждали:   %s", r.expected)
             if r.error:
                 log.info("    ошибка:  %s", r.error)

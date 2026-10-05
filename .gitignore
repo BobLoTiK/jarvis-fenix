@@ -1,39 +1,55 @@
-# Python
+# === Python ===
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 *.egg-info/
 .pytest_cache/
+.coverage
+htmlcov/
 
-# Модели и голоса
-models/
-voices/
-log.txt
-*.log
-
-# Окружение
+# === Виртуальные окружения ===
 .env
 .venv/
 venv/
+env/
+envs/
 
-# Редакторы
+# === Модели и голоса (тяжёлые, скачиваются при первом запуске) ===
+models/
+voices/
+*.onnx
+*.bin
+*.pt
+*.pth
+
+# === Сборка ===
+dist/
+build/
+*.spec
+
+# === Редакторы ===
 .idea/
 .vscode/
+*.swp
+*.swo
+*~
 
 # === Пользовательские данные — НЕ В ГИТ ===
 config.json
+config.json.lock
 user_profile.json
+user_profile.json.lock
 dialog.json
 timers.json
 tasks.json
 logs/
+*.log
 
-# Случайные файлы из редакторов
+# === Случайные файлы из редакторов ===
 вкладка
 new *
 Untitled*
 (новый)*
 без имени*
 *.bak
-*.swp

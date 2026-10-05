@@ -1,0 +1,20 @@
+# Зависимости для CI (GitHub Actions) и минимального прогона тестов.
+#
+# Здесь НЕТ:
+#   - piper-tts, faster-whisper, sounddevice, vosk, winrt-* — на сервере нет звука
+#   - pycaw, screen-brightness-control — тяжёлые, Windows-специфичные
+#   - pyautogui, pygetwindow, keyboard, mouse — GUI
+#
+# Здесь ЕСТЬ только то, что реально импортируется IntentHandler
+# и тестами (tests/, test_intents.py).
+
+# --- Утилиты ---
+filelock>=3.13
+num2words>=0.5.14
+psutil>=5.9
+pyperclip>=1.8
+Pillow>=10
+
+# --- Тесты ---
+pytest>=8.0
+pytest-asyncio>=0.23
