@@ -125,6 +125,11 @@ class IntentHandler:
 
         self.dialog.append({"role": "user", "content": cmd})
 
+        
+        if result is None:
+            # _handle_single вернул None — считаем «не понял»
+            result = "Не понял команду."
+
         if isinstance(result, str):
             self.dialog.append({"role": "assistant", "content": result})
             memory.save(list(self.dialog))
