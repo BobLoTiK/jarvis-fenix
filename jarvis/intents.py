@@ -8,10 +8,10 @@ import time
 from collections import deque
 from difflib import SequenceMatcher
 from pathlib import Path
+from typing import Iterator
 from types import MappingProxyType
 
 from jarvis import APP_NAME, __version__, actions, files
-from jarvis.reply import Reply
 from jarvis.apps import find_app
 from jarvis.installed import find_installed, scan_start_menu
 from jarvis.steam import find_game, scan_steam_games
@@ -23,6 +23,7 @@ from jarvis import timers
 from jarvis import tasks
 from jarvis import weather
 from jarvis import profile
+from jarvis.reply import Reply
 
 
 log = logging.getLogger("jarvis.intents")
@@ -108,6 +109,7 @@ class IntentHandler:
         self.custom = list(self._config_custom_original) + self._load_packs_as_custom(config)
 
     def handle(self, cmd: str) -> Reply:
+        """Возвращает Reply: либо text, либо stream."""
         self.last_was_chat = False
         actions_log.info("Команда: %r (режим: %s)", cmd, self.mode)
 
@@ -137,7 +139,6 @@ class IntentHandler:
             return "Жду обращение, сэр."
 
         # Память диалога — до всего остального
-        # («что мы обсуждали», «забудь всё», «сохрани память»)
         mem_reply, clear_requested = memory.handle_memory_command(cmd, list(self.dialog))
         if mem_reply:
             if clear_requested:
@@ -186,6 +187,35 @@ class IntentHandler:
         if re.search(r"скрин|снимок экрана", cmd):
             return self._take_screenshot(cmd)
 
+        # --- Быстрые правила без LLM ---
+        # Голоса
+        reply = voices.handle_voice_command(cmd, self.config)
+        if reply:
+            return reply
+
+        # Паки
+        reply, new_active = packs.handle_pack_command(cmd, self.active_packs, self.config)
+        if reply:
+            if new_active != self.active_packs:
+                self.active_packs = new_active
+                self._reload_packs()
+            return reply
+
+        # Таймеры
+        reply = timers.handle_timer_command(cmd)
+        if reply:
+            return reply
+
+        # Задачи
+        reply = tasks.handle_task_command(cmd)
+        if reply:
+            return reply
+
+        # Погода/курс — простые случаи без нормализации
+        reply = self._weather_currency_fast(cmd)
+        if reply:
+            return reply
+
         if self.mode == "commands":
             return "Я не понял команду. Скажите «режим ИИ» или добавьте фразу в конфиг."
 
@@ -217,6 +247,57 @@ class IntentHandler:
             self.last_was_chat = True
             return gen
         return "Я не понял команду."
+
+    def _weather_currency_fast(self, cmd: str) -> str | None:
+        """Простые правила для погоды и курса — без LLM.
+
+        Сложные случаи (падежи, синонимы городов/валют) — уходят в LLM.
+        Здесь только явные: «курс доллара», «погода», «погода в Москве».
+        """
+        # --- Курс валют ---
+        if re.search(r"\bкурс\b|\bвалют", cmd):
+            code_map = {
+                "доллар": "USD", "доллара": "USD", "бакс": "USD", "бакса": "USD",
+                "евро": "EUR",
+                "юан": "CNY", "юаня": "CNY",
+                "фунт": "GBP", "фунта": "GBP",
+                "йен": "JPY", "йены": "JPY",
+                "лир": "TRY", "лиры": "TRY",
+                "тенге": "KZT",
+                "белорусск": "BYN", "бел рубл": "BYN",
+                "гривн": "UAH",
+            }
+            code = ""
+            for word, iso in code_map.items():
+                if word in cmd:
+                    code = iso
+                    break
+            r = weather.get_currency_rates()
+            return weather.describe_currency(r, code=code)
+
+        # --- Погода ---
+        if re.search(r"\bпогод|\bпрогноз", cmd):
+            day = "tomorrow" if "завтра" in cmd else "today"
+
+            m = re.search(r"\bв\s+([а-яёa-z\-]+(?:\s+[а-яёa-z\-]+)?)", cmd)
+            city = m.group(1).strip() if m else ""
+
+            if not city:
+                city = profile.get("default_city")
+            if not city:
+                self._pending_question = {
+                    "type": "city_for_weather",
+                    "day": day,
+                    "expires_at": time.time() + 30,
+                }
+                return "В каком городе узнать погоду?"
+
+            w = weather.get_weather(city, day=day)
+            if not w:
+                return None  # пусть LLM попробует (может, падеж поправит)
+            return weather.describe_weather(w)
+
+        return None
 
     def _handle_pending_answer(self, cmd: str) -> str:
         pending = self._pending_question
@@ -644,9 +725,6 @@ class IntentHandler:
         return result
 
     def _reload_packs(self):
-        # Передаём объект Config как есть — packs.load_active умеет
-        # работать и с Config, и с dict (через config.get).
-        # Никаких config_copy-хаков.
         self.custom = list(self._config_custom_original) + self._load_packs_as_custom(self.config)
 
     def _folder_title(self, path: Path) -> str:

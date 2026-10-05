@@ -6,10 +6,13 @@
 По умолчанию:
     - Без LLM (Brain не создаётся). Хочешь с LLM — флаг --llm.
     - Без озвучки. Хочешь озвучку — флаг --voice.
+    - Без сети (тесты погоды/курса пропускаются). Хочешь сеть — флаг --network.
 
 Запуск:
-    python test_intents.py                  # правила, без LLM, без озвучки
-    python test_intents.py --llm            # с LLM (нужна Ollama)
+    python test_intents.py                  # правила, без LLM, без сети, без озвучки
+    python test_intents.py --llm            # + LLM (нужна Ollama)
+    python test_intents.py --network        # + тесты погоды/курса (нужна сеть)
+    python test_intents.py --llm --network  # всё вместе
     python test_intents.py --voice          # с озвучкой
     python test_intents.py -k weather       # только тесты со словом 'weather'
 """
@@ -39,49 +42,57 @@ _ch.setFormatter(_fmt)
 log.addHandler(_ch)
 
 
+# (name, cmd, expected, requires_llm, requires_network)
+# requires_llm=True     — пропускается без флага --llm.
+# requires_network=True — пропускается без флага --network.
 TESTS = [
-    # === Режимы ===
-    ("mode_set_llm",       "режим ии",                  ["Режим", "ИИ"]),
-    ("mode_query",         "какой режим",               ["Сейчас режим"]),
-    ("mode_set_combo",     "обычный режим",             ["комбинированный"]),
-    ("mode_set_commands",  "режим команды",             ["только команды"]),
-    ("mode_restore",       "обычный режим",             ["комбинированный"]),
+    # === Режимы (без LLM, без сети) ===
+    ("mode_set_llm",        "режим ии",                   ["Режим", "ИИ"],          False, False),
+    ("mode_query",          "какой режим",                ["Сейчас режим"],         False, False),
+    ("mode_set_combo",      "обычный режим",              ["комбинированный"],      False, False),
+    ("mode_set_commands",   "режим команды",              ["только команды"],       False, False),
+    ("mode_restore",        "обычный режим",              ["комбинированный"],      False, False),
 
-    # === Голоса ===
-    ("voice_list",         "какой голос",               ["голос"]),
-    ("voice_switch_irina", "смени голос на ирину",      ["Irina", "ирина"]),
-    ("voice_switch_ruslan","смени голос на руслан",     ["Ruslan", "руслан"]),
+    # === Голоса (быстрые правила, без LLM) ===
+    ("voice_list",          "какой голос",                ["голос"],                False, False),
+    ("voice_switch_irina",  "смени голос на ирину",       ["Irina", "ирина"],       False, False),
+    ("voice_switch_ruslan", "смени голос на руслан",      ["Ruslan", "руслан"],     False, False),
 
-    # === Паки ===
-    ("packs_list",         "какие паки",                ["Доступны"]),
-    ("packs_unload",       "выгрузи пак игр",           ["выгружен", "уже", "не активен", "загружен"]),
-    ("packs_load",         "загрузи пак игр",           ["загружен", "уже", "не найден"]),
+    # === Паки (быстрые правила, без LLM) ===
+    ("packs_list",          "какие паки",                 ["Доступны"],             False, False),
+    ("packs_unload",        "выгрузи пак игр",            ["выгружен", "уже", "не активен", "загружен"], False, False),
+    ("packs_load",          "загрузи пак игр",            ["загружен", "уже", "не найден"], False, False),
 
-    # === Буфер ===
-    ("clipboard_read",     "что в буфере",              ["буфере", "пуст"]),
-    ("clipboard_clear",    "очисти буфер",              ["Буфер"]),
+    # === Буфер (без LLM, без сети) ===
+    ("clipboard_read",      "что в буфере",               ["буфере", "пуст"],       False, False),
+    ("clipboard_clear",     "очисти буфер",               ["Буфер"],                False, False),
 
     # === Погода ===
-    ("weather_ask_city",   "какая погода",              ["городе", "Погода"]),
-    ("weather_answer_city","Казань",                    ["Запомнил", "Погода"]),
-    ("weather_default",    "какая погода",              ["Погода", "Казань"]),
-    ("weather_other_city", "погода в нижнем новгороде", ["Погода", "Новгород"]),
-    ("weather_tomorrow",   "погода в питере на завтра", ["Погода", "Петербург"]),
+    # weather_ask_city — без сети: если город не задан, просто спросит.
+    # Если profile сброшен — гарантированно спросит.
+    ("weather_ask_city",    "какая погода",               ["городе"],               False, False),
+    # weather_answer_city — требует сеть: после ответа города идёт запрос погоды.
+    ("weather_answer_city", "Казань",                     ["Запомнил"],             False, True),
+    # weather_default — требует сеть: город уже сохранён, сразу погода.
+    ("weather_default",     "какая погода",               ["Погода", "Казань"],     False, True),
+    # Падежи — только с LLM (нормализация города).
+    ("weather_other_city",  "погода в нижнем новгороде",  ["Погода", "Новгород"],   True,  True),
+    ("weather_tomorrow",    "погода в питере на завтра",  ["Погода", "Петербург"],  True,  True),
 
-    # === Курс ===
-    ("currency_usd",       "курс доллара",              ["Доллар"]),
-    ("currency_byn",       "курс белорусского рубля",   ["рубл"]),
-    ("currency_all",       "курс валют",                ["ЦБ", "Доллар"]),
+    # === Курс (требует сеть) ===
+    ("currency_usd",        "курс доллара",               ["Доллар"],               False, True),
+    ("currency_byn",        "курс белорусского рубля",    ["рубл"],                 False, True),
+    ("currency_all",        "курс валют",                 ["ЦБ", "Доллар"],         False, True),
 
-    # === Small talk ===
-    ("small_talk_how",     "как дела",                  []),
-    ("small_talk_time",    "который час",               ["Сейчас"]),
-    ("small_talk_date",    "какое сегодня число",       ["Сегодня"]),
-    ("small_talk_who",     "кто ты",                    ["Феникс"]),
+    # === Small talk (без LLM, без сети) ===
+    ("small_talk_how",      "как дела",                   [],                       False, False),
+    ("small_talk_time",     "который час",                ["Сейчас"],               False, False),
+    ("small_talk_date",     "какое сегодня число",        ["Сегодня"],              False, False),
+    ("small_talk_who",      "кто ты",                     ["Феникс"],               False, False),
 
-    # === Скриншот, сайт ===
-    ("screenshot",         "сделай скриншот",           ["Скриншот"]),
-    ("open_site",          "открой ютуб",               ["Ютуб", "youtube"]),
+    # === Скриншот, сайт (без сети — только открытие URL, не загрузка) ===
+    ("screenshot",          "сделай скриншот",            ["Скриншот"],             False, False),
+    ("open_site",           "открой ютуб",                ["Ютуб", "youtube"],      False, False),
 ]
 
 
@@ -108,10 +119,12 @@ class Result:
         return f"[{mark}] {self.name:24s} ({self.elapsed:5.2f} с) «{self.cmd}»"
 
 
-def build_handler(use_llm=False):
+def build_handler(use_llm=False, reset_profile=True):
     """Собирает IntentHandler.
 
     use_llm=False (по умолчанию) — brain=None, только правила.
+    reset_profile=True — сбрасывает default_city, чтобы тесты были
+                         детерминированными (не зависели от прошлых прогонов).
     """
     from jarvis.config import load_config
     from jarvis.apps import build_apps
@@ -119,6 +132,13 @@ def build_handler(use_llm=False):
 
     log.info("Загрузка конфига...")
     config = load_config(BASE_DIR)
+
+    if reset_profile:
+        from jarvis import profile
+        if profile.forget("default_city"):
+            log.info("Профиль: default_city сброшен для чистого прогона")
+        else:
+            log.info("Профиль: default_city уже отсутствовал")
 
     brain = None
     if use_llm:
@@ -176,13 +196,17 @@ def main():
                         help="Использовать LLM (нужна Ollama)")
     parser.add_argument("--voice", action="store_true",
                         help="Озвучивать ответы")
+    parser.add_argument("--network", action="store_true",
+                        help="Запускать тесты, требующие сеть (погода, курс)")
     parser.add_argument("-k", "--filter",
                         help="Фильтр по имени теста")
     args = parser.parse_args()
 
     log.info("=" * 70)
     log.info("АВТОТЕСТ ФЕНИКСА")
-    log.info("LLM: %s | Озвучка: %s", "вкл" if args.llm else "выкл",
+    log.info("LLM: %s | Сеть: %s | Озвучка: %s",
+             "вкл" if args.llm else "выкл",
+             "вкл" if args.network else "выкл",
              "вкл" if args.voice else "выкл")
     log.info("Лог: %s", LOG_FILE)
     log.info("=" * 70)
@@ -204,8 +228,17 @@ def main():
         log.info("Фильтр %r: %d тестов", args.filter, len(tests))
 
     results = []
+    skipped = []
     t_start = time.time()
-    for name, cmd, expected in tests:
+    for name, cmd, expected, requires_llm, requires_network in tests:
+        if requires_llm and not args.llm:
+            log.info("ПРОПУСК %s (требует --llm)", name)
+            skipped.append(f"{name} (--llm)")
+            continue
+        if requires_network and not args.network:
+            log.info("ПРОПУСК %s (требует --network)", name)
+            skipped.append(f"{name} (--network)")
+            continue
         r = run_one(handler, speaker, name, cmd, expected)
         results.append(r)
 
@@ -216,6 +249,8 @@ def main():
     log.info("")
     log.info("=" * 70)
     log.info("ИТОГ: %d / %d пройдено за %.1f с", len(passed), len(results), total)
+    if skipped:
+        log.info("Пропущено: %d — %s", len(skipped), ", ".join(skipped))
     log.info("=" * 70)
 
     for r in results:
