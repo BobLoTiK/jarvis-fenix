@@ -42,6 +42,7 @@ set_brightness (яркость в процентах; percent — число 0-1
 get_brightness (какая яркость)
 debug_what_heard (что ты слышал — история распознавания)
 debug_why_not_understood (почему не понял — диагностика)
+delete_profile (удали профиль; target — имя профиля)
 minimize_all (свернуть все окна)
 minimize_window (свернуть окно; target)
 maximize_window (развернуть окно; target)
@@ -226,6 +227,7 @@ ACTIONS = {
     "set_volume", "get_volume",
     "set_brightness", "get_brightness",
     "debug_why_not_understood", "debug_what_heard",
+    "delete_profile",
 }
 
 CHAT_SYSTEM = (

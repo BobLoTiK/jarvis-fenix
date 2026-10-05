@@ -22,6 +22,7 @@ from jarvis import timers
 from jarvis import tasks
 from jarvis import weather
 from jarvis import profile
+from jarvis import history
 from jarvis.reply import Reply
 
 
@@ -79,6 +80,12 @@ _NOT_A_CITY = (
     "загугли", "поищи", "напечатай",
 )
 
+# Действия, требующие пароля (если danger_password задан)
+_DANGER_ACTIONS = {
+    "shutdown_pc", "reboot_pc", "kill_process",
+    "clear_tasks", "cancel_timers", "delete_profile",
+}
+
 
 class IntentHandler:
 
@@ -111,6 +118,9 @@ class IntentHandler:
         # Диагностика (Н2, Н3)
         self._last_debug: dict = {}
         self._recent_phrases: deque = deque(maxlen=10)
+
+        # Пароль (2.13)
+        self._pending_password: dict | None = None
 
         self._config_custom_original = []
         for entry in config.get("custom_commands", []):
@@ -185,7 +195,26 @@ class IntentHandler:
         ctx = list(self.dialog)[-self._llm_context:] if self._llm_context else []
         return self.brain.chat_stream(cmd, ctx)
 
+    def _danger_password(self) -> str:
+        return str(self.config.get("danger_password") or "").strip()
+
     def _handle_single(self, cmd: str) -> str | Iterator[str]:
+        # Пароль (2.13) — до всего, если ждём
+        if self._pending_password and time.time() < self._pending_password.get("expires_at", 0):
+            return self._handle_password_answer(cmd)
+        elif self._pending_password:
+            self._pending_password = None
+
+        # Удаление профиля — до tasks (иначе tasks перехватит «удали профиль X»)
+        m = re.match(r"^удали\s+профиль\s+(\S+)$", cmd)
+        if m:
+            name = m.group(1)
+            if self._danger_password():
+                return self._ask_password({"action": "delete_profile", "target": name})
+            if profile.delete(name):
+                return f"Профиль {name} удалён."
+            return f"Профиль {name} не найден или активен."
+
         if cmd in CANCEL:
             self._reset_requested = True
             return "Жду обращение, сэр."
@@ -223,8 +252,14 @@ class IntentHandler:
 
         # Режимы
         if any(w in cmd for w in ("режим", "комбо", "комбинирован")):
+            prev_mode = self.mode
             reply, new_mode = modes.handle_mode_command(cmd, self.mode, self.config)
             if reply:
+                if new_mode != prev_mode:
+                    history.push({
+                        "action": "set_mode",
+                        "prev_value": prev_mode,
+                    })
                 self.mode = new_mode
                 return reply
 
@@ -280,6 +315,10 @@ class IntentHandler:
         if reply:
             return reply
 
+        reply = self._undo_fast(cmd)
+        if reply:
+            return reply
+
         reply = self._weather_currency_fast(cmd)
         if reply:
             return reply
@@ -306,6 +345,10 @@ class IntentHandler:
             "llm": True,
         }
         if intent and intent.get("action") not in ("answer", "none"):
+            # Пароль на опасные (2.13)
+            if self._is_danger(intent):
+                return self._ask_password(intent)
+
             if intent.get("action") == "search" \
                     and not any(v in cmd for v in SEARCH_VERBS):
                 return "Сэр, чтобы поискать, скажите «найди» и запрос. Например: «найди погоду»."
@@ -329,6 +372,58 @@ class IntentHandler:
             self.last_was_chat = True
             return gen
         return "Я не понял команду."
+
+    def _is_danger(self, intent: dict) -> bool:
+        """Проверяет, опасно ли действие (2.13)."""
+        if not self._danger_password():
+            return False
+        action = intent.get("action")
+        if action in _DANGER_ACTIONS:
+            return True
+        # open_app с target: выключение/перезагрузка (shutdown /s)
+        if action == "open_app":
+            target = str(intent.get("target") or "").lower()
+            if "shutdown" in target or "выключ" in target or "перезагруз" in target:
+                return True
+        return False
+
+    def _ask_password(self, intent: dict) -> str:
+        """Запрашивает пароль для опасного действия."""
+        self._pending_password = {
+            "intent": intent,
+            "expires_at": time.time() + 30,
+        }
+        action = intent.get("action")
+        human = {
+            "shutdown_pc": "выключение компьютера",
+            "reboot_pc": "перезагрузку",
+            "kill_process": "закрытие процесса",
+            "clear_tasks": "очистку списка задач",
+            "cancel_timers": "отмену напоминаний",
+            "delete_profile": "удаление профиля",
+            "open_app": "это действие",
+        }.get(action, "это действие")
+        return f"Для этого нужен пароль ({human}). Назовите пароль."
+
+    def _handle_password_answer(self, cmd: str) -> str:
+        """Проверяет пароль и выполняет отложенное действие."""
+        pending = self._pending_password
+        self._pending_password = None
+
+        # Убираем «пароль», «код», лишние слова
+        candidate = re.sub(r"^(?:пароль|код|пин)\s*", "", cmd).strip()
+
+        if candidate != self._danger_password():
+            log.warning("Пароль неверный: %r", candidate)
+            return "Пароль неверный. Действие отменено."
+
+        intent = pending.get("intent") or {}
+        # Выполняем
+        if isinstance(intent.get("steps"), list):
+            result = self._execute_steps(intent["steps"])
+        else:
+            result = self._execute_intent(intent)
+        return result or "Готово."
 
     def _open_fast(self, cmd: str) -> str | None:
         """Быстрое открытие приложений/сайтов/папок — без LLM."""
@@ -425,14 +520,6 @@ class IntentHandler:
             lc = self.config.get("llm_context_messages", 20)
             return f"Память: {mm} сообщений, контекст LLM — {lc}."
 
-        # удалить профиль
-        m = re.match(r"^удали\s+профиль\s+(\S+)$", cmd)
-        if m:
-            name = m.group(1)
-            if profile.delete(name):
-                return f"Профиль {name} удалён."
-            return f"Профиль {name} не найден или активен."
-
         return None
 
     def _system_fast(self, cmd: str) -> str | None:
@@ -442,6 +529,8 @@ class IntentHandler:
         if re.search(r"раскладк", cmd):
             if re.search(r"(переключ|смени|поменяй|следующ)", cmd):
                 ok = actions.switch_layout()
+                if ok:
+                    history.push({"action": "switch_layout"})
                 return "Переключаю раскладку." if ok else "Не удалось переключить."
             if re.search(r"(русск|ru)", cmd):
                 ok = actions.set_layout_ru()
@@ -461,7 +550,10 @@ class IntentHandler:
         m = re.search(r"громкость\s+(?:на\s+)?(\d+)", cmd)
         if m:
             pct = int(m.group(1))
+            prev = actions.get_volume()
             ok = actions.set_volume(pct)
+            if ok:
+                history.push({"action": "set_volume", "prev_value": prev})
             return f"Громкость: {pct}%." if ok else "Не удалось."
 
         if re.search(r"(какая|текущ|узнай)\s+громкость", cmd) \
@@ -473,7 +565,10 @@ class IntentHandler:
         m = re.search(r"яркость\s+(?:на\s+)?(\d+)", cmd)
         if m:
             pct = int(m.group(1))
+            prev = actions.get_brightness()
             ok = actions.set_brightness(pct)
+            if ok:
+                history.push({"action": "set_brightness", "prev_value": prev})
             return f"Яркость: {pct}%." if ok else "Не удалось."
 
         if re.search(r"(какая|текущ|узнай)\s+яркость", cmd) \
@@ -485,7 +580,6 @@ class IntentHandler:
 
     def _debug_fast(self, cmd: str) -> str | None:
         """Команды диагностики: что слышал, почему не понял."""
-        # --- что ты слышал ---
         if re.search(r"(что|чё)\s+ты\s+слышал", cmd) \
                 or cmd in {"что ты слышал", "что слышал", "история"}:
             phrases = list(self._recent_phrases)
@@ -494,7 +588,6 @@ class IntentHandler:
             lines = [f"{i+1}. {p}" for i, p in enumerate(phrases[-5:])]
             return "Последние фразы: " + "; ".join(lines) + "."
 
-        # --- почему не понял ---
         if re.search(r"почему\s+(ты\s+)?не\s+понял", cmd) \
                 or cmd in {"почему не понял", "почему не поняла"}:
             d = self._last_debug
@@ -513,6 +606,60 @@ class IntentHandler:
             return ". ".join(parts) + "."
 
         return None
+
+    def _undo_fast(self, cmd: str) -> str | None:
+        """Отмена последнего действия (Н1)."""
+        if not re.search(r"(не\s+то|отмени|верни\s+как\s+было|откат)", cmd):
+            return None
+
+        item = history.pop()
+        if not item:
+            return "Нечего отменять."
+
+        action = item.get("action")
+
+        # open_app → close_app
+        if action == "open_app":
+            target = item.get("target") or ""
+            if target:
+                result = self._do_close(target)
+                return f"Откатываю: {result}"
+
+        # set_mode → вернуть предыдущий
+        if action == "set_mode":
+            prev = item.get("prev_value")
+            if prev:
+                reply = modes.set_mode(prev, self.config)
+                self.mode = prev
+                return f"Вернул режим: {reply}"
+
+        # change_voice → вернуть предыдущий
+        if action == "change_voice":
+            prev = item.get("prev_value")
+            if prev:
+                reply = voices.switch(prev, self.config)
+                return f"Вернул голос: {reply}"
+
+        # set_volume → вернуть предыдущее
+        if action == "set_volume":
+            prev = item.get("prev_value")
+            if prev is not None:
+                actions.set_volume(int(prev))
+                return f"Вернул громкость: {prev}%."
+
+        # set_brightness → вернуть предыдущее
+        if action == "set_brightness":
+            prev = item.get("prev_value")
+            if prev is not None:
+                actions.set_brightness(int(prev))
+                return f"Вернул яркость: {prev}%."
+
+        # switch_layout → переключить обратно
+        if action == "switch_layout":
+            actions.switch_layout()
+            return "Переключил раскладку обратно."
+
+        return f"Действие «{action}» отменить нельзя."
 
     def _weather_currency_fast(self, cmd: str) -> str | None:
         """Простые правила для погоды и курса — без LLM."""
@@ -615,13 +762,17 @@ class IntentHandler:
                 hit = find_installed(self.installed, target)
                 if hit:
                     actions.open_path(hit[1], minimized=True)
+                    history.push({"action": "open_app", "target": target})
                     return f"Открываю {hit[0]}."
             running = actions.find_process(target, threshold=0.8)
             if running:
                 from jarvis.actions import activate_window_by_title
                 if activate_window_by_title(target):
                     return f"Переключаюсь на {target}."
-            return self._do_open(target)
+            result = self._do_open(target)
+            if result:
+                history.push({"action": "open_app", "target": target})
+            return result
         if action == "close_app" and target:
             return self._do_close(target)
         if action == "open_file":
@@ -700,6 +851,8 @@ class IntentHandler:
 
         if action == "switch_layout":
             ok = actions.switch_layout()
+            if ok:
+                history.push({"action": "switch_layout"})
             return "Переключаю раскладку." if ok else None
         if action == "set_layout_ru":
             ok = actions.set_layout_ru()
@@ -720,7 +873,10 @@ class IntentHandler:
                 pct = int(intent.get("percent") or 50)
             except (TypeError, ValueError):
                 pct = 50
+            prev = actions.get_volume()
             ok = actions.set_volume(pct)
+            if ok:
+                history.push({"action": "set_volume", "prev_value": prev})
             return f"Громкость: {pct}%." if ok else None
         if action == "get_volume":
             vol = actions.get_volume()
@@ -731,7 +887,10 @@ class IntentHandler:
                 pct = int(intent.get("percent") or 50)
             except (TypeError, ValueError):
                 pct = 50
+            prev = actions.get_brightness()
             ok = actions.set_brightness(pct)
+            if ok:
+                history.push({"action": "set_brightness", "prev_value": prev})
             return f"Яркость: {pct}%." if ok else None
         if action == "get_brightness":
             br = actions.get_brightness()
@@ -788,10 +947,13 @@ class IntentHandler:
             return "Переключаю окно."
 
         if action == "set_mode":
+            prev_mode = self.mode
             mode = str(intent.get("mode") or "combo").lower()
             if mode not in ("commands", "llm", "combo"):
                 mode = "combo"
             reply = modes.set_mode(mode, self.config)
+            if mode != prev_mode:
+                history.push({"action": "set_mode", "prev_value": prev_mode})
             self.mode = mode
             return reply
 
@@ -820,8 +982,12 @@ class IntentHandler:
             return f"Доступны: {', '.join(available)}. Активны: {active_str}."
 
         if action == "change_voice":
+            prev = voices.current_voice(self.config)
             voice = str(intent.get("voice") or "").strip().lower()
-            return voices.switch(voice, self.config)
+            reply = voices.switch(voice, self.config)
+            if voice in voices.PIPER_VOICES and voice != prev:
+                history.push({"action": "change_voice", "prev_value": prev})
+            return reply
         if action == "list_voices":
             return voices.handle_voice_command("список голосов", self.config)
 
@@ -912,6 +1078,12 @@ class IntentHandler:
             code = str(intent.get("target") or "").strip().upper()
             r = weather.get_currency_rates()
             return weather.describe_currency(r, code=code)
+
+        if action == "delete_profile":
+            name = str(intent.get("target") or "").strip()
+            if profile.delete(name):
+                return f"Профиль {name} удалён."
+            return f"Профиль {name} не найден или активен."
 
         if action == "answer" and intent.get("reply"):
             return str(intent["reply"])[:600]

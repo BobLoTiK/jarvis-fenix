@@ -50,6 +50,7 @@ DEFAULT_CONFIG = {
     "memory_file": "dialog.json",
     "memory_max": 100,
     "llm_context_messages": 20,
+    "danger_password": "",
 }
 
 
