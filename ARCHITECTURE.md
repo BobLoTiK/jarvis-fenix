@@ -1,6 +1,7 @@
 # 🏗 Архитектура «Феникс»
 
-Документ описывает модули проекта, их роль и связи. Помогает быстро вникнуть в проект — человеку или LLM.
+Документ описывает модули проекта, их роль и связи.
+Помогает быстро вникнуть в проект — человеку или LLM.
 
 ---
 
@@ -8,30 +9,33 @@
 
 ```
 jarvis/
-├── main.py           — точка входа, класс Jarvis, barge-in цикл, TTS+STT
+├── main.py           — точка входа, класс Jarvis, barge-in цикл
 ├── config.py         — объект Config в памяти + подписки
 ├── config_manager.py — атомарная запись config.json (один FileLock)
-├── brain.py          — LLM (Ollama): parse() интентов, chat_stream() диалога
-├── intents.py        — IntentHandler: правила + LLM-разбор, все голосовые команды
-├── stt.py            — Vosk (wake) + Whisper (расшифровка), калибровка barge-in
-├── tts.py            — Piper / XTTS / WinRT / SAPI, Streaming TTS, _prepare_text
+├── brain.py          — LLM (Ollama): parse() и chat_stream()
+├── intents.py        — IntentHandler: правила + LLM-разбор
+├── reply.py          — тип Reply (text | stream)
+├── gui.py            — Flet GUI (окно, чат, настройки)
+├── history.py        — стек отмены («стоп, не то»)
+├── stt.py            — Vosk (wake) + Whisper, ring buffer
+├── tts.py            — Piper / XTTS / WinRT / SAPI, Streaming TTS
 ├── modes.py          — режимы commands / llm / combo
 ├── voices.py         — смена голоса Piper
-├── packs.py          — загрузка/выгрузка паков команд
-├── profile.py        — user_profile.json (город, имя и т.п.)
-├── weather.py        — погода (open-meteo) и курс валют (ЦБ РФ)
-├── timers.py         — напоминания, threading.Timer, timers.json
-├── tasks.py          — списки задач, tasks.json
-├── memory.py         — история диалога, dialog.json
-├── actions.py        — низкоуровневые действия: окна, медиа, печать, буфер
-├── files.py          — работа с папками (Desktop, Downloads, ...)
-├── apps.py           — каталог известных приложений (Discord, Steam, ...)
+├── packs.py          — загрузка/выгрузка паков
+├── profile.py        — profiles/<user>/profile.json (мультипрофиль)
+├── memory.py         — profiles/<user>/dialog.json (история)
+├── weather.py        — погода (open-meteo) и курс (ЦБ РФ)
+├── timers.py         — напоминания
+├── tasks.py          — списки задач
+├── actions.py        — окна, медиа, печать, буфер, громкость, яркость, раскладка
+├── files.py          — папки (Desktop, Downloads, ...)
+├── apps.py           — каталог приложений
 ├── installed.py      — индекс меню «Пуск»
 ├── steam.py          — индекс игр Steam
 ├── matching.py       — нечёткое сравнение + транслитерация
 ├── model.py          — загрузка Vosk-модели
-├── recorder.py       — запись макросов (keyboard + mouse)
-└── tray.py           — иконка в системном трее
+├── recorder.py       — запись макросов
+└── tray.py           — иконка в трее
 ```
 
 ---
@@ -49,50 +53,97 @@ main.Jarvis._process → извлекает команду (без wake-слов
    ↓
 intents.IntentHandler.handle(cmd)
    ├── 1. CANCEL (стой, хватит, ...)
-   ├── 2. Ответ на уточняющий вопрос (город для погоды)
-   ├── 3. Буфер обмена (быстрые правила)
-   ├── 4. Режимы (modes.handle_mode_command)
-   ├── 5. Custom commands + паки
-   ├── 6. Small talk (время, дата, привет)
-   ├── 7. Скриншот
-   ├── 8. Если режим commands → «не понял»
-   ├── 9. brain.parse(cmd) → intent
-   │       → _execute_intent → actions / files / timers / tasks / weather
-   └── 10. brain.chat_stream() → стриминговый ответ LLM (генератор)
+   ├── 2. memory.handle_memory_command
+   ├── 3. pending_question (город для погоды, пароль)
+   ├── 4. Буфер обмена
+   ├── 5. Режимы (modes)
+   ├── 6. Custom commands + паки
+   ├── 7. Small talk
+   ├── 8. Скриншот
+   ├── 9. _open_fast (открытие приложений)
+   ├── 10. Голоса (voices)
+   ├── 11. Паки (packs)
+   ├── 12. Таймеры (timers)
+   ├── 13. Задачи (tasks)
+   ├── 14. Профиль (_profile_fast)
+   ├── 15. Память (_memory_fast)
+   ├── 16. Системное (_system_fast — раскладка, громкость, яркость)
+   ├── 17. Диагностика (_debug_fast — «что слышал», «почему не понял»)
+   ├── 18. Отмена (_undo_fast — «стоп, не то»)
+   ├── 19. Погода/курс (_weather_currency_fast)
+   ├── 20. brain.parse(cmd) → intent → _execute_intent
+   └── 21. brain.chat_stream() → генератор
    ↓
 main.Jarvis.say(reply)
-   ├── если строка → speaker.play_async() + barge-in watchdog
-   └── если генератор → speaker.speak_stream() + barge-in watchdog
+   ├── если text → speaker.play_async()
+   └── если stream → speaker.speak_stream() + tee → gui.add_stream_chunk()
    ↓
 tts.Speaker → Piper / XTTS / WinRT / SAPI
 ```
 
 ---
 
+## GUI (Flet)
+
+```
+Flet Main Thread
+   ├── NavigationRail (слева): Главная / Микрофон / Настройки
+   ├── Контент-область (переключается):
+   │   ├── Главная: статус-сфера, контролы, чат, ввод
+   │   ├── Микрофон: dropdown устройств
+   │   └── Настройки: LLM / TTS / тема
+   └── page.run_task(_process_queue) — читает очередь
+
+Jarvis Thread
+   ├── listener.phrases() → _process(cmd)
+   ├── handler.handle(cmd) → Reply
+   └── say(reply):
+       ├── text → gui.add_message("assistant", text)
+       └── stream → tee → gui.add_stream_chunk(chunk)
+```
+
+**Связь:** `queue.Queue()` → `gui._queue`. `Jarvis` пишет, GUI читает в `_process_queue`.
+
+**Важно:** Flet запускается в **главном потоке** (`gui.run_main()`), потому что ставит `signal.signal(SIGINT, ...)` — работает только в главном. Jarvis — **в фоне**.
+
+---
+
+## Мультипрофиль
+
+```
+profiles/
+├── maksim/
+│   ├── profile.json    ← name, default_city, facts, tts_voice
+│   └── dialog.json     ← история диалога
+└── masha/
+    ├── profile.json
+    └── dialog.json
+```
+
+- **Активный профиль** — по имени Windows-юзера (`getpass.getuser()`).
+- **`profile.switch(name)`** — переключение («я — Маша»).
+- **Миграция** из старого `user_profile.json` при первом запуске.
+- **`.gitignore`:** `profiles/`.
+
+---
+
 ## Поток конфига
 
 ```
-config.json (на диске)
+config.json → Config.__init__ → config_manager.load() (один раз)
    ↓
-config.Config.__init__ → config_manager.load() → читает один раз
+Config._data (в памяти) — источник истины
    ↓
-config.Config._data (в памяти) — источник истины
-   ↓
-Любой модуль: config.get("key")
-   ↓
-Изменение: config.set("key", value)
-   ├── config_manager.save() — атомарная запись на диск
-   └── Оповещение подписчиков (main.py подписан)
-           ├── "tts_voice" → speaker.set_voice()
-           ├── "voice_rate" → speaker.set_rate()
-           ├── "mode" → handler.mode
-           └── "barge_enabled" → jarvis.barge_enabled
+config.get("key") / config.set("key", value)
+   ├── config_manager.save() — атомарно
+   └── Оповещение подписчиков:
+       ├── "tts_voice" → speaker.set_voice()
+       ├── "voice_rate" → speaker.set_rate()
+       ├── "mode" → handler.mode
+       ├── "barge_enabled" → jarvis.barge_enabled
+       ├── "memory_max" → handler._memory_max + deque
+       └── "llm_context_messages" → handler._llm_context
 ```
-
-**Ключевая идея:** `config.json` читается **один раз при старте**. Все чтения — из памяти. Все записи — через `Config.set()`, который:
-
-1. Пишет на диск (атомарно через `config_manager`).
-2. Оповещает подписчиков (мгновенное применение изменений).
 
 ---
 
@@ -101,26 +152,15 @@ config.Config._data (в памяти) — источник истины
 | Объект | Модуль | Роль |
 |---|---|---|
 | `Config` | `config.py` | Конфиг в памяти + подписки |
-| `IntentHandler` | `intents.py` | Разбор команд, все интенты |
+| `IntentHandler` | `intents.py` | Разбор команд |
 | `Brain` | `brain.py` | LLM: `parse()` и `chat_stream()` |
 | `Speaker` | `tts.py` | Синтез + воспроизведение, barge-in |
-| `Listener` | `stt.py` | Микрофон, Vosk, калибровка barge-in |
-| `WhisperTranscriber` | `stt.py` | Точная расшифровка через Whisper |
-| `Jarvis` | `main.py` | Связка всего, wake-логика, barge-in |
-
----
-
-## Внешние зависимости (критичные)
-
-| Сервис / модель | URL / имя | Зачем |
-|---|---|---|
-| Ollama | `http://127.0.0.1:11434` | LLM-фолбэк. Если недоступна — работа на правилах |
-| open-meteo.com | `geocoding-api.open-meteo.com` | Геокодинг городов для погоды |
-| open-meteo.com | `api.open-meteo.com` | Погода |
-| cbr-xml-daily.ru | `www.cbr-xml-daily.ru` | Курс валют ЦБ РФ |
-| HuggingFace | `rhasspy/piper-voices` | Голоса Piper (скачиваются при первом использовании) |
-| HuggingFace | `deepdml/faster-whisper-large-v3-turbo-ct2` | Модель Whisper (скачивается при первом использовании) |
-| alphacephei.com | `vosk-model-small-ru-0.22.zip` | Модель Vosk (~45 МБ) |
+| `Listener` | `stt.py` | Микрофон, Vosk, ring buffer |
+| `WhisperTranscriber` | `stt.py` | Точная расшифровка |
+| `Jarvis` | `main.py` | Связка всего, wake-логика |
+| `FenixGUI` | `gui.py` | Flet GUI |
+| `Reply` | `reply.py` | `text` \| `stream` |
+| `history` | `history.py` | Стек отмены |
 
 ---
 
@@ -128,56 +168,45 @@ config.Config._data (в памяти) — источник истины
 
 | Файл | Что хранит |
 |---|---|
-| `config.json` | Личные настройки пользователя |
-| `user_profile.json` | Город, имя, прочее |
-| `dialog.json` | История диалога (200 последних сообщений) |
-| `timers.json` | Активные напоминания |
-| `tasks.json` | Список задач |
-| `logs/` | Логи (`jarvis.log`, `actions.log`, `errors.log`) |
-| `config.json.lock` | FileLock от `config_manager` |
+| `config.json` | Настройки |
+| `profiles/<user>/profile.json` | Имя, город, факты |
+| `profiles/<user>/dialog.json` | История диалога |
+| `timers.json` | Напоминания |
+| `tasks.json` | Задачи |
+| `logs/` | Логи |
+| `config.json.lock` | FileLock |
+
+---
+
+## Внешние зависимости
+
+| Сервис | URL | Зачем |
+|---|---|---|
+| Ollama | `http://127.0.0.1:11434` | LLM |
+| open-meteo.com | `geocoding-api.open-meteo.com` | Геокодинг |
+| open-meteo.com | `api.open-meteo.com` | Погода |
+| cbr-xml-daily.ru | `www.cbr-xml-daily.ru` | Курс ЦБ |
+| HuggingFace | `rhasspy/piper-voices` | Голоса Piper |
+| HuggingFace | `deepdml/faster-whisper-large-v3-turbo-ct2` | Whisper |
+| alphacephei.com | `vosk-model-small-ru-0.22` | Vosk |
 
 ---
 
 ## Тесты
 
-- **`test_intents.py`** — 27 сценариев через `IntentHandler` без микрофона. Проверяет режимы, голоса, паки, буфер, погоду, курс, small talk, скриншот.
-- **`tests/test_config_manager.py`** — параллельная запись, атомарность, битый JSON.
-- **`tests/test_weather.py`** — структура ответов погоды и курса.
-
----
-
-## Инструменты разработчика
-
-| Скрипт | Что делает |
-|---|---|
-| `check_syntax.py` | `ast.parse()` по всем `.py` в проекте |
-| `snapshot.py` | Собирает проект в `SNAPSHOT.md` |
-| `scripts/selftest.py` | Самопроверка TTS → Vosk → разбор |
-| `scripts/mics.py` | Выбор микрофона (показывает уровень сигнала) |
-| `scripts/wakebench.py` | Бенчмарк wake-слов (TTS → Vosk) |
-| `scripts/voicedemo.py` | Прослушка голосов Piper / WinRT |
-| `scripts/build_exe.py` | Сборка лаунчера `launcher.py` в `.exe` |
-
----
-
-## Связи между модулями (кратко)
-
-- **`main.py`** — использует **все**: `config`, `stt`, `tts`, `intents`, `brain`, `timers`, `tray`, `apps`, `model`.
-- **`intents.py`** — использует `actions`, `files`, `apps`, `installed`, `steam`, `modes`, `packs`, `memory`, `voices`, `timers`, `tasks`, `weather`, `profile`, `brain`.
-- **`tts.py`** — зависит от `config` (через подписку), `piper`, `winrt`, `pyttsx3`, `coqui-tts` (опционально).
-- **`stt.py`** — зависит от `vosk`, `faster-whisper`, `sounddevice`.
-- **`actions.py`** — базовый слой: `pyautogui`, `pygetwindow`, `pyperclip`, `psutil`, `winrt`.
-- **`config_manager.py`** — низкоуровневый: `filelock`, `tempfile`, `os.replace`.
-- **`brain.py`** — зависит только от Ollama через HTTP.
+- **`test_intents.py`** — 30 сценариев.
+- **`tests/test_config_manager.py`** — параллельная запись.
+- **`tests/test_weather.py`** — погода/курс с моками.
 
 ---
 
 ## Что важно помнить при доработке
 
-1. **Не добавляй `_atomic_write` в новые модули** — используй `config_manager.save()` или `Config.set()`.
-2. **Не читай `config.json` напрямую** — используй `config.get()` из объекта `Config`.
-3. **Не плоди глобальное состояние** — кроме `Config._GLOBAL`, он один.
-4. **Нормализация (города, валюты, паков) — задача LLM**, не добавляй словари синонимов в код.
-5. **Не выкидывай ошибки в `errors.log`** — это сигнал, что что-то сломалось, разбирайся.
-6. **Логи в `actions.log`** — главный инструмент отладки. Если что-то не работает — смотри туда в первую очередь.
-7. **`test_intents.py`** — первое, что надо запустить после любой правки в `intents.py`, `brain.py`, `actions.py`.
+1. **Не добавляй `_atomic_write`** — используй `config_manager.save()` или `Config.set()`.
+2. **Не читай `config.json` напрямую** — `config.get()`.
+3. **Не плоди глобальное состояние** — кроме `Config._GLOBAL`.
+4. **Нормализация (города, валюты, паков) — задача LLM.**
+5. **Логи в `actions.log`** — главный инструмент отладки.
+6. **`test_intents.py`** — первое, что запускаешь после правок.
+7. **GUI Flet — только в главном потоке.** Jarvis — в фоне.
+8. **Связь GUI ↔ Jarvis — через `queue.Queue()`, не напрямую.**

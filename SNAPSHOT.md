@@ -1,7 +1,7 @@
 # SNAPSHOT проекта «Феникс»
 
 _Автоматически сгенерировано `snapshot.py`. Обновляется при `git push`._
-_Файлов в снимке: 66_
+_Файлов в снимке: 67_
 
 ---
 
@@ -77,6 +77,7 @@ jarvis/
 ├── install.bat
 ├── launcher.py
 ├── PLAN.md
+├── PROMPT.md
 ├── README.md
 ├── requirements-ci.txt
 ├── requirements.txt
@@ -200,7 +201,8 @@ jobs:
 ```markdown
 # 🏗 Архитектура «Феникс»
 
-Документ описывает модули проекта, их роль и связи. Помогает быстро вникнуть в проект — человеку или LLM.
+Документ описывает модули проекта, их роль и связи.
+Помогает быстро вникнуть в проект — человеку или LLM.
 
 ---
 
@@ -208,30 +210,33 @@ jobs:
 
 ```
 jarvis/
-├── main.py           — точка входа, класс Jarvis, barge-in цикл, TTS+STT
+├── main.py           — точка входа, класс Jarvis, barge-in цикл
 ├── config.py         — объект Config в памяти + подписки
 ├── config_manager.py — атомарная запись config.json (один FileLock)
-├── brain.py          — LLM (Ollama): parse() интентов, chat_stream() диалога
-├── intents.py        — IntentHandler: правила + LLM-разбор, все голосовые команды
-├── stt.py            — Vosk (wake) + Whisper (расшифровка), калибровка barge-in
-├── tts.py            — Piper / XTTS / WinRT / SAPI, Streaming TTS, _prepare_text
+├── brain.py          — LLM (Ollama): parse() и chat_stream()
+├── intents.py        — IntentHandler: правила + LLM-разбор
+├── reply.py          — тип Reply (text | stream)
+├── gui.py            — Flet GUI (окно, чат, настройки)
+├── history.py        — стек отмены («стоп, не то»)
+├── stt.py            — Vosk (wake) + Whisper, ring buffer
+├── tts.py            — Piper / XTTS / WinRT / SAPI, Streaming TTS
 ├── modes.py          — режимы commands / llm / combo
 ├── voices.py         — смена голоса Piper
-├── packs.py          — загрузка/выгрузка паков команд
-├── profile.py        — user_profile.json (город, имя и т.п.)
-├── weather.py        — погода (open-meteo) и курс валют (ЦБ РФ)
-├── timers.py         — напоминания, threading.Timer, timers.json
-├── tasks.py          — списки задач, tasks.json
-├── memory.py         — история диалога, dialog.json
-├── actions.py        — низкоуровневые действия: окна, медиа, печать, буфер
-├── files.py          — работа с папками (Desktop, Downloads, ...)
-├── apps.py           — каталог известных приложений (Discord, Steam, ...)
+├── packs.py          — загрузка/выгрузка паков
+├── profile.py        — profiles/<user>/profile.json (мультипрофиль)
+├── memory.py         — profiles/<user>/dialog.json (история)
+├── weather.py        — погода (open-meteo) и курс (ЦБ РФ)
+├── timers.py         — напоминания
+├── tasks.py          — списки задач
+├── actions.py        — окна, медиа, печать, буфер, громкость, яркость, раскладка
+├── files.py          — папки (Desktop, Downloads, ...)
+├── apps.py           — каталог приложений
 ├── installed.py      — индекс меню «Пуск»
 ├── steam.py          — индекс игр Steam
 ├── matching.py       — нечёткое сравнение + транслитерация
 ├── model.py          — загрузка Vosk-модели
-├── recorder.py       — запись макросов (keyboard + mouse)
-└── tray.py           — иконка в системном трее
+├── recorder.py       — запись макросов
+└── tray.py           — иконка в трее
 ```
 
 ---
@@ -249,50 +254,97 @@ main.Jarvis._process → извлекает команду (без wake-слов
    ↓
 intents.IntentHandler.handle(cmd)
    ├── 1. CANCEL (стой, хватит, ...)
-   ├── 2. Ответ на уточняющий вопрос (город для погоды)
-   ├── 3. Буфер обмена (быстрые правила)
-   ├── 4. Режимы (modes.handle_mode_command)
-   ├── 5. Custom commands + паки
-   ├── 6. Small talk (время, дата, привет)
-   ├── 7. Скриншот
-   ├── 8. Если режим commands → «не понял»
-   ├── 9. brain.parse(cmd) → intent
-   │       → _execute_intent → actions / files / timers / tasks / weather
-   └── 10. brain.chat_stream() → стриминговый ответ LLM (генератор)
+   ├── 2. memory.handle_memory_command
+   ├── 3. pending_question (город для погоды, пароль)
+   ├── 4. Буфер обмена
+   ├── 5. Режимы (modes)
+   ├── 6. Custom commands + паки
+   ├── 7. Small talk
+   ├── 8. Скриншот
+   ├── 9. _open_fast (открытие приложений)
+   ├── 10. Голоса (voices)
+   ├── 11. Паки (packs)
+   ├── 12. Таймеры (timers)
+   ├── 13. Задачи (tasks)
+   ├── 14. Профиль (_profile_fast)
+   ├── 15. Память (_memory_fast)
+   ├── 16. Системное (_system_fast — раскладка, громкость, яркость)
+   ├── 17. Диагностика (_debug_fast — «что слышал», «почему не понял»)
+   ├── 18. Отмена (_undo_fast — «стоп, не то»)
+   ├── 19. Погода/курс (_weather_currency_fast)
+   ├── 20. brain.parse(cmd) → intent → _execute_intent
+   └── 21. brain.chat_stream() → генератор
    ↓
 main.Jarvis.say(reply)
-   ├── если строка → speaker.play_async() + barge-in watchdog
-   └── если генератор → speaker.speak_stream() + barge-in watchdog
+   ├── если text → speaker.play_async()
+   └── если stream → speaker.speak_stream() + tee → gui.add_stream_chunk()
    ↓
 tts.Speaker → Piper / XTTS / WinRT / SAPI
 ```
 
 ---
 
+## GUI (Flet)
+
+```
+Flet Main Thread
+   ├── NavigationRail (слева): Главная / Микрофон / Настройки
+   ├── Контент-область (переключается):
+   │   ├── Главная: статус-сфера, контролы, чат, ввод
+   │   ├── Микрофон: dropdown устройств
+   │   └── Настройки: LLM / TTS / тема
+   └── page.run_task(_process_queue) — читает очередь
+
+Jarvis Thread
+   ├── listener.phrases() → _process(cmd)
+   ├── handler.handle(cmd) → Reply
+   └── say(reply):
+       ├── text → gui.add_message("assistant", text)
+       └── stream → tee → gui.add_stream_chunk(chunk)
+```
+
+**Связь:** `queue.Queue()` → `gui._queue`. `Jarvis` пишет, GUI читает в `_process_queue`.
+
+**Важно:** Flet запускается в **главном потоке** (`gui.run_main()`), потому что ставит `signal.signal(SIGINT, ...)` — работает только в главном. Jarvis — **в фоне**.
+
+---
+
+## Мультипрофиль
+
+```
+profiles/
+├── maksim/
+│   ├── profile.json    ← name, default_city, facts, tts_voice
+│   └── dialog.json     ← история диалога
+└── masha/
+    ├── profile.json
+    └── dialog.json
+```
+
+- **Активный профиль** — по имени Windows-юзера (`getpass.getuser()`).
+- **`profile.switch(name)`** — переключение («я — Маша»).
+- **Миграция** из старого `user_profile.json` при первом запуске.
+- **`.gitignore`:** `profiles/`.
+
+---
+
 ## Поток конфига
 
 ```
-config.json (на диске)
+config.json → Config.__init__ → config_manager.load() (один раз)
    ↓
-config.Config.__init__ → config_manager.load() → читает один раз
+Config._data (в памяти) — источник истины
    ↓
-config.Config._data (в памяти) — источник истины
-   ↓
-Любой модуль: config.get("key")
-   ↓
-Изменение: config.set("key", value)
-   ├── config_manager.save() — атомарная запись на диск
-   └── Оповещение подписчиков (main.py подписан)
-           ├── "tts_voice" → speaker.set_voice()
-           ├── "voice_rate" → speaker.set_rate()
-           ├── "mode" → handler.mode
-           └── "barge_enabled" → jarvis.barge_enabled
+config.get("key") / config.set("key", value)
+   ├── config_manager.save() — атомарно
+   └── Оповещение подписчиков:
+       ├── "tts_voice" → speaker.set_voice()
+       ├── "voice_rate" → speaker.set_rate()
+       ├── "mode" → handler.mode
+       ├── "barge_enabled" → jarvis.barge_enabled
+       ├── "memory_max" → handler._memory_max + deque
+       └── "llm_context_messages" → handler._llm_context
 ```
-
-**Ключевая идея:** `config.json` читается **один раз при старте**. Все чтения — из памяти. Все записи — через `Config.set()`, который:
-
-1. Пишет на диск (атомарно через `config_manager`).
-2. Оповещает подписчиков (мгновенное применение изменений).
 
 ---
 
@@ -301,26 +353,15 @@ config.Config._data (в памяти) — источник истины
 | Объект | Модуль | Роль |
 |---|---|---|
 | `Config` | `config.py` | Конфиг в памяти + подписки |
-| `IntentHandler` | `intents.py` | Разбор команд, все интенты |
+| `IntentHandler` | `intents.py` | Разбор команд |
 | `Brain` | `brain.py` | LLM: `parse()` и `chat_stream()` |
 | `Speaker` | `tts.py` | Синтез + воспроизведение, barge-in |
-| `Listener` | `stt.py` | Микрофон, Vosk, калибровка barge-in |
-| `WhisperTranscriber` | `stt.py` | Точная расшифровка через Whisper |
-| `Jarvis` | `main.py` | Связка всего, wake-логика, barge-in |
-
----
-
-## Внешние зависимости (критичные)
-
-| Сервис / модель | URL / имя | Зачем |
-|---|---|---|
-| Ollama | `http://127.0.0.1:11434` | LLM-фолбэк. Если недоступна — работа на правилах |
-| open-meteo.com | `geocoding-api.open-meteo.com` | Геокодинг городов для погоды |
-| open-meteo.com | `api.open-meteo.com` | Погода |
-| cbr-xml-daily.ru | `www.cbr-xml-daily.ru` | Курс валют ЦБ РФ |
-| HuggingFace | `rhasspy/piper-voices` | Голоса Piper (скачиваются при первом использовании) |
-| HuggingFace | `deepdml/faster-whisper-large-v3-turbo-ct2` | Модель Whisper (скачивается при первом использовании) |
-| alphacephei.com | `vosk-model-small-ru-0.22.zip` | Модель Vosk (~45 МБ) |
+| `Listener` | `stt.py` | Микрофон, Vosk, ring buffer |
+| `WhisperTranscriber` | `stt.py` | Точная расшифровка |
+| `Jarvis` | `main.py` | Связка всего, wake-логика |
+| `FenixGUI` | `gui.py` | Flet GUI |
+| `Reply` | `reply.py` | `text` \| `stream` |
+| `history` | `history.py` | Стек отмены |
 
 ---
 
@@ -328,59 +369,48 @@ config.Config._data (в памяти) — источник истины
 
 | Файл | Что хранит |
 |---|---|
-| `config.json` | Личные настройки пользователя |
-| `user_profile.json` | Город, имя, прочее |
-| `dialog.json` | История диалога (200 последних сообщений) |
-| `timers.json` | Активные напоминания |
-| `tasks.json` | Список задач |
-| `logs/` | Логи (`jarvis.log`, `actions.log`, `errors.log`) |
-| `config.json.lock` | FileLock от `config_manager` |
+| `config.json` | Настройки |
+| `profiles/<user>/profile.json` | Имя, город, факты |
+| `profiles/<user>/dialog.json` | История диалога |
+| `timers.json` | Напоминания |
+| `tasks.json` | Задачи |
+| `logs/` | Логи |
+| `config.json.lock` | FileLock |
+
+---
+
+## Внешние зависимости
+
+| Сервис | URL | Зачем |
+|---|---|---|
+| Ollama | `http://127.0.0.1:11434` | LLM |
+| open-meteo.com | `geocoding-api.open-meteo.com` | Геокодинг |
+| open-meteo.com | `api.open-meteo.com` | Погода |
+| cbr-xml-daily.ru | `www.cbr-xml-daily.ru` | Курс ЦБ |
+| HuggingFace | `rhasspy/piper-voices` | Голоса Piper |
+| HuggingFace | `deepdml/faster-whisper-large-v3-turbo-ct2` | Whisper |
+| alphacephei.com | `vosk-model-small-ru-0.22` | Vosk |
 
 ---
 
 ## Тесты
 
-- **`test_intents.py`** — 27 сценариев через `IntentHandler` без микрофона. Проверяет режимы, голоса, паки, буфер, погоду, курс, small talk, скриншот.
-- **`tests/test_config_manager.py`** — параллельная запись, атомарность, битый JSON.
-- **`tests/test_weather.py`** — структура ответов погоды и курса.
-
----
-
-## Инструменты разработчика
-
-| Скрипт | Что делает |
-|---|---|
-| `check_syntax.py` | `ast.parse()` по всем `.py` в проекте |
-| `snapshot.py` | Собирает проект в `SNAPSHOT.md` |
-| `scripts/selftest.py` | Самопроверка TTS → Vosk → разбор |
-| `scripts/mics.py` | Выбор микрофона (показывает уровень сигнала) |
-| `scripts/wakebench.py` | Бенчмарк wake-слов (TTS → Vosk) |
-| `scripts/voicedemo.py` | Прослушка голосов Piper / WinRT |
-| `scripts/build_exe.py` | Сборка лаунчера `launcher.py` в `.exe` |
-
----
-
-## Связи между модулями (кратко)
-
-- **`main.py`** — использует **все**: `config`, `stt`, `tts`, `intents`, `brain`, `timers`, `tray`, `apps`, `model`.
-- **`intents.py`** — использует `actions`, `files`, `apps`, `installed`, `steam`, `modes`, `packs`, `memory`, `voices`, `timers`, `tasks`, `weather`, `profile`, `brain`.
-- **`tts.py`** — зависит от `config` (через подписку), `piper`, `winrt`, `pyttsx3`, `coqui-tts` (опционально).
-- **`stt.py`** — зависит от `vosk`, `faster-whisper`, `sounddevice`.
-- **`actions.py`** — базовый слой: `pyautogui`, `pygetwindow`, `pyperclip`, `psutil`, `winrt`.
-- **`config_manager.py`** — низкоуровневый: `filelock`, `tempfile`, `os.replace`.
-- **`brain.py`** — зависит только от Ollama через HTTP.
+- **`test_intents.py`** — 30 сценариев.
+- **`tests/test_config_manager.py`** — параллельная запись.
+- **`tests/test_weather.py`** — погода/курс с моками.
 
 ---
 
 ## Что важно помнить при доработке
 
-1. **Не добавляй `_atomic_write` в новые модули** — используй `config_manager.save()` или `Config.set()`.
-2. **Не читай `config.json` напрямую** — используй `config.get()` из объекта `Config`.
-3. **Не плоди глобальное состояние** — кроме `Config._GLOBAL`, он один.
-4. **Нормализация (города, валюты, паков) — задача LLM**, не добавляй словари синонимов в код.
-5. **Не выкидывай ошибки в `errors.log`** — это сигнал, что что-то сломалось, разбирайся.
-6. **Логи в `actions.log`** — главный инструмент отладки. Если что-то не работает — смотри туда в первую очередь.
-7. **`test_intents.py`** — первое, что надо запустить после любой правки в `intents.py`, `brain.py`, `actions.py`.
+1. **Не добавляй `_atomic_write`** — используй `config_manager.save()` или `Config.set()`.
+2. **Не читай `config.json` напрямую** — `config.get()`.
+3. **Не плоди глобальное состояние** — кроме `Config._GLOBAL`.
+4. **Нормализация (города, валюты, паков) — задача LLM.**
+5. **Логи в `actions.log`** — главный инструмент отладки.
+6. **`test_intents.py`** — первое, что запускаешь после правок.
+7. **GUI Flet — только в главном потоке.** Jarvis — в фоне.
+8. **Связь GUI ↔ Jarvis — через `queue.Queue()`, не напрямую.**
 ```
 
 ### `CHANGELOG.md`
@@ -388,57 +418,91 @@ config.Config._data (в памяти) — источник истины
 ```markdown
 # Changelog
 
-Все значимые изменения проекта. Формат основан на
-[Keep a Changelog](https://keepachangelog.com/ru/1.1.0/),
-версии — по [Semantic Versioning](https://semver.org/lang/ru/).
+Все значимые изменения проекта.
+Формат: [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/),
+версии: [Semantic Versioning](https://semver.org/lang/ru/).
 
 ## [Unreleased]
 
 ### Добавлено
-- `jarvis/reply.py` — явный тип `Reply` (`text` | `stream`) для возврата из `IntentHandler.handle()`.
-- Быстрые правила без LLM: голоса, паки, таймеры, задачи, простая погода/курс.
-- `_open_fast()` — открытие приложений/сайтов/папок без LLM.
-- `tests/test_weather.py` — тесты с моками `_http_get_json`, проверка кэша.
-- `.github/workflows/test.yml` — CI на `windows-latest`.
-- `requirements-ci.txt` — облегчённые зависимости для CI (без звука и GUI).
-- `--llm`, `--network`, `--voice` в `test_intents.py`.
-- UTF-8 fix в `check_syntax.py` и `test_intents.py` (`sys.stdout.reconfigure`).
-- `PYTHONUTF8=1` в CI — страховка от cp1252-консоли.
+
+- **Flet GUI** (`jarvis/gui.py`):
+  - Окно 1100×760, тёмная тема.
+  - NavigationRail — разделы: Главная, Микрофон, Настройки.
+  - **Статус-сфера** с анимацией (смена цвета и размера).
+  - **Чат-пузыри** с аватарами (👤 / 🦅), тенями, fade-in.
+  - Поле ввода + кнопки Send / Mic.
+  - **Настройки:** модель LLM, Ollama URL, TTS бэкенд, скорость речи (слайдер), тема.
+  - **Смена темы на лету** (`Dark` / `Light` / `System`).
+  - **Стриминг в GUI** через tee-генератор в `main._say_stream`.
+  - **Кеш разделов** — история чата не теряется при переключении.
+  - **Микрофон:** выбор устройства + сохранение в config.
+
+- **Системные команды:**
+  - **Раскладка RU/EN:** `switch_layout`, `set_layout_ru`, `set_layout_en`, `get_layout`. Через `SendInput` (надёжно).
+  - **Громкость в %:** `get_volume` / `set_volume` через `pycaw`.
+  - **Яркость в %:** `get_brightness` / `set_brightness` через `screen-brightness-control`.
+
+- **Диагностика:**
+  - «Что ты слышал?» — ring buffer последних 10 фраз в `stt.Listener`.
+  - «Почему не понял?» — `_last_debug` в `IntentHandler`.
+
+- **Отмена действий (Н1):**
+  - `jarvis/history.py` — стек последних 5 действий.
+  - «Стоп, не то» / «отмени» — откат.
+  - Отмена: `open_app` → `close_app`, `set_mode`, `change_voice`, `set_volume`, `set_brightness`, `switch_layout`.
+
+- **Пароль на опасные (2.13):**
+  - `danger_password` в config.
+  - «Выключи компьютер» → запрос пароля.
+  - Опасные действия: `shutdown`, `reboot`, `kill_process`, `clear_tasks`, `cancel_timers`, `delete_profile`.
+
+- **Мультипрофиль:**
+  - `profiles/<user>/profile.json` + `profiles/<user>/dialog.json`.
+  - `profile.init()` — инициализация + миграция.
+  - `profile.switch()`, `profile.delete()`, `profile.list_all()`.
+  - Голосовые: «я — Маша», «кто активен», «список профилей», «запомни: …».
+
+- **Память:** `memory.append(limit)`, `memory.load(limit)`, `memory.clear()`.
+- **Лимиты в config:** `memory_max`, `llm_context_messages`, `danger_password`, `gui_enabled`, `gui_theme`, `gui_x`, `gui_y`, `tray_enabled`.
+- **CI:** `.github/workflows/test.yml` на `windows-latest`.
 
 ### Изменено
-- `IntentHandler.handle()` всегда возвращает `Reply` (а не `str | Generator`).
-- `Jarvis.say()` принимает `Reply`, а не `str | Generator`.
-- `_handle_pending_answer()` — не хватает «как дела» как город.
-- `test_intents.py` — тесты 5-полевые: `(name, cmd, expected, requires_llm, requires_network)`.
-- `.gitignore` — добавлены `*.lock`, `dist/`, `build/`, `*.spec`, `.coverage`, `htmlcov/`.
+
+- `IntentHandler.handle()` → всегда `Reply`.
+- `Jarvis.say()` → принимает `Reply`.
+- `brain.chat_stream()` → без `[-40:]` (лимит у вызывающего).
+- `_execute_steps` → сохранение `history` для отмены.
+- `main.py` → **Jarvis в фоне**, **Flet в главном** (`gui.run_main()`).
+- `requirements.txt` → `flet>=1.0.3`, `customtkinter>=5.2`.
 
 ### Исправлено
-- `open_site` («открой ютуб») без LLM — теперь обрабатывается `_open_fast`.
-- `small_talk_how` («как дела») — больше не перехватывается `pending_question`.
-- `UnicodeEncodeError` на CI (cp1252) — `reconfigure` + `PYTHONUTF8`.
+
+- **Раскладка:** `SendInput` вместо `keybd_event` — работает второй раз.
+- **Стриминг в GUI:** tee-генератор — чанки и в TTS, и в GUI.
+- **История чата** не теряется при переключении разделов (кеш `_tabs`).
+- **`signal only works in main thread`** — Flet в главном потоке.
+- `open_site` без LLM через `_open_fast`.
+- `small_talk_how` — не перехватывается `pending_question`.
+- `UnicodeEncodeError` на CI — `reconfigure` + `PYTHONUTF8`.
+- **`удали профиль`** обрабатывается **до** `tasks.handle_task_command`.
+
+---
 
 ## [0.2.2] — 2026-10-05
 
 ### Добавлено
-- Этап 0 (рефакторинг) закрыт:
-  - `config_manager.py` — единый FileLock, `mkstemp`, `os.replace`.
-  - `Config` в памяти + подписки.
-  - Калибровка + адаптивный barge-in.
-  - `_prepare_text` + CJK-фильтр.
-  - Few-shot промпт + temperature 0.7.
-  - Первые тесты (pytest + `test_intents.py`).
-- Этап 1: голосовые режимы, паки команд, запись макросов, память диалога, голоса Piper.
-- Этап 2: streaming TTS, barge-in, логи по категориям, буфер обмена, погода и курс.
+- Этап 0 (рефакторинг): `config_manager`, `Config` в памяти, barge-in, CJK-фильтр, few-shot промпт.
+- Этап 1: голосовые режимы, паки, макросы, память, голоса Piper.
+- Этап 2: streaming TTS, barge-in, логи, буфер обмена, погода и курс.
+- `test_intents.py` + `pytest tests/`.
 
 ### Исправлено
-- `actions.run_spec` — обработка `kind == "cmd"` (Discord).
-- `actions.find_process` / `_find_window` — `matching.match_score`.
-- `brain.py` — `close_app` в отдельный блок промпта.
-- `intents._handle_single` — вызов `memory.handle_memory_command`.
-- `tts.Speaker.stop()` — рабочий barge-in через sounddevice.
-- `stt._enable_cuda_dlls` — флаг `_CUDA_DLLS_ADDED`.
-- `intents._reload_packs` — без `config_copy`.
-- `matching.match_score` — защита от ложных срабатываний на коротких словах.
+- `actions.run_spec` — `kind == "cmd"`.
+- `matching.match_score` — короткие слова.
+- `tts.Speaker.stop()` — barge-in через sounddevice.
+- `stt._enable_cuda_dlls` — флаг.
+- `brain.py` — `close_app` в отдельный блок.
 
 ## [0.2.1] и раньше
 
@@ -2933,11 +2997,9 @@ def _plural(n: int, one: str, few: str, many: str) -> str:
     Jarvis → очередь (queue.Queue) → Flet worker (page.run_task) → обновление UI.
     Обратно: UI → callback → Jarvis.
 
-Flet 1.0 API:
-    - ft.run(main) вместо ft.app()
-    - Button(content=...) вместо text=
-    - Dropdown(on_select=...) вместо on_change=
-    - page.run_task() для фоновых задач
+Связь с Jarvis:
+    GUI → Jarvis: callbacks (on_mode_change, on_voice_change, ...)
+    Jarvis → GUI: gui.add_message(...), gui.set_state(...), gui.add_stream_chunk(...)
 """
 
 import asyncio
@@ -2953,12 +3015,21 @@ import flet as ft
 
 log = logging.getLogger("jarvis.gui")
 
-# Состояния: (цвет, название, подпись)
+# --- Палитра (глубокая тёмная) ---
+BG_DARK = "#0e1116"
+BG_CARD = "#161b22"
+BG_BUBBLE_USER = "#1f6feb"
+BG_BUBBLE_AI = "#21262d"
+ACCENT = "#58a6ff"
+TEXT = "#e6edf3"
+TEXT_DIM = "#8b949e"
+
+# --- Состояния: (цвет, название, подпись) ---
 STATES = {
-    "idle":      (ft.Colors.GREY_500, "Спит", "Жду «Феникс»"),
-    "listening": (ft.Colors.AMBER_400, "Слушаю", "Слушаю команду"),
-    "speaking":  (ft.Colors.GREEN_400, "Говорю", "Отвечаю"),
-    "error":     (ft.Colors.RED_400, "Ошибка", "Проверь логи"),
+    "idle":      ("#484f58", "Спит",   "Жду «Феникс»"),
+    "listening": ("#d29922", "Слушаю", "Слушаю команду"),
+    "speaking":  ("#3fb950", "Говорю", "Отвечаю"),
+    "error":     ("#f85149", "Ошибка", "Проверь логи"),
 }
 
 THEMES = {
@@ -2986,28 +3057,26 @@ class FenixGUI:
         self._thread = None
         self._running = False
 
-        # Текущее состояние
+        # Состояние
         self._state = "idle"
         self._stream_bubble = None
         self._stream_text = ""
         self._stream_label = None
 
-        # Текущий раздел
-        self._current_tab = 0
-
         # Ссылки на контролы
-        self._status_icon = None
+        self._status_circle = None
         self._status_text = None
         self._status_sub = None
         self._history_list = None
         self._input_field = None
         self._mic_btn = None
         self._content_area = None
+        self._rail = None
 
         self._page = None
 
     # ---------------------------------------------------------------
-    # Публичный API — из любого потока
+    # Публичный API
     # ---------------------------------------------------------------
 
     def start(self) -> None:
@@ -3047,7 +3116,7 @@ class FenixGUI:
         self._queue.put(("state", state))
 
     # ---------------------------------------------------------------
-    # Внутри Flet
+    # Flet
     # ---------------------------------------------------------------
 
     def _run(self) -> None:
@@ -3059,19 +3128,21 @@ class FenixGUI:
             self._running = False
 
     def _main(self, page: ft.Page) -> None:
-        """Точка входа Flet."""
         self._page = page
         page.title = "Феникс"
-        page.window.width = 1000
-        page.window.height = 720
-        page.window.min_width = 800
+        page.window.width = 1100
+        page.window.height = 760
+        page.window.min_width = 900
         page.window.min_height = 600
         page.padding = 0
         page.spacing = 0
+        page.bgcolor = BG_DARK
         page.theme_mode = ft.ThemeMode.DARK
-        page.theme = ft.Theme(color_scheme_seed=ft.Colors.BLUE)
+        page.theme = ft.Theme(
+            color_scheme_seed=ACCENT,
+            font_family="Segoe UI",
+        )
 
-        # Восстанавливаем позицию
         x = self.config.get("gui_x")
         y = self.config.get("gui_y")
         if x is not None and y is not None:
@@ -3079,18 +3150,17 @@ class FenixGUI:
             page.window.top = y
 
         self._build_ui(page)
-
-        # Запускаем обработку очереди
         page.run_task(self._process_queue)
 
     def _build_ui(self, page: ft.Page) -> None:
-        """Строит интерфейс."""
-        # NavigationRail слева
+        # --- NavigationRail ---
         self._rail = ft.NavigationRail(
             selected_index=0,
             label_type=ft.NavigationRailLabelType.ALL,
-            min_width=80,
+            min_width=90,
             min_extended_width=200,
+            bgcolor=BG_CARD,
+            indicator_color=ACCENT,
             group_alignment=-1.0,
             destinations=[
                 ft.NavigationRailDestination(
@@ -3112,26 +3182,24 @@ class FenixGUI:
             on_change=self._on_nav_change,
         )
 
-        # Контент-область (переключается)
-        # ВАЖНО: разделы создаются ОДИН РАЗ и кешируются.
-        # Иначе при переключении теряется история чата.
+        # --- Кешированные разделы ---
         self._tabs = {
             0: self._build_main_tab(),
             1: self._build_mic_tab(),
             2: self._build_settings_tab(),
         }
+
         self._content_area = ft.Container(
             content=self._tabs[0],
             expand=True,
             padding=0,
+            bgcolor=BG_DARK,
         )
 
-        # Основной layout
         page.add(
             ft.Row(
                 controls=[
                     self._rail,
-                    ft.VerticalDivider(width=1),
                     self._content_area,
                 ],
                 expand=True,
@@ -3140,55 +3208,65 @@ class FenixGUI:
         )
 
     # ---------------------------------------------------------------
-    # Разделы
+    # Главная
     # ---------------------------------------------------------------
 
     def _build_main_tab(self) -> ft.Control:
-        """Главная: статус, контролы, история, ввод."""
-        # Статус
+        # --- Статус ---
+        # Сфера с анимацией
+        self._status_circle = ft.Container(
+            width=80,
+            height=80,
+            border_radius=40,
+            bgcolor="#484f58",
+            animate=ft.Animation(300, ft.AnimationCurve.EASE_IN_OUT),
+            shadow=ft.BoxShadow(
+                blur_radius=20,
+                color="#484f58",
+                spread_radius=2,
+            ),
+        )
+
+        self._status_text = ft.Text(
+            "Спит", size=24, weight=ft.FontWeight.BOLD, color=TEXT,
+        )
+        self._status_sub = ft.Text(
+            "Жду «Феникс»", size=13, color=TEXT_DIM,
+        )
+
         status_bar = ft.Container(
             content=ft.Row(
                 controls=[
-                    self._status_icon if self._status_icon else ft.Icon(
-                        ft.Icons.CIRCLE, color=ft.Colors.GREY_500, size=40,
-                    ),
+                    self._status_circle,
                     ft.Column(
-                        controls=[
-                            self._status_text if self._status_text else ft.Text(
-                                "Спит", size=24, weight=ft.FontWeight.BOLD,
-                            ),
-                            self._status_sub if self._status_sub else ft.Text(
-                                "Жду «Феникс»", size=14, color=ft.Colors.GREY_500,
-                            ),
-                        ],
-                        spacing=0,
+                        controls=[self._status_text, self._status_sub],
+                        spacing=2,
                         alignment=ft.MainAxisAlignment.CENTER,
                     ),
                 ],
-                spacing=15,
+                spacing=20,
             ),
-            padding=ft.Padding(left=20, top=20, right=20, bottom=20),
+            padding=ft.Padding(left=30, top=25, right=30, bottom=20),
         )
 
-        # Контролы
+        # --- Контролы ---
         controls_bar = self._build_controls()
 
-        # История — растягивается
+        # --- История ---
         self._history_list = ft.ListView(
-            spacing=8,
+            spacing=10,
             auto_scroll=True,
             expand=True,
         )
         history_container = ft.Container(
             content=self._history_list,
             expand=True,
-            padding=ft.Padding(left=20, right=20, top=10, bottom=10),
+            padding=ft.Padding(left=30, right=30, top=10, bottom=10),
         )
 
-        # Ввод
+        # --- Ввод ---
         input_bar = self._build_input()
 
-        # Колонка с expand
         return ft.Column(
             controls=[
                 status_bar,
@@ -3200,162 +3278,26 @@ class FenixGUI:
             expand=True,
         )
 
-    def _build_mic_tab(self) -> ft.Control:
-        """Раздел «Микрофон» — выбор устройства."""
-        name = "—"
-        if self.jarvis and self.jarvis.listener:
-            name = self.jarvis.listener.device_name
-
-        # Собираем список устройств
-        devices = ["по умолчанию"]
-        try:
-            import sounddevice as sd
-            for d in sd.query_devices():
-                if d["max_input_channels"] > 0:
-                    n = d["name"][:50]
-                    if n not in devices:
-                        devices.append(n)
-        except Exception:
-            log.exception("Не удалось получить список устройств")
-
-        # Текущее устройство
-        current = self.config.get("input_device") or "по умолчанию"
-        if current not in devices:
-            devices.append(current)
-
-        self._mic_dropdown = ft.Dropdown(
-            value=current,
-            options=[ft.dropdown.Option(d) for d in devices],
-            width=400,
-            on_select=self._on_mic_change,
-        )
-
-        return ft.Container(
-            content=ft.Column(
-                controls=[
-                    ft.Text("🎤 Микрофон", size=24, weight=ft.FontWeight.BOLD),
-                    ft.Container(height=20),
-                    ft.Text(f"Текущее устройство: {name}", size=14),
-                    ft.Container(height=20),
-                    ft.Text("Выбрать устройство:", size=14),
-                    self._mic_dropdown,
-                    ft.Container(height=10),
-                    ft.Text(
-                        "⚠ После смены устройства перезапусти Феникса, "
-                        "чтобы микрофон переключился.",
-                        size=12,
-                        color=ft.Colors.AMBER_400,
-                    ),
-                    ft.Container(height=20),
-                    ft.Text(
-                        "Проверить микрофон: python scripts/mics.py",
-                        size=12,
-                        color=ft.Colors.GREY_500,
-                    ),
-                ],
-                spacing=5,
-            ),
-            padding=ft.Padding(left=30, top=30, right=30, bottom=30),
-            expand=True,
-        )
-
-    def _on_mic_change(self, e) -> None:
-        """Сохраняет выбранное устройство в config."""
-        value = e.control.value
-        if value == "по умолчанию":
-            value = None
-        self.config.set("input_device", value)
-        log.info("Микрофон сохранён: %r (перезапусти Феникса)", value)
-
-    def _build_settings_tab(self) -> ft.Control:
-        """Настройки."""
-        llm_dropdown = ft.Dropdown(
-            value=self.config.get("llm_model", "qwen2.5:7b-instruct"),
-            options=[ft.dropdown.Option(m) for m in LLM_MODELS],
-            width=300,
-            on_select=self._on_llm_change,
-        )
-
-        ollama_field = ft.TextField(
-            value=self.config.get("ollama_url", "http://127.0.0.1:11434"),
-            width=400,
-            on_submit=self._on_ollama_change,
-        )
-
-        tts_dropdown = ft.Dropdown(
-            value=self.config.get("tts_backend", "auto"),
-            options=[ft.dropdown.Option(b) for b in TTS_BACKENDS],
-            width=200,
-            on_select=self._on_tts_change,
-        )
-
-        rate_slider = ft.Slider(
-            min=0.5,
-            max=2.0,
-            divisions=30,
-            value=float(self.config.get("voice_rate", 1.15)),
-            label="{value}",
-            on_change_end=self._on_rate_change,
-        )
-
-        theme_dropdown = ft.Dropdown(
-            value="Тёмная",
-            options=[ft.dropdown.Option(t) for t in THEMES.keys()],
-            width=200,
-            on_select=self._on_theme_change,
-        )
-
-        return ft.Container(
-            content=ft.Column(
-                controls=[
-                    ft.Text("⚙️ Настройки", size=24, weight=ft.FontWeight.BOLD),
-                    ft.Container(height=20),
-
-                    ft.Text("🤖 LLM", size=16, weight=ft.FontWeight.BOLD),
-                    ft.Text("Модель:"),
-                    llm_dropdown,
-                    ft.Text("Ollama URL:"),
-                    ollama_field,
-                    ft.Container(height=20),
-
-                    ft.Text("🔊 TTS", size=16, weight=ft.FontWeight.BOLD),
-                    ft.Text("Бэкенд:"),
-                    tts_dropdown,
-                    ft.Text("Скорость речи:"),
-                    rate_slider,
-                    ft.Container(height=20),
-
-                    ft.Text("🎨 Внешний вид", size=16, weight=ft.FontWeight.BOLD),
-                    ft.Text("Тема:"),
-                    theme_dropdown,
-                ],
-                spacing=8,
-                scroll=ft.ScrollMode.AUTO,
-            ),
-            padding=ft.Padding(left=30, top=30, right=30, bottom=30),
-            expand=True,
-        )
-
-    # ---------------------------------------------------------------
-    # Контролы главной
-    # ---------------------------------------------------------------
-
     def _build_controls(self) -> ft.Container:
         """Режим / голос / память."""
+
+        def _label(text):
+            return ft.Text(text, width=80, color=TEXT_DIM, size=13)
+
         # Режим
         mode_row = ft.Row(
             controls=[
-                ft.Text("Режим:", width=80),
+                _label("Режим:"),
                 ft.RadioGroup(
                     value=self.config.get("mode", "combo"),
                     on_change=self._on_mode_change,
                     content=ft.Row(
                         controls=[
-                            ft.Radio(value="commands", label="Команды"),
-                            ft.Radio(value="llm", label="ИИ"),
-                            ft.Radio(value="combo", label="Комбо"),
+                            ft.Radio(value="commands", label="Команды", active_color=ACCENT),
+                            ft.Radio(value="llm", label="ИИ", active_color=ACCENT),
+                            ft.Radio(value="combo", label="Комбо", active_color=ACCENT),
                         ],
-                        spacing=5,
+                        spacing=10,
                     ),
                 ),
             ],
@@ -3365,7 +3307,7 @@ class FenixGUI:
         # Голос
         voice_row = ft.Row(
             controls=[
-                ft.Text("Голос:", width=80),
+                _label("Голос:"),
                 ft.Dropdown(
                     value=self.config.get("tts_voice", "ruslan"),
                     options=[
@@ -3374,7 +3316,10 @@ class FenixGUI:
                         ft.dropdown.Option("irina"),
                         ft.dropdown.Option("denis"),
                     ],
-                    width=150,
+                    width=160,
+                    border_color="#30363d",
+                    focused_border_color=ACCENT,
+                    text_size=13,
                     on_select=self._on_voice_change,
                 ),
             ],
@@ -3386,17 +3331,17 @@ class FenixGUI:
         mem_value = {40: "short", 100: "normal", 200: "long"}.get(mm, "normal")
         mem_row = ft.Row(
             controls=[
-                ft.Text("Память:", width=80),
+                _label("Память:"),
                 ft.RadioGroup(
                     value=mem_value,
                     on_change=self._on_memory_change,
                     content=ft.Row(
                         controls=[
-                            ft.Radio(value="short", label="Короткая"),
-                            ft.Radio(value="normal", label="Обычная"),
-                            ft.Radio(value="long", label="Долгая"),
+                            ft.Radio(value="short", label="Короткая", active_color=ACCENT),
+                            ft.Radio(value="normal", label="Обычная", active_color=ACCENT),
+                            ft.Radio(value="long", label="Долгая", active_color=ACCENT),
                         ],
-                        spacing=5,
+                        spacing=10,
                     ),
                 ),
             ],
@@ -3404,20 +3349,31 @@ class FenixGUI:
         )
 
         return ft.Container(
-            content=ft.Column(controls=[mode_row, voice_row, mem_row], spacing=10),
-            padding=ft.Padding(left=20, right=20, top=10, bottom=10),
+            content=ft.Column(
+                controls=[mode_row, voice_row, mem_row],
+                spacing=12,
+            ),
+            padding=ft.Padding(left=30, right=30, top=10, bottom=15),
         )
 
     def _build_input(self) -> ft.Container:
-        """Поле ввода."""
         self._input_field = ft.TextField(
             hint_text="Напишите команду...",
             expand=True,
+            border_radius=24,
+            border_color="#30363d",
+            focused_border_color=ACCENT,
+            bgcolor=BG_CARD,
+            text_size=14,
+            content_padding=ft.Padding(left=20, right=20, top=14, bottom=14),
             on_submit=self._on_send,
         )
 
         self._mic_btn = ft.IconButton(
             icon=ft.Icons.MIC,
+            icon_color=TEXT_DIM,
+            icon_size=24,
+            tooltip="Пауза/возобновить микрофон",
             on_click=self._on_mic_toggle,
         )
 
@@ -3427,27 +3383,191 @@ class FenixGUI:
                     self._input_field,
                     ft.IconButton(
                         icon=ft.Icons.SEND,
+                        icon_color=ACCENT,
+                        icon_size=24,
+                        tooltip="Отправить",
                         on_click=self._on_send,
                     ),
                     self._mic_btn,
                 ],
                 spacing=10,
             ),
-            padding=ft.Padding(left=20, right=20, top=10, bottom=20),
+            padding=ft.Padding(left=30, right=30, top=10, bottom=25),
         )
 
     # ---------------------------------------------------------------
-    # Обработка очереди (async)
+    # Микрофон
+    # ---------------------------------------------------------------
+
+    def _build_mic_tab(self) -> ft.Control:
+        name = "—"
+        if self.jarvis and self.jarvis.listener:
+            name = self.jarvis.listener.device_name
+
+        devices = ["по умолчанию"]
+        try:
+            import sounddevice as sd
+            for d in sd.query_devices():
+                if d["max_input_channels"] > 0:
+                    n = d["name"][:50]
+                    if n not in devices:
+                        devices.append(n)
+        except Exception:
+            log.exception("Не удалось получить список устройств")
+
+        current = self.config.get("input_device") or "по умолчанию"
+        if current not in devices:
+            devices.append(current)
+
+        self._mic_dropdown = ft.Dropdown(
+            value=current,
+            options=[ft.dropdown.Option(d) for d in devices],
+            width=400,
+            border_color="#30363d",
+            focused_border_color=ACCENT,
+            on_select=self._on_mic_change,
+        )
+
+        return ft.Container(
+            content=ft.Column(
+                controls=[
+                    ft.Text("🎤 Микрофон", size=26, weight=ft.FontWeight.BOLD, color=TEXT),
+                    ft.Container(height=25),
+                    ft.Text(f"Текущее устройство: {name}", size=14, color=TEXT),
+                    ft.Container(height=20),
+                    ft.Text("Выбрать устройство:", size=13, color=TEXT_DIM),
+                    self._mic_dropdown,
+                    ft.Container(height=15),
+                    ft.Container(
+                        content=ft.Text(
+                            "⚠ После смены устройства перезапусти Феникса",
+                            size=12,
+                            color="#d29922",
+                        ),
+                        padding=12,
+                        bgcolor="#2d2210",
+                        border_radius=8,
+                    ),
+                    ft.Container(height=20),
+                    ft.Text(
+                        "Проверить микрофон: python scripts/mics.py",
+                        size=12,
+                        color=TEXT_DIM,
+                    ),
+                ],
+                spacing=5,
+            ),
+            padding=ft.Padding(left=40, top=40, right=40, bottom=40),
+            expand=True,
+        )
+
+    def _on_mic_change(self, e) -> None:
+        value = e.control.value
+        if value == "по умолчанию":
+            value = None
+        self.config.set("input_device", value)
+        log.info("Микрофон сохранён: %r (перезапусти Феникса)", value)
+
+    # ---------------------------------------------------------------
+    # Настройки
+    # ---------------------------------------------------------------
+
+    def _build_settings_tab(self) -> ft.Control:
+        llm_dropdown = ft.Dropdown(
+            value=self.config.get("llm_model", "qwen2.5:7b-instruct"),
+            options=[ft.dropdown.Option(m) for m in LLM_MODELS],
+            width=350,
+            border_color="#30363d",
+            focused_border_color=ACCENT,
+            on_select=self._on_llm_change,
+        )
+
+        ollama_field = ft.TextField(
+            value=self.config.get("ollama_url", "http://127.0.0.1:11434"),
+            width=400,
+            border_color="#30363d",
+            focused_border_color=ACCENT,
+            on_submit=self._on_ollama_change,
+        )
+
+        tts_dropdown = ft.Dropdown(
+            value=self.config.get("tts_backend", "auto"),
+            options=[ft.dropdown.Option(b) for b in TTS_BACKENDS],
+            width=250,
+            border_color="#30363d",
+            focused_border_color=ACCENT,
+            on_select=self._on_tts_change,
+        )
+
+        rate_slider = ft.Slider(
+            min=0.5,
+            max=2.0,
+            divisions=30,
+            value=float(self.config.get("voice_rate", 1.15)),
+            label="{value}",
+            active_color=ACCENT,
+            on_change_end=self._on_rate_change,
+        )
+
+        theme_dropdown = ft.Dropdown(
+            value=self.config.get("gui_theme", "Тёмная"),
+            options=[ft.dropdown.Option(t) for t in THEMES.keys()],
+            width=250,
+            border_color="#30363d",
+            focused_border_color=ACCENT,
+            on_select=self._on_theme_change,
+        )
+
+        def _section(title):
+            return ft.Text(title, size=16, weight=ft.FontWeight.BOLD, color=ACCENT)
+
+        def _label(text):
+            return ft.Text(text, size=13, color=TEXT_DIM)
+
+        return ft.Container(
+            content=ft.Column(
+                controls=[
+                    ft.Text("⚙️ Настройки", size=26, weight=ft.FontWeight.BOLD, color=TEXT),
+                    ft.Container(height=20),
+
+                    _section("🤖 LLM"),
+                    _label("Модель:"),
+                    llm_dropdown,
+                    ft.Container(height=8),
+                    _label("Ollama URL:"),
+                    ollama_field,
+                    ft.Container(height=25),
+
+                    _section("🔊 TTS"),
+                    _label("Бэкенд:"),
+                    tts_dropdown,
+                    ft.Container(height=8),
+                    _label("Скорость речи:"),
+                    rate_slider,
+                    ft.Container(height=25),
+
+                    _section("🎨 Внешний вид"),
+                    _label("Тема:"),
+                    theme_dropdown,
+                ],
+                spacing=6,
+                scroll=ft.ScrollMode.AUTO,
+            ),
+            padding=ft.Padding(left=40, top=40, right=40, bottom=40),
+            expand=True,
+        )
+
+    # ---------------------------------------------------------------
+    # Очередь
     # ---------------------------------------------------------------
 
     async def _process_queue(self) -> None:
-        """Читает очередь и обновляет UI."""
         while self._running:
             try:
                 try:
                     kind, value = self._queue.get_nowait()
                 except queue.Empty:
-                    await asyncio.sleep(0.1)
+                    await asyncio.sleep(0.05)
                     continue
 
                 if kind == "stop":
@@ -3473,72 +3593,150 @@ class FenixGUI:
             return
         self._state = state
         color, text, sub = STATES[state]
+
+        # Размер сферы — разный для состояний
+        size = {
+            "idle": 80,
+            "listening": 90,
+            "speaking": 95,
+            "error": 85,
+        }.get(state, 80)
+
         try:
-            if self._status_icon:
-                self._status_icon.color = color
+            if self._status_circle:
+                self._status_circle.bgcolor = color
+                self._status_circle.width = size
+                self._status_circle.height = size
+                self._status_circle.border_radius = size // 2
+                # Тень — тот же цвет, что и сфера
+                self._status_circle.shadow = ft.BoxShadow(
+                    blur_radius=30,
+                    color=color,
+                    spread_radius=3,
+                )
             if self._status_text:
                 self._status_text.value = text
             if self._status_sub:
                 self._status_sub.value = sub
         except Exception:
-            pass
+            log.exception("Ошибка в _apply_state")
 
     def _apply_message(self, role: str, text: str) -> None:
         try:
             ts = datetime.now().strftime("%H:%M")
             is_user = (role == "user")
 
-            bubble = ft.Container(
-                content=ft.Column(
-                    controls=[
-                        ft.Text(
-                            f"{'Вы' if is_user else '🦅'} • {ts}",
-                            size=10,
-                            color=ft.Colors.GREY_500,
-                        ),
-                        ft.Text(text, size=13, selectable=True),
-                    ],
-                    spacing=2,
-                    horizontal_alignment=(
-                        ft.CrossAxisAlignment.END if is_user else ft.CrossAxisAlignment.START
-                    ),
+            # Аватар
+            avatar = ft.Container(
+                content=ft.Text(
+                    "👤" if is_user else "🦅",
+                    size=18,
                 ),
-                bgcolor=ft.Colors.BLUE_700 if is_user else ft.Colors.GREY_800,
-                padding=ft.Padding(left=12, right=12, top=8, bottom=8),
-                border_radius=12,
+                width=40,
+                height=40,
+                border_radius=20,
+                bgcolor=BG_BUBBLE_USER if is_user else "#30363d",
+                alignment=ft.Alignment.CENTER,
+            )
+
+            # Текст
+            text_col = ft.Column(
+                controls=[
+                    ft.Text(
+                        f"{'Вы' if is_user else 'Феникс'} • {ts}",
+                        size=11,
+                        color=TEXT_DIM,
+                    ),
+                    ft.Text(text, size=14, color=TEXT, selectable=True),
+                ],
+                spacing=2,
+                expand=True,
+            )
+
+            # Пузырь с тенью
+            bubble = ft.Container(
+                content=ft.Row(
+                    controls=[avatar, text_col] if not is_user else [text_col, avatar],
+                    spacing=12,
+                    vertical_alignment=ft.CrossAxisAlignment.START,
+                ),
+                bgcolor=BG_BUBBLE_USER if is_user else BG_BUBBLE_AI,
+                padding=ft.Padding(left=14, right=14, top=10, bottom=10),
+                border_radius=14,
+                shadow=ft.BoxShadow(
+                    blur_radius=8,
+                    color="#000000",
+                    offset=ft.Offset(0, 2),
+                ),
+                animate_opacity=ft.Animation(300, ft.AnimationCurve.EASE_IN),
+                opacity=1.0,
+            )
+
+            # Обёртка с выравниванием
+            wrapper = ft.Container(
+                content=bubble,
+                alignment=ft.Alignment.CENTER_RIGHT if is_user else ft.Alignment.CENTER_LEFT,
                 margin=ft.Margin(
-                    left=200 if is_user else 0,
-                    right=0 if is_user else 200,
+                    left=80 if is_user else 0,
+                    right=0 if is_user else 80,
                     top=0,
                     bottom=0,
                 ),
             )
 
-            self._history_list.controls.append(bubble)
+            self._history_list.controls.append(wrapper)
         except Exception:
-            log.exception("Ошибка добавления сообщения")
+            log.exception("Ошибка в _apply_message")
 
     def _apply_stream_chunk(self, chunk: str) -> None:
         try:
             if self._stream_bubble is None:
                 ts = datetime.now().strftime("%H:%M")
                 self._stream_text = ""
-                self._stream_label = ft.Text("", size=13, selectable=True)
+                self._stream_label = ft.Text("", size=14, color=TEXT, selectable=True)
 
-                self._stream_bubble = ft.Container(
-                    content=ft.Column(
-                        controls=[
-                            ft.Text(f"🦅 • {ts}", size=10, color=ft.Colors.GREY_500),
-                            self._stream_label,
-                        ],
-                        spacing=2,
-                    ),
-                    bgcolor=ft.Colors.GREY_800,
-                    padding=ft.Padding(left=12, right=12, top=8, bottom=8),
-                    border_radius=12,
-                    margin=ft.Margin(left=0, right=200, top=0, bottom=0),
+                avatar = ft.Container(
+                    content=ft.Text("🦅", size=18),
+                    width=40,
+                    height=40,
+                    border_radius=20,
+                    bgcolor="#30363d",
+                    alignment=ft.Alignment.CENTER,
                 )
-                self._history_list.controls.append(self._stream_bubble)
+
+                text_col = ft.Column(
+                    controls=[
+                        ft.Text(f"Феникс • {ts}", size=11, color=TEXT_DIM),
+                        self._stream_label,
+                    ],
+                    spacing=2,
+                    expand=True,
+                )
+
+                bubble = ft.Container(
+                    content=ft.Row(
+                        controls=[avatar, text_col],
+                        spacing=12,
+                        vertical_alignment=ft.CrossAxisAlignment.START,
+                    ),
+                    bgcolor=BG_BUBBLE_AI,
+                    padding=ft.Padding(left=14, right=14, top=10, bottom=10),
+                    border_radius=14,
+                    shadow=ft.BoxShadow(
+                        blur_radius=8,
+                        color="#000000",
+                        offset=ft.Offset(0, 2),
+                    ),
+                )
+
+                wrapper = ft.Container(
+                    content=bubble,
+                    alignment=ft.Alignment.CENTER_LEFT,
+                    margin=ft.Margin(left=0, right=80, top=0, bottom=0),
+                )
+
+                self._stream_bubble = wrapper
+                self._history_list.controls.append(wrapper)
 
             self._stream_text += chunk
             self._stream_label.value = self._stream_text
@@ -3555,14 +3753,10 @@ class FenixGUI:
     # ---------------------------------------------------------------
 
     def _on_nav_change(self, e) -> None:
-        """Переключение раздела (без пересоздания — история сохраняется)."""
         idx = e.control.selected_index
-        self._current_tab = idx
         log.info("Навигация: %d", idx)
-
         if idx in self._tabs:
             self._content_area.content = self._tabs[idx]
-
         try:
             self._page.update()
         except Exception:
@@ -3619,6 +3813,7 @@ class FenixGUI:
             return
         self.jarvis.listening_enabled = not self.jarvis.listening_enabled
         self._mic_btn.icon = ft.Icons.MIC if self.jarvis.listening_enabled else ft.Icons.MIC_OFF
+        self._mic_btn.icon_color = ACCENT if self.jarvis.listening_enabled else "#f85149"
         try:
             self._page.update()
         except Exception:
@@ -8295,13 +8490,13 @@ if __name__ == "__main__":
 
 ## 🔴 БАГФИКС-СЕССИИ (сначала стабилизация, потом фичи)
 
-### День 1 — срочный багфикс (ломает функционал) — ✅ ЗАКРЫТ
+### День 1 — срочный багфикс — ✅ ЗАКРЫТ
 
 | # | Задача | Слож. | Статус |
 |---|---|---|---|
-| 1 | `actions.run_spec` — обработка `kind == "cmd"` (Discord открывается) | 🟢 | ✅ |
+| 1 | `actions.run_spec` — обработка `kind == "cmd"` (Discord) | 🟢 | ✅ |
 | 2 | `actions.find_process` / `_find_window` — `matching.match_score` | 🟡 | ✅ |
-| 3 | `brain.py` — `close_app` в отдельный блок промпта + главное правило | 🟡 | ✅ |
+| 3 | `brain.py` — `close_app` в отдельный блок промпта | 🟡 | ✅ |
 | 4 | `intents._handle_single` — вызов `memory.handle_memory_command` | 🟢 | ✅ |
 | 5 | Удалить `вкладка` из гита | 🟢 | ✅ |
 | 6 | `tts.Speaker.stop()` — рабочий barge-in через sounddevice | 🔴 | ✅ |
@@ -8310,14 +8505,12 @@ if __name__ == "__main__":
 | 9 | `tests/test_weather.py` — убрать дубликаты | 🟢 | ✅ |
 | 11 | `intents._reload_packs` — без `config_copy` | 🟢 | ✅ |
 
-**Итог:** barge-in реально прерывает звук, Discord открывается/закрывается, память вызывается, тесты зелёные.
-
 ### День 2 — добить багфикс — ✅ ЗАКРЫТ
 
 | # | Задача | Слож. | Время | Статус |
 |---|---|---|---|---|
 | 10 | `matching.match_score` — ложные срабатывания на коротких словах | 🔴 | 20 мин | ✅ |
-| 12 | `profile.set` при битом JSON — не терять данные молча | 🟡 | 10 мин | ✅ |
+| 12 | `profile.set` при битом JSON | 🟡 | 10 мин | ✅ |
 | 13 | `main.py` — порядок импортов `faster_whisper → ctranslate2 → winrt` | 🟢 | 5 мин | ✅ |
 | 14 | `install.bat` — вынести `python -c` в `scripts/set_llm_model.py` | 🟢 | 15 мин | ✅ |
 | 15 | `requirements.txt` — дополнить | 🟢 | 5 мин | ✅ |
@@ -8353,10 +8546,78 @@ if __name__ == "__main__":
 | 3.5.4 | `memory.append(limit)` — память на профиль | 🟡 | 30 мин | ✅ |
 | 3.5.5 | `_memory_fast` — «короткая/обычная/долгая память» | 🟢 | 20 мин | ✅ |
 | 3.5.6 | `memory_max` + `llm_context_messages` в config | 🟢 | 10 мин | ✅ |
-| 3.5.7 | `Config.subscribe` в `IntentHandler` — реакция на смену лимитов | 🟡 | 15 мин | ✅ |
+| 3.5.7 | `Config.subscribe` в `IntentHandler` | 🟡 | 15 мин | ✅ |
 | 3.5.8 | `profile.delete()` — удаление профиля | 🟢 | 10 мин | ✅ |
 | 3.5.9 | `profiles/` в `.gitignore` | 🟢 | 5 мин | ✅ |
 | 3.5.10 | Кнопка «Открыть профиль» в трее | 🟢 | 5 мин | ✅ |
+
+---
+
+## 🔴 ЭТАП 3.6 — Фаст-фичи (пары) — ✅ ЗАКРЫТ
+
+### Пара 1 — Системные команды — ✅ ЗАКРЫТ
+
+| # | Задача | Слож. | Время | Статус |
+|---|---|---|---|---|
+| 2.4 | Громкость/яркость в процентах (`pycaw`, `screen-brightness-control`) | 🟢 | 30 мин | ✅ |
+| 2.12 | Раскладка RU/EN (через `SendInput`, надёжно) | 🟢 | 15 мин | ✅ |
+
+### Пара 2 — Диагностика — ✅ ЗАКРЫТ
+
+| # | Задача | Слож. | Время | Статус |
+|---|---|---|---|---|
+| Н3 | «Почему не понял?» — диагностика | 🟢 | 20 мин | ✅ |
+| Н2 | «Что ты слышал?» — ring buffer последних фраз | 🟢 | 20 мин | ✅ |
+
+### Пара 3 — Отмена и пароль — ✅ ЗАКРЫТ
+
+| # | Задача | Слож. | Время | Статус |
+|---|---|---|---|---|
+| Н1 | «Стоп, не то» — отмена последнего действия (`history.py`) | 🟡 | 30 мин | ✅ |
+| 2.13 | Пароль на опасные команды (`danger_password`) | 🟡 | 30 мин | ✅ |
+
+---
+
+## 🟢 ЭТАП 4 — Визуализация — 🚧 В РАБОТЕ
+
+### 4.1 Flet GUI — 🚧 ЗАКРЫТ (базовая версия)
+
+| # | Задача | Слож. | Время | Статус |
+|---|---|---|---|---|
+| 4.1.1 | `jarvis/gui.py` — окно Flet 1.0.3 | 🔴 | 3 ч | ✅ |
+| 4.1.2 | NavigationRail — разделы | 🟡 | 30 мин | ✅ |
+| 4.1.3 | Статус-сфера с анимацией | 🟡 | 30 мин | ✅ |
+| 4.1.4 | Чат-пузыри с аватарами и тенями | 🟡 | 40 мин | ✅ |
+| 4.1.5 | Поле ввода + отправка | 🟢 | 20 мин | ✅ |
+| 4.1.6 | Настройки: LLM, TTS, тема, микрофон | 🟡 | 40 мин | ✅ |
+| 4.1.7 | Смена темы на лету | 🟢 | 15 мин | ✅ |
+| 4.1.8 | Стриминг в GUI (tee-генератор) | 🟡 | 30 мин | ✅ |
+| 4.1.9 | Кеш разделов (не терять историю) | 🟢 | 15 мин | ✅ |
+
+### 4.2 Дизайн — 🚧 В РАБОТЕ
+
+| # | Задача | Слож. | Время | Статус |
+|---|---|---|---|---|
+| 4.2.1 | Статус-сфера с тенью и анимацией | 🟡 | 40 мин | ✅ |
+| 4.2.2 | Пузыри с аватарами, тенями, fade-in | 🟡 | 30 мин | ✅ |
+| 4.2.3 | Поле ввода скруглённое, акцентная рамка | 🟢 | 20 мин | ✅ |
+| 4.2.4 | Тёмная палитра (глубокий синий) | 🟢 | 20 мин | ✅ |
+| 4.2.5 | **Раздел «Микрофон»** — доработать | 🟡 | 30 мин | 🚧 |
+| 4.2.6 | **Раздел «История»** — реальный лог из `dialog.json` | 🟡 | 40 мин | ❌ |
+| 4.2.7 | **Плавные переходы** между разделами | 🟡 | 30 мин | ❌ |
+
+---
+
+## 🔴 ЭТАП 5 — Мозги и самообучение — ❌ НЕ НАЧАТ
+
+| # | Задача | Слож. | Время | Статус |
+|---|---|---|---|---|
+| 5.1 | `brain.py` — **короткий промпт** + примеры (вместо 300 строк) | 🔴 | 40 мин | ❌ |
+| 5.2 | `jarvis/learning.py` — **факты + коррекции** | 🟡 | 30 мин | ❌ |
+| 5.3 | `intents.py` — «запомни: X», «это не то» | 🟡 | 30 мин | ❌ |
+| 5.4 | `brain.py` — подгрузка фактов + corrections в промпт | 🟡 | 20 мин | ❌ |
+| 5.5 | A/B-тест: длинный vs короткий промпт | 🟡 | 30 мин | ❌ |
+| 5.6 | `llm_temperature` в config | 🟢 | 10 мин | ❌ |
 
 ---
 
@@ -8366,37 +8627,46 @@ if __name__ == "__main__":
 |---|---|---|---|---|
 | 2.2 | Погода и курс валют | 🟢 | 30 мин | ✅ |
 | 2.3 | Буфер обмена | 🟢 | 20 мин | ✅ |
-| 2.4 | Громкость/яркость в процентах (`pycaw`) | 🟢 | 30 мин | ❌ |
+| 2.4 | Громкость/яркость в процентах | 🟢 | 30 мин | ✅ |
 | 2.8 | Контекстные местоимения («скопируй это») | 🟡 | 40 мин | ❌ |
-| 2.9 | Цепочки с условиями (if/else) | 🟡 | 1 ч | ❌ |
+| 2.9 | Цепочки с if/else | 🟡 | 1 ч | ❌ |
 | 2.10 | Диктовка в файл | 🟡 | 40 мин | ❌ |
 | 2.11 | Поиск по файлам (рекурсивный `os.walk`) | 🟡 | 45 мин | ❌ |
-| 2.12 | Переключение раскладки RU/EN | 🟢 | 15 мин | ❌ |
-| 2.13 | Пароль на опасные команды | 🟡 | 30 мин | ❌ |
-| 2.16 | Стек отмены | 🔴 | 1.5 ч | ❌ |
+| 2.12 | Переключение раскладки RU/EN | 🟢 | 15 мин | ✅ |
+| 2.13 | Пароль на опасные команды | 🟡 | 30 мин | ✅ |
+| 2.16 | Стек отмены (расширенный) | 🔴 | 1.5 ч | 🚧 |
 | 2.26–2.30 | Самообучение + persistent memory | 🔴 | 4 ч | 🚧 |
 
-**Примечание:** 2.26–2.30 частично закрыт через `facts` в профиле. Полное самообучение — потом.
+**Примечание:** 2.26–2.30 → в Этап 5.
 
 ---
 
-## 💡 НОВЫЕ ФИЧИ (идеи, вне старого плана)
+## 🔄 ПОСЛЕДОВАТЕЛЬНОСТИ (новое)
+
+| # | Задача | Слож. | Время | Статус |
+|---|---|---|---|---|
+| А | «X и Y» — быстрое правило без LLM | 🟡 | 30 мин | ❌ |
+| С | Сцены (макросы) в `config.json` | 🟡 | 1 ч | ❌ |
+
+---
+
+## 💡 НОВЫЕ ФИЧИ
 
 | # | Фича | Слож. | Время | Статус |
 |---|---|---|---|---|
-| Н1 | «Стоп, не то» — быстрая отмена последнего действия | 🟡 | 30 мин | ❌ |
-| Н2 | «Что ты слышал?» — история распознавания | 🟢 | 20 мин | ❌ |
-| Н3 | «Почему не понял?» — диагностика | 🟢 | 20 мин | ❌ |
+| Н1 | «Стоп, не то» | 🟡 | 30 мин | ✅ |
+| Н2 | «Что ты слышал?» | 🟢 | 20 мин | ✅ |
+| Н3 | «Почему не понял?» | 🟢 | 20 мин | ✅ |
 | Н4 | «Напомни, когда X» — событийные триггеры | 🟡 | 1.5 ч | ❌ |
 | Н5 | OCR — «что на экране?» | 🟡 | 1.5 ч | ❌ |
-| Н6 | «Запомни: <факт>» | 🟢 | — | ✅ (в профиле) |
+| Н6 | «Запомни: <факт>» | 🟢 | — | ✅ |
 | Н7 | «Научись: X = Y» — голосовое обучение | 🟡 | 1 ч | ❌ |
 | Н8 | Дневник / заметки с датами | 🟡 | 2 ч | ❌ |
 | Н9 | RSS — «что нового на Хабре» | 🟡 | 1 ч | ❌ |
 
 ---
 
-## 🟠 ЭТАП 3 — Плагины и расширения
+## 🟠 ЭТАП 3 — Плагины
 
 | # | Задача | Слож. | Время | Статус |
 |---|---|---|---|---|
@@ -8407,29 +8677,27 @@ if __name__ == "__main__":
 
 ---
 
-## 🟢 ЭТАП 4 — Визуализация
-
-| # | Задача | Слож. | Время | Статус |
-|---|---|---|---|---|
-| 4.1 | Оверлей-индикатор (когда слушает) | 🟡 | 1–1.5 ч | ❌ |
-| 4.2 | Графический редактор команд | 🔴 | 3–4 ч | ❌ |
-| 4.3 | Аватар | 🔴 | 3+ ч | ❌ |
-| 4.4 | Лаунчер в трее | 🟡 | 1–1.5 ч | ❌ |
-
----
-
 ## 💤 ЭТАП 5 — Долгий ящик
 
 | # | Задача | Время |
 |---|---|---|
 | 5.1 | A2A-мост с Hermes Agent | 5+ ч |
-| 5.2 | Каталог голосов XTTS (Джарвис, Пятница, GLaDOS) | — |
+| 5.2 | Каталог голосов XTTS | — |
 | 5.3 | Smart Home (MQTT) | — |
-| 5.4 | Календарь (Google Calendar, Windows Calendar) | — |
+| 5.4 | Календарь (Google, Windows) | — |
 | 5.5 | Git-команды | — |
 | 5.6 | Скриптовые плагины | — |
-| 5.7 | Мультипользовательский режим | ✅ (мультипрофиль) |
 | 5.8 | Автообновление `SNAPSHOT.md` через workflow | — |
+
+---
+
+## 📄 Отложено (документация)
+
+| # | Задача | Время |
+|---|---|---|
+| D1 | `README.md` — `profiles/<user>/`, новые команды | 20 мин |
+| D2 | `ARCHITECTURE.md` — Flet GUI, `learning.py`, `history.py` | 15 мин |
+| D3 | `CHANGELOG.md` — всё, что сделано | 10 мин |
 
 ---
 
@@ -8440,10 +8708,12 @@ if __name__ == "__main__":
 | Этап 0 — Фундамент | ✅ 100% |
 | Багфикс-сессии (День 1–4) | ✅ 100% |
 | Этап 3.5 — Мультипрофиль | ✅ 100% |
-| Этап 2 — Фичи | 🟡 ~30% |
+| Этап 3.6 — Фаст-фичи (3 пары) | ✅ 100% |
+| Этап 4 — Визуализация | 🟡 70% |
+| Этап 5 — Мозги и самообучение | ❌ 0% |
+| Этап 2 — Остальные фичи | 🟡 40% |
 | Этап 3 — Плагины | ❌ 0% |
-| Этап 4 — Визуализация | ❌ 0% |
-| Этап 5 — Долгий ящик | 💤 |
+| Долгий ящик | 💤 |
 ```
 
 ### `profiles\maksim\profile.json`
@@ -8466,6 +8736,336 @@ if __name__ == "__main__":
 }
 ```
 
+### `PROMPT.md`
+
+```markdown
+# 🤖 ПРОМПТ для LLM — «Феникс»
+
+> Этот файл — **самодостаточный промпт**. Скопируй его **целиком**
+> в новый чат, если текущий переполнен. LLM прочитает и **сразу вникнет**.
+
+---
+
+## 🎯 Контекст
+
+Проект — **«Феникс»**, локальный голосовой ассистент для Windows.
+Форк `jsays12/jarvis`. Коммиты до июня 2026 — от оригинала, с октября 2026 — мои.
+
+**Стек:**
+- **Python 3.11**
+- **Vosk** (wake-слово) + **faster-whisper** (расшифровка)
+- **Piper** / **XTTS** / **WinRT** (TTS)
+- **Ollama** (LLM: qwen2.5, gemma2, llama3.1, mistral)
+- **Flet 1.0.3** (GUI)
+- **CustomTkinter** (legacy GUI, есть)
+- **pystray** (трей)
+
+**Репозиторий:** `C:\jarvis`
+**Ветка:** `main`
+**CI:** GitHub Actions на `windows-latest`.
+
+---
+
+## 🎭 Как со мной работать
+
+**Обращение:** «брат».
+
+**Стиль:** кратко, без воды, с юмором. Русский.
+
+**Формат ответов:**
+- **Команды** — в `bat`-блоках.
+- **Код** — в `python`-блоках, целиком или точечные патчи.
+- **Скриншоты** — если просят, описать что видно.
+
+**Запрещено:**
+- **Костыли.** Если решение «работает, но грязно» — это **не решение**.
+- **Хардкод.** Всё через `config.json` и `Config`.
+- **Прямая запись в `config.json`.** Только `Config.set()` или `config_manager.save()`.
+- **Прямое чтение `config.json`.** Только `config.get()`.
+- **Глобальное состояние.** Кроме `Config._GLOBAL`.
+- **Словари синонимов в коде** для городов/валют/паков — **это задача LLM**.
+
+**Поощряется:**
+- **`Config.subscribe`** для реакции на изменения.
+- **Разделение ответственности** — что где.
+- **Тесты** — `pytest` + `test_intents.py`.
+- **Логи** — в `logs/actions.log`.
+
+---
+
+## 🏗 Архитектура (кратко)
+
+### Модули
+
+```
+jarvis/
+├── main.py           — точка входа, Jarvis, barge-in
+├── config.py         — Config в памяти + подписки
+├── config_manager.py — атомарная запись (FileLock, mkstemp, os.replace)
+├── brain.py          — Ollama: parse() и chat_stream()
+├── intents.py        — IntentHandler: правила + LLM
+├── reply.py          — Reply (text | stream)
+├── gui.py            — Flet GUI
+├── history.py        — стек отмены («стоп, не то»)
+├── stt.py            — Vosk + Whisper + ring buffer
+├── tts.py            — Piper / XTTS / WinRT / SAPI + barge-in
+├── modes.py          — commands / llm / combo
+├── voices.py         — смена голоса Piper
+├── packs.py          — паки команд
+├── profile.py        — profiles/<user>/profile.json
+├── memory.py         — profiles/<user>/dialog.json
+├── weather.py        — погода + курс
+├── timers.py         — напоминания
+├── tasks.py          — задачи
+├── actions.py        — окна, медиа, печать, буфер, громкость, яркость, раскладка
+├── files.py          — папки
+├── apps.py           — каталог приложений
+├── installed.py      — индекс «Пуск»
+├── steam.py          — индекс Steam
+├── matching.py       — нечёткое сравнение
+├── model.py          — загрузка Vosk
+├── recorder.py       — макросы
+└── tray.py           — трей
+```
+
+### Поток обработки
+
+```
+Микрофон → Vosk (wake) → Whisper → Jarvis._process
+   → IntentHandler.handle(cmd)
+      → CANCEL / memory / pending / буфер / режимы
+      → custom / small_talk / скриншот
+      → _open_fast / voices / packs / timers / tasks
+      → _profile_fast / _memory_fast / _system_fast
+      → _debug_fast / _undo_fast / _weather_currency_fast
+      → brain.parse(cmd) → intent → _execute_intent
+      → brain.chat_stream() → генератор
+   → Reply (text | stream)
+   → Jarvis.say(reply)
+      → text → speaker.play_async()
+      → stream → speaker.speak_stream() + tee → gui.add_stream_chunk()
+```
+
+### GUI
+
+```
+Flet главный поток
+   ├── NavigationRail: Главная / Микрофон / Настройки
+   ├── Контент-область (кеш _tabs)
+   └── page.run_task(_process_queue)
+
+Jarvis фоновый поток
+   ├── listener.phrases()
+   └── handler.handle() + say()
+```
+
+**Связь:** `queue.Queue()` — Jarvis пишет, GUI читает.
+
+**Важно:** Flet — **в главном потоке** (`gui.run_main()`), потому что ставит `signal.signal(SIGINT, ...)`. Jarvis — **в фоне**.
+
+---
+
+## 📋 Текущий статус (сентябрь 2026)
+
+### ✅ Закрыто
+
+- **Этап 0** — рефакторинг (config_manager, Config, barge-in, CJK, тесты).
+- **День 1–4 багфикса** — всё закрыто.
+- **Этап 3.5** — мультипрофиль.
+- **Пара 1** — раскладка (`SendInput`), громкость/яркость.
+- **Пара 2** — диагностика («что слышал», «почему не понял»).
+- **Пара 3** — отмена (`history.py`), пароль (`danger_password`).
+- **Flet GUI** — окно, вкладки, чат, настройки, стриминг, микрофон, тема.
+- **Дизайн** — статус-сфера, пузыри с аватарами, тёмная палитра.
+
+### 🚧 В работе
+
+- **Этап 4.2** — дизайн (доработка «Микрофон», «История»).
+- **Этап 5** — мозги и самообучение.
+
+### ❌ Не начато
+
+- **Этап 5:** `brain.py` — короткий промпт + примеры, `jarvis/learning.py` — факты + коррекции, «запомни: X», «это не то», A/B-тест.
+- **Этап 2.8–2.11:** контекстные местоимения, if/else, диктовка, поиск файлов.
+- **Последовательности:** «X и Y», сцены (макросы).
+- **Н4–Н9:** событийные триггеры, OCR, дневник, RSS.
+- **Этап 3:** плагины, MCP, Telegram-бот, веб.
+
+### 💤 Долгий ящик
+
+- A2A-мост с Hermes Agent.
+- Каталог голосов XTTS.
+- Smart Home (MQTT).
+- Календарь.
+- Git-команды.
+
+---
+
+## 📋 План (ближайшее)
+
+### Этап 5 — Мозги и самообучение (2.5 ч)
+
+1. **`brain.py`** — короткий промпт (100 строк) + примеры + право на ошибку.
+2. **`jarvis/learning.py`** — факты + коррекции.
+3. **`intents.py`** — «запомни: X», «это не то».
+4. **`brain.py`** — подгрузка фактов в промпт.
+5. **A/B-тест:** длинный vs короткий промпт.
+6. **`llm_temperature`** в config.
+
+### Этап 4.2 — Дизайн (1.5 ч)
+
+1. Раздел «Микрофон» — доработать.
+2. Раздел «История» — реальный лог.
+3. Плавные переходы между разделами.
+
+### Этап 2 — Фичи (по одной)
+
+- 2.8 — Контекстные местоимения.
+- 2.9 — Цепочки if/else.
+- 2.10 — Диктовка в файл.
+- 2.11 — Поиск по файлам.
+- 2.16 — Стек отмены (расширенный).
+
+---
+
+## 🎯 Ключевые правила
+
+### Код
+
+1. **`Config` — единственный источник истины.** Не читай `config.json` руками.
+2. **Не плоди `_atomic_write`.** `config_manager.save()`.
+3. **Не плоди глобальное состояние.** Кроме `Config._GLOBAL`.
+4. **Нормализация — задача LLM.** Не добавляй словари в код.
+5. **`test_intents.py`** — после каждой правки.
+
+### GUI
+
+1. **Flet — только в главном потоке.** Jarvis — в фоне.
+2. **Связь через `queue.Queue()`.** Не напрямую.
+3. **Разделы — в `_tabs`.** Не пересоздавать.
+4. **Тема — `page.theme_mode`.** На лету.
+
+### Ошибки
+
+1. **Не выбрасывай WARNING/ERROR в `errors.log`** — это сигнал.
+2. **`actions.log`** — главный инструмент отладки.
+
+---
+
+## 🛠 Как чинить баги
+
+1. **Лог.** `logs/actions.log`, `logs/errors.log`, `logs/jarvis.log`.
+2. **Воспроизвести.** Голосом / через `test_intents.py`.
+3. **Локализовать.** Какой модуль?
+4. **Фикс.** **Без костылей.**
+5. **Тесты.** `python check_syntax.py` + `pytest` + `test_intents.py`.
+6. **Коммит.** `fix: <краткое описание>`.
+
+---
+
+## 🛠 Как добавлять фичи
+
+1. **Спросить у брата.** Объём, где, как.
+2. **Спроектировать.** Какие модули, какие API.
+3. **Реализовать.**
+4. **Тесты.** Добавить сценарии.
+5. **Проверить голосом.**
+6. **Коммит.** `feat: <краткое описание>`.
+
+---
+
+## 🎨 Стиль общения
+
+**Пример ответа на «сделай X»:**
+
+> Понял, брат. 🎯 **X — делаем.**
+>
+> **Что меняется:**
+> - `jarvis/foo.py` — добавить `bar()`.
+> - `jarvis/intents.py` — вызвать `bar()`.
+>
+> **Код:**
+> ```python
+> def bar():
+>     ...
+> ```
+>
+> **Проверь:**
+> ```bat
+> python check_syntax.py
+> python -m jarvis
+> ```
+>
+> **Скажи результат.** 💪
+
+**Пример ответа на баг:**
+
+> Понял, брат. 🎯 **Баг: X.**
+>
+> **Причина:** `foo.py` не проверяет `Y`.
+>
+> **Фикс:**
+> ```python
+> # было
+> result = foo()
+> # стало
+> if foo is None:
+>     return "Не понял"
+> ```
+>
+> **Проверь.**
+>
+> **Скажи результат.** 💪
+
+---
+
+## ⚠️ Что важно помнить
+
+1. **Скриншоты** — если брат скидывает, **описать что видно**.
+2. **Стек** — если брат скидывает трейс, **сразу искать причину**.
+3. **Логи** — если брат скидывает, **читать внимательно**.
+4. **Если не уверен** — **спросить**, не выдумывать.
+5. **Если предложение спорное** — **сказать честно**, не подхалимничать.
+6. **Если фича «на любителя»** — **предложить альтернативы**.
+7. **Если брат устал** — **предложить отдохнуть**, не гнать.
+
+---
+
+## 🎯 Текущая цель (сентябрь 2026)
+
+**Этап 5 — Мозги и самообучение.**
+
+**Что делаем:**
+- Короткий промпт + примеры.
+- `learning.py` — факты + коррекции.
+- «Запомни: X», «это не то».
+- Подгрузка фактов в промпт.
+- A/B-тест.
+- `llm_temperature` в config.
+
+**Что НЕ трогаем:**
+- Дизайн (отдельно).
+- Остальные фичи (потом).
+
+---
+
+## 📎 Быстрые ссылки
+
+| Что | Где |
+|---|---|
+| **План** | `PLAN.md` |
+| **Архитектура** | `ARCHITECTURE.md` |
+| **Changelog** | `CHANGELOG.md` |
+| **README** | `README.md` |
+| **SNAPSHOT** | `SNAPSHOT.md` |
+| **CI** | `.github/workflows/test.yml` |
+| **Логи** | `logs/` |
+
+---
+
+**Погнали, брат.** 🚀
+```
+
 ### `README.md`
 
 ```markdown
@@ -8485,21 +9085,21 @@ if __name__ == "__main__":
 - [Требования](#требования)
 - [Установка](#установка)
 - [Первый запуск](#первый-запуск)
+- [GUI (Flet)](#gui-flet)
 - [Настройка LLM (Ollama)](#настройка-llm-ollama)
 - [Режимы работы](#режимы-работы)
 - [Паки команд](#паки-команд)
-- [Запись действий (макросы)](#запись-действий-макросы)
+- [Мультипрофиль](#мультипрофиль)
 - [Память диалога](#память-диалога)
-- [Профиль пользователя](#профиль-пользователя)
+- [Отмена действий](#отмена-действий)
+- [Пароль на опасные](#пароль-на-опасные)
 - [Голоса](#голоса)
 - [Streaming TTS](#streaming-tts)
 - [Barge-in (перебивание)](#barge-in-перебивание)
 - [Логи и ошибки](#логи-и-ошибки)
-- [Предобработка текста](#предобработка-текста)
 - [Атомарная запись конфига](#атомарная-запись-конфига)
 - [Команды](#команды)
 - [Свои команды в custom_commands](#свои-команды-в-custom_commands)
-- [Печать и окна](#печать-и-окна)
 - [Запуск без консоли](#запуск-без-консоли)
 - [Автозапуск](#автозапуск)
 - [Права администратора](#права-администратора)
@@ -8513,52 +9113,79 @@ if __name__ == "__main__":
 ### Этап 0: рефакторинг (закрыт)
 
 - **Единый `config_manager.py`** — один `FileLock` на весь проект, уникальный `.tmp` через `tempfile.mkstemp`, `os.replace` для атомарной подмены. Гонка записи в `config.json` исчезла как класс.
-- **Объект `Config` в памяти** — читается один раз при старте, изменения рассылаются подписчикам. Смена голоса и режима применяется мгновенно, без чтения диска.
-- **Калибровка Barge-in** — при старте измеряется фоновое эхо, порог подстраивается автоматически. Ручные `barge_mult` / `barge_min_threshold` больше не нужны.
-- **CJK-фильтр** — в `brain.py` (пост-фильтр LLM) и в `tts.py` (страховка перед озвучкой). LLM больше не «сорвётся в китайский».
-- **Temperature 0.7** — ответы живее, чем при 0.4.
-- **Тесты** — `test_intents.py` (27 сценариев через `IntentHandler` без микрофона) + `pytest` (`config_manager`, `weather`).
+- **Объект `Config` в памяти** — читается один раз при старте, изменения рассылаются подписчикам. Смена голоса и режима применяется мгновенно.
+- **Калибровка Barge-in** — при старте измеряется фоновое эхо, порог подстраивается автоматически.
+- **CJK-фильтр** — в `brain.py` и `tts.py`. LLM больше не «сорвётся в китайский».
+- **Temperature 0.7** — ответы живее.
+- **Тесты** — `test_intents.py` (30 сценариев) + `pytest`.
 
 ### Этап 1: команды и удобство
 
 - **Голосовые режимы** — «режим команды», «режим ИИ», «обычный режим».
-- **Паки команд** — 5 готовых паков в `packs/`: игры, приложения, сайты, работа, системные.
-- **Запись действий** — «запиши действие» → делаешь что-то → «стоп запись» → макрос. «Повтори последнее» — воспроизводит.
-- **Память диалога** — история в `dialog.json`. После перезапуска Феникс помнит разговор.
-- **Голоса Piper** — переключение голосом: «смени голос на Ирину», «голос Дмитрий».
+- **Паки команд** — 5 паков в `packs/`: игры, приложения, сайты, работа, системные.
+- **Запись действий** — «запиши действие» → делаешь что-то → «стоп запись» → макрос.
+- **Память диалога** — на профиль.
+- **Голоса Piper** — «смени голос на Ирину», «голос Дмитрий».
 
 ### Этап 2: живой диалог
 
-- **Streaming TTS** — первое слово через 0.2 сек, речь без пауз.
-- **Barge-in** — можно перебить Феникса во время речи.
-- **Логи по категориям** — `logs/jarvis.log`, `logs/actions.log`, `logs/errors.log` с авторотацией (5 МБ × 3).
-- **Буфер обмена** — «что в буфере», «очисти буфер», «скопируй выделенное» (Ctrl+C), «скопируй свой ответ».
-- **Погода и курс валют** — через `open-meteo.com` и `cbr-xml-daily.ru` без ключей. Кэш 10 минут.
-- **Профиль пользователя** — `user_profile.json` (в `.gitignore`). Хранит город по умолчанию.
+- **Streaming TTS** — первое слово через 0.2 сек.
+- **Barge-in** — можно перебить Феникса.
+- **Логи по категориям** — `logs/jarvis.log`, `logs/actions.log`, `logs/errors.log`.
+- **Буфер обмена** — «что в буфере», «очисти буфер», «скопируй выделенное», «скопируй свой ответ».
+- **Погода и курс валют** — `open-meteo.com` и `cbr-xml-daily.ru`. Кэш 10 минут.
 
 ### Этап 3: Reply + CI
 
-- **`jarvis/reply.py`** — явный тип `Reply` (`text` | `stream`) вместо `hasattr(reply, "__iter__")`.
-- **Быстрые правила без LLM** — голоса, паки, таймеры, задачи, простая погода/курс.
+- **`jarvis/reply.py`** — тип `Reply` (`text` | `stream`).
+- **Быстрые правила без LLM** — голоса, паки, таймеры, задачи, погода/курс.
 - **`_open_fast`** — открытие приложений/сайтов/папок без LLM.
-- **GitHub Actions** — CI на `windows-latest`: синтаксис + pytest + test_intents.
-- **UTF-8 fix** — `reconfigure` в скриптах + `PYTHONUTF8=1` в CI.
-- **Документация** — `CHANGELOG.md`, `CONTRIBUTING.md`, `CI.md`.
+- **GitHub Actions** — CI на `windows-latest`.
+- **UTF-8 fix** — `reconfigure` + `PYTHONUTF8=1`.
+
+### Этап 4: Системные команды
+
+- **Раскладка RU/EN** — «переключи раскладку», «русская», «английская», «какая раскладка». Через `SendInput` (надёжно).
+- **Громкость в %** — «громкость 50», «какая громкость». Через `pycaw`.
+- **Яркость в %** — «яркость 30», «какая яркость». Через `screen-brightness-control`.
+- **Диагностика** — «что ты слышал», «почему не понял».
+- **Отмена** — «стоп, не то», «отмени» — откат последнего действия.
+- **Пароль** — `danger_password` для выключения/перезагрузки.
+
+### Этап 5: Мультипрофиль
+
+- **`profiles/<user>/profile.json`** — папка на пользователя.
+- **`profiles/<user>/dialog.json`** — история на профиль.
+- **Автомиграция** из старого `user_profile.json`.
+- **`profile.switch()`** — «я — Маша», «кто активен», «список профилей».
+- **Факты** — «запомни: город Нижний Новгород» → `profile.set_fact()`.
+
+### Этап 6: Flet GUI
+
+- **Окно 1100×760** на Flet 1.0.3.
+- **NavigationRail** — Главная / Микрофон / Настройки.
+- **Статус-сфера** с анимацией (смена цвета и размера).
+- **Чат-пузыри** с аватарами (👤 / 🦅), тенями, fade-in.
+- **Поле ввода** + Send / Mic.
+- **Настройки** — модель LLM, Ollama URL, TTS, скорость речи (слайдер), тема.
+- **Смена темы на лету** (Dark / Light / System).
+- **Стриминг в GUI** через tee-генератор.
+- **Микрофон** — выбор устройства.
 
 ### Инструменты
 
-- **`install.bat`** — интерактивный установщик: ставит зависимости, спрашивает про eSpeak NG, Ollama, выбор модели, прогоняет тесты.
-- **`check_syntax.py`** — синтаксическая проверка всех `.py` в проекте.
-- **`snapshot.py`** — собирает проект в один `SNAPSHOT.md` для быстрого вникания.
-- **`commit.bat`** (личный) — обновляет `SNAPSHOT.md` перед коммитом.
+- **`install.bat`** — интерактивный установщик.
+- **`check_syntax.py`** — синтаксис всех `.py`.
+- **`snapshot.py`** — проект в `SNAPSHOT.md`.
+- **`PROMPT.md`** — самодостаточный промпт для LLM.
 
 ## Требования
 
 - Windows 10/11 (x64)
-- Python 3.10+
+- Python 3.10+ (3.11 рекомендуется)
 - Микрофон
 - Опционально: NVIDIA GPU (для Whisper large-v3-turbo)
-- Опционально: Ollama (для LLM-фолбэка)
+- Опционально: Ollama (для LLM)
 
 ## Установка
 
@@ -8589,7 +9216,6 @@ if __name__ == "__main__":
 ### Ручная
 
     pip install -r requirements.txt
-    pip install pyautogui pygetwindow keyboard mouse
     copy config.example.json config.json
 
 ## Первый запуск
@@ -8597,6 +9223,38 @@ if __name__ == "__main__":
     python -m jarvis
 
 При первом запуске скачается Vosk (~45 МБ) и Whisper (large-v3-turbo на GPU).
+
+## GUI (Flet)
+
+Феникс запускается **с GUI** по умолчанию.
+
+**Что есть:**
+- **NavigationRail** слева: Главная / Микрофон / Настройки.
+- **Статус-сфера** — серая (спит), жёлтая (слушаю), зелёная (говорю), красная (ошибка).
+- **Чат-пузыри** — твои справа (синие), Феникса слева (серые). С аватарами и тенями.
+- **Поле ввода** — можно писать команды текстом.
+- **Кнопка 🎤** — пауза/возобновить микрофон.
+- **Настройки:**
+  - Модель LLM (dropdown).
+  - Ollama URL.
+  - TTS бэкенд.
+  - Скорость речи (слайдер).
+  - Тема (Dark / Light / System) — **на лету**.
+  - Микрофон — выбор устройства.
+
+**Отключить GUI:**
+
+В `config.json`:
+
+    "gui_enabled": false
+
+Тогда — только трей и голос.
+
+**Отключить трей:**
+
+    "tray_enabled": false
+
+**Почему Flet в главном потоке:** Flet ставит `signal.signal(SIGINT, ...)` — работает только в главном. Jarvis запускается **в фоне**.
 
 ## Настройка LLM (Ollama)
 
@@ -8614,173 +9272,147 @@ if __name__ == "__main__":
 | `qwen2.5:7b-instruct` | ~5–6 ГБ | Отличное (рекомендуется) |
 | `qwen2.5:14b-instruct` | ~10 ГБ | Максимум для 12 ГБ VRAM |
 | `qwen2.5:32b-instruct` | ~20 ГБ | Профессиональное |
-| `qwen2.5:72b-instruct` | ~40 ГБ | Только для топовых GPU |
 | `gemma2:2b` | ~1.5 ГБ | Быстрая, для слабых ПК |
 | `gemma2:9b` | ~6 ГБ | Хорошо держит русский |
 | `llama3.1:8b` | ~5 ГБ | Популярная, многоязычная |
 | `mistral:7b` | ~5 ГБ | Быстрая, живая |
 
-## Режимы работы
+**Смена модели — через GUI** (Настройки → LLM) или `config.json`.
 
-Три режима, переключаются голосом, сохраняются в `config.json`:
+## Режимы работы
 
 | Команда | Режим | Что делает |
 |---|---|---|
-| «режим команды» | `commands` | Только правила, LLM выключена |
-| «режим ИИ» | `llm` | Только LLM, правила пропускаются |
+| «режим команды» | `commands` | Только правила |
+| «режим ИИ» | `llm` | Только LLM |
 | «обычный режим» | `combo` | Правила → LLM (по умолчанию) |
-
-Запрос текущего: «какой режим».
 
 ## Паки команд
 
-Папка `packs/` — JSON-файлы с командами. Активные паки — в `config.json` → `active_packs`.
+Папка `packs/` — JSON-файлы. Активные — в `config.json` → `active_packs`.
 
-**Готовые паки:**
-
-- `games.json` — игры через Steam (Dota 2, CS2, PUBG, GTA V и др.)
-- `apps.json` — приложения (Discord, Telegram, OBS, VS Code и др.)
-- `sites.json` — сайты (YouTube, Twitch, GitHub, ВК и др.)
-- `work.json` — рабочие папки (Загрузки, Документы, Корзина)
-- `system.json` — системные команды (блокировка, сон, перезагрузка, IP)
+**Готовые паки:** `games`, `apps`, `sites`, `work`, `system`.
 
 **Голосом:**
+- «загрузи пак игр»
+- «выгрузи пак игр»
+- «какие паки»
 
-- «загрузи пак игр» — включает пак
-- «выгрузи пак игр» — выключает
-- «какие паки» — список
+## Мультипрофиль
 
-Паки портативны: без жёстких путей. Приложения ищутся через меню «Пуск», игры — через Steam-URI.
+```
+profiles/
+├── maksim/
+│   ├── profile.json    ← name, default_city, facts, tts_voice
+│   └── dialog.json     ← история диалога
+└── masha/
+    ├── profile.json
+    └── dialog.json
+```
 
-## Запись действий (макросы)
+**Голосом:**
+- «Феникс, я — Маша» — создать/переключиться.
+- «Феникс, кто активен?» — текущий профиль.
+- «Феникс, список профилей».
+- «Феникс, удали профиль Маша» (с паролем, если задан).
 
-**Требует прав администратора.** Библиотека `keyboard` ставит глобальный хук клавиатуры, а Windows разрешает это только админ-процессам.
-
-**Как запустить от админа:**
-- Правой кнопкой на `start_fenix.bat` → «Запуск от имени администратора».
-- Или в ярлыке: Свойства → Дополнительно → «Запуск от имени администратора».
-
-Голосом:
-
-1. «Феникс, запиши действие» → «Записываю. Скажите "стоп запись", когда закончите».
-2. Сделай что-нибудь (открой блокнот, напечатай текст, закрой).
-3. «Феникс, стоп запись» → «Запись остановлена. Макрос: N нажатий, M кликов, X секунд».
-4. «Феникс, повтори последнее» → воспроизводит.
-
-**Лимиты:**
-- Максимум 60 секунд записи.
-- Паузы короче 0.05 сек не записываются.
-- Паузы длиннее 5 сек обрезаются.
-
-**Планируется:** замена `keyboard` на `pynput` — тогда макросы будут работать без прав администратора.
+**Файлы** — в `.gitignore`. **Миграция** из старого `user_profile.json` — при первом запуске.
 
 ## Память диалога
 
-История в `dialog.json` при каждом ответе.
+История — в `profiles/<user>/dialog.json`.
 
-- «что мы обсуждали» → пересказ последних тем.
+- «что мы обсуждали» → пересказ.
 - «забудь всё» → очистка.
-- «сохрани память» → принудительное сохранение.
+- «короткая память» → 40 сообщений.
+- «обычная память» → 100.
+- «долгая память» → 200.
 
-После перезапуска Феникс продолжит диалог с того же места.
+**Лимит** и **контекст LLM** — настраиваются в `config.json`:
+- `memory_max` — сколько хранить.
+- `llm_context_messages` — сколько отдавать LLM.
 
-## Профиль пользователя
+## Отмена действий
 
-Личные данные — в `user_profile.json` (в корне проекта, в `.gitignore`).
+- «Феникс, не то» / «отмени» / «верни как было» → откат последнего действия.
+- Стек — последние 5 действий.
+- Отмена: `open_app` → `close_app`, `set_mode`, `change_voice`, `set_volume`, `set_brightness`, `switch_layout`.
 
-| Поле | Пример | Как задаётся |
-|---|---|---|
-| `default_city` | `"Москва"` | Автоматически при первом запросе погоды без города |
+## Пароль на опасные
 
-Если ты говоришь «какая погода», а город не задан — Феникс спросит: «В каком городе узнать погоду?». После ответа город сохраняется и больше не спрашивается.
+В `config.json`:
 
-**Почему не в `config.json`?** `config.json` — настройки проекта (идут в гит). `user_profile.json` — личные данные (не идут в гит).
+    "danger_password": "1234"
+
+Если **пусто** — пароль не нужен.
+
+**Опасные:** выключение/перезагрузка, `kill_process`, `clear_tasks`, `cancel_timers`, `delete_profile`.
+
+**Голосом:**
+- «Феникс, выключи компьютер» → «Для этого нужен пароль.»
+- «Феникс, пароль 1234» → «Подтверждено. Выключаю.»
 
 ## Голоса
 
-4 встроенных голоса Piper:
+4 голоса Piper:
 
 | Голос | Описание |
 |---|---|
-| `ruslan` | Мужской, спокойный (по умолчанию) |
-| `dmitri` | Мужской, ниже и медленнее |
+| `ruslan` | Мужской, спокойный |
+| `dmitri` | Мужской, ниже |
 | `irina` | Женский |
 | `denis` | Мужской, дикторский |
 
-- «смени голос на Ирину» / «голос Дмитрий»
-- «какой голос» / «список голосов»
-
-**Смена голоса — на лету**, без перезапуска. Через `Config.subscribe` → `speaker.set_voice()`.
+- «смени голос на Ирину» / «какой голос» / «список голосов».
+- **Смена — на лету** (через `Config.subscribe`).
+- **Также** — через GUI (Настройки → голос).
 
 ## Streaming TTS
 
-Обычно: LLM генерирует ответ полностью (2–5 сек), потом озвучка. Пустота 3–7 секунд.
+LLM отдаёт ответ по предложениям → первое сразу в Piper → пока играет, генерируется второе.
 
-Streaming: LLM отдаёт ответ по предложениям → первое сразу в Piper → пока играет, генерируется второе.
+**Результат:** первое слово через 0.2 сек.
 
-**Результат:** первое слово через 0.2 сек, речь без пауз.
-
-Реализация: `brain.chat_stream()`, `tts.speak_stream()`, `intents` возвращает генератор, `main.say()` понимает генератор.
+**В GUI:** текст **печатается по мере генерации** (один пузырь, дописывается).
 
 ## Barge-in (перебивание)
-
-Во время речи Феникса микрофон не глушится, а следит за громкостью:
 
 1. Первые 0.5 сек — слепое окно (эхо не меряется).
 2. Потом замеряется фоновое эхо → порог = `эхо × 1.8`.
 3. Если ты говоришь громче порога >100 мс → TTS прерывается.
 4. Феникс переходит в диалог — можно говорить без «Феникс».
 
-**Настройка в `config.json`:**
-
-    "barge_enabled": true
-
-Всё остальное — калибруется автоматически в `stt.py`. Ручные `barge_mult` / `barge_min_threshold` больше не используются.
+**Настройка:** `"barge_enabled": true`.
 
 ## Логи и ошибки
 
-Все логи — в папке `logs/` (в `.gitignore`). Три файла с авторотацией (5 МБ × 3 бэкапа):
+Все логи — в `logs/`:
 
 | Файл | Что пишет |
 |---|---|
-| `jarvis.log` | Общий лог — всё, что происходит |
-| `actions.log` | Команды, интенты, ответы, конкретные действия |
-| `errors.log` | Только WARNING и ERROR — без шума от библиотек |
+| `jarvis.log` | Общий лог |
+| `actions.log` | Команды, интенты, действия |
+| `errors.log` | Только WARNING и ERROR |
 
-Открыть логи голосом: «открой журнал».
-
-## Предобработка текста
-
-Перед озвучкой текст чистится в `tts.py` → `_prepare_text()`:
-
-| Было | Стало |
-|---|---|
-| `5 м/с` | `5 метров в секунду` |
-| `+6°C` | `+6 градусов` |
-| `80%` | `80 процентов` |
-| `т.д.` | `так далее` |
-| `10 км` | `10 километров` |
-| `→` | `стремится к` |
-| `**жирный**` | `жирный` |
+Открыть голосом: «открой журнал».
 
 ## Атомарная запись конфига
 
 Запись `config.json` — через `config_manager.py`:
 
-- Один `FileLock` на весь проект (работает и между процессами).
+- Один `FileLock` на весь проект.
 - Уникальный `.tmp` через `tempfile.mkstemp`.
-- `os.replace` для атомарной подмены на уровне ОС.
-- Если процесс упадёт — старый `config.json` остаётся целым.
+- `os.replace` для атомарной подмены.
 
-Все модули (`modes.py`, `voices.py`, `packs.py`, `profile.py`) пишут только через `config_manager`.
+Все модули пишут только через `config_manager` или `Config.set()`.
 
 ## Команды
 
 **Приложения:** «открой стим», «закрой дискорд», «запусти сабнатику».
 
-**Сайты:** «открой ютуб», «открой сайт хабр», «хабр точка ру».
+**Сайты:** «открой ютуб», «открой хабр», «хабр точка ру».
 
-**Поиск:** «загугли погоду», «найди на ютубе лофи», «найди статью в википедии».
+**Поиск:** «загугли погоду», «найди на ютубе лофи».
 
 **Печать:** «напечатай привет мир».
 
@@ -8792,21 +9424,31 @@ Streaming: LLM отдаёт ответ по предложениям → пер�
 
 **Музыка:** «включи музыку», «пауза», «следующий трек», «громче», «тише».
 
+**Громкость/яркость:** «громкость 50», «яркость 30», «какая громкость».
+
+**Раскладка:** «переключи раскладку», «русская раскладка», «какая раскладка».
+
 **Время:** «который час», «какое сегодня число».
 
 **Разговор:** «как дела», «расскажи шутку», «что такое фотосинтез».
 
-**Голос:** «смени голос на Ирину», «какой голос», «список голосов».
+**Голос:** «смени голос на Ирину», «какой голос».
 
-**Буфер обмена:** «что в буфере», «очисти буфер», «скопируй выделенное», «скопируй свой ответ».
+**Буфер:** «что в буфере», «очисти буфер», «скопируй выделенное», «скопируй свой ответ».
 
-**Погода и курс:** «какая погода», «погода в Москве», «погода на завтра», «курс доллара», «курс валют».
+**Погода/курс:** «какая погода», «погода в Москве», «курс доллара».
 
 **Паки:** «загрузи пак игр», «выгрузи пак игр», «какие паки».
 
-**Стоп:** «стой», «хватит», «отбой».
+**Профиль:** «я — Маша», «кто активен», «список профилей», «запомни: город Москва», «что ты обо мне знаешь».
 
-**Своё:** «открой конфиг», «покажи ip», «открой терминал».
+**Память:** «короткая память», «долгая память», «какая память», «что мы обсуждали», «забудь всё».
+
+**Отмена:** «не то», «отмени».
+
+**Диагностика:** «что ты слышал», «почему не понял».
+
+**Стоп:** «стой», «хватит», «отбой».
 
 ## Свои команды в custom_commands
 
@@ -8818,23 +9460,7 @@ Streaming: LLM отдаёт ответ по предложениям → пер�
       "reply": "Открываю конфиг."
     }
 
-Типы действий:
-
-- **Путь к файлу:** `C:\\jarvis\\config.json`
-- **Открыть приложение:** `open_app:discord` (ищет в меню «Пуск»)
-- **Браузер:** `browser`
-- **URL:** `https://example.com`
-- **Steam-URI:** `steam://rungameid/570`
-- **Цепочка шагов:** `{"steps": [...]}`
-
-## Печать и окна
-
-**Печать:** «Феникс, напечатай привет мир». Курсор должен быть в нужном окне.
-
-**Окна:**
-- «сверни все окна» → Win+D
-- «сверни дискорд» → ищет окно с «дискорд» в заголовке
-- «разверни браузер» → разворачивает окно
+Типы: путь, `open_app:discord`, `browser`, URL, `steam://`, `{"steps": [...]}`.
 
 ## Запуск без консоли
 
@@ -8847,47 +9473,28 @@ Streaming: LLM отдаёт ответ по предложениям → пер�
 
 ## Автозапуск
 
-Win+R → `shell:startup` → Enter. Скопируй туда ярлык на `Феникс.exe` или на `pythonw -m jarvis`.
+Win+R → `shell:startup` → Enter. Скопируй туда ярлык.
 
 ## Права администратора
 
-Для базовой работы Феникса права администратора **не нужны**.
-
-| Функция | Требует админа |
-|---|---|
-| Голос (Vosk + Whisper) | ❌ |
-| Озвучка (Piper) | ❌ |
-| Открытие приложений, сайтов | ❌ |
-| Управление окнами | ❌ |
-| Медиа-клавиши | ❌ |
-| Скриншоты | ❌ |
-| Печать текста | ❌ |
-| Буфер обмена | ❌ |
-| Погода, курс валют | ❌ |
-| Напоминания, задачи | ❌ |
-| Смена режима, голоса | ❌ |
-| **Запись макросов** | ✅ |
-| Громкость в процентах (`pycaw`) | ⚠️ Может |
-| Яркость на внешних мониторах | ⚠️ Может |
-
-**Итог:** для 90% работы админ не нужен. Только макросы.
+Для базовой работы — **не нужны**. **Только для макросов** (`keyboard`).
 
 ## Инструменты разработчика
 
 | Скрипт | Что делает |
 |---|---|
-| `install.bat` | Интерактивная установка + проверка |
-| `start_fenix.bat` | Запуск без консоли (через `pythonw`) |
-| `start_fenix_debug.bat` | Запуск с логами в консоли |
-| `check_syntax.py` | `ast.parse()` по всем `.py` в проекте |
-| `test_intents.py` | 27 сценариев без микрофона (флаги `--llm`, `--network`, `--voice`) |
-| `snapshot.py` | Собирает проект в `SNAPSHOT.md` |
-| `scripts/selftest.py` | Самопроверка TTS → Vosk → разбор |
+| `install.bat` | Интерактивная установка |
+| `start_fenix.bat` | Запуск без консоли |
+| `start_fenix_debug.bat` | Запуск с логами |
+| `check_syntax.py` | `ast.parse()` |
+| `test_intents.py` | 30 сценариев (флаги `--llm`, `--network`, `--voice`) |
+| `snapshot.py` | `SNAPSHOT.md` |
+| `scripts/selftest.py` | TTS → Vosk → разбор |
 | `scripts/mics.py` | Выбор микрофона |
 | `scripts/wakebench.py` | Бенчмарк wake-слов |
 | `scripts/voicedemo.py` | Прослушка голосов |
-| `scripts/build_exe.py` | Сборка лаунчера в `.exe` |
-| `.github/workflows/test.yml` | CI: синтаксис + pytest + test_intents (см. `CI.md`) |
+| `scripts/build_exe.py` | Сборка `.exe` |
+| `.github/workflows/test.yml` | CI |
 
 Запуск тестов:
 
@@ -8897,61 +9504,67 @@ Win+R → `shell:startup` → Enter. Скопируй туда ярлык на `
 
 ## CI (Continuous Integration)
 
-При каждом push GitHub автоматически:
-1. Проверяет синтаксис (`check_syntax.py`).
-2. Гоняет юнит-тесты (`pytest tests/`).
-3. Гоняет интент-тесты (`test_intents.py`, без LLM и без сети).
+При каждом push GitHub:
+1. Проверяет синтаксис.
+2. Гоняет `pytest`.
+3. Гоняет `test_intents.py` (без LLM и сети).
 
-Результат — на вкладке **Actions** или рядом с коммитом: ✅ / ❌.
+Результат — на вкладке **Actions**: ✅ / ❌.
 
-**Подробнее** — см. `CI.md`.
+**Подробнее** — `CI.md`.
 
 ### Тесты локально
 
-```
-python test_intents.py                  # без LLM, без сети
-python test_intents.py --network        # + погода/курс
-python test_intents.py --llm            # + LLM (нужна Ollama)
-python test_intents.py --llm --network  # всё
-python test_intents.py --voice          # с озвучкой
-python test_intents.py -k weather       # фильтр по имени
-```
+    python test_intents.py                  # без LLM, без сети
+    python test_intents.py --network        # + погода/курс
+    python test_intents.py --llm            # + LLM (Ollama)
+    python test_intents.py --llm --network  # всё
+    python test_intents.py --voice          # с озвучкой
+    python test_intents.py -k weather       # фильтр
 
 ## Траблшутинг
 
 ### Известные баги
 
-- **Barge-in иногда срабатывает на эхо** при громких колонках. В наушниках — работает чисто.
-- **Запись макросов требует прав администратора** (для библиотеки `keyboard`).
-- **Громкость и яркость в процентах** пока не реализованы (пункт 2.4 плана).
+- **Barge-in** иногда срабатывает на эхо при громких колонках. В наушниках — чисто.
+- **Запись макросов** требует прав администратора (`keyboard`).
+- **Тема GUI** применяется **на лету** — без перезапуска.
 
 ### Решение проблем
 
 **`Failed to create a model` (Vosk)** — модель не загрузилась. Проверь `models/vosk-model-small-ru-0.22/am/final.mdl`.
 
-**`Error processing file ... phonetab` (Piper)** — не установлен eSpeak NG. Запусти `install.bat` заново или поставь вручную: https://github.com/espeak-ng/espeak-ng/releases
+**`Error processing file ... phonetab` (Piper)** — не установлен eSpeak NG. Поставь: https://github.com/espeak-ng/espeak-ng/releases
 
 **`HTTP Error 404` про LLM** — Ollama не запущена или модель не скачана. Проверь: `ollama list`.
 
-**`IndentationError` после правки** — сломал отступы. Используй VS Code или Notepad++.
+**`IndentationError`** — сломал отступы. VS Code / Notepad++.
 
-**`ModuleNotFoundError: keyboard`** — `pip install keyboard mouse`. Требует прав администратора.
+**`ModuleNotFoundError: keyboard`** — `pip install keyboard mouse`. Требует админа.
 
-**Wake-слово не срабатывает** — говори «ФЕ-НИКС» чётко, по слогам.
+**Wake-слово не срабатывает** — говори «ФЕ-НИКС» чётко.
 
-**LLM отказывается от безобидных просьб** — маленькая модель. Перейди на `qwen2.5:7b-instruct` или `14b`.
+**LLM отказывается** — маленькая модель. Перейди на `qwen2.5:7b-instruct` или `14b`.
 
-**`errors.log` забит warning'ами от `huggingface_hub`** — они заглушены в `setup_logging()`. Если появились снова — проверь, что правка на месте.
+**`errors.log` забит warning'ами от `huggingface_hub`** — заглушены в `setup_logging()`.
 
-**Погода не работает / «Не удалось узнать погоду»** — проверь интернет. Источники: `open-meteo.com`, `cbr-xml-daily.ru`.
+**Погода не работает** — проверь интернет.
 
-**`config.json` случайно попал в гит** — `git rm --cached config.json`. Файл останется, git перестанет его отслеживать.
+**`config.json` попал в гит** — `git rm --cached config.json`.
 
-**Случайный файл (например, `вкладка`, `(новый)`) попал в репозиторий** — `git rm "имя"`, потом добавить в `.gitignore`.
+**`pytest` падает на `SyntaxError`** — при копировании слиплись строки.
 
-**`pytest` падает на `SyntaxError` в тесте** — при копировании из чата слиплись строки. Открой файл, найди строку из ошибки, разбей правильно.
+**CI упал на `UnicodeEncodeError`** — пофикшено (`reconfigure` + `PYTHONUTF8=1`).
 
-**CI упал на `UnicodeEncodeError`** — Windows-консоль в cp1252 не может напечатать русский. Уже пофикшено (`reconfigure` + `PYTHONUTF8=1`). Если повторится — проверь, что правки на месте.
+**Flet GUI не открывается** — проверь `"gui_enabled": true` и что `flet` установлен (`pip install flet`).
+
+**`signal only works in main thread`** — Flet в главном потоке. Проверь `main.py` — `gui.run_main()` вместо `gui.start()`.
+
+**Чат стирается при переключении вкладок** — пофикшено (кеш `_tabs`).
+
+**Раскладка не работает второй раз** — пофикшено (`SendInput` вместо `keybd_event`).
+
+**Трей не работает** — `"tray_enabled": false` в config.
 
 ## Технологии
 
@@ -8960,19 +9573,23 @@ python test_intents.py -k weather       # фильтр по имени
 | Wake-слово | Vosk (`vosk-model-small-ru-0.22`) |
 | Расшифровка | faster-whisper (large-v3-turbo GPU / small CPU) |
 | Синтез речи | Piper TTS (ruslan/dmitri/irina/denis) |
-| Streaming TTS | `speak_stream()` + `chat_stream()` |
+| Streaming TTS | `speak_stream()` + `chat_stream()` + tee |
 | Barge-in | Автокалибровка в `stt.py` |
 | LLM | Qwen 2.5 / Gemma 2 / Llama 3.1 / Mistral через Ollama |
+| GUI | **Flet 1.0.3** |
+| Мультипрофиль | `profiles/<user>/` |
+| Отмена | `jarvis/history.py` |
+| Пароль | `danger_password` в config |
 | Запись действий | keyboard + mouse |
 | Микрофон | sounddevice |
 | Трей | pystray + Pillow |
 | Печать/окна | pyautogui + pygetwindow |
-| Погода | open-meteo.com (без ключа) |
-| Курс валют | cbr-xml-daily.ru (ЦБ РФ, без ключа) |
+| Погода | open-meteo.com |
+| Курс валют | cbr-xml-daily.ru (ЦБ РФ) |
 | Логирование | `logging.handlers.RotatingFileHandler` |
 | Буфер обмена | pyperclip + pyautogui |
 | Атомарная запись | filelock + os.replace |
-| Профиль | user_profile.json (в `.gitignore`) |
+| Профиль | `profiles/<user>/profile.json` (в `.gitignore`) |
 | CI | GitHub Actions (`windows-latest`, Python 3.11) |
 
 ## Лицензия
