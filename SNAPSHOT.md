@@ -1,7 +1,7 @@
 # SNAPSHOT проекта «Феникс»
 
 _Автоматически сгенерировано `snapshot.py`. Обновляется при `git push`._
-_Файлов в снимке: 63_
+_Файлов в снимке: 62_
 
 ---
 
@@ -71,7 +71,6 @@ jarvis/
 ├── install.bat
 ├── launcher.py
 ├── PLAN.md
-├── profile.py
 ├── README.md
 ├── requirements-ci.txt
 ├── requirements.txt
@@ -88,7 +87,43 @@ jarvis/
 ### `.github\workflows\README.md`
 
 ```markdown
+# Workflows
 
+## test.yml
+
+Основной CI. Запускается при `push` и `pull_request` в `main` / `master`.
+
+**Что делает:**
+1. Windows-виртуалка, Python 3.11, кэш pip.
+2. `pip install -r requirements-ci.txt`.
+3. `python check_syntax.py`.
+4. `python -m pytest tests/ -q`.
+5. `python test_intents.py` (без флагов).
+
+**Env:**
+- `PYTHONUTF8=1` — UTF-8 mode интерпретатора.
+- `PYTHONIOENCODING=utf-8` — для stdout/stderr.
+
+**Timeout:** 15 минут.
+
+**Если упало** — см. `CI.md` в корне репозитория.
+
+## Как добавить новый workflow
+
+Создай файл `.github/workflows/<name>.yml`:
+
+```yaml
+name: my-workflow
+on: [push]
+jobs:
+  my-job:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - run: python my_script.py
+```
 ```
 
 ### `.github\workflows\test.yml`
@@ -345,7 +380,64 @@ config.Config._data (в памяти) — источник истины
 ### `CHANGELOG.md`
 
 ```markdown
+# Changelog
 
+Все значимые изменения проекта. Формат основан на
+[Keep a Changelog](https://keepachangelog.com/ru/1.1.0/),
+версии — по [Semantic Versioning](https://semver.org/lang/ru/).
+
+## [Unreleased]
+
+### Добавлено
+- `jarvis/reply.py` — явный тип `Reply` (`text` | `stream`) для возврата из `IntentHandler.handle()`.
+- Быстрые правила без LLM: голоса, паки, таймеры, задачи, простая погода/курс.
+- `_open_fast()` — открытие приложений/сайтов/папок без LLM.
+- `tests/test_weather.py` — тесты с моками `_http_get_json`, проверка кэша.
+- `.github/workflows/test.yml` — CI на `windows-latest`.
+- `requirements-ci.txt` — облегчённые зависимости для CI (без звука и GUI).
+- `--llm`, `--network`, `--voice` в `test_intents.py`.
+- UTF-8 fix в `check_syntax.py` и `test_intents.py` (`sys.stdout.reconfigure`).
+- `PYTHONUTF8=1` в CI — страховка от cp1252-консоли.
+
+### Изменено
+- `IntentHandler.handle()` всегда возвращает `Reply` (а не `str | Generator`).
+- `Jarvis.say()` принимает `Reply`, а не `str | Generator`.
+- `_handle_pending_answer()` — не хватает «как дела» как город.
+- `test_intents.py` — тесты 5-полевые: `(name, cmd, expected, requires_llm, requires_network)`.
+- `.gitignore` — добавлены `*.lock`, `dist/`, `build/`, `*.spec`, `.coverage`, `htmlcov/`.
+
+### Исправлено
+- `open_site` («открой ютуб») без LLM — теперь обрабатывается `_open_fast`.
+- `small_talk_how` («как дела») — больше не перехватывается `pending_question`.
+- `UnicodeEncodeError` на CI (cp1252) — `reconfigure` + `PYTHONUTF8`.
+
+## [0.2.2] — 2026-10-05
+
+### Добавлено
+- Этап 0 (рефакторинг) закрыт:
+  - `config_manager.py` — единый FileLock, `mkstemp`, `os.replace`.
+  - `Config` в памяти + подписки.
+  - Калибровка + адаптивный barge-in.
+  - `_prepare_text` + CJK-фильтр.
+  - Few-shot промпт + temperature 0.7.
+  - Первые тесты (pytest + `test_intents.py`).
+- Этап 1: голосовые режимы, паки команд, запись макросов, память диалога, голоса Piper.
+- Этап 2: streaming TTS, barge-in, логи по категориям, буфер обмена, погода и курс.
+
+### Исправлено
+- `actions.run_spec` — обработка `kind == "cmd"` (Discord).
+- `actions.find_process` / `_find_window` — `matching.match_score`.
+- `brain.py` — `close_app` в отдельный блок промпта.
+- `intents._handle_single` — вызов `memory.handle_memory_command`.
+- `tts.Speaker.stop()` — рабочий barge-in через sounddevice.
+- `stt._enable_cuda_dlls` — флаг `_CUDA_DLLS_ADDED`.
+- `intents._reload_packs` — без `config_copy`.
+- `matching.match_score` — защита от ложных срабатываний на коротких словах.
+
+## [0.2.1] и раньше
+
+См. коммиты в репозитории до июня 2026 — от оригинала
+[jsays12/jarvis](https://github.com/jsays12/jarvis).
 ```
 
 ### `check_all.bat`
@@ -515,7 +607,85 @@ else:
 ### `CI.md`
 
 ```markdown
+# CI — что это и как с ним жить
 
+## 🎯 Что такое CI
+
+CI = Continuous Integration = автоматическая проверка кода при каждом push.
+
+GitHub Actions запускает виртуалку с Windows, ставит Python, зависимости,
+прогоняет тесты. Через ~40 секунд ты видишь: ✅ или ❌.
+
+**Зачем:** ловит регрессии, пока ты спишь. Не нужно помнить про тесты —
+GitHub запускает их сам.
+
+## 📁 Где лежит
+
+`.github/workflows/test.yml` — инструкция для GitHub.
+
+## 🔍 Что делает
+
+1. Checkout — скачивает код.
+2. Setup Python 3.11 + кэш pip.
+3. `pip install -r requirements-ci.txt` — облегчённые зависимости.
+4. `python check_syntax.py` — синтаксис.
+5. `python -m pytest tests/ -q` — юнит-тесты.
+6. `python test_intents.py` — интент-тесты без флагов.
+
+`PYTHONUTF8=1` — глобально на весь job, страховка от cp1252.
+
+## 🚀 Как смотреть результат
+
+1. Открой репозиторий на GitHub.
+2. Вкладка **Actions** (сверху).
+3. Последний запуск — ✅ или ❌.
+4. Кликни → увидишь шаги и логи.
+
+## 🔧 Если упало
+
+**Шаг `Check syntax`** — синтаксис где-то сломан. Открой лог, найди файл и строку.
+
+**Шаг `pytest`** — юнит-тест упал. Лог покажет какой.
+
+**Шаг `Intent tests`** — интент-тест упал. Логи в артефактах Actions или
+локально `logs/test_intents.log`.
+
+**Общая ошибка `UnicodeEncodeError`** — Windows-консоль в cp1252 не может
+напечатать русский. Уже пофикшено (`reconfigure` + `PYTHONUTF8=1`). Если
+повторится — проверь, что эти правки на месте.
+
+## 📦 requirements-ci.txt
+
+Отдельный файл — **только то, что нужно для CI**:
+
+- `filelock`, `num2words`, `psutil`, `pyperclip`, `Pillow`
+- `pytest`, `pytest-asyncio`
+
+**Чего нет:**
+- `piper-tts`, `faster-whisper`, `sounddevice`, `vosk`, `winrt-*` — на сервере нет звука
+- `pycaw`, `screen-brightness-control` — Windows-специфичные, тяжёлые
+- `pyautogui`, `pygetwindow`, `keyboard`, `mouse` — GUI
+
+**Почему:** CI ускоряется с ~5 мин до ~40 сек. И не падает на «нет звука».
+
+## ➕ Как добавить шаг
+
+В `.github/workflows/test.yml`:
+
+```yaml
+      - name: Мой новый шаг
+        run: python my_script.py
+```
+
+Пуш → GitHub сам подхватит.
+
+## 🎨 Бейдж в README
+
+```markdown
+[![tests](https://github.com/USER/REPO/actions/workflows/test.yml/badge.svg)](https://github.com/USER/REPO/actions/workflows/test.yml)
+```
+
+Замени `USER/REPO` на свой. Вставь в начало README.
 ```
 
 ### `cmds\open_terminal.bat`
@@ -580,7 +750,101 @@ pause
 ### `CONTRIBUTING.md`
 
 ```markdown
+# Как контрибьютить в Феникс
 
+Документ для себя-будущего и для LLM, которая помогает с проектом.
+
+## 🎯 Главное правило
+
+**Не добавляй костыли.** Если решение «работает, но выглядит грязно» —
+это не решение. Лучше потратить час сейчас, чем три — через месяц.
+
+## 📁 Структура
+
+```
+jarvis/             — пакет
+  reply.py          — тип Reply (text | stream)
+  intents.py        — разбор команд, быстрые правила + LLM
+  main.py           — точка входа, Jarvis, barge-in
+  brain.py          — Ollama: parse() и chat_stream()
+  config.py         — Config в памяти + подписки
+  config_manager.py — атомарная запись
+  tts.py            — Piper / XTTS / WinRT / SAPI
+  stt.py            — Vosk + Whisper
+  ...
+
+tests/              — pytest-тесты
+test_intents.py     — интент-тесты (без микрофона)
+check_syntax.py     — синтаксис всех .py
+snapshot.py         — сборка SNAPSHOT.md
+
+packs/              — JSON-паки команд
+scripts/            — утилиты (mics, wakebench, build_exe)
+.github/workflows/  — CI
+```
+
+## 📝 Правила кода
+
+1. **Не читай `config.json` напрямую** — используй `config.get()` из объекта `Config`.
+2. **Не пиши в `config.json` напрямую** — только `Config.set()` или `config_manager.save()`.
+3. **Не плоди глобальное состояние** — кроме `Config._GLOBAL`.
+4. **Нормализация (города, валюты, паков) — задача LLM.** Не добавляй словари синонимов в код без нужды.
+5. **Логи в `actions.log`** — главный инструмент отладки.
+6. **Не выбрасывай ошибки в `errors.log`** — это сигнал, что что-то сломалось, разбирайся.
+7. **`test_intents.py`** — первое, что запускаешь после правки `intents.py`, `brain.py`, `actions.py`.
+
+## 🧪 Тесты
+
+### Локально
+
+```bat
+python check_syntax.py
+python -m pytest tests/ -q
+python test_intents.py
+```
+
+### С флагами
+
+```bat
+python test_intents.py --network        # + тесты погоды/курса
+python test_intents.py --llm            # + тесты с LLM (нужна Ollama)
+python test_intents.py --llm --network  # всё
+python test_intents.py --voice          # с озвучкой
+python test_intents.py -k weather       # только тесты со словом 'weather'
+```
+
+### В CI
+
+GitHub Actions запускает при каждом push:
+- `check_syntax.py`
+- `pytest tests/`
+- `test_intents.py` — **без флагов** (без LLM, без сети, без озвучки).
+
+Это значит: **новые тесты должны работать без LLM и без сети**. Если тест
+требует сеть — помечай `requires_network=True`. Если LLM — `requires_llm=True`.
+
+## 🏷️ Коммиты
+
+Пиши так, чтобы через полгода понять без `git diff`:
+
+```
+День 3: Reply, CI, тесты с моками
+
+- jarvis/reply.py — новый тип
+- intents.py: handle() возвращает Reply
+- ...
+```
+
+Одна строка — суть. Тело — список изменений.
+
+## ✅ Чеклист перед коммитом
+
+- [ ] `python check_syntax.py` — все файлы OK
+- [ ] `python -m pytest tests/ -q` — все тесты passed
+- [ ] `python test_intents.py` — 20/20 (без флагов)
+- [ ] Если добавил фичу — обнови `README.md`
+- [ ] Если сломал API — обнови `ARCHITECTURE.md` и `SNAPSHOT.md`
+- [ ] Закоммить, запушить, посмотреть CI (✅ или ❌)
 ```
 
 ### `install.bat`
@@ -2649,6 +2913,11 @@ class IntentHandler:
 
         self.dialog.append({"role": "user", "content": cmd})
 
+        
+        if result is None:
+            # _handle_single вернул None — считаем «не понял»
+            result = "Не понял команду."
+
         if isinstance(result, str):
             self.dialog.append({"role": "assistant", "content": result})
             memory.save(list(self.dialog))
@@ -3489,6 +3758,9 @@ class Jarvis:
     def _process(self, phrase: str, audio: bytes) -> None:
         awaiting = time.time() < self._awaiting_until
         cmd = self._extract_command(normalize(phrase))
+        pending = getattr(self.handler, "_pending_question", None)
+        if pending and time.time() < pending.get("expires_at", 0):
+            awaiting = True
         if cmd is None:
             return
         if cmd == "":
@@ -4134,8 +4406,12 @@ def handle_pack_command(cmd: str, current_active: list[str], config=None) -> tup
 Файл: user_profile.json в корне проекта.
 НЕ отправляется в гит (см. .gitignore).
 Запись — через config_manager (единый FileLock, атомарная замена).
+
+Защита: если user_profile.json битый — не перезаписываем молча,
+логируем и НЕ сохраняем (чтобы не потерять данные при ошибке чтения).
 """
 
+import json
 import logging
 from pathlib import Path
 
@@ -4147,30 +4423,72 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 PROFILE_PATH = BASE_DIR / "user_profile.json"
 
 
+def _safe_load() -> dict:
+    """Читает профиль. Возвращает {} при отсутствии файла.
+    Логирует отдельно, если файл есть, но битый.
+    """
+    if not PROFILE_PATH.exists():
+        return {}
+    raw = PROFILE_PATH.read_text(encoding="utf-8")
+    if not raw.strip():
+        return {}
+    try:
+        data = json.loads(raw)
+        return data if isinstance(data, dict) else {}
+    except json.JSONDecodeError:
+        log.error("user_profile.json битый — не могу прочитать. "
+                  "НЕ перезаписываю, чтобы не потерять данные. "
+                  "Почини файл вручную: %s", PROFILE_PATH)
+        raise
+
+
 def get(key: str, default=None):
-    """Читает одно поле."""
-    return config_manager.load(path=PROFILE_PATH).get(key, default)
+    """Читает одно поле. При битом файле — возвращает default."""
+    try:
+        return _safe_load().get(key, default)
+    except json.JSONDecodeError:
+        return default
 
 
-def set(key: str, value) -> None:
-    """Записывает одно поле."""
-    config_manager.update(key, value, path=PROFILE_PATH)
-    log.info("Профиль: %s = %r", key, value)
+def set(key: str, value) -> bool:
+    """Записывает одно поле. Возвращает True при успехе.
+    При битом файле — НЕ перезаписывает, возвращает False.
+    """
+    try:
+        data = _safe_load()
+    except json.JSONDecodeError:
+        return False
+
+    data[key] = value
+    ok = config_manager.save(data, path=PROFILE_PATH)
+    if ok:
+        log.info("Профиль: %s = %r", key, value)
+    else:
+        log.error("Профиль: не удалось сохранить %s", key)
+    return ok
 
 
 def all_data() -> dict:
-    return config_manager.load(path=PROFILE_PATH)
+    """Возвращает все данные профиля. При битом — пустой dict."""
+    try:
+        return _safe_load()
+    except json.JSONDecodeError:
+        return {}
 
 
 def forget(key: str) -> bool:
     """Удаляет одно поле."""
-    data = config_manager.load(path=PROFILE_PATH)
+    try:
+        data = _safe_load()
+    except json.JSONDecodeError:
+        return False
     if key not in data:
         return False
     del data[key]
-    config_manager.save(data, path=PROFILE_PATH)
-    log.info("Профиль: удалено %s", key)
-    return True
+    ok = config_manager.save(data, path=PROFILE_PATH)
+    if ok:
+        log.info("Профиль: удалено %s", key)
+    return ok
 ```
 
 ### `jarvis\recorder.py`
@@ -5461,7 +5779,11 @@ class Speaker:
             import numpy as np
             import sounddevice as sd
         except ImportError:
-            log.warning("sounddevice/numpy недоступны, играю через winsound (barge-in будет с задержкой)")
+            log.warning(
+                "sounddevice/numpy недоступны — играю через winsound. "
+                "ВАЖНО: barge-in (перебивание) НЕ БУДЕТ РАБОТАТЬ. "
+                "Установи: pip install sounddevice numpy"
+            )
             import winsound
             winsound.PlaySound(wav_bytes, winsound.SND_MEMORY)
             return
@@ -6282,109 +6604,12 @@ if __name__ == "__main__":
 5.6	Скриптовые плагины	—
 ```
 
-### `profile.py`
-
-```python
-"""Профиль пользователя.
-
-Хранит данные, специфичные для пользователя:
-    - город по умолчанию
-    - имя
-    - предпочтения
-    - произвольные факты (для будущего модуля памяти)
-
-Файл: user_profile.json в корне проекта.
-НЕ отправляется в гит (см. .gitignore).
-Запись — через config_manager (единый FileLock, атомарная замена).
-
-Защита: если user_profile.json битый — не перезаписываем молча,
-логируем и НЕ сохраняем (чтобы не потерять данные при ошибке чтения).
-"""
-
-import json
-import logging
-from pathlib import Path
-
-from jarvis import config_manager
-
-log = logging.getLogger("jarvis.profile")
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-PROFILE_PATH = BASE_DIR / "user_profile.json"
-
-
-def _safe_load() -> dict:
-    """Читает профиль. Возвращает {} при отсутствии файла.
-    Логирует отдельно, если файл есть, но битый.
-    """
-    if not PROFILE_PATH.exists():
-        return {}
-    raw = PROFILE_PATH.read_text(encoding="utf-8")
-    if not raw.strip():
-        return {}
-    try:
-        data = json.loads(raw)
-        return data if isinstance(data, dict) else {}
-    except json.JSONDecodeError:
-        log.error("user_profile.json битый — не могу прочитать. "
-                  "НЕ перезаписываю, чтобы не потерять данные. "
-                  "Почини файл вручную: %s", PROFILE_PATH)
-        raise
-
-
-def get(key: str, default=None):
-    """Читает одно поле. При битом файле — возвращает default."""
-    try:
-        return _safe_load().get(key, default)
-    except json.JSONDecodeError:
-        return default
-
-
-def set(key: str, value) -> bool:
-    """Записывает одно поле. Возвращает True при успехе.
-    При битом файле — НЕ перезаписывает, возвращает False.
-    """
-    try:
-        data = _safe_load()
-    except json.JSONDecodeError:
-        return False
-
-    data[key] = value
-    ok = config_manager.save(data, path=PROFILE_PATH)
-    if ok:
-        log.info("Профиль: %s = %r", key, value)
-    else:
-        log.error("Профиль: не удалось сохранить %s", key)
-    return ok
-
-
-def all_data() -> dict:
-    """Возвращает все данные профиля. При битом — пустой dict."""
-    try:
-        return _safe_load()
-    except json.JSONDecodeError:
-        return {}
-
-
-def forget(key: str) -> bool:
-    """Удаляет одно поле."""
-    try:
-        data = _safe_load()
-    except json.JSONDecodeError:
-        return False
-    if key not in data:
-        return False
-    del data[key]
-    ok = config_manager.save(data, path=PROFILE_PATH)
-    if ok:
-        log.info("Профиль: удалено %s", key)
-    return ok
-```
-
 ### `README.md`
 
 ```markdown
 # Феникс
+
+[![tests](https://github.com/BobLoTiK/jarvis-fenix/actions/workflows/test.yml/badge.svg)](https://github.com/BobLoTiK/jarvis-fenix/actions/workflows/test.yml)
 
 Локальный голосовой ассистент для Windows. Форк проекта [jsays12/jarvis](https://github.com/jsays12/jarvis).
 
@@ -6417,6 +6642,7 @@ def forget(key: str) -> bool:
 - [Автозапуск](#автозапуск)
 - [Права администратора](#права-администратора)
 - [Инструменты разработчика](#инструменты-разработчика)
+- [CI (Continuous Integration)](#ci-continuous-integration)
 - [Траблшутинг](#траблшутинг)
 - [Технологии](#технологии)
 
@@ -6447,6 +6673,15 @@ def forget(key: str) -> bool:
 - **Буфер обмена** — «что в буфере», «очисти буфер», «скопируй выделенное» (Ctrl+C), «скопируй свой ответ».
 - **Погода и курс валют** — через `open-meteo.com` и `cbr-xml-daily.ru` без ключей. Кэш 10 минут.
 - **Профиль пользователя** — `user_profile.json` (в `.gitignore`). Хранит город по умолчанию.
+
+### Этап 3: Reply + CI
+
+- **`jarvis/reply.py`** — явный тип `Reply` (`text` | `stream`) вместо `hasattr(reply, "__iter__")`.
+- **Быстрые правила без LLM** — голоса, паки, таймеры, задачи, простая погода/курс.
+- **`_open_fast`** — открытие приложений/сайтов/папок без LLM.
+- **GitHub Actions** — CI на `windows-latest`: синтаксис + pytest + test_intents.
+- **UTF-8 fix** — `reconfigure` в скриптах + `PYTHONUTF8=1` в CI.
+- **Документация** — `CHANGELOG.md`, `CONTRIBUTING.md`, `CI.md`.
 
 ### Инструменты
 
@@ -6743,8 +6978,9 @@ Streaming: LLM отдаёт ответ по предложениям → пер�
 
     pythonw -m jarvis
 
-Либо собрать `.exe`:
+Либо собрать `.exe` (нужен `pyinstaller`):
 
+    pip install pyinstaller
     python scripts/build_exe.py
 
 ## Автозапуск
@@ -6782,19 +7018,42 @@ Win+R → `shell:startup` → Enter. Скопируй туда ярлык на `
 | `start_fenix.bat` | Запуск без консоли (через `pythonw`) |
 | `start_fenix_debug.bat` | Запуск с логами в консоли |
 | `check_syntax.py` | `ast.parse()` по всем `.py` в проекте |
-| `test_intents.py` | 27 сценариев без микрофона |
+| `test_intents.py` | 27 сценариев без микрофона (флаги `--llm`, `--network`, `--voice`) |
 | `snapshot.py` | Собирает проект в `SNAPSHOT.md` |
 | `scripts/selftest.py` | Самопроверка TTS → Vosk → разбор |
 | `scripts/mics.py` | Выбор микрофона |
 | `scripts/wakebench.py` | Бенчмарк wake-слов |
 | `scripts/voicedemo.py` | Прослушка голосов |
 | `scripts/build_exe.py` | Сборка лаунчера в `.exe` |
+| `.github/workflows/test.yml` | CI: синтаксис + pytest + test_intents (см. `CI.md`) |
 
 Запуск тестов:
 
     python check_syntax.py
     python -m pytest tests/ -v
     python test_intents.py
+
+## CI (Continuous Integration)
+
+При каждом push GitHub автоматически:
+1. Проверяет синтаксис (`check_syntax.py`).
+2. Гоняет юнит-тесты (`pytest tests/`).
+3. Гоняет интент-тесты (`test_intents.py`, без LLM и без сети).
+
+Результат — на вкладке **Actions** или рядом с коммитом: ✅ / ❌.
+
+**Подробнее** — см. `CI.md`.
+
+### Тесты локально
+
+```
+python test_intents.py                  # без LLM, без сети
+python test_intents.py --network        # + погода/курс
+python test_intents.py --llm            # + LLM (нужна Ollama)
+python test_intents.py --llm --network  # всё
+python test_intents.py --voice          # с озвучкой
+python test_intents.py -k weather       # фильтр по имени
+```
 
 ## Траблшутинг
 
@@ -6830,6 +7089,8 @@ Win+R → `shell:startup` → Enter. Скопируй туда ярлык на `
 
 **`pytest` падает на `SyntaxError` в тесте** — при копировании из чата слиплись строки. Открой файл, найди строку из ошибки, разбей правильно.
 
+**CI упал на `UnicodeEncodeError`** — Windows-консоль в cp1252 не может напечатать русский. Уже пофикшено (`reconfigure` + `PYTHONUTF8=1`). Если повторится — проверь, что правки на месте.
+
 ## Технологии
 
 | Компонент | Решение |
@@ -6850,6 +7111,7 @@ Win+R → `shell:startup` → Enter. Скопируй туда ярлык на `
 | Буфер обмена | pyperclip + pyautogui |
 | Атомарная запись | filelock + os.replace |
 | Профиль | user_profile.json (в `.gitignore`) |
+| CI | GitHub Actions (`windows-latest`, Python 3.11) |
 
 ## Лицензия
 
@@ -6922,7 +7184,7 @@ pytest>=8.0
 pytest-asyncio>=0.23
 
 # --- Сборка .exe (опционально) ---
-# pyinstaller>=6.0
+pyinstaller>=6.0
 ```
 
 ### `scripts\build_exe.py`
