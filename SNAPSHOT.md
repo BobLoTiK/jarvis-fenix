@@ -1,7 +1,7 @@
 # SNAPSHOT проекта «Феникс»
 
 _Автоматически сгенерировано `snapshot.py`. Обновляется при `git push`._
-_Файлов в снимке: 59_
+_Файлов в снимке: 63_
 
 ---
 
@@ -11,6 +11,7 @@ _Файлов в снимке: 59_
 jarvis/
 ├── .github/
 │   ├── workflows/
+│   │   ├── README.md
 │   │   ├── test.yml
 ├── cmds/
 │   ├── open_terminal.bat
@@ -60,10 +61,13 @@ jarvis/
 │   ├── test_config_manager.py
 │   ├── test_weather.py
 ├── ARCHITECTURE.md
+├── CHANGELOG.md
 ├── check_all.bat
 ├── check_syntax.bat
 ├── check_syntax.py
+├── CI.md
 ├── config.example.json
+├── CONTRIBUTING.md
 ├── install.bat
 ├── launcher.py
 ├── PLAN.md
@@ -80,6 +84,12 @@ jarvis/
 ---
 
 ## 📄 Содержимое файлов
+
+### `.github\workflows\README.md`
+
+```markdown
+
+```
 
 ### `.github\workflows\test.yml`
 
@@ -332,6 +342,12 @@ config.Config._data (в памяти) — источник истины
 7. **`test_intents.py`** — первое, что надо запустить после любой правки в `intents.py`, `brain.py`, `actions.py`.
 ```
 
+### `CHANGELOG.md`
+
+```markdown
+
+```
+
 ### `check_all.bat`
 
 ```batch
@@ -496,6 +512,12 @@ else:
     print(f"Все {len(files)} файлов в порядке.")
 ```
 
+### `CI.md`
+
+```markdown
+
+```
+
 ### `cmds\open_terminal.bat`
 
 ```batch
@@ -553,6 +575,12 @@ pause
   "app_paths": {},
   "custom_commands": []
 }
+```
+
+### `CONTRIBUTING.md`
+
+```markdown
+
 ```
 
 ### `install.bat`
