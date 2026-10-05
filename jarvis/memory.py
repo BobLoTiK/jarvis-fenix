@@ -1,63 +1,93 @@
-"""Память диалога на диске.
+"""Память диалога — на профиль.
 
-История диалога сохраняется в dialog.json при каждом ответе.
-При старте — подгружается обратно. Ограничение — 200 последних сообщений.
+Архитектура:
+    profiles/<user>/dialog.json  — история диалога пользователя.
 
-Голосом: «что мы обсуждали», «забудь всё», «сохрани память».
+API чистое:
+    load(limit)         — читает последние N сообщений.
+    append(message)     — добавляет одно сообщение на диск.
+    clear()             — очищает историю текущего профиля.
+    describe(messages)  — пересказ для озвучки.
+    handle_memory_command(cmd, messages) — команды памяти.
+
+Лимиты — НЕ здесь. Их задаёт вызывающий (IntentHandler) из config.
 """
 
 import json
 import logging
 import re
+import threading
 from pathlib import Path
+
+from jarvis import profile as _profile
 
 log = logging.getLogger("jarvis.memory")
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-MEMORY_FILE = BASE_DIR / "dialog.json"
-MAX_MESSAGES = 200
+_lock = threading.Lock()
 
 
-def load() -> list:
-    """Загружает историю диалога с диска. Возвращает список сообщений."""
-    if not MEMORY_FILE.exists():
+# ---------------------------------------------------------------
+# Чтение / запись
+# ---------------------------------------------------------------
+
+def load(limit: int | None = None) -> list:
+    """Загружает историю диалога. Без limit — все сообщения."""
+    path = _profile.dialog_path()
+    if not path.exists():
         return []
     try:
-        data = json.loads(MEMORY_FILE.read_text(encoding="utf-8"))
+        data = json.loads(path.read_text(encoding="utf-8"))
         if not isinstance(data, list):
-            log.warning("dialog.json — не массив, игнорирую")
+            log.warning("%s — не массив, игнорирую", path)
             return []
-        log.info("Память диалога загружена: %d сообщений", len(data))
-        return data[-MAX_MESSAGES:]
+        if limit and limit > 0:
+            return data[-limit:]
+        return data
     except Exception:
-        log.exception("Не удалось прочитать dialog.json")
+        log.exception("Не удалось прочитать %s", path)
         return []
 
 
-def save(messages: list) -> None:
-    """Сохраняет историю диалога на диск (последние MAX_MESSAGES)."""
-    try:
-        trimmed = list(messages)[-MAX_MESSAGES:]
-        MEMORY_FILE.write_text(
-            json.dumps(trimmed, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
-    except Exception:
-        log.exception("Не удалось сохранить dialog.json")
+def append(message: dict) -> None:
+    """Добавляет одно сообщение и пишет на диск."""
+    if not isinstance(message, dict):
+        return
+    path = _profile.dialog_path()
+    with _lock:
+        try:
+            data = []
+            if path.exists():
+                raw = path.read_text(encoding="utf-8")
+                if raw.strip():
+                    parsed = json.loads(raw)
+                    if isinstance(parsed, list):
+                        data = parsed
+            data.append(message)
+            path.write_text(
+                json.dumps(data, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+        except Exception:
+            log.exception("Не удалось дописать в %s", path)
 
 
 def clear() -> None:
-    """Очищает память."""
+    """Очищает память текущего профиля."""
+    path = _profile.dialog_path()
     try:
-        if MEMORY_FILE.exists():
-            MEMORY_FILE.unlink()
-        log.info("Память диалога очищена")
+        if path.exists():
+            path.unlink()
+        log.info("Память диалога очищена: %s", path)
     except Exception:
-        log.exception("Не удалось очистить dialog.json")
+        log.exception("Не удалось очистить %s", path)
 
+
+# ---------------------------------------------------------------
+# Команды / описание
+# ---------------------------------------------------------------
 
 def describe(messages: list, limit: int = 6) -> str:
-    """Краткий пересказ последних тем: «вы говорили о ...»."""
+    """Краткий пересказ последних тем."""
     if not messages:
         return "Пока ничего не обсуждали."
     user_msgs = [m.get("content", "") for m in messages
@@ -74,20 +104,17 @@ def handle_memory_command(cmd: str, messages: list) -> tuple[str | None, bool]:
 
     Возвращает (ответ_или_None, нужно_очистить_память).
     """
-    # что обсуждали
     if re.search(r"(что|о\s+ч[её]м)\s+(мы\s+)?(обсуждал|говорил|болтал)", cmd) \
             or cmd in {"что мы обсуждали", "о чём мы говорили", "что обсуждали"}:
         return describe(messages), False
 
-    # забудь всё
     if re.search(r"(забудь|очисти|сбрось|сотри)\s+(вс[её]|память|историю|диалог)", cmd) \
             or cmd in {"забудь всё", "очисти память", "сбрось память", "сотри память"}:
         clear()
         return "Память очищена.", True
 
-    # сохрани память
-    if re.search(r"(сохрани|запиши)\s+память", cmd) or cmd in {"сохрани память", "запиши память"}:
-        save(messages)
-        return "Память сохранена.", False
+    if re.search(r"(сохрани|запиши)\s+память", cmd) \
+            or cmd in {"сохрани память", "запиши память"}:
+        return "Память сохраняется автоматически.", False
 
     return None, False

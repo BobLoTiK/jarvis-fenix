@@ -2,15 +2,21 @@
 
 Архитектура:
     profiles/
-    ├── default.json      ← если Windows-юзер неизвестен
-    ├── BobLoTiK.json     ← профиль по Windows-юзеру
-    └── masha.json        ← «Феникс, я — Маша» создаст этот файл
+    ├── default/
+    │   ├── profile.json
+    │   └── dialog.json
+    ├── maksim/
+    │   ├── profile.json
+    │   └── dialog.json
+    └── masha/
+        ├── profile.json
+        └── dialog.json
 
 Логика:
     - При старте: getpass.getuser() → имя Windows-юзера.
-    - Если profiles/<windows_user>.json есть — используется.
+    - Если profiles/<user>/profile.json есть — используется.
     - Если нет — создаётся (с миграцией из старого user_profile.json).
-    - «Феникс, я — Маша» → переключает на profiles/masha.json.
+    - «Феникс, я — Маша» → переключает на profiles/masha/.
 
 Хранит:
     - name — человеческое имя
@@ -19,7 +25,6 @@
     - facts — произвольные факты («запомни: ...»)
     - created_at — timestamp создания
 
-Файлы в .gitignore (profiles/).
 Запись — через config_manager (единый FileLock, атомарная замена).
 """
 
@@ -37,6 +42,7 @@ log = logging.getLogger("jarvis.profile")
 BASE_DIR = Path(__file__).resolve().parent.parent
 PROFILES_DIR = BASE_DIR / "profiles"
 _OLD_PROFILE = BASE_DIR / "user_profile.json"
+_OLD_DIALOG = BASE_DIR / "dialog.json"
 
 # Кэш текущего профиля — чтобы не читать файл каждый раз
 _current: str | None = None
@@ -47,15 +53,14 @@ _current: str | None = None
 # ---------------------------------------------------------------
 
 def _sanitize(name: str) -> str:
-    """Приводит имя к безопасному имени файла.
+    """Приводит имя к безопасному имени папки.
 
-    «Маша» → «masha» (транслит), «Bob Lo» → «bob_lo».
+    «Маша» → «masha» (транслит), «Максим» → «maksim».
     Пустое → «default».
     """
     if not name:
         return "default"
     name = name.strip().lower()
-    # транслит кириллицы
     translit = {
         "а": "a", "б": "b", "в": "v", "г": "g", "д": "d", "е": "e", "ё": "e",
         "ж": "zh", "з": "z", "и": "i", "й": "y", "к": "k", "л": "l", "м": "m",
@@ -64,18 +69,13 @@ def _sanitize(name: str) -> str:
         "ъ": "", "ы": "y", "ь": "", "э": "e", "ю": "yu", "я": "ya",
     }
     name = "".join(translit.get(ch, ch) for ch in name)
-    # только [a-z0-9_-]
     name = re.sub(r"[^a-z0-9_-]", "_", name)
     name = re.sub(r"_+", "_", name).strip("_")
     return name or "default"
 
 
-def _path_for(name: str) -> Path:
-    return PROFILES_DIR / f"{_sanitize(name)}.json"
-
-
-def _ensure_dir() -> None:
-    PROFILES_DIR.mkdir(parents=True, exist_ok=True)
+def _ensure_dir(path: Path) -> None:
+    path.mkdir(parents=True, exist_ok=True)
 
 
 def _windows_user() -> str:
@@ -87,29 +87,63 @@ def _windows_user() -> str:
 
 
 # ---------------------------------------------------------------
-# Миграция старого user_profile.json
+# Пути
 # ---------------------------------------------------------------
 
-def _migrate_old_profile() -> None:
-    """Если есть старый user_profile.json — переносим в profiles/<user>.json.
+def profile_dir() -> Path:
+    """Папка текущего профиля. Создаётся при вызове."""
+    path = PROFILES_DIR / _sanitize(current())
+    _ensure_dir(path)
+    return path
 
-    Старый файл НЕ удаляем — на случай, если что-то пойдёт не так.
+
+def profile_path() -> Path:
+    """Путь к profile.json текущего профиля."""
+    return profile_dir() / "profile.json"
+
+
+def dialog_path() -> Path:
+    """Путь к dialog.json текущего профиля."""
+    return profile_dir() / "dialog.json"
+
+
+# ---------------------------------------------------------------
+# Миграция
+# ---------------------------------------------------------------
+
+def _migrate_old() -> None:
+    """Переносит старые user_profile.json и dialog.json в profiles/<user>/.
+
+    Старые файлы НЕ удаляем — на случай, если что-то пойдёт не так.
     """
-    if not _OLD_PROFILE.exists():
+    if not PROFILES_DIR.exists():
         return
-    _ensure_dir()
-    target = _path_for(_windows_user())
-    if target.exists():
-        return  # уже мигрировали
-    try:
-        data = json.loads(_OLD_PROFILE.read_text(encoding="utf-8"))
-        if not isinstance(data, dict):
-            return
-        data.setdefault("created_at", time.time())
-        config_manager.save(data, path=target)
-        log.info("Миграция профиля: %s → %s", _OLD_PROFILE.name, target.name)
-    except Exception:
-        log.exception("Не удалось мигрировать старый профиль")
+    user_dir = PROFILES_DIR / _sanitize(_windows_user())
+    _ensure_dir(user_dir)
+
+    new_profile = user_dir / "profile.json"
+    if _OLD_PROFILE.exists() and not new_profile.exists():
+        try:
+            data = json.loads(_OLD_PROFILE.read_text(encoding="utf-8"))
+            if isinstance(data, dict):
+                data.setdefault("created_at", time.time())
+                config_manager.save(data, path=new_profile)
+                log.info("Миграция: %s → %s", _OLD_PROFILE.name, new_profile)
+        except Exception:
+            log.exception("Не удалось мигрировать старый профиль")
+
+    new_dialog = user_dir / "dialog.json"
+    if _OLD_DIALOG.exists() and not new_dialog.exists():
+        try:
+            data = json.loads(_OLD_DIALOG.read_text(encoding="utf-8"))
+            if isinstance(data, list):
+                new_dialog.write_text(
+                    json.dumps(data, ensure_ascii=False, indent=2),
+                    encoding="utf-8",
+                )
+                log.info("Миграция: %s → %s", _OLD_DIALOG.name, new_dialog)
+        except Exception:
+            log.exception("Не удалось мигрировать старый диалог")
 
 
 # ---------------------------------------------------------------
@@ -117,7 +151,7 @@ def _migrate_old_profile() -> None:
 # ---------------------------------------------------------------
 
 def current() -> str:
-    """Имя текущего активного профиля (без .json)."""
+    """Имя текущего активного профиля (папки)."""
     global _current
     if _current is None:
         _current = _windows_user()
@@ -125,49 +159,67 @@ def current() -> str:
 
 
 def switch(name: str) -> str:
-    """Переключает текущий профиль. Создаёт файл, если нет.
-
-    Возвращает человекочитаемый ответ.
-    """
+    """Переключает текущий профиль. Создаёт папку, если нет."""
     global _current
-    _ensure_dir()
     safe = _sanitize(name)
-    path = PROFILES_DIR / f"{safe}.json"
+    user_dir = PROFILES_DIR / safe
+    _ensure_dir(user_dir)
 
-    if not path.exists():
+    profile_file = user_dir / "profile.json"
+    if not profile_file.exists():
         data = {
             "name": name.strip()[:60] or safe,
             "created_at": time.time(),
         }
-        config_manager.save(data, path=path)
-        log.info("Создан новый профиль: %s", path.name)
+        config_manager.save(data, path=profile_file)
+        log.info("Создан новый профиль: %s", profile_file)
 
     _current = safe
     human = get("name", safe)
-    log.info("Активный профиль: %s (%s)", human, path.name)
+    log.info("Активный профиль: %s (%s)", human, safe)
     return f"Профиль переключён на {human}."
 
 
 def list_all() -> list[str]:
-    """Список доступных профилей (без .json)."""
-    _ensure_dir()
-    return sorted(p.stem for p in PROFILES_DIR.glob("*.json"))
+    """Список доступных профилей (имена папок)."""
+    _ensure_dir(PROFILES_DIR)
+    return sorted(p.name for p in PROFILES_DIR.iterdir() if p.is_dir())
+
+
+def delete(name: str) -> bool:
+    """Удаляет папку профиля. Активный — нельзя.
+
+    Перемещает в корзину, если доступно (send2trash).
+    Иначе — простое удаление.
+    """
+    import shutil
+    safe = _sanitize(name)
+    if safe == current():
+        log.warning("Нельзя удалить активный профиль: %s", safe)
+        return False
+    path = PROFILES_DIR / safe
+    if not path.exists() or not path.is_dir():
+        return False
+    try:
+        try:
+            from send2trash import send2trash
+            send2trash(str(path))
+            log.info("Профиль перемещён в корзину: %s", safe)
+        except ImportError:
+            shutil.rmtree(path)
+            log.info("Профиль удалён: %s", safe)
+        return True
+    except Exception:
+        log.exception("Не удалось удалить профиль %s", safe)
+        return False
 
 
 # ---------------------------------------------------------------
-# Чтение / запись полей
+# Чтение / запись полей профиля
 # ---------------------------------------------------------------
-
-def _current_path() -> Path:
-    return _path_for(current())
-
 
 def _safe_load() -> dict:
-    """Читает текущий профиль. Возвращает {} при отсутствии.
-
-    При битом JSON — логирует и НЕ перезаписывает (raise).
-    """
-    path = _current_path()
+    path = profile_path()
     if not path.exists():
         return {}
     raw = path.read_text(encoding="utf-8")
@@ -182,7 +234,6 @@ def _safe_load() -> dict:
 
 
 def get(key: str, default=None):
-    """Читает одно поле. При битом файле — возвращает default."""
     try:
         return _safe_load().get(key, default)
     except json.JSONDecodeError:
@@ -190,15 +241,13 @@ def get(key: str, default=None):
 
 
 def set(key: str, value) -> bool:
-    """Записывает одно поле. При битом файле — НЕ перезаписывает."""
     try:
         data = _safe_load()
     except json.JSONDecodeError:
         return False
-
     data[key] = value
     data.setdefault("created_at", time.time())
-    ok = config_manager.save(data, path=_current_path())
+    ok = config_manager.save(data, path=profile_path())
     if ok:
         log.info("Профиль %s: %s = %r", current(), key, value)
     else:
@@ -221,18 +270,17 @@ def forget(key: str) -> bool:
     if key not in data:
         return False
     del data[key]
-    ok = config_manager.save(data, path=_current_path())
+    ok = config_manager.save(data, path=profile_path())
     if ok:
         log.info("Профиль %s: удалено %s", current(), key)
     return ok
 
 
 # ---------------------------------------------------------------
-# Факты («запомни: ...»)
+# Факты
 # ---------------------------------------------------------------
 
 def set_fact(key: str, value: str) -> bool:
-    """Сохраняет факт в facts.<key>."""
     facts = get("facts", {}) or {}
     facts[key] = value
     return set("facts", facts)
@@ -262,20 +310,19 @@ def forget_fact(key: str) -> bool:
 def init() -> None:
     """Вызывается при старте Феникса.
 
-    - Мигрирует старый user_profile.json (если есть).
-    - Создаёт текущий профиль, если его нет.
+    - Мигрирует старые user_profile.json и dialog.json.
+    - Создаёт папку текущего профиля, если нет.
     - Логирует активный профиль.
     """
     global _current
-    _migrate_old_profile()
-    _ensure_dir()
+    _ensure_dir(PROFILES_DIR)
     _current = _windows_user()
-    path = _current_path()
-    if not path.exists():
-        data = {
-            "name": _windows_user(),
-            "created_at": time.time(),
-        }
-        config_manager.save(data, path=path)
-        log.info("Создан профиль по умолчанию: %s", path.name)
-    log.info("Активный профиль: %s (%s)", current(), path.name)
+    _migrate_old()
+
+    user_dir = profile_dir()
+    profile_file = user_dir / "profile.json"
+    if not profile_file.exists():
+        data = {"name": _windows_user(), "created_at": time.time()}
+        config_manager.save(data, path=profile_file)
+        log.info("Создан профиль по умолчанию: %s", profile_file)
+    log.info("Активный профиль: %s (%s)", current(), user_dir.name)

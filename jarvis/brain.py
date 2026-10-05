@@ -296,7 +296,7 @@ class Brain:
         if not self.available:
             return None
         msgs = ([{"role": "system", "content": CHAT_SYSTEM}]
-                + list(history or [])[-40:]
+                + list(history or [])
                 + [{"role": "user", "content": cmd}])
         try:
             t0 = time.time()
@@ -313,7 +313,7 @@ class Brain:
         if not self.available:
             return
         msgs = ([{"role": "system", "content": CHAT_SYSTEM}]
-                + list(history or [])[-40:]
+                + list(history or [])
                 + [{"role": "user", "content": cmd}])
         payload = {
             "model": self.model,

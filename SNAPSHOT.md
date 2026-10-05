@@ -1,7 +1,7 @@
 # SNAPSHOT проекта «Феникс»
 
 _Автоматически сгенерировано `snapshot.py`. Обновляется при `git push`._
-_Файлов в снимке: 62_
+_Файлов в снимке: 63_
 
 ---
 
@@ -50,6 +50,8 @@ jarvis/
 │   ├── sites.json
 │   ├── system.json
 │   ├── work.json
+├── profiles/
+│   ├── maksim.json
 ├── scripts/
 │   ├── build_exe.py
 │   ├── mics.py
@@ -2268,7 +2270,7 @@ class Brain:
         if not self.available:
             return None
         msgs = ([{"role": "system", "content": CHAT_SYSTEM}]
-                + list(history or [])[-40:]
+                + list(history or [])
                 + [{"role": "user", "content": cmd}])
         try:
             t0 = time.time()
@@ -2285,7 +2287,7 @@ class Brain:
         if not self.available:
             return
         msgs = ([{"role": "system", "content": CHAT_SYSTEM}]
-                + list(history or [])[-40:]
+                + list(history or [])
                 + [{"role": "user", "content": cmd}])
         payload = {
             "model": self.model,
@@ -2411,7 +2413,8 @@ DEFAULT_CONFIG = {
     "timers_file": "timers.json",
     "tasks_file": "tasks.json",
     "memory_file": "dialog.json",
-    "memory_max": 200,
+    "memory_max": 100,
+    "llm_context_messages": 20,
 }
 
 
@@ -2431,7 +2434,6 @@ class Config:
         """
         raw = config_manager.load(path=self.path)
         if not self.path.exists():
-            # Файла нет — создадим с дефолтами
             merged = dict(DEFAULT_CONFIG)
             config_manager.save(merged, path=self.path)
             log.info("Создан конфиг по умолчанию: %s", self.path)
@@ -2797,7 +2799,6 @@ from collections import deque
 from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Iterator
-from types import MappingProxyType
 
 from jarvis import APP_NAME, __version__, actions, files
 from jarvis.apps import find_app
@@ -2855,14 +2856,12 @@ _FOLDER_TITLES = {
     "Screenshots": "в скриншотах",
 }
 
-# Мусор, который LLM иногда подсовывает в target от get_weather
 _WEATHER_BAD_TARGET = (
     "курс", "доллар", "рубл", "евро", "юан", "валют",
     "цену", "цена", "поиск", "найди", "погод", "прогноз",
     "пожалуйста", "сколько", "стоит",
 )
 
-# Слова-маркеры «это не город» — защита от перехвата pending_question
 _NOT_A_CITY = (
     "открой", "закрой", "найди", "включи", "выключи",
     "как дела", "кто ты", "спасибо", "привет", "пока",
@@ -2883,9 +2882,14 @@ class IntentHandler:
         self.music_wait = float(config.get("music_wait_sec", 6))
         self.last_file = None
         self.last_folder = None
-        self.dialog = deque(maxlen=40)
-        for msg in memory.load()[-40:]:
+
+        # Лимиты памяти — из config (не хардкод).
+        self._memory_max = int(config.get("memory_max", 100))
+        self._llm_context = int(config.get("llm_context_messages", 20))
+        self.dialog = deque(maxlen=self._memory_max)
+        for msg in memory.load(limit=self._memory_max):
             self.dialog.append(msg)
+
         self.last_was_chat = False
         self.mode = modes.get_mode(config)
         self.active_packs = list(config.get("active_packs", []))
@@ -2904,6 +2908,28 @@ class IntentHandler:
                 )
         self.custom = list(self._config_custom_original) + self._load_packs_as_custom(config)
 
+        # Подписка на изменения memory_max / llm_context_messages
+        config.subscribe(self._on_config_change)
+
+    def _on_config_change(self, key: str, value) -> None:
+        """Реагирует на смену memory_max / llm_context_messages в рантайме."""
+        if key == "memory_max":
+            try:
+                new_max = int(value)
+            except (TypeError, ValueError):
+                return
+            if new_max <= 0:
+                return
+            self._memory_max = new_max
+            self.dialog = deque(self.dialog, maxlen=new_max)
+            log.info("IntentHandler: memory_max = %d", new_max)
+        elif key == "llm_context_messages":
+            try:
+                self._llm_context = int(value)
+            except (TypeError, ValueError):
+                return
+            log.info("IntentHandler: llm_context_messages = %d", self._llm_context)
+
     def handle(self, cmd: str) -> Reply:
         """Возвращает Reply: либо text, либо stream."""
         self.last_was_chat = False
@@ -2911,16 +2937,17 @@ class IntentHandler:
 
         result = self._handle_single(cmd)
 
-        self.dialog.append({"role": "user", "content": cmd})
+        user_msg = {"role": "user", "content": cmd}
+        self.dialog.append(user_msg)
+        memory.append(user_msg)
 
-        
         if result is None:
-            # _handle_single вернул None — считаем «не понял»
             result = "Не понял команду."
 
         if isinstance(result, str):
-            self.dialog.append({"role": "assistant", "content": result})
-            memory.save(list(self.dialog))
+            assistant_msg = {"role": "assistant", "content": result}
+            self.dialog.append(assistant_msg)
+            memory.append(assistant_msg)
             actions_log.info("Ответ: %r", result[:120])
             self._last_reply = result
             return Reply(text=result)
@@ -2929,10 +2956,17 @@ class IntentHandler:
         return Reply(stream=result)
 
     def finalize_stream(self, cmd: str, full_text: str) -> None:
-        self.dialog.append({"role": "assistant", "content": full_text})
-        memory.save(list(self.dialog))
-        if full_text:
-            self._last_reply = full_text
+        if not full_text:
+            return
+        assistant_msg = {"role": "assistant", "content": full_text}
+        self.dialog.append(assistant_msg)
+        memory.append(assistant_msg)
+        self._last_reply = full_text
+
+    def _chat_stream(self, cmd: str):
+        """Отправляет в LLM только последние _llm_context сообщений."""
+        ctx = list(self.dialog)[-self._llm_context:] if self._llm_context else []
+        return self.brain.chat_stream(cmd, ctx)
 
     def _handle_single(self, cmd: str) -> str | Iterator[str]:
         if cmd in CANCEL:
@@ -2990,17 +3024,14 @@ class IntentHandler:
 
         # --- Быстрые правила без LLM ---
 
-        # Открытие приложений/сайтов/папок — до всего остального.
         reply = self._open_fast(cmd)
         if reply:
             return reply
 
-        # Голоса
         reply = voices.handle_voice_command(cmd, self.config)
         if reply:
             return reply
 
-        # Паки
         reply, new_active = packs.handle_pack_command(cmd, self.active_packs, self.config)
         if reply:
             if new_active != self.active_packs:
@@ -3008,22 +3039,22 @@ class IntentHandler:
                 self._reload_packs()
             return reply
 
-        # Таймеры
         reply = timers.handle_timer_command(cmd)
         if reply:
             return reply
 
-        # Задачи
         reply = tasks.handle_task_command(cmd)
         if reply:
             return reply
 
-        # Профиль: смена, список, факты
         reply = self._profile_fast(cmd)
         if reply:
             return reply
 
-        # Погода/курс — простые случаи без нормализации
+        reply = self._memory_fast(cmd)
+        if reply:
+            return reply
+
         reply = self._weather_currency_fast(cmd)
         if reply:
             return reply
@@ -3047,26 +3078,21 @@ class IntentHandler:
                 return reply
 
         if intent and intent.get("action") == "answer":
-            gen = self.brain.chat_stream(cmd, list(self.dialog))
+            gen = self._chat_stream(cmd)
             if gen is not None:
                 self.last_was_chat = True
                 return gen
             if intent.get("reply"):
                 return str(intent["reply"])[:600]
 
-        gen = self.brain.chat_stream(cmd, list(self.dialog))
+        gen = self._chat_stream(cmd)
         if gen is not None:
             self.last_was_chat = True
             return gen
         return "Я не понял команду."
 
     def _open_fast(self, cmd: str) -> str | None:
-        """Быстрое открытие приложений/сайтов/папок — без LLM.
-
-        Срабатывает только на явных глаголах «открой/запусти/врубай».
-        Сложные формулировки («запусти то, во что я играл вчера»)
-        уходят в LLM.
-        """
+        """Быстрое открытие приложений/сайтов/папок — без LLM."""
         m = re.match(r"^(?:открой|запусти|врубай|включи|открывай)\s+(.+)$", cmd)
         if not m:
             return None
@@ -3077,20 +3103,17 @@ class IntentHandler:
 
     def _profile_fast(self, cmd: str) -> str | None:
         """Команды профиля: смена, список, факты."""
-        # Смена профиля: «я — Маша», «я Маша», «переключись на Машу»
         m = re.match(r"^(?:я\s*[-—]?\s*|зови\s+меня\s+|переключись\s+на\s+|я\s+это\s+)([а-яёa-z][а-яёa-z\s\-]{0,40})$", cmd)
         if m:
             name = m.group(1).strip()
             if name and name not in _NOT_A_CITY:
                 return profile.switch(name)
 
-        # Кто активен
         if re.search(r"(кто|какой)\s+(сейчас\s+)?(активен|профиль|пользователь)", cmd) \
                 or cmd in {"кто активен", "какой профиль", "текущий профиль"}:
             name = profile.get("name") or profile.current()
             return f"Сейчас профиль {name}."
 
-        # Список профилей
         if re.search(r"(список|какие|покажи)\s+профил", cmd) \
                 or cmd in {"список профилей", "какие профили"}:
             all_p = profile.list_all()
@@ -3098,13 +3121,11 @@ class IntentHandler:
                 return "Профилей нет."
             return f"Профили: {', '.join(all_p)}."
 
-        # Запомни факт: «запомни: я люблю кофе», «запомни, что день рождения 15 марта»
         m = re.match(r"^(?:запомни|запиши)\s*[,:]?\s*(?:что\s+)?(.+)$", cmd)
         if m:
             fact = m.group(1).strip(" ,.:!?")
             if not fact:
                 return "Что запомнить?"
-            # разбиваем на key:value по «—», «-», «=», «:»
             sep = re.match(r"^(.+?)\s*[—\-=:]\s*(.+)$", fact)
             if sep:
                 key, value = sep.group(1).strip(), sep.group(2).strip()
@@ -3113,7 +3134,6 @@ class IntentHandler:
             profile.set_fact(key, value)
             return f"Запомнил: {key} — {value}."
 
-        # Что ты обо мне знаешь
         if re.search(r"(что|чё)\s+ты\s+(обо\s+мне\s+)?знаешь", cmd) \
                 or cmd in {"что ты обо мне знаешь", "что ты знаешь"}:
             facts = profile.all_facts()
@@ -3128,7 +3148,6 @@ class IntentHandler:
                 return "Пока ничего о тебе не знаю."
             return ". ".join(parts) + "."
 
-        # Забудь факт
         m = re.match(r"^забудь\s+(?:факт\s+)?(.+)$", cmd)
         if m:
             key = m.group(1).strip(" ,.:!?")
@@ -3138,13 +3157,47 @@ class IntentHandler:
 
         return None
 
-    def _weather_currency_fast(self, cmd: str) -> str | None:
-        """Простые правила для погоды и курса — без LLM.
+    def _memory_fast(self, cmd: str) -> str | None:
+        """Голосовые команды для управления памятью."""
+        if re.search(r"(коротк|быстр)\w*\s+память", cmd):
+            self.config.update({
+                "memory_max": 40,
+                "llm_context_messages": 10,
+            })
+            return "Память: короткая. 40 сообщений, контекст LLM — 10."
 
-        Сложные случаи (падежи, синонимы городов/валют) — уходят в LLM.
-        Здесь только явные: «курс доллара», «погода», «погода в Москве».
-        """
-        # --- Курс валют ---
+        if re.search(r"(обычн|стандартн|нормальн)\w*\s+память", cmd):
+            self.config.update({
+                "memory_max": 100,
+                "llm_context_messages": 20,
+            })
+            return "Память: обычная. 100 сообщений, контекст LLM — 20."
+
+        if re.search(r"(долг|глубок)\w*\s+память", cmd):
+            self.config.update({
+                "memory_max": 200,
+                "llm_context_messages": 40,
+            })
+            return "Память: долгая. 200 сообщений, контекст LLM — 40."
+
+        if re.search(r"(какая|текущ)\w*\s+память", cmd) \
+                or cmd in {"какая память", "текущая память"}:
+            mm = self.config.get("memory_max", 100)
+            lc = self.config.get("llm_context_messages", 20)
+            return f"Память: {mm} сообщений, контекст LLM — {lc}."
+
+        # удалить профиль
+        m = re.match(r"^удали\s+профиль\s+(\S+)$", cmd)
+        if m:
+            name = m.group(1)
+            if profile.delete(name):
+                return f"Профиль {name} удалён."
+            return f"Профиль {name} не найден или активен."
+
+        return None
+
+    def _weather_currency_fast(self, cmd: str) -> str | None:
+        """Простые правила для погоды и курса — без LLM."""
         if re.search(r"\bкурс\b|\bвалют", cmd):
             code_map = {
                 "доллар": "USD", "доллара": "USD", "бакс": "USD", "бакса": "USD",
@@ -3165,7 +3218,6 @@ class IntentHandler:
             r = weather.get_currency_rates()
             return weather.describe_currency(r, code=code)
 
-        # --- Погода ---
         if re.search(r"\bпогод|\bпрогноз", cmd):
             day = "tomorrow" if "завтра" in cmd else "today"
 
@@ -3184,7 +3236,7 @@ class IntentHandler:
 
             w = weather.get_weather(city, day=day)
             if not w:
-                return None  # пусть LLM попробует (может, падеж поправит)
+                return None
             return weather.describe_weather(w)
 
         return None
@@ -3197,14 +3249,10 @@ class IntentHandler:
             city = cmd.strip()
             words = city.split()
 
-            # Город — это 1-3 слова, без глаголов и служебных фраз.
-            # Иначе «как дела» попадёт в город.
             if not city or len(city) > 60 or len(words) > 3:
                 return "Не расслышал город. Повторите, пожалуйста."
 
             if any(w in city for w in _NOT_A_CITY):
-                # Это не город — обрабатываем как обычную команду.
-                # _pending_question уже сброшен, рекурсии не будет.
                 log.info("pending_question: %r не похоже на город — обрабатываю как команду", city)
                 result = self._handle_single(cmd)
                 return result if isinstance(result, str) else "Не понял команду."
@@ -4144,66 +4192,96 @@ def match_score(spoken: str, candidate: str) -> float:
 ### `jarvis\memory.py`
 
 ```python
-"""Память диалога на диске.
+"""Память диалога — на профиль.
 
-История диалога сохраняется в dialog.json при каждом ответе.
-При старте — подгружается обратно. Ограничение — 200 последних сообщений.
+Архитектура:
+    profiles/<user>/dialog.json  — история диалога пользователя.
 
-Голосом: «что мы обсуждали», «забудь всё», «сохрани память».
+API чистое:
+    load(limit)         — читает последние N сообщений.
+    append(message)     — добавляет одно сообщение на диск.
+    clear()             — очищает историю текущего профиля.
+    describe(messages)  — пересказ для озвучки.
+    handle_memory_command(cmd, messages) — команды памяти.
+
+Лимиты — НЕ здесь. Их задаёт вызывающий (IntentHandler) из config.
 """
 
 import json
 import logging
 import re
+import threading
 from pathlib import Path
+
+from jarvis import profile as _profile
 
 log = logging.getLogger("jarvis.memory")
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-MEMORY_FILE = BASE_DIR / "dialog.json"
-MAX_MESSAGES = 200
+_lock = threading.Lock()
 
 
-def load() -> list:
-    """Загружает историю диалога с диска. Возвращает список сообщений."""
-    if not MEMORY_FILE.exists():
+# ---------------------------------------------------------------
+# Чтение / запись
+# ---------------------------------------------------------------
+
+def load(limit: int | None = None) -> list:
+    """Загружает историю диалога. Без limit — все сообщения."""
+    path = _profile.dialog_path()
+    if not path.exists():
         return []
     try:
-        data = json.loads(MEMORY_FILE.read_text(encoding="utf-8"))
+        data = json.loads(path.read_text(encoding="utf-8"))
         if not isinstance(data, list):
-            log.warning("dialog.json — не массив, игнорирую")
+            log.warning("%s — не массив, игнорирую", path)
             return []
-        log.info("Память диалога загружена: %d сообщений", len(data))
-        return data[-MAX_MESSAGES:]
+        if limit and limit > 0:
+            return data[-limit:]
+        return data
     except Exception:
-        log.exception("Не удалось прочитать dialog.json")
+        log.exception("Не удалось прочитать %s", path)
         return []
 
 
-def save(messages: list) -> None:
-    """Сохраняет историю диалога на диск (последние MAX_MESSAGES)."""
-    try:
-        trimmed = list(messages)[-MAX_MESSAGES:]
-        MEMORY_FILE.write_text(
-            json.dumps(trimmed, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
-    except Exception:
-        log.exception("Не удалось сохранить dialog.json")
+def append(message: dict) -> None:
+    """Добавляет одно сообщение и пишет на диск."""
+    if not isinstance(message, dict):
+        return
+    path = _profile.dialog_path()
+    with _lock:
+        try:
+            data = []
+            if path.exists():
+                raw = path.read_text(encoding="utf-8")
+                if raw.strip():
+                    parsed = json.loads(raw)
+                    if isinstance(parsed, list):
+                        data = parsed
+            data.append(message)
+            path.write_text(
+                json.dumps(data, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+        except Exception:
+            log.exception("Не удалось дописать в %s", path)
 
 
 def clear() -> None:
-    """Очищает память."""
+    """Очищает память текущего профиля."""
+    path = _profile.dialog_path()
     try:
-        if MEMORY_FILE.exists():
-            MEMORY_FILE.unlink()
-        log.info("Память диалога очищена")
+        if path.exists():
+            path.unlink()
+        log.info("Память диалога очищена: %s", path)
     except Exception:
-        log.exception("Не удалось очистить dialog.json")
+        log.exception("Не удалось очистить %s", path)
 
+
+# ---------------------------------------------------------------
+# Команды / описание
+# ---------------------------------------------------------------
 
 def describe(messages: list, limit: int = 6) -> str:
-    """Краткий пересказ последних тем: «вы говорили о ...»."""
+    """Краткий пересказ последних тем."""
     if not messages:
         return "Пока ничего не обсуждали."
     user_msgs = [m.get("content", "") for m in messages
@@ -4220,21 +4298,18 @@ def handle_memory_command(cmd: str, messages: list) -> tuple[str | None, bool]:
 
     Возвращает (ответ_или_None, нужно_очистить_память).
     """
-    # что обсуждали
     if re.search(r"(что|о\s+ч[её]м)\s+(мы\s+)?(обсуждал|говорил|болтал)", cmd) \
             or cmd in {"что мы обсуждали", "о чём мы говорили", "что обсуждали"}:
         return describe(messages), False
 
-    # забудь всё
     if re.search(r"(забудь|очисти|сбрось|сотри)\s+(вс[её]|память|историю|диалог)", cmd) \
             or cmd in {"забудь всё", "очисти память", "сбрось память", "сотри память"}:
         clear()
         return "Память очищена.", True
 
-    # сохрани память
-    if re.search(r"(сохрани|запиши)\s+память", cmd) or cmd in {"сохрани память", "запиши память"}:
-        save(messages)
-        return "Память сохранена.", False
+    if re.search(r"(сохрани|запиши)\s+память", cmd) \
+            or cmd in {"сохрани память", "запиши память"}:
+        return "Память сохраняется автоматически.", False
 
     return None, False
 ```
@@ -4472,15 +4547,21 @@ def handle_pack_command(cmd: str, current_active: list[str], config=None) -> tup
 
 Архитектура:
     profiles/
-    ├── default.json      ← если Windows-юзер неизвестен
-    ├── BobLoTiK.json     ← профиль по Windows-юзеру
-    └── masha.json        ← «Феникс, я — Маша» создаст этот файл
+    ├── default/
+    │   ├── profile.json
+    │   └── dialog.json
+    ├── maksim/
+    │   ├── profile.json
+    │   └── dialog.json
+    └── masha/
+        ├── profile.json
+        └── dialog.json
 
 Логика:
     - При старте: getpass.getuser() → имя Windows-юзера.
-    - Если profiles/<windows_user>.json есть — используется.
+    - Если profiles/<user>/profile.json есть — используется.
     - Если нет — создаётся (с миграцией из старого user_profile.json).
-    - «Феникс, я — Маша» → переключает на profiles/masha.json.
+    - «Феникс, я — Маша» → переключает на profiles/masha/.
 
 Хранит:
     - name — человеческое имя
@@ -4489,7 +4570,6 @@ def handle_pack_command(cmd: str, current_active: list[str], config=None) -> tup
     - facts — произвольные факты («запомни: ...»)
     - created_at — timestamp создания
 
-Файлы в .gitignore (profiles/).
 Запись — через config_manager (единый FileLock, атомарная замена).
 """
 
@@ -4507,6 +4587,7 @@ log = logging.getLogger("jarvis.profile")
 BASE_DIR = Path(__file__).resolve().parent.parent
 PROFILES_DIR = BASE_DIR / "profiles"
 _OLD_PROFILE = BASE_DIR / "user_profile.json"
+_OLD_DIALOG = BASE_DIR / "dialog.json"
 
 # Кэш текущего профиля — чтобы не читать файл каждый раз
 _current: str | None = None
@@ -4517,15 +4598,14 @@ _current: str | None = None
 # ---------------------------------------------------------------
 
 def _sanitize(name: str) -> str:
-    """Приводит имя к безопасному имени файла.
+    """Приводит имя к безопасному имени папки.
 
-    «Маша» → «masha» (транслит), «Bob Lo» → «bob_lo».
+    «Маша» → «masha» (транслит), «Максим» → «maksim».
     Пустое → «default».
     """
     if not name:
         return "default"
     name = name.strip().lower()
-    # транслит кириллицы
     translit = {
         "а": "a", "б": "b", "в": "v", "г": "g", "д": "d", "е": "e", "ё": "e",
         "ж": "zh", "з": "z", "и": "i", "й": "y", "к": "k", "л": "l", "м": "m",
@@ -4534,18 +4614,13 @@ def _sanitize(name: str) -> str:
         "ъ": "", "ы": "y", "ь": "", "э": "e", "ю": "yu", "я": "ya",
     }
     name = "".join(translit.get(ch, ch) for ch in name)
-    # только [a-z0-9_-]
     name = re.sub(r"[^a-z0-9_-]", "_", name)
     name = re.sub(r"_+", "_", name).strip("_")
     return name or "default"
 
 
-def _path_for(name: str) -> Path:
-    return PROFILES_DIR / f"{_sanitize(name)}.json"
-
-
-def _ensure_dir() -> None:
-    PROFILES_DIR.mkdir(parents=True, exist_ok=True)
+def _ensure_dir(path: Path) -> None:
+    path.mkdir(parents=True, exist_ok=True)
 
 
 def _windows_user() -> str:
@@ -4557,29 +4632,63 @@ def _windows_user() -> str:
 
 
 # ---------------------------------------------------------------
-# Миграция старого user_profile.json
+# Пути
 # ---------------------------------------------------------------
 
-def _migrate_old_profile() -> None:
-    """Если есть старый user_profile.json — переносим в profiles/<user>.json.
+def profile_dir() -> Path:
+    """Папка текущего профиля. Создаётся при вызове."""
+    path = PROFILES_DIR / _sanitize(current())
+    _ensure_dir(path)
+    return path
 
-    Старый файл НЕ удаляем — на случай, если что-то пойдёт не так.
+
+def profile_path() -> Path:
+    """Путь к profile.json текущего профиля."""
+    return profile_dir() / "profile.json"
+
+
+def dialog_path() -> Path:
+    """Путь к dialog.json текущего профиля."""
+    return profile_dir() / "dialog.json"
+
+
+# ---------------------------------------------------------------
+# Миграция
+# ---------------------------------------------------------------
+
+def _migrate_old() -> None:
+    """Переносит старые user_profile.json и dialog.json в profiles/<user>/.
+
+    Старые файлы НЕ удаляем — на случай, если что-то пойдёт не так.
     """
-    if not _OLD_PROFILE.exists():
+    if not PROFILES_DIR.exists():
         return
-    _ensure_dir()
-    target = _path_for(_windows_user())
-    if target.exists():
-        return  # уже мигрировали
-    try:
-        data = json.loads(_OLD_PROFILE.read_text(encoding="utf-8"))
-        if not isinstance(data, dict):
-            return
-        data.setdefault("created_at", time.time())
-        config_manager.save(data, path=target)
-        log.info("Миграция профиля: %s → %s", _OLD_PROFILE.name, target.name)
-    except Exception:
-        log.exception("Не удалось мигрировать старый профиль")
+    user_dir = PROFILES_DIR / _sanitize(_windows_user())
+    _ensure_dir(user_dir)
+
+    new_profile = user_dir / "profile.json"
+    if _OLD_PROFILE.exists() and not new_profile.exists():
+        try:
+            data = json.loads(_OLD_PROFILE.read_text(encoding="utf-8"))
+            if isinstance(data, dict):
+                data.setdefault("created_at", time.time())
+                config_manager.save(data, path=new_profile)
+                log.info("Миграция: %s → %s", _OLD_PROFILE.name, new_profile)
+        except Exception:
+            log.exception("Не удалось мигрировать старый профиль")
+
+    new_dialog = user_dir / "dialog.json"
+    if _OLD_DIALOG.exists() and not new_dialog.exists():
+        try:
+            data = json.loads(_OLD_DIALOG.read_text(encoding="utf-8"))
+            if isinstance(data, list):
+                new_dialog.write_text(
+                    json.dumps(data, ensure_ascii=False, indent=2),
+                    encoding="utf-8",
+                )
+                log.info("Миграция: %s → %s", _OLD_DIALOG.name, new_dialog)
+        except Exception:
+            log.exception("Не удалось мигрировать старый диалог")
 
 
 # ---------------------------------------------------------------
@@ -4587,7 +4696,7 @@ def _migrate_old_profile() -> None:
 # ---------------------------------------------------------------
 
 def current() -> str:
-    """Имя текущего активного профиля (без .json)."""
+    """Имя текущего активного профиля (папки)."""
     global _current
     if _current is None:
         _current = _windows_user()
@@ -4595,49 +4704,67 @@ def current() -> str:
 
 
 def switch(name: str) -> str:
-    """Переключает текущий профиль. Создаёт файл, если нет.
-
-    Возвращает человекочитаемый ответ.
-    """
+    """Переключает текущий профиль. Создаёт папку, если нет."""
     global _current
-    _ensure_dir()
     safe = _sanitize(name)
-    path = PROFILES_DIR / f"{safe}.json"
+    user_dir = PROFILES_DIR / safe
+    _ensure_dir(user_dir)
 
-    if not path.exists():
+    profile_file = user_dir / "profile.json"
+    if not profile_file.exists():
         data = {
             "name": name.strip()[:60] or safe,
             "created_at": time.time(),
         }
-        config_manager.save(data, path=path)
-        log.info("Создан новый профиль: %s", path.name)
+        config_manager.save(data, path=profile_file)
+        log.info("Создан новый профиль: %s", profile_file)
 
     _current = safe
     human = get("name", safe)
-    log.info("Активный профиль: %s (%s)", human, path.name)
+    log.info("Активный профиль: %s (%s)", human, safe)
     return f"Профиль переключён на {human}."
 
 
 def list_all() -> list[str]:
-    """Список доступных профилей (без .json)."""
-    _ensure_dir()
-    return sorted(p.stem for p in PROFILES_DIR.glob("*.json"))
+    """Список доступных профилей (имена папок)."""
+    _ensure_dir(PROFILES_DIR)
+    return sorted(p.name for p in PROFILES_DIR.iterdir() if p.is_dir())
+
+
+def delete(name: str) -> bool:
+    """Удаляет папку профиля. Активный — нельзя.
+
+    Перемещает в корзину, если доступно (send2trash).
+    Иначе — простое удаление.
+    """
+    import shutil
+    safe = _sanitize(name)
+    if safe == current():
+        log.warning("Нельзя удалить активный профиль: %s", safe)
+        return False
+    path = PROFILES_DIR / safe
+    if not path.exists() or not path.is_dir():
+        return False
+    try:
+        try:
+            from send2trash import send2trash
+            send2trash(str(path))
+            log.info("Профиль перемещён в корзину: %s", safe)
+        except ImportError:
+            shutil.rmtree(path)
+            log.info("Профиль удалён: %s", safe)
+        return True
+    except Exception:
+        log.exception("Не удалось удалить профиль %s", safe)
+        return False
 
 
 # ---------------------------------------------------------------
-# Чтение / запись полей
+# Чтение / запись полей профиля
 # ---------------------------------------------------------------
-
-def _current_path() -> Path:
-    return _path_for(current())
-
 
 def _safe_load() -> dict:
-    """Читает текущий профиль. Возвращает {} при отсутствии.
-
-    При битом JSON — логирует и НЕ перезаписывает (raise).
-    """
-    path = _current_path()
+    path = profile_path()
     if not path.exists():
         return {}
     raw = path.read_text(encoding="utf-8")
@@ -4652,7 +4779,6 @@ def _safe_load() -> dict:
 
 
 def get(key: str, default=None):
-    """Читает одно поле. При битом файле — возвращает default."""
     try:
         return _safe_load().get(key, default)
     except json.JSONDecodeError:
@@ -4660,15 +4786,13 @@ def get(key: str, default=None):
 
 
 def set(key: str, value) -> bool:
-    """Записывает одно поле. При битом файле — НЕ перезаписывает."""
     try:
         data = _safe_load()
     except json.JSONDecodeError:
         return False
-
     data[key] = value
     data.setdefault("created_at", time.time())
-    ok = config_manager.save(data, path=_current_path())
+    ok = config_manager.save(data, path=profile_path())
     if ok:
         log.info("Профиль %s: %s = %r", current(), key, value)
     else:
@@ -4691,18 +4815,17 @@ def forget(key: str) -> bool:
     if key not in data:
         return False
     del data[key]
-    ok = config_manager.save(data, path=_current_path())
+    ok = config_manager.save(data, path=profile_path())
     if ok:
         log.info("Профиль %s: удалено %s", current(), key)
     return ok
 
 
 # ---------------------------------------------------------------
-# Факты («запомни: ...»)
+# Факты
 # ---------------------------------------------------------------
 
 def set_fact(key: str, value: str) -> bool:
-    """Сохраняет факт в facts.<key>."""
     facts = get("facts", {}) or {}
     facts[key] = value
     return set("facts", facts)
@@ -4732,23 +4855,22 @@ def forget_fact(key: str) -> bool:
 def init() -> None:
     """Вызывается при старте Феникса.
 
-    - Мигрирует старый user_profile.json (если есть).
-    - Создаёт текущий профиль, если его нет.
+    - Мигрирует старые user_profile.json и dialog.json.
+    - Создаёт папку текущего профиля, если нет.
     - Логирует активный профиль.
     """
     global _current
-    _migrate_old_profile()
-    _ensure_dir()
+    _ensure_dir(PROFILES_DIR)
     _current = _windows_user()
-    path = _current_path()
-    if not path.exists():
-        data = {
-            "name": _windows_user(),
-            "created_at": time.time(),
-        }
-        config_manager.save(data, path=path)
-        log.info("Создан профиль по умолчанию: %s", path.name)
-    log.info("Активный профиль: %s (%s)", current(), path.name)
+    _migrate_old()
+
+    user_dir = profile_dir()
+    profile_file = user_dir / "profile.json"
+    if not profile_file.exists():
+        data = {"name": _windows_user(), "created_at": time.time()}
+        config_manager.save(data, path=profile_file)
+        log.info("Создан профиль по умолчанию: %s", profile_file)
+    log.info("Активный профиль: %s (%s)", current(), user_dir.name)
 ```
 
 ### `jarvis\recorder.py`
@@ -6862,6 +6984,17 @@ if __name__ == "__main__":
 5.4	Календарь (Google Calendar, Windows Calendar)	—
 5.5	Git-команды	—
 5.6	Скриптовые плагины	—
+```
+
+### `profiles\maksim.json`
+
+```json
+{
+  "created_at": 1791210410.9268441,
+  "facts": {
+    "город нижний новгород": "да"
+  }
+}
 ```
 
 ### `README.md`

@@ -48,7 +48,8 @@ DEFAULT_CONFIG = {
     "timers_file": "timers.json",
     "tasks_file": "tasks.json",
     "memory_file": "dialog.json",
-    "memory_max": 200,
+    "memory_max": 100,
+    "llm_context_messages": 20,
 }
 
 
@@ -68,7 +69,6 @@ class Config:
         """
         raw = config_manager.load(path=self.path)
         if not self.path.exists():
-            # Файла нет — создадим с дефолтами
             merged = dict(DEFAULT_CONFIG)
             config_manager.save(merged, path=self.path)
             log.info("Создан конфиг по умолчанию: %s", self.path)

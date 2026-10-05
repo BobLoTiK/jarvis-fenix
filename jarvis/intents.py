@@ -9,7 +9,6 @@ from collections import deque
 from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Iterator
-from types import MappingProxyType
 
 from jarvis import APP_NAME, __version__, actions, files
 from jarvis.apps import find_app
@@ -67,14 +66,12 @@ _FOLDER_TITLES = {
     "Screenshots": "в скриншотах",
 }
 
-# Мусор, который LLM иногда подсовывает в target от get_weather
 _WEATHER_BAD_TARGET = (
     "курс", "доллар", "рубл", "евро", "юан", "валют",
     "цену", "цена", "поиск", "найди", "погод", "прогноз",
     "пожалуйста", "сколько", "стоит",
 )
 
-# Слова-маркеры «это не город» — защита от перехвата pending_question
 _NOT_A_CITY = (
     "открой", "закрой", "найди", "включи", "выключи",
     "как дела", "кто ты", "спасибо", "привет", "пока",
@@ -95,9 +92,14 @@ class IntentHandler:
         self.music_wait = float(config.get("music_wait_sec", 6))
         self.last_file = None
         self.last_folder = None
-        self.dialog = deque(maxlen=40)
-        for msg in memory.load()[-40:]:
+
+        # Лимиты памяти — из config (не хардкод).
+        self._memory_max = int(config.get("memory_max", 100))
+        self._llm_context = int(config.get("llm_context_messages", 20))
+        self.dialog = deque(maxlen=self._memory_max)
+        for msg in memory.load(limit=self._memory_max):
             self.dialog.append(msg)
+
         self.last_was_chat = False
         self.mode = modes.get_mode(config)
         self.active_packs = list(config.get("active_packs", []))
@@ -116,6 +118,28 @@ class IntentHandler:
                 )
         self.custom = list(self._config_custom_original) + self._load_packs_as_custom(config)
 
+        # Подписка на изменения memory_max / llm_context_messages
+        config.subscribe(self._on_config_change)
+
+    def _on_config_change(self, key: str, value) -> None:
+        """Реагирует на смену memory_max / llm_context_messages в рантайме."""
+        if key == "memory_max":
+            try:
+                new_max = int(value)
+            except (TypeError, ValueError):
+                return
+            if new_max <= 0:
+                return
+            self._memory_max = new_max
+            self.dialog = deque(self.dialog, maxlen=new_max)
+            log.info("IntentHandler: memory_max = %d", new_max)
+        elif key == "llm_context_messages":
+            try:
+                self._llm_context = int(value)
+            except (TypeError, ValueError):
+                return
+            log.info("IntentHandler: llm_context_messages = %d", self._llm_context)
+
     def handle(self, cmd: str) -> Reply:
         """Возвращает Reply: либо text, либо stream."""
         self.last_was_chat = False
@@ -123,16 +147,17 @@ class IntentHandler:
 
         result = self._handle_single(cmd)
 
-        self.dialog.append({"role": "user", "content": cmd})
+        user_msg = {"role": "user", "content": cmd}
+        self.dialog.append(user_msg)
+        memory.append(user_msg)
 
-        
         if result is None:
-            # _handle_single вернул None — считаем «не понял»
             result = "Не понял команду."
 
         if isinstance(result, str):
-            self.dialog.append({"role": "assistant", "content": result})
-            memory.save(list(self.dialog))
+            assistant_msg = {"role": "assistant", "content": result}
+            self.dialog.append(assistant_msg)
+            memory.append(assistant_msg)
             actions_log.info("Ответ: %r", result[:120])
             self._last_reply = result
             return Reply(text=result)
@@ -141,10 +166,17 @@ class IntentHandler:
         return Reply(stream=result)
 
     def finalize_stream(self, cmd: str, full_text: str) -> None:
-        self.dialog.append({"role": "assistant", "content": full_text})
-        memory.save(list(self.dialog))
-        if full_text:
-            self._last_reply = full_text
+        if not full_text:
+            return
+        assistant_msg = {"role": "assistant", "content": full_text}
+        self.dialog.append(assistant_msg)
+        memory.append(assistant_msg)
+        self._last_reply = full_text
+
+    def _chat_stream(self, cmd: str):
+        """Отправляет в LLM только последние _llm_context сообщений."""
+        ctx = list(self.dialog)[-self._llm_context:] if self._llm_context else []
+        return self.brain.chat_stream(cmd, ctx)
 
     def _handle_single(self, cmd: str) -> str | Iterator[str]:
         if cmd in CANCEL:
@@ -202,17 +234,14 @@ class IntentHandler:
 
         # --- Быстрые правила без LLM ---
 
-        # Открытие приложений/сайтов/папок — до всего остального.
         reply = self._open_fast(cmd)
         if reply:
             return reply
 
-        # Голоса
         reply = voices.handle_voice_command(cmd, self.config)
         if reply:
             return reply
 
-        # Паки
         reply, new_active = packs.handle_pack_command(cmd, self.active_packs, self.config)
         if reply:
             if new_active != self.active_packs:
@@ -220,22 +249,22 @@ class IntentHandler:
                 self._reload_packs()
             return reply
 
-        # Таймеры
         reply = timers.handle_timer_command(cmd)
         if reply:
             return reply
 
-        # Задачи
         reply = tasks.handle_task_command(cmd)
         if reply:
             return reply
 
-        # Профиль: смена, список, факты
         reply = self._profile_fast(cmd)
         if reply:
             return reply
 
-        # Погода/курс — простые случаи без нормализации
+        reply = self._memory_fast(cmd)
+        if reply:
+            return reply
+
         reply = self._weather_currency_fast(cmd)
         if reply:
             return reply
@@ -259,26 +288,21 @@ class IntentHandler:
                 return reply
 
         if intent and intent.get("action") == "answer":
-            gen = self.brain.chat_stream(cmd, list(self.dialog))
+            gen = self._chat_stream(cmd)
             if gen is not None:
                 self.last_was_chat = True
                 return gen
             if intent.get("reply"):
                 return str(intent["reply"])[:600]
 
-        gen = self.brain.chat_stream(cmd, list(self.dialog))
+        gen = self._chat_stream(cmd)
         if gen is not None:
             self.last_was_chat = True
             return gen
         return "Я не понял команду."
 
     def _open_fast(self, cmd: str) -> str | None:
-        """Быстрое открытие приложений/сайтов/папок — без LLM.
-
-        Срабатывает только на явных глаголах «открой/запусти/врубай».
-        Сложные формулировки («запусти то, во что я играл вчера»)
-        уходят в LLM.
-        """
+        """Быстрое открытие приложений/сайтов/папок — без LLM."""
         m = re.match(r"^(?:открой|запусти|врубай|включи|открывай)\s+(.+)$", cmd)
         if not m:
             return None
@@ -289,20 +313,17 @@ class IntentHandler:
 
     def _profile_fast(self, cmd: str) -> str | None:
         """Команды профиля: смена, список, факты."""
-        # Смена профиля: «я — Маша», «я Маша», «переключись на Машу»
         m = re.match(r"^(?:я\s*[-—]?\s*|зови\s+меня\s+|переключись\s+на\s+|я\s+это\s+)([а-яёa-z][а-яёa-z\s\-]{0,40})$", cmd)
         if m:
             name = m.group(1).strip()
             if name and name not in _NOT_A_CITY:
                 return profile.switch(name)
 
-        # Кто активен
         if re.search(r"(кто|какой)\s+(сейчас\s+)?(активен|профиль|пользователь)", cmd) \
                 or cmd in {"кто активен", "какой профиль", "текущий профиль"}:
             name = profile.get("name") or profile.current()
             return f"Сейчас профиль {name}."
 
-        # Список профилей
         if re.search(r"(список|какие|покажи)\s+профил", cmd) \
                 or cmd in {"список профилей", "какие профили"}:
             all_p = profile.list_all()
@@ -310,13 +331,11 @@ class IntentHandler:
                 return "Профилей нет."
             return f"Профили: {', '.join(all_p)}."
 
-        # Запомни факт: «запомни: я люблю кофе», «запомни, что день рождения 15 марта»
         m = re.match(r"^(?:запомни|запиши)\s*[,:]?\s*(?:что\s+)?(.+)$", cmd)
         if m:
             fact = m.group(1).strip(" ,.:!?")
             if not fact:
                 return "Что запомнить?"
-            # разбиваем на key:value по «—», «-», «=», «:»
             sep = re.match(r"^(.+?)\s*[—\-=:]\s*(.+)$", fact)
             if sep:
                 key, value = sep.group(1).strip(), sep.group(2).strip()
@@ -325,7 +344,6 @@ class IntentHandler:
             profile.set_fact(key, value)
             return f"Запомнил: {key} — {value}."
 
-        # Что ты обо мне знаешь
         if re.search(r"(что|чё)\s+ты\s+(обо\s+мне\s+)?знаешь", cmd) \
                 or cmd in {"что ты обо мне знаешь", "что ты знаешь"}:
             facts = profile.all_facts()
@@ -340,7 +358,6 @@ class IntentHandler:
                 return "Пока ничего о тебе не знаю."
             return ". ".join(parts) + "."
 
-        # Забудь факт
         m = re.match(r"^забудь\s+(?:факт\s+)?(.+)$", cmd)
         if m:
             key = m.group(1).strip(" ,.:!?")
@@ -350,13 +367,47 @@ class IntentHandler:
 
         return None
 
-    def _weather_currency_fast(self, cmd: str) -> str | None:
-        """Простые правила для погоды и курса — без LLM.
+    def _memory_fast(self, cmd: str) -> str | None:
+        """Голосовые команды для управления памятью."""
+        if re.search(r"(коротк|быстр)\w*\s+память", cmd):
+            self.config.update({
+                "memory_max": 40,
+                "llm_context_messages": 10,
+            })
+            return "Память: короткая. 40 сообщений, контекст LLM — 10."
 
-        Сложные случаи (падежи, синонимы городов/валют) — уходят в LLM.
-        Здесь только явные: «курс доллара», «погода», «погода в Москве».
-        """
-        # --- Курс валют ---
+        if re.search(r"(обычн|стандартн|нормальн)\w*\s+память", cmd):
+            self.config.update({
+                "memory_max": 100,
+                "llm_context_messages": 20,
+            })
+            return "Память: обычная. 100 сообщений, контекст LLM — 20."
+
+        if re.search(r"(долг|глубок)\w*\s+память", cmd):
+            self.config.update({
+                "memory_max": 200,
+                "llm_context_messages": 40,
+            })
+            return "Память: долгая. 200 сообщений, контекст LLM — 40."
+
+        if re.search(r"(какая|текущ)\w*\s+память", cmd) \
+                or cmd in {"какая память", "текущая память"}:
+            mm = self.config.get("memory_max", 100)
+            lc = self.config.get("llm_context_messages", 20)
+            return f"Память: {mm} сообщений, контекст LLM — {lc}."
+
+        # удалить профиль
+        m = re.match(r"^удали\s+профиль\s+(\S+)$", cmd)
+        if m:
+            name = m.group(1)
+            if profile.delete(name):
+                return f"Профиль {name} удалён."
+            return f"Профиль {name} не найден или активен."
+
+        return None
+
+    def _weather_currency_fast(self, cmd: str) -> str | None:
+        """Простые правила для погоды и курса — без LLM."""
         if re.search(r"\bкурс\b|\bвалют", cmd):
             code_map = {
                 "доллар": "USD", "доллара": "USD", "бакс": "USD", "бакса": "USD",
@@ -377,7 +428,6 @@ class IntentHandler:
             r = weather.get_currency_rates()
             return weather.describe_currency(r, code=code)
 
-        # --- Погода ---
         if re.search(r"\bпогод|\bпрогноз", cmd):
             day = "tomorrow" if "завтра" in cmd else "today"
 
@@ -396,7 +446,7 @@ class IntentHandler:
 
             w = weather.get_weather(city, day=day)
             if not w:
-                return None  # пусть LLM попробует (может, падеж поправит)
+                return None
             return weather.describe_weather(w)
 
         return None
@@ -409,14 +459,10 @@ class IntentHandler:
             city = cmd.strip()
             words = city.split()
 
-            # Город — это 1-3 слова, без глаголов и служебных фраз.
-            # Иначе «как дела» попадёт в город.
             if not city or len(city) > 60 or len(words) > 3:
                 return "Не расслышал город. Повторите, пожалуйста."
 
             if any(w in city for w in _NOT_A_CITY):
-                # Это не город — обрабатываем как обычную команду.
-                # _pending_question уже сброшен, рекурсии не будет.
                 log.info("pending_question: %r не похоже на город — обрабатываю как команду", city)
                 result = self._handle_single(cmd)
                 return result if isinstance(result, str) else "Не понял команду."
