@@ -139,6 +139,9 @@ class Jarvis:
     def _process(self, phrase: str, audio: bytes) -> None:
         awaiting = time.time() < self._awaiting_until
         cmd = self._extract_command(normalize(phrase))
+        pending = getattr(self.handler, "_pending_question", None)
+        if pending and time.time() < pending.get("expires_at", 0):
+            awaiting = True
         if cmd is None:
             return
         if cmd == "":
