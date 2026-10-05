@@ -2774,11 +2774,23 @@ class Brain:
             return None
         if not isinstance(intent, dict):
             return None
+
+        # --- Нормализация action: strip + lower (фикс №14) ---
+        action = str(intent.get("action") or "").strip().lower()
+        intent["action"] = action
+
         if isinstance(intent.get("steps"), list):
-            steps = [s for s in intent["steps"]
-                     if isinstance(s, dict) and s.get("action") in ACTIONS]
+            steps = []
+            for s in intent["steps"]:
+                if not isinstance(s, dict):
+                    continue
+                s_action = str(s.get("action") or "").strip().lower()
+                if s_action in ACTIONS:
+                    s["action"] = s_action
+                    steps.append(s)
             return {"steps": steps} if steps else None
-        if intent.get("action") not in ACTIONS:
+
+        if action not in ACTIONS:
             return None
         return intent
 
@@ -4022,6 +4034,12 @@ class FenixGUI:
             try:
                 self.set_state("listening")
                 self.add_message("user", cmd)
+
+                # Прерываем старое воспроизведение перед новой командой.
+                # Без этого GUI-«стой» накладывается на голосовой стрим.
+                self.jarvis.speaker.stop()
+                self.jarvis.speaker.wait_end(timeout=1.0)
+
                 reply = self.jarvis.handler.handle(cmd)
 
                 if not reply.is_stream:
@@ -4370,13 +4388,22 @@ class IntentHandler:
         return str(self.config.get("danger_password") or "").strip()
 
     def _handle_single(self, cmd: str) -> str | Iterator[str]:
+        # === CANCEL — самый первый (фикс №6) ===
+        # «стой», «отмена», «хватит» должны срабатывать ВСЕГДА, даже если
+        # висит _pending_password / _pending_question.
+        if cmd in CANCEL:
+            self._pending_password = None
+            self._pending_question = None
+            self._reset_requested = True
+            return "Жду обращение, сэр."
+
         # Применяем коррекцию, если есть
         corrected = learning.find_correction(cmd)
         if corrected and corrected != cmd:
             log.info("Применена коррекция: %r → %r", cmd, corrected)
             cmd = corrected
 
-        # Пароль (2.13) — до всего, если ждём
+        # Пароль (2.13) — если ждём ввода
         if self._pending_password and time.time() < self._pending_password.get("expires_at", 0):
             return self._handle_password_answer(cmd)
         elif self._pending_password:
@@ -4391,10 +4418,6 @@ class IntentHandler:
             if profile.delete(name):
                 return f"Профиль {name} удалён."
             return f"Профиль {name} не найден или активен."
-
-        if cmd in CANCEL:
-            self._reset_requested = True
-            return "Жду обращение, сэр."
 
         # Память диалога — до всего остального
         mem_reply, clear_requested = memory.handle_memory_command(cmd, list(self.dialog))
@@ -4590,6 +4613,12 @@ class IntentHandler:
         """Проверяет пароль и выполняет отложенное действие."""
         pending = self._pending_password
         self._pending_password = None
+
+        # Страховка: если проскочил CANCEL — отменяем действие.
+        # (Основная проверка CANCEL уже в начале _handle_single, но
+        #  пусть будет — на случай рефакторинга.)
+        if cmd in CANCEL:
+            return "Жду обращение, сэр."
 
         # Убираем «пароль», «код», лишние слова
         candidate = re.sub(r"^(?:пароль|код|пин)\s*", "", cmd).strip()
@@ -5369,7 +5398,9 @@ class IntentHandler:
             return "Закрываю браузер." if actions.close_browser() else "Браузер не запущен."
         app = find_app(self.apps, target)
         if app and app.procs:
-            ok = any([actions.kill_process(p) for p in app.procs])
+            # Генератор, а не список: kill_process вызывается по одному,
+            # при первом True — early exit. Не убиваем все процессы подряд.
+            ok = any(actions.kill_process(p) for p in app.procs)
             if ok:
                 return f"Закрываю {app.title}."
         exe = actions.find_process(target)
@@ -5821,6 +5852,19 @@ class Jarvis:
         if self.gui is not None and not reply.is_stream:
             self.gui.add_message("assistant", reply.text or "")
 
+        # Окно диалога открываем ДО say(): пока Феникс говорит, пользователь
+        # уже может перебить и продолжить без wake-слова. Иначе окно
+        # открывалось только ПОСЛЕ того, как Феникс замолчал — и barge-in
+        # был бесполезен для последующей фразы.
+        self._awaiting_until = time.time() + float(
+            self.config.get("dialog_window_sec", 8))
+
+        # Если это CANCEL — прерываем всё, что звучит, ДО say().
+        # Иначе старый speak_stream доигрывает поверх «Жду обращение».
+        if getattr(self.handler, "_reset_requested", False):
+            self.speaker.stop()
+            self.speaker.wait_end(timeout=1.0)
+
         barge_happened = self.say(reply)
 
         if getattr(self.handler, "_reset_requested", False):
@@ -5830,9 +5874,10 @@ class Jarvis:
             return
 
         if barge_happened:
-            log.info("Barge-in: открываю окно диалога (без wake-слова)")
-        self._awaiting_until = time.time() + float(
-            self.config.get("dialog_window_sec", 8))
+            log.info("Barge-in: окно диалога уже открыто (без wake-слова)")
+            # Продлеваем окно — пользователь только что перебил, ему нужно время
+            self._awaiting_until = time.time() + float(
+                self.config.get("dialog_window_sec", 8))
 
     def _refine(self, audio: bytes, awaiting: bool):
         try:
@@ -8264,6 +8309,11 @@ class Speaker:
         self._speak_one(text)
 
     def play_async(self, text: str) -> None:
+        # «Один голос за раз»: если что-то уже играет — прерываем.
+        # Иначе новый ответ накладывается на старый (3 голоса одновременно).
+        self.stop()
+        self.wait_end(timeout=1.0)
+
         self._stop_flag.clear()
         self._playing = True
 
@@ -8294,6 +8344,11 @@ class Speaker:
         self._playing = False
 
     def speak_stream(self, text_iter, timeout: float = 30.0) -> str:
+        # «Один голос за раз»: если что-то уже играет — прерываем.
+        # Иначе GUI-команда накладывается на голосовую (2-3 голоса).
+        self.stop()
+        self.wait_end(timeout=1.0)
+
         self._stop_flag.clear()
         self._playing = True
 
@@ -10851,75 +10906,109 @@ _ch.setFormatter(_fmt)
 log.addHandler(_ch)
 
 
-# (name, cmd, expected, requires_llm, requires_network)
-# requires_llm=True     — пропускается без флага --llm.
-# requires_network=True — пропускается без флага --network.
+# =================================================================
+# Setup / teardown для тестов, которым нужно особое окружение.
+# Возвращают (setup, teardown), либо None.
+# =================================================================
+
+def _no_password_setup(handler):
+    """Временно выставить danger_password = "" — сценарий без пароля."""
+    handler._saved_password = handler.config.get("danger_password", "")
+    handler.config.set("danger_password", "")
+
+
+def _no_password_teardown(handler):
+    """Вернуть пароль как было."""
+    handler.config.set("danger_password", getattr(handler, "_saved_password", ""))
+    handler._saved_password = ""
+
+
+def _with_password_setup(handler):
+    """Временно выставить danger_password = 'test_password_123'."""
+    handler._saved_password = handler.config.get("danger_password", "")
+    handler.config.set("danger_password", "test_password_123")
+
+
+# teardown — тот же, что у _no_password_teardown
+
+
+# (name, cmd, expected, requires_llm, requires_network, hooks)
+# hooks: None или (setup_fn, teardown_fn).
 TESTS = [
     # === Режимы (без LLM, без сети) ===
-    ("mode_set_llm",        "режим ии",                   ["Режим", "ИИ"],          False, False),
-    ("mode_query",          "какой режим",                ["Сейчас режим"],         False, False),
-    ("mode_set_combo",      "обычный режим",              ["комбинированный"],      False, False),
-    ("mode_set_commands",   "режим команды",              ["только команды"],       False, False),
-    ("mode_restore",        "обычный режим",              ["комбинированный"],      False, False),
+    ("mode_set_llm",        "режим ии",                   ["Режим", "ИИ"],          False, False, None),
+    ("mode_query",          "какой режим",                ["Сейчас режим"],         False, False, None),
+    ("mode_set_combo",      "обычный режим",              ["комбинированный"],      False, False, None),
+    ("mode_set_commands",   "режим команды",              ["только команды"],       False, False, None),
+    ("mode_restore",        "обычный режим",              ["комбинированный"],      False, False, None),
 
     # === Голоса (быстрые правила, без LLM) ===
-    ("voice_list",          "какой голос",                ["голос"],                False, False),
-    ("voice_switch_irina",  "смени голос на ирину",       ["Irina", "ирина"],       False, False),
-    ("voice_switch_ruslan", "смени голос на руслан",      ["Ruslan", "руслан"],     False, False),
+    ("voice_list",          "какой голос",                ["голос"],                False, False, None),
+    ("voice_switch_irina",  "смени голос на ирину",       ["Irina", "ирина"],       False, False, None),
+    ("voice_switch_ruslan", "смени голос на руслан",      ["Ruslan", "руслан"],     False, False, None),
 
     # === Паки (быстрые правила, без LLM) ===
-    ("packs_list",          "какие паки",                 ["Доступны"],             False, False),
-    ("packs_unload",        "выгрузи пак игр",            ["выгружен", "уже", "не активен", "загружен"], False, False),
-    ("packs_load",          "загрузи пак игр",            ["загружен", "уже", "не найден"], False, False),
+    ("packs_list",          "какие паки",                 ["Доступны"],             False, False, None),
+    ("packs_unload",        "выгрузи пак игр",            ["выгружен", "уже", "не активен", "загружен"], False, False, None),
+    ("packs_load",          "загрузи пак игр",            ["загружен", "уже", "не найден"], False, False, None),
 
     # === Буфер (без LLM, без сети) ===
-    ("clipboard_read",      "что в буфере",               ["буфере", "пуст"],       False, False),
-    ("clipboard_clear",     "очисти буфер",               ["Буфер"],                False, False),
+    ("clipboard_read",      "что в буфере",               ["буфере", "пуст"],       False, False, None),
+    ("clipboard_clear",     "очисти буфер",               ["Буфер"],                False, False, None),
 
     # === Погода ===
-    ("weather_ask_city",    "какая погода",               ["городе"],               False, False),
-    ("weather_answer_city", "Казань",                     ["Запомнил"],             False, True),
-    ("weather_default",     "какая погода",               ["Погода", "Казань"],     False, True),
-    ("weather_other_city",  "погода в нижнем новгороде",  ["Погода", "Новгород"],   True,  True),
-    ("weather_tomorrow",    "погода в питере на завтра",  ["Погода", "Петербург"],  True,  True),
+    ("weather_ask_city",    "какая погода",               ["городе"],               False, False, None),
+    ("weather_answer_city", "Казань",                     ["Запомнил"],             False, True,  None),
+    ("weather_default",     "какая погода",               ["Погода", "Казань"],     False, True,  None),
+    ("weather_other_city",  "погода в нижнем новгороде",  ["Погода", "Новгород"],   True,  True,  None),
+    ("weather_tomorrow",    "погода в питере на завтра",  ["Погода", "Петербург"],  True,  True,  None),
 
     # === Курс (требует сеть) ===
-    ("currency_usd",        "курс доллара",               ["Доллар"],               False, True),
-    ("currency_byn",        "курс белорусского рубля",    ["рубл"],                 False, True),
-    ("currency_all",        "курс валют",                 ["ЦБ", "Доллар"],         False, True),
+    ("currency_usd",        "курс доллара",               ["Доллар"],               False, True,  None),
+    ("currency_byn",        "курс белорусского рубля",    ["рубл"],                 False, True,  None),
+    ("currency_all",        "курс валют",                 ["ЦБ", "Доллар"],         False, True,  None),
 
     # === Small talk (без LLM, без сети) ===
-    ("small_talk_how",      "как дела",                   [],                       False, False),
-    ("small_talk_time",     "который час",                ["Сейчас"],               False, False),
-    ("small_talk_date",     "какое сегодня число",        ["Сегодня"],              False, False),
-    ("small_talk_who",      "кто ты",                     ["Феникс"],               False, False),
+    ("small_talk_how",      "как дела",                   [],                       False, False, None),
+    ("small_talk_time",     "который час",                ["Сейчас"],               False, False, None),
+    ("small_talk_date",     "какое сегодня число",        ["Сегодня"],              False, False, None),
+    ("small_talk_who",      "кто ты",                     ["Феникс"],               False, False, None),
 
     # === Скриншот, сайт (без сети — только открытие URL, не загрузка) ===
-    ("screenshot",          "сделай скриншот",            ["Скриншот"],             False, False),
-    ("open_site",           "открой ютуб",                ["Ютуб", "youtube"],      False, False),
+    ("screenshot",          "сделай скриншот",            ["Скриншот"],             False, False, None),
+    ("open_site",           "открой ютуб",                ["Ютуб", "youtube"],      False, False, None),
 
     # === Системные (раскладка, громкость, яркость) ===
     # На CI нет звуковой карты/монитора → «Не смог узнать». Локально → значение.
-    ("layout_query",        "какая раскладка",            ["раскладк", "Не смог"],  False, False),
-    ("volume_query",        "какая громкость",            ["Громкость", "Не смог"], False, False),
-    ("brightness_query",    "какая яркость",              ["Яркость", "Не смог"],   False, False),
+    ("layout_query",        "какая раскладка",            ["раскладк", "Не смог"],  False, False, None),
+    ("volume_query",        "какая громкость",            ["Громкость", "Не смог"], False, False, None),
+    ("brightness_query",    "какая яркость",              ["Яркость", "Не смог"],   False, False, None),
 
     # === Диагностика (Н2 + Н3) ===
-    ("debug_what_heard",    "что ты слышал",              ["фразы", "слышал", "Пока ничего"], False, False),
-    ("debug_why_not",       "почему не понял",            ["Фраза", "нечего", "диагност"],    False, False),
+    ("debug_what_heard",    "что ты слышал",              ["фразы", "слышал", "Пока ничего"], False, False, None),
+    ("debug_why_not",       "почему не понял",            ["Фраза", "нечего", "диагност"],    False, False, None),
 
     # === Отмена (Н1) ===
-    ("undo_ne_to",          "не то",                      ["Нечего", "Откатываю", "Вернул", "Переключил", "Действие"], False, False),
-    ("undo_otmeni",         "отмени",                     ["Нечего", "Откатываю", "Вернул", "Переключил", "Действие"], False, False),
+    ("undo_ne_to",          "не то",                      ["Нечего", "Откатываю", "Вернул", "Переключил", "Действие"], False, False, None),
+    ("undo_otmeni",         "отмени",                     ["Нечего", "Откатываю", "Вернул", "Переключил", "Действие"], False, False, None),
 
     # === Пароль (2.13) ===
-    ("danger_no_password",  "удали профиль тест",         ["не найден", "активен", "удалён"], False, False),
+    # danger_no_password: setup ставит пароль пустым — команда уходит в profile.delete.
+    ("danger_no_password",  "удали профиль тест",
+     ["не найден", "активен", "удалён"],
+     False, False, (_no_password_setup, _no_password_teardown)),
+
+    # danger_with_password: setup ставит пароль — команда уходит в _ask_password.
+    ("danger_with_password", "удали профиль тест",
+     ["пароль"],
+     False, False, (_with_password_setup, _no_password_teardown)),
 
     # === Learning (5.3) ===
-    ("learn_fact",          "запомни: мой город Казань",  ["Запомнил"],              False, False),
-    ("learn_fact_query",    "что ты обо мне знаешь",      ["Казань", "Знаю"],        False, False),
-    ("learn_correction",    "это не то, я сказал логи",   ["Понял", "запомнил", "Что было"], False, False),
+    ("learn_fact",          "запомни: мой город Казань",  ["Запомнил"],              False, False, None),
+    ("learn_fact_query",    "что ты обо мне знаешь",      ["Казань", "Знаю"],        False, False, None),
+    ("learn_correction",    "это не то, я сказал логи",   ["Понял", "запомнил", "Что было"], False, False, None),
 ]
+
 
 class Result:
     def __init__(self, name, cmd, reply_text, expected, elapsed):
@@ -10983,9 +11072,32 @@ def build_handler(use_llm=False, reset_profile=True):
     return IntentHandler(config, build_apps(config), brain)
 
 
-def run_one(handler, speaker, name, cmd, expected):
+def reset_handler_state(handler):
+    """Сбрасывает stateful-состояние между тестами.
+
+    ВАЖНО: сбрасываем ТОЛЬКО разовые вещи — пароль и флаг reset.
+    Не трогаем _pending_question, _last_cmd, dialog, _recent_phrases:
+    тесты weather_ask_city → weather_answer_city → weather_default
+    построены как цепочка и специально зависят от состояния
+    предыдущего шага.
+    """
+    handler._pending_password = None
+    handler._reset_requested = False
+
+
+def run_one(handler, speaker, name, cmd, expected, hooks=None):
     log.info("─" * 70)
     log.info("ТЕСТ: %s | команда: %r", name, cmd)
+
+    # Чистое состояние перед каждым тестом
+    reset_handler_state(handler)
+
+    setup, teardown = hooks if hooks else (None, None)
+    if setup:
+        try:
+            setup(handler)
+        except Exception:
+            log.exception("setup не удался для %s", name)
 
     t0 = time.time()
     try:
@@ -10999,9 +11111,20 @@ def run_one(handler, speaker, name, cmd, expected):
         log.exception("Исключение в тесте %s", name)
         r = Result(name, cmd, f"<EXCEPTION: {e}>", expected, time.time() - t0)
         r.error = str(e)
+        if teardown:
+            try:
+                teardown(handler)
+            except Exception:
+                log.exception("teardown не удался для %s", name)
         return r
 
     elapsed = time.time() - t0
+
+    if teardown:
+        try:
+            teardown(handler)
+        except Exception:
+            log.exception("teardown не удался для %s", name)
 
     if speaker is not None and reply_text:
         try:
@@ -11055,7 +11178,9 @@ def main():
     results = []
     skipped = []
     t_start = time.time()
-    for name, cmd, expected, requires_llm, requires_network in tests:
+    for entry in tests:
+        # entry — 6 полей: (name, cmd, expected, requires_llm, requires_network, hooks)
+        name, cmd, expected, requires_llm, requires_network, hooks = entry
         if requires_llm and not args.llm:
             log.info("ПРОПУСК %s (требует --llm)", name)
             skipped.append(f"{name} (--llm)")
@@ -11064,7 +11189,7 @@ def main():
             log.info("ПРОПУСК %s (требует --network)", name)
             skipped.append(f"{name} (--network)")
             continue
-        r = run_one(handler, speaker, name, cmd, expected)
+        r = run_one(handler, speaker, name, cmd, expected, hooks)
         results.append(r)
 
     total = time.time() - t_start

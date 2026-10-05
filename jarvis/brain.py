@@ -484,11 +484,23 @@ class Brain:
             return None
         if not isinstance(intent, dict):
             return None
+
+        # --- Нормализация action: strip + lower (фикс №14) ---
+        action = str(intent.get("action") or "").strip().lower()
+        intent["action"] = action
+
         if isinstance(intent.get("steps"), list):
-            steps = [s for s in intent["steps"]
-                     if isinstance(s, dict) and s.get("action") in ACTIONS]
+            steps = []
+            for s in intent["steps"]:
+                if not isinstance(s, dict):
+                    continue
+                s_action = str(s.get("action") or "").strip().lower()
+                if s_action in ACTIONS:
+                    s["action"] = s_action
+                    steps.append(s)
             return {"steps": steps} if steps else None
-        if intent.get("action") not in ACTIONS:
+
+        if action not in ACTIONS:
             return None
         return intent
 

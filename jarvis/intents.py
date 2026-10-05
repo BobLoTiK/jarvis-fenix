@@ -208,13 +208,22 @@ class IntentHandler:
         return str(self.config.get("danger_password") or "").strip()
 
     def _handle_single(self, cmd: str) -> str | Iterator[str]:
+        # === CANCEL — самый первый (фикс №6) ===
+        # «стой», «отмена», «хватит» должны срабатывать ВСЕГДА, даже если
+        # висит _pending_password / _pending_question.
+        if cmd in CANCEL:
+            self._pending_password = None
+            self._pending_question = None
+            self._reset_requested = True
+            return "Жду обращение, сэр."
+
         # Применяем коррекцию, если есть
         corrected = learning.find_correction(cmd)
         if corrected and corrected != cmd:
             log.info("Применена коррекция: %r → %r", cmd, corrected)
             cmd = corrected
 
-        # Пароль (2.13) — до всего, если ждём
+        # Пароль (2.13) — если ждём ввода
         if self._pending_password and time.time() < self._pending_password.get("expires_at", 0):
             return self._handle_password_answer(cmd)
         elif self._pending_password:
@@ -229,10 +238,6 @@ class IntentHandler:
             if profile.delete(name):
                 return f"Профиль {name} удалён."
             return f"Профиль {name} не найден или активен."
-
-        if cmd in CANCEL:
-            self._reset_requested = True
-            return "Жду обращение, сэр."
 
         # Память диалога — до всего остального
         mem_reply, clear_requested = memory.handle_memory_command(cmd, list(self.dialog))
@@ -428,6 +433,12 @@ class IntentHandler:
         """Проверяет пароль и выполняет отложенное действие."""
         pending = self._pending_password
         self._pending_password = None
+
+        # Страховка: если проскочил CANCEL — отменяем действие.
+        # (Основная проверка CANCEL уже в начале _handle_single, но
+        #  пусть будет — на случай рефакторинга.)
+        if cmd in CANCEL:
+            return "Жду обращение, сэр."
 
         # Убираем «пароль», «код», лишние слова
         candidate = re.sub(r"^(?:пароль|код|пин)\s*", "", cmd).strip()
@@ -1207,7 +1218,9 @@ class IntentHandler:
             return "Закрываю браузер." if actions.close_browser() else "Браузер не запущен."
         app = find_app(self.apps, target)
         if app and app.procs:
-            ok = any([actions.kill_process(p) for p in app.procs])
+            # Генератор, а не список: kill_process вызывается по одному,
+            # при первом True — early exit. Не убиваем все процессы подряд.
+            ok = any(actions.kill_process(p) for p in app.procs)
             if ok:
                 return f"Закрываю {app.title}."
         exe = actions.find_process(target)

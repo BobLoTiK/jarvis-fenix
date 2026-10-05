@@ -196,6 +196,19 @@ class Jarvis:
         if self.gui is not None and not reply.is_stream:
             self.gui.add_message("assistant", reply.text or "")
 
+        # Окно диалога открываем ДО say(): пока Феникс говорит, пользователь
+        # уже может перебить и продолжить без wake-слова. Иначе окно
+        # открывалось только ПОСЛЕ того, как Феникс замолчал — и barge-in
+        # был бесполезен для последующей фразы.
+        self._awaiting_until = time.time() + float(
+            self.config.get("dialog_window_sec", 8))
+
+        # Если это CANCEL — прерываем всё, что звучит, ДО say().
+        # Иначе старый speak_stream доигрывает поверх «Жду обращение».
+        if getattr(self.handler, "_reset_requested", False):
+            self.speaker.stop()
+            self.speaker.wait_end(timeout=1.0)
+
         barge_happened = self.say(reply)
 
         if getattr(self.handler, "_reset_requested", False):
@@ -205,9 +218,10 @@ class Jarvis:
             return
 
         if barge_happened:
-            log.info("Barge-in: открываю окно диалога (без wake-слова)")
-        self._awaiting_until = time.time() + float(
-            self.config.get("dialog_window_sec", 8))
+            log.info("Barge-in: окно диалога уже открыто (без wake-слова)")
+            # Продлеваем окно — пользователь только что перебил, ему нужно время
+            self._awaiting_until = time.time() + float(
+                self.config.get("dialog_window_sec", 8))
 
     def _refine(self, audio: bytes, awaiting: bool):
         try:

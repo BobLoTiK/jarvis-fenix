@@ -323,6 +323,11 @@ class Speaker:
         self._speak_one(text)
 
     def play_async(self, text: str) -> None:
+        # «Один голос за раз»: если что-то уже играет — прерываем.
+        # Иначе новый ответ накладывается на старый (3 голоса одновременно).
+        self.stop()
+        self.wait_end(timeout=1.0)
+
         self._stop_flag.clear()
         self._playing = True
 
@@ -353,6 +358,11 @@ class Speaker:
         self._playing = False
 
     def speak_stream(self, text_iter, timeout: float = 30.0) -> str:
+        # «Один голос за раз»: если что-то уже играет — прерываем.
+        # Иначе GUI-команда накладывается на голосовую (2-3 голоса).
+        self.stop()
+        self.wait_end(timeout=1.0)
+
         self._stop_flag.clear()
         self._playing = True
 

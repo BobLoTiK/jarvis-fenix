@@ -834,6 +834,12 @@ class FenixGUI:
             try:
                 self.set_state("listening")
                 self.add_message("user", cmd)
+
+                # Прерываем старое воспроизведение перед новой командой.
+                # Без этого GUI-«стой» накладывается на голосовой стрим.
+                self.jarvis.speaker.stop()
+                self.jarvis.speaker.wait_end(timeout=1.0)
+
                 reply = self.jarvis.handler.handle(cmd)
 
                 if not reply.is_stream:
