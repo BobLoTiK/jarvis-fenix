@@ -29,8 +29,18 @@ WHISPER_PROMPT = (
 ECHO_WINDOW_SEC = 0.5
 BARGE_LOG_INTERVAL = 0.5
 
+# Флаг, чтобы не добавлять пути CUDA в PATH повторно при каждом импорте stt.
+_CUDA_DLLS_ADDED = False
+
 
 def _enable_cuda_dlls():
+    """Добавляет пути к CUDA-библиотекам (cuBLAS, cuDNN) в PATH.
+
+    Идемпотентна: повторный вызов ничего не делает.
+    """
+    global _CUDA_DLLS_ADDED
+    if _CUDA_DLLS_ADDED:
+        return
     try:
         import nvidia
     except ImportError:
@@ -39,6 +49,7 @@ def _enable_cuda_dlls():
     dirs = [str(p) for p in (base / "cublas" / "bin", base / "cudnn" / "bin") if p.exists()]
     if dirs:
         os.environ["PATH"] = os.pathsep.join(dirs) + os.pathsep + os.environ["PATH"]
+        _CUDA_DLLS_ADDED = True
 
 
 class Listener:
@@ -61,7 +72,7 @@ class Listener:
         self._block_size = 8000
 
         # Адаптивный barge-in
-        self._echo_window_samples = deque(maxlen=20)  # ~1 секунда
+        self._echo_window_samples = deque(maxlen=20)
         self._echo_baseline = 0
         self._barge_threshold = 150
         self._barge_speech_ms = 0
@@ -93,7 +104,6 @@ class Listener:
         if elapsed < ECHO_WINDOW_SEC:
             return
 
-        # Калибровка: накапливаем базу эха ~0.5 сек
         if not self._echo_done:
             self._echo_window_samples.append(rms)
             if elapsed >= ECHO_WINDOW_SEC + 0.5:
@@ -106,12 +116,10 @@ class Listener:
                          self._echo_baseline, self._barge_threshold)
             return
 
-        # Скользящее среднее эха (адаптация к изменению громкости)
         self._echo_window_samples.append(rms)
         if len(self._echo_window_samples) >= 10:
             arr = sorted(self._echo_window_samples)
             new_echo = arr[int(len(arr) * 0.7)]
-            # Плавно адаптируем порог
             self._echo_baseline = int(0.9 * self._echo_baseline + 0.1 * new_echo)
             self._barge_threshold = max(150, int(self._echo_baseline * 1.8))
 

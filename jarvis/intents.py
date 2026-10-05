@@ -8,6 +8,7 @@ import time
 from collections import deque
 from difflib import SequenceMatcher
 from pathlib import Path
+from types import MappingProxyType
 
 from jarvis import APP_NAME, __version__, actions, files
 from jarvis.apps import find_app
@@ -134,6 +135,14 @@ class IntentHandler:
         if cmd in CANCEL:
             self._reset_requested = True
             return "Жду обращение, сэр."
+
+        # Память диалога — до всего остального
+        # («что мы обсуждали», «забудь всё», «сохрани память»)
+        mem_reply, clear_requested = memory.handle_memory_command(cmd, list(self.dialog))
+        if mem_reply:
+            if clear_requested:
+                self.dialog.clear()
+            return mem_reply
 
         if self._pending_question and time.time() < self._pending_question.get("expires_at", 0):
             return self._handle_pending_answer(cmd)
@@ -492,7 +501,6 @@ class IntentHandler:
             city = str(intent.get("target") or "").strip()
             day = "tomorrow" if intent.get("day") == "tomorrow" else "today"
 
-            # Отсеиваем мусор от LLM
             if any(w in city.lower() for w in _WEATHER_BAD_TARGET):
                 log.warning("get_weather: LLM подсунула мусор target=%r — игнорирую", city)
                 city = ""
@@ -636,8 +644,10 @@ class IntentHandler:
         return result
 
     def _reload_packs(self):
-        config_copy = {"active_packs": self.active_packs, "custom_commands": []}
-        self.custom = list(self._config_custom_original) + self._load_packs_as_custom(config_copy)
+        # Передаём объект Config как есть — packs.load_active умеет
+        # работать и с Config, и с dict (через config.get).
+        # Никаких config_copy-хаков.
+        self.custom = list(self._config_custom_original) + self._load_packs_as_custom(self.config)
 
     def _folder_title(self, path: Path) -> str:
         return _FOLDER_TITLES.get(path.name, f"в папке {path.name}")

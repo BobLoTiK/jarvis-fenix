@@ -11,24 +11,20 @@ from pathlib import Path
 BASE = Path(__file__).resolve().parent
 OUTPUT = BASE / "SNAPSHOT.md"
 
-# Что НЕ включать
 EXCLUDE_DIRS = {
     ".git", "__pycache__", ".venv", "venv", "env", "envs",
     "logs", "models", "dist", "build", ".pytest_cache",
     ".idea", ".vscode", "node_modules", ".mypy_cache", ".ruff_cache",
-    "voices",  # большие бинарники; если в voices есть .md — снимем отдельно
+    "voices",
 }
 
 EXCLUDE_FILES = {
-    # Личные данные
     "config.json",
     "user_profile.json",
     "dialog.json",
     "timers.json",
     "tasks.json",
-    # Сам снимок — чтобы не рекурсить
     "SNAPSHOT.md",
-    # Служебное
     ".gitignore",
     "config.json.lock",
     "user_profile.json.lock",
@@ -41,15 +37,13 @@ EXCLUDE_EXT = {
     ".tmp", ".lock", ".log",
 }
 
-# Какие расширения показывать содержимым (текстовые)
 TEXT_EXT = {
     ".py", ".md", ".txt", ".json", ".bat", ".cmd", ".cfg", ".ini",
     ".yaml", ".yml", ".toml", ".html", ".css", ".js", ".ts",
     ".ps1", ".sh", ".env", ".gitignore",
 }
 
-# Максимальный размер файла для включения содержимого
-MAX_FILE_SIZE = 200 * 1024  # 200 КБ
+MAX_FILE_SIZE = 200 * 1024
 
 
 def should_skip_dir(path: Path) -> bool:
@@ -67,12 +61,10 @@ def should_skip_file(path: Path) -> bool:
 
 
 def collect_tree(root: Path) -> list[Path]:
-    """Собирает все файлы, пропуская исключения."""
     result = []
     for path in sorted(root.rglob("*")):
         if not path.is_file():
             continue
-        # Пропускаем, если в пути есть исключённая папка
         if any(part in EXCLUDE_DIRS for part in path.parts):
             continue
         if should_skip_file(path):
@@ -82,7 +74,6 @@ def collect_tree(root: Path) -> list[Path]:
 
 
 def read_file(path: Path) -> str:
-    """Читает текстовый файл, безопасно."""
     try:
         return path.read_text(encoding="utf-8")
     except UnicodeDecodeError:
@@ -95,7 +86,6 @@ def read_file(path: Path) -> str:
 
 
 def build_tree_text(paths: list[Path], root: Path) -> str:
-    """Строит дерево в стиле tree."""
     tree = {}
     for p in paths:
         rel = p.relative_to(root)
@@ -135,7 +125,7 @@ def main() -> int:
     lines.append("## 📁 Структура проекта")
     lines.append("")
     lines.append("```")
-    lines.append("jarvis/")
+    lines.append(BASE.name + "/")
     lines.append(build_tree_text(files, BASE))
     lines.append("```")
     lines.append("")
@@ -157,7 +147,6 @@ def main() -> int:
             continue
 
         content = read_file(path)
-        # Определяем язык для markdown
         lang = {
             ".py": "python",
             ".md": "markdown",

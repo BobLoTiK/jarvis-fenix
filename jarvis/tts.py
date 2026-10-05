@@ -3,7 +3,8 @@
 Бэкенды: xtts / piper / winrt / sapi.
 Смена голоса на лету: через Config.subscribe — main.py вызывает speaker.set_voice().
 Streaming: speak_stream(iterator) — озвучивает по предложениям.
-Barge-in: play_async() + stop() — играет в потоке, можно прервать.
+Barge-in: воспроизведение через sounddevice с проверкой _stop_flag —
+реально прерывает звук (winsound.SND_PURGE на Windows 10/11 не работает).
 Предобработка текста: _prepare_text() — CJK, единицы, числа.
 """
 
@@ -15,7 +16,6 @@ import re
 import threading
 import time
 import wave
-import winsound
 from pathlib import Path
 
 log = logging.getLogger("jarvis.tts")
@@ -110,7 +110,6 @@ def _prepare_text(text: str) -> str:
 
 class Speaker:
     def __init__(self, config):
-        # config — объект Config или dict. Работает и так, и так.
         cfg = config if hasattr(config, "get") else {}
         self.rate = float(cfg.get("voice_rate", 1.15))
         self.voice = cfg.get("tts_voice", "ruslan")
@@ -171,6 +170,52 @@ class Speaker:
             except Exception:
                 pass
 
+    # --- воспроизведение через sounddevice (для barge-in) ----------------
+
+    def _play_wav(self, wav_bytes: bytes) -> None:
+        """Играет WAV-байты чанками через sounddevice, проверяя _stop_flag.
+
+        Это позволяет barge-in реально прерывать звук (winsound не умеет).
+        """
+        try:
+            import numpy as np
+            import sounddevice as sd
+        except ImportError:
+            log.warning("sounddevice/numpy недоступны, играю через winsound (barge-in будет с задержкой)")
+            import winsound
+            winsound.PlaySound(wav_bytes, winsound.SND_MEMORY)
+            return
+
+        with wave.open(io.BytesIO(wav_bytes)) as wf:
+            rate = wf.getframerate()
+            channels = wf.getnchannels()
+            width = wf.getsampwidth()
+
+        # Читаем PCM как int16 или int32
+        dtype = {1: "int8", 2: "int16", 4: "int32"}.get(width)
+        if dtype is None:
+            log.warning("Неподдерживаемая ширина сэмпла: %d", width)
+            return
+
+        with wave.open(io.BytesIO(wav_bytes)) as wf:
+            frames = wf.readframes(wf.getnframes())
+        audio = np.frombuffer(frames, dtype=dtype)
+        if channels > 1:
+            audio = audio.reshape(-1, channels)
+
+        chunk = int(rate * 0.05)  # 50 мс
+        try:
+            with sd.OutputStream(samplerate=rate, channels=channels, dtype=dtype) as stream:
+                for i in range(0, len(audio), chunk):
+                    if self._stop_flag.is_set():
+                        log.info("TTS: воспроизведение прервано (stop_flag)")
+                        break
+                    stream.write(audio[i:i + chunk])
+        except Exception:
+            log.exception("sounddevice.OutputStream не завёлся — падаю на winsound")
+            import winsound
+            winsound.PlaySound(wav_bytes, winsound.SND_MEMORY)
+
     # --- xtts / piper / sapi / winrt --------------------------------------
 
     def _init_xtts(self, ref: Path) -> None:
@@ -196,7 +241,7 @@ class Speaker:
             wf.setsampwidth(2)
             wf.setframerate(24000)
             wf.writeframes(pcm.tobytes())
-        winsound.PlaySound(buf.getvalue(), winsound.SND_MEMORY)
+        self._play_wav(buf.getvalue())
 
     def _init_piper(self, voice: str) -> None:
         from huggingface_hub import hf_hub_download
@@ -214,7 +259,7 @@ class Speaker:
         buf = io.BytesIO()
         with wave.open(buf, "wb") as wf:
             self._piper.synthesize_wav(text, wf, self._piper_cfg)
-        winsound.PlaySound(buf.getvalue(), winsound.SND_MEMORY)
+        self._play_wav(buf.getvalue())
 
     def _init_sapi(self) -> None:
         import pyttsx3
@@ -261,7 +306,7 @@ class Speaker:
             elif self._mode == "winrt":
                 wav = asyncio.run(self._synthesize(text))
                 if not self._stop_flag.is_set():
-                    winsound.PlaySound(wav, winsound.SND_MEMORY)
+                    self._play_wav(wav)
             else:
                 self._engine.say(text)
                 self._engine.runAndWait()
@@ -288,12 +333,12 @@ class Speaker:
         self._play_thread.start()
 
     def stop(self) -> None:
+        """Прерывает воспроизведение. sounddevice-поток проверит _stop_flag
+        и остановится между чанками."""
         log.info("TTS: прерывание (barge-in)")
         self._stop_flag.set()
-        try:
-            winsound.PlaySound(None, winsound.SND_PURGE)
-        except Exception:
-            pass
+        # Никаких winsound.SND_PURGE — он не работает на Windows 10/11.
+        # Прерывание происходит за счёт проверки _stop_flag в _play_wav.
 
     def is_playing(self) -> bool:
         return self._playing and self._play_thread is not None and self._play_thread.is_alive()

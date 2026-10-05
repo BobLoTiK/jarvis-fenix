@@ -1,7 +1,7 @@
 # SNAPSHOT проекта «Феникс»
 
 _Автоматически сгенерировано `snapshot.py`. Обновляется при `git push`._
-_Файлов в снимке: 53_
+_Файлов в снимке: 54_
 
 ---
 
@@ -52,6 +52,7 @@ jarvis/
 │   ├── voicedemo.py
 │   ├── wakebench.py
 ├── tests/
+│   ├── snapshot.py
 │   ├── test_config_manager.py
 │   ├── test_weather.py
 ├── ARCHITECTURE.md
@@ -2333,6 +2334,7 @@ import time
 from collections import deque
 from difflib import SequenceMatcher
 from pathlib import Path
+from types import MappingProxyType
 
 from jarvis import APP_NAME, __version__, actions, files
 from jarvis.apps import find_app
@@ -2459,6 +2461,14 @@ class IntentHandler:
         if cmd in CANCEL:
             self._reset_requested = True
             return "Жду обращение, сэр."
+
+        # Память диалога — до всего остального
+        # («что мы обсуждали», «забудь всё», «сохрани память»)
+        mem_reply, clear_requested = memory.handle_memory_command(cmd, list(self.dialog))
+        if mem_reply:
+            if clear_requested:
+                self.dialog.clear()
+            return mem_reply
 
         if self._pending_question and time.time() < self._pending_question.get("expires_at", 0):
             return self._handle_pending_answer(cmd)
@@ -2817,7 +2827,6 @@ class IntentHandler:
             city = str(intent.get("target") or "").strip()
             day = "tomorrow" if intent.get("day") == "tomorrow" else "today"
 
-            # Отсеиваем мусор от LLM
             if any(w in city.lower() for w in _WEATHER_BAD_TARGET):
                 log.warning("get_weather: LLM подсунула мусор target=%r — игнорирую", city)
                 city = ""
@@ -2961,8 +2970,10 @@ class IntentHandler:
         return result
 
     def _reload_packs(self):
-        config_copy = {"active_packs": self.active_packs, "custom_commands": []}
-        self.custom = list(self._config_custom_original) + self._load_packs_as_custom(config_copy)
+        # Передаём объект Config как есть — packs.load_active умеет
+        # работать и с Config, и с dict (через config.get).
+        # Никаких config_copy-хаков.
+        self.custom = list(self._config_custom_original) + self._load_packs_as_custom(self.config)
 
     def _folder_title(self, path: Path) -> str:
         return _FOLDER_TITLES.get(path.name, f"в папке {path.name}")
@@ -4087,8 +4098,18 @@ WHISPER_PROMPT = (
 ECHO_WINDOW_SEC = 0.5
 BARGE_LOG_INTERVAL = 0.5
 
+# Флаг, чтобы не добавлять пути CUDA в PATH повторно при каждом импорте stt.
+_CUDA_DLLS_ADDED = False
+
 
 def _enable_cuda_dlls():
+    """Добавляет пути к CUDA-библиотекам (cuBLAS, cuDNN) в PATH.
+
+    Идемпотентна: повторный вызов ничего не делает.
+    """
+    global _CUDA_DLLS_ADDED
+    if _CUDA_DLLS_ADDED:
+        return
     try:
         import nvidia
     except ImportError:
@@ -4097,6 +4118,7 @@ def _enable_cuda_dlls():
     dirs = [str(p) for p in (base / "cublas" / "bin", base / "cudnn" / "bin") if p.exists()]
     if dirs:
         os.environ["PATH"] = os.pathsep.join(dirs) + os.pathsep + os.environ["PATH"]
+        _CUDA_DLLS_ADDED = True
 
 
 class Listener:
@@ -4119,7 +4141,7 @@ class Listener:
         self._block_size = 8000
 
         # Адаптивный barge-in
-        self._echo_window_samples = deque(maxlen=20)  # ~1 секунда
+        self._echo_window_samples = deque(maxlen=20)
         self._echo_baseline = 0
         self._barge_threshold = 150
         self._barge_speech_ms = 0
@@ -4151,7 +4173,6 @@ class Listener:
         if elapsed < ECHO_WINDOW_SEC:
             return
 
-        # Калибровка: накапливаем базу эха ~0.5 сек
         if not self._echo_done:
             self._echo_window_samples.append(rms)
             if elapsed >= ECHO_WINDOW_SEC + 0.5:
@@ -4164,12 +4185,10 @@ class Listener:
                          self._echo_baseline, self._barge_threshold)
             return
 
-        # Скользящее среднее эха (адаптация к изменению громкости)
         self._echo_window_samples.append(rms)
         if len(self._echo_window_samples) >= 10:
             arr = sorted(self._echo_window_samples)
             new_echo = arr[int(len(arr) * 0.7)]
-            # Плавно адаптируем порог
             self._echo_baseline = int(0.9 * self._echo_baseline + 0.1 * new_echo)
             self._barge_threshold = max(150, int(self._echo_baseline * 1.8))
 
@@ -4891,7 +4910,8 @@ def build_tray(jarvis) -> pystray.Icon:
 Бэкенды: xtts / piper / winrt / sapi.
 Смена голоса на лету: через Config.subscribe — main.py вызывает speaker.set_voice().
 Streaming: speak_stream(iterator) — озвучивает по предложениям.
-Barge-in: play_async() + stop() — играет в потоке, можно прервать.
+Barge-in: воспроизведение через sounddevice с проверкой _stop_flag —
+реально прерывает звук (winsound.SND_PURGE на Windows 10/11 не работает).
 Предобработка текста: _prepare_text() — CJK, единицы, числа.
 """
 
@@ -4903,7 +4923,6 @@ import re
 import threading
 import time
 import wave
-import winsound
 from pathlib import Path
 
 log = logging.getLogger("jarvis.tts")
@@ -4998,7 +5017,6 @@ def _prepare_text(text: str) -> str:
 
 class Speaker:
     def __init__(self, config):
-        # config — объект Config или dict. Работает и так, и так.
         cfg = config if hasattr(config, "get") else {}
         self.rate = float(cfg.get("voice_rate", 1.15))
         self.voice = cfg.get("tts_voice", "ruslan")
@@ -5059,6 +5077,52 @@ class Speaker:
             except Exception:
                 pass
 
+    # --- воспроизведение через sounddevice (для barge-in) ----------------
+
+    def _play_wav(self, wav_bytes: bytes) -> None:
+        """Играет WAV-байты чанками через sounddevice, проверяя _stop_flag.
+
+        Это позволяет barge-in реально прерывать звук (winsound не умеет).
+        """
+        try:
+            import numpy as np
+            import sounddevice as sd
+        except ImportError:
+            log.warning("sounddevice/numpy недоступны, играю через winsound (barge-in будет с задержкой)")
+            import winsound
+            winsound.PlaySound(wav_bytes, winsound.SND_MEMORY)
+            return
+
+        with wave.open(io.BytesIO(wav_bytes)) as wf:
+            rate = wf.getframerate()
+            channels = wf.getnchannels()
+            width = wf.getsampwidth()
+
+        # Читаем PCM как int16 или int32
+        dtype = {1: "int8", 2: "int16", 4: "int32"}.get(width)
+        if dtype is None:
+            log.warning("Неподдерживаемая ширина сэмпла: %d", width)
+            return
+
+        with wave.open(io.BytesIO(wav_bytes)) as wf:
+            frames = wf.readframes(wf.getnframes())
+        audio = np.frombuffer(frames, dtype=dtype)
+        if channels > 1:
+            audio = audio.reshape(-1, channels)
+
+        chunk = int(rate * 0.05)  # 50 мс
+        try:
+            with sd.OutputStream(samplerate=rate, channels=channels, dtype=dtype) as stream:
+                for i in range(0, len(audio), chunk):
+                    if self._stop_flag.is_set():
+                        log.info("TTS: воспроизведение прервано (stop_flag)")
+                        break
+                    stream.write(audio[i:i + chunk])
+        except Exception:
+            log.exception("sounddevice.OutputStream не завёлся — падаю на winsound")
+            import winsound
+            winsound.PlaySound(wav_bytes, winsound.SND_MEMORY)
+
     # --- xtts / piper / sapi / winrt --------------------------------------
 
     def _init_xtts(self, ref: Path) -> None:
@@ -5084,7 +5148,7 @@ class Speaker:
             wf.setsampwidth(2)
             wf.setframerate(24000)
             wf.writeframes(pcm.tobytes())
-        winsound.PlaySound(buf.getvalue(), winsound.SND_MEMORY)
+        self._play_wav(buf.getvalue())
 
     def _init_piper(self, voice: str) -> None:
         from huggingface_hub import hf_hub_download
@@ -5102,7 +5166,7 @@ class Speaker:
         buf = io.BytesIO()
         with wave.open(buf, "wb") as wf:
             self._piper.synthesize_wav(text, wf, self._piper_cfg)
-        winsound.PlaySound(buf.getvalue(), winsound.SND_MEMORY)
+        self._play_wav(buf.getvalue())
 
     def _init_sapi(self) -> None:
         import pyttsx3
@@ -5149,7 +5213,7 @@ class Speaker:
             elif self._mode == "winrt":
                 wav = asyncio.run(self._synthesize(text))
                 if not self._stop_flag.is_set():
-                    winsound.PlaySound(wav, winsound.SND_MEMORY)
+                    self._play_wav(wav)
             else:
                 self._engine.say(text)
                 self._engine.runAndWait()
@@ -5176,12 +5240,12 @@ class Speaker:
         self._play_thread.start()
 
     def stop(self) -> None:
+        """Прерывает воспроизведение. sounddevice-поток проверит _stop_flag
+        и остановится между чанками."""
         log.info("TTS: прерывание (barge-in)")
         self._stop_flag.set()
-        try:
-            winsound.PlaySound(None, winsound.SND_PURGE)
-        except Exception:
-            pass
+        # Никаких winsound.SND_PURGE — он не работает на Windows 10/11.
+        # Прерывание происходит за счёт проверки _stop_flag в _play_wav.
 
     def is_playing(self) -> bool:
         return self._playing and self._play_thread is not None and self._play_thread.is_alive()
@@ -6711,24 +6775,20 @@ from pathlib import Path
 BASE = Path(__file__).resolve().parent
 OUTPUT = BASE / "SNAPSHOT.md"
 
-# Что НЕ включать
 EXCLUDE_DIRS = {
     ".git", "__pycache__", ".venv", "venv", "env", "envs",
     "logs", "models", "dist", "build", ".pytest_cache",
     ".idea", ".vscode", "node_modules", ".mypy_cache", ".ruff_cache",
-    "voices",  # большие бинарники; если в voices есть .md — снимем отдельно
+    "voices",
 }
 
 EXCLUDE_FILES = {
-    # Личные данные
     "config.json",
     "user_profile.json",
     "dialog.json",
     "timers.json",
     "tasks.json",
-    # Сам снимок — чтобы не рекурсить
     "SNAPSHOT.md",
-    # Служебное
     ".gitignore",
     "config.json.lock",
     "user_profile.json.lock",
@@ -6741,15 +6801,13 @@ EXCLUDE_EXT = {
     ".tmp", ".lock", ".log",
 }
 
-# Какие расширения показывать содержимым (текстовые)
 TEXT_EXT = {
     ".py", ".md", ".txt", ".json", ".bat", ".cmd", ".cfg", ".ini",
     ".yaml", ".yml", ".toml", ".html", ".css", ".js", ".ts",
     ".ps1", ".sh", ".env", ".gitignore",
 }
 
-# Максимальный размер файла для включения содержимого
-MAX_FILE_SIZE = 200 * 1024  # 200 КБ
+MAX_FILE_SIZE = 200 * 1024
 
 
 def should_skip_dir(path: Path) -> bool:
@@ -6767,12 +6825,10 @@ def should_skip_file(path: Path) -> bool:
 
 
 def collect_tree(root: Path) -> list[Path]:
-    """Собирает все файлы, пропуская исключения."""
     result = []
     for path in sorted(root.rglob("*")):
         if not path.is_file():
             continue
-        # Пропускаем, если в пути есть исключённая папка
         if any(part in EXCLUDE_DIRS for part in path.parts):
             continue
         if should_skip_file(path):
@@ -6782,7 +6838,6 @@ def collect_tree(root: Path) -> list[Path]:
 
 
 def read_file(path: Path) -> str:
-    """Читает текстовый файл, безопасно."""
     try:
         return path.read_text(encoding="utf-8")
     except UnicodeDecodeError:
@@ -6795,7 +6850,6 @@ def read_file(path: Path) -> str:
 
 
 def build_tree_text(paths: list[Path], root: Path) -> str:
-    """Строит дерево в стиле tree."""
     tree = {}
     for p in paths:
         rel = p.relative_to(root)
@@ -6835,7 +6889,7 @@ def main() -> int:
     lines.append("## 📁 Структура проекта")
     lines.append("")
     lines.append("```")
-    lines.append("jarvis/")
+    lines.append(BASE.name + "/")
     lines.append(build_tree_text(files, BASE))
     lines.append("```")
     lines.append("")
@@ -6857,7 +6911,6 @@ def main() -> int:
             continue
 
         content = read_file(path)
-        # Определяем язык для markdown
         lang = {
             ".py": "python",
             ".md": "markdown",
@@ -7151,6 +7204,12 @@ if __name__ == "__main__":
     main()
 ```
 
+### `tests\snapshot.py`
+
+```python
+
+```
+
 ### `tests\test_config_manager.py`
 
 ```python
@@ -7228,28 +7287,6 @@ def test_describe_weather_today():
     assert "Россия" in s
 
 
-"""Тесты weather: структура ответов, describe_*. Сеть не нужна — мокаем."""
-from unittest.mock import patch
-
-from jarvis import weather
-
-
-def test_describe_weather_none():
-    assert "Не удалось" in weather.describe_weather(None)
-
-
-def test_describe_weather_today():
-    w = {
-        "city": "Москва", "country": "Россия", "day": "сегодня",
-        "temp": 5, "feels": 2, "code": 3, "wind": 4,
-        "humidity": 70, "temp_min": 1, "temp_max": 8, "precip": 0.2,
-    }
-    s = weather.describe_weather(w)
-    assert "Москва" in s
-    assert "5 градусов" in s
-    assert "Россия" in s
-
-
 def test_describe_weather_tomorrow():
     w = {
         "city": "Казань", "country": "Россия", "day": "завтра",
@@ -7258,37 +7295,6 @@ def test_describe_weather_tomorrow():
     s = weather.describe_weather(w)
     assert "Казань" in s
     assert "завтра" in s
-
-
-def test_describe_currency_specific():
-    rates = {
-        "date": "2026-10-04",
-        "valutes": {
-            "USD": {"name": "Доллар США", "value": 83.48, "nominal": 1},
-            "BYN": {"name": "Белорусский рубль", "value": 27.5, "nominal": 1},
-        },
-    }
-    s = weather.describe_currency(rates, code="BYN")
-    assert "Белорусский" in s
-    assert "27.50" in s
-
-
-def test_describe_currency_default():
-    rates = {
-        "date": "2026-10-04",
-        "valutes": {
-            "USD": {"name": "Доллар США", "value": 83.48, "nominal": 1},
-            "EUR": {"name": "Евро", "value": 94.32, "nominal": 1},
-        },
-    }
-    s = weather.describe_currency(rates)
-    assert "Доллар" in s and "Евро" in s
-
-
-def test_describe_currency_unknown():
-    rates = {"date": "2026-10-04", "valutes": {}}
-    s = weather.describe_currency(rates, code="XXX")
-    assert "не нашёл" in s
 
 
 def test_describe_currency_specific():
