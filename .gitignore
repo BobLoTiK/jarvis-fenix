@@ -43,6 +43,7 @@ user_profile.json.lock
 dialog.json
 timers.json
 tasks.json
+profiles/
 logs/
 *.log
 

@@ -272,6 +272,8 @@ def main() -> None:
         pass
 
     config: Config = load_config(BASE_DIR)
+    from jarvis import profile as _profile
+    _profile.init()
     model_dir = ensure_model(BASE_DIR / "models")
 
     whisper = None

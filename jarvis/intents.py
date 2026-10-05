@@ -230,6 +230,11 @@ class IntentHandler:
         if reply:
             return reply
 
+        # Профиль: смена, список, факты
+        reply = self._profile_fast(cmd)
+        if reply:
+            return reply
+
         # Погода/курс — простые случаи без нормализации
         reply = self._weather_currency_fast(cmd)
         if reply:
@@ -281,6 +286,69 @@ class IntentHandler:
         if not target:
             return None
         return self._do_open(target)
+
+    def _profile_fast(self, cmd: str) -> str | None:
+        """Команды профиля: смена, список, факты."""
+        # Смена профиля: «я — Маша», «я Маша», «переключись на Машу»
+        m = re.match(r"^(?:я\s*[-—]?\s*|зови\s+меня\s+|переключись\s+на\s+|я\s+это\s+)([а-яёa-z][а-яёa-z\s\-]{0,40})$", cmd)
+        if m:
+            name = m.group(1).strip()
+            if name and name not in _NOT_A_CITY:
+                return profile.switch(name)
+
+        # Кто активен
+        if re.search(r"(кто|какой)\s+(сейчас\s+)?(активен|профиль|пользователь)", cmd) \
+                or cmd in {"кто активен", "какой профиль", "текущий профиль"}:
+            name = profile.get("name") or profile.current()
+            return f"Сейчас профиль {name}."
+
+        # Список профилей
+        if re.search(r"(список|какие|покажи)\s+профил", cmd) \
+                or cmd in {"список профилей", "какие профили"}:
+            all_p = profile.list_all()
+            if not all_p:
+                return "Профилей нет."
+            return f"Профили: {', '.join(all_p)}."
+
+        # Запомни факт: «запомни: я люблю кофе», «запомни, что день рождения 15 марта»
+        m = re.match(r"^(?:запомни|запиши)\s*[,:]?\s*(?:что\s+)?(.+)$", cmd)
+        if m:
+            fact = m.group(1).strip(" ,.:!?")
+            if not fact:
+                return "Что запомнить?"
+            # разбиваем на key:value по «—», «-», «=», «:»
+            sep = re.match(r"^(.+?)\s*[—\-=:]\s*(.+)$", fact)
+            if sep:
+                key, value = sep.group(1).strip(), sep.group(2).strip()
+            else:
+                key, value = fact, "да"
+            profile.set_fact(key, value)
+            return f"Запомнил: {key} — {value}."
+
+        # Что ты обо мне знаешь
+        if re.search(r"(что|чё)\s+ты\s+(обо\s+мне\s+)?знаешь", cmd) \
+                or cmd in {"что ты обо мне знаешь", "что ты знаешь"}:
+            facts = profile.all_facts()
+            name = profile.get("name")
+            parts = []
+            if name:
+                parts.append(f"Тебя зовут {name}")
+            if facts:
+                facts_str = "; ".join(f"{k} — {v}" for k, v in facts.items())
+                parts.append(f"Знаю: {facts_str}")
+            if not parts:
+                return "Пока ничего о тебе не знаю."
+            return ". ".join(parts) + "."
+
+        # Забудь факт
+        m = re.match(r"^забудь\s+(?:факт\s+)?(.+)$", cmd)
+        if m:
+            key = m.group(1).strip(" ,.:!?")
+            if profile.forget_fact(key):
+                return f"Забыл: {key}."
+            return f"Факта «{key}» не знаю."
+
+        return None
 
     def _weather_currency_fast(self, cmd: str) -> str | None:
         """Простые правила для погоды и курса — без LLM.
@@ -804,6 +872,9 @@ class IntentHandler:
         if any(p in cmd for p in ("спасибо", "благодарю")):
             return "Всегда пожалуйста."
         if any(p in cmd for p in ("привет", "здравствуй", "добрый день", "доброе утро", "добрый вечер")):
+            name = profile.get("name")
+            if name:
+                return f"Привет, {name}! Чем могу помочь?"
             return "Привет! Чем могу помочь?"
         if any(p in cmd for p in ("пока", "до свидания", "спокойной ночи")):
             return "До связи."
