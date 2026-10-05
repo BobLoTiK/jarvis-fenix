@@ -93,18 +93,16 @@ jarvis/
 #   3. Ставит лёгкие зависимости (requirements-ci.txt).
 #   4. Проверяет синтаксис (check_syntax.py).
 #   5. Гоняет pytest (tests/).
-#   6. Гоняет test_intents.py (без LLM и без озвучки).
+#   6. Гоняет test_intents.py (без LLM, без сети, без озвучки).
 #
 # Где смотреть результат:
 #   На GitHub → вкладка "Actions" → последний запуск.
-#   Или рядом с коммитом: ✅ или ❌.
 #
 # Файл лежит в: .github/workflows/test.yml
 # ============================================================
 
 name: tests
 
-# Когда запускать:
 on:
   push:
     branches: [main, master]
@@ -113,41 +111,36 @@ on:
 
 jobs:
   test:
-    # Виртуалка с Windows — на ней есть winreg, os.startfile и т.п.
     runs-on: windows-latest
-
-    # Если что-то зависнет — убьёт через 15 минут, не будет висеть час.
     timeout-minutes: 15
 
+    # PYTHONUTF8=1 — включает UTF-8 mode интерпретатора.
+    # Страховка от UnicodeEncodeError в cp1252-консоли GitHub Actions.
+    # В коде тоже есть reconfigure — здесь глобально на весь job.
+    env:
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: "utf-8"
+
     steps:
-      # 1. Скачивает код репозитория на виртуалку.
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 2. Ставит Python 3.11 и включает кэш pip.
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
 
-      # 3. Ставит зависимости для CI.
-      #    requirements-ci.txt — облегчённая версия, без звука и GUI.
       - name: Install dependencies
         run: pip install -r requirements-ci.txt
 
-      # 4. Проверяет синтаксис всех .py файлов.
       - name: Check syntax
         run: python check_syntax.py
 
-      # 5. Гоняет юнит-тесты (tests/).
       - name: Unit tests (pytest)
         run: python -m pytest tests/ -q
 
-      # 6. Гоняет интент-тесты.
-      #    По умолчанию test_intents.py НЕ поднимает LLM и НЕ озвучивает.
-      #    Поэтому на сервере без Ollama и без звука всё работает.
-      - name: Intent tests (без LLM и озвучки)
+      - name: Intent tests (без LLM, без сети, без озвучки)
         run: python test_intents.py
 ```
 
@@ -447,6 +440,12 @@ pause
 import ast
 import sys
 from pathlib import Path
+
+# Принудительно UTF-8 для stdout/stderr — иначе на CI (Windows, cp1252)
+# падает UnicodeEncodeError при печати русских букв.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 BASE = Path(__file__).resolve().parent
 
@@ -7465,6 +7464,12 @@ import sys
 import time
 from pathlib import Path
 
+# Принудительно UTF-8 для stdout/stderr — иначе на CI (Windows, cp1252)
+# падает UnicodeEncodeError при печати русских букв.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 BASE_DIR = Path(__file__).resolve().parent
 LOGS_DIR = BASE_DIR / "logs"
 LOGS_DIR.mkdir(exist_ok=True)
@@ -7510,14 +7515,9 @@ TESTS = [
     ("clipboard_clear",     "очисти буфер",               ["Буфер"],                False, False),
 
     # === Погода ===
-    # weather_ask_city — без сети: если город не задан, просто спросит.
-    # Если profile сброшен — гарантированно спросит.
     ("weather_ask_city",    "какая погода",               ["городе"],               False, False),
-    # weather_answer_city — требует сеть: после ответа города идёт запрос погоды.
     ("weather_answer_city", "Казань",                     ["Запомнил"],             False, True),
-    # weather_default — требует сеть: город уже сохранён, сразу погода.
     ("weather_default",     "какая погода",               ["Погода", "Казань"],     False, True),
-    # Падежи — только с LLM (нормализация города).
     ("weather_other_city",  "погода в нижнем новгороде",  ["Погода", "Новгород"],   True,  True),
     ("weather_tomorrow",    "погода в питере на завтра",  ["Погода", "Петербург"],  True,  True),
 

@@ -3,6 +3,12 @@ import ast
 import sys
 from pathlib import Path
 
+# Принудительно UTF-8 для stdout/stderr — иначе на CI (Windows, cp1252)
+# падает UnicodeEncodeError при печати русских букв.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 BASE = Path(__file__).resolve().parent
 
 # Папки, где ищем .py

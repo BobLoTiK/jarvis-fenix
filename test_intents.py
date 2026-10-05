@@ -23,6 +23,12 @@ import sys
 import time
 from pathlib import Path
 
+# Принудительно UTF-8 для stdout/stderr — иначе на CI (Windows, cp1252)
+# падает UnicodeEncodeError при печати русских букв.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 BASE_DIR = Path(__file__).resolve().parent
 LOGS_DIR = BASE_DIR / "logs"
 LOGS_DIR.mkdir(exist_ok=True)
@@ -68,14 +74,9 @@ TESTS = [
     ("clipboard_clear",     "очисти буфер",               ["Буфер"],                False, False),
 
     # === Погода ===
-    # weather_ask_city — без сети: если город не задан, просто спросит.
-    # Если profile сброшен — гарантированно спросит.
     ("weather_ask_city",    "какая погода",               ["городе"],               False, False),
-    # weather_answer_city — требует сеть: после ответа города идёт запрос погоды.
     ("weather_answer_city", "Казань",                     ["Запомнил"],             False, True),
-    # weather_default — требует сеть: город уже сохранён, сразу погода.
     ("weather_default",     "какая погода",               ["Погода", "Казань"],     False, True),
-    # Падежи — только с LLM (нормализация города).
     ("weather_other_city",  "погода в нижнем новгороде",  ["Погода", "Новгород"],   True,  True),
     ("weather_tomorrow",    "погода в питере на завтра",  ["Погода", "Петербург"],  True,  True),
 
