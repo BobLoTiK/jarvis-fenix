@@ -252,6 +252,17 @@ def main() -> None:
     setup_logging()
     log.info("%s v%s запускается", APP_NAME, __version__)
 
+    # Порядок импортов критичен для Windows:
+    #   faster_whisper → ctranslate2 → winrt.
+    # Если winrt подгрузится раньше ctranslate2, на некоторых сборках
+    # получаем access violation при инициализации CUDA-контекста.
+    # См. issue: https://github.com/SYSTRAN/faster-whisper/issues/1047
+    try:
+        import faster_whisper  # noqa: F401
+        import ctranslate2  # noqa: F401
+    except ImportError:
+        pass
+
     config: Config = load_config(BASE_DIR)
     model_dir = ensure_model(BASE_DIR / "models")
 

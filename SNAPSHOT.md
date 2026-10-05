@@ -1,7 +1,7 @@
 # SNAPSHOT проекта «Феникс»
 
 _Автоматически сгенерировано `snapshot.py`. Обновляется при `git push`._
-_Файлов в снимке: 54_
+_Файлов в снимке: 56_
 
 ---
 
@@ -49,19 +49,21 @@ jarvis/
 │   ├── build_exe.py
 │   ├── mics.py
 │   ├── selftest.py
+│   ├── set_llm_model.py
 │   ├── voicedemo.py
 │   ├── wakebench.py
 ├── tests/
-│   ├── snapshot.py
 │   ├── test_config_manager.py
 │   ├── test_weather.py
 ├── ARCHITECTURE.md
+├── check_all.bat
 ├── check_syntax.bat
 ├── check_syntax.py
 ├── config.example.json
 ├── install.bat
 ├── launcher.py
 ├── PLAN.md
+├── profile.py
 ├── README.md
 ├── requirements.txt
 ├── snapshot.py
@@ -260,6 +262,98 @@ config.Config._data (в памяти) — источник истины
 5. **Не выкидывай ошибки в `errors.log`** — это сигнал, что что-то сломалось, разбирайся.
 6. **Логи в `actions.log`** — главный инструмент отладки. Если что-то не работает — смотри туда в первую очередь.
 7. **`test_intents.py`** — первое, что надо запустить после любой правки в `intents.py`, `brain.py`, `actions.py`.
+```
+
+### `check_all.bat`
+
+```batch
+@echo off
+setlocal EnableDelayedExpansion
+chcp 65001 >nul
+title Проверка Феникса
+
+echo ============================================================
+echo   Проверка проекта Феникс
+echo ============================================================
+echo.
+
+cd /d "%~dp0"
+
+set FAILED=0
+
+REM =====================================================================
+REM 1. Синтаксис
+REM =====================================================================
+echo [1/3] Проверка синтаксиса...
+echo.
+python check_syntax.py
+if errorlevel 1 (
+    echo.
+    echo   [!!] Синтаксис сломан
+    set FAILED=1
+) else (
+    echo.
+    echo   [OK] Синтаксис в порядке
+)
+echo.
+echo ------------------------------------------------------------
+echo.
+
+REM =====================================================================
+REM 2. pytest
+REM =====================================================================
+echo [2/3] Юнит-тесты (pytest)...
+echo.
+python -m pytest tests/ -q
+if errorlevel 1 (
+    echo.
+    echo   [!!] Тесты упали
+    set FAILED=1
+) else (
+    echo.
+    echo   [OK] Тесты прошли
+)
+echo.
+echo ------------------------------------------------------------
+echo.
+
+REM =====================================================================
+REM 3. test_intents
+REM =====================================================================
+echo [3/3] Интент-тесты (test_intents.py)...
+echo   Это может занять до 30 секунд.
+echo.
+python test_intents.py
+if errorlevel 1 (
+    echo.
+    echo   [!!] Интент-тесты упали — смотри logs\test_intents.log
+    set FAILED=1
+) else (
+    echo.
+    echo   [OK] Интент-тесты прошли
+)
+echo.
+
+REM =====================================================================
+REM Итог
+REM =====================================================================
+echo ============================================================
+if "!FAILED!"=="1" (
+    echo   ЕСТЬ ОШИБКИ
+    echo ============================================================
+    echo.
+    echo   Что смотреть:
+    echo     1. Выше — какой шаг упал
+    echo     2. logs\errors.log
+    echo     3. logs\test_intents.log
+    echo.
+) else (
+    echo   ВСЁ РАБОТАЕТ
+    echo ============================================================
+    echo.
+)
+
+pause
 ```
 
 ### `check_syntax.bat`
@@ -602,9 +696,11 @@ if defined ALREADY (
     )
 )
 
-echo.
 echo   Обновляю config.json — устанавливаю llm_model = !LLM_MODEL! ...
-python -c "import json, pathlib; p = pathlib.Path('config.json'); d = json.loads(p.read_text(encoding='utf-8')) if p.exists() else {}; d['llm_model'] = '!LLM_MODEL!'; p.write_text(json.dumps(d, ensure_ascii=False, indent=2), encoding='utf-8'); print('OK')"
+python scripts\set_llm_model.py "!LLM_MODEL!"
+if errorlevel 1 (
+    echo   ВНИМАНИЕ: не удалось обновить config.json
+)
 echo.
 
 goto after_model
@@ -3285,6 +3381,17 @@ def main() -> None:
     setup_logging()
     log.info("%s v%s запускается", APP_NAME, __version__)
 
+    # Порядок импортов критичен для Windows:
+    #   faster_whisper → ctranslate2 → winrt.
+    # Если winrt подгрузится раньше ctranslate2, на некоторых сборках
+    # получаем access violation при инициализации CUDA-контекста.
+    # См. issue: https://github.com/SYSTRAN/faster-whisper/issues/1047
+    try:
+        import faster_whisper  # noqa: F401
+        import ctranslate2  # noqa: F401
+    except ImportError:
+        pass
+
     config: Config = load_config(BASE_DIR)
     model_dir = ensure_model(BASE_DIR / "models")
 
@@ -3425,22 +3532,26 @@ def match_score(spoken: str, candidate: str) -> float:
         return 0.0
     spoken = _num_norm(spoken)
     cand = _num_norm(cand)
+
+    # Короткие цели обрабатываем отдельно: только точное совпадение
+    # или совпадение по словам (не по подстроке!). Иначе «лок» ловит «блокнот».
+    len_spoken = len(spoken.replace(" ", ""))
+
     best = 0.0
-    # Whisper может выдать латиницу («открой discord»), псевдонимы бывают
-    # кириллицей — поэтому транслитерируем и фонетически выравниваем обе стороны
     for s in {spoken, _fold(translit(spoken))}:
         for c in {cand, _fold(translit(cand))}:
             if s == c:
                 return 1.0
-            if len(s) >= 3 and (s in c or c in s):
+            # Нечёткое вхождение — только для строк длиной >= 5.
+            # Это защищает от ложных срабатываний («лок» в «блокнот»).
+            if len(s) >= 5 and (s in c or c in s):
                 best = max(best, 0.9)
             best = max(best, SequenceMatcher(None, s, c).ratio())
             best = max(best, SequenceMatcher(None, s.replace(" ", ""), c.replace(" ", "")).ratio())
             s_words, c_words = s.split(), c.split()
             for word in c_words:
                 best = max(best, SequenceMatcher(None, s, word).ratio())
-            # многословные цели: «роблокс плеер» ~ «roblox player installer» —
-            # каждому сказанному слову ищем лучшее слово кандидата
+            # Многословные цели: «роблокс плеер» ~ «roblox player installer»
             if len(s_words) > 1 and c_words:
                 avg = sum(
                     max(SequenceMatcher(None, sw, cw).ratio() for cw in c_words)
@@ -3450,6 +3561,12 @@ def match_score(spoken: str, candidate: str) -> float:
     sk_s, sk_c = _skeleton(spoken), _skeleton(cand)
     if len(sk_s) >= 3 and sk_s == sk_c:
         best = max(best, 0.8)
+
+    # Дополнительная защита: если spoken короче 4 символов, а нечёткий
+    # результат ниже 0.85 — считаем это неуверенным совпадением.
+    if len_spoken < 4 and best < 0.85:
+        return 0.0
+
     return best
 ```
 
@@ -5909,6 +6026,105 @@ if __name__ == "__main__":
 5.6	Скриптовые плагины	—
 ```
 
+### `profile.py`
+
+```python
+"""Профиль пользователя.
+
+Хранит данные, специфичные для пользователя:
+    - город по умолчанию
+    - имя
+    - предпочтения
+    - произвольные факты (для будущего модуля памяти)
+
+Файл: user_profile.json в корне проекта.
+НЕ отправляется в гит (см. .gitignore).
+Запись — через config_manager (единый FileLock, атомарная замена).
+
+Защита: если user_profile.json битый — не перезаписываем молча,
+логируем и НЕ сохраняем (чтобы не потерять данные при ошибке чтения).
+"""
+
+import json
+import logging
+from pathlib import Path
+
+from jarvis import config_manager
+
+log = logging.getLogger("jarvis.profile")
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+PROFILE_PATH = BASE_DIR / "user_profile.json"
+
+
+def _safe_load() -> dict:
+    """Читает профиль. Возвращает {} при отсутствии файла.
+    Логирует отдельно, если файл есть, но битый.
+    """
+    if not PROFILE_PATH.exists():
+        return {}
+    raw = PROFILE_PATH.read_text(encoding="utf-8")
+    if not raw.strip():
+        return {}
+    try:
+        data = json.loads(raw)
+        return data if isinstance(data, dict) else {}
+    except json.JSONDecodeError:
+        log.error("user_profile.json битый — не могу прочитать. "
+                  "НЕ перезаписываю, чтобы не потерять данные. "
+                  "Почини файл вручную: %s", PROFILE_PATH)
+        raise
+
+
+def get(key: str, default=None):
+    """Читает одно поле. При битом файле — возвращает default."""
+    try:
+        return _safe_load().get(key, default)
+    except json.JSONDecodeError:
+        return default
+
+
+def set(key: str, value) -> bool:
+    """Записывает одно поле. Возвращает True при успехе.
+    При битом файле — НЕ перезаписывает, возвращает False.
+    """
+    try:
+        data = _safe_load()
+    except json.JSONDecodeError:
+        return False
+
+    data[key] = value
+    ok = config_manager.save(data, path=PROFILE_PATH)
+    if ok:
+        log.info("Профиль: %s = %r", key, value)
+    else:
+        log.error("Профиль: не удалось сохранить %s", key)
+    return ok
+
+
+def all_data() -> dict:
+    """Возвращает все данные профиля. При битом — пустой dict."""
+    try:
+        return _safe_load()
+    except json.JSONDecodeError:
+        return {}
+
+
+def forget(key: str) -> bool:
+    """Удаляет одно поле."""
+    try:
+        data = _safe_load()
+    except json.JSONDecodeError:
+        return False
+    if key not in data:
+        return False
+    del data[key]
+    ok = config_manager.save(data, path=PROFILE_PATH)
+    if ok:
+        log.info("Профиль: удалено %s", key)
+    return ok
+```
+
 ### `README.md`
 
 ```markdown
@@ -6387,12 +6603,13 @@ Win+R → `shell:startup` → Enter. Скопируй туда ярлык на `
 ### `requirements.txt`
 
 ```
+# --- Ядро проекта ---
 vosk>=0.3.45
 faster-whisper>=1.2
 piper-tts>=1.3
 sounddevice>=0.5
-pystray>=0.19
-Pillow>=10
+
+# --- TTS / STT WinRT ---
 pyttsx3>=2.99
 winrt-runtime>=3.2
 winrt-Windows.Foundation>=3.2
@@ -6400,10 +6617,31 @@ winrt-Windows.Foundation.Collections>=3.2
 winrt-Windows.Media.SpeechSynthesis>=3.2
 winrt-Windows.Media.Control>=3.2
 winrt-Windows.Storage.Streams>=3.2
+
+# --- Утилиты ---
 filelock>=3.13
 num2words>=0.5.14
+pystray>=0.19
+Pillow>=10
+psutil>=5.9
+pyperclip>=1.8
+
+# --- Автоматизация Windows ---
+pyautogui>=0.9.54
+pygetwindow>=0.0.9
+keyboard>=0.13.5
+mouse>=0.7.1
+
+# --- Громкость / яркость (пункт 2.4 плана) ---
+pycaw>=20240210
+screen-brightness-control>=0.22
+
+# --- Тесты ---
 pytest>=8.0
 pytest-asyncio>=0.23
+
+# --- Сборка .exe (опционально) ---
+# pyinstaller>=6.0
 ```
 
 ### `scripts\build_exe.py`
@@ -6579,6 +6817,57 @@ def main() -> None:
     from jarvis.stt import WhisperTranscriber
     whisper = WhisperTranscriber("auto", "auto")
     # для прогона TTS->STT нужен WinRT-бэкенд
+```
+
+### `scripts\set_llm_model.py`
+
+```python
+"""Устанавливает llm_model в config.json.
+
+Используется из install.bat после выбора модели.
+
+Запуск:
+    python scripts/set_llm_model.py qwen2.5:7b-instruct
+"""
+
+import json
+import sys
+from pathlib import Path
+
+BASE = Path(__file__).resolve().parent.parent
+CONFIG = BASE / "config.json"
+
+
+def main() -> int:
+    if len(sys.argv) < 2:
+        print("Использование: python scripts/set_llm_model.py <model_name>")
+        return 1
+
+    model = sys.argv[1].strip()
+    if not model:
+        print("Пустое имя модели")
+        return 1
+
+    data = {}
+    if CONFIG.exists():
+        try:
+            data = json.loads(CONFIG.read_text(encoding="utf-8"))
+        except Exception as e:
+            print(f"Не удалось прочитать config.json: {e}")
+            return 1
+
+    old = data.get("llm_model")
+    data["llm_model"] = model
+    CONFIG.write_text(
+        json.dumps(data, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    print(f"llm_model: {old} -> {model}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
 ```
 
 ### `scripts\voicedemo.py`
@@ -7163,12 +7452,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-```
-
-### `tests\snapshot.py`
-
-```python
-
 ```
 
 ### `tests\test_config_manager.py`

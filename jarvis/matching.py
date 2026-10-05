@@ -67,22 +67,26 @@ def match_score(spoken: str, candidate: str) -> float:
         return 0.0
     spoken = _num_norm(spoken)
     cand = _num_norm(cand)
+
+    # Короткие цели обрабатываем отдельно: только точное совпадение
+    # или совпадение по словам (не по подстроке!). Иначе «лок» ловит «блокнот».
+    len_spoken = len(spoken.replace(" ", ""))
+
     best = 0.0
-    # Whisper может выдать латиницу («открой discord»), псевдонимы бывают
-    # кириллицей — поэтому транслитерируем и фонетически выравниваем обе стороны
     for s in {spoken, _fold(translit(spoken))}:
         for c in {cand, _fold(translit(cand))}:
             if s == c:
                 return 1.0
-            if len(s) >= 3 and (s in c or c in s):
+            # Нечёткое вхождение — только для строк длиной >= 5.
+            # Это защищает от ложных срабатываний («лок» в «блокнот»).
+            if len(s) >= 5 and (s in c or c in s):
                 best = max(best, 0.9)
             best = max(best, SequenceMatcher(None, s, c).ratio())
             best = max(best, SequenceMatcher(None, s.replace(" ", ""), c.replace(" ", "")).ratio())
             s_words, c_words = s.split(), c.split()
             for word in c_words:
                 best = max(best, SequenceMatcher(None, s, word).ratio())
-            # многословные цели: «роблокс плеер» ~ «roblox player installer» —
-            # каждому сказанному слову ищем лучшее слово кандидата
+            # Многословные цели: «роблокс плеер» ~ «roblox player installer»
             if len(s_words) > 1 and c_words:
                 avg = sum(
                     max(SequenceMatcher(None, sw, cw).ratio() for cw in c_words)
@@ -92,4 +96,10 @@ def match_score(spoken: str, candidate: str) -> float:
     sk_s, sk_c = _skeleton(spoken), _skeleton(cand)
     if len(sk_s) >= 3 and sk_s == sk_c:
         best = max(best, 0.8)
+
+    # Дополнительная защита: если spoken короче 4 символов, а нечёткий
+    # результат ниже 0.85 — считаем это неуверенным совпадением.
+    if len_spoken < 4 and best < 0.85:
+        return 0.0
+
     return best

@@ -210,9 +210,11 @@ if defined ALREADY (
     )
 )
 
-echo.
 echo   Обновляю config.json — устанавливаю llm_model = !LLM_MODEL! ...
-python -c "import json, pathlib; p = pathlib.Path('config.json'); d = json.loads(p.read_text(encoding='utf-8')) if p.exists() else {}; d['llm_model'] = '!LLM_MODEL!'; p.write_text(json.dumps(d, ensure_ascii=False, indent=2), encoding='utf-8'); print('OK')"
+python scripts\set_llm_model.py "!LLM_MODEL!"
+if errorlevel 1 (
+    echo   ВНИМАНИЕ: не удалось обновить config.json
+)
 echo.
 
 goto after_model
