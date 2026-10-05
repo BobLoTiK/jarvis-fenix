@@ -2,6 +2,7 @@
 
 Гибрид: Vosk (wake) + Whisper (точная расшифровка).
 Barge-in: адаптивная калибровка эха и фона при старте.
+Ring buffer: последние 10 фраз (для «что ты слышал»).
 """
 
 import json
@@ -70,6 +71,9 @@ class Listener:
         self.muted = False
         self.barge_flag = False
         self._block_size = 8000
+
+        # Ring buffer последних фраз (для «что ты слышал»)
+        self.recent_phrases: deque = deque(maxlen=10)
 
         # Адаптивный barge-in
         self._echo_window_samples = deque(maxlen=20)
@@ -206,6 +210,7 @@ class Listener:
                     self._utt_len = 0
                     if text:
                         self.utterances += 1
+                        self.recent_phrases.append(text)
                         log.info("Распознано (vosk): %s", text)
                         yield text, audio
 

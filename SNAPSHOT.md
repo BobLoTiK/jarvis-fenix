@@ -2130,6 +2130,8 @@ set_volume (громкость в процентах; percent — число 0-1
 get_volume (какая громкость)
 set_brightness (яркость в процентах; percent — число 0-100)
 get_brightness (какая яркость)
+debug_what_heard (что ты слышал — история распознавания)
+debug_why_not_understood (почему не понял — диагностика)
 minimize_all (свернуть все окна)
 minimize_window (свернуть окно; target)
 maximize_window (развернуть окно; target)
@@ -2313,6 +2315,7 @@ ACTIONS = {
     "switch_layout", "set_layout_ru", "set_layout_en", "get_layout",
     "set_volume", "get_volume",
     "set_brightness", "get_brightness",
+    "debug_why_not_understood", "debug_what_heard",
 }
 
 CHAT_SYSTEM = (
@@ -3025,6 +3028,10 @@ class IntentHandler:
         self._last_reply = ""
         self._pending_question = None
 
+        # Диагностика (Н2, Н3)
+        self._last_debug: dict = {}
+        self._recent_phrases: deque = deque(maxlen=10)
+
         self._config_custom_original = []
         for entry in config.get("custom_commands", []):
             phrases = [normalize(p) for p in entry.get("phrases", []) if p.strip()]
@@ -3061,6 +3068,9 @@ class IntentHandler:
         """Возвращает Reply: либо text, либо stream."""
         self.last_was_chat = False
         actions_log.info("Команда: %r (режим: %s)", cmd, self.mode)
+
+        # Диагностика: сохраняем последнюю команду
+        self._recent_phrases.append(cmd)
 
         result = self._handle_single(cmd)
 
@@ -3186,17 +3196,35 @@ class IntentHandler:
         if reply:
             return reply
 
+        reply = self._debug_fast(cmd)
+        if reply:
+            return reply
+
         reply = self._weather_currency_fast(cmd)
         if reply:
             return reply
 
         if self.mode == "commands":
+            self._last_debug = {
+                "cmd": cmd, "reason": "режим commands",
+                "mode": self.mode, "llm": False,
+            }
             return "Я не понял команду. Скажите «режим ИИ» или добавьте фразу в конфиг."
 
         if self.brain is None or not self.brain.available:
+            self._last_debug = {
+                "cmd": cmd, "reason": "LLM недоступна",
+                "mode": self.mode, "llm": False,
+            }
             return "LLM недоступна. Скажите «режим команды»."
 
         intent = self.brain.parse(cmd)
+        self._last_debug = {
+            "cmd": cmd,
+            "intent": intent,
+            "mode": self.mode,
+            "llm": True,
+        }
         if intent and intent.get("action") not in ("answer", "none"):
             if intent.get("action") == "search" \
                     and not any(v in cmd for v in SEARCH_VERBS):
@@ -3372,6 +3400,37 @@ class IntentHandler:
                 or cmd in {"какая яркость", "текущая яркость"}:
             br = actions.get_brightness()
             return f"Яркость: {br}%." if br is not None else "Не смог узнать."
+
+        return None
+
+    def _debug_fast(self, cmd: str) -> str | None:
+        """Команды диагностики: что слышал, почему не понял."""
+        # --- что ты слышал ---
+        if re.search(r"(что|чё)\s+ты\s+слышал", cmd) \
+                or cmd in {"что ты слышал", "что слышал", "история"}:
+            phrases = list(self._recent_phrases)
+            if not phrases:
+                return "Пока ничего не слышал."
+            lines = [f"{i+1}. {p}" for i, p in enumerate(phrases[-5:])]
+            return "Последние фразы: " + "; ".join(lines) + "."
+
+        # --- почему не понял ---
+        if re.search(r"почему\s+(ты\s+)?не\s+понял", cmd) \
+                or cmd in {"почему не понял", "почему не поняла"}:
+            d = self._last_debug
+            if not d:
+                return "Пока нечего диагностировать."
+            parts = [f"Фраза: «{d.get('cmd', '?')}»"]
+            parts.append(f"Режим: {d.get('mode', '?')}")
+            if d.get("llm"):
+                intent = d.get("intent")
+                if intent:
+                    parts.append(f"LLM вернула: {intent.get('action', '?')}")
+                else:
+                    parts.append("LLM не разобрала")
+            else:
+                parts.append(f"LLM: {d.get('reason', 'выкл')}")
+            return ". ".join(parts) + "."
 
         return None
 
@@ -5362,6 +5421,7 @@ def find_game(games: list[tuple[str, str]], spoken: str,
 
 Гибрид: Vosk (wake) + Whisper (точная расшифровка).
 Barge-in: адаптивная калибровка эха и фона при старте.
+Ring buffer: последние 10 фраз (для «что ты слышал»).
 """
 
 import json
@@ -5430,6 +5490,9 @@ class Listener:
         self.muted = False
         self.barge_flag = False
         self._block_size = 8000
+
+        # Ring buffer последних фраз (для «что ты слышал»)
+        self.recent_phrases: deque = deque(maxlen=10)
 
         # Адаптивный barge-in
         self._echo_window_samples = deque(maxlen=20)
@@ -5566,6 +5629,7 @@ class Listener:
                     self._utt_len = 0
                     if text:
                         self.utterances += 1
+                        self.recent_phrases.append(text)
                         log.info("Распознано (vosk): %s", text)
                         yield text, audio
 
@@ -8566,6 +8630,16 @@ TESTS = [
     # === Скриншот, сайт (без сети — только открытие URL, не загрузка) ===
     ("screenshot",          "сделай скриншот",            ["Скриншот"],             False, False),
     ("open_site",           "открой ютуб",                ["Ютуб", "youtube"],      False, False),
+
+    # === Системные (раскладка, громкость, яркость) ===
+    # На CI нет звуковой карты/монитора → «Не смог узнать». Локально → значение.
+    ("layout_query",        "какая раскладка",            ["раскладк", "Не смог"],  False, False),
+    ("volume_query",        "какая громкость",            ["Громкость", "Не смог"], False, False),
+    ("brightness_query",    "какая яркость",              ["Яркость", "Не смог"],   False, False),
+
+    # === Диагностика (Н2 + Н3) ===
+    ("debug_what_heard",    "что ты слышал",              ["фразы", "слышал", "Пока ничего"], False, False),
+    ("debug_why_not",       "почему не понял",            ["Фраза", "нечего", "диагност"],    False, False),
 ]
 
 

@@ -40,6 +40,8 @@ set_volume (громкость в процентах; percent — число 0-1
 get_volume (какая громкость)
 set_brightness (яркость в процентах; percent — число 0-100)
 get_brightness (какая яркость)
+debug_what_heard (что ты слышал — история распознавания)
+debug_why_not_understood (почему не понял — диагностика)
 minimize_all (свернуть все окна)
 minimize_window (свернуть окно; target)
 maximize_window (развернуть окно; target)
@@ -223,6 +225,7 @@ ACTIONS = {
     "switch_layout", "set_layout_ru", "set_layout_en", "get_layout",
     "set_volume", "get_volume",
     "set_brightness", "get_brightness",
+    "debug_why_not_understood", "debug_what_heard",
 }
 
 CHAT_SYSTEM = (
