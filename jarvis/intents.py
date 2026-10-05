@@ -265,6 +265,10 @@ class IntentHandler:
         if reply:
             return reply
 
+        reply = self._system_fast(cmd)
+        if reply:
+            return reply
+
         reply = self._weather_currency_fast(cmd)
         if reply:
             return reply
@@ -403,6 +407,54 @@ class IntentHandler:
             if profile.delete(name):
                 return f"Профиль {name} удалён."
             return f"Профиль {name} не найден или активен."
+
+        return None
+
+    def _system_fast(self, cmd: str) -> str | None:
+        """Быстрые системные команды: раскладка, громкость, яркость."""
+
+        # --- раскладка ---
+        if re.search(r"раскладк", cmd):
+            if re.search(r"(переключ|смени|поменяй|следующ)", cmd):
+                ok = actions.switch_layout()
+                return "Переключаю раскладку." if ok else "Не удалось переключить."
+            if re.search(r"(русск|ru)", cmd):
+                ok = actions.set_layout_ru()
+                return "Русская раскладка." if ok else "Не удалось."
+            if re.search(r"(англ|english|en)", cmd):
+                ok = actions.set_layout_en()
+                return "Английская раскладка." if ok else "Не удалось."
+            if re.search(r"(какая|текущ|что)", cmd):
+                layout = actions.get_layout()
+                if layout == "ru":
+                    return "Сейчас русская раскладка."
+                if layout == "en":
+                    return "Сейчас английская раскладка."
+                return "Не смог определить раскладку."
+
+        # --- громкость ---
+        m = re.search(r"громкость\s+(?:на\s+)?(\d+)", cmd)
+        if m:
+            pct = int(m.group(1))
+            ok = actions.set_volume(pct)
+            return f"Громкость: {pct}%." if ok else "Не удалось."
+
+        if re.search(r"(какая|текущ|узнай)\s+громкость", cmd) \
+                or cmd in {"какая громкость", "текущая громкость"}:
+            vol = actions.get_volume()
+            return f"Громкость: {vol}%." if vol is not None else "Не смог узнать."
+
+        # --- яркость ---
+        m = re.search(r"яркость\s+(?:на\s+)?(\d+)", cmd)
+        if m:
+            pct = int(m.group(1))
+            ok = actions.set_brightness(pct)
+            return f"Яркость: {pct}%." if ok else "Не удалось."
+
+        if re.search(r"(какая|текущ|узнай)\s+яркость", cmd) \
+                or cmd in {"какая яркость", "текущая яркость"}:
+            br = actions.get_brightness()
+            return f"Яркость: {br}%." if br is not None else "Не смог узнать."
 
         return None
 
@@ -589,6 +641,45 @@ class IntentHandler:
         if action == "mute":
             actions.media_key("mute")
             return "Без звука."
+
+        if action == "switch_layout":
+            ok = actions.switch_layout()
+            return "Переключаю раскладку." if ok else None
+        if action == "set_layout_ru":
+            ok = actions.set_layout_ru()
+            return "Русская раскладка." if ok else None
+        if action == "set_layout_en":
+            ok = actions.set_layout_en()
+            return "Английская раскладка." if ok else None
+        if action == "get_layout":
+            layout = actions.get_layout()
+            if layout == "ru":
+                return "Русская раскладка."
+            if layout == "en":
+                return "Английская раскладка."
+            return None
+
+        if action == "set_volume":
+            try:
+                pct = int(intent.get("percent") or 50)
+            except (TypeError, ValueError):
+                pct = 50
+            ok = actions.set_volume(pct)
+            return f"Громкость: {pct}%." if ok else None
+        if action == "get_volume":
+            vol = actions.get_volume()
+            return f"Громкость: {vol}%." if vol is not None else None
+
+        if action == "set_brightness":
+            try:
+                pct = int(intent.get("percent") or 50)
+            except (TypeError, ValueError):
+                pct = 50
+            ok = actions.set_brightness(pct)
+            return f"Яркость: {pct}%." if ok else None
+        if action == "get_brightness":
+            br = actions.get_brightness()
+            return f"Яркость: {br}%." if br is not None else None
 
         if action == "clipboard_read":
             text = actions.clipboard_read()

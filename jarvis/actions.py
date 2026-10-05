@@ -255,14 +255,135 @@ def ensure_music_playing() -> bool:
     return media_key("play")
 
 
+# --- раскладка клавиатуры --------------------------------------------------
+
+def switch_layout() -> bool:
+    """Переключает раскладку на следующую (RU ↔ EN)."""
+    log.info("Переключаю раскладку")
+    try:
+        import ctypes
+        hwnd = ctypes.windll.user32.GetForegroundWindow()
+        # HKL следующего языка — берём текущий и просим Windows сменить
+        # через WM_INPUTLANGCHANGEREQUEST (0x50). Передаём 0 — Windows сам
+        # выберет следующий доступный язык.
+        ctypes.windll.user32.PostMessageW(hwnd, 0x50, 0, 0)
+        return True
+    except Exception:
+        log.exception("switch_layout не удался")
+        return False
+
+
+def set_layout_ru() -> bool:
+    """Переключает на русскую раскладку."""
+    log.info("Русская раскладка")
+    try:
+        import ctypes
+        hwnd = ctypes.windll.user32.GetForegroundWindow()
+        hkl = ctypes.windll.user32.LoadKeyboardLayoutW("00000419", 1)
+        ctypes.windll.user32.PostMessageW(hwnd, 0x50, 0, hkl)
+        return True
+    except Exception:
+        log.exception("set_layout_ru не удался")
+        return False
+
+
+def set_layout_en() -> bool:
+    """Переключает на английскую раскладку."""
+    log.info("Английская раскладка")
+    try:
+        import ctypes
+        hwnd = ctypes.windll.user32.GetForegroundWindow()
+        hkl = ctypes.windll.user32.LoadKeyboardLayoutW("00000409", 1)
+        ctypes.windll.user32.PostMessageW(hwnd, 0x50, 0, hkl)
+        return True
+    except Exception:
+        log.exception("set_layout_en не удался")
+        return False
+
+
+def get_layout() -> str | None:
+    """Возвращает 'ru', 'en' или None."""
+    try:
+        import ctypes
+        hwnd = ctypes.windll.user32.GetForegroundWindow()
+        thread_id = ctypes.windll.user32.GetWindowThreadProcessId(hwnd, None)
+        hkl = ctypes.windll.user32.GetKeyboardLayout(thread_id)
+        lang_id = hkl & 0xFFFF
+        return {0x0419: "ru", 0x0409: "en"}.get(lang_id)
+    except Exception:
+        log.exception("get_layout не удался")
+        return None
+
+
+# --- громкость -------------------------------------------------------------
+
+def get_volume() -> int | None:
+    """Возвращает громкость в процентах (0..100)."""
+    try:
+        from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
+        from ctypes import cast, POINTER
+        from comtypes import CLSCTX_ALL
+
+        device = AudioUtilities.GetSpeakers()
+        interface = device.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
+        volume = cast(interface, POINTER(IAudioEndpointVolume))
+        return round(volume.GetMasterVolumeLevelScalar() * 100)
+    except Exception:
+        log.exception("get_volume не удался")
+        return None
+
+
+def set_volume(percent: int) -> bool:
+    """Ставит громкость в процентах (0..100)."""
+    percent = max(0, min(100, int(percent)))
+    log.info("Громкость: %d%%", percent)
+    try:
+        from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
+        from ctypes import cast, POINTER
+        from comtypes import CLSCTX_ALL
+
+        device = AudioUtilities.GetSpeakers()
+        interface = device.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
+        volume = cast(interface, POINTER(IAudioEndpointVolume))
+        volume.SetMasterVolumeLevelScalar(percent / 100.0, None)
+        return True
+    except Exception:
+        log.exception("set_volume не удался")
+        return False
+
+
+# --- яркость ---------------------------------------------------------------
+
+def get_brightness() -> int | None:
+    """Возвращает яркость в процентах (0..100)."""
+    try:
+        import screen_brightness_control as sbc
+        values = sbc.get_brightness()
+        if values:
+            return int(values[0])
+        return None
+    except Exception:
+        log.exception("get_brightness не удался")
+        return None
+
+
+def set_brightness(percent: int) -> bool:
+    """Ставит яркость в процентах (0..100)."""
+    percent = max(0, min(100, int(percent)))
+    log.info("Яркость: %d%%", percent)
+    try:
+        import screen_brightness_control as sbc
+        sbc.set_brightness(percent)
+        return True
+    except Exception:
+        log.exception("set_brightness не удался")
+        return False
+
+
 # --- процессы --------------------------------------------------------------
 
 def find_process(name: str, threshold: float = 0.7):
-    """Находит имя процесса по неточному имени.
-
-    Использует matching.match_score — умеет транслитерацию
-    («дискорд» → discord.exe) и фонетическое сравнение.
-    """
+    """Находит имя процесса по неточному имени."""
     try:
         import psutil
     except ImportError:
@@ -275,7 +396,6 @@ def find_process(name: str, threshold: float = 0.7):
         if not pname:
             continue
         base = pname.removesuffix(".exe")
-        # точное вхождение — сразу вернуть
         if name_low in base or base in name_low:
             return proc.info["name"]
         score = match_score(name_low, base)
@@ -411,8 +531,6 @@ def _find_window(name: str):
     windows = [w for w in gw.getAllWindows() if w.title]
     name_low = name.lower().strip()
 
-    # убираем лишние уточнения, которые LLM любит добавлять
-    # («яндекс музыка» → «яндекс», «яндекс браузер» → «яндекс»)
     for noise in (" музыка", " browser", " браузер"):
         if name_low.endswith(noise):
             name_low = name_low[: -len(noise)].strip()
@@ -448,13 +566,11 @@ def _find_window(name: str):
                 if sub_low in w.title.lower():
                     return w
 
-    # Нечёткий fallback: транслитерация + difflib через matching.match_score
     from jarvis.matching import match_score
     best = None
     best_score = 0.6
     for w in windows:
         title = w.title.lower()
-        # проверяем первые 40 символов — этого хватает, дальше обычно мусор
         score = match_score(name_low, title[:40])
         if score > best_score:
             best_score, best = score, w

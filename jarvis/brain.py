@@ -32,6 +32,14 @@ prev_track (предыдущий трек)
 volume_up (громче)
 volume_down (тише)
 mute (без звука)
+switch_layout (переключить раскладку)
+set_layout_ru (русская раскладка)
+set_layout_en (английская раскладка)
+get_layout (какая раскладка)
+set_volume (громкость в процентах; percent — число 0-100)
+get_volume (какая громкость)
+set_brightness (яркость в процентах; percent — число 0-100)
+get_brightness (какая яркость)
 minimize_all (свернуть все окна)
 minimize_window (свернуть окно; target)
 maximize_window (развернуть окно; target)
@@ -212,6 +220,9 @@ ACTIONS = {
     "open_config", "open_log", "play_pause", "next_track", "prev_track",
     "volume_up", "volume_down", "mute",
     "get_weather", "get_currency",
+    "switch_layout", "set_layout_ru", "set_layout_en", "get_layout",
+    "set_volume", "get_volume",
+    "set_brightness", "get_brightness",
 }
 
 CHAT_SYSTEM = (

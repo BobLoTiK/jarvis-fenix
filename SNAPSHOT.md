@@ -1488,14 +1488,135 @@ def ensure_music_playing() -> bool:
     return media_key("play")
 
 
+# --- раскладка клавиатуры --------------------------------------------------
+
+def switch_layout() -> bool:
+    """Переключает раскладку на следующую (RU ↔ EN)."""
+    log.info("Переключаю раскладку")
+    try:
+        import ctypes
+        hwnd = ctypes.windll.user32.GetForegroundWindow()
+        # HKL следующего языка — берём текущий и просим Windows сменить
+        # через WM_INPUTLANGCHANGEREQUEST (0x50). Передаём 0 — Windows сам
+        # выберет следующий доступный язык.
+        ctypes.windll.user32.PostMessageW(hwnd, 0x50, 0, 0)
+        return True
+    except Exception:
+        log.exception("switch_layout не удался")
+        return False
+
+
+def set_layout_ru() -> bool:
+    """Переключает на русскую раскладку."""
+    log.info("Русская раскладка")
+    try:
+        import ctypes
+        hwnd = ctypes.windll.user32.GetForegroundWindow()
+        hkl = ctypes.windll.user32.LoadKeyboardLayoutW("00000419", 1)
+        ctypes.windll.user32.PostMessageW(hwnd, 0x50, 0, hkl)
+        return True
+    except Exception:
+        log.exception("set_layout_ru не удался")
+        return False
+
+
+def set_layout_en() -> bool:
+    """Переключает на английскую раскладку."""
+    log.info("Английская раскладка")
+    try:
+        import ctypes
+        hwnd = ctypes.windll.user32.GetForegroundWindow()
+        hkl = ctypes.windll.user32.LoadKeyboardLayoutW("00000409", 1)
+        ctypes.windll.user32.PostMessageW(hwnd, 0x50, 0, hkl)
+        return True
+    except Exception:
+        log.exception("set_layout_en не удался")
+        return False
+
+
+def get_layout() -> str | None:
+    """Возвращает 'ru', 'en' или None."""
+    try:
+        import ctypes
+        hwnd = ctypes.windll.user32.GetForegroundWindow()
+        thread_id = ctypes.windll.user32.GetWindowThreadProcessId(hwnd, None)
+        hkl = ctypes.windll.user32.GetKeyboardLayout(thread_id)
+        lang_id = hkl & 0xFFFF
+        return {0x0419: "ru", 0x0409: "en"}.get(lang_id)
+    except Exception:
+        log.exception("get_layout не удался")
+        return None
+
+
+# --- громкость -------------------------------------------------------------
+
+def get_volume() -> int | None:
+    """Возвращает громкость в процентах (0..100)."""
+    try:
+        from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
+        from ctypes import cast, POINTER
+        from comtypes import CLSCTX_ALL
+
+        device = AudioUtilities.GetSpeakers()
+        interface = device.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
+        volume = cast(interface, POINTER(IAudioEndpointVolume))
+        return round(volume.GetMasterVolumeLevelScalar() * 100)
+    except Exception:
+        log.exception("get_volume не удался")
+        return None
+
+
+def set_volume(percent: int) -> bool:
+    """Ставит громкость в процентах (0..100)."""
+    percent = max(0, min(100, int(percent)))
+    log.info("Громкость: %d%%", percent)
+    try:
+        from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
+        from ctypes import cast, POINTER
+        from comtypes import CLSCTX_ALL
+
+        device = AudioUtilities.GetSpeakers()
+        interface = device.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
+        volume = cast(interface, POINTER(IAudioEndpointVolume))
+        volume.SetMasterVolumeLevelScalar(percent / 100.0, None)
+        return True
+    except Exception:
+        log.exception("set_volume не удался")
+        return False
+
+
+# --- яркость ---------------------------------------------------------------
+
+def get_brightness() -> int | None:
+    """Возвращает яркость в процентах (0..100)."""
+    try:
+        import screen_brightness_control as sbc
+        values = sbc.get_brightness()
+        if values:
+            return int(values[0])
+        return None
+    except Exception:
+        log.exception("get_brightness не удался")
+        return None
+
+
+def set_brightness(percent: int) -> bool:
+    """Ставит яркость в процентах (0..100)."""
+    percent = max(0, min(100, int(percent)))
+    log.info("Яркость: %d%%", percent)
+    try:
+        import screen_brightness_control as sbc
+        sbc.set_brightness(percent)
+        return True
+    except Exception:
+        log.exception("set_brightness не удался")
+        return False
+
+
 # --- процессы --------------------------------------------------------------
 
 def find_process(name: str, threshold: float = 0.7):
-    """Находит имя процесса по неточному имени.
-
-    Использует matching.match_score — умеет транслитерацию
-    («дискорд» → discord.exe) и фонетическое сравнение.
-    """
+    """Находит имя процесса по неточному имени."""
     try:
         import psutil
     except ImportError:
@@ -1508,7 +1629,6 @@ def find_process(name: str, threshold: float = 0.7):
         if not pname:
             continue
         base = pname.removesuffix(".exe")
-        # точное вхождение — сразу вернуть
         if name_low in base or base in name_low:
             return proc.info["name"]
         score = match_score(name_low, base)
@@ -1644,8 +1764,6 @@ def _find_window(name: str):
     windows = [w for w in gw.getAllWindows() if w.title]
     name_low = name.lower().strip()
 
-    # убираем лишние уточнения, которые LLM любит добавлять
-    # («яндекс музыка» → «яндекс», «яндекс браузер» → «яндекс»)
     for noise in (" музыка", " browser", " браузер"):
         if name_low.endswith(noise):
             name_low = name_low[: -len(noise)].strip()
@@ -1681,13 +1799,11 @@ def _find_window(name: str):
                 if sub_low in w.title.lower():
                     return w
 
-    # Нечёткий fallback: транслитерация + difflib через matching.match_score
     from jarvis.matching import match_score
     best = None
     best_score = 0.6
     for w in windows:
         title = w.title.lower()
-        # проверяем первые 40 символов — этого хватает, дальше обычно мусор
         score = match_score(name_low, title[:40])
         if score > best_score:
             best_score, best = score, w
@@ -2006,6 +2122,14 @@ prev_track (предыдущий трек)
 volume_up (громче)
 volume_down (тише)
 mute (без звука)
+switch_layout (переключить раскладку)
+set_layout_ru (русская раскладка)
+set_layout_en (английская раскладка)
+get_layout (какая раскладка)
+set_volume (громкость в процентах; percent — число 0-100)
+get_volume (какая громкость)
+set_brightness (яркость в процентах; percent — число 0-100)
+get_brightness (какая яркость)
 minimize_all (свернуть все окна)
 minimize_window (свернуть окно; target)
 maximize_window (развернуть окно; target)
@@ -2186,6 +2310,9 @@ ACTIONS = {
     "open_config", "open_log", "play_pause", "next_track", "prev_track",
     "volume_up", "volume_down", "mute",
     "get_weather", "get_currency",
+    "switch_layout", "set_layout_ru", "set_layout_en", "get_layout",
+    "set_volume", "get_volume",
+    "set_brightness", "get_brightness",
 }
 
 CHAT_SYSTEM = (
@@ -3055,6 +3182,10 @@ class IntentHandler:
         if reply:
             return reply
 
+        reply = self._system_fast(cmd)
+        if reply:
+            return reply
+
         reply = self._weather_currency_fast(cmd)
         if reply:
             return reply
@@ -3193,6 +3324,54 @@ class IntentHandler:
             if profile.delete(name):
                 return f"Профиль {name} удалён."
             return f"Профиль {name} не найден или активен."
+
+        return None
+
+    def _system_fast(self, cmd: str) -> str | None:
+        """Быстрые системные команды: раскладка, громкость, яркость."""
+
+        # --- раскладка ---
+        if re.search(r"раскладк", cmd):
+            if re.search(r"(переключ|смени|поменяй|следующ)", cmd):
+                ok = actions.switch_layout()
+                return "Переключаю раскладку." if ok else "Не удалось переключить."
+            if re.search(r"(русск|ru)", cmd):
+                ok = actions.set_layout_ru()
+                return "Русская раскладка." if ok else "Не удалось."
+            if re.search(r"(англ|english|en)", cmd):
+                ok = actions.set_layout_en()
+                return "Английская раскладка." if ok else "Не удалось."
+            if re.search(r"(какая|текущ|что)", cmd):
+                layout = actions.get_layout()
+                if layout == "ru":
+                    return "Сейчас русская раскладка."
+                if layout == "en":
+                    return "Сейчас английская раскладка."
+                return "Не смог определить раскладку."
+
+        # --- громкость ---
+        m = re.search(r"громкость\s+(?:на\s+)?(\d+)", cmd)
+        if m:
+            pct = int(m.group(1))
+            ok = actions.set_volume(pct)
+            return f"Громкость: {pct}%." if ok else "Не удалось."
+
+        if re.search(r"(какая|текущ|узнай)\s+громкость", cmd) \
+                or cmd in {"какая громкость", "текущая громкость"}:
+            vol = actions.get_volume()
+            return f"Громкость: {vol}%." if vol is not None else "Не смог узнать."
+
+        # --- яркость ---
+        m = re.search(r"яркость\s+(?:на\s+)?(\d+)", cmd)
+        if m:
+            pct = int(m.group(1))
+            ok = actions.set_brightness(pct)
+            return f"Яркость: {pct}%." if ok else "Не удалось."
+
+        if re.search(r"(какая|текущ|узнай)\s+яркость", cmd) \
+                or cmd in {"какая яркость", "текущая яркость"}:
+            br = actions.get_brightness()
+            return f"Яркость: {br}%." if br is not None else "Не смог узнать."
 
         return None
 
@@ -3379,6 +3558,45 @@ class IntentHandler:
         if action == "mute":
             actions.media_key("mute")
             return "Без звука."
+
+        if action == "switch_layout":
+            ok = actions.switch_layout()
+            return "Переключаю раскладку." if ok else None
+        if action == "set_layout_ru":
+            ok = actions.set_layout_ru()
+            return "Русская раскладка." if ok else None
+        if action == "set_layout_en":
+            ok = actions.set_layout_en()
+            return "Английская раскладка." if ok else None
+        if action == "get_layout":
+            layout = actions.get_layout()
+            if layout == "ru":
+                return "Русская раскладка."
+            if layout == "en":
+                return "Английская раскладка."
+            return None
+
+        if action == "set_volume":
+            try:
+                pct = int(intent.get("percent") or 50)
+            except (TypeError, ValueError):
+                pct = 50
+            ok = actions.set_volume(pct)
+            return f"Громкость: {pct}%." if ok else None
+        if action == "get_volume":
+            vol = actions.get_volume()
+            return f"Громкость: {vol}%." if vol is not None else None
+
+        if action == "set_brightness":
+            try:
+                pct = int(intent.get("percent") or 50)
+            except (TypeError, ValueError):
+                pct = 50
+            ok = actions.set_brightness(pct)
+            return f"Яркость: {pct}%." if ok else None
+        if action == "get_brightness":
+            br = actions.get_brightness()
+            return f"Яркость: {br}%." if br is not None else None
 
         if action == "clipboard_read":
             text = actions.clipboard_read()
