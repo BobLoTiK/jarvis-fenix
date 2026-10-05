@@ -28,3 +28,12 @@ dialog.json
 timers.json
 tasks.json
 logs/
+
+# Случайные файлы из редакторов
+вкладка
+new *
+Untitled*
+(новый)*
+без имени*
+*.bak
+*.swp

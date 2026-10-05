@@ -824,6 +824,12 @@ def run_spec(spec) -> bool:
         if kind == "uri":
             os.startfile(value)
             return True
+        if kind == "cmd":
+            # («cmd», [exe, arg1, arg2, ...]) — запуск exe с аргументами.
+            # Используется Discord: [updater, "--processStart", "Discord.exe"]
+            args = value if isinstance(value, list) else [value]
+            subprocess.Popen(args, creationflags=subprocess.CREATE_NO_WINDOW)
+            return True
         if kind in ("path", "exe"):
             os.startfile(value)
             return True
@@ -1021,19 +1027,33 @@ def ensure_music_playing() -> bool:
 # --- процессы --------------------------------------------------------------
 
 def find_process(name: str, threshold: float = 0.7):
+    """Находит имя процесса по неточному имени.
+
+    Использует matching.match_score — умеет транслитерацию
+    («дискорд» → discord.exe) и фонетическое сравнение.
+    """
     try:
         import psutil
     except ImportError:
         return None
-    from difflib import SequenceMatcher
+    from jarvis.matching import match_score
     name_low = name.lower()
+    best_name, best_score = None, 0.0
     for proc in psutil.process_iter(["name"]):
         pname = (proc.info.get("name") or "").lower()
         if not pname:
             continue
         base = pname.removesuffix(".exe")
-        if name_low in base or SequenceMatcher(None, name_low, base).ratio() >= threshold:
+        # точное вхождение — сразу вернуть
+        if name_low in base or base in name_low:
             return proc.info["name"]
+        score = match_score(name_low, base)
+        if score > best_score:
+            best_name, best_score = proc.info["name"], score
+    if best_name and best_score >= threshold:
+        log.info("Процесс %r -> %s (score %.2f)", name, best_name, best_score)
+        return best_name
+    log.info("Процесс для %r не найден (лучший score %.2f)", name, best_score)
     return None
 
 
@@ -1197,15 +1217,18 @@ def _find_window(name: str):
                 if sub_low in w.title.lower():
                     return w
 
-    from difflib import SequenceMatcher
+    # Нечёткий fallback: транслитерация + difflib через matching.match_score
+    from jarvis.matching import match_score
     best = None
-    best_ratio = 0.6
+    best_score = 0.6
     for w in windows:
-        title_low = w.title.lower()
-        ratio = SequenceMatcher(None, name_low, title_low[:40]).ratio()
-        if ratio > best_ratio:
-            best_ratio = ratio
-            best = w
+        title = w.title.lower()
+        # проверяем первые 40 символов — этого хватает, дальше обычно мусор
+        score = match_score(name_low, title[:40])
+        if score > best_score:
+            best_score, best = score, w
+    if best:
+        log.info("Окно %r -> %s (score %.2f)", name, best.title, best_score)
     return best
 
 
@@ -1322,6 +1345,7 @@ def resolve_user_folder(name: str):
 
 
 # --- буфер обмена -----------------------------------------------------------
+
 def copy_selection() -> bool:
     """Нажимает Ctrl+C, чтобы скопировать выделенное в активном окне."""
     log.info("Копирую выделенное (Ctrl+C)")
@@ -1332,7 +1356,8 @@ def copy_selection() -> bool:
     except Exception:
         log.exception("copy_selection не удался")
         return False
-        
+
+
 def clipboard_read() -> str:
     log.info("Читаю буфер обмена")
     try:
@@ -1545,6 +1570,45 @@ get_currency (курс валют ЦБ РФ; target — ISO-код валюты 
 answer (ответ на вопрос; reply)
 none (бессмыслица)
 
+=== ГЛАВНОЕ ПРАВИЛО ===
+ЕСЛИ в фразе есть «закрой», «выключи», «убей», «останови» → это ВСЕГДА close_app, НИКОГДА open_app.
+ЕСЛИ в фразе есть «открой», «запусти», «врубай» → это open_app (или open_site / open_folder — см. примеры).
+Это правило важнее всех остальных. Не путай их.
+
+=== ЗАКРЫТИЕ ПРИЛОЖЕНИЙ (close_app) ===
+Используй ТОЛЬКО когда пользователь хочет ЗАКРЫТЬ приложение.
+target — название приложения (без .exe).
+
+Примеры:
+закрой дискорд -> {"action":"close_app","target":"дискорд"}
+закрой стим -> {"action":"close_app","target":"стим"}
+закрой телеграм -> {"action":"close_app","target":"телеграм"}
+закрой телегу -> {"action":"close_app","target":"телеграм"}
+закрой браузер -> {"action":"close_app","target":"браузер"}
+закрой хром -> {"action":"close_app","target":"хром"}
+закрой игру -> {"action":"close_app","target":"игра"}
+закрой калькулятор -> {"action":"close_app","target":"калькулятор"}
+закрой блокнот -> {"action":"close_app","target":"блокнот"}
+выключи музыку -> {"action":"close_app","target":"музыка"}
+останови обс -> {"action":"close_app","target":"обс"}
+убей стим -> {"action":"close_app","target":"стим"}
+закрой проводник -> {"action":"close_app","target":"проводник"}
+
+=== ОТКРЫТИЕ ПРИЛОЖЕНИЙ (open_app) ===
+Используй ТОЛЬКО когда пользователь хочет ОТКРЫТЬ приложение или игру.
+
+Примеры:
+открой стим -> {"action":"open_app","target":"стим"}
+открой дискорд -> {"action":"open_app","target":"дискорд"}
+открой телеграм -> {"action":"open_app","target":"телеграм"}
+открой хром -> {"action":"open_app","target":"хром"}
+запусти сабнатику -> {"action":"open_app","target":"сабнатика"}
+запусти доту -> {"action":"open_app","target":"дота"}
+врубай катку -> {"action":"open_app","target":"дота"}
+открой блокнот -> {"action":"open_app","target":"блокнот"}
+открой калькулятор -> {"action":"open_app","target":"калькулятор"}
+верни стим -> {"action":"open_app","target":"стим"}
+
 === ВАЖНО про set_mode ===
 Используй set_mode ТОЛЬКО если пользователь явно говорит:
 «режим», «переключись на режим», «включи режим», «смени режим».
@@ -1608,13 +1672,9 @@ name — ЛАТИНСКОЕ имя пака: games, apps, sites, work, system.
 какие паки -> {"action":"list_packs"}
 
 === ПРОЧИЕ ПРИМЕРЫ ===
-открой стим -> {"action":"open_app","target":"стим"}
-запусти сабнатику -> {"action":"open_app","target":"сабнатика"}
-закрой дискорд -> {"action":"close_app","target":"дискорд"}
 открой ютуб -> {"action":"open_site","target":"ютуб"}
 открой яндекс -> {"action":"open_site","target":"яндекс"}
 верни яндекс -> {"action":"open_site","target":"яндекс"}
-верни стим -> {"action":"open_app","target":"стим"}
 найди погоду -> {"action":"search","engine":"google","query":"погода сегодня"}
 загугли новости -> {"action":"search","engine":"google","query":"новости сегодня"}
 поищи на ютубе лофи -> {"action":"search","engine":"youtube","query":"лофи"}

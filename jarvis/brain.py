@@ -60,6 +60,45 @@ get_currency (курс валют ЦБ РФ; target — ISO-код валюты 
 answer (ответ на вопрос; reply)
 none (бессмыслица)
 
+=== ГЛАВНОЕ ПРАВИЛО ===
+ЕСЛИ в фразе есть «закрой», «выключи», «убей», «останови» → это ВСЕГДА close_app, НИКОГДА open_app.
+ЕСЛИ в фразе есть «открой», «запусти», «врубай» → это open_app (или open_site / open_folder — см. примеры).
+Это правило важнее всех остальных. Не путай их.
+
+=== ЗАКРЫТИЕ ПРИЛОЖЕНИЙ (close_app) ===
+Используй ТОЛЬКО когда пользователь хочет ЗАКРЫТЬ приложение.
+target — название приложения (без .exe).
+
+Примеры:
+закрой дискорд -> {"action":"close_app","target":"дискорд"}
+закрой стим -> {"action":"close_app","target":"стим"}
+закрой телеграм -> {"action":"close_app","target":"телеграм"}
+закрой телегу -> {"action":"close_app","target":"телеграм"}
+закрой браузер -> {"action":"close_app","target":"браузер"}
+закрой хром -> {"action":"close_app","target":"хром"}
+закрой игру -> {"action":"close_app","target":"игра"}
+закрой калькулятор -> {"action":"close_app","target":"калькулятор"}
+закрой блокнот -> {"action":"close_app","target":"блокнот"}
+выключи музыку -> {"action":"close_app","target":"музыка"}
+останови обс -> {"action":"close_app","target":"обс"}
+убей стим -> {"action":"close_app","target":"стим"}
+закрой проводник -> {"action":"close_app","target":"проводник"}
+
+=== ОТКРЫТИЕ ПРИЛОЖЕНИЙ (open_app) ===
+Используй ТОЛЬКО когда пользователь хочет ОТКРЫТЬ приложение или игру.
+
+Примеры:
+открой стим -> {"action":"open_app","target":"стим"}
+открой дискорд -> {"action":"open_app","target":"дискорд"}
+открой телеграм -> {"action":"open_app","target":"телеграм"}
+открой хром -> {"action":"open_app","target":"хром"}
+запусти сабнатику -> {"action":"open_app","target":"сабнатика"}
+запусти доту -> {"action":"open_app","target":"дота"}
+врубай катку -> {"action":"open_app","target":"дота"}
+открой блокнот -> {"action":"open_app","target":"блокнот"}
+открой калькулятор -> {"action":"open_app","target":"калькулятор"}
+верни стим -> {"action":"open_app","target":"стим"}
+
 === ВАЖНО про set_mode ===
 Используй set_mode ТОЛЬКО если пользователь явно говорит:
 «режим», «переключись на режим», «включи режим», «смени режим».
@@ -123,13 +162,9 @@ name — ЛАТИНСКОЕ имя пака: games, apps, sites, work, system.
 какие паки -> {"action":"list_packs"}
 
 === ПРОЧИЕ ПРИМЕРЫ ===
-открой стим -> {"action":"open_app","target":"стим"}
-запусти сабнатику -> {"action":"open_app","target":"сабнатика"}
-закрой дискорд -> {"action":"close_app","target":"дискорд"}
 открой ютуб -> {"action":"open_site","target":"ютуб"}
 открой яндекс -> {"action":"open_site","target":"яндекс"}
 верни яндекс -> {"action":"open_site","target":"яндекс"}
-верни стим -> {"action":"open_app","target":"стим"}
 найди погоду -> {"action":"search","engine":"google","query":"погода сегодня"}
 загугли новости -> {"action":"search","engine":"google","query":"новости сегодня"}
 поищи на ютубе лофи -> {"action":"search","engine":"youtube","query":"лофи"}
