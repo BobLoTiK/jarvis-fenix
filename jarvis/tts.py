@@ -3,9 +3,14 @@
 Бэкенды: xtts / piper / winrt / sapi.
 Смена голоса на лету: через Config.subscribe — main.py вызывает speaker.set_voice().
 Streaming: speak_stream(iterator) — озвучивает по предложениям.
-Barge-in: воспроизведение через sounddevice с проверкой _stop_flag —
-реально прерывает звук (winsound.SND_PURGE на Windows 10/11 не работает).
+Barge-in: воспроизведение через sounddevice с проверкой per-call токена —
+реально прерывает звук.
 Предобработка текста: _prepare_text() — CJK, единицы, числа.
+
+Фикс гонки: вместо одного _stop_flag — per-call stop-token. Каждый
+play_async / speak_stream создаёт свой threading.Event, stop() взводит
+ТОЛЬКО текущий. Старый поток проверяет свой токен, который новый
+поток не сбрасывает. Иначе 2-3 голоса одновременно.
 """
 
 import asyncio
@@ -31,18 +36,14 @@ _SENTENCE_END = re.compile(r"[.!?…]+\s+")
 # ---------------------------------------------------------------
 
 _REPLACEMENTS = [
-    # единицы измерения
     (r"\bм/с\b", " метров в секунду"),
     (r"\bкм/ч\b", " километров в час"),
     (r"\bкм/с\b", " километров в секунду"),
     (r"\bм/c\b", " метров в секунду"),
     (r"\bкм/ч\.", " километров в час"),
-    # температура
     (r"([+-]?\d+)\s*°\s*[CFЦ]?\b", r"\1 градусов"),
     (r"°\s*[CFЦ]?\b", " градусов"),
-    # проценты
     (r"(\d+)\s*%", r"\1 процентов"),
-    # сокращения
     (r"\bт\.\s*д\.", " так далее"),
     (r"\bт\.\s*е\.", " то есть"),
     (r"\bт\.\s*к\.", " так как"),
@@ -55,7 +56,6 @@ _REPLACEMENTS = [
     (r"\bтыс\.", " тысяч"),
     (r"\bмлн\.", " миллионов"),
     (r"\bмлрд\.", " миллиардов"),
-    # единицы после цифры
     (r"\b(\d+)\s*см\b", r"\1 сантиметров"),
     (r"\b(\d+)\s*мм\b", r"\1 миллиметров"),
     (r"\b(\d+)\s*км\b", r"\1 километров"),
@@ -66,7 +66,6 @@ _REPLACEMENTS = [
     (r"\b(\d+)\s*КБ\b", r"\1 килобайт"),
     (r"\b(\d+)\s*м\b", r"\1 метров"),
     (r"\b(\d+)\s*г\b", r"\1 граммов"),
-    # символы
     (r"→", " стремится к "),
     (r"←", " из "),
     (r"≈", " примерно "),
@@ -76,7 +75,6 @@ _REPLACEMENTS = [
     (r"&", " и "),
     (r"\+", " плюс "),
     (r"(?<!\w)-(?!\w)", " минус "),
-    # markdown-мусор
     (r"\*+", ""),
     (r"_+", ""),
     (r"#+\s*", ""),
@@ -97,7 +95,6 @@ _CJK_RE = re.compile(
 
 
 def _prepare_text(text: str) -> str:
-    """Чистит текст: CJK, сокращения, markdown."""
     if not text:
         return text
     text = _CJK_RE.sub(" ", text)
@@ -119,10 +116,15 @@ class Speaker:
         self._piper = None
         self._piper_cfg = None
 
+        # Глобальное состояние воспроизведения
         self._play_thread = None
-        self._stop_flag = threading.Event()
         self._playing = False
         self._play_lock = threading.Lock()
+
+        # Per-call stop-token: текущий токен. stop() взводит его.
+        # Каждый play_async / speak_stream создаёт СВОЙ токен.
+        self._current_token: threading.Event = threading.Event()
+        self._token_lock = threading.Lock()
 
         backend = cfg.get("tts_backend", "auto")
         ref = BASE_DIR / cfg.get("xtts_ref", "voices/jarvis.wav")
@@ -170,21 +172,33 @@ class Speaker:
             except Exception:
                 pass
 
+    # --- per-call stop-token ---------------------------------------------
+
+    def _new_token(self) -> threading.Event:
+        """Создаёт новый stop-token и делает его текущим.
+
+        ВАЖНО: старый токен НЕ сбрасывается — старый поток продолжит
+        видеть его взведённым и завершится корректно.
+        """
+        with self._token_lock:
+            self._current_token = threading.Event()
+            return self._current_token
+
+    def _current_stop(self) -> threading.Event:
+        with self._token_lock:
+            return self._current_token
+
     # --- воспроизведение через sounddevice (для barge-in) ----------------
 
-    def _play_wav(self, wav_bytes: bytes) -> None:
-        """Играет WAV-байты чанками через sounddevice, проверяя _stop_flag.
-
-        Это позволяет barge-in реально прерывать звук (winsound не умеет).
-        """
+    def _play_wav(self, wav_bytes: bytes, token: threading.Event) -> None:
+        """Играет WAV-байты чанками, проверяя per-call token."""
         try:
             import numpy as np
             import sounddevice as sd
         except ImportError:
             log.warning(
                 "sounddevice/numpy недоступны — играю через winsound. "
-                "ВАЖНО: barge-in (перебивание) НЕ БУДЕТ РАБОТАТЬ. "
-                "Установи: pip install sounddevice numpy"
+                "Barge-in НЕ БУДЕТ РАБОТАТЬ. Установи: pip install sounddevice numpy"
             )
             import winsound
             winsound.PlaySound(wav_bytes, winsound.SND_MEMORY)
@@ -195,7 +209,6 @@ class Speaker:
             channels = wf.getnchannels()
             width = wf.getsampwidth()
 
-        # Читаем PCM как int16 или int32
         dtype = {1: "int8", 2: "int16", 4: "int32"}.get(width)
         if dtype is None:
             log.warning("Неподдерживаемая ширина сэмпла: %d", width)
@@ -207,12 +220,12 @@ class Speaker:
         if channels > 1:
             audio = audio.reshape(-1, channels)
 
-        chunk = int(rate * 0.05)  # 50 мс
+        chunk = int(rate * 0.05)
         try:
             with sd.OutputStream(samplerate=rate, channels=channels, dtype=dtype) as stream:
                 for i in range(0, len(audio), chunk):
-                    if self._stop_flag.is_set():
-                        log.info("TTS: воспроизведение прервано (stop_flag)")
+                    if token.is_set():
+                        log.info("TTS: воспроизведение прервано (token)")
                         break
                     stream.write(audio[i:i + chunk])
         except Exception:
@@ -234,10 +247,14 @@ class Speaker:
         self._mode = "xtts"
         log.info("TTS: XTTS-v2, клон голоса из %s", ref.name)
 
-    def _speak_xtts(self, text: str) -> None:
+    def _speak_xtts(self, text: str, token: threading.Event) -> None:
         import numpy as np
+        if token.is_set():
+            return
         samples = self._xtts.tts(text=text, speaker_wav=self._xtts_ref,
                                  language="ru", speed=self.rate)
+        if token.is_set():
+            return
         pcm = (np.clip(np.asarray(samples), -1, 1) * 32767).astype(np.int16)
         buf = io.BytesIO()
         with wave.open(buf, "wb") as wf:
@@ -245,7 +262,7 @@ class Speaker:
             wf.setsampwidth(2)
             wf.setframerate(24000)
             wf.writeframes(pcm.tobytes())
-        self._play_wav(buf.getvalue())
+        self._play_wav(buf.getvalue(), token)
 
     def _init_piper(self, voice: str) -> None:
         from huggingface_hub import hf_hub_download
@@ -259,11 +276,15 @@ class Speaker:
         self._mode = "piper"
         log.info("TTS: piper, голос %s, скорость %.2f", voice, self.rate)
 
-    def _speak_piper(self, text: str) -> None:
+    def _speak_piper(self, text: str, token: threading.Event) -> None:
+        if token.is_set():
+            return
         buf = io.BytesIO()
         with wave.open(buf, "wb") as wf:
             self._piper.synthesize_wav(text, wf, self._piper_cfg)
-        self._play_wav(buf.getvalue())
+        if token.is_set():
+            return
+        self._play_wav(buf.getvalue(), token)
 
     def _init_sapi(self) -> None:
         import pyttsx3
@@ -297,43 +318,52 @@ class Speaker:
         await reader.load_async(stream.size)
         return bytes(reader.read_buffer(stream.size))
 
-    def _speak_one(self, text: str) -> None:
+    def _speak_one(self, text: str, token: threading.Event) -> None:
         text = _prepare_text(text)
-        if not text or self._stop_flag.is_set():
+        if not text or token.is_set():
             return
         log.info("Говорю: %s", text)
         try:
             if self._mode == "xtts":
-                self._speak_xtts(text)
+                self._speak_xtts(text, token)
             elif self._mode == "piper":
-                self._speak_piper(text)
+                self._speak_piper(text, token)
             elif self._mode == "winrt":
                 wav = asyncio.run(self._synthesize(text))
-                if not self._stop_flag.is_set():
-                    self._play_wav(wav)
+                # Проверяем токен ПОСЛЕ синтеза — если взведён, не играем
+                if token.is_set():
+                    return
+                self._play_wav(wav, token)
             else:
+                if token.is_set():
+                    return
                 self._engine.say(text)
                 self._engine.runAndWait()
         except Exception:
             log.exception("Ошибка синтеза речи")
 
     def speak(self, text: str) -> None:
+        """Синхронная озвучка (для тестов)."""
         if not text:
             return
-        self._speak_one(text)
+        token = self._new_token()
+        self._speak_one(text, token)
 
     def play_async(self, text: str) -> None:
-        # «Один голос за раз»: если что-то уже играет — прерываем.
-        # Иначе новый ответ накладывается на старый (3 голоса одновременно).
+        """Асинхронная озвучка одного текста."""
+        # Останавливаем предыдущее
         self.stop()
         self.wait_end(timeout=1.0)
 
-        self._stop_flag.clear()
-        self._playing = True
+        # Новый токен для этого вызова
+        token = self._new_token()
+
+        with self._play_lock:
+            self._playing = True
 
         def _run():
             try:
-                self._speak_one(text)
+                self._speak_one(text, token)
             finally:
                 with self._play_lock:
                     self._playing = False
@@ -342,29 +372,35 @@ class Speaker:
         self._play_thread.start()
 
     def stop(self) -> None:
-        """Прерывает воспроизведение. sounddevice-поток проверит _stop_flag
-        и остановится между чанками."""
-        log.info("TTS: прерывание (barge-in)")
-        self._stop_flag.set()
-        # Никаких winsound.SND_PURGE — он не работает на Windows 10/11.
-        # Прерывание происходит за счёт проверки _stop_flag в _play_wav.
+        """Взводит ТЕКУЩИЙ токен. Старые токены не трогает —
+        старые потоки завершатся сами, увидя свои токены взведёнными."""
+        with self._token_lock:
+            token = self._current_token
+        if not token.is_set():
+            log.info("TTS: прерывание (stop)")
+        token.set()
 
     def is_playing(self) -> bool:
-        return self._playing and self._play_thread is not None and self._play_thread.is_alive()
+        with self._play_lock:
+            return self._playing and self._play_thread is not None and self._play_thread.is_alive()
 
     def wait_end(self, timeout: float = 30.0) -> None:
-        if self._play_thread is not None:
-            self._play_thread.join(timeout=timeout)
-        self._playing = False
+        with self._play_lock:
+            thread = self._play_thread
+        if thread is not None:
+            thread.join(timeout=timeout)
+        with self._play_lock:
+            self._playing = False
 
     def speak_stream(self, text_iter, timeout: float = 30.0) -> str:
-        # «Один голос за раз»: если что-то уже играет — прерываем.
-        # Иначе GUI-команда накладывается на голосовую (2-3 голоса).
+        """Streaming TTS. Разбивает текст по предложениям и озвучивает по мере поступления."""
         self.stop()
         self.wait_end(timeout=1.0)
 
-        self._stop_flag.clear()
-        self._playing = True
+        token = self._new_token()
+
+        with self._play_lock:
+            self._playing = True
 
         buffer = ""
         full_text_parts = []
@@ -386,23 +422,24 @@ class Speaker:
 
         try:
             for chunk in text_iter:
-                if self._stop_flag.is_set():
+                if token.is_set():
                     log.info("TTS: стриминг прерван")
                     break
                 buffer += chunk
                 full_text_parts.append(chunk)
                 _flush_sentences()
-                while pending and not self._stop_flag.is_set():
+                while pending and not token.is_set():
                     sentence = pending.pop(0)
-                    self._speak_one(sentence)
-            if not self._stop_flag.is_set():
+                    self._speak_one(sentence, token)
+            if not token.is_set():
                 _flush_sentences(force=True)
-                while pending and not self._stop_flag.is_set():
+                while pending and not token.is_set():
                     sentence = pending.pop(0)
-                    self._speak_one(sentence)
+                    self._speak_one(sentence, token)
         except Exception:
             log.exception("Ошибка в speak_stream")
         finally:
-            self._playing = False
+            with self._play_lock:
+                self._playing = False
 
         return "".join(full_text_parts).strip()
