@@ -23,6 +23,7 @@ from jarvis import tasks
 from jarvis import weather
 from jarvis import profile
 from jarvis import history
+from jarvis import learning
 from jarvis.reply import Reply
 
 
@@ -119,6 +120,9 @@ class IntentHandler:
         self._last_debug: dict = {}
         self._recent_phrases: deque = deque(maxlen=10)
 
+        # Последняя команда (для коррекции «это не то»)
+        self._last_cmd: str = ""
+
         # Пароль (2.13)
         self._pending_password: dict | None = None
 
@@ -162,6 +166,11 @@ class IntentHandler:
         # Диагностика: сохраняем последнюю команду
         self._recent_phrases.append(cmd)
 
+        # Запоминаем ДО применения коррекции — чтобы «это не то»
+        # знало, что именно было сказано (а не то, во что превратила коррекция).
+        prev_cmd = self._last_cmd
+        self._last_cmd = cmd
+
         result = self._handle_single(cmd)
 
         user_msg = {"role": "user", "content": cmd}
@@ -199,6 +208,12 @@ class IntentHandler:
         return str(self.config.get("danger_password") or "").strip()
 
     def _handle_single(self, cmd: str) -> str | Iterator[str]:
+        # Применяем коррекцию, если есть
+        corrected = learning.find_correction(cmd)
+        if corrected and corrected != cmd:
+            log.info("Применена коррекция: %r → %r", cmd, corrected)
+            cmd = corrected
+
         # Пароль (2.13) — до всего, если ждём
         if self._pending_password and time.time() < self._pending_password.get("expires_at", 0):
             return self._handle_password_answer(cmd)
@@ -312,6 +327,10 @@ class IntentHandler:
             return reply
 
         reply = self._debug_fast(cmd)
+        if reply:
+            return reply
+
+        reply = self._correction_fast(cmd)
         if reply:
             return reply
 
@@ -437,6 +456,7 @@ class IntentHandler:
 
     def _profile_fast(self, cmd: str) -> str | None:
         """Команды профиля: смена, список, факты."""
+        log.info("_profile_fast: %r", cmd)
         m = re.match(r"^(?:я\s*[-—]?\s*|зови\s+меня\s+|переключись\s+на\s+|я\s+это\s+)([а-яёa-z][а-яёa-z\s\-]{0,40})$", cmd)
         if m:
             name = m.group(1).strip()
@@ -465,7 +485,7 @@ class IntentHandler:
                 key, value = sep.group(1).strip(), sep.group(2).strip()
             else:
                 key, value = fact, "да"
-            profile.set_fact(key, value)
+            learning.add_fact(key, value)
             return f"Запомнил: {key} — {value}."
 
         if re.search(r"(что|чё)\s+ты\s+(обо\s+мне\s+)?знаешь", cmd) \
@@ -660,6 +680,30 @@ class IntentHandler:
             return "Переключил раскладку обратно."
 
         return f"Действие «{action}» отменить нельзя."
+
+    def _correction_fast(self, cmd: str) -> str | None:
+        """Коррекция: «это не то, я сказал логи».
+
+        Использует self._last_cmd — команду, которую пользователь
+        сказал ПЕРЕД этой («это не то»).
+        """
+        m = re.match(
+            r"^(?:это\s+)?не\s+то\s*,?\s*(?:я\s+сказал[а]?\s+)?(.+)$",
+            cmd,
+        )
+        if m:
+            right = m.group(1).strip(" ,.:!?")
+            if not right:
+                return None
+            # self._last_cmd — это команда ДО текущей («это не то»).
+            # Мы её сохранили в handle() в момент прихода.
+            wrong = self._last_cmd
+            if wrong and wrong != cmd:
+                learning.add_correction(wrong, right)
+                return f"Понял, запомнил. Повторяю: {right}."
+            return "Что было не так?"
+
+        return None
 
     def _weather_currency_fast(self, cmd: str) -> str | None:
         """Простые правила для погоды и курса — без LLM."""

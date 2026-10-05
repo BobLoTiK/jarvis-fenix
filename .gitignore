@@ -45,6 +45,7 @@ timers.json
 tasks.json
 profiles/
 logs/
+system_caps.json
 *.log
 
 # === Случайные файлы из редакторов ===

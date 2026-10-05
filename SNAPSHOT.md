@@ -1,7 +1,7 @@
 # SNAPSHOT проекта «Феникс»
 
 _Автоматически сгенерировано `snapshot.py`. Обновляется при `git push`._
-_Файлов в снимке: 67_
+_Файлов в снимке: 72_
 
 ---
 
@@ -29,6 +29,7 @@ jarvis/
 │   ├── history.py
 │   ├── installed.py
 │   ├── intents.py
+│   ├── learning.py
 │   ├── main.py
 │   ├── matching.py
 │   ├── memory.py
@@ -58,12 +59,14 @@ jarvis/
 │   ├── maksim.json
 ├── scripts/
 │   ├── build_exe.py
+│   ├── check_caps.py
 │   ├── mics.py
 │   ├── selftest.py
 │   ├── set_llm_model.py
 │   ├── voicedemo.py
 │   ├── wakebench.py
 ├── tests/
+│   ├── test_caps.py
 │   ├── test_config_manager.py
 │   ├── test_weather.py
 ├── ARCHITECTURE.md
@@ -84,7 +87,9 @@ jarvis/
 ├── snapshot.py
 ├── start_fenix.bat
 ├── start_fenix_debug.bat
+├── system_caps.json
 ├── test_intents.py
+├── вкладка
 ```
 
 ---
@@ -819,6 +824,8 @@ pause
   "use_llm": true,
   "llm_model": "qwen2.5:7b-instruct",
   "ollama_url": "http://127.0.0.1:11434",
+  "prompt_level": "auto",
+  "llm_temperature": 0.7,
   "app_paths": {},
   "custom_commands": []
 }
@@ -942,7 +949,7 @@ cd /d "%~dp0"
 REM =====================================================================
 REM 1. Проверка Python
 REM =====================================================================
-echo [1/9] Проверка Python...
+echo [1/10] Проверка Python...
 where python >nul 2>nul
 if errorlevel 1 (
     echo.
@@ -961,7 +968,7 @@ echo.
 REM =====================================================================
 REM 2. pip
 REM =====================================================================
-echo [2/9] Проверка pip...
+echo [2/10] Проверка pip...
 python -m pip --version >nul 2>nul
 if errorlevel 1 (
     echo   pip не найден, ставлю ensurepip...
@@ -974,7 +981,7 @@ echo.
 REM =====================================================================
 REM 3. Python-зависимости
 REM =====================================================================
-echo [3/9] Установка Python-зависимостей...
+echo [3/10] Установка Python-зависимостей...
 echo   Это может занять несколько минут.
 echo.
 python -m pip install -r requirements.txt
@@ -989,7 +996,7 @@ echo.
 REM =====================================================================
 REM 4. Дополнительные пакеты
 REM =====================================================================
-echo [4/9] Установка дополнительных пакетов...
+echo [4/10] Установка дополнительных пакетов...
 python -m pip install pyautogui pygetwindow keyboard mouse pyperclip psutil pycaw screen-brightness-control 2>nul
 echo   Готово.
 echo.
@@ -997,7 +1004,7 @@ echo.
 REM =====================================================================
 REM 5. eSpeak NG
 REM =====================================================================
-echo [5/9] Проверка eSpeak NG (нужен для Piper TTS)...
+echo [5/10] Проверка eSpeak NG (нужен для Piper TTS)...
 where espeak-ng >nul 2>nul
 if errorlevel 1 (
     if exist "C:\Program Files\eSpeak NG\espeak-ng.exe" (
@@ -1031,7 +1038,7 @@ echo.
 REM =====================================================================
 REM 6. Ollama
 REM =====================================================================
-echo [6/9] Проверка Ollama (для LLM-фолбэка)...
+echo [6/10] Проверка Ollama (для LLM-фолбэка)...
 where ollama >nul 2>nul
 if errorlevel 1 (
     echo.
@@ -1059,12 +1066,12 @@ REM 7. Выбор модели LLM
 REM =====================================================================
 where ollama >nul 2>nul
 if errorlevel 1 (
-    echo [7/9] Ollama не установлена — пропускаю выбор модели.
+    echo [7/10] Ollama не установлена — пропускаю выбор модели.
     echo.
     goto skip_model
 )
 
-echo [7/9] Выбор модели для LLM.
+echo [7/10] Выбор модели для LLM.
 echo.
 echo   ============================================================
 echo    Слабые ПК, встроенная графика, 4-8 ГБ RAM (без GPU)
@@ -1157,7 +1164,7 @@ echo.
 REM =====================================================================
 REM 8. Конфиг, папки, микрофон
 REM =====================================================================
-echo [8/9] Настройка конфига и папок...
+echo [8/10] Настройка конфига и папок...
 
 if not exist "config.json" (
     if exist "config.example.json" (
@@ -1178,7 +1185,12 @@ echo.
 REM =====================================================================
 REM 9. Проверка работоспособности
 REM =====================================================================
-echo [9/9] Проверка работоспособности Феникса.
+echo [9/10] Проверка возможностей системы.
+echo.
+python scripts\check_caps.py
+echo.
+
+echo [10/10] Проверка работоспособности Феникса.
 echo.
 echo   Сейчас прогонятся:
 echo     - Проверка синтаксиса (check_syntax.py)
@@ -1308,6 +1320,7 @@ if __name__ == "__main__":
 ```python
 """Действия: запуск приложений, открытие сайтов, скриншоты, медиа, печать, окна."""
 
+import json
 import logging
 import os
 import re
@@ -1317,6 +1330,34 @@ import urllib.parse
 from pathlib import Path
 
 log = logging.getLogger("jarvis.actions")
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+_CAPS_FILE = BASE_DIR / "system_caps.json"
+_CAPS: dict = {}
+
+
+def _load_caps() -> dict:
+    """Читает system_caps.json. Кэширует. Если файла нет — возвращает {}."""
+    global _CAPS
+    if _CAPS:
+        return _CAPS
+    if _CAPS_FILE.exists():
+        try:
+            _CAPS = json.loads(_CAPS_FILE.read_text(encoding="utf-8"))
+            log.info("system_caps.json загружен")
+        except Exception:
+            log.exception("Не удалось прочитать system_caps.json")
+            _CAPS = {}
+    return _CAPS
+
+
+def _caps_available(name: str) -> bool:
+    """Проверяет, доступна ли возможность."""
+    return _load_caps().get(name, {}).get("available", False)
+
+
+def _caps_method(name: str) -> str:
+    return _load_caps().get(name, {}).get("method", "none")
 
 
 # --- запуск приложений и файлов -------------------------------------------
@@ -1672,44 +1713,81 @@ def get_layout() -> str | None:
 # --- громкость -------------------------------------------------------------
 
 def get_volume() -> int | None:
-    """Возвращает громкость в процентах (0..100)."""
-    try:
-        from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
-        from ctypes import cast, POINTER
-        from comtypes import CLSCTX_ALL
+    """Возвращает громкость в процентах (0..100).
 
-        device = AudioUtilities.GetSpeakers()
-        interface = device.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
-        volume = cast(interface, POINTER(IAudioEndpointVolume))
-        return round(volume.GetMasterVolumeLevelScalar() * 100)
-    except Exception:
-        log.exception("get_volume не удался")
+    Метод (volume_percent / endpoint_volume / activate) определён
+    при установке в system_caps.json.
+    """
+    if not _caps_available("volume"):
+        log.warning("Громкость недоступна (см. system_caps.json)")
         return None
+
+    method = _caps_method("volume")
+    try:
+        from pycaw.pycaw import AudioUtilities
+        device = AudioUtilities.GetSpeakers()
+
+        if method == "volume_percent":
+            return int(device.volume_percent)
+        if method == "endpoint_volume":
+            return round(device.EndpointVolume.GetMasterVolumeLevelScalar() * 100)
+        if method == "activate":
+            from ctypes import cast, POINTER
+            from comtypes import CLSCTX_ALL
+            from pycaw.pycaw import IAudioEndpointVolume
+            interface = device.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
+            vol = cast(interface, POINTER(IAudioEndpointVolume))
+            return round(vol.GetMasterVolumeLevelScalar() * 100)
+    except Exception:
+        log.exception("get_volume не удался (method=%s)", method)
+    return None
 
 
 def set_volume(percent: int) -> bool:
-    """Ставит громкость в процентах (0..100)."""
-    percent = max(0, min(100, int(percent)))
-    log.info("Громкость: %d%%", percent)
-    try:
-        from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
-        from ctypes import cast, POINTER
-        from comtypes import CLSCTX_ALL
+    """Ставит громкость в процентах (0..100).
 
-        device = AudioUtilities.GetSpeakers()
-        interface = device.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
-        volume = cast(interface, POINTER(IAudioEndpointVolume))
-        volume.SetMasterVolumeLevelScalar(percent / 100.0, None)
-        return True
-    except Exception:
-        log.exception("set_volume не удался")
+    Метод определён при установке в system_caps.json.
+    """
+    if not _caps_available("volume"):
+        log.warning("Громкость недоступна (см. system_caps.json)")
         return False
 
+    percent = max(0, min(100, int(percent)))
+    log.info("Громкость: %d%% (method=%s)", percent, _caps_method("volume"))
+
+    method = _caps_method("volume")
+    try:
+        from pycaw.pycaw import AudioUtilities
+        device = AudioUtilities.GetSpeakers()
+
+        if method == "volume_percent":
+            device.volume_percent = percent
+            return True
+        if method == "endpoint_volume":
+            device.EndpointVolume.SetMasterVolumeLevelScalar(percent / 100.0, None)
+            return True
+        if method == "activate":
+            from ctypes import cast, POINTER
+            from comtypes import CLSCTX_ALL
+            from pycaw.pycaw import IAudioEndpointVolume
+            interface = device.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
+            vol = cast(interface, POINTER(IAudioEndpointVolume))
+            vol.SetMasterVolumeLevelScalar(percent / 100.0, None)
+            return True
+    except Exception:
+        log.exception("set_volume не удался (method=%s)", method)
+    return False
 
 # --- яркость ---------------------------------------------------------------
 
 def get_brightness() -> int | None:
-    """Возвращает яркость в процентах (0..100)."""
+    """Возвращает яркость в процентах (0..100).
+
+    Доступность проверена при установке в system_caps.json.
+    """
+    if not _caps_available("brightness"):
+        log.warning("Яркость недоступна (см. system_caps.json)")
+        return None
     try:
         import screen_brightness_control as sbc
         values = sbc.get_brightness()
@@ -1723,6 +1801,9 @@ def get_brightness() -> int | None:
 
 def set_brightness(percent: int) -> bool:
     """Ставит яркость в процентах (0..100)."""
+    if not _caps_available("brightness"):
+        log.warning("Яркость недоступна (см. system_caps.json)")
+        return False
     percent = max(0, min(100, int(percent)))
     log.info("Яркость: %d%%", percent)
     try:
@@ -1732,8 +1813,6 @@ def set_brightness(percent: int) -> bool:
     except Exception:
         log.exception("set_brightness не удался")
         return False
-
-
 # --- процессы --------------------------------------------------------------
 
 def find_process(name: str, threshold: float = 0.7):
@@ -2210,6 +2289,14 @@ def find_app(apps: list[App], target: str) -> App | None:
 
 ```python
 """LLM-фолбэк: локальная нейронка (Ollama) разбирает команду в структурный интент.
+
+Три уровня промпта:
+    small  — для 0.5b–3b: длинный, с примерами и запретами.
+    medium — для 7b–9b: средний.
+    large  — для 14b+: короткий, без рамок, больше свободы.
+
+Уровень выбирается автоматически по имени модели или вручную (prompt_level).
+Плюс — подгрузка фактов и corrections из learning.py.
 """
 
 import json
@@ -2220,226 +2307,290 @@ import threading
 import time
 import urllib.request
 
+from jarvis import learning
+
 log = logging.getLogger("jarvis.brain")
 
-SYSTEM = """Ты разбираешь команды голосового ассистента на Windows. Отвечай ТОЛЬКО JSON.
-Поля: action; target; query; engine (google|youtube|wiki); reply; text; mode; name; voice; seconds; time; task; folder; minimized; day (today|tomorrow).
 
-Действия:
-open_app (открыть программу/игру; target; minimized=true — свёрнуто)
+# =================================================================
+# Промпт: SMALL — для 0.5b, 1.5b, 3b, gemma2:2b
+# =================================================================
+
+SYSTEM_SMALL = """Ты — Феникс, локальный голосовой ассистент на Windows. Отвечай ТОЛЬКО JSON.
+
+Поля: action; target; query; engine; reply; text; mode; name; voice; percent; seconds; time; task; folder; day; minimized.
+
+=== ДЕЙСТВИЯ ===
+open_app (открыть приложение/игру; target; minimized=true)
 close_app (закрыть; target)
-open_site (открыть сайт; target — домен или название)
-search (поиск; query; engine)
-screenshot (скриншот)
-open_file (открыть последний файл)
-open_folder (открыть папку; target)
-list_folder (что в папке; target)
-create_file (создать файл; target — имя; folder — папка)
-type_text (напечатать; text)
-media_key (key: play|next|prev|vol_up|vol_down|mute)
-play_pause (пауза/плей)
-next_track (следующий трек)
-prev_track (предыдущий трек)
-volume_up (громче)
-volume_down (тише)
-mute (без звука)
-switch_layout (переключить раскладку)
-set_layout_ru (русская раскладка)
-set_layout_en (английская раскладка)
-get_layout (какая раскладка)
-set_volume (громкость в процентах; percent — число 0-100)
-get_volume (какая громкость)
-set_brightness (яркость в процентах; percent — число 0-100)
-get_brightness (какая яркость)
-debug_what_heard (что ты слышал — история распознавания)
-debug_why_not_understood (почему не понял — диагностика)
-delete_profile (удали профиль; target — имя профиля)
-minimize_all (свернуть все окна)
-minimize_window (свернуть окно; target)
-maximize_window (развернуть окно; target)
-activate_window (переключиться на окно; target)
-minimize_active (свернуть активное)
-maximize_active (развернуть активное)
-switch_window (переключить окно; back=true — на предыдущее)
-set_mode (режим; mode: commands|llm|combo)
-load_pack (загрузить пак; name: games|apps|sites|work|system)
-unload_pack (выгрузить пак; name)
-list_packs (список паков)
-change_voice (сменить голос; voice: ruslan|dmitri|irina|denis)
-list_voices (список голосов)
-set_timer (напоминание; text; seconds ИЛИ time="HH:MM")
-list_timers (список напоминаний)
-cancel_timers (отменить все напоминания)
-add_task (добавить задачу; text)
-list_tasks (список задач)
-done_task (отметить задачу; task)
-remove_task (удалить задачу; task)
-clear_tasks (очистить список)
-open_config (открыть конфиг)
-open_log (открыть лог)
-get_weather (погода; target — ТОЛЬКО город в ИМЕНИТЕЛЬНОМ падеже; day: today|tomorrow)
-get_currency (курс валют ЦБ РФ; target — ISO-код валюты или пусто)
-answer (ответ на вопрос; reply)
-none (бессмыслица)
+open_site (открыть сайт; target)
+search (поиск; query; engine: google|youtube|wiki)
+screenshot
+open_file
+open_folder (target)
+list_folder (target)
+create_file (target; folder)
+type_text (text)
+media_key (key)
+play_pause
+next_track
+prev_track
+volume_up
+volume_down
+mute
+set_volume (percent 0-100)
+get_volume
+set_brightness (percent 0-100)
+get_brightness
+switch_layout
+set_layout_ru
+set_layout_en
+get_layout
+minimize_all
+minimize_window (target)
+maximize_window (target)
+activate_window (target)
+minimize_active
+maximize_active
+switch_window
+set_mode (mode: commands|llm|combo)
+load_pack (name: games|apps|sites|work|system)
+unload_pack (name)
+list_packs
+change_voice (voice: ruslan|dmitri|irina|denis)
+list_voices
+set_timer (text; seconds ИЛИ time)
+list_timers
+cancel_timers
+add_task (text)
+list_tasks
+done_task (task)
+remove_task (task)
+clear_tasks
+open_config
+open_log
+get_weather (target — город; day: today|tomorrow)
+get_currency (target — ISO: USD|EUR|CNY|BYN|KZT|GBP|JPY|TRY|UAH)
+answer (reply)
+none
 
 === ГЛАВНОЕ ПРАВИЛО ===
-ЕСЛИ в фразе есть «закрой», «выключи», «убей», «останови» → это ВСЕГДА close_app, НИКОГДА open_app.
-ЕСЛИ в фразе есть «открой», «запусти», «врубай» → это open_app (или open_site / open_folder — см. примеры).
-Это правило важнее всех остальных. Не путай их.
+«Закрой», «выключи», «убей», «останови» → ВСЕГДА close_app.
+«Открой», «запусти», «врубай» → ВСЕГДА open_app (или open_site/open_folder).
+Не путай.
 
-=== ЗАКРЫТИЕ ПРИЛОЖЕНИЙ (close_app) ===
-Используй ТОЛЬКО когда пользователь хочет ЗАКРЫТЬ приложение.
-target — название приложения (без .exe).
-
-Примеры:
-закрой дискорд -> {"action":"close_app","target":"дискорд"}
-закрой стим -> {"action":"close_app","target":"стим"}
-закрой телеграм -> {"action":"close_app","target":"телеграм"}
-закрой телегу -> {"action":"close_app","target":"телеграм"}
-закрой браузер -> {"action":"close_app","target":"браузер"}
-закрой хром -> {"action":"close_app","target":"хром"}
-закрой игру -> {"action":"close_app","target":"игра"}
-закрой калькулятор -> {"action":"close_app","target":"калькулятор"}
-закрой блокнот -> {"action":"close_app","target":"блокнот"}
-выключи музыку -> {"action":"close_app","target":"музыка"}
-останови обс -> {"action":"close_app","target":"обс"}
-убей стим -> {"action":"close_app","target":"стим"}
-закрой проводник -> {"action":"close_app","target":"проводник"}
-
-=== ОТКРЫТИЕ ПРИЛОЖЕНИЙ (open_app) ===
-Используй ТОЛЬКО когда пользователь хочет ОТКРЫТЬ приложение или игру.
-
-Примеры:
+=== ПРИМЕРЫ ===
 открой стим -> {"action":"open_app","target":"стим"}
+закрой стим -> {"action":"close_app","target":"стим"}
 открой дискорд -> {"action":"open_app","target":"дискорд"}
+закрой дискорд -> {"action":"close_app","target":"дискорд"}
 открой телеграм -> {"action":"open_app","target":"телеграм"}
+закрой телегу -> {"action":"close_app","target":"телеграм"}
 открой хром -> {"action":"open_app","target":"хром"}
+закрой браузер -> {"action":"close_app","target":"браузер"}
 запусти сабнатику -> {"action":"open_app","target":"сабнатика"}
 запусти доту -> {"action":"open_app","target":"дота"}
 врубай катку -> {"action":"open_app","target":"дота"}
-открой блокнот -> {"action":"open_app","target":"блокнот"}
-открой калькулятор -> {"action":"open_app","target":"калькулятор"}
-верни стим -> {"action":"open_app","target":"стим"}
-
-=== ВАЖНО про set_mode ===
-Используй set_mode ТОЛЬКО если пользователь явно говорит:
-«режим», «переключись на режим», «включи режим», «смени режим».
-НИКОГДА не используй set_mode для слов: «верни», «открой», «покажи», «запусти».
-
-=== ВАЖНО про search vs answer ===
-По умолчанию отвечай САМ через answer — даже на вопросы о фактах, объяснения, мнения, советы, шутки.
-НИКОГДА не используй search, если пользователь явно не сказал: «найди», «поищи», «загугли», «погугли».
-Свежесть данных — НЕ повод для search.
-
-=== ПОГОДА (get_weather) ===
-target — ТОЛЬКО НАЗВАНИЕ ГОРОДА в именительном падеже. Если пользователь не назвал город — target НЕ УКАЗЫВАЙ.
-Погода — это НЕ search. Даже «найди погоду» → get_weather.
-
-Примеры:
-какая погода -> {"action":"get_weather","day":"today"}
-какая погода в нижнем новгороде -> {"action":"get_weather","target":"Нижний Новгород","day":"today"}
-какая погода в питере -> {"action":"get_weather","target":"Санкт-Петербург","day":"today"}
-какая погода в мск -> {"action":"get_weather","target":"Москва","day":"today"}
-погода в москве на завтра -> {"action":"get_weather","target":"Москва","day":"tomorrow"}
-что по погоде в казани -> {"action":"get_weather","target":"Казань","day":"today"}
-погода -> {"action":"get_weather","day":"today"}
-
-=== КУРС ВАЛЮТ (get_currency) ===
-target — ISO-код валюты: USD, EUR, CNY, BYN, KZT, GBP, JPY, TRY, UAH.
-Если пользователь не назвал валюту — target НЕ УКАЗЫВАЙ.
-
-Примеры:
-курс валют -> {"action":"get_currency"}
-курс доллара -> {"action":"get_currency","target":"USD"}
-курс евро -> {"action":"get_currency","target":"EUR"}
-курс юаня -> {"action":"get_currency","target":"CNY"}
-курс белорусского рубля -> {"action":"get_currency","target":"BYN"}
-курс тенге -> {"action":"get_currency","target":"KZT"}
-курс фунта -> {"action":"get_currency","target":"GBP"}
-а белорусский рубль -> {"action":"get_currency","target":"BYN"}
-сколько стоит доллар -> {"action":"get_currency","target":"USD"}
-
-=== КАТЕГОРИЧЕСКИ ВАЖНО ===
-НИКОГДА не путай get_weather и get_currency.
-Если пользователь не назвал валюту — target не указывай.
-Если пользователь не назвал город — target не указывай.
-НИКОГДА не подставляй «курс доллара» в target от get_weather.
-
-=== ВАЖНО про окна ===
-- «консоль», «терминал», «cmd» → target: "cmd"
-- «браузер» → target: "браузер"
-- «телега», «тг» → target: "telegram"
-- «дс», «дискорд» → target: "discord"
-- «проводник», «папка» → target: "проводник"
-
-=== ВАЖНО про load_pack / unload_pack ===
-name — ЛАТИНСКОЕ имя пака: games, apps, sites, work, system.
-НЕ ПИШИ «игр» или «игры» — пиши «games».
-
-Примеры:
-загрузи пак игр -> {"action":"load_pack","name":"games"}
-выгрузи пак игр -> {"action":"unload_pack","name":"games"}
-загрузи пак сайтов -> {"action":"load_pack","name":"sites"}
-выгрузи пак приложений -> {"action":"unload_pack","name":"apps"}
-какие паки -> {"action":"list_packs"}
-
-=== ПРОЧИЕ ПРИМЕРЫ ===
 открой ютуб -> {"action":"open_site","target":"ютуб"}
 открой яндекс -> {"action":"open_site","target":"яндекс"}
 верни яндекс -> {"action":"open_site","target":"яндекс"}
 найди погоду -> {"action":"search","engine":"google","query":"погода сегодня"}
-загугли новости -> {"action":"search","engine":"google","query":"новости сегодня"}
+загугли новости -> {"action":"search","engine":"google","query":"новости"}
 поищи на ютубе лофи -> {"action":"search","engine":"youtube","query":"лофи"}
 найди в википедии фотосинтез -> {"action":"search","engine":"wiki","query":"фотосинтез"}
 открой загрузки -> {"action":"open_folder","target":"загрузки"}
 что на рабочем столе -> {"action":"list_folder","target":"рабочий стол"}
-создай файл список покупок в документах -> {"action":"create_file","target":"список покупок","folder":"документы"}
+создай файл список покупок -> {"action":"create_file","target":"список покупок"}
 напечатай привет мир -> {"action":"type_text","text":"привет мир"}
-ВАЖНО: «напечатай историю», «напечатай шутку», «напиши стих» — это answer, НЕ type_text.
 сделай скриншот -> {"action":"screenshot"}
 сверни все окна -> {"action":"minimize_all"}
-сверни дискорд -> {"action":"minimize_window","target":"discord"}
-разверни консоль -> {"action":"maximize_window","target":"cmd"}
-переключись на дискорд -> {"action":"activate_window","target":"discord"}
+сверни дискорд -> {"action":"minimize_window","target":"дискорд"}
+разверни консоль -> {"action":"maximize_window","target":"консоль"}
+переключись на дискорд -> {"action":"activate_window","target":"дискорд"}
 сверни это -> {"action":"minimize_active"}
 разверни текущее -> {"action":"maximize_active"}
 переключи окно -> {"action":"switch_window"}
 пауза -> {"action":"play_pause"}
 следующий трек -> {"action":"next_track"}
 сделай громче -> {"action":"volume_up"}
+тише -> {"action":"volume_down"}
 без звука -> {"action":"mute"}
-включи музыку -> {"steps":[{"action":"open_app","target":"яндекс музыка","minimized":true},{"action":"wait","seconds":6},{"action":"media_key","key":"play"}]}
-переключись на режим команды -> {"action":"set_mode","mode":"commands"}
-включи режим ИИ -> {"action":"set_mode","mode":"llm"}
+громкость 50 -> {"action":"set_volume","percent":50}
+какая громкость -> {"action":"get_volume"}
+яркость 30 -> {"action":"set_brightness","percent":30}
+какая яркость -> {"action":"get_brightness"}
+переключи раскладку -> {"action":"switch_layout"}
+русская раскладка -> {"action":"set_layout_ru"}
+английская раскладка -> {"action":"set_layout_en"}
+какая раскладка -> {"action":"get_layout"}
+режим ии -> {"action":"set_mode","mode":"llm"}
 обычный режим -> {"action":"set_mode","mode":"combo"}
+режим команды -> {"action":"set_mode","mode":"commands"}
+загрузи пак игр -> {"action":"load_pack","name":"games"}
+выгрузи пак игр -> {"action":"unload_pack","name":"games"}
+какие паки -> {"action":"list_packs"}
 смени голос на ирину -> {"action":"change_voice","voice":"irina"}
 какой голос -> {"action":"list_voices"}
 напомни через 10 минут выпить чай -> {"action":"set_timer","text":"выпить чай","seconds":600}
+напомни в 18:30 позвонить -> {"action":"set_timer","text":"позвонить","time":"18:30"}
+какие напоминания -> {"action":"list_timers"}
+отмени напоминания -> {"action":"cancel_timers"}
 добавь в список купить хлеб -> {"action":"add_task","text":"купить хлеб"}
 что в списке -> {"action":"list_tasks"}
+отметь хлеб -> {"action":"done_task","task":"хлеб"}
+убери хлеб -> {"action":"remove_task","task":"хлеб"}
+очисти список -> {"action":"clear_tasks"}
 открой конфиг -> {"action":"open_config"}
 открой журнал -> {"action":"open_log"}
-расскажи шутку -> {"action":"answer","reply":"Почему медведь не ездит на машине? Потому что у него нет водительских прав."}
+какая погода -> {"action":"get_weather","day":"today"}
+какая погода в москве -> {"action":"get_weather","target":"Москва","day":"today"}
+погода в питере на завтра -> {"action":"get_weather","target":"Санкт-Петербург","day":"tomorrow"}
+курс доллара -> {"action":"get_currency","target":"USD"}
+курс евро -> {"action":"get_currency","target":"EUR"}
+курс валют -> {"action":"get_currency"}
+включи музыку -> {"steps":[{"action":"open_app","target":"яндекс музыка","minimized":true},{"action":"wait","seconds":6},{"action":"media_key","key":"play"}]}
+расскажи шутку -> {"action":"answer","reply":"Почему медведь не ездит на машине? Потому что нет прав."}
 как дела -> {"action":"answer","reply":"Отлично, сэр. Готов к работе."}
-сколько будет два плюс два -> {"action":"answer","reply":"Четыре"}"""
 
-ACTIONS = {
-    "open_app", "close_app", "open_site", "search", "screenshot", "open_file",
-    "media_key", "wait", "answer", "none", "open_folder", "list_folder",
-    "create_file", "type_text", "minimize_all", "minimize_window",
-    "maximize_window", "activate_window", "minimize_active", "maximize_active",
-    "switch_window", "set_mode", "load_pack", "unload_pack", "list_packs",
-    "change_voice", "list_voices", "set_timer", "list_timers", "cancel_timers",
-    "add_task", "list_tasks", "done_task", "remove_task", "clear_tasks",
-    "open_config", "open_log", "play_pause", "next_track", "prev_track",
-    "volume_up", "volume_down", "mute",
-    "get_weather", "get_currency",
-    "switch_layout", "set_layout_ru", "set_layout_en", "get_layout",
-    "set_volume", "get_volume",
-    "set_brightness", "get_brightness",
-    "debug_why_not_understood", "debug_what_heard",
-    "delete_profile",
+=== ЗАПРЕТЫ ===
+НИКОГДА не путай open_app и close_app.
+НИКОГДА не путай get_weather и get_currency.
+Если пользователь не назвал город для погоды — не указывай target.
+Если не назвал валюту — не указывай target.
+НИКОГДА не используй search, если не сказано «найди», «поищи», «загугли».
+По умолчанию отвечай через answer — даже на факты.
+
+=== СТИЛЬ ДИАЛОГА (chat_stream) ===
+Ты — Феникс. Спокойный, вежливый, с сухим юмором, обращаешься «сэр».
+Отвечай в 2–5 предложениях. Без списков, без markdown, без эмодзи.
+ОТВЕЧАЙ ТОЛЬКО НА РУССКОМ."""
+
+
+# =================================================================
+# Промпт: MEDIUM — для 7b, gemma2:9b
+# =================================================================
+
+SYSTEM_MEDIUM = """Ты — Феникс, локальный голосовой ассистент на Windows. Отвечай ТОЛЬКО JSON.
+
+Поля: action; target; query; engine; reply; text; mode; name; voice; percent; seconds; time; task; folder; day; minimized.
+
+=== ДЕЙСТВИЯ ===
+open_app (target; minimized=true)
+close_app (target)
+open_site (target)
+search (query; engine: google|youtube|wiki)
+screenshot
+open_file
+open_folder (target)
+list_folder (target)
+create_file (target; folder)
+type_text (text)
+media_key (key)
+play_pause / next_track / prev_track
+volume_up / volume_down / mute
+set_volume (percent) / get_volume
+set_brightness (percent) / get_brightness
+switch_layout / set_layout_ru / set_layout_en / get_layout
+minimize_all / minimize_window / maximize_window / activate_window
+minimize_active / maximize_active / switch_window
+set_mode (mode: commands|llm|combo)
+load_pack / unload_pack / list_packs (name: games|apps|sites|work|system)
+change_voice / list_voices (voice: ruslan|dmitri|irina|denis)
+set_timer (text; seconds|time) / list_timers / cancel_timers
+add_task (text) / list_tasks / done_task (task) / remove_task (task) / clear_tasks
+open_config / open_log
+get_weather (target; day)
+get_currency (target)
+answer (reply)
+none
+
+=== ГЛАВНОЕ ===
+«Закрой», «выключи», «убей» → close_app.
+«Открой», «запусти», «врубай» → open_app / open_site / open_folder.
+
+=== ПРИМЕРЫ ===
+открой стим -> open_app target стим
+закрой стим -> close_app target стим
+открой ютуб -> open_site target ютуб
+какая погода в москве -> get_weather target Москва
+курс доллара -> get_currency target USD
+громкость 50 -> set_volume percent 50
+смени голос на ирину -> change_voice voice irina
+
+=== ПРАВИЛА ===
+Не путай погоду и курс.
+Не используй search без «найди», «поищи», «загугли».
+По умолчанию — answer.
+
+=== ДИАЛОГ ===
+Ты — Феникс. Спокойный, вежливый, с сухим юмором, «сэр».
+2–5 предложений. Без markdown. Только русский."""
+
+
+# =================================================================
+# Промпт: LARGE — для 14b+
+# =================================================================
+
+SYSTEM_LARGE = """Ты — Феникс, локальный голосовой ассистент на Windows.
+Разбирай команды в JSON. Поля: action; target; query; engine; reply; text; mode; name; voice; percent; seconds; time; task; folder; day; minimized.
+
+=== ДЕЙСТВИЯ ===
+open_app, close_app, open_site, search (engine: google|youtube|wiki), screenshot,
+open_file, open_folder, list_folder, create_file, type_text,
+media_key, play_pause, next_track, prev_track, volume_up, volume_down, mute,
+set_volume, get_volume, set_brightness, get_brightness,
+switch_layout, set_layout_ru, set_layout_en, get_layout,
+minimize_all, minimize_window, maximize_window, activate_window,
+minimize_active, maximize_active, switch_window,
+set_mode (commands|llm|combo), load_pack, unload_pack, list_packs,
+change_voice, list_voices, set_timer, list_timers, cancel_timers,
+add_task, list_tasks, done_task, remove_task, clear_tasks,
+open_config, open_log, get_weather, get_currency, answer, none.
+
+=== ДИАЛОГ ===
+Ты — Феникс. Спокойный, вежливый, с сухим юмором, «сэр».
+2–5 предложений. Без markdown. Только русский.
+
+=== ПРАВО НА ОШИБКУ ===
+Если не уверен — не выдумывай, отвечай {"action":"none"} или {"action":"answer","reply":"..."}.
+Если фраза — вопрос, используй answer.
+Если это команда — выбери подходящий action.
+Думай сам."""
+
+
+# =================================================================
+# Выбор промпта по модели
+# =================================================================
+
+PROMPT_LEVELS = {
+    "small":  SYSTEM_SMALL,
+    "medium": SYSTEM_MEDIUM,
+    "large":  SYSTEM_LARGE,
 }
+
+
+def pick_prompt(model: str, override: str = "auto") -> tuple[str, str]:
+    """Возвращает (уровень, промпт) для модели.
+
+    override: "auto" | "small" | "medium" | "large".
+    """
+    if override in PROMPT_LEVELS:
+        return override, PROMPT_LEVELS[override]
+
+    model_low = model.lower()
+    # Small
+    if any(s in model_low for s in ["0.5b", "1.5b", "2b", "3b"]):
+        return "small", SYSTEM_SMALL
+    # Large
+    if any(s in model_low for s in ["14b", "32b", "70b", "72b"]):
+        return "large", SYSTEM_LARGE
+    # Medium (7b, 8b, 9b, 7b-instruct, ...)
+    return "medium", SYSTEM_MEDIUM
+
+
+# =================================================================
+# Chat system (для диалога)
+# =================================================================
 
 CHAT_SYSTEM = (
     "Ты — Феникс, локальный голосовой ассистент на Windows. "
@@ -2467,16 +2618,22 @@ def _strip_cjk(text: str) -> str:
 
 class Brain:
     def __init__(self, model="qwen2.5:7b-instruct",
-                 url="http://127.0.0.1:11434", timeout=20.0):
+                 url="http://127.0.0.1:11434", timeout=20.0,
+                 prompt_level="auto", temperature=0.7):
         self.model = model
         self.url = url.rstrip("/")
         self.timeout = timeout
+        self.temperature = float(temperature)
+
+        self.prompt_level, self.system_prompt = pick_prompt(model, prompt_level)
+        log.info("Промпт: %s (для %s)", self.prompt_level, model)
+
         self.available = self._ping() or self._try_start()
         if self.available:
-            log.info("LLM-фолбэк включён: %s через Ollama", model)
+            log.info("LLM включена: %s", model)
             threading.Thread(target=self._warmup, daemon=True, name="brain-warmup").start()
         else:
-            log.warning("Ollama недоступна — LLM-фолбэк выключен")
+            log.warning("Ollama недоступна — LLM выключена")
 
     def _ping(self):
         try:
@@ -2514,21 +2671,33 @@ class Brain:
         with urllib.request.urlopen(req, timeout=timeout) as r:
             return json.loads(r.read())["message"]["content"]
 
+    def _system_with_context(self, base: str) -> str:
+        """Добавляет к промпту факты и corrections."""
+        try:
+            extra = learning.build_context()
+        except Exception:
+            log.exception("Не удалось собрать контекст обучения")
+            extra = ""
+        return base + extra if extra else base
+
     def _chat(self, cmd, timeout):
-        return self._request([{"role": "system", "content": SYSTEM},
+        system = self._system_with_context(self.system_prompt)
+        return self._request([{"role": "system", "content": system},
                               {"role": "user", "content": cmd}], timeout,
                              num_predict=300)
 
     def chat(self, cmd, history=None):
         if not self.available:
             return None
-        msgs = ([{"role": "system", "content": CHAT_SYSTEM}]
+        system = self._system_with_context(CHAT_SYSTEM)
+        msgs = ([{"role": "system", "content": system}]
                 + list(history or [])
                 + [{"role": "user", "content": cmd}])
         try:
             t0 = time.time()
             text = self._request(msgs, self.timeout, fmt=None,
-                                 temperature=0.7, num_predict=600).strip()
+                                 temperature=self.temperature,
+                                 num_predict=600).strip()
             text = _strip_cjk(text)
             log.info("LLM-диалог (%.2f с): %r -> %r", time.time() - t0, cmd, text[:120])
             return text or None
@@ -2539,7 +2708,8 @@ class Brain:
     def chat_stream(self, cmd, history=None):
         if not self.available:
             return
-        msgs = ([{"role": "system", "content": CHAT_SYSTEM}]
+        system = self._system_with_context(CHAT_SYSTEM)
+        msgs = ([{"role": "system", "content": system}]
                 + list(history or [])
                 + [{"role": "user", "content": cmd}])
         payload = {
@@ -2547,7 +2717,7 @@ class Brain:
             "messages": msgs,
             "stream": True,
             "keep_alive": -1,
-            "options": {"temperature": 0.7, "num_predict": 600},
+            "options": {"temperature": self.temperature, "num_predict": 600},
         }
         req = urllib.request.Request(self.url + "/api/chat",
                                      json.dumps(payload).encode(),
@@ -2611,6 +2781,29 @@ class Brain:
         if intent.get("action") not in ACTIONS:
             return None
         return intent
+
+
+# =================================================================
+# Список допустимых действий (для валидации)
+# =================================================================
+
+ACTIONS = {
+    "open_app", "close_app", "open_site", "search", "screenshot", "open_file",
+    "media_key", "wait", "answer", "none", "open_folder", "list_folder",
+    "create_file", "type_text", "minimize_all", "minimize_window",
+    "maximize_window", "activate_window", "minimize_active", "maximize_active",
+    "switch_window", "set_mode", "load_pack", "unload_pack", "list_packs",
+    "change_voice", "list_voices", "set_timer", "list_timers", "cancel_timers",
+    "add_task", "list_tasks", "done_task", "remove_task", "clear_tasks",
+    "open_config", "open_log", "play_pause", "next_track", "prev_track",
+    "volume_up", "volume_down", "mute",
+    "get_weather", "get_currency",
+    "switch_layout", "set_layout_ru", "set_layout_en", "get_layout",
+    "set_volume", "get_volume",
+    "set_brightness", "get_brightness",
+    "debug_why_not_understood", "debug_what_heard",
+    "delete_profile",
+}
 ```
 
 ### `jarvis\config.py`
@@ -2658,6 +2851,8 @@ DEFAULT_CONFIG = {
     "use_llm": True,
     "llm_model": "qwen2.5:7b-instruct",
     "ollama_url": "http://127.0.0.1:11434",
+    "prompt_level": "auto",
+    "llm_temperature": 0.7,
     "music_app": "яндекс музыка",
     "music_wait_sec": 6,
     "active_packs": [],
@@ -3990,6 +4185,7 @@ from jarvis import tasks
 from jarvis import weather
 from jarvis import profile
 from jarvis import history
+from jarvis import learning
 from jarvis.reply import Reply
 
 
@@ -4086,6 +4282,9 @@ class IntentHandler:
         self._last_debug: dict = {}
         self._recent_phrases: deque = deque(maxlen=10)
 
+        # Последняя команда (для коррекции «это не то»)
+        self._last_cmd: str = ""
+
         # Пароль (2.13)
         self._pending_password: dict | None = None
 
@@ -4129,6 +4328,11 @@ class IntentHandler:
         # Диагностика: сохраняем последнюю команду
         self._recent_phrases.append(cmd)
 
+        # Запоминаем ДО применения коррекции — чтобы «это не то»
+        # знало, что именно было сказано (а не то, во что превратила коррекция).
+        prev_cmd = self._last_cmd
+        self._last_cmd = cmd
+
         result = self._handle_single(cmd)
 
         user_msg = {"role": "user", "content": cmd}
@@ -4166,6 +4370,12 @@ class IntentHandler:
         return str(self.config.get("danger_password") or "").strip()
 
     def _handle_single(self, cmd: str) -> str | Iterator[str]:
+        # Применяем коррекцию, если есть
+        corrected = learning.find_correction(cmd)
+        if corrected and corrected != cmd:
+            log.info("Применена коррекция: %r → %r", cmd, corrected)
+            cmd = corrected
+
         # Пароль (2.13) — до всего, если ждём
         if self._pending_password and time.time() < self._pending_password.get("expires_at", 0):
             return self._handle_password_answer(cmd)
@@ -4279,6 +4489,10 @@ class IntentHandler:
             return reply
 
         reply = self._debug_fast(cmd)
+        if reply:
+            return reply
+
+        reply = self._correction_fast(cmd)
         if reply:
             return reply
 
@@ -4404,6 +4618,7 @@ class IntentHandler:
 
     def _profile_fast(self, cmd: str) -> str | None:
         """Команды профиля: смена, список, факты."""
+        log.info("_profile_fast: %r", cmd)
         m = re.match(r"^(?:я\s*[-—]?\s*|зови\s+меня\s+|переключись\s+на\s+|я\s+это\s+)([а-яёa-z][а-яёa-z\s\-]{0,40})$", cmd)
         if m:
             name = m.group(1).strip()
@@ -4432,7 +4647,7 @@ class IntentHandler:
                 key, value = sep.group(1).strip(), sep.group(2).strip()
             else:
                 key, value = fact, "да"
-            profile.set_fact(key, value)
+            learning.add_fact(key, value)
             return f"Запомнил: {key} — {value}."
 
         if re.search(r"(что|чё)\s+ты\s+(обо\s+мне\s+)?знаешь", cmd) \
@@ -4627,6 +4842,30 @@ class IntentHandler:
             return "Переключил раскладку обратно."
 
         return f"Действие «{action}» отменить нельзя."
+
+    def _correction_fast(self, cmd: str) -> str | None:
+        """Коррекция: «это не то, я сказал логи».
+
+        Использует self._last_cmd — команду, которую пользователь
+        сказал ПЕРЕД этой («это не то»).
+        """
+        m = re.match(
+            r"^(?:это\s+)?не\s+то\s*,?\s*(?:я\s+сказал[а]?\s+)?(.+)$",
+            cmd,
+        )
+        if m:
+            right = m.group(1).strip(" ,.:!?")
+            if not right:
+                return None
+            # self._last_cmd — это команда ДО текущей («это не то»).
+            # Мы её сохранили в handle() в момент прихода.
+            wrong = self._last_cmd
+            if wrong and wrong != cmd:
+                learning.add_correction(wrong, right)
+                return f"Понял, запомнил. Повторяю: {right}."
+            return "Что было не так?"
+
+        return None
 
     def _weather_currency_fast(self, cmd: str) -> str | None:
         """Простые правила для погоды и курса — без LLM."""
@@ -5229,6 +5468,158 @@ def _minutes(n: int) -> str:
     return "минут"
 ```
 
+### `jarvis\learning.py`
+
+```python
+"""Самообучение Феникса: факты и коррекции.
+
+Факты:
+    «Феникс, запомни: мой город Нижний Новгород» → facts["город"] = "Нижний Новгород".
+
+Коррекции:
+    «Феникс, открой лок» → Феникс: «Открываю калькулятор»
+    «Феникс, это не то, я сказал логи» → corrections["открой лок"] = "открой логи"
+
+Подгрузка:
+    В brain.py перед запросом к LLM добавляется блок с фактами и corrections.
+
+Хранение:
+    profiles/<user>/profile.json — там же, где name, default_city.
+    Ключи: facts (dict), corrections (dict).
+"""
+
+import logging
+from difflib import SequenceMatcher
+
+from jarvis import profile
+
+log = logging.getLogger("jarvis.learning")
+
+
+# ---------------------------------------------------------------
+# Факты
+# ---------------------------------------------------------------
+
+def add_fact(key: str, value: str) -> bool:
+    """Сохраняет факт. Ключ нормализуется (нижний регистр)."""
+    key = key.strip().lower()
+    value = value.strip()
+    if not key or not value:
+        return False
+
+    facts = profile.get("facts", {}) or {}
+    facts[key] = value
+    ok = profile.set("facts", facts)
+    if ok:
+        log.info("Факт: %s = %r", key, value)
+    return ok
+
+
+def get_fact(key: str, default=None):
+    facts = profile.get("facts", {}) or {}
+    return facts.get(key.strip().lower(), default)
+
+
+def all_facts() -> dict:
+    return profile.get("facts", {}) or {}
+
+
+def forget_fact(key: str) -> bool:
+    facts = profile.get("facts", {}) or {}
+    key = key.strip().lower()
+    if key not in facts:
+        return False
+    del facts[key]
+    return profile.set("facts", facts)
+
+
+# ---------------------------------------------------------------
+# Коррекции
+# ---------------------------------------------------------------
+
+def add_correction(wrong: str, right: str) -> bool:
+    """Сохраняет коррекцию: «открой лок» → «открой логи»."""
+    wrong = wrong.strip().lower()
+    right = right.strip()
+    if not wrong or not right:
+        return False
+    if wrong == right.lower():
+        return False
+
+    corrections = profile.get("corrections", {}) or {}
+    corrections[wrong] = right
+    ok = profile.set("corrections", corrections)
+    if ok:
+        log.info("Коррекция: %r → %r", wrong, right)
+    return ok
+
+
+def find_correction(cmd: str, threshold: float = 0.85) -> str | None:
+    """Ищет коррекцию для команды.
+
+    Сначала точное совпадение, потом — нечёткое (SequenceMatcher).
+    """
+    corrections = profile.get("corrections", {}) or {}
+    if not corrections:
+        return None
+
+    cmd_low = cmd.strip().lower()
+    # Точное
+    if cmd_low in corrections:
+        return corrections[cmd_low]
+
+    # Нечёткое
+    best, best_ratio = None, threshold
+    for wrong, right in corrections.items():
+        ratio = SequenceMatcher(None, cmd_low, wrong).ratio()
+        if ratio > best_ratio:
+            best_ratio, best = ratio, right
+    if best:
+        log.info("Коррекция (нечётко): %r → %r (ratio %.2f)", cmd, best, best_ratio)
+    return best
+
+
+def all_corrections() -> dict:
+    return profile.get("corrections", {}) or {}
+
+
+def forget_correction(wrong: str) -> bool:
+    corrections = profile.get("corrections", {}) or {}
+    wrong = wrong.strip().lower()
+    if wrong not in corrections:
+        return False
+    del corrections[wrong]
+    return profile.set("corrections", corrections)
+
+
+# ---------------------------------------------------------------
+# Сборка контекста для промпта
+# ---------------------------------------------------------------
+
+def build_context() -> str:
+    """Собирает блок для промпта из фактов и коррекций.
+
+    Возвращает пустую строку, если нечего добавить.
+    """
+    parts = []
+
+    facts = all_facts()
+    if facts:
+        lines = [f"- {k}: {v}" for k, v in facts.items()]
+        parts.append("Известные факты о пользователе:\n" + "\n".join(lines))
+
+    corrections = all_corrections()
+    if corrections:
+        lines = [f"- «{wrong}» → «{right}»" for wrong, right in corrections.items()]
+        parts.append("Известные исправления (если пользователь говорит первое, делай второе):\n"
+                     + "\n".join(lines))
+
+    if not parts:
+        return ""
+
+    return "\n\n" + "\n\n".join(parts) + "\n"
+```
+
 ### `jarvis\main.py`
 
 ```python
@@ -5561,8 +5952,12 @@ def main() -> None:
     brain = None
     if config.get("use_llm", True):
         from jarvis.brain import Brain
-        brain = Brain(config.get("llm_model", "qwen2.5:7b-instruct"),
-                      config.get("ollama_url", "http://127.0.0.1:11434"))
+        brain = Brain(
+            config.get("llm_model", "qwen2.5:7b-instruct"),
+            config.get("ollama_url", "http://127.0.0.1:11434"),
+            prompt_level=config.get("prompt_level", "auto"),
+            temperature=config.get("llm_temperature", 0.7),
+        )
         if not brain.available:
             brain = None
 
@@ -8721,7 +9116,10 @@ if __name__ == "__main__":
 ```json
 {
   "created_at": 1791215123.7471354,
-  "default_city": "в нижнем"
+  "facts": {
+    "мой город казань": "да"
+  },
+  "corrections": {}
 }
 ```
 
@@ -9734,6 +10132,136 @@ if __name__ == "__main__":
     build()
 ```
 
+### `scripts\check_caps.py`
+
+```python
+"""Проверка возможностей системы — запускается из install.bat.
+
+Пишет system_caps.json:
+    {
+        "volume":     {"available": true,  "method": "volume_percent"},
+        "brightness": {"available": true,  "method": "sbc"},
+        "layout":     {"available": true,  "method": "sendinput"},
+        "checked_at": 1791210000.0
+    }
+
+Зачем:
+    API pycaw / screen-brightness-control меняется между версиями.
+    Проверяем ОДИН РАЗ при установке, а не в рантайме.
+
+Если что-то не работает — видно сразу при установке.
+"""
+import json
+import logging
+import sys
+import time
+from pathlib import Path
+
+BASE = Path(__file__).resolve().parent.parent
+OUTPUT = BASE / "system_caps.json"
+
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+log = logging.getLogger("check_caps")
+
+
+def check_volume() -> dict:
+    """Проверяет громкость. Возвращает {'available': bool, 'method': str}."""
+    try:
+        from pycaw.pycaw import AudioUtilities
+        device = AudioUtilities.GetSpeakers()
+
+        # Способ 1: volume_percent (pycaw >= 2026)
+        if hasattr(device, "volume_percent"):
+            try:
+                _ = device.volume_percent
+                return {"available": True, "method": "volume_percent"}
+            except Exception:
+                pass
+
+        # Способ 2: EndpointVolume
+        if hasattr(device, "EndpointVolume"):
+            try:
+                _ = device.EndpointVolume.GetMasterVolumeLevelScalar()
+                return {"available": True, "method": "endpoint_volume"}
+            except Exception:
+                pass
+
+        # Способ 3: Activate
+        if hasattr(device, "Activate"):
+            try:
+                from ctypes import cast, POINTER
+                from comtypes import CLSCTX_ALL
+                from pycaw.pycaw import IAudioEndpointVolume
+                interface = device.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
+                vol = cast(interface, POINTER(IAudioEndpointVolume))
+                _ = vol.GetMasterVolumeLevelScalar()
+                return {"available": True, "method": "activate"}
+            except Exception:
+                pass
+
+        return {"available": False, "method": "none", "reason": "no known API"}
+    except Exception as e:
+        return {"available": False, "method": "none", "reason": str(e)[:80]}
+
+
+def check_brightness() -> dict:
+    """Проверяет яркость."""
+    try:
+        import screen_brightness_control as sbc
+        values = sbc.get_brightness()
+        if values:
+            return {"available": True, "method": "sbc"}
+        return {"available": False, "method": "none", "reason": "no monitors"}
+    except Exception as e:
+        return {"available": False, "method": "none", "reason": str(e)[:80]}
+
+
+def check_layout() -> dict:
+    """Проверяет раскладку (SendInput)."""
+    try:
+        import ctypes
+        user32 = ctypes.windll.user32
+        _ = user32.SendInput
+        return {"available": True, "method": "sendinput"}
+    except Exception as e:
+        return {"available": False, "method": "none", "reason": str(e)[:80]}
+
+
+def main() -> int:
+    log.info("=" * 60)
+    log.info("  Проверка возможностей системы")
+    log.info("=" * 60)
+
+    caps = {
+        "volume": check_volume(),
+        "brightness": check_brightness(),
+        "layout": check_layout(),
+        "checked_at": time.time(),
+    }
+
+    log.info("")
+    for name, info in caps.items():
+        if name == "checked_at":
+            continue
+        mark = "[OK]  " if info.get("available") else "[FAIL]"
+        reason = f"  ({info.get('reason', '')})" if not info.get("available") else ""
+        log.info("%s %-12s %s%s", mark, name, info.get("method", "?"), reason)
+
+    OUTPUT.write_text(
+        json.dumps(caps, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    log.info("")
+    log.info("Сохранено: %s", OUTPUT)
+    log.info("=" * 60)
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+
 ### `scripts\mics.py`
 
 ```python
@@ -10250,6 +10778,26 @@ echo ============================================
 pause >nul
 ```
 
+### `system_caps.json`
+
+```json
+{
+  "volume": {
+    "available": true,
+    "method": "volume_percent"
+  },
+  "brightness": {
+    "available": true,
+    "method": "sbc"
+  },
+  "layout": {
+    "available": true,
+    "method": "sendinput"
+  },
+  "checked_at": 1791231172.692957
+}
+```
+
 ### `test_intents.py`
 
 ```python
@@ -10364,8 +10912,13 @@ TESTS = [
     ("undo_ne_to",          "не то",                      ["Нечего", "Откатываю", "Вернул", "Переключил", "Действие"], False, False),
     ("undo_otmeni",         "отмени",                     ["Нечего", "Откатываю", "Вернул", "Переключил", "Действие"], False, False),
 
-    # === Пароль (2.13) — danger_password пустой, поэтому команда без пароля ===
+    # === Пароль (2.13) ===
     ("danger_no_password",  "удали профиль тест",         ["не найден", "активен", "удалён"], False, False),
+
+    # === Learning (5.3) ===
+    ("learn_fact",          "запомни: мой город Казань",  ["Запомнил"],              False, False),
+    ("learn_fact_query",    "что ты обо мне знаешь",      ["Казань", "Знаю"],        False, False),
+    ("learn_correction",    "это не то, я сказал логи",   ["Понял", "запомнил", "Что было"], False, False),
 ]
 
 class Result:
@@ -10546,6 +11099,34 @@ def main():
 
 if __name__ == "__main__":
     main()
+```
+
+### `tests\test_caps.py`
+
+```python
+"""Тесты check_caps: структура system_caps.json."""
+import json
+
+from scripts import check_caps
+
+
+def test_check_volume_structure():
+    r = check_caps.check_volume()
+    assert "available" in r
+    assert "method" in r
+    assert isinstance(r["available"], bool)
+
+
+def test_check_brightness_structure():
+    r = check_caps.check_brightness()
+    assert "available" in r
+    assert "method" in r
+
+
+def test_check_layout_structure():
+    r = check_caps.check_layout()
+    assert "available" in r
+    assert "method" in r
 ```
 
 ### `tests\test_config_manager.py`
@@ -10840,4 +11421,10 @@ def test_cache_different_cities():
         weather.geocode("Москва")
         weather.geocode("Казань")
     assert mock.call_count == 2
+```
+
+### `вкладка`
+
+```
+    Win+R - - - "Экран"
 ```

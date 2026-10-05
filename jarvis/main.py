@@ -327,8 +327,12 @@ def main() -> None:
     brain = None
     if config.get("use_llm", True):
         from jarvis.brain import Brain
-        brain = Brain(config.get("llm_model", "qwen2.5:7b-instruct"),
-                      config.get("ollama_url", "http://127.0.0.1:11434"))
+        brain = Brain(
+            config.get("llm_model", "qwen2.5:7b-instruct"),
+            config.get("ollama_url", "http://127.0.0.1:11434"),
+            prompt_level=config.get("prompt_level", "auto"),
+            temperature=config.get("llm_temperature", 0.7),
+        )
         if not brain.available:
             brain = None
 

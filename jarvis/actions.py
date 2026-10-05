@@ -1,5 +1,6 @@
 """Действия: запуск приложений, открытие сайтов, скриншоты, медиа, печать, окна."""
 
+import json
 import logging
 import os
 import re
@@ -9,6 +10,34 @@ import urllib.parse
 from pathlib import Path
 
 log = logging.getLogger("jarvis.actions")
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+_CAPS_FILE = BASE_DIR / "system_caps.json"
+_CAPS: dict = {}
+
+
+def _load_caps() -> dict:
+    """Читает system_caps.json. Кэширует. Если файла нет — возвращает {}."""
+    global _CAPS
+    if _CAPS:
+        return _CAPS
+    if _CAPS_FILE.exists():
+        try:
+            _CAPS = json.loads(_CAPS_FILE.read_text(encoding="utf-8"))
+            log.info("system_caps.json загружен")
+        except Exception:
+            log.exception("Не удалось прочитать system_caps.json")
+            _CAPS = {}
+    return _CAPS
+
+
+def _caps_available(name: str) -> bool:
+    """Проверяет, доступна ли возможность."""
+    return _load_caps().get(name, {}).get("available", False)
+
+
+def _caps_method(name: str) -> str:
+    return _load_caps().get(name, {}).get("method", "none")
 
 
 # --- запуск приложений и файлов -------------------------------------------
@@ -364,44 +393,81 @@ def get_layout() -> str | None:
 # --- громкость -------------------------------------------------------------
 
 def get_volume() -> int | None:
-    """Возвращает громкость в процентах (0..100)."""
-    try:
-        from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
-        from ctypes import cast, POINTER
-        from comtypes import CLSCTX_ALL
+    """Возвращает громкость в процентах (0..100).
 
-        device = AudioUtilities.GetSpeakers()
-        interface = device.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
-        volume = cast(interface, POINTER(IAudioEndpointVolume))
-        return round(volume.GetMasterVolumeLevelScalar() * 100)
-    except Exception:
-        log.exception("get_volume не удался")
+    Метод (volume_percent / endpoint_volume / activate) определён
+    при установке в system_caps.json.
+    """
+    if not _caps_available("volume"):
+        log.warning("Громкость недоступна (см. system_caps.json)")
         return None
+
+    method = _caps_method("volume")
+    try:
+        from pycaw.pycaw import AudioUtilities
+        device = AudioUtilities.GetSpeakers()
+
+        if method == "volume_percent":
+            return int(device.volume_percent)
+        if method == "endpoint_volume":
+            return round(device.EndpointVolume.GetMasterVolumeLevelScalar() * 100)
+        if method == "activate":
+            from ctypes import cast, POINTER
+            from comtypes import CLSCTX_ALL
+            from pycaw.pycaw import IAudioEndpointVolume
+            interface = device.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
+            vol = cast(interface, POINTER(IAudioEndpointVolume))
+            return round(vol.GetMasterVolumeLevelScalar() * 100)
+    except Exception:
+        log.exception("get_volume не удался (method=%s)", method)
+    return None
 
 
 def set_volume(percent: int) -> bool:
-    """Ставит громкость в процентах (0..100)."""
-    percent = max(0, min(100, int(percent)))
-    log.info("Громкость: %d%%", percent)
-    try:
-        from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
-        from ctypes import cast, POINTER
-        from comtypes import CLSCTX_ALL
+    """Ставит громкость в процентах (0..100).
 
-        device = AudioUtilities.GetSpeakers()
-        interface = device.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
-        volume = cast(interface, POINTER(IAudioEndpointVolume))
-        volume.SetMasterVolumeLevelScalar(percent / 100.0, None)
-        return True
-    except Exception:
-        log.exception("set_volume не удался")
+    Метод определён при установке в system_caps.json.
+    """
+    if not _caps_available("volume"):
+        log.warning("Громкость недоступна (см. system_caps.json)")
         return False
 
+    percent = max(0, min(100, int(percent)))
+    log.info("Громкость: %d%% (method=%s)", percent, _caps_method("volume"))
+
+    method = _caps_method("volume")
+    try:
+        from pycaw.pycaw import AudioUtilities
+        device = AudioUtilities.GetSpeakers()
+
+        if method == "volume_percent":
+            device.volume_percent = percent
+            return True
+        if method == "endpoint_volume":
+            device.EndpointVolume.SetMasterVolumeLevelScalar(percent / 100.0, None)
+            return True
+        if method == "activate":
+            from ctypes import cast, POINTER
+            from comtypes import CLSCTX_ALL
+            from pycaw.pycaw import IAudioEndpointVolume
+            interface = device.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
+            vol = cast(interface, POINTER(IAudioEndpointVolume))
+            vol.SetMasterVolumeLevelScalar(percent / 100.0, None)
+            return True
+    except Exception:
+        log.exception("set_volume не удался (method=%s)", method)
+    return False
 
 # --- яркость ---------------------------------------------------------------
 
 def get_brightness() -> int | None:
-    """Возвращает яркость в процентах (0..100)."""
+    """Возвращает яркость в процентах (0..100).
+
+    Доступность проверена при установке в system_caps.json.
+    """
+    if not _caps_available("brightness"):
+        log.warning("Яркость недоступна (см. system_caps.json)")
+        return None
     try:
         import screen_brightness_control as sbc
         values = sbc.get_brightness()
@@ -415,6 +481,9 @@ def get_brightness() -> int | None:
 
 def set_brightness(percent: int) -> bool:
     """Ставит яркость в процентах (0..100)."""
+    if not _caps_available("brightness"):
+        log.warning("Яркость недоступна (см. system_caps.json)")
+        return False
     percent = max(0, min(100, int(percent)))
     log.info("Яркость: %d%%", percent)
     try:
@@ -424,8 +493,6 @@ def set_brightness(percent: int) -> bool:
     except Exception:
         log.exception("set_brightness не удался")
         return False
-
-
 # --- процессы --------------------------------------------------------------
 
 def find_process(name: str, threshold: float = 0.7):

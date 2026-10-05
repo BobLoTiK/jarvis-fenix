@@ -40,6 +40,8 @@ DEFAULT_CONFIG = {
     "use_llm": True,
     "llm_model": "qwen2.5:7b-instruct",
     "ollama_url": "http://127.0.0.1:11434",
+    "prompt_level": "auto",
+    "llm_temperature": 0.7,
     "music_app": "яндекс музыка",
     "music_wait_sec": 6,
     "active_packs": [],
