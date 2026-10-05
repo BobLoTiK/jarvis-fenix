@@ -3,6 +3,8 @@
 Barge-in: во время речи Феникса микрофон НЕ глушится, а следит за громкостью.
 Если юзер заговорил — TTS прерывается через speaker.stop().
 После barge-in окно диалога открывается заново — можно продолжать без wake-слова.
+
+Стриминг: генератор оборачивается в tee — чанки идут и в TTS, и в GUI.
 """
 
 import logging
@@ -23,6 +25,7 @@ from jarvis.stt import Listener
 from jarvis.tray import build_tray
 from jarvis import timers
 from jarvis.tts import Speaker
+from jarvis.gui import FenixGUI
 
 log = logging.getLogger("jarvis")
 
@@ -31,13 +34,15 @@ _REJECT = object()
 
 
 class Jarvis:
-    def __init__(self, config, listener, speaker, handler, base_dir: Path, whisper=None):
+    def __init__(self, config, listener, speaker, handler, base_dir: Path,
+                 whisper=None, gui=None):
         self.config = config
         self.listener = listener
         self.speaker = speaker
         self.handler = handler
         self.base_dir = base_dir
         self.whisper = whisper
+        self.gui = gui
         self.listening_enabled = True
         self.stop_event = threading.Event()
         self._awaiting_until = 0.0
@@ -57,6 +62,9 @@ class Jarvis:
         if not reply.is_stream and not reply.text:
             return False
 
+        if self.gui is not None:
+            self.gui.set_state("speaking")
+
         if self.barge_enabled and self.listener is not None:
             self.listener.barge_start()
         else:
@@ -74,6 +82,8 @@ class Jarvis:
                 self.listener.barge_end()
             self.listener.flush()
             self.listener.muted = False
+            if self.gui is not None:
+                self.gui.set_state("idle")
         return barge_happened
 
     def _say_text(self, text: str) -> None:
@@ -87,11 +97,24 @@ class Jarvis:
         self.speaker.wait_end(timeout=30.0)
 
     def _say_stream(self, gen) -> None:
+        """Озвучивает стрим и показывает чанки в GUI.
+
+        Генератор оборачивается в tee: каждый чанк идёт
+        и в speak_stream, и в GUI через add_stream_chunk.
+        """
         result = {"text": ""}
+
+        def _tee(iterator):
+            """Пропускает чанки и в TTS, и в GUI."""
+            for chunk in iterator:
+                result["text"] += chunk
+                if self.gui is not None:
+                    self.gui.add_stream_chunk(chunk)
+                yield chunk
 
         def _run():
             try:
-                result["text"] = self.speaker.speak_stream(gen)
+                self.speaker.speak_stream(_tee(gen))
             except Exception:
                 log.exception("Ошибка в speak_stream")
 
@@ -107,6 +130,11 @@ class Jarvis:
             time.sleep(0.05)
         t.join(timeout=5.0)
 
+        # Закрываем стрим-пузырь в GUI
+        if self.gui is not None:
+            self.gui.end_stream()
+
+        # Финальный текст — в память
         if result["text"] and hasattr(self.handler, "finalize_stream"):
             self.handler.finalize_stream("", result["text"])
 
@@ -155,7 +183,19 @@ class Jarvis:
                 return
             if refined:
                 cmd = refined
+
+        # Сообщаем GUI о команде
+        if self.gui is not None:
+            self.gui.add_message("user", cmd)
+            self.gui.set_state("listening")
+
         reply = self.handler.handle(cmd)
+
+        # Текстовый ответ — сразу в GUI.
+        # Стрим — добавится в _say_stream через tee.
+        if self.gui is not None and not reply.is_stream:
+            self.gui.add_message("assistant", reply.text or "")
+
         barge_happened = self.say(reply)
 
         if getattr(self.handler, "_reset_requested", False):
@@ -262,9 +302,6 @@ def main() -> None:
 
     # Порядок импортов критичен для Windows:
     #   faster_whisper → ctranslate2 → winrt.
-    # Если winrt подгрузится раньше ctranslate2, на некоторых сборках
-    # получаем access violation при инициализации CUDA-контекста.
-    # См. issue: https://github.com/SYSTRAN/faster-whisper/issues/1047
     try:
         import faster_whisper  # noqa: F401
         import ctranslate2  # noqa: F401
@@ -298,7 +335,19 @@ def main() -> None:
     speaker = Speaker(config)
     listener = Listener(model_dir, config["sample_rate"], config.get("input_device"))
     handler = IntentHandler(config, build_apps(config), brain)
-    jarvis = Jarvis(config, listener, speaker, handler, BASE_DIR, whisper)
+
+    gui = None
+    if config.get("gui_enabled", True):
+        try:
+            gui = FenixGUI(None, config)
+        except Exception:
+            log.exception("GUI не завёлся")
+
+    jarvis = Jarvis(config, listener, speaker, handler, BASE_DIR, whisper, gui=gui)
+
+    if gui is not None:
+        gui.jarvis = jarvis
+        # НЕ запускаем здесь — запустим в конце main() в главном потоке
 
     # --- Подписки: изменения конфига применяются на лету ---
     def _on_config_change(key: str, value):
@@ -326,13 +375,29 @@ def main() -> None:
     if restored:
         log.info("Восстановлено напоминаний: %d", restored)
 
+    # Jarvis — в фоновом потоке
     worker = threading.Thread(target=jarvis.run_loop, daemon=True, name="jarvis-listener")
     worker.start()
-    jarvis.say(Reply(text=f"{APP_NAME} запущен и готов к работе."))
     threading.Thread(target=jarvis.mic_watchdog, daemon=True, name="mic-watchdog").start()
 
-    tray = build_tray(jarvis)
-    tray.run()
+    jarvis.say(Reply(text=f"{APP_NAME} запущен и готов к работе."))
+
+    # Трей — в отдельном потоке (может не работать на некоторых системах)
+    if config.get("tray_enabled", True):
+        try:
+            tray = build_tray(jarvis)
+            threading.Thread(target=tray.run, daemon=True, name="tray").start()
+        except Exception:
+            log.exception("Трей не завёлся — работаю без него")
+
+    # Flet — в ГЛАВНОМ потоке (блокирует до закрытия окна)
+    if gui is not None:
+        log.info("Запускаю Flet в главном потоке")
+        gui.run_main()
+    else:
+        log.info("GUI выключен — жду завершения")
+        jarvis.stop_event.wait()
+
     jarvis.shutdown()
     log.info("Завершение работы")
 

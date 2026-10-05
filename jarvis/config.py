@@ -51,6 +51,11 @@ DEFAULT_CONFIG = {
     "memory_max": 100,
     "llm_context_messages": 20,
     "danger_password": "",
+    "gui_enabled": True,
+    "gui_theme": "dark-blue",
+    "gui_x": None,
+    "gui_y": None,
+    "tray_enabled": True,
 }
 
 

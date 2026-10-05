@@ -56,8 +56,6 @@ def run_spec(spec) -> bool:
             os.startfile(value)
             return True
         if kind == "cmd":
-            # («cmd», [exe, arg1, arg2, ...]) — запуск exe с аргументами.
-            # Используется Discord: [updater, "--processStart", "Discord.exe"]
             args = value if isinstance(value, list) else [value]
             subprocess.Popen(args, creationflags=subprocess.CREATE_NO_WINDOW)
             return True
@@ -258,47 +256,96 @@ def ensure_music_playing() -> bool:
 # --- раскладка клавиатуры --------------------------------------------------
 
 def switch_layout() -> bool:
-    """Переключает раскладку на следующую (RU ↔ EN)."""
-    log.info("Переключаю раскладку")
+    """Переключает раскладку через Alt+Shift (SendInput).
+
+    keybd_event не работает для системных сочетаний — используем SendInput
+    с задержкой между нажатиями.
+    """
+    log.info("Переключаю раскладку (Alt+Shift)")
     try:
         import ctypes
-        hwnd = ctypes.windll.user32.GetForegroundWindow()
-        # HKL следующего языка — берём текущий и просим Windows сменить
-        # через WM_INPUTLANGCHANGEREQUEST (0x50). Передаём 0 — Windows сам
-        # выберет следующий доступный язык.
-        ctypes.windll.user32.PostMessageW(hwnd, 0x50, 0, 0)
+        from ctypes import wintypes
+
+        user32 = ctypes.windll.user32
+
+        # Структуры для SendInput
+        class KEYBDINPUT(ctypes.Structure):
+            _fields_ = [
+                ("wVk", wintypes.WORD),
+                ("wScan", wintypes.WORD),
+                ("dwFlags", wintypes.DWORD),
+                ("time", wintypes.DWORD),
+                ("dwExtraInfo", ctypes.POINTER(ctypes.c_ulong)),
+            ]
+
+        class INPUT(ctypes.Structure):
+            _fields_ = [
+                ("type", wintypes.DWORD),
+                ("ki", KEYBDINPUT),
+                ("padding", ctypes.c_ubyte * 8),
+            ]
+
+        VK_MENU = 0x12       # Alt
+        VK_SHIFT = 0x10      # Shift
+        KEYEVENTF_KEYUP = 0x0002
+        INPUT_KEYBOARD = 1
+
+        def _key(vk, up=False):
+            inp = INPUT()
+            inp.type = INPUT_KEYBOARD
+            inp.ki.wVk = vk
+            inp.ki.wScan = 0
+            inp.ki.dwFlags = KEYEVENTF_KEYUP if up else 0
+            inp.ki.time = 0
+            inp.ki.dwExtraInfo = None
+            user32.SendInput(1, ctypes.byref(inp), ctypes.sizeof(inp))
+
+        # Alt down
+        _key(VK_MENU)
+        import time as _t
+        _t.sleep(0.05)
+        # Shift down + up
+        _key(VK_SHIFT)
+        _t.sleep(0.05)
+        _key(VK_SHIFT, up=True)
+        _t.sleep(0.05)
+        # Alt up
+        _key(VK_MENU, up=True)
         return True
     except Exception:
         log.exception("switch_layout не удался")
+        return False
+def _set_layout_hkl(hkl_hex: str) -> bool:
+    """Устанавливает раскладку по HKL через PostMessage с фокусом."""
+    log.info("Установка раскладки: %s", hkl_hex)
+    try:
+        import ctypes
+        user32 = ctypes.windll.user32
+
+        hwnd = user32.GetForegroundWindow()
+        if not hwnd:
+            log.warning("Нет foreground-окна")
+            return False
+
+        # Форсируем фокус — иначе Windows блокирует смену
+        user32.SetForegroundWindow(hwnd)
+        hkl = user32.LoadKeyboardLayoutW(hkl_hex, 1)
+        # 0x50 = WM_INPUTLANGCHANGEREQUEST
+        user32.PostMessageW(hwnd, 0x50, 0, hkl)
+        return True
+    except Exception:
+        log.exception("_set_layout_hkl не удался: %s", hkl_hex)
         return False
 
 
 def set_layout_ru() -> bool:
     """Переключает на русскую раскладку."""
-    log.info("Русская раскладка")
-    try:
-        import ctypes
-        hwnd = ctypes.windll.user32.GetForegroundWindow()
-        hkl = ctypes.windll.user32.LoadKeyboardLayoutW("00000419", 1)
-        ctypes.windll.user32.PostMessageW(hwnd, 0x50, 0, hkl)
-        return True
-    except Exception:
-        log.exception("set_layout_ru не удался")
-        return False
+    return _set_layout_hkl("00000419")
 
 
 def set_layout_en() -> bool:
     """Переключает на английскую раскладку."""
-    log.info("Английская раскладка")
-    try:
-        import ctypes
-        hwnd = ctypes.windll.user32.GetForegroundWindow()
-        hkl = ctypes.windll.user32.LoadKeyboardLayoutW("00000409", 1)
-        ctypes.windll.user32.PostMessageW(hwnd, 0x50, 0, hkl)
-        return True
-    except Exception:
-        log.exception("set_layout_en не удался")
-        return False
+    return _set_layout_hkl("00000409")
 
 
 def get_layout() -> str | None:
@@ -313,7 +360,6 @@ def get_layout() -> str | None:
     except Exception:
         log.exception("get_layout не удался")
         return None
-
 
 # --- громкость -------------------------------------------------------------
 
