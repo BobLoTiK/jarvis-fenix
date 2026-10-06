@@ -104,12 +104,17 @@ class Config:
             return True
         self._data[key] = value
         ok = config_manager.save(self._data, path=self.path)
+
+        if not ok:
+            log.error("Config.set: save не удался на ключе %s", key)
+            return False
+
         for cb in list(self._listeners):
             try:
                 cb(key, value)
             except Exception:
                 log.exception("Подписчик Config упал на ключе %s", key)
-        return ok
+        return True
 
     def update(self, data: dict) -> bool:
         """Массовое обновление. Оповещает по каждому ключу."""
@@ -118,13 +123,21 @@ class Config:
             return True
         self._data.update(changed)
         ok = config_manager.save(self._data, path=self.path)
+
+        if not ok:
+            log.error(
+                "Config.update: save не удался, подписчики не уведомлены (%d ключей)",
+                len(changed),
+            )
+            return False
+
         for key, value in changed.items():
             for cb in list(self._listeners):
                 try:
                     cb(key, value)
                 except Exception:
                     log.exception("Подписчик Config упал на ключе %s", key)
-        return ok
+        return True
 
     def subscribe(self, callback: Callable[[str, Any], None]) -> None:
         """Регистрирует callback(key, value), вызываемый при set/update."""

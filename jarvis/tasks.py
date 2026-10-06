@@ -21,7 +21,7 @@ log = logging.getLogger("jarvis.tasks")
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 TASKS_FILE = BASE_DIR / "tasks.json"
-_lock = threading.Lock()
+_lock = threading.RLock()   # RLock — find() вызывается из-под лока в remove/mark_done
 
 
 # ---------------------------------------------------------------
@@ -70,22 +70,27 @@ def add(text: str) -> dict:
 
 
 def find(query: str) -> dict | None:
-    """Находит задачу по нечёткому совпадению."""
-    tasks = _load()
-    query_low = query.lower().strip()
-    if not query_low:
-        return None
-    # 1. точная подстрока
-    for t in tasks:
-        if query_low in t["text"].lower():
-            return t
-    # 2. нечёткое совпадение
-    best, best_ratio = None, 0.5
-    for t in tasks:
-        ratio = SequenceMatcher(None, query_low, t["text"].lower()).ratio()
-        if ratio > best_ratio:
-            best_ratio, best = ratio, t
-    return best
+    """Находит задачу по нечёткому совпадению.
+
+    Берёт _lock — вызывается и напрямую, и из remove/mark_done.
+    RLock позволяет повторный вход из-под лока.
+    """
+    with _lock:
+        tasks = _load()
+        query_low = query.lower().strip()
+        if not query_low:
+            return None
+        # 1. точная подстрока
+        for t in tasks:
+            if query_low in t["text"].lower():
+                return t
+        # 2. нечёткое совпадение
+        best, best_ratio = None, 0.5
+        for t in tasks:
+            ratio = SequenceMatcher(None, query_low, t["text"].lower()).ratio()
+            if ratio > best_ratio:
+                best_ratio, best = ratio, t
+        return best
 
 
 def mark_done(query: str) -> dict | None:

@@ -12,6 +12,7 @@
 
 import json
 import logging
+import threading
 import time
 import urllib.parse
 import urllib.request
@@ -22,17 +23,24 @@ log = logging.getLogger("jarvis.weather")
 # Кэш: {(тип, ключ): (timestamp, data)}
 _CACHE: dict = {}
 _CACHE_TTL = 600  # 10 минут
+_CACHE_LOCK = threading.Lock()
 
 
 def _cached(key: tuple, fetcher):
     now = time.time()
-    if key in _CACHE:
-        ts, data = _CACHE[key]
-        if now - ts < _CACHE_TTL:
-            return data
+
+    with _CACHE_LOCK:
+        if key in _CACHE:
+            ts, data = _CACHE[key]
+            if now - ts < _CACHE_TTL:
+                return data
+
+    # fetcher() вызываем ВНЕ лока — иначе блокируем HTTP на весь кэш
     data = fetcher()
+
     if data is not None:
-        _CACHE[key] = (now, data)
+        with _CACHE_LOCK:
+            _CACHE[key] = (time.time(), data)
     return data
 
 

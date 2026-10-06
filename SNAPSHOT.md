@@ -1,7 +1,7 @@
 # SNAPSHOT проекта «Феникс»
 
 _Автоматически сгенерировано `snapshot.py`. Обновляется при `git push`._
-_Файлов в снимке: 73_
+_Файлов в снимке: 72_
 
 ---
 
@@ -58,7 +58,6 @@ jarvis/
 │   │   ├── profile.json
 │   ├── misha/
 │   │   ├── profile.json
-│   ├── maksim.json
 ├── scripts/
 │   ├── build_exe.py
 │   ├── check_caps.py
@@ -2762,8 +2761,10 @@ class Brain:
         return base + extra if extra else base
 
     def _chat(self, cmd, timeout):
-        system = self._system_with_context(self.system_prompt)
-        return self._request([{"role": "system", "content": system},
+        # Для JSON-разбора команды — БЕЗ контекста обучения.
+        # Факты и коррекции нужны в диалоге (chat / chat_stream),
+        # но в parse() они только путают модель.
+        return self._request([{"role": "system", "content": self.system_prompt},
                               {"role": "user", "content": cmd}], timeout,
                              num_predict=300)
 
@@ -3014,12 +3015,17 @@ class Config:
             return True
         self._data[key] = value
         ok = config_manager.save(self._data, path=self.path)
+
+        if not ok:
+            log.error("Config.set: save не удался на ключе %s", key)
+            return False
+
         for cb in list(self._listeners):
             try:
                 cb(key, value)
             except Exception:
                 log.exception("Подписчик Config упал на ключе %s", key)
-        return ok
+        return True
 
     def update(self, data: dict) -> bool:
         """Массовое обновление. Оповещает по каждому ключу."""
@@ -3028,13 +3034,21 @@ class Config:
             return True
         self._data.update(changed)
         ok = config_manager.save(self._data, path=self.path)
+
+        if not ok:
+            log.error(
+                "Config.update: save не удался, подписчики не уведомлены (%d ключей)",
+                len(changed),
+            )
+            return False
+
         for key, value in changed.items():
             for cb in list(self._listeners):
                 try:
                     cb(key, value)
                 except Exception:
                     log.exception("Подписчик Config упал на ключе %s", key)
-        return ok
+        return True
 
     def subscribe(self, callback: Callable[[str, Any], None]) -> None:
         """Регистрирует callback(key, value), вызываемый при set/update."""
@@ -4536,6 +4550,20 @@ def push(item: dict) -> None:
     with _lock:
         _stack.append(item)
     log.info("История: +%s (всего %d)", item.get("action"), len(_stack))
+    
+def push_macro(steps: list) -> None:
+    """Кладёт макрос как ОДНУ запись в историю.
+
+    steps — список dict с action/target (то же, что _execute_steps принимает).
+    """
+    if not isinstance(steps, list) or not steps:
+        return
+    # Отбрасываем steps с action="wait" — их откатывать нечего
+    real_steps = [s for s in steps
+                  if isinstance(s, dict) and s.get("action") not in ("wait",)]
+    if not real_steps:
+        return
+    push({"action": "macro", "steps": real_steps})
 
 
 def pop() -> dict | None:
@@ -4715,10 +4743,11 @@ _DANGER_ACTIONS = {
 
 class IntentHandler:
 
-    def __init__(self, config, apps, brain=None):
+    def __init__(self, config, apps, brain=None, listener=None):
         self.config = config
         self.apps = apps
         self.brain = brain
+        self.listener = listener
         self.installed = scan_start_menu()
         self.steam_games = scan_steam_games()
         self.music_app = config.get("music_app", "яндекс музыка")
@@ -4949,6 +4978,11 @@ class IntentHandler:
 
         # --- Быстрые правила без LLM ---
 
+        # Музыка — ДО _open_fast, иначе «включи музыку» откроет папку
+        reply = self._music_fast(cmd)
+        if reply:
+            return reply
+
         reply = self._open_fast(cmd)
         if reply:
             return reply
@@ -5108,6 +5142,44 @@ class IntentHandler:
             result = self._execute_intent(intent)
         return result or "Готово."
 
+    def _music_fast(self, cmd: str) -> str | None:
+        """Музыка — ДО _open_fast. Иначе «включи музыку» откроет папку.
+
+        Ловит: включи/врубай/играй музыку, плей, пауза, следующий трек,
+        предыдущий трек, стоп, громче, тише, без звука.
+        """
+        # «включи музыку» / «врубай музыку» / «играй музыку»
+        if re.search(r"(включи|врубай|играй|поставь)\s+(музыку|музыка|плейлист)", cmd):
+            actions.media_key("play")
+            return "Включаю музыку."
+
+        # «пауза», «плей», «играть/стоп»
+        if cmd in {"пауза", "плей", "play", "pause"}:
+            actions.media_key("play")
+            return "Готово."
+        if re.search(r"^(включи|врубай)\s+(плей|музыку)$", cmd):
+            actions.media_key("play")
+            return "Включаю."
+
+        # «следующий трек», «дальше», «переключи трек»
+        if re.search(r"(следующ|дальше|переключи|переключ)\w*\s*(трек|песн|музык)?", cmd):
+            if any(w in cmd for w in ("трек", "песн", "музык", "дальше")):
+                actions.media_key("next")
+                return "Переключаю."
+
+        # «предыдущий трек», «назад трек»
+        if re.search(r"(предыдущ|назад)\w*\s*(трек|песн|музык)", cmd):
+            actions.media_key("prev")
+            return "Возвращаю."
+
+        # «стоп музыка», «останови музыку»
+        if re.search(r"(останови|стоп)\s+(музык|трек|песн)", cmd):
+            actions.media_key("play")
+            return "Останавливаю."
+
+        return None
+
+
     def _open_fast(self, cmd: str) -> str | None:
         """Быстрое открытие приложений/сайтов/папок — без LLM."""
         m = re.match(r"^(?:открой|запусти|врубай|включи|открывай)\s+(.+)$", cmd)
@@ -5149,8 +5221,10 @@ class IntentHandler:
                 key, value = sep.group(1).strip(), sep.group(2).strip()
             else:
                 key, value = fact, "да"
-            learning.add_fact(key, value)
-            return f"Запомнил: {key} — {value}."
+            ok = learning.add_fact(key, value)
+            if ok:
+                return f"Запомнил: {key} — {value}."
+            return "Не удалось сохранить — проверь профиль (возможно, битый JSON)."
 
         if re.search(r"(что|чё)\s+ты\s+(обо\s+мне\s+)?знаешь", cmd) \
                 or cmd in {"что ты обо мне знаешь", "что ты знаешь"}:
@@ -5266,7 +5340,13 @@ class IntentHandler:
         """Команды диагностики: что слышал, почему не понял."""
         if re.search(r"(что|чё)\s+ты\s+слышал", cmd) \
                 or cmd in {"что ты слышал", "что слышал", "история"}:
-            phrases = list(self._recent_phrases)
+            # Берём из Listener — то, что услышал Vosk сырым.
+            # Fallback на _recent_phrases — то, что дошло до handle().
+            phrases = []
+            if self.listener is not None and hasattr(self.listener, "recent_phrases"):
+                phrases = list(self.listener.recent_phrases)
+            if not phrases:
+                phrases = list(self._recent_phrases)
             if not phrases:
                 return "Пока ничего не слышал."
             lines = [f"{i+1}. {p}" for i, p in enumerate(phrases[-5:])]
@@ -5301,6 +5381,23 @@ class IntentHandler:
             return "Нечего отменять."
 
         action = item.get("action")
+
+        # macro → откатываем все шаги в обратном порядке
+        if action == "macro":
+            steps = item.get("steps") or []
+            if not steps:
+                return "Нечего отменять."
+            results = []
+            for step in reversed(steps):
+                s_action = step.get("action")
+                s_target = step.get("target")
+                if s_action == "open_app" and s_target:
+                    r = self._do_close(s_target)
+                    results.append(r)
+                # Добавлять другие типы шагов по мере надобности
+            if results:
+                return "Откатываю макрос: " + "; ".join(results)
+            return "Макрос отменён."
 
         # open_app → close_app
         if action == "open_app":
@@ -5443,6 +5540,10 @@ class IntentHandler:
 
     def _execute_steps(self, steps: list) -> str | None:
         reply = None
+        # Кладём макрос как ОДНУ запись в историю — иначе стек на 5
+        # быстро забивается, и «отмени» откатит только последний шаг.
+        history.push_macro(steps)
+
         for step in steps[:6]:
             if not isinstance(step, dict):
                 continue
@@ -5470,7 +5571,6 @@ class IntentHandler:
                 hit = find_installed(self.installed, target)
                 if hit:
                     actions.open_path(hit[1], minimized=True)
-                    history.push({"action": "open_app", "target": target})
                     return f"Открываю {hit[0]}."
             running = actions.find_process(target, threshold=0.8)
             if running:
@@ -5478,8 +5578,6 @@ class IntentHandler:
                 if activate_window_by_title(target):
                     return f"Переключаюсь на {target}."
             result = self._do_open(target)
-            if result:
-                history.push({"action": "open_app", "target": target})
             return result
         if action == "close_app" and target:
             return self._do_close(target)
@@ -6468,11 +6566,17 @@ def main() -> None:
 
     # Порядок импортов критичен для Windows:
     #   faster_whisper → ctranslate2 → winrt.
-    try:
-        import faster_whisper  # noqa: F401
-        import ctranslate2  # noqa: F401
-    except ImportError:
-        pass
+    # Если faster_whisper нет — ctranslate2 нет — winrt может дать
+    # access violation. Поэтому логируем явно, что отсутствует.
+    for _mod in ("faster_whisper", "ctranslate2"):
+        try:
+            __import__(_mod)
+        except ImportError:
+            log.warning(
+                "Модуль %s не установлен. Whisper будет недоступен, "
+                "работаю только на Vosk. Установи: pip install %s",
+                _mod, _mod.replace("_", "-"),
+            )
 
     config: Config = load_config(BASE_DIR)
     from jarvis import profile as _profile
@@ -6505,7 +6609,7 @@ def main() -> None:
 
     speaker = Speaker(config)
     listener = Listener(model_dir, config["sample_rate"], config.get("input_device"))
-    handler = IntentHandler(config, build_apps(config), brain)
+    handler = IntentHandler(config, build_apps(config), brain, listener=listener)
 
     gui = None
     if config.get("gui_enabled", True):
@@ -7849,6 +7953,11 @@ class Listener:
             self._audio.put(bytes(indata))
 
     def flush(self):
+        """Сброс буфера + контекста Vosk.
+
+        После Reset() прогоняем 0.5 сек тишины — Vosk «забудет»
+        незакрытую фразу. Иначе в barge-in просачивается обрывок.
+        """
         while not self._audio.empty():
             try:
                 self._audio.get_nowait()
@@ -7857,6 +7966,14 @@ class Listener:
         self._utt_buf.clear()
         self._utt_len = 0
         self._rec.Reset()
+
+        # Прогоняем тишину — сброс контекста
+        silence = b"\x00" * 16000  # 0.5 сек при 16 кГц, int16
+        try:
+            self._rec.AcceptWaveform(silence)
+            self._rec.Reset()   # ещё раз — сбросить результат тишины
+        except Exception:
+            log.exception("Не удалось сбросить контекст Vosk тишиной")
         
     def reset_stats(self):
         """Сбрасывает peak и utterances — для кнопки «Проверить микрофон»."""
@@ -7961,7 +8078,7 @@ log = logging.getLogger("jarvis.tasks")
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 TASKS_FILE = BASE_DIR / "tasks.json"
-_lock = threading.Lock()
+_lock = threading.RLock()   # RLock — find() вызывается из-под лока в remove/mark_done
 
 
 # ---------------------------------------------------------------
@@ -8010,22 +8127,27 @@ def add(text: str) -> dict:
 
 
 def find(query: str) -> dict | None:
-    """Находит задачу по нечёткому совпадению."""
-    tasks = _load()
-    query_low = query.lower().strip()
-    if not query_low:
-        return None
-    # 1. точная подстрока
-    for t in tasks:
-        if query_low in t["text"].lower():
-            return t
-    # 2. нечёткое совпадение
-    best, best_ratio = None, 0.5
-    for t in tasks:
-        ratio = SequenceMatcher(None, query_low, t["text"].lower()).ratio()
-        if ratio > best_ratio:
-            best_ratio, best = ratio, t
-    return best
+    """Находит задачу по нечёткому совпадению.
+
+    Берёт _lock — вызывается и напрямую, и из remove/mark_done.
+    RLock позволяет повторный вход из-под лока.
+    """
+    with _lock:
+        tasks = _load()
+        query_low = query.lower().strip()
+        if not query_low:
+            return None
+        # 1. точная подстрока
+        for t in tasks:
+            if query_low in t["text"].lower():
+                return t
+        # 2. нечёткое совпадение
+        best, best_ratio = None, 0.5
+        for t in tasks:
+            ratio = SequenceMatcher(None, query_low, t["text"].lower()).ratio()
+            if ratio > best_ratio:
+                best_ratio, best = ratio, t
+        return best
 
 
 def mark_done(query: str) -> dict | None:
@@ -9082,6 +9204,7 @@ def handle_voice_command(cmd: str, config=None) -> str | None:
 
 import json
 import logging
+import threading
 import time
 import urllib.parse
 import urllib.request
@@ -9092,17 +9215,24 @@ log = logging.getLogger("jarvis.weather")
 # Кэш: {(тип, ключ): (timestamp, data)}
 _CACHE: dict = {}
 _CACHE_TTL = 600  # 10 минут
+_CACHE_LOCK = threading.Lock()
 
 
 def _cached(key: tuple, fetcher):
     now = time.time()
-    if key in _CACHE:
-        ts, data = _CACHE[key]
-        if now - ts < _CACHE_TTL:
-            return data
+
+    with _CACHE_LOCK:
+        if key in _CACHE:
+            ts, data = _CACHE[key]
+            if now - ts < _CACHE_TTL:
+                return data
+
+    # fetcher() вызываем ВНЕ лока — иначе блокируем HTTP на весь кэш
     data = fetcher()
+
     if data is not None:
-        _CACHE[key] = (now, data)
+        with _CACHE_LOCK:
+            _CACHE[key] = (time.time(), data)
     return data
 
 
@@ -9397,7 +9527,6 @@ if __name__ == "__main__":
   {"phrases": ["открой вс код", "открой вскод", "открой код"], "action": "open_app:code", "reply": "Открываю VS Code."},
   {"phrases": ["открой спотифай", "открой споти"], "action": "open_app:spotify", "reply": "Открываю Spotify."},
   {"phrases": ["открой яндекс музыку"], "action": "open_app:яндекс музыка", "reply": "Открываю Яндекс Музыку."},
-  {"phrases": ["открой стим"], "action": "open_app:steam", "reply": "Открываю Steam."},
   {"phrases": ["открой эпик геймс", "открой эпик"], "action": "open_app:epic", "reply": "Открываю Epic Games."},
   {"phrases": ["открой фотошоп"], "action": "open_app:photoshop", "reply": "Открываю Photoshop."},
   {"phrases": ["открой браузер"], "action": "browser", "reply": "Открываю браузер."},
@@ -10062,17 +10191,6 @@ A2A-мост, каталог XTTS, Smart Home, календарь, git-кома�
     "мой город казань": "да"
   },
   "corrections": {}
-}
-```
-
-### `profiles\maksim.json`
-
-```json
-{
-  "created_at": 1791210410.9268441,
-  "facts": {
-    "город нижний новгород": "да"
-  }
 }
 ```
 

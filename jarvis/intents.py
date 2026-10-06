@@ -90,10 +90,11 @@ _DANGER_ACTIONS = {
 
 class IntentHandler:
 
-    def __init__(self, config, apps, brain=None):
+    def __init__(self, config, apps, brain=None, listener=None):
         self.config = config
         self.apps = apps
         self.brain = brain
+        self.listener = listener
         self.installed = scan_start_menu()
         self.steam_games = scan_steam_games()
         self.music_app = config.get("music_app", "яндекс музыка")
@@ -324,6 +325,11 @@ class IntentHandler:
 
         # --- Быстрые правила без LLM ---
 
+        # Музыка — ДО _open_fast, иначе «включи музыку» откроет папку
+        reply = self._music_fast(cmd)
+        if reply:
+            return reply
+
         reply = self._open_fast(cmd)
         if reply:
             return reply
@@ -483,6 +489,44 @@ class IntentHandler:
             result = self._execute_intent(intent)
         return result or "Готово."
 
+    def _music_fast(self, cmd: str) -> str | None:
+        """Музыка — ДО _open_fast. Иначе «включи музыку» откроет папку.
+
+        Ловит: включи/врубай/играй музыку, плей, пауза, следующий трек,
+        предыдущий трек, стоп, громче, тише, без звука.
+        """
+        # «включи музыку» / «врубай музыку» / «играй музыку»
+        if re.search(r"(включи|врубай|играй|поставь)\s+(музыку|музыка|плейлист)", cmd):
+            actions.media_key("play")
+            return "Включаю музыку."
+
+        # «пауза», «плей», «играть/стоп»
+        if cmd in {"пауза", "плей", "play", "pause"}:
+            actions.media_key("play")
+            return "Готово."
+        if re.search(r"^(включи|врубай)\s+(плей|музыку)$", cmd):
+            actions.media_key("play")
+            return "Включаю."
+
+        # «следующий трек», «дальше», «переключи трек»
+        if re.search(r"(следующ|дальше|переключи|переключ)\w*\s*(трек|песн|музык)?", cmd):
+            if any(w in cmd for w in ("трек", "песн", "музык", "дальше")):
+                actions.media_key("next")
+                return "Переключаю."
+
+        # «предыдущий трек», «назад трек»
+        if re.search(r"(предыдущ|назад)\w*\s*(трек|песн|музык)", cmd):
+            actions.media_key("prev")
+            return "Возвращаю."
+
+        # «стоп музыка», «останови музыку»
+        if re.search(r"(останови|стоп)\s+(музык|трек|песн)", cmd):
+            actions.media_key("play")
+            return "Останавливаю."
+
+        return None
+
+
     def _open_fast(self, cmd: str) -> str | None:
         """Быстрое открытие приложений/сайтов/папок — без LLM."""
         m = re.match(r"^(?:открой|запусти|врубай|включи|открывай)\s+(.+)$", cmd)
@@ -524,8 +568,10 @@ class IntentHandler:
                 key, value = sep.group(1).strip(), sep.group(2).strip()
             else:
                 key, value = fact, "да"
-            learning.add_fact(key, value)
-            return f"Запомнил: {key} — {value}."
+            ok = learning.add_fact(key, value)
+            if ok:
+                return f"Запомнил: {key} — {value}."
+            return "Не удалось сохранить — проверь профиль (возможно, битый JSON)."
 
         if re.search(r"(что|чё)\s+ты\s+(обо\s+мне\s+)?знаешь", cmd) \
                 or cmd in {"что ты обо мне знаешь", "что ты знаешь"}:
@@ -641,7 +687,13 @@ class IntentHandler:
         """Команды диагностики: что слышал, почему не понял."""
         if re.search(r"(что|чё)\s+ты\s+слышал", cmd) \
                 or cmd in {"что ты слышал", "что слышал", "история"}:
-            phrases = list(self._recent_phrases)
+            # Берём из Listener — то, что услышал Vosk сырым.
+            # Fallback на _recent_phrases — то, что дошло до handle().
+            phrases = []
+            if self.listener is not None and hasattr(self.listener, "recent_phrases"):
+                phrases = list(self.listener.recent_phrases)
+            if not phrases:
+                phrases = list(self._recent_phrases)
             if not phrases:
                 return "Пока ничего не слышал."
             lines = [f"{i+1}. {p}" for i, p in enumerate(phrases[-5:])]
@@ -676,6 +728,23 @@ class IntentHandler:
             return "Нечего отменять."
 
         action = item.get("action")
+
+        # macro → откатываем все шаги в обратном порядке
+        if action == "macro":
+            steps = item.get("steps") or []
+            if not steps:
+                return "Нечего отменять."
+            results = []
+            for step in reversed(steps):
+                s_action = step.get("action")
+                s_target = step.get("target")
+                if s_action == "open_app" and s_target:
+                    r = self._do_close(s_target)
+                    results.append(r)
+                # Добавлять другие типы шагов по мере надобности
+            if results:
+                return "Откатываю макрос: " + "; ".join(results)
+            return "Макрос отменён."
 
         # open_app → close_app
         if action == "open_app":
@@ -818,6 +887,10 @@ class IntentHandler:
 
     def _execute_steps(self, steps: list) -> str | None:
         reply = None
+        # Кладём макрос как ОДНУ запись в историю — иначе стек на 5
+        # быстро забивается, и «отмени» откатит только последний шаг.
+        history.push_macro(steps)
+
         for step in steps[:6]:
             if not isinstance(step, dict):
                 continue
@@ -845,7 +918,6 @@ class IntentHandler:
                 hit = find_installed(self.installed, target)
                 if hit:
                     actions.open_path(hit[1], minimized=True)
-                    history.push({"action": "open_app", "target": target})
                     return f"Открываю {hit[0]}."
             running = actions.find_process(target, threshold=0.8)
             if running:
@@ -853,8 +925,6 @@ class IntentHandler:
                 if activate_window_by_title(target):
                     return f"Переключаюсь на {target}."
             result = self._do_open(target)
-            if result:
-                history.push({"action": "open_app", "target": target})
             return result
         if action == "close_app" and target:
             return self._do_close(target)

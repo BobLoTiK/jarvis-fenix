@@ -414,8 +414,10 @@ class Brain:
         return base + extra if extra else base
 
     def _chat(self, cmd, timeout):
-        system = self._system_with_context(self.system_prompt)
-        return self._request([{"role": "system", "content": system},
+        # Для JSON-разбора команды — БЕЗ контекста обучения.
+        # Факты и коррекции нужны в диалоге (chat / chat_stream),
+        # но в parse() они только путают модель.
+        return self._request([{"role": "system", "content": self.system_prompt},
                               {"role": "user", "content": cmd}], timeout,
                              num_predict=300)
 

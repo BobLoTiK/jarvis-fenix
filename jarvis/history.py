@@ -33,6 +33,20 @@ def push(item: dict) -> None:
     with _lock:
         _stack.append(item)
     log.info("История: +%s (всего %d)", item.get("action"), len(_stack))
+    
+def push_macro(steps: list) -> None:
+    """Кладёт макрос как ОДНУ запись в историю.
+
+    steps — список dict с action/target (то же, что _execute_steps принимает).
+    """
+    if not isinstance(steps, list) or not steps:
+        return
+    # Отбрасываем steps с action="wait" — их откатывать нечего
+    real_steps = [s for s in steps
+                  if isinstance(s, dict) and s.get("action") not in ("wait",)]
+    if not real_steps:
+        return
+    push({"action": "macro", "steps": real_steps})
 
 
 def pop() -> dict | None:

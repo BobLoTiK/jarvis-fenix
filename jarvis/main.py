@@ -339,11 +339,17 @@ def main() -> None:
 
     # Порядок импортов критичен для Windows:
     #   faster_whisper → ctranslate2 → winrt.
-    try:
-        import faster_whisper  # noqa: F401
-        import ctranslate2  # noqa: F401
-    except ImportError:
-        pass
+    # Если faster_whisper нет — ctranslate2 нет — winrt может дать
+    # access violation. Поэтому логируем явно, что отсутствует.
+    for _mod in ("faster_whisper", "ctranslate2"):
+        try:
+            __import__(_mod)
+        except ImportError:
+            log.warning(
+                "Модуль %s не установлен. Whisper будет недоступен, "
+                "работаю только на Vosk. Установи: pip install %s",
+                _mod, _mod.replace("_", "-"),
+            )
 
     config: Config = load_config(BASE_DIR)
     from jarvis import profile as _profile
@@ -376,7 +382,7 @@ def main() -> None:
 
     speaker = Speaker(config)
     listener = Listener(model_dir, config["sample_rate"], config.get("input_device"))
-    handler = IntentHandler(config, build_apps(config), brain)
+    handler = IntentHandler(config, build_apps(config), brain, listener=listener)
 
     gui = None
     if config.get("gui_enabled", True):
