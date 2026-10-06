@@ -190,7 +190,11 @@ def _get_weather_uncached(city: str, day: str) -> Optional[dict]:
 
 
 def describe_weather(w: dict) -> str:
-    """Формирует человеческую фразу для озвучки."""
+    """Формирует человеческую фразу для озвучки.
+
+    Падежи: «Сейчас в городе Казань» / «Завтра в городе Казань» —
+    именительный падеж уместен, никаких склонений не нужно.
+    """
     if not w:
         return "Не удалось узнать погоду."
     code = w.get("code", -1)
@@ -202,12 +206,12 @@ def describe_weather(w: dict) -> str:
 
     if w.get("day") == "завтра":
         return (
-            f"Погода в {city_full} на завтра: {desc}, "
+            f"Прогноз на завтра — {city_full}: {desc}, "
             f"от {w['temp_min']} до {w['temp_max']} градусов, "
             f"осадки {round(w['precip'], 1)} мм."
         )
     return (
-        f"Погода в {city_full} сейчас: {desc}, "
+        f"Сейчас в городе {city_full}: {desc}, "
         f"{w['temp']} градусов, ощущается как {w['feels']}. "
         f"Ветер {w['wind']} метров в секунду, влажность {w['humidity']} процентов. "
         f"Днём от {w['temp_min']} до {w['temp_max']} градусов."

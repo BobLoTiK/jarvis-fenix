@@ -124,11 +124,24 @@ def forget_correction(wrong: str) -> bool:
 # ---------------------------------------------------------------
 
 def build_context() -> str:
-    """Собирает блок для промпта из фактов и коррекций.
+    """Собирает блок для промпта из профиля, фактов и коррекций.
 
     Возвращает пустую строку, если нечего добавить.
     """
     parts = []
+
+    # Базовые поля профиля — name, default_city.
+    # Без них LLM не знает, как зовут пользователя и где он живёт,
+    # хотя _small_talk и профиль-команды это знают.
+    name = profile.get("name")
+    city = profile.get("default_city")
+    profile_lines = []
+    if name:
+        profile_lines.append(f"- Имя пользователя: {name}")
+    if city:
+        profile_lines.append(f"- Город по умолчанию: {city}")
+    if profile_lines:
+        parts.append("Данные профиля пользователя:\n" + "\n".join(profile_lines))
 
     facts = all_facts()
     if facts:

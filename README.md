@@ -572,9 +572,9 @@ LLM отдаёт ответ по предложениям → первое ср�
 
     pythonw -m jarvis
 
-Либо собрать `.exe` (нужен `pyinstaller`):
+Либо собрать `.exe` (нужен `pyinstaller` из dev-зависимостей):
 
-    pip install pyinstaller
+    pip install -r requirements-dev.txt
     python scripts/build_exe.py
 
 ## Автозапуск
