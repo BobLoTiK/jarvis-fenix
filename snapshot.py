@@ -12,9 +12,11 @@ BASE = Path(__file__).resolve().parent
 OUTPUT = BASE / "SNAPSHOT.md"
 
 EXCLUDE_DIRS = {
-    ".git", "__pycache__", ".venv", "venv", "env", "envs",
+    ".git", "__pycache__",
+    ".venv", ".venv311", "venv", "env", "envs",
     "logs", "models", "dist", "build", ".pytest_cache",
-    ".idea", ".vscode", "node_modules", ".mypy_cache", ".ruff_cache",
+    ".idea", ".vscode", "node_modules",
+    ".mypy_cache", ".ruff_cache",
     "voices",
 }
 
@@ -47,7 +49,14 @@ MAX_FILE_SIZE = 200 * 1024
 
 
 def should_skip_dir(path: Path) -> bool:
-    return path.name in EXCLUDE_DIRS
+    name = path.name
+    # Явные исключения
+    if name in EXCLUDE_DIRS:
+        return True
+    # Любая папка вида .venvXXX, venvXXX, envXXX
+    if name.startswith((".venv", "venv", "env")) and len(name) <= 12:
+        return True
+    return False
 
 
 def should_skip_file(path: Path) -> bool:
