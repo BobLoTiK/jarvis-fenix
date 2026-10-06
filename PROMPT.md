@@ -11,7 +11,7 @@
 Форк `jsays12/jarvis`. Коммиты до июня 2026 — от оригинала, с октября 2026 — мои.
 
 **Стек:**
-- **Python 3.11**
+- **Python 3.11** (обязательно, через `.venv311`) — Vosk не работает на 3.13/3.14
 - **Vosk** (wake-слово) + **faster-whisper** (расшифровка)
 - **Piper** / **XTTS** / **WinRT** (TTS)
 - **Ollama** (LLM: qwen2.5, gemma2, llama3.1, mistral)
@@ -43,6 +43,9 @@
 - **Прямое чтение `config.json`.** Только `config.get()`.
 - **Глобальное состояние.** Кроме `Config._GLOBAL`.
 - **Словари синонимов в коде** для городов/валют/паков — **это задача LLM**.
+- **Использовать Python 3.13/3.14** — Vosk 0.3.45 падает с access violation в `libvosk.dll`. Только **3.10–3.12**.
+- **Коммитить `.venv311`** — он в `.gitignore`. Если попал — `git rm -r --cached .venv311`.
+- **Коммитить `SNAPSHOT.md` > 1 МБ** — исключай `.venv311` в `snapshot.py`.
 - **Упоминать личные данные пользователя** (имя, город, CPU, GPU, ОС) в публичных файлах:
   `PLAN.md`, `README.md`, `CHANGELOG.md`, `PROMPT.md`, `ARCHITECTURE.md`,
   `CONTRIBUTING.md`, `config.example.json`. Всё личное — только в `config.json`,
@@ -79,7 +82,7 @@ jarvis/
 ├── memory.py         — profiles/<user>/dialog.json
 ├── custom_commands.py — профильные команды (в планах)
 ├── cloud/            — облачные провайдеры (в планах)
-├── weather.py        — погода + курс
+├── weather.py        — погода + курс + настраиваемый TTL
 ├── timers.py         — напоминания
 ├── tasks.py          — задачи
 ├── actions.py        — окна, медиа, печать, буфер, громкость, яркость, раскладка
@@ -141,14 +144,14 @@ Jarvis фоновый поток
 - **LLM:** Qwen через Ollama.
 - **STT:** Vosk + Whisper small CPU.
 - **TTS:** Piper (medium).
-- **Погода:** кэш 24 часа.
+- **Погода:** кэш 24 часа (`weather_cache_ttl_sec: 86400`).
 
 ### 🌐 Hybrid
 
 - **LLM:** Qwen 14b/32b (локально).
 - **STT:** Whisper large-v3-turbo на GPU.
 - **TTS:** Piper.
-- **Погода:** real-time.
+- **Погода:** real-time (кэш 10 мин).
 
 ### ☁️ Cloud (бесплатно, ключ Groq)
 
@@ -169,7 +172,7 @@ Jarvis фоновый поток
 
 ## 📊 ТЕКУЩИЙ СТАТУС
 
-### ✅ Закрыто (13 багов)
+### ✅ Закрыто (23 бага)
 
 | № | Баг |
 |---|---|
@@ -185,6 +188,17 @@ Jarvis фоновый поток
 | №24.5 | Системная тема не автоопределялась |
 | №25 | `mic_watchdog` спамил |
 | №25.5 | Микрофон не проверить из GUI |
+| №26 | «открой стим» → Spotify |
+| №28 | «мой город казань» в фактах |
+| №29 | «мой город X» → `default_city` |
+| №30 | `_match_custom` без логирования |
+| №31 | `_match_custom` нечёткий матч |
+| №32 | Vosk на Python 3.14 → `.venv311` |
+| №34 | `.bat` и doskey под 3.11 |
+| №35 | `.venv311` в git → `.gitignore` |
+| №36 | `SNAPSHOT.md` 52 МБ → 520 КБ |
+| №37 | `.git` 110 МБ → 12 МБ |
+| №39 | README: Python 3.10–3.12 |
 | — | Flet 1.x API (`ElevatedButton` → `Button`) |
 
 ### 🔴 Критично (2)
@@ -192,7 +206,7 @@ Jarvis фоновый поток
 | № | Баг |
 |---|---|
 | №10 | Порядок импортов глушится |
-| №11 | `Vosk.Reset()` не откатывает |
+| №11 | `Vosk.Reset()` не откатывает (из логов — работает, проверить) |
 
 ### 🟡 Серьёзно (9)
 
@@ -200,45 +214,42 @@ Jarvis фоновый поток
 |---|---|
 | №5 | Факты путают `parse()` |
 | №7 | `tasks.find` без lock |
-| №9 | `weather._CACHE` без lock |
+| №9 | `weather._CACHE` без lock (уже есть, проверить) |
 | №12 | `learning.add_fact` не проверяет `ok` |
 | №13 | `Config.update` без `if ok` |
 | №15 | «включи музыку» → `open_app` |
-| №16 | `_debug_fast` не тот буфер |
-| №17 | Макрос забивает стек |
+| №16 | `_debug_fast` не тот буфер (из логов — работает) |
+| №17 | Макрос забивает стек (`push_macro` уже есть) |
 | №18 | Мусор `profiles/maksim.json` |
 
-### 🟢 Мелко (4)
+### 🟢 Мелко (3)
 
 | № | Баг |
 |---|---|
 | №19 | Нумерация README/PLAN |
 | №22 | Падежи в погоде |
 | №23 | LLM vs `profile.get("name")` |
+| №38 | `requirements-dev.txt` отсутствует |
 
 ---
 
 ## 🎁 ОБНОВЛЕНИЯ ТЕХНОЛОГИЙ
 
-### ✅ О1 — pip-пакеты (закрыто)
+### ✅ О1–О5, О9 — закрыто
 
-- `vosk 0.3.45`
-- `faster-whisper 1.2.1` + `ctranslate2 4.8.2`
-- `piper-tts 1.8.0`
+- `vosk 0.3.45`, `faster-whisper 1.2.1`, `ctranslate2 4.8.2`, `piper-tts 1.8.0`.
+- `whisper_model: deepdml/faster-whisper-large-v3-turbo-ct2`.
+- `check_cpu()` в `system_caps.json`.
+- `tts_voice_quality` в config.
+- `_init_piper` quality + fallback.
+- `weather_cache_ttl_sec` в config.
 
-### ❌ О2–О7 (в работе)
+### ❌ О6–О7 (в работе)
 
 | # | Задача | Время |
 |---|---|---|
-| О2 | Whisper-модель → `coriollon/whisper-large-v3-turbo-russian` | 5 мин |
-| О3 | `check_cpu()` в `check_caps.py` (категория + рекомендация) | 20 мин |
-| О4 | `tts_voice_quality` в config (medium/high) | 10 мин |
-| О5 | `tts._init_piper` — quality + fallback | 15 мин |
 | О6 | GUI RadioGroup «Качество голоса» | 15 мин |
 | О7 | README + config.example.json | 10 мин |
-
-**Плюсы:** Whisper WER −4.3 п.п., Piper high качество, автовыбор по CPU.
-**Потери:** +782 МБ (Whisper), +40 МБ/голос (Piper high).
 
 ---
 
@@ -330,8 +341,6 @@ Jarvis фоновый поток
 
 **Новые действия в `actions.py`:** `shutdown_pc`, `reboot_pc`, `sleep_pc`, `lock_pc`, `cancel_shutdown`.
 
-**Голосовое управление:** «какие у меня команды», «удали команду X», «покажи команду X».
-
 | # | Задача | Время |
 |---|---|---|
 | М1 | `jarvis/custom_commands.py` | 1 ч |
@@ -391,6 +400,7 @@ config.json:
   gui_theme: Системная
   tts_voice_quality: medium
   mic_watchdog_enabled: true
+  weather_cache_ttl_sec: 600
   cloud:
     llm_provider: null
     llm_api_key: null
@@ -399,20 +409,19 @@ config.json:
     tts_provider: null
     tts_voice: null
     fallback_to_local: true
-  weather_cache_ttl_sec: 86400
 ```
 
 ---
 
 ## 🎯 ПОРЯДОК РАБОТЫ
 
-### ЭТАП 0 — Обновления (1 ч) — 🚧
+### ЭТАП 0 — Обновления (1 ч) — ✅ в основном закрыт
 
-О1 ✅. О2–О7 ❌.
+О1–О5, О9 ✅. О6, О7 ❌.
 
-### ЭТАП 1 — Стабилизация (5 ч)
+### ЭТАП 1 — Стабилизация (5 ч) — 🚧
 
-№5, №12+№13, №18, №10, №7+№9, №15, №16, №17, №11, №19+№22+№23.
+№5, №7, №9, №12+№13, №18, №10, №11, №15, №16, №17, №19, №22, №23, №38.
 
 ### ЭТАП 1.5 — Знакомство (3.5 ч)
 
@@ -467,6 +476,12 @@ config.json:
 
 1. **Не выбрасывай WARNING/ERROR в `errors.log`** — это сигнал.
 2. **`actions.log`** — главный инструмент отладки.
+
+### Окружение
+
+1. **Python 3.10–3.12.** Vosk не работает на 3.13/3.14.
+2. **`.venv311`** — обязательный venv.
+3. **`snapshot.py`** — исключать `.venv311`.
 
 ---
 

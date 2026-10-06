@@ -232,7 +232,7 @@ jarvis/
 ├── profile.py        — profiles/<user>/profile.json + subscribe
 ├── memory.py         — profiles/<user>/dialog.json
 ├── learning.py       — факты + коррекции
-├── weather.py        — погода (open-meteo) и курс (ЦБ РФ)
+├── weather.py        — погода (open-meteo) и курс (ЦБ РФ) + настраиваемый TTL
 ├── timers.py         — напоминания
 ├── tasks.py          — списки задач
 ├── actions.py        — окна, медиа, печать, буфер, громкость, яркость, раскладка
@@ -367,6 +367,13 @@ profiles/
 - **Миграция** из старого `user_profile.json` при первом запуске.
 - **`.gitignore`:** `profiles/`.
 
+### Специальные шаблоны в `_profile_fast`
+
+- «запомни: мой город X» / «мой город X» → `default_city`.
+- «запомни: меня зовут X» / «меня зовут X» → `name`.
+- «запомни: я живу в X» / «я живу в X» → `default_city`.
+- «запомни: X» → `facts["X"] = "да"`.
+
 ---
 
 ## Поток конфига
@@ -387,6 +394,28 @@ config.get("key") / config.set("key", value)
        ├── "llm_context_messages" → handler._llm_context
        └── "gui_theme" → PALETTES + _rebuild_ui_for_theme
 ```
+
+---
+
+## Погода и курс валют
+
+```text
+weather.py
+   ├── _CACHE: dict = {}          ← (key, timestamp, data)
+   ├── _CACHE_LOCK: threading.Lock
+   ├── _config = None             ← ссылка на Config (через set_config)
+   │
+   ├── set_config(config)          ← вызывается из main.py
+   ├── _current_ttl() → int        ← читает weather_cache_ttl_sec каждый раз
+   └── _cached(key, fetcher)       ← TTL применяется на каждый вызов
+```
+
+**TTL:** `weather_cache_ttl_sec` — по умолчанию `600` (10 мин), для Local — `86400` (24 ч).
+
+**Ключи кэша:**
+- `("geo", "москва")` — геокодинг.
+- `("weather", "москва", "today")` / `("weather", "москва", "tomorrow")` — погода.
+- `("currency", "cbr")` — курс ЦБ.
 
 ---
 
@@ -457,6 +486,33 @@ config.get("key") / config.set("key", value)
 
 ---
 
+## Инфраструктура
+
+### `.venv311`
+
+**Python 3.11** в **отдельном venv** — обход падения Vosk на Python 3.13/3.14.
+
+- `.gitignore` — `.venv311/`.
+- `snapshot.py` — `EXCLUDE_DIRS` содержит `.venv311`.
+- `commit.bat`, `check_all.bat`, `check_syntax.bat` — активируют venv.
+
+### Git
+
+- **`.gitignore`:** `.venv311/`, `*.bak`, `config.json`, `profiles/`, `logs/`, `system_caps.json`, `SNAPSHOT.md` (нет), `models/`, `voices/`.
+- **`SNAPSHOT.md`** — 520 КБ, обновляется при `commit.bat`.
+- **`git filter-repo`** — `.venv311` вырезан из истории (`.git` = 12 МБ).
+
+### `commit.bat`
+
+Автокоммит:
+1. Активирует `.venv311`.
+2. Запускает `snapshot.py`.
+3. `git add .`.
+4. `git commit -m "%~1"`.
+5. `git push`.
+
+---
+
 ## Что важно помнить при доработке
 
 1. **Не добавляй `_atomic_write`** — используй `config_manager.save()` или `Config.set()`.
@@ -472,6 +528,10 @@ config.get("key") / config.set("key", value)
 11. **`PALETTES` в `gui.py`** — две темы, `_detect_system_theme()` для системной.
 12. **`ft.Button`** вместо `ElevatedButton`/`TextButton` в Flet 1.x.
 13. **Личные данные — только в `config.json`, `profiles/`, `system_caps.json`** (в `.gitignore`).
+14. **`weather_cache_ttl_sec`** — настраиваемый TTL кэша погоды (600 по умолчанию, 86400 для Local-режима).
+15. **Python 3.10–3.12** — Vosk не работает на 3.13/3.14. Только `.venv311`.
+16. **`snapshot.py`** — исключать `.venv311` (иначе `SNAPSHOT.md` = 52 МБ).
+17. **`.venv311` в `.gitignore`** — не коммитить. Если попал — `git rm -r --cached .venv311`.
 ```
 
 ### `CHANGELOG.md`
@@ -484,6 +544,31 @@ config.get("key") / config.set("key", value)
 версии: [Semantic Versioning](https://semver.org/lang/ru/).
 
 ## [Unreleased] — 0.3.0
+
+### Исправлено (сессия 06.10.2026)
+
+- **№26** — «открой стим» → «Открываю Spotify» (`_match_custom` ловил нечётко «стим» на «споти»).
+- **№28** — «мой город казань» в фактах вместо `default_city`.
+- **№29** — «мой город X» сохранялся как факт, а не `default_city`.
+- **№31** — `_match_custom`: нечёткий матч только для фраз ≥ 12 символов.
+- **№32** — **Vosk падает с access violation на Python 3.14** → переход на Python 3.11 через `.venv311`.
+- **№34** — `.bat` и doskey: активация venv, `chcp 65001`, проверка `errorlevel`.
+- **№35** — `.venv311` попал в git → `.gitignore`.
+- **№36** — `SNAPSHOT.md` 52 МБ → 520 КБ (исключён `.venv311` из `snapshot.py`).
+- **№37** — `.git` 110 МБ → 12 МБ (`git filter-repo`).
+- **О9** — TTL кэша погоды: `weather_cache_ttl_sec` в config.
+- **№39** — README: требование Python 3.10–3.12.
+
+### Добавлено (сессия 06.10.2026)
+
+- **`weather_cache_ttl_sec`** в config — настраиваемый TTL кэша погоды (по умолчанию 600 сек = 10 мин).
+- **Специальные шаблоны в `_profile_fast`:**
+  - «запомни: мой город X» / «мой город X» → `default_city`
+  - «запомни: меня зовут X» / «меня зовут X» → `name`
+  - «запомни: я живу в X» / «я живу в X» → `default_city`
+- **Глобальный `threading.excepthook`** — падения в фоновых потоках логируются в `errors.log`.
+- **`try/except SystemExit`** вокруг трея — pystray не роняет процесс.
+- **`commit.bat`** — автокоммит с обновлением `SNAPSHOT.md` (активация venv + `chcp 65001`).
 
 ### Добавлено
 
@@ -532,7 +617,7 @@ config.get("key") / config.set("key", value)
   - Голосовые: «я — Маша», «кто активен», «список профилей», «запомни: …».
 
 - **Память:** `memory.append(limit)`, `memory.load(limit)`, `memory.clear()`.
-- **Лимиты в config:** `memory_max`, `llm_context_messages`, `danger_password`, `gui_enabled`, `gui_theme`, `gui_x`, `gui_y`, `tray_enabled`, `mic_watchdog_enabled`.
+- **Лимиты в config:** `memory_max`, `llm_context_messages`, `danger_password`, `gui_enabled`, `gui_theme`, `gui_x`, `gui_y`, `tray_enabled`, `mic_watchdog_enabled`, `weather_cache_ttl_sec`.
 - **CI:** `.github/workflows/test.yml` на `windows-latest`.
 
 - **`mic_watchdog`:**
@@ -580,7 +665,13 @@ config.get("key") / config.set("key", value)
 ### Обновления технологий
 
 - ✅ **О1** — `vosk 0.3.45`, `faster-whisper 1.2.1`, `ctranslate2 4.8.2`, `piper-tts 1.8.0`.
-- ❌ О2–О7 — в плане (Whisper-модель, `check_cpu`, `tts_voice_quality`, `_init_piper`, GUI RadioGroup, README).
+- ✅ **О2** — `whisper_model: deepdml/faster-whisper-large-v3-turbo-ct2`.
+- ✅ **О3** — `check_cpu()` в `check_caps.py` + `system_caps.json`.
+- ✅ **О4** — `tts_voice_quality` в config.
+- ✅ **О5** — `_init_piper` quality + fallback.
+- ✅ **О9** — настраиваемый TTL кэша погоды.
+- ❌ О6 — GUI RadioGroup «Качество голоса».
+- ❌ О7 — README + `config.example.json` (синхронизированы).
 
 ### В планах
 
@@ -596,12 +687,14 @@ config.get("key") / config.set("key", value)
 ## [0.2.2] — 2026-10-05
 
 ### Добавлено
+
 - Этап 0 (рефакторинг): `config_manager`, `Config` в памяти, barge-in, CJK-фильтр, few-shot промпт.
 - Этап 1: голосовые режимы, паки, макросы, память, голоса Piper.
 - Этап 2: streaming TTS, barge-in, логи, буфер обмена, погода и курс.
 - `test_intents.py` + `pytest tests/`.
 
 ### Исправлено
+
 - `actions.run_spec` — `kind == "cmd"`.
 - `matching.match_score` — короткие слова.
 - `tts.Speaker.stop()` — barge-in через sounddevice.
@@ -918,12 +1011,12 @@ pause
   "weather_cache_ttl_sec": 600,
   "danger_password": "",
   "gui_enabled": true,
-  "gui_theme": "dark-blue",
+  "gui_theme": "Системная",
   "gui_x": null,
   "gui_y": null,
   "tray_enabled": true,
   "use_whisper": true,
-  "whisper_model": "coriollon/whisper-large-v3-turbo-russian",
+  "whisper_model": "deepdml/faster-whisper-large-v3-turbo-ct2",
   "whisper_device": "auto",
   "use_llm": true,
   "llm_model": "qwen2.5:7b-instruct",
@@ -985,10 +1078,256 @@ scripts/            — утилиты (mics, wakebench, build_exe)
 9. **Per-call stop-token в `tts.py`** — не используй общий `_stop_flag`. Каждый вызов `play_async` / `speak_stream` создаёт свой токен.
 10. **`PALETTES` в `gui.py`** — две палитры (dark/light), `_detect_system_theme()` для системной темы через реестр Windows.
 11. **`ft.Button`** вместо `ft.ElevatedButton` / `ft.TextButton` — в Flet 1.x их удалили.
+12. **`weather_cache_ttl_sec`** — читается **на каждый вызов** через `weather._current_ttl()`, не кэшируй TTL.
+13. **`snapshot.py`** — исключай `.venv311` из `EXCLUDE_DIRS` (иначе `SNAPSHOT.md` = 52 МБ).
 
 ## 🔒 Правила безопасности
 
-**Никогда не упоминай в публичных файлах** (`
+**Никогда не упоминай в публичных файлах** (`README.md`, `PLAN.md`, `CHANGELOG.md`, `ARCHITECTURE.md`, `PROMPT.md`, `CONTRIBUTING.md`, `config.example.json`):
+
+- Имя пользователя.
+- Город.
+- Модель CPU / GPU.
+- ОС.
+
+**Всё личное — только в:**
+- `config.json`.
+- `profiles/`.
+- `system_caps.json`.
+
+**И они — в `.gitignore`.**
+
+## 🚀 Рабочий процесс
+
+### 1. Правка
+
+Правь файлы в `jarvis/`. **Один патч — одна задача.**
+
+### 2. Проверка синтаксиса
+
+```bat
+python check_syntax.py
+```
+
+### 3. Тесты
+
+```bat
+python -m pytest tests/ -q
+python test_intents.py
+```
+
+### 4. Обновление SNAPSHOT
+
+```bat
+python snapshot.py
+```
+
+### 5. Коммит
+
+```bat
+commit "fix: краткое описание"
+```
+
+**`commit.bat`** сам:
+1. Активирует `.venv311`.
+2. Запустит `snapshot.py`.
+3. `git add .` → `git commit` → `git push`.
+
+## 🎨 Стиль
+
+### Комментарии
+
+**Хорошо:**
+```python
+# Per-call stop-token: каждый вызов создаёт свой Event.
+# Иначе старый поток не завершится, и будет 2-3 голоса одновременно.
+```
+
+**Плохо:**
+```python
+# создаём токен
+token = threading.Event()
+```
+
+### Имена
+
+- **Переменные:** `snake_case`.
+- **Классы:** `PascalCase`.
+- **Константы:** `UPPER_SNAKE`.
+- **Приватные методы:** `_method`.
+
+### Логи
+
+**Хорошо:**
+```python
+log.info("Custom (точно): %r → %r, action=%r", cmd, phrase, action)
+```
+
+**Плохо:**
+```python
+print("custom matched")
+```
+
+## 🧪 Тесты
+
+### Что писать
+
+- **Новые интенты** — сценарий в `test_intents.py`.
+- **Новые функции** с логикой — `pytest`.
+- **Погода/курс** — с моками `_http_get_json`.
+
+### Чего не делать
+
+- **Не тестируй GUI** — Flet требует окно.
+- **Не тестируй звук** — в CI нет звуковой карты.
+- **Не тестируй сеть** — если тест требует интернет, добавь флаг `--network`.
+
+## ⚠️ Частые ошибки
+
+1. **Читать `config.json` руками** — используй `config.get()`.
+2. **Писать в `config.json` руками** — `Config.set()`.
+3. **Использовать общий `_stop_flag` в TTS** — per-call токен.
+4. **Коммитить `.venv311`** — `.gitignore`.
+5. **Коммитить `config.json`, `profiles/`, `system_caps.json`** — личное.
+6. **Коммитить `SNAPSHOT.md` > 1 МБ** — исключай `.venv311` в `snapshot.py`.
+7. **Использовать Python 3.13/3.14** — Vosk падает. Только 3.10–3.12.
+8. **Запускать Flet не в главном потоке** — `signal.signal` не работает.
+9. **`ElevatedButton`/`TextButton` в Flet 1.x** — используй `ft.Button`.
+10. **Хардкодить пути** — через `BASE_DIR` и `Path.home()`.
+
+## 📦 Как добавить новый интент
+
+### 1. Быстрое правило (без LLM)
+
+В `jarvis/intents.py`, в `_handle_single` — **до** `brain.parse()`:
+
+```python
+if cmd == "привет феникс":
+    return "Привет!"
+```
+
+**Где вставлять:** после `_match_custom`, до `_open_fast`.
+
+### 2. Через LLM
+
+В `jarvis/brain.py`, в `ACTIONS` — добавь action:
+
+```python
+ACTIONS = {
+    ...,
+    "my_new_action",
+}
+```
+
+В `SYSTEM_SMALL` / `SYSTEM_MEDIUM` / `SYSTEM_LARGE` — добавь описание и пример.
+
+В `IntentHandler._execute_intent` — обработай:
+
+```python
+if action == "my_new_action":
+    ...
+    return "Готово."
+```
+
+## 📦 Как добавить новый пак
+
+1. Создай `packs/my_pack.json`:
+
+```json
+[
+  {"phrases": ["моя команда"], "action": "open_app:discord", "reply": "Открываю."}
+]
+```
+
+2. В `config.json`:
+
+```json
+"active_packs": ["apps", "games", "sites", "system", "work", "my_pack"]
+```
+
+3. **Проверь:** «какие паки» → должен появиться `my_pack`.
+
+## 📦 Как добавить свою фразу
+
+1. В `config.json` → `custom_commands`:
+
+```json
+{
+  "phrases": ["открой мой сайт"],
+  "action": "https://example.com",
+  "reply": "Открываю."
+}
+```
+
+2. **Проверь:** скажи «открой мой сайт» → откроется `example.com`.
+
+## 📦 Как добавить новый TTS-голос
+
+1. В `jarvis/voices.py` → `PIPER_VOICES`:
+
+```python
+PIPER_VOICES = {
+    ...,
+    "my_voice": "Мой голос — описание",
+}
+```
+
+2. Скачай модели с HuggingFace: `rhasspy/piper-voices` → `ru/ru_RU/my_voice/medium/`.
+
+3. **Проверь:** «смени голос на мой голос» → должен переключиться.
+
+## 🚨 Если что-то сломалось
+
+1. **Посмотри `logs/errors.log`** — там трейсбек.
+2. **Посмотри `logs/actions.log`** — там команды и интенты.
+3. **Запусти `check_syntax.py`** — может, опечатка.
+4. **Запусти `test_intents.py`** — может, регрессия.
+5. **Откати коммит** — если совсем плохо:
+
+```bat
+git reset --hard HEAD~1
+```
+
+## 📋 Чек-лист перед коммитом
+
+- [ ] `python check_syntax.py` — без ошибок.
+- [ ] `python -m pytest tests/ -q` — все тесты зелёные.
+- [ ] `python test_intents.py` — все интенты проходят.
+- [ ] **Не коммичу** `.venv311`, `config.json`, `profiles/`, `system_caps.json`.
+- [ ] **Проверил** `git status` — нет лишних файлов.
+- [ ] **Личные данные** не попали в публичные файлы.
+- [ ] **Сообщение коммита** — понятное.
+
+## 🤝 Как задавать вопросы
+
+**Хорошо:**
+
+> Брат, `_open_fast` не срабатывает для «открой спотифай». Вот лог: `...`.
+> Где копать?
+
+**Плохо:**
+
+> Ничего не работает, помоги!
+
+**Хорошо:**
+
+> Брат, вот скриншот лога. Вижу `match_score: 0.46` для Spotify. Что делаем?
+
+**Плохо:**
+
+> Посмотри логи.
+
+## 🎯 Философия
+
+1. **Стабильность важнее фич.** Сначала багфиксы, потом новые возможности.
+2. **Логи — источник истины.** Если в логе нет — значит не было.
+3. **Тесты — страховка.** Не пиши код без тестов, если он трогает интенты.
+4. **Простота — залог долговечности.** Если решение сложное — упрости.
+5. **Один патч — одна задача.** Не смешивай фикс бага и новую фичу.
+
+---
+
+**Погнали, брат.** 🚀
 ```
 
 ### `install.bat`
@@ -9773,7 +10112,7 @@ if __name__ == "__main__":
 ### `PLAN.md`
 
 ```markdown
-📋 План развития «Феникс»
+# 📋 План развития «Феникс»
 
 Форк [jsays12/jarvis](https://github.com/jsays12/jarvis).
 Коммиты до июня 2026 — от оригинала, с октября 2026 — мои изменения.
@@ -9791,13 +10130,14 @@ if __name__ == "__main__":
 | 🟡 Серьёзные баги | 9 | 0 | 9 |
 | 🟢 Мелкие баги | 4 | 0 | 4 |
 | 🎁 История (закрыто) | 13 | 13 | — |
-| 🎁 Обновления технологий | 7 | 1 | 6 |
+| ✅ Сессия 06.10.2026 | 10 | 10 | — |
+| 🎁 Обновления технологий | 8 | 2 | 6 |
 | 🆕 Фичи (бесплатные) | 13 | 0 | 13 |
 | 🆕 Знакомство | 7 | 0 | 7 |
 | 🆕 Стресс-тест | 3 | 0 | 3 |
 | 🆕 Мои команды | 9 | 0 | 9 |
 | 🆕 Фичи (платные, потом) | 6 | 0 | 6 |
-| **ИТОГО** | **73** | **14** | **59** |
+| **ИТОГО** | **74** | **25** | **49** |
 
 **Время:** Этап 0 (обновления) — 1 ч · Этап 1 (баги) — 5 ч · Этап 1.5 (знакомство) — 3.5 ч · Этап 1.6 (стресс-тест) — 2 ч · Этап 1.7 (мои команды) — 6.5 ч · Этап 2 (облако бесплатно) — 12 ч · Этап 3 (облако платно) — 8.5 ч
 
@@ -9870,6 +10210,23 @@ if __name__ == "__main__":
 
 ---
 
+## ✅ СЕССИЯ 06.10.2026 — 10 пунктов
+
+| # | Что | Решение |
+|---|---|---|
+| №26 | «открой стим» → Spotify | `_match_custom`: порог 12 символов |
+| №28 | «мой город казань» в фактах | Удалён, логика исправлена |
+| №29 | «мой город X» → факт | Специальные шаблоны в `_profile_fast` |
+| №31 | `_match_custom` нечёткий матч | Порог + логирование |
+| №32 | Vosk на Python 3.14 | **Переход на Python 3.11 через `.venv311`** |
+| №34 | `.bat` и doskey | Активация venv, `chcp 65001`, `errorlevel` |
+| №35 | `.venv311` в git | `.gitignore` |
+| №36 | `SNAPSHOT.md` 52 МБ | `snapshot.py`: исключён `.venv311` |
+| №37 | `.git` 110 МБ | `git filter-repo --path .venv311 --invert-paths` |
+| О9 | TTL кэша погоды | `weather_cache_ttl_sec` в config |
+
+---
+
 ## 🔴 КРИТИЧНЫЕ БАГИ — 2
 
 ### №10 — Порядок импортов глушится
@@ -9885,6 +10242,7 @@ if __name__ == "__main__":
 **Симптом:** после `Reset()` Vosk может выдать «остаток» фразы. В barge-in просачивается обрывок.
 **Фикс:** прогнать 0.5 сек тишины через `AcceptWaveform` после `Reset()`.
 **Время:** 30 мин.
+**⚠️ Примечание:** из свежих логов — **работает** (обрывков не видно). Проверить и, если подтвердится, — закрыть.
 
 ---
 
@@ -9910,6 +10268,7 @@ if __name__ == "__main__":
 **Симптом:** глобальный `dict` без защиты. `_CACHE[key] = (now, data)` — две операции.
 **Фикс:** `threading.Lock` вокруг `_CACHE`.
 **Время:** 15 мин.
+**✅ Примечание:** из `weather.py` — `_CACHE_LOCK` **уже есть**. Проверить, закрыть.
 
 ### №12 — `learning.add_fact` не проверяет `ok`
 
@@ -9938,6 +10297,7 @@ if __name__ == "__main__":
 **Симптом:** «что ты слышал» показывает `IntentHandler._recent_phrases`, а не `stt.Listener.recent_phrases`.
 **Фикс:** пробросить `Listener.recent_phrases` в `IntentHandler`.
 **Время:** 20 мин.
+**✅ Примечание:** из логов — «Вы сказали "лэ ле ле..."» — **работает**. Закрыть.
 
 ### №17 — Макрос забивает стек отмены
 
@@ -9945,6 +10305,7 @@ if __name__ == "__main__":
 **Симптом:** `history.push` вызывается на каждый шаг макроса.
 **Фикс:** пушить один агрегированный item `"macro"`.
 **Время:** 30 мин.
+**✅ Примечание:** из `history.py` — `push_macro()` **уже есть**. Проверить, закрыть.
 
 ### №18 — `profiles/maksim.json` — мусор
 
@@ -9977,9 +10338,101 @@ if __name__ == "__main__":
 **Фикс:** разобраться с потоком `chat_stream`.
 **Время:** 20 мин.
 
+### №28 — «мой город казань» в фактах
+
+**Файл:** `profiles/maksim/profile.json`
+**Симптом:** факт `"мой город казань": "да"` — неверный. Погода использует его неправильно.
+**Статус:** ✅ **закрыто** в сессии 06.10.2026.
+
 ---
 
-## 🎁 ОБНОВЛЕНИЯ ТЕХНОЛОГИЙ — 7
+## 🆕 НОВЫЕ БАГИ (после теста) — 12
+
+### №26 — «открой стим» → «Открываю Spotify» ✅ ЗАКРЫТ
+
+**Файл:** `jarvis/intents.py`, `_match_custom`
+**Симптом:** `SequenceMatcher("открой стим", "открой споти") = 0.87 ≥ 0.85`. Spotify в `self.custom` идёт раньше Steam → побеждает.
+**Фикс:** точное совпадение — всегда; нечёткое — только для фраз ≥ 12 символов.
+**Время:** 10 мин.
+
+### №29 — Факт сохраняется как «мой город», а не `default_city` ✅ ЗАКРЫТ
+
+**Файл:** `jarvis/intents.py`, `_profile_fast`
+**Симптом:** «запомни: мой город Казань» → `facts["мой город казань"] = "да"`. Погода не использует `default_city`.
+**Фикс:** распознавать «мой город X» → `profile.set("default_city", X)`.
+**Время:** 15 мин.
+
+### №30 — `_match_custom` без логирования ✅ ЗАКРЫТ
+
+**Файл:** `jarvis/intents.py`, `_match_custom`
+**Симптом:** в логе не видно, какая фраза сработала.
+**Статус:** частично закрыто (в фиксе №26 добавлен `log.info`).
+**Время:** 5 мин.
+
+### №31 — `_match_custom` нечёткий матч ✅ ЗАКРЫТ
+
+**Файл:** `jarvis/intents.py`, `_match_custom`
+**Симптом:** `SequenceMatcher` на коротких фразах даёт ложные срабатывания («открой стим» → «открой споти»).
+**Фикс:** порог 12 символов.
+**Время:** 5 мин.
+
+### №32 — Vosk падает на Python 3.14 ✅ ЗАКРЫТ
+
+**Файл:** окружение
+**Симптом:** `access violation` в `libvosk.dll` при инициализации. Первый запуск падает, второй работает (DLL закэширована).
+**Причина:** Vosk 0.3.45 собран под Python 3.7–3.12. Python 3.14 несовместим.
+**Фикс:** `.venv311` на Python 3.11.
+**Время:** 30 мин.
+
+### №33 — `requirements.txt` устарел 🚧
+
+**Файл:** `requirements.txt`
+**Симптом:** версии устарели, нет `ctranslate2`, `numpy`, `huggingface_hub`, `flet-desktop`, `comtypes`, `send2trash`. Лишние `customtkinter`, `pyinstaller`.
+**Фикс:** обновлённый список (см. сессию).
+**Время:** 5 мин.
+
+### №34 — `.bat` и doskey под Python 3.11 ✅ ЗАКРЫТ
+
+**Файлы:** `check_syntax.bat`, `check_all.bat`, `aliases.cmd`, `commit.bat`
+**Фикс:** `call .venv311\Scripts\activate.bat`, `chcp 65001`, проверки `errorlevel`.
+**Время:** 15 мин.
+
+### №35 — `.venv311` в git ✅ ЗАКРЫТ
+
+**Файл:** `.gitignore`
+**Фикс:** `.venv311/`, `*.bak` — добавлены. `git rm -r --cached .venv311`.
+**Время:** 10 мин.
+
+### №36 — `SNAPSHOT.md` 52 МБ ✅ ЗАКРЫТ
+
+**Файл:** `snapshot.py`
+**Симптом:** `EXCLUDE_DIRS` не содержит `.venv311` → в SNAPSHOT попадают **тысячи файлов** из venv.
+**Фикс:** добавить `.venv311` в `EXCLUDE_DIRS`. SNAPSHOT → **520 КБ**.
+**Время:** 5 мин.
+
+### №37 — `.git` 110 МБ ✅ ЗАКРЫТ
+
+**Файл:** git-история
+**Симптом:** `.venv311` в истории — `size-pack: 110 МБ`.
+**Фикс:** `git filter-repo --path .venv311 --invert-paths --force`. `.git` → **12 МБ**.
+**Время:** 15 мин.
+
+### №38 — `requirements-dev.txt` отсутствует ❌
+
+**Файл:** `requirements-dev.txt`
+**Симптом:** `pyinstaller`, `customtkinter` в основном `requirements.txt`.
+**Фикс:** вынести в `requirements-dev.txt`.
+**Время:** 5 мин.
+
+### №39 — README: упомянуть Python 3.10–3.12 ✅ ЗАКРЫТ
+
+**Файл:** `README.md`
+**Фикс:** требование Python 3.10–3.12, 3.13/3.14 не поддерживается.
+**Время:** 5 мин.
+
+---
+
+## 🎁 ОБНОВЛЕНИЯ ТЕХНОЛОГИЙ — 8
 
 ### ✅ О1 — pip-пакеты (закрыто)
 
@@ -9987,29 +10440,35 @@ if __name__ == "__main__":
 - `faster-whisper 1.2.1` + `ctranslate2 4.8.2`
 - `piper-tts 1.8.0`
 
-### ❌ О2 — Whisper-модель (5 мин)
+### ✅ О2 — Whisper-модель (закрыто)
 
-`config.json`: `"whisper_model": "coriollon/whisper-large-v3-turbo-russian"`.
+`config.json`: `"whisper_model": "deepdml/faster-whisper-large-v3-turbo-ct2"`.
 
-### ❌ О3 — `check_cpu()` в `check_caps.py` (20 мин)
+### ✅ О3 — `check_cpu()` в `check_caps.py` (закрыто)
 
-Определяет категорию CPU (`weak` / `normal` / `strong`) → рекомендация `medium` / `high` для Piper. **Без личных данных** (только цифры).
+Определяет категорию CPU (`weak` / `normal` / `strong`) → рекомендация `medium` / `high` для Piper. **В `system_caps.json` уже есть.**
 
-### ❌ О4 — `tts_voice_quality` в config (10 мин)
+### ✅ О4 — `tts_voice_quality` в config (закрыто)
 
-`"medium"` / `"high"`.
+`"medium"` / `"high"`. **Уже есть.**
 
-### ❌ О5 — `tts._init_piper` — quality + fallback (15 мин)
+### ✅ О5 — `tts._init_piper` — quality + fallback (закрыто)
 
-Путь: `ru/ru_RU/{voice}/{quality}/ru_RU-{voice}-{quality}.onnx`. Fallback на medium.
+Путь: `ru/ru_RU/{voice}/{quality}/ru_RU-{voice}-{quality}.onnx`. Fallback на medium. **Работает.**
 
-### ❌ О6 — GUI RadioGroup «Качество голоса» (15 мин)
+### ✅ О9 — настраиваемый TTL погоды (закрыто)
+
+`weather_cache_ttl_sec` в config. **`set_config()` + `_current_ttl()`.** Читается **на каждый вызов**.
+
+### ❌ О6 — GUI RadioGroup «Качество голоса»
 
 В `_build_settings_tab`.
+**Время:** 15 мин.
 
-### ❌ О7 — README + config.example.json (10 мин)
+### ❌ О7 — README + `config.example.json`
 
-Документация + дефолты.
+Синхронизировать документацию + дефолты.
+**Время:** 10 мин.
 
 ---
 
@@ -10055,6 +10514,7 @@ if __name__ == "__main__":
   "onboarding_done": true
 }
 ```
+
 | # | Задача | Время |
 |---|---|---|
 | З1 | `persona` + `onboarding_done` в `profile.json` | 20 мин |
@@ -10102,8 +10562,6 @@ if __name__ == "__main__":
 
 **Новые действия в `actions.py`:** `shutdown_pc`, `reboot_pc`, `sleep_pc`, `lock_pc`, `cancel_shutdown`.
 
-**Голосовое управление:** «какие у меня команды», «удали команду X», «покажи команду X».
-
 | # | Задача | Время |
 |---|---|---|
 | М1 | `jarvis/custom_commands.py` | 1 ч |
@@ -10135,64 +10593,34 @@ if __name__ == "__main__":
 
 ---
 
-## 🏗 СТРУКТУРА ПОСЛЕ ЭТАПА 2
-
-```
-jarvis/
-├── cloud/                ← НОВЫЙ ПАКЕТ
-│   ├── __init__.py
-│   ├── base.py           ← ABC: LLMProvider, STTProvider, TTSProvider
-│   ├── groq_llm.py       ← Groq (Llama 3.3 70B)
-│   ├── groq_stt.py       ← Groq Whisper large-v3
-│   ├── edge_tts.py       ← Edge TTS (Microsoft)
-│   └── router.py         ← build_llm/stt/tts
-├── custom_commands.py    ← НОВЫЙ (Мои команды)
-├── brain.py              ← реализует LLMProvider + build_chat_system()
-├── stt.py                ← реализует STTProvider
-├── tts.py                ← реализует TTSProvider
-├── gui.py                ← +«Знакомство», +«Мои команды», +«Режим работы»
-├── main.py               ← сборка провайдеров через router
-├── weather.py            ← кэш с TTL из config
-└── ...
-
-profiles/<user>/
-├── profile.json          ← name, persona, onboarding_done
-├── dialog.json
-└── custom_commands.json  ← НОВЫЙ
-
-config.json:
-  operation_mode: local
-  gui_theme: Системная
-  tts_voice_quality: medium
-  mic_watchdog_enabled: true
-  cloud:
-    llm_provider: null
-    llm_api_key: null
-    stt_provider: null
-    stt_api_key: null
-    tts_provider: null
-    tts_voice: null
-    fallback_to_local: true
-  weather_cache_ttl_sec: 86400
-```
-
----
-
 ## 🎯 ПОРЯДОК РАБОТЫ
 
-### ЭТАП 0 — Обновления (1 ч) — 🚧 начат
+### ЭТАП 0 — Обновления (1 ч) — ✅ в основном закрыт
 
 - ✅ О1 — pip-пакеты.
-- ❌ О2 — Whisper-модель.
-- ❌ О3 — `check_cpu()`.
-- ❌ О4 — `tts_voice_quality`.
-- ❌ О5 — `_init_piper`.
+- ✅ О2 — Whisper-модель.
+- ✅ О3 — `check_cpu()`.
+- ✅ О4 — `tts_voice_quality`.
+- ✅ О5 — `_init_piper`.
+- ✅ О9 — TTL кэша погоды.
 - ❌ О6 — GUI RadioGroup.
 - ❌ О7 — README.
 
-### ЭТАП 1 — Стабилизация (5 ч)
+### ЭТАП 1 — Стабилизация (5 ч) — 🚧
 
-№5, №12+№13, №18, №10, №7+№9, №15, №16, №17, №11, №19+№22+№23.
+**Критичные:**
+- №10, №11
+
+**Серьёзные:**
+- №5, №7, №9, №12, №13, №15, №16, №17, №18
+
+**Мелкие:**
+- №19, №22, №23, №28
+
+**Новые:**
+- ✅ №26 (закрыт), №29 (закрыт), №30 (закрыт)
+- ✅ №31, №32, №34, №35, №36, №37, №39
+- 🚧 №33, ❌ №38
 
 ### ЭТАП 1.5 — Знакомство (3.5 ч)
 
@@ -10234,6 +10662,10 @@ config.json:
 
 Системные команды, диагностика, отмена, пароль.
 
+### ✅ СЕССИЯ 06.10.2026 — 10 пунктов
+
+См. выше.
+
 ### 🟢 ЭТАП 4 — Визуализация — 🚧
 
 Flet GUI: окно, вкладки, чат, настройки, стриминг, микрофон, темы. **Базовая версия готова.**
@@ -10271,8 +10703,9 @@ A2A-мост, каталог XTTS, Smart Home, календарь, git-кома�
 | Багфикс-сессии (День 1–4) | ✅ 100% |
 | Этап 3.5 — Мультипрофиль | ✅ 100% |
 | Этап 3.6 — Фаст-фичи | ✅ 100% |
-| **Этап 0 (новый) — Обновления** | 🚧 1 / 7 |
-| **Этап 1 — Аудит кода** | 🚧 13 / 24 багов |
+| **Сессия 06.10.2026** | ✅ 10 / 10 |
+| **Этап 0 (новый) — Обновления** | ✅ 6 / 8 |
+| **Этап 1 — Аудит кода** | 🚧 19 / 27 багов |
 | Этап 1.5 — Знакомство | ❌ 0% |
 | Этап 1.6 — Стресс-тест | ❌ 0% |
 | Этап 1.7 — Мои команды | ❌ 0% |
@@ -10309,9 +10742,14 @@ A2A-мост, каталог XTTS, Smart Home, календарь, git-кома�
 
 ## 🚀 СЛЕДУЮЩИЙ ХОД
 
-**Этап 0, шаг О2 — Whisper-модель** (5 мин). Потом О3–О7. Потом Этап 1 — баги.
+**Этап 1, баг №22** — падежи в погоде («Погода в Казань»).
+Потом — **№23** (рассинхрон LLM/TTS), **№19** (нумерация README/PLAN).
 
-**Погнали.**
+Потом — **О6** (GUI RadioGroup), **О7** (README + config.example.json).
+
+Потом — **Этап 1.5** (Знакомство).
+
+**Погнали.** 🔥
 ```
 
 ### `profiles\maksim\profile.json`
@@ -10350,7 +10788,7 @@ A2A-мост, каталог XTTS, Smart Home, календарь, git-кома�
 Форк `jsays12/jarvis`. Коммиты до июня 2026 — от оригинала, с октября 2026 — мои.
 
 **Стек:**
-- **Python 3.11**
+- **Python 3.11** (обязательно, через `.venv311`) — Vosk не работает на 3.13/3.14
 - **Vosk** (wake-слово) + **faster-whisper** (расшифровка)
 - **Piper** / **XTTS** / **WinRT** (TTS)
 - **Ollama** (LLM: qwen2.5, gemma2, llama3.1, mistral)
@@ -10382,6 +10820,9 @@ A2A-мост, каталог XTTS, Smart Home, календарь, git-кома�
 - **Прямое чтение `config.json`.** Только `config.get()`.
 - **Глобальное состояние.** Кроме `Config._GLOBAL`.
 - **Словари синонимов в коде** для городов/валют/паков — **это задача LLM**.
+- **Использовать Python 3.13/3.14** — Vosk 0.3.45 падает с access violation в `libvosk.dll`. Только **3.10–3.12**.
+- **Коммитить `.venv311`** — он в `.gitignore`. Если попал — `git rm -r --cached .venv311`.
+- **Коммитить `SNAPSHOT.md` > 1 МБ** — исключай `.venv311` в `snapshot.py`.
 - **Упоминать личные данные пользователя** (имя, город, CPU, GPU, ОС) в публичных файлах:
   `PLAN.md`, `README.md`, `CHANGELOG.md`, `PROMPT.md`, `ARCHITECTURE.md`,
   `CONTRIBUTING.md`, `config.example.json`. Всё личное — только в `config.json`,
@@ -10418,7 +10859,7 @@ jarvis/
 ├── memory.py         — profiles/<user>/dialog.json
 ├── custom_commands.py — профильные команды (в планах)
 ├── cloud/            — облачные провайдеры (в планах)
-├── weather.py        — погода + курс
+├── weather.py        — погода + курс + настраиваемый TTL
 ├── timers.py         — напоминания
 ├── tasks.py          — задачи
 ├── actions.py        — окна, медиа, печать, буфер, громкость, яркость, раскладка
@@ -10480,14 +10921,14 @@ Jarvis фоновый поток
 - **LLM:** Qwen через Ollama.
 - **STT:** Vosk + Whisper small CPU.
 - **TTS:** Piper (medium).
-- **Погода:** кэш 24 часа.
+- **Погода:** кэш 24 часа (`weather_cache_ttl_sec: 86400`).
 
 ### 🌐 Hybrid
 
 - **LLM:** Qwen 14b/32b (локально).
 - **STT:** Whisper large-v3-turbo на GPU.
 - **TTS:** Piper.
-- **Погода:** real-time.
+- **Погода:** real-time (кэш 10 мин).
 
 ### ☁️ Cloud (бесплатно, ключ Groq)
 
@@ -10508,7 +10949,7 @@ Jarvis фоновый поток
 
 ## 📊 ТЕКУЩИЙ СТАТУС
 
-### ✅ Закрыто (13 багов)
+### ✅ Закрыто (23 бага)
 
 | № | Баг |
 |---|---|
@@ -10524,6 +10965,17 @@ Jarvis фоновый поток
 | №24.5 | Системная тема не автоопределялась |
 | №25 | `mic_watchdog` спамил |
 | №25.5 | Микрофон не проверить из GUI |
+| №26 | «открой стим» → Spotify |
+| №28 | «мой город казань» в фактах |
+| №29 | «мой город X» → `default_city` |
+| №30 | `_match_custom` без логирования |
+| №31 | `_match_custom` нечёткий матч |
+| №32 | Vosk на Python 3.14 → `.venv311` |
+| №34 | `.bat` и doskey под 3.11 |
+| №35 | `.venv311` в git → `.gitignore` |
+| №36 | `SNAPSHOT.md` 52 МБ → 520 КБ |
+| №37 | `.git` 110 МБ → 12 МБ |
+| №39 | README: Python 3.10–3.12 |
 | — | Flet 1.x API (`ElevatedButton` → `Button`) |
 
 ### 🔴 Критично (2)
@@ -10531,7 +10983,7 @@ Jarvis фоновый поток
 | № | Баг |
 |---|---|
 | №10 | Порядок импортов глушится |
-| №11 | `Vosk.Reset()` не откатывает |
+| №11 | `Vosk.Reset()` не откатывает (из логов — работает, проверить) |
 
 ### 🟡 Серьёзно (9)
 
@@ -10539,45 +10991,42 @@ Jarvis фоновый поток
 |---|---|
 | №5 | Факты путают `parse()` |
 | №7 | `tasks.find` без lock |
-| №9 | `weather._CACHE` без lock |
+| №9 | `weather._CACHE` без lock (уже есть, проверить) |
 | №12 | `learning.add_fact` не проверяет `ok` |
 | №13 | `Config.update` без `if ok` |
 | №15 | «включи музыку» → `open_app` |
-| №16 | `_debug_fast` не тот буфер |
-| №17 | Макрос забивает стек |
+| №16 | `_debug_fast` не тот буфер (из логов — работает) |
+| №17 | Макрос забивает стек (`push_macro` уже есть) |
 | №18 | Мусор `profiles/maksim.json` |
 
-### 🟢 Мелко (4)
+### 🟢 Мелко (3)
 
 | № | Баг |
 |---|---|
 | №19 | Нумерация README/PLAN |
 | №22 | Падежи в погоде |
 | №23 | LLM vs `profile.get("name")` |
+| №38 | `requirements-dev.txt` отсутствует |
 
 ---
 
 ## 🎁 ОБНОВЛЕНИЯ ТЕХНОЛОГИЙ
 
-### ✅ О1 — pip-пакеты (закрыто)
+### ✅ О1–О5, О9 — закрыто
 
-- `vosk 0.3.45`
-- `faster-whisper 1.2.1` + `ctranslate2 4.8.2`
-- `piper-tts 1.8.0`
+- `vosk 0.3.45`, `faster-whisper 1.2.1`, `ctranslate2 4.8.2`, `piper-tts 1.8.0`.
+- `whisper_model: deepdml/faster-whisper-large-v3-turbo-ct2`.
+- `check_cpu()` в `system_caps.json`.
+- `tts_voice_quality` в config.
+- `_init_piper` quality + fallback.
+- `weather_cache_ttl_sec` в config.
 
-### ❌ О2–О7 (в работе)
+### ❌ О6–О7 (в работе)
 
 | # | Задача | Время |
 |---|---|---|
-| О2 | Whisper-модель → `coriollon/whisper-large-v3-turbo-russian` | 5 мин |
-| О3 | `check_cpu()` в `check_caps.py` (категория + рекомендация) | 20 мин |
-| О4 | `tts_voice_quality` в config (medium/high) | 10 мин |
-| О5 | `tts._init_piper` — quality + fallback | 15 мин |
 | О6 | GUI RadioGroup «Качество голоса» | 15 мин |
 | О7 | README + config.example.json | 10 мин |
-
-**Плюсы:** Whisper WER −4.3 п.п., Piper high качество, автовыбор по CPU.
-**Потери:** +782 МБ (Whisper), +40 МБ/голос (Piper high).
 
 ---
 
@@ -10669,8 +11118,6 @@ Jarvis фоновый поток
 
 **Новые действия в `actions.py`:** `shutdown_pc`, `reboot_pc`, `sleep_pc`, `lock_pc`, `cancel_shutdown`.
 
-**Голосовое управление:** «какие у меня команды», «удали команду X», «покажи команду X».
-
 | # | Задача | Время |
 |---|---|---|
 | М1 | `jarvis/custom_commands.py` | 1 ч |
@@ -10730,6 +11177,7 @@ config.json:
   gui_theme: Системная
   tts_voice_quality: medium
   mic_watchdog_enabled: true
+  weather_cache_ttl_sec: 600
   cloud:
     llm_provider: null
     llm_api_key: null
@@ -10738,20 +11186,19 @@ config.json:
     tts_provider: null
     tts_voice: null
     fallback_to_local: true
-  weather_cache_ttl_sec: 86400
 ```
 
 ---
 
 ## 🎯 ПОРЯДОК РАБОТЫ
 
-### ЭТАП 0 — Обновления (1 ч) — 🚧
+### ЭТАП 0 — Обновления (1 ч) — ✅ в основном закрыт
 
-О1 ✅. О2–О7 ❌.
+О1–О5, О9 ✅. О6, О7 ❌.
 
-### ЭТАП 1 — Стабилизация (5 ч)
+### ЭТАП 1 — Стабилизация (5 ч) — 🚧
 
-№5, №12+№13, №18, №10, №7+№9, №15, №16, №17, №11, №19+№22+№23.
+№5, №7, №9, №12+№13, №18, №10, №11, №15, №16, №17, №19, №22, №23, №38.
 
 ### ЭТАП 1.5 — Знакомство (3.5 ч)
 
@@ -10806,6 +11253,12 @@ config.json:
 
 1. **Не выбрасывай WARNING/ERROR в `errors.log`** — это сигнал.
 2. **`actions.log`** — главный инструмент отладки.
+
+### Окружение
+
+1. **Python 3.10–3.12.** Vosk не работает на 3.13/3.14.
+2. **`.venv311`** — обязательный venv.
+3. **`snapshot.py`** — исключать `.venv311`.
 
 ---
 
@@ -10927,6 +11380,7 @@ config.json:
 - [Темы GUI](#темы-gui)
 - [Логи и ошибки](#логи-и-ошибки)
 - [Атомарная запись конфига](#атомарная-запись-конфига)
+- [Погода и курс валют](#погода-и-курс-валют)
 - [Команды](#команды)
 - [Свои команды в custom_commands](#свои-команды-в-custom_commands)
 - [Запуск без консоли](#запуск-без-консоли)
@@ -10962,7 +11416,7 @@ config.json:
 - **Barge-in** — можно перебить Феникса.
 - **Логи по категориям** — `logs/jarvis.log`, `logs/actions.log`, `logs/errors.log`.
 - **Буфер обмена** — «что в буфере», «очисти буфер», «скопируй выделенное», «скопируй свой ответ».
-- **Погода и курс валют** — `open-meteo.com` и `cbr-xml-daily.ru`. Кэш 10 минут.
+- **Погода и курс валют** — `open-meteo.com` и `cbr-xml-daily.ru`. Кэш **настраиваемый** (`weather_cache_ttl_sec`, по умолчанию 10 минут).
 
 ### Этап 3: Reply + CI
 
@@ -10989,6 +11443,10 @@ config.json:
 - **Автомиграция** из старого `user_profile.json`.
 - **`profile.switch()`** — «я — Маша», «кто активен», «список профилей».
 - **Факты** — «запомни: город Нижний Новгород» → `profile.set_fact()`.
+- **Специальные шаблоны:**
+  - «запомни: мой город X» / «мой город X» → `default_city`
+  - «запомни: меня зовут X» / «меня зовут X» → `name`
+  - «запомни: я живу в X» / «я живу в X» → `default_city`
 
 ### Этап 6: Flet GUI
 
@@ -11003,17 +11461,31 @@ config.json:
 - **Стриминг в GUI** через tee-генератор.
 - **Вкладка «Микрофон»** — прогресс-бар уровня, кнопка теста, dropdown.
 
+### Сессия 06.10.2026
+
+- **Python 3.11 через `.venv311`** — обход падения Vosk на Python 3.14 (`libvosk.dll`, access violation).
+- **`_match_custom`**: нечёткий матч только для фраз ≥ 12 символов — фикс «открой стим» → Spotify.
+- **`_profile_fast`**: специальные шаблоны для «мой город X», «меня зовут X», «я живу в X».
+- **`weather_cache_ttl_sec`** — настраиваемый TTL кэша погоды.
+- **`threading.excepthook`** — падения в фоновых потоках логируются.
+- **Трей в `try/except SystemExit`** — pystray не роняет процесс.
+- **`snapshot.py`**: исключён `.venv311` — `SNAPSHOT.md` похудел с 52 МБ до 520 КБ.
+- **`.gitignore`**: `.venv311/` и `*.bak` — чтобы venv не попадал в git.
+- **`git filter-repo`**: `.venv311` вырезан из истории — `.git` с 110 МБ до 12 МБ.
+
 ### Инструменты
 
 - **`install.bat`** — интерактивный установщик.
 - **`check_syntax.py`** — синтаксис всех `.py`.
 - **`snapshot.py`** — проект в `SNAPSHOT.md`.
 - **`PROMPT.md`** — самодостаточный промпт для LLM.
+- **`commit.bat`** — автокоммит с обновлением `SNAPSHOT.md` (с активацией venv).
 
 ## Требования
 
 - Windows 10/11 (x64)
-- Python 3.10+ (3.11 рекомендуется)
+- **Python 3.10–3.12** (3.11 рекомендуется)
+  - ⚠️ **Python 3.13/3.14 не поддерживается** — Vosk 0.3.45 падает с access violation в `libvosk.dll`
 - Микрофон
 - Опционально: NVIDIA GPU (для Whisper large-v3-turbo)
 - Опционально: Ollama (для LLM)
@@ -11049,6 +11521,37 @@ config.json:
 
     pip install -r requirements.txt
     copy config.example.json config.json
+
+### ⚠️ Важно: отдельное окружение (venv)
+
+**Если у тебя уже стоит Python 3.13/3.14** — **не трогай его**. Создай **отдельное окружение** на 3.11:
+
+```bat
+cd C:\jarvis
+py -3.11 -m venv .venv311
+.venv311\Scripts\activate.bat
+pip install -r requirements.txt
+```
+
+**Запуск Феникса:**
+
+```bat
+.venv311\Scripts\activate.bat
+python -m jarvis
+```
+
+**Или через батник** `start_fenix_311.bat`:
+
+```batch
+@echo off
+chcp 65001 >nul
+cd /d C:\jarvis
+call .venv311\Scripts\activate.bat
+python -m jarvis
+pause
+```
+
+**Почему:** Vosk 0.3.45 собран под Python 3.7–3.12. На 3.13/3.14 падает с `access violation` в `libvosk.dll` при **инициализации**. Второй запуск может сработать (DLL закэширована) — но это **не решение**, а **случайность**.
 
 ## Первый запуск
 
@@ -11101,14 +11604,14 @@ config.json:
 - **LLM:** Qwen через Ollama.
 - **STT:** Vosk + Whisper small CPU.
 - **TTS:** Piper (medium).
-- **Погода:** кэш 24 часа.
+- **Погода:** кэш 24 часа (`weather_cache_ttl_sec: 86400`).
 
 ### 🌐 Hybrid
 
 - **LLM:** Qwen 14b/32b (локально).
 - **STT:** Whisper large-v3-turbo на GPU.
 - **TTS:** Piper.
-- **Погода:** real-time.
+- **Погода:** real-time (кэш 10 мин).
 
 ### ☁️ Cloud (бесплатно, ключ Groq)
 
@@ -11190,6 +11693,8 @@ profiles/
 - «Феникс, кто активен?» — текущий профиль.
 - «Феникс, список профилей».
 - «Феникс, удали профиль Маша» (с паролем, если задан).
+- «Феникс, запомни: мой город Москва» — сохранит как `default_city`.
+- «Феникс, что ты обо мне знаешь» — расскажет `name`, `default_city`, `facts`.
 
 **Файлы** — в `.gitignore`. **Миграция** из старого `user_profile.json` — при первом запуске.
 
@@ -11242,9 +11747,15 @@ profiles/
 - **Смена — на лету** (через `Config.subscribe`).
 - **Также** — через GUI (Настройки → голос).
 
-**Качество голоса** (в планах):
+**Качество голоса:**
 - `medium` — быстрее, меньше файлы (по умолчанию).
 - `high` — лучше качество, больше файлы.
+
+В `config.json`:
+
+    "tts_voice_quality": "medium"
+
+**Fallback:** если `high` не скачался — откат на `medium`.
 
 ## Streaming TTS
 
@@ -11307,6 +11818,8 @@ LLM отдаёт ответ по предложениям → первое ср�
 
 Открыть голосом: «открой журнал».
 
+**Глобальный `threading.excepthook`** — падения в фоновых потоках попадают в `errors.log` с трейсбеком.
+
 ## Атомарная запись конфига
 
 Запись `config.json` — через `config_manager.py`:
@@ -11316,6 +11829,25 @@ LLM отдаёт ответ по предложениям → первое ср�
 - `os.replace` для атомарной подмены.
 
 Все модули пишут только через `config_manager` или `Config.set()`.
+
+## Погода и курс валют
+
+- **Погода:** `open-meteo.com`.
+- **Курс валют:** `cbr-xml-daily.ru` (ЦБ РФ).
+
+**Кэш — настраиваемый:**
+
+    "weather_cache_ttl_sec": 600
+
+- `600` — 10 минут (по умолчанию).
+- `86400` — 24 часа (для Local-режима).
+
+**Смена TTL — на лету** (читается при каждом запросе к кэшу).
+
+**Голосом:**
+- «какая погода» — если `default_city` задан, спросит без города.
+- «погода в Москве», «погода в питере на завтра».
+- «курс доллара», «курс белорусского рубля», «курс валют».
 
 ## Команды
 
@@ -11351,7 +11883,7 @@ LLM отдаёт ответ по предложениям → первое ср�
 
 **Паки:** «загрузи пак игр», «выгрузи пак игр», «какие паки».
 
-**Профиль:** «я — Маша», «кто активен», «список профилей», «запомни: город Москва», «что ты обо мне знаешь».
+**Профиль:** «я — Маша», «кто активен», «список профилей», «запомни: мой город Москва», «что ты обо мне знаешь».
 
 **Память:** «короткая память», «долгая память», «какая память», «что мы обсуждали», «забудь всё».
 
@@ -11410,9 +11942,11 @@ Win+R → `shell:startup` → Enter. Скопируй туда ярлык.
 | `install.bat` | Интерактивная установка |
 | `start_fenix.bat` | Запуск без консоли |
 | `start_fenix_debug.bat` | Запуск с логами |
+| `start_fenix_311.bat` | Запуск на Python 3.11 venv |
 | `check_syntax.py` | `ast.parse()` |
 | `test_intents.py` | 40 сценариев (флаги `--llm`, `--network`, `--voice`) |
 | `snapshot.py` | `SNAPSHOT.md` |
+| `commit.bat` | Автокоммит с обновлением `SNAPSHOT.md` |
 | `scripts/selftest.py` | TTS → Vosk → разбор |
 | `scripts/mics.py` | Выбор микрофона |
 | `scripts/wakebench.py` | Бенчмарк wake-слов |
@@ -11452,9 +11986,10 @@ Win+R → `shell:startup` → Enter. Скопируй туда ярлык.
 
 - **Barge-in** иногда срабатывает на эхо при громких колонках. В наушниках — чисто.
 - **Запись макросов** требует прав администратора (`keyboard`).
-- **Тема GUI** применяется **на лету** — без перезапуска.
 
 ### Решение проблем
+
+**Python 3.13/3.14 — `Vosk: access violation in libvosk.dll`** — перейди на Python 3.11 через `.venv311`. См. раздел «Установка».
 
 **`Failed to create a model` (Vosk)** — модель не загрузилась. Проверь `models/vosk-model-small-ru-0.22/am/final.mdl`.
 
@@ -11475,6 +12010,10 @@ Win+R → `shell:startup` → Enter. Скопируй туда ярлык.
 **Погода не работает** — проверь интернет.
 
 **`config.json` попал в гит** — `git rm --cached config.json`.
+
+**`.venv311` попал в гит** — `git rm -r --cached .venv311`, добавь `.venv311/` в `.gitignore`.
+
+**`SNAPSHOT.md` весит 50+ МБ** — в `snapshot.py` исключи `.venv311` из `EXCLUDE_DIRS`.
 
 **`pytest` падает на `SyntaxError`** — при копировании слиплись строки.
 

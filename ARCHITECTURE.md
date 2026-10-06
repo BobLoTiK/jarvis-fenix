@@ -25,7 +25,7 @@ jarvis/
 ├── profile.py        — profiles/<user>/profile.json + subscribe
 ├── memory.py         — profiles/<user>/dialog.json
 ├── learning.py       — факты + коррекции
-├── weather.py        — погода (open-meteo) и курс (ЦБ РФ)
+├── weather.py        — погода (open-meteo) и курс (ЦБ РФ) + настраиваемый TTL
 ├── timers.py         — напоминания
 ├── tasks.py          — списки задач
 ├── actions.py        — окна, медиа, печать, буфер, громкость, яркость, раскладка
@@ -160,6 +160,13 @@ profiles/
 - **Миграция** из старого `user_profile.json` при первом запуске.
 - **`.gitignore`:** `profiles/`.
 
+### Специальные шаблоны в `_profile_fast`
+
+- «запомни: мой город X» / «мой город X» → `default_city`.
+- «запомни: меня зовут X» / «меня зовут X» → `name`.
+- «запомни: я живу в X» / «я живу в X» → `default_city`.
+- «запомни: X» → `facts["X"] = "да"`.
+
 ---
 
 ## Поток конфига
@@ -180,6 +187,28 @@ config.get("key") / config.set("key", value)
        ├── "llm_context_messages" → handler._llm_context
        └── "gui_theme" → PALETTES + _rebuild_ui_for_theme
 ```
+
+---
+
+## Погода и курс валют
+
+```text
+weather.py
+   ├── _CACHE: dict = {}          ← (key, timestamp, data)
+   ├── _CACHE_LOCK: threading.Lock
+   ├── _config = None             ← ссылка на Config (через set_config)
+   │
+   ├── set_config(config)          ← вызывается из main.py
+   ├── _current_ttl() → int        ← читает weather_cache_ttl_sec каждый раз
+   └── _cached(key, fetcher)       ← TTL применяется на каждый вызов
+```
+
+**TTL:** `weather_cache_ttl_sec` — по умолчанию `600` (10 мин), для Local — `86400` (24 ч).
+
+**Ключи кэша:**
+- `("geo", "москва")` — геокодинг.
+- `("weather", "москва", "today")` / `("weather", "москва", "tomorrow")` — погода.
+- `("currency", "cbr")` — курс ЦБ.
 
 ---
 
@@ -250,6 +279,33 @@ config.get("key") / config.set("key", value)
 
 ---
 
+## Инфраструктура
+
+### `.venv311`
+
+**Python 3.11** в **отдельном venv** — обход падения Vosk на Python 3.13/3.14.
+
+- `.gitignore` — `.venv311/`.
+- `snapshot.py` — `EXCLUDE_DIRS` содержит `.venv311`.
+- `commit.bat`, `check_all.bat`, `check_syntax.bat` — активируют venv.
+
+### Git
+
+- **`.gitignore`:** `.venv311/`, `*.bak`, `config.json`, `profiles/`, `logs/`, `system_caps.json`, `SNAPSHOT.md` (нет), `models/`, `voices/`.
+- **`SNAPSHOT.md`** — 520 КБ, обновляется при `commit.bat`.
+- **`git filter-repo`** — `.venv311` вырезан из истории (`.git` = 12 МБ).
+
+### `commit.bat`
+
+Автокоммит:
+1. Активирует `.venv311`.
+2. Запускает `snapshot.py`.
+3. `git add .`.
+4. `git commit -m "%~1"`.
+5. `git push`.
+
+---
+
 ## Что важно помнить при доработке
 
 1. **Не добавляй `_atomic_write`** — используй `config_manager.save()` или `Config.set()`.
@@ -265,3 +321,7 @@ config.get("key") / config.set("key", value)
 11. **`PALETTES` в `gui.py`** — две темы, `_detect_system_theme()` для системной.
 12. **`ft.Button`** вместо `ElevatedButton`/`TextButton` в Flet 1.x.
 13. **Личные данные — только в `config.json`, `profiles/`, `system_caps.json`** (в `.gitignore`).
+14. **`weather_cache_ttl_sec`** — настраиваемый TTL кэша погоды (600 по умолчанию, 86400 для Local-режима).
+15. **Python 3.10–3.12** — Vosk не работает на 3.13/3.14. Только `.venv311`.
+16. **`snapshot.py`** — исключать `.venv311` (иначе `SNAPSHOT.md` = 52 МБ).
+17. **`.venv311` в `.gitignore`** — не коммитить. Если попал — `git rm -r --cached .venv311`.

@@ -6,6 +6,31 @@
 
 ## [Unreleased] — 0.3.0
 
+### Исправлено (сессия 06.10.2026)
+
+- **№26** — «открой стим» → «Открываю Spotify» (`_match_custom` ловил нечётко «стим» на «споти»).
+- **№28** — «мой город казань» в фактах вместо `default_city`.
+- **№29** — «мой город X» сохранялся как факт, а не `default_city`.
+- **№31** — `_match_custom`: нечёткий матч только для фраз ≥ 12 символов.
+- **№32** — **Vosk падает с access violation на Python 3.14** → переход на Python 3.11 через `.venv311`.
+- **№34** — `.bat` и doskey: активация venv, `chcp 65001`, проверка `errorlevel`.
+- **№35** — `.venv311` попал в git → `.gitignore`.
+- **№36** — `SNAPSHOT.md` 52 МБ → 520 КБ (исключён `.venv311` из `snapshot.py`).
+- **№37** — `.git` 110 МБ → 12 МБ (`git filter-repo`).
+- **О9** — TTL кэша погоды: `weather_cache_ttl_sec` в config.
+- **№39** — README: требование Python 3.10–3.12.
+
+### Добавлено (сессия 06.10.2026)
+
+- **`weather_cache_ttl_sec`** в config — настраиваемый TTL кэша погоды (по умолчанию 600 сек = 10 мин).
+- **Специальные шаблоны в `_profile_fast`:**
+  - «запомни: мой город X» / «мой город X» → `default_city`
+  - «запомни: меня зовут X» / «меня зовут X» → `name`
+  - «запомни: я живу в X» / «я живу в X» → `default_city`
+- **Глобальный `threading.excepthook`** — падения в фоновых потоках логируются в `errors.log`.
+- **`try/except SystemExit`** вокруг трея — pystray не роняет процесс.
+- **`commit.bat`** — автокоммит с обновлением `SNAPSHOT.md` (активация venv + `chcp 65001`).
+
 ### Добавлено
 
 - **Flet GUI** (`jarvis/gui.py`):
@@ -53,7 +78,7 @@
   - Голосовые: «я — Маша», «кто активен», «список профилей», «запомни: …».
 
 - **Память:** `memory.append(limit)`, `memory.load(limit)`, `memory.clear()`.
-- **Лимиты в config:** `memory_max`, `llm_context_messages`, `danger_password`, `gui_enabled`, `gui_theme`, `gui_x`, `gui_y`, `tray_enabled`, `mic_watchdog_enabled`.
+- **Лимиты в config:** `memory_max`, `llm_context_messages`, `danger_password`, `gui_enabled`, `gui_theme`, `gui_x`, `gui_y`, `tray_enabled`, `mic_watchdog_enabled`, `weather_cache_ttl_sec`.
 - **CI:** `.github/workflows/test.yml` на `windows-latest`.
 
 - **`mic_watchdog`:**
@@ -101,7 +126,13 @@
 ### Обновления технологий
 
 - ✅ **О1** — `vosk 0.3.45`, `faster-whisper 1.2.1`, `ctranslate2 4.8.2`, `piper-tts 1.8.0`.
-- ❌ О2–О7 — в плане (Whisper-модель, `check_cpu`, `tts_voice_quality`, `_init_piper`, GUI RadioGroup, README).
+- ✅ **О2** — `whisper_model: deepdml/faster-whisper-large-v3-turbo-ct2`.
+- ✅ **О3** — `check_cpu()` в `check_caps.py` + `system_caps.json`.
+- ✅ **О4** — `tts_voice_quality` в config.
+- ✅ **О5** — `_init_piper` quality + fallback.
+- ✅ **О9** — настраиваемый TTL кэша погоды.
+- ❌ О6 — GUI RadioGroup «Качество голоса».
+- ❌ О7 — README + `config.example.json` (синхронизированы).
 
 ### В планах
 
@@ -117,12 +148,14 @@
 ## [0.2.2] — 2026-10-05
 
 ### Добавлено
+
 - Этап 0 (рефакторинг): `config_manager`, `Config` в памяти, barge-in, CJK-фильтр, few-shot промпт.
 - Этап 1: голосовые режимы, паки, макросы, память, голоса Piper.
 - Этап 2: streaming TTS, barge-in, логи, буфер обмена, погода и курс.
 - `test_intents.py` + `pytest tests/`.
 
 ### Исправлено
+
 - `actions.run_spec` — `kind == "cmd"`.
 - `matching.match_score` — короткие слова.
 - `tts.Speaker.stop()` — barge-in через sounddevice.
