@@ -20,6 +20,7 @@
 
 **Репозиторий:** `C:\jarvis`
 **Ветка:** `main`
+**GitHub:** `https://github.com/BobLoTiK/jarvis-fenix`
 **CI:** GitHub Actions на `windows-latest`.
 
 ---
@@ -34,6 +35,7 @@
 - **Команды** — в `bat`-блоках.
 - **Код** — в `python`-блоках, целиком или точечные патчи.
 - **В каждом патче указывать — после какого момента вставлять.**
+- **Полные файлы** — в **Markdown-блоках** (не в кусках).
 - **Скриншоты** — если просят, описать что видно.
 
 **Запрещено:**
@@ -136,8 +138,6 @@ Jarvis фоновый поток
 
 ## 📋 Режимы работы
 
-Феникс поддерживает **три режима**, пользователь выбирает в GUI или config.
-
 ### 🏠 Local (по умолчанию)
 
 - **Интернет:** почти не нужен.
@@ -161,20 +161,19 @@ Jarvis фоновый поток
 - **Погода:** real-time.
 - **Fallback:** при ошибке облака — откат на local.
 
-### 💎 Premium (отложено — ключи OpenAI, Fish Audio)
+### 💎 Premium (отложено)
 
 - **LLM:** GPT-4o, Claude 3.5.
 - **STT:** Whisper API, Deepgram.
 - **TTS:** Fish Audio (клон голоса), ElevenLabs.
-- **Биллинг:** видно, сколько потратил.
 
 ---
 
 ## 📊 ТЕКУЩИЙ СТАТУС
 
-### ✅ Закрыто (23 бага)
+### ✅ Закрыто (25 багов + 2 О)
 
-| № | Баг |
+| # | Баг |
 |---|---|
 | №1 | `profile._current` гонка |
 | №2 | Маша видит диалог Максима |
@@ -199,6 +198,8 @@ Jarvis фоновый поток
 | №36 | `SNAPSHOT.md` 52 МБ → 520 КБ |
 | №37 | `.git` 110 МБ → 12 МБ |
 | №39 | README: Python 3.10–3.12 |
+| О6 | GUI RadioGroup «Качество голоса» |
+| О7 | README + `config.example.json` |
 | — | Flet 1.x API (`ElevatedButton` → `Button`) |
 
 ### 🔴 Критично (2)
@@ -222,206 +223,42 @@ Jarvis фоновый поток
 | №17 | Макрос забивает стек (`push_macro` уже есть) |
 | №18 | Мусор `profiles/maksim.json` |
 
-### 🟢 Мелко (3)
+### 🟢 Мелко (4)
 
 | № | Баг |
 |---|---|
-| №19 | Нумерация README/PLAN |
+| №19 | Нумерация README/PLAN (синхронизировано) |
 | №22 | Падежи в погоде |
 | №23 | LLM vs `profile.get("name")` |
 | №38 | `requirements-dev.txt` отсутствует |
 
 ---
 
-## 🎁 ОБНОВЛЕНИЯ ТЕХНОЛОГИЙ
+## 🎁 ОБНОВЛЕНИЯ ТЕХНОЛОГИЙ — 8/8 ✅
 
-### ✅ О1–О5, О9 — закрыто
+**Все закрыты:**
 
-- `vosk 0.3.45`, `faster-whisper 1.2.1`, `ctranslate2 4.8.2`, `piper-tts 1.8.0`.
-- `whisper_model: deepdml/faster-whisper-large-v3-turbo-ct2`.
-- `check_cpu()` в `system_caps.json`.
-- `tts_voice_quality` в config.
-- `_init_piper` quality + fallback.
-- `weather_cache_ttl_sec` в config.
-
-### ❌ О6–О7 (в работе)
-
-| # | Задача | Время |
-|---|---|---|
-| О6 | GUI RadioGroup «Качество голоса» | 15 мин |
-| О7 | README + config.example.json | 10 мин |
-
----
-
-## 🆕 ФИЧИ (бесплатно, 13)
-
-| # | Фича | Время |
-|---|---|---|
-| Ф1 | `operation_mode` в config | 1 ч |
-| Ф2 | `cloud/base.py` (ABC) | 30 мин |
-| Ф3 | `cloud/groq_llm.py` (Llama 3.3 70B) | 1.5 ч |
-| Ф4 | `cloud/groq_stt.py` (Whisper large-v3) | 1 ч |
-| Ф5 | `cloud/edge_tts.py` (Microsoft) | 1.5 ч |
-| Ф6 | `cloud/router.py` | 30 мин |
-| Ф7 | Рефактор `brain.py` под `LLMProvider` | 1 ч |
-| Ф8 | Рефактор `stt.py` под `STTProvider` | 1 ч |
-| Ф9 | Рефактор `tts.py` под `TTSProvider` | 1.5 ч |
-| Ф10 | GUI вкладка «Режим работы» | 1 ч |
-| Ф11 | Fallback cloud → local | 30 мин |
-| Ф12 | requirements: `edge-tts`, `pydub` | 5 мин |
-| Ф13 | README — «Режимы работы» | 20 мин |
-
----
-
-## 🆕 ЗНАКОМСТВО (7)
-
-Феникс при первом запуске (или при создании нового профиля) проводит диалог — 7 вопросов. Строит **персону** в `profiles/<user>/profile.json`:
-
-```json
-{
-  "name": "...",
-  "persona": {
-    "address": "брат",
-    "style": "шутливый",
-    "answer_length": "short",
-    "profanity": true,
-    "humor": "чёрный",
-    "formality": "ты"
-  },
-  "onboarding_done": true
-}
-```
-
-**`brain.build_chat_system()`** подмешивает персону в `CHAT_SYSTEM`.
-
-| # | Задача | Время |
-|---|---|---|
-| З1 | `persona` + `onboarding_done` в `profile.json` | 20 мин |
-| З2 | `profile.needs_onboarding()`, `set_persona()`, `get_persona()`, `reset_onboarding()` | 20 мин |
-| З3 | GUI вкладка «Знакомство» (7 вопросов) | 1.5 ч |
-| З4 | `FenixGUI._on_profile_switch` — автооткрытие при `needs_onboarding()` | 30 мин |
-| З5 | `brain.build_chat_system()` — подмешивание persona | 30 мин |
-| З6 | Голосовые команды («поменяй стиль», «как обращаешься», «сбрось знакомство») | 30 мин |
-| З7 | «Пройти знакомство заново» в настройках GUI | 20 мин |
-
-**Итого:** ~3.5 ч.
-
----
-
-## 🆕 СТРЕСС-ТЕСТ (3)
-
-Прогон 20 фраз (абсурд / провокации / многослойные / шум / память) — проверка работоспособности + поиск багов.
-
-| # | Задача | Время |
-|---|---|---|
-| С1 | `scripts/stress_test.py` — прогон 20 фраз | 1 ч |
-| С2 | Отчёт (что сломалось, что нет) | 30 мин |
-| С3 | `logs/stress_test.log` — что услышал, что ответил | 15 мин |
-
-**Итого:** ~2 ч.
-
----
-
-## 🆕 МОИ КОМАНДЫ (голосом) (9)
-
-Пользователь голосом создаёт свои команды. Хранятся в `profiles/<user>/custom_commands.json`.
-
-**Диалог:**
-
-```
-Ты:    Феникс, научись новому
-Феникс: Что я должен услышать, чтобы выполнить действие?
-Ты:    Спокойной ночи
-Феникс: «Спокойной ночи». Что мне делать?
-Ты:    Выключи компьютер
-Феникс: Понял: «спокойной ночи» → выключить компьютер. Сохранить?
-Ты:    Да
-Феникс: Сохранил. Теперь скажи «спокойной ночи» — проверю.
-```
-
-**Новые действия в `actions.py`:** `shutdown_pc`, `reboot_pc`, `sleep_pc`, `lock_pc`, `cancel_shutdown`.
-
-| # | Задача | Время |
-|---|---|---|
-| М1 | `jarvis/custom_commands.py` | 1 ч |
-| М2 | `actions.py` — shutdown/reboot/sleep/lock/cancel | 30 мин |
-| М3 | `intents.py` — конструктор | 1.5 ч |
-| М4 | `intents.py` — управление (list/delete/show) | 1 ч |
-| М5 | `intents.py` — `_execute_custom` + приоритет | 30 мин |
-| М6 | `intents.py` — `_describe_intent`, `_default_reply_for` | 30 мин |
-| М7 | `brain.ACTIONS` + промпт | 20 мин |
-| М8 | Миграция из config → в профиль | 30 мин |
-| М9 | README | 20 мин |
-
-**Итого:** ~6.5 ч.
-
----
-
-## 💰 ПЛАТНЫЕ ФИЧИ (отложено) — 6
-
-| № | Фича | Провайдеры | Время |
-|---|---|---|---|
-| Ф14 | Платные LLM | OpenAI, Anthropic, DeepSeek | 2 ч |
-| Ф15 | Платные TTS | Fish Audio, ElevenLabs | 2 ч |
-| Ф16 | Платные STT | OpenAI Whisper API, Deepgram | 1.5 ч |
-| Ф17 | OpenRouter | OpenRouter | 1 ч |
-| Ф18 | Тест подключения в GUI | — | 1 ч |
-| Ф19 | Биллинг | — | 1 ч |
-
----
-
-## 🏗 СТРУКТУРА ПОСЛЕ ЭТАПА 2
-
-```
-jarvis/
-├── cloud/                ← НОВЫЙ ПАКЕТ
-│   ├── __init__.py
-│   ├── base.py           ← ABC: LLMProvider, STTProvider, TTSProvider
-│   ├── groq_llm.py       ← Groq (Llama 3.3 70B)
-│   ├── groq_stt.py       ← Groq Whisper large-v3
-│   ├── edge_tts.py       ← Edge TTS (Microsoft)
-│   └── router.py         ← build_llm/stt/tts
-├── custom_commands.py    ← НОВЫЙ (Мои команды)
-├── brain.py              ← реализует LLMProvider + build_chat_system()
-├── stt.py                ← реализует STTProvider
-├── tts.py                ← реализует TTSProvider
-├── gui.py                ← +«Знакомство», +«Мои команды», +«Режим работы»
-├── main.py               ← сборка провайдеров через router
-├── weather.py            ← кэш с TTL из config
-└── ...
-
-profiles/<user>/
-├── profile.json          ← name, persona, onboarding_done
-├── dialog.json
-└── custom_commands.json  ← НОВЫЙ
-
-config.json:
-  operation_mode: local
-  gui_theme: Системная
-  tts_voice_quality: medium
-  mic_watchdog_enabled: true
-  weather_cache_ttl_sec: 600
-  cloud:
-    llm_provider: null
-    llm_api_key: null
-    stt_provider: null
-    stt_api_key: null
-    tts_provider: null
-    tts_voice: null
-    fallback_to_local: true
-```
+- О1 — pip-пакеты.
+- О2 — Whisper-модель `deepdml/faster-whisper-large-v3-turbo-ct2`.
+- О3 — `check_cpu()` + `system_caps.json`.
+- О4 — `tts_voice_quality` в config.
+- О5 — `_init_piper` quality + fallback.
+- О6 — GUI RadioGroup «Качество голоса».
+- О7 — README + `config.example.json`.
+- О9 — `weather_cache_ttl_sec`.
 
 ---
 
 ## 🎯 ПОРЯДОК РАБОТЫ
 
-### ЭТАП 0 — Обновления (1 ч) — ✅ в основном закрыт
+### ЭТАП 0 — Обновления — ✅ 8/8 закрыт
 
-О1–О5, О9 ✅. О6, О7 ❌.
+### ЭТАП 1 — Стабилизация (5 ч) — 🚧 21/27
 
-### ЭТАП 1 — Стабилизация (5 ч) — 🚧
-
-№5, №7, №9, №12+№13, №18, №10, №11, №15, №16, №17, №19, №22, №23, №38.
+Осталось:
+- **Критичные:** №10, №11.
+- **Серьёзные:** №5, №7, №9, №12, №13, №15, №16, №17, №18.
+- **Мелкие:** №19, №22, №23, №38.
 
 ### ЭТАП 1.5 — Знакомство (3.5 ч)
 
@@ -449,19 +286,19 @@ config.json:
 
 ### Код
 
-1. **`Config` — единственный источник истины.** Не читай `config.json` руками.
+1. **`Config` — единственный источник истины.**
 2. **Не плоди `_atomic_write`.** `config_manager.save()`.
 3. **Не плоди глобальное состояние.** Кроме `Config._GLOBAL`.
-4. **Нормализация — задача LLM.** Не добавляй словари в код.
+4. **Нормализация — задача LLM.**
 5. **`test_intents.py`** — после каждой правки.
-6. **`normalize(cmd)` в `IntentHandler.handle()`** — единая точка нормализации.
-7. **Per-call stop-token в `tts.py`.** Никаких общих `_stop_flag`.
-8. **`PALETTES` в `gui.py`** — две темы, `_detect_system_theme()` для системной.
-9. **`ft.Button`** вместо `ElevatedButton`/`TextButton` в Flet 1.x.
+6. **`normalize(cmd)` в `IntentHandler.handle()`.**
+7. **Per-call stop-token в `tts.py`.**
+8. **`PALETTES` в `gui.py`** — две темы.
+9. **`ft.Button`** вместо `ElevatedButton`/`TextButton`.
 
 ### GUI
 
-1. **Flet — только в главном потоке.** Jarvis — в фоне.
+1. **Flet — только в главном потоке.**
 2. **Связь через `queue.Queue()`.**
 3. **Разделы — в `_tabs`.**
 4. **Тема — `page.theme_mode` + `PALETTES`.**
@@ -469,19 +306,20 @@ config.json:
 ### Безопасность
 
 1. **Личные данные — только в `config.json`, `profiles/`, `system_caps.json`.**
-2. **Все эти файлы — в `.gitignore`.**
-3. **`config.example.json` — только дефолты, без личного.**
-
-### Ошибки
-
-1. **Не выбрасывай WARNING/ERROR в `errors.log`** — это сигнал.
-2. **`actions.log`** — главный инструмент отладки.
+2. **Все — в `.gitignore`.**
+3. **`config.example.json` — только дефолты.**
 
 ### Окружение
 
 1. **Python 3.10–3.12.** Vosk не работает на 3.13/3.14.
 2. **`.venv311`** — обязательный venv.
 3. **`snapshot.py`** — исключать `.venv311`.
+
+### Git
+
+1. **`git push`** — после `.venv311` в `.gitignore`.
+2. **`git filter-repo`** — если venv попал в историю.
+3. **`git config --global push.autoSetupRemote true`** — автозапрос upstream.
 
 ---
 
@@ -490,64 +328,9 @@ config.json:
 1. **Лог.** `logs/actions.log`, `logs/errors.log`, `logs/jarvis.log`.
 2. **Воспроизвести.**
 3. **Локализовать.** Какой модуль?
-4. **Фикс.** **Без костылей.**
+4. **Фикс.** Без костылей.
 5. **Тесты.** `python check_syntax.py` + `pytest` + `test_intents.py`.
 6. **Коммит.** `fix: <краткое описание>`.
-
----
-
-## 🎨 СТИЛЬ ОБЩЕНИЯ
-
-**Пример ответа на «сделай X»:**
-
-> Понял, брат. 🎯 **X — делаем.**
->
-> **Что меняется:**
-> - `jarvis/foo.py` — добавить `bar()`.
->
-> **Код:**
-> ```python
-> def bar():
->     ...
-> ```
->
-> **Проверь:**
-> ```bat
-> python check_syntax.py
-> ```
->
-> **Скажи результат.** 💪
-
-**Пример ответа на баг:**
-
-> Понял, брат. 🎯 **Баг: X.**
->
-> **Причина:** `foo.py` не проверяет `Y`.
->
-> **Фикс:**
-> ```python
-> # было
-> result = foo()
-> # стало
-> if foo is None:
->     return "Не понял"
-> ```
->
-> **Проверь.**
->
-> **Скажи результат.** 💪
-
----
-
-## ⚠️ ЧТО ВАЖНО ПОМНИТЬ
-
-1. **Скриншоты** — если брат скидывает, **описать что видно**, но **не цитировать личное**.
-2. **Стек** — если брат скидывает трейс, **сразу искать причину**.
-3. **Логи** — если брат скидывает, **читать внимательно**.
-4. **Если не уверен** — **спросить**, не выдумывать.
-5. **Если предложение спорное** — **сказать честно**, не подхалимничать.
-6. **Если фича «на любителя»** — **предложить альтернативы**.
-7. **Если брат устал** — **предложить отдохнуть**, не гнать.
 
 ---
 
@@ -562,6 +345,7 @@ config.json:
 | **SNAPSHOT** | `SNAPSHOT.md` |
 | **CI** | `.github/workflows/test.yml` |
 | **Логи** | `logs/` |
+| **GitHub** | `https://github.com/BobLoTiK/jarvis-fenix` |
 
 ---
 
