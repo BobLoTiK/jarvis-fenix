@@ -177,10 +177,11 @@ class Listener:
             self._audio.put(bytes(indata))
 
     def flush(self):
-        """Сброс буфера + контекста Vosk.
+        """Сброс буфера и Vosk-контекста.
 
-        После Reset() прогоняем 0.5 сек тишины — Vosk «забудет»
-        незакрытую фразу. Иначе в barge-in просачивается обрывок.
+        ВАЖНО: вызывать ТОЛЬКО из потока phrases() (listener-поток).
+        Vosk не thread-safe. Если дёргать Reset()/AcceptWaveform из
+        другого потока — libvosk.dll падает с access violation.
         """
         while not self._audio.empty():
             try:
@@ -189,15 +190,6 @@ class Listener:
                 break
         self._utt_buf.clear()
         self._utt_len = 0
-        self._rec.Reset()
-
-        # Прогоняем тишину — сброс контекста
-        silence = b"\x00" * 16000  # 0.5 сек при 16 кГц, int16
-        try:
-            self._rec.AcceptWaveform(silence)
-            self._rec.Reset()   # ещё раз — сбросить результат тишины
-        except Exception:
-            log.exception("Не удалось сбросить контекст Vosk тишиной")
         
     def reset_stats(self):
         """Сбрасывает peak и utterances — для кнопки «Проверить микрофон»."""

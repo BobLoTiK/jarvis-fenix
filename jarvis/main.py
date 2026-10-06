@@ -90,7 +90,11 @@ class Jarvis:
         finally:
             if self.barge_enabled and self.listener is not None:
                 self.listener.barge_end()
-            self.listener.flush()
+            # ВАЖНО: НЕ вызываем flush() из основного потока.
+            # Vosk — не thread-safe. AcceptWaveform + Reset() из двух потоков
+            # роняют libvosk.dll с access violation (0xc0000015).
+            # flush() вызывает только listener в своём потоке phrases().
+            # self.listener.flush()
             self.listener.muted = False
             if self.gui is not None:
                 self.gui.set_state("idle")
