@@ -33,6 +33,7 @@
 **Формат ответов:**
 - **Команды** — в `bat`-блоках.
 - **Код** — в `python`-блоках, целиком или точечные патчи.
+- **В каждом патче указывать — после какого момента вставлять.**
 - **Скриншоты** — если просят, описать что видно.
 
 **Запрещено:**
@@ -44,8 +45,8 @@
 - **Словари синонимов в коде** для городов/валют/паков — **это задача LLM**.
 - **Упоминать личные данные пользователя** (имя, город, CPU, GPU, ОС) в публичных файлах:
   `PLAN.md`, `README.md`, `CHANGELOG.md`, `PROMPT.md`, `ARCHITECTURE.md`,
-  `config.example.json`. Всё личное — только в `config.json`, `profiles/`,
-  `system_caps.json` (и они в `.gitignore`).
+  `CONTRIBUTING.md`, `config.example.json`. Всё личное — только в `config.json`,
+  `profiles/`, `system_caps.json` (и они в `.gitignore`).
 
 **Поощряется:**
 - **`Config.subscribe`** для реакции на изменения.
@@ -54,6 +55,7 @@
 - **Логи** — в `logs/actions.log`.
 
 ---
+
 ## 🏗 Архитектура (кратко)
 
 ### Модули
@@ -66,15 +68,17 @@ jarvis/
 ├── brain.py          — Ollama: parse() и chat_stream()
 ├── intents.py        — IntentHandler: правила + LLM
 ├── reply.py          — Reply (text | stream)
-├── gui.py            — Flet GUI
+├── gui.py            — Flet GUI + PALETTES + _detect_system_theme()
 ├── history.py        — стек отмены («стоп, не то»)
 ├── stt.py            — Vosk + Whisper + ring buffer
-├── tts.py            — Piper / XTTS / WinRT / SAPI + barge-in
+├── tts.py            — Piper / XTTS / WinRT / SAPI + barge-in + per-call token
 ├── modes.py          — commands / llm / combo
 ├── voices.py         — смена голоса Piper
 ├── packs.py          — паки команд
-├── profile.py        — profiles/<user>/profile.json
+├── profile.py        — profiles/<user>/profile.json + subscribe
 ├── memory.py         — profiles/<user>/dialog.json
+├── custom_commands.py — профильные команды (в планах)
+├── cloud/            — облачные провайдеры (в планах)
 ├── weather.py        — погода + курс
 ├── timers.py         — напоминания
 ├── tasks.py          — задачи
@@ -93,7 +97,7 @@ jarvis/
 
 ```
 Микрофон → Vosk (wake) → Whisper → Jarvis._process
-   → IntentHandler.handle(cmd)   ← нормализует cmd
+   → IntentHandler.handle(cmd)   ← normalize(cmd)
       → CANCEL / memory / pending / буфер / режимы
       → custom / small_talk / скриншот
       → _open_fast / voices / packs / timers / tasks
@@ -112,8 +116,10 @@ jarvis/
 ```
 Flet главный поток
    ├── NavigationRail: Главная / Микрофон / Настройки
+   │   (в планах: +Знакомство, +Мои команды, +Режим работы)
    ├── Контент-область (кеш _tabs)
-   └── page.run_task(_process_queue)
+   ├── page.run_task(_process_queue)
+   └── page.run_task(_mic_level_loop) — уровень микрофона + смена темы Windows
 
 Jarvis фоновый поток
    ├── listener.phrases()
@@ -125,7 +131,7 @@ Jarvis фоновый поток
 
 ---
 
-## 📋 Режимы работы (будут добавлены)
+## 📋 Режимы работы
 
 Феникс поддерживает **три режима**, пользователь выбирает в GUI или config.
 
@@ -137,14 +143,14 @@ Jarvis фоновый поток
 - **TTS:** Piper (medium).
 - **Погода:** кэш 24 часа.
 
-### 🌐 Hybrid (нужен интернет)
+### 🌐 Hybrid
 
-- **LLM:** Qwen 14b/32b (локально, если GPU).
+- **LLM:** Qwen 14b/32b (локально).
 - **STT:** Whisper large-v3-turbo на GPU.
 - **TTS:** Piper.
 - **Погода:** real-time.
 
-### ☁️ Cloud (нужен интернет + ключ Groq — бесплатно)
+### ☁️ Cloud (бесплатно, ключ Groq)
 
 - **LLM:** Llama 3.3 70B через Groq.
 - **STT:** Whisper large-v3 через Groq.
@@ -163,7 +169,7 @@ Jarvis фоновый поток
 
 ## 📊 ТЕКУЩИЙ СТАТУС
 
-### ✅ Закрыто (8 багов)
+### ✅ Закрыто (13 багов)
 
 | № | Баг |
 |---|---|
@@ -175,6 +181,11 @@ Jarvis фоновый поток
 | №14 | `brain.parse` без `.strip()` |
 | №20 | TTS накладывается |
 | №21 | `_profile_fast` не матчит из GUI |
+| №24 | Светлая тема ломала GUI |
+| №24.5 | Системная тема не автоопределялась |
+| №25 | `mic_watchdog` спамил |
+| №25.5 | Микрофон не проверить из GUI |
+| — | Flet 1.x API (`ElevatedButton` → `Button`) |
 
 ### 🔴 Критично (2)
 
@@ -204,21 +215,27 @@ Jarvis фоновый поток
 | №19 | Нумерация README/PLAN |
 | №22 | Падежи в погоде |
 | №23 | LLM vs `profile.get("name")` |
-| №24 | Светлая тема ломает GUI |
 
 ---
 
-## 🎁 ОБНОВЛЕНИЯ ТЕХНОЛОГИЙ (в работе)
+## 🎁 ОБНОВЛЕНИЯ ТЕХНОЛОГИЙ
+
+### ✅ О1 — pip-пакеты (закрыто)
+
+- `vosk 0.3.45`
+- `faster-whisper 1.2.1` + `ctranslate2 4.8.2`
+- `piper-tts 1.8.0`
+
+### ❌ О2–О7 (в работе)
 
 | # | Задача | Время |
 |---|---|---|
-| О1 | `pip install -U vosk faster-whisper piper-tts` | 5 мин |
 | О2 | Whisper-модель → `coriollon/whisper-large-v3-turbo-russian` | 5 мин |
-| О3 | `check_cpu()` в `check_caps.py` — рекомендация Piper | 20 мин |
+| О3 | `check_cpu()` в `check_caps.py` (категория + рекомендация) | 20 мин |
 | О4 | `tts_voice_quality` в config (medium/high) | 10 мин |
-| О5 | `tts._init_piper` — учитывать quality + fallback | 15 мин |
-| О6 | GUI — RadioGroup «Качество голоса» | 15 мин |
-| О7 | Обновить README + config.example.json | 10 мин |
+| О5 | `tts._init_piper` — quality + fallback | 15 мин |
+| О6 | GUI RadioGroup «Качество голоса» | 15 мин |
+| О7 | README + config.example.json | 10 мин |
 
 **Плюсы:** Whisper WER −4.3 п.п., Piper high качество, автовыбор по CPU.
 **Потери:** +782 МБ (Whisper), +40 МБ/голос (Piper high).
@@ -245,15 +262,169 @@ Jarvis фоновый поток
 
 ---
 
+## 🆕 ЗНАКОМСТВО (7)
+
+Феникс при первом запуске (или при создании нового профиля) проводит диалог — 7 вопросов. Строит **персону** в `profiles/<user>/profile.json`:
+
+```json
+{
+  "name": "...",
+  "persona": {
+    "address": "брат",
+    "style": "шутливый",
+    "answer_length": "short",
+    "profanity": true,
+    "humor": "чёрный",
+    "formality": "ты"
+  },
+  "onboarding_done": true
+}
+```
+
+**`brain.build_chat_system()`** подмешивает персону в `CHAT_SYSTEM`.
+
+| # | Задача | Время |
+|---|---|---|
+| З1 | `persona` + `onboarding_done` в `profile.json` | 20 мин |
+| З2 | `profile.needs_onboarding()`, `set_persona()`, `get_persona()`, `reset_onboarding()` | 20 мин |
+| З3 | GUI вкладка «Знакомство» (7 вопросов) | 1.5 ч |
+| З4 | `FenixGUI._on_profile_switch` — автооткрытие при `needs_onboarding()` | 30 мин |
+| З5 | `brain.build_chat_system()` — подмешивание persona | 30 мин |
+| З6 | Голосовые команды («поменяй стиль», «как обращаешься», «сбрось знакомство») | 30 мин |
+| З7 | «Пройти знакомство заново» в настройках GUI | 20 мин |
+
+**Итого:** ~3.5 ч.
+
+---
+
+## 🆕 СТРЕСС-ТЕСТ (3)
+
+Прогон 20 фраз (абсурд / провокации / многослойные / шум / память) — проверка работоспособности + поиск багов.
+
+| # | Задача | Время |
+|---|---|---|
+| С1 | `scripts/stress_test.py` — прогон 20 фраз | 1 ч |
+| С2 | Отчёт (что сломалось, что нет) | 30 мин |
+| С3 | `logs/stress_test.log` — что услышал, что ответил | 15 мин |
+
+**Итого:** ~2 ч.
+
+---
+
+## 🆕 МОИ КОМАНДЫ (голосом) (9)
+
+Пользователь голосом создаёт свои команды. Хранятся в `profiles/<user>/custom_commands.json`.
+
+**Диалог:**
+
+```
+Ты:    Феникс, научись новому
+Феникс: Что я должен услышать, чтобы выполнить действие?
+Ты:    Спокойной ночи
+Феникс: «Спокойной ночи». Что мне делать?
+Ты:    Выключи компьютер
+Феникс: Понял: «спокойной ночи» → выключить компьютер. Сохранить?
+Ты:    Да
+Феникс: Сохранил. Теперь скажи «спокойной ночи» — проверю.
+```
+
+**Новые действия в `actions.py`:** `shutdown_pc`, `reboot_pc`, `sleep_pc`, `lock_pc`, `cancel_shutdown`.
+
+**Голосовое управление:** «какие у меня команды», «удали команду X», «покажи команду X».
+
+| # | Задача | Время |
+|---|---|---|
+| М1 | `jarvis/custom_commands.py` | 1 ч |
+| М2 | `actions.py` — shutdown/reboot/sleep/lock/cancel | 30 мин |
+| М3 | `intents.py` — конструктор | 1.5 ч |
+| М4 | `intents.py` — управление (list/delete/show) | 1 ч |
+| М5 | `intents.py` — `_execute_custom` + приоритет | 30 мин |
+| М6 | `intents.py` — `_describe_intent`, `_default_reply_for` | 30 мин |
+| М7 | `brain.ACTIONS` + промпт | 20 мин |
+| М8 | Миграция из config → в профиль | 30 мин |
+| М9 | README | 20 мин |
+
+**Итого:** ~6.5 ч.
+
+---
+
+## 💰 ПЛАТНЫЕ ФИЧИ (отложено) — 6
+
+| № | Фича | Провайдеры | Время |
+|---|---|---|---|
+| Ф14 | Платные LLM | OpenAI, Anthropic, DeepSeek | 2 ч |
+| Ф15 | Платные TTS | Fish Audio, ElevenLabs | 2 ч |
+| Ф16 | Платные STT | OpenAI Whisper API, Deepgram | 1.5 ч |
+| Ф17 | OpenRouter | OpenRouter | 1 ч |
+| Ф18 | Тест подключения в GUI | — | 1 ч |
+| Ф19 | Биллинг | — | 1 ч |
+
+---
+
+## 🏗 СТРУКТУРА ПОСЛЕ ЭТАПА 2
+
+```
+jarvis/
+├── cloud/                ← НОВЫЙ ПАКЕТ
+│   ├── __init__.py
+│   ├── base.py           ← ABC: LLMProvider, STTProvider, TTSProvider
+│   ├── groq_llm.py       ← Groq (Llama 3.3 70B)
+│   ├── groq_stt.py       ← Groq Whisper large-v3
+│   ├── edge_tts.py       ← Edge TTS (Microsoft)
+│   └── router.py         ← build_llm/stt/tts
+├── custom_commands.py    ← НОВЫЙ (Мои команды)
+├── brain.py              ← реализует LLMProvider + build_chat_system()
+├── stt.py                ← реализует STTProvider
+├── tts.py                ← реализует TTSProvider
+├── gui.py                ← +«Знакомство», +«Мои команды», +«Режим работы»
+├── main.py               ← сборка провайдеров через router
+├── weather.py            ← кэш с TTL из config
+└── ...
+
+profiles/<user>/
+├── profile.json          ← name, persona, onboarding_done
+├── dialog.json
+└── custom_commands.json  ← НОВЫЙ
+
+config.json:
+  operation_mode: local
+  gui_theme: Системная
+  tts_voice_quality: medium
+  mic_watchdog_enabled: true
+  cloud:
+    llm_provider: null
+    llm_api_key: null
+    stt_provider: null
+    stt_api_key: null
+    tts_provider: null
+    tts_voice: null
+    fallback_to_local: true
+  weather_cache_ttl_sec: 86400
+```
+
+---
+
 ## 🎯 ПОРЯДОК РАБОТЫ
 
-### ЭТАП 0 (завтра, первым делом) — Обновления (1 ч)
+### ЭТАП 0 — Обновления (1 ч) — 🚧
 
-О1–О7.
+О1 ✅. О2–О7 ❌.
 
 ### ЭТАП 1 — Стабилизация (5 ч)
 
-№5, №12+№13, №18, №10, №7+№9, №15, №16, №17, №11, №24, №19+№22+№23.
+№5, №12+№13, №18, №10, №7+№9, №15, №16, №17, №11, №19+№22+№23.
+
+### ЭТАП 1.5 — Знакомство (3.5 ч)
+
+З1–З7.
+
+### ЭТАП 1.6 — Стресс-тест (2 ч)
+
+С1–С3.
+
+### ЭТАП 1.7 — Мои команды (6.5 ч)
+
+М1–М9.
 
 ### ЭТАП 2 — Бесплатное облако (12 ч)
 
@@ -261,7 +432,7 @@ Jarvis фоновый поток
 
 ### ЭТАП 3 — Платное облако (8.5 ч, отложено)
 
-OpenAI, Anthropic, Fish Audio, ElevenLabs, OpenRouter, биллинг.
+Ф14–Ф19.
 
 ---
 
@@ -276,13 +447,15 @@ OpenAI, Anthropic, Fish Audio, ElevenLabs, OpenRouter, биллинг.
 5. **`test_intents.py`** — после каждой правки.
 6. **`normalize(cmd)` в `IntentHandler.handle()`** — единая точка нормализации.
 7. **Per-call stop-token в `tts.py`.** Никаких общих `_stop_flag`.
+8. **`PALETTES` в `gui.py`** — две темы, `_detect_system_theme()` для системной.
+9. **`ft.Button`** вместо `ElevatedButton`/`TextButton` в Flet 1.x.
 
 ### GUI
 
 1. **Flet — только в главном потоке.** Jarvis — в фоне.
 2. **Связь через `queue.Queue()`.**
 3. **Разделы — в `_tabs`.**
-4. **Тема — `page.theme_mode`.**
+4. **Тема — `page.theme_mode` + `PALETTES`.**
 
 ### Безопасность
 
@@ -300,7 +473,7 @@ OpenAI, Anthropic, Fish Audio, ElevenLabs, OpenRouter, биллинг.
 ## 🛠 Как чинить баги
 
 1. **Лог.** `logs/actions.log`, `logs/errors.log`, `logs/jarvis.log`.
-2. **Воспроизвести.** Голосом / через `test_intents.py`.
+2. **Воспроизвести.**
 3. **Локализовать.** Какой модуль?
 4. **Фикс.** **Без костылей.**
 5. **Тесты.** `python check_syntax.py` + `pytest` + `test_intents.py`.
@@ -316,7 +489,6 @@ OpenAI, Anthropic, Fish Audio, ElevenLabs, OpenRouter, биллинг.
 >
 > **Что меняется:**
 > - `jarvis/foo.py` — добавить `bar()`.
-> - `jarvis/intents.py` — вызвать `bar()`.
 >
 > **Код:**
 > ```python
@@ -327,7 +499,6 @@ OpenAI, Anthropic, Fish Audio, ElevenLabs, OpenRouter, биллинг.
 > **Проверь:**
 > ```bat
 > python check_syntax.py
-> python -m jarvis
 > ```
 >
 > **Скажи результат.** 💪
