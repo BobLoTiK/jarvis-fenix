@@ -16,12 +16,19 @@
 - **Piper** / **XTTS** / **WinRT** (TTS)
 - **Ollama** (LLM: qwen2.5, gemma2, llama3.1, mistral)
 - **Flet 1.0.3** (GUI)
-- **pystray** (трей)
+- **PyInstaller** (сборка `Феникс.exe`)
+- **Inno Setup** (сборка установщика)
 
 **Репозиторий:** `C:\jarvis`
 **Ветка:** `main`
 **GitHub:** `https://github.com/BobLoTiK/jarvis-fenix`
 **CI:** GitHub Actions на `windows-latest`.
+
+**Два корня путей:**
+- `C:\ProgramData\Phoenix\` — **ASCII**, код+модели (Vosk, Whisper).
+- `%APPDATA%\Phoenix\` — **личные данные** (config, profiles, logs).
+
+**Почему:** Vosk (C++ на Kaldi) **ломается** на не-ASCII путях. Всё, что читает Vosk — в ASCII. Остальное — где угодно. См. `jarvis/paths.py`.
 
 ---
 
@@ -40,8 +47,10 @@
   - `.json` → ` ```json `
   - `.py` → ` ```python `
   - `.bat` → ` ```batch `
-- **При запросе «скинь файл целиком»** — **всегда в Markdown-блоке**, независимо от расширения.
-- **Скриншоты** — если просят, описать что видно.
+  - `.iss` → ` ```ini `
+- **При запросе «скинь файл целиком»** — **всегда в Markdown-блоке**.
+- **Плотно, без воды.** Не разжёвывать очевидное.
+- **Не переписывать то, что не менялось.** Только diff или замена блока.
 
 **Запрещено:**
 - **Костыли.** Если решение «работает, но грязно» — это **не решение**.
@@ -50,21 +59,35 @@
 - **Прямое чтение `config.json`.** Только `config.get()`.
 - **Глобальное состояние.** Кроме `Config._GLOBAL`.
 - **Словари синонимов в коде** для городов/валют/паков — **это задача LLM**.
-- **Использовать Python 3.13/3.14** — Vosk 0.3.45 падает с access violation в `libvosk.dll`. Только **3.10–3.12**.
-- **Коммитить `.venv311`** — он в `.gitignore`. Если попал — `git rm -r --cached .venv311`.
-- **Коммитить `SNAPSHOT.md` > 1 МБ** — исключай `.venv311` в `snapshot.py`.
-- **Скидывать полный файл** без обрамления в тройные обратные кавычки.
-- **Упоминать личные данные пользователя** (имя, город, CPU, GPU, ОС) в публичных файлах:
+- **Хардкод путей** — только `jarvis/paths.py`.
+- **Python 3.13/3.14** — Vosk падает. Только **3.10–3.12**.
+- **Коммитить `.venv311`** — `.gitignore`.
+- **Коммитить `profiles/`, `config.json`, `system_caps.json`** — личное.
+- **Упоминать личные данные** (имя, город, CPU, GPU, ОС) в публичных файлах:
   `PLAN.md`, `README.md`, `CHANGELOG.md`, `PROMPT.md`, `ARCHITECTURE.md`,
-  `CONTRIBUTING.md`, `config.example.json`. Всё личное — только в `config.json`,
-  `profiles/`, `system_caps.json` (и они в `.gitignore`).
+  `CONTRIBUTING.md`, `config.example.json`.
 
 **Поощряется:**
 - **`Config.subscribe`** для реакции на изменения.
 - **Разделение ответственности** — что где.
 - **Тесты** — `pytest` + `test_intents.py`.
 - **Логи** — в `logs/actions.log`.
-- **Реестр `_fast_handlers()`** — новые быстрые правила **туда**, а не в 22 `if`.
+- **Реестр `_fast_handlers()`** — новые быстрые правила **туда**.
+
+---
+
+## 🗂 Пути (главное правило)
+
+**Всё, что читает Vosk** — только в `PROGRAM_DIR` (ASCII):
+- `paths.program_models_dir()` → `C:\ProgramData\Phoenix\models\`
+- `paths.program_whisper_cache_dir()` → `C:\ProgramData\Phoenix\whisper-cache\`
+
+**Личные данные** — в `USER_DIR` (кириллица ок):
+- `paths.config_path()` → `%APPDATA%\Phoenix\config.json`
+- `paths.logs_dir()` → `%APPDATA%\Phoenix\logs\`
+- `paths.profiles_dir()` → `%APPDATA%\Phoenix\profiles\`
+
+**HF_HOME для Whisper** ставится **временно** и **сбрасывается** — иначе Piper качает модели в наш ASCII-кэш в degraded mode (без symlinks).
 
 ---
 
@@ -77,12 +100,13 @@ jarvis/
 ├── main.py           — точка входа, Jarvis, barge-in
 ├── config.py         — Config в памяти + подписки
 ├── config_manager.py — атомарная запись (FileLock, mkstemp, os.replace)
+├── paths.py          — PROGRAM_DIR / USER_DIR
 ├── brain.py          — Ollama: parse() и chat_stream()
 ├── intents.py        — IntentHandler: правила + LLM + _fast_handlers()
 ├── reply.py          — Reply (text | stream)
 ├── gui.py            — Flet GUI + PALETTES + _detect_system_theme()
 ├── history.py        — стек отмены («стоп, не то»)
-├── stt.py            — Vosk + Whisper + ring buffer
+├── stt.py            — Vosk + Whisper + ring buffer, HF_HOME → ASCII
 ├── tts.py            — Piper / XTTS / WinRT / SAPI + barge-in + per-call token
 ├── modes.py          — commands / llm / combo
 ├── voices.py         — смена голоса Piper
@@ -95,15 +119,15 @@ jarvis/
 ├── tasks.py          — задачи
 ├── actions.py        — окна, медиа, печать, буфер, громкость, яркость, раскладка,
 │                       open_in_editor, _activate_window_hard
-├── text_utils.py     — normalize(), strip_cjk(), prepare_text()
+├── text_utils.py     — normalize(), strip_cjk(), strip_cjk_chunk(), prepare_text()
 ├── files.py          — папки
 ├── apps.py           — каталог приложений
 ├── installed.py      — индекс «Пуск»
 ├── steam.py          — индекс Steam
 ├── matching.py       — нечёткое сравнение
-├── model.py          — загрузка Vosk
+├── model.py          — загрузка Vosk в ASCII-путь
 ├── recorder.py       — макросы
-└── tray.py           — трей
+└── tray.py           — трей (временно отключён)
 ```
 
 ### Поток обработки
@@ -149,7 +173,7 @@ Jarvis фоновый поток
 **`IntentHandler._fast_handlers()`** — список `(имя, функция)`.
 
 **Порядок = приоритет.** Специфичные — **выше** общих.
-**`open_profile` — ВЫШЕ `open`** (иначе `_open_fast` съест «открой профиль»).
+**`open_profile` — ВЫШЕ `open`.**
 
 **Добавить новый** — одна строка в список.
 
@@ -164,37 +188,32 @@ Jarvis фоновый поток
 
 ## 📋 Режимы работы
 
-### 🏠 Local (по умолчанию)
+### 🏠 Local
 
-- **Интернет:** почти не нужен.
 - **LLM:** Qwen через Ollama.
 - **STT:** Vosk + Whisper small CPU.
 - **TTS:** Piper (medium).
+- **Погода:** кэш 24 ч (`weather_cache_ttl_sec: 86400`).
 
 ### 🌐 Hybrid
 
-- **LLM:** Qwen 14b/32b (локально).
+- **LLM:** Qwen 14b/32b.
 - **STT:** Whisper large-v3-turbo на GPU.
 - **TTS:** Piper.
 
 ### ☁️ Cloud (бесплатно, ключ Groq) — 🚧 в планах
 
-- **LLM:** Llama 3.3 70B через Groq.
-- **STT:** Whisper large-v3 через Groq.
-- **TTS:** Edge TTS (Microsoft).
-- **Fallback:** при ошибке облака — откат на local.
+Ф1–Ф13.
 
-### 💎 Premium (отложено)
+### 💎 Premium — ⏸
 
-- **LLM:** GPT-4o, Claude 3.5.
-- **STT:** Whisper API, Deepgram.
-- **TTS:** Fish Audio, ElevenLabs.
+Ф14–Ф19.
 
 ---
 
 ## 📊 ТЕКУЩИЙ СТАТУС
 
-### ✅ Закрыто (все баги Этапа 1)
+### ✅ Закрыто (Этап 1 + Этап 1.6)
 
 | Категория | Всего | Закрыто |
 |---|---|---|
@@ -206,16 +225,20 @@ Jarvis фоновый поток
 | 🔐 Безопасность | 1 | 1 |
 | 🆕 Запуск / фон | 1 | 1 |
 | 🆕 Дизайн | 1 | 1 |
+| 🆕 Unicode / пути | 2 | 2 |
+| 🆕 Автолаунчер | 1 | 1 |
+| 🆕 Установщик | 1 | 1 |
+| 🆕 UI/UX | 3 | 2 |
 
-**Ключевые закрытые:**
+**Ключевые:**
 
 - **№67** — многослойные команды (`_split_compound`).
 - **№69** — «потише на 10».
 - **№70** — мусорный ввод.
-- **№72** — `wait_end` → `bool`.
+- **№72** — `wait_end` → `bool` + защита от `join` до `start`.
 - **№73** — `try/finally` в `_say_stream`.
 - **№74** — TTS не накладывается.
-- **№84** — `launch_mode` (gui / tray).
+- **№84** — `launch_mode`.
 - **№88** — `launcher.py` мьютекс.
 - **№89** — `close_browser` все браузеры.
 - **№90** — `pystray.SystemExit`.
@@ -227,9 +250,16 @@ Jarvis фоновый поток
 - **№96** — `SITES` из packs.
 - **№97** — `build_context` / `_profile_fast`.
 - **№98** — `check_syntax.bat`.
-- **set_profile / get_profile** — универсально через LLM.
-- **open_profile** — Notepad++ / VS Code / системный.
-- **Реестр `_fast_handlers()`** — вместо 22 `if`.
+- **№99** — Vosk на кириллице → ASCII-путь (`paths.py`).
+- **№100** — `HF_HOME` для Whisper временно.
+- **№101** — автолаунчер (`launcher.py`).
+- **№102** — установщик в `C:\ProgramData\Phoenix`.
+- **№103** — `sys.stdout is None` под `pythonw`.
+- **№104** — `wait_end` защита от `join` до `start`.
+- **№106** — `text_utils.py`.
+- **№42** — иконка (`make_icon.py`).
+- **№43** — `.exe` (`build_exe.py`).
+- **№44** — ярлык (`create_shortcut.bat`).
 
 ### 🚧 Осталось
 
@@ -237,101 +267,52 @@ Jarvis фоновый поток
 - №75 — God Object `Jarvis` (4+ ч).
 - №77 — `_handle_single` — задокументировать (20 мин).
 
-**🆕 Отмена (нормальная)** — ⏸:
-- №85 — Восстановление состояния (2+ ч).
+**🆕 Отмена** — ⏸ №85.
 
-**🆕 Wake-слово** — 🧪:
-- №86 — openWakeWord (2–3 ч).
+**🆕 Wake-слово** — 🧪 №86.
 
 **🆕 UI/UX:**
-- №42 — Иконка (30 мин).
-- №43 — `.exe` (1 ч).
-- №44 — Ярлык (15 мин).
+- №107 — трей через отдельный процесс (2–3 ч) ⏸.
 
-**🆕 Знакомство** (7 пунктов, 3.5 ч):
-- З1–З7 — persona + onboarding_done + GUI вкладка.
+**🆕 Знакомство** (7, 3.5 ч) — З1–З7.
 
-**🆕 Мои команды и сценарии** (12 пунктов, 11 ч):
-- К1–К12 — `custom_commands.py` + рецепты + fallback.
+**🆕 Мои команды** (12, 11 ч) — К1–К12.
 
-**🆕 Многошаговые сценарии** (6 пунктов, 8 ч):
-- №101–№106.
+**🆕 Многошаговые сценарии** (6, 8 ч) — №108–№113.
 
-**🆕 Фичи (бесплатные)** (13 пунктов, 12 ч):
-- Ф1–Ф13 — Groq / Edge TTS / Cloud.
+**🆕 Фичи бесплатные** (13, 12 ч) — Ф1–Ф13.
 
-**🆕 Управление приложениями** (6, 8–10 ч):
-- №45–№50 — YouTube, браузер, VLC, Spotify, редакторы, игры.
+**🆕 Управление приложениями** (6, 8–10 ч) — №45–№50.
 
-**🆕 Persistent memory** (3, 3.5 ч):
-- №51–№53.
+**🆕 Persistent memory** (3, 3.5 ч) — №51–№53.
 
-**🆕 MCP + плагины** (2, 5–6 ч):
-- №54–№55.
+**🆕 MCP + плагины** (2, 5–6 ч) — №54–№55.
 
-**🆕 Telegram + веб** (2, 5–6 ч):
-- №56–№57.
+**🆕 Telegram + веб** (2, 5–6 ч) — №56–№57.
 
-**🆕 Визуализация** (4, 8–9 ч):
-- №58–№61.
+**🆕 Визуализация** (4, 8–9 ч) — №58–№61.
 
-**💰 Платные фичи** (6, 8.5 ч) — ⏸:
-- Ф14–Ф19.
+**💰 Платные** — ⏸ Ф14–Ф19.
 
-**💤 Долгий ящик** (5):
-- №62–№66 — A2A Hermes, XTTS-каталог, Smart Home, календарь, git.
+**💤 Долгий ящик** — №62–№66.
 
 ---
 
 ## 🎯 ПОРЯДОК РАБОТЫ
 
-### ЭТАП 1 — Баги — ✅ ЗАКРЫТ
-
-### ЭТАП 1.5 — Документация — ✅ ЗАКРЫТ
-
-### ЭТАП 1.6 — UI/UX (2 ч)
-
-№42–№44.
-
-### ЭТАП 1.7 — Знакомство (3.5 ч)
-
-З1–З7.
-
-### ЭТАП 1.8 — Мои команды и сценарии (11 ч)
-
-К1–К12.
-
-### ЭТАП 2 — Бесплатное облако (12 ч)
-
-Ф1–Ф13.
-
-### ЭТАП 3 — Управление приложениями (8–10 ч)
-
-№45–№50.
-
-### ЭТАП 4 — Persistent memory (3.5 ч)
-
-№51–№53.
-
-### ЭТАП 5 — MCP + плагины (5–6 ч)
-
-№54–№55.
-
-### ЭТАП 6 — Telegram + веб (5–6 ч)
-
-№56–№57.
-
-### ЭТАП 7 — Визуализация (8–9 ч)
-
-№58–№61.
-
-### ЭТАП 8 — Платное облако (8.5 ч) ⏸
-
-Ф14–Ф19.
-
-### 💤 ДОЛГИЙ ЯЩИК
-
-№62–№66.
+1. **Этап 1 — Баги** — ✅
+2. **Этап 1.5 — Документация** — 🚧
+3. **Этап 1.6 — UI/UX** — ✅ (трей отложен)
+4. **Этап 1.7 — Знакомство** — ❌
+5. **Этап 1.8 — Мои команды** — ❌
+6. **Этап 2 — Бесплатное облако** — ❌
+7. **Этап 3 — Управление приложениями** — ❌
+8. **Этап 4 — Persistent memory** — ❌
+9. **Этап 5 — MCP + плагины** — ❌
+10. **Этап 6 — Telegram + веб** — ❌
+11. **Этап 7 — Визуализация** — ❌
+12. **Этап 8 — Платное** — ⏸
+13. **💤 Долгий ящик** — 💤
 
 ---
 
@@ -348,11 +329,14 @@ Jarvis фоновый поток
 7. **Per-call stop-token в `tts.py`.**
 8. **`PALETTES` в `gui.py`** — две темы.
 9. **`ft.Button`** вместо `ElevatedButton`/`TextButton`.
-10. **`ft.BoxShadow`** — без `blur_style` (в Flet 1.0.3 нет).
-11. **Реестр `_fast_handlers()`** — новые правила **туда**, не в 22 `if`.
-12. **`open_profile` — выше `open`** в реестре.
-13. **`set_profile` / `get_profile`** — через LLM, без `re.match`-костылей.
-14. **Активация окон — через `win32gui` + `AttachThreadInput`** (`pygetwindow` не работает).
+10. **`ft.BoxShadow`** — без `blur_style`.
+11. **Реестр `_fast_handlers()`** — новые правила **туда**.
+12. **`open_profile` — выше `open`.**
+13. **`set_profile` / `get_profile`** — через LLM.
+14. **Активация окон — `win32gui` + `AttachThreadInput`.**
+15. **Пути — только через `jarvis/paths.py`.**
+16. **Модели Vosk/Whisper — только в `PROGRAM_DIR` (ASCII).**
+17. **`HF_HOME` для Whisper — временно, сбрасывать до Piper.**
 
 ### GUI
 
@@ -360,7 +344,7 @@ Jarvis фоновый поток
 2. **Связь через `queue.Queue()`.**
 3. **Разделы — в `_tabs`.**
 4. **Тема — `page.theme_mode` + `PALETTES`.**
-5. **`launch_mode`** — `"gui"` или `"tray"` (окно скрыто).
+5. **`launch_mode`** — `"gui"` или `"tray"`.
 6. **`_rebuild_ui_for_theme`** сохраняет историю чата.
 
 ### Безопасность
@@ -374,19 +358,18 @@ Jarvis фоновый поток
 
 1. **Python 3.10–3.12.** Vosk не работает на 3.13/3.14.
 2. **`.venv311`** — обязательный venv.
-3. **`snapshot.py`** — исключать `.venv311`.
+3. **`snapshot.py`** — исключать `.venv311` и `profiles/`.
 
 ### Git
 
-1. **`git push`** — после `.venv311` в `.gitignore`.
-2. **`git filter-repo`** — если venv попал в историю.
-3. **`profiles/`** — НЕ коммитить (личные данные).
+1. **`.gitignore`** — `.venv311`, `config.json`, `profiles/`, `logs/`, `system_caps.json`, `models/`, `voices/`, `dist/`, `build/`.
+2. **`profiles/`** — НЕ коммитить.
 
 ---
 
 ## 🛠 Как чинить баги
 
-1. **Лог.** `logs/actions.log`, `logs/errors.log`, `logs/jarvis.log`.
+1. **Лог.** `%APPDATA%\Phoenix\logs\` — `jarvis.log`, `actions.log`, `errors.log`.
 2. **Воспроизвести.**
 3. **Локализовать.** Какой модуль?
 4. **Фикс.** Без костылей.
@@ -403,11 +386,60 @@ Jarvis фоновый поток
 | **Архитектура** | `ARCHITECTURE.md` |
 | **Changelog** | `CHANGELOG.md` |
 | **README** | `README.md` |
-| **SNAPSHOT** | `SNAPSHOT.md` |
 | **CI** | `.github/workflows/test.yml` |
-| **Логи** | `logs/` |
+| **Логи (dev)** | `C:\jarvis\logs\` |
+| **Логи (installed)** | `%APPDATA%\Phoenix\logs\` |
+| **Модели (installed)** | `C:\ProgramData\Phoenix\models\` |
+| **Конфиг (installed)** | `%APPDATA%\Phoenix\config.json` |
 | **GitHub** | `https://github.com/BobLoTiK/jarvis-fenix` |
 
 ---
+
+## 🚨 Ошибки, которые я уже делал (и не повторяю)
+
+1. **Дробил файл на куски** — ты вставлял в разные места, получалось 2+ блока.
+   → Отдавать **целиком**, либо патч с **точным маркером**.
+
+2. **`prevent_close` + `on_event`** — в Flet 1.0.3 **не работает**.
+   → Не использовать. Крестик не должен ломаться.
+
+3. **`HF_HOME` глобально** — Piper качает в degraded mode.
+   → Ставить **временно**, сбрасывать.
+
+4. **`sys.stdout is None` под `pythonw`** — `model.py` падает.
+   → Всегда проверять.
+
+5. **`wait_end` на не-стартовавшем потоке** — `RuntimeError`.
+   → Проверка `is_alive()`.
+
+6. **`subprocess.Popen` для трея** — main() зависает.
+   → Не пихать трей через Popen.
+
+7. **`strip_cjk_chunk` не создал** — `ImportError`.
+   → Проверять, что экспорт есть, перед тем как импортировать.
+
+8. **`profiles/` в `snapshot.py`** — личные данные в снимке.
+   → Исключать `profiles/` и `.venv311`.
+
+9. **Последний чанк теряется** — `append` ДО проверки токена.
+   → Не забывать.
+
+10. **`prevent_close` в `gui.py`** — крестик не работает, Alt+F4 тоже.
+    → Не использовать этот API.
+
+11. **Патч без точного маркера** — ты ищешь, путаешься.
+    → Всегда: «найди `X`», «замени на `Y`».
+
+12. **`text` / `markdown` внутри блока** — мешает копипасте.
+    → Только чистый код.
+
+13. **Обрезал длинный diff** — ты не видишь изменений.
+    → Или **целиком**, или **точный кусок с маркером**.
+
+14. **Порядок файлов в документации** — ты просил **сначала `PLAN.md`**.
+    → Всегда: `PLAN` → `PROMPT` → остальное.
+
+15. **Не смотрел логи** — угадывал фикс.
+    → Сначала **лог**, потом **фикс**.
 
 **Погнали, брат.** 🚀

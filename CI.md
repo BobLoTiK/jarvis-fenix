@@ -77,3 +77,24 @@ GitHub запускает их сам.
 ```
 
 Замени `USER/REPO` на свой. Вставь в начало README.
+
+## 📋 Что проверять **локально** перед пушем
+
+Чтобы CI не падал — прогони у себя:
+
+```bat
+python check_syntax.py
+python -m pytest tests/ -q
+python test_intents.py
+```
+
+Все три — зелёные → **CI тоже пройдёт**.
+
+## 🆕 Пути в CI
+
+**`jarvis/paths.py`** использует `%PROGRAMDATA%` и `%APPDATA%`.
+На GitHub Actions они **стандартные** — пути разрешатся в:
+- `PROGRAM_DIR` → `C:\ProgramData\Phoenix\` (ASCII).
+- `USER_DIR` → `C:\Users\runneradmin\AppData\Roaming\Phoenix\` (ASCII — **это не кириллица**, повезло).
+
+**Плюс:** CI **не тестирует** Vosk/Whisper/Piper — они в `requirements-ci.txt` **не стоят**. Значит `paths.py` вызывается, но **модели не качаются**.

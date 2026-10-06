@@ -5,27 +5,57 @@
 
 ---
 
+## 🗂 Два корня путей
+
+```
+PROGRAM_DIR — C:\ProgramData\Phoenix\   (ASCII, для Vosk/Whisper)
+USER_DIR    — %APPDATA%\Phoenix\         (личные данные юзера)
+```
+
+**Почему:** Vosk (C++ на Kaldi) **ломается** на не-ASCII путях (`C:\Users\Максим\...`). Поэтому модель Vosk и кэш Whisper — **всегда в `PROGRAM_DIR`** (ASCII). Остальное — в `USER_DIR` (кириллица ок — Vosk не читает).
+
+Управляет **`jarvis/paths.py`**:
+
+```
+paths.program_dir()               → C:\ProgramData\Phoenix
+paths.user_dir()                  → %APPDATA%\Phoenix
+paths.program_models_dir()        → C:\ProgramData\Phoenix\models
+paths.program_whisper_cache_dir() → C:\ProgramData\Phoenix\whisper-cache
+paths.logs_dir()                  → %APPDATA%\Phoenix\logs
+paths.profiles_dir()              → %APPDATA%\Phoenix\profiles
+paths.config_path()               → %APPDATA%\Phoenix\config.json
+```
+
+**Fallback для PROGRAM_DIR** (если ProgramData недоступен или не-ASCII):
+1. `C:\ProgramData\Phoenix`
+2. `C:\Phoenix`
+3. `%TEMP%\Phoenix`
+4. `<рядом с exe>\runtime`
+
+---
+
 ## Карта модулей
 
-```text
+```
 jarvis/
-├── main.py           — точка входа, класс Jarvis, barge-in цикл
-├── config.py         — объект Config в памяти + подписки
-├── config_manager.py — атомарная запись config.json (один FileLock)
-├── brain.py          — LLM (Ollama): parse() и chat_stream()
+├── main.py           — точка входа, Jarvis, barge-in
+├── config.py         — Config в памяти + подписки
+├── config_manager.py — атомарная запись (FileLock, mkstemp, os.replace)
+├── paths.py          — PROGRAM_DIR / USER_DIR
+├── brain.py          — Ollama: parse() и chat_stream()
 ├── intents.py        — IntentHandler: правила + LLM + _fast_handlers()
-├── reply.py          — тип Reply (text | stream)
+├── reply.py          — Reply (text | stream)
 ├── gui.py            — Flet GUI + PALETTES + _detect_system_theme()
 ├── history.py        — стек отмены («стоп, не то»)
-├── stt.py            — Vosk (wake) + Whisper, ring buffer
-├── tts.py            — Piper / XTTS / WinRT / SAPI, Streaming TTS, per-call token
-├── modes.py          — режимы commands / llm / combo
+├── stt.py            — Vosk + Whisper + ring buffer, HF_HOME → ASCII
+├── tts.py            — Piper / XTTS / WinRT / SAPI + barge-in + per-call token
+├── modes.py          — commands / llm / combo
 ├── voices.py         — смена голоса Piper
 ├── packs.py          — загрузка/выгрузка паков
 ├── profile.py        — profiles/<user>/profile.json + subscribe
 ├── memory.py         — profiles/<user>/dialog.json
 ├── learning.py       — факты + коррекции
-├── weather.py        — погода (open-meteo) и курс (ЦБ РФ) + настраиваемый TTL
+├── weather.py        — погода + курс + настраиваемый TTL
 ├── timers.py         — напоминания
 ├── tasks.py          — списки задач
 ├── actions.py        — окна, медиа, печать, буфер, громкость, яркость, раскладка,
@@ -36,21 +66,21 @@ jarvis/
 ├── installed.py      — индекс меню «Пуск»
 ├── steam.py          — индекс игр Steam
 ├── matching.py       — нечёткое сравнение + транслитерация
-├── model.py          — загрузка Vosk-модели
+├── model.py          — загрузка Vosk (всегда в ASCII-путь)
 ├── recorder.py       — запись макросов
-└── tray.py           — иконка в трее
+└── tray.py           — иконка в трее (временно отключён)
 ```
 
 ---
 
 ## Поток обработки фразы
 
-```text
+```
 Микрофон
    ↓
 stt.Listener (Vosk) — ловит wake-слово
    ↓
-stt.WhisperTranscriber — уточняет расшифровку
+stt.WhisperTranscriber — уточняет расшифровку (HF_HOME → ASCII)
    ↓
 main.Jarvis._process → извлекает команду (без wake-слова)
    ↓
@@ -113,58 +143,36 @@ tts.Speaker → Piper / XTTS / WinRT / SAPI
 ]
 ```
 
-**Добавить новый обработчик** — **одна строка** в список, **не искать место в 22 if**.
+**Кэш:** список строится **один раз** в `__init__` (`self._fast_handlers_cache`).
 
-**Обработчики со side-effect** (например, `packs`, меняющий `self.active_packs`) — **обёртки** с методом (`_packs_handler`).
-
-**Исключения** в обработчике **логируются** через `log.exception`, но **не роняют** команду — идём к следующему.
+**Исключения** в обработчике **логируются** через `log.exception`, но **не роняют** команду.
 
 ---
 
 ## Универсальный профиль (set_profile / get_profile)
 
-**Раньше:** куча `re.match` под каждую фразу — «мой город X», «меня зовут Y», «поменяй город Z», ... **Костыли.**
+**Раньше:** куча `re.match` под каждую фразу — «мой город X», «меня зовут Y», ... **Костыли.**
 
-**Сейчас:** LLM **сама разбирает**, что нужно:
+**Сейчас:** LLM **сама разбирает**:
 
 ```
-Пользователь: «меня зовут Максим»
-LLM: {"action": "set_profile", "key": "name", "value": "Максим"}
-
-Пользователь: «какой город»
-LLM: {"action": "get_profile", "key": "default_city"}
+«меня зовут Максим» → {"action": "set_profile", "key": "name", "value": "Максим"}
+«какой город»       → {"action": "get_profile", "key": "default_city"}
 ```
 
-**В `brain.py`** — `set_profile` и `get_profile` **в `ACTIONS`** + **примеры в промптах**.
-
-**В `intents._execute_intent`** — обработка:
-
-```python
-if action == "set_profile":
-    key = intent.get("key")
-    value = intent.get("value")
-    key_map = {"имя": "name", "город": "default_city", ...}
-    key = key_map.get(key.lower(), key.lower())
-    ...
-    ok = profile.set(key, value)
-    return f"Имя изменено на {value}." if key == "name" else ...
-```
-
-**Никаких костылей** — **любая фраза** через LLM.
+**В `brain.py`** — action'ы в `ACTIONS` + примеры в промптах.
+**В `intents._execute_intent`** — обработка с `key_map` для синонимов.
 
 ---
 
 ## GUI (Flet 1.0.3)
 
-```text
+```
 Flet Main Thread
    ├── NavigationRail (слева): Главная / Микрофон / Настройки
-   ├── Контент-область (кеш _tabs):
-   │   ├── Главная: статус-сфера, контролы, чат, ввод
-   │   ├── Микрофон: прогресс-бар уровня + кнопка теста + dropdown
-   │   └── Настройки: LLM / TTS / тема
-   ├── page.run_task(_process_queue) — читает очередь
-   └── page.run_task(_mic_level_loop) — уровень микрофона + смена темы
+   ├── Контент-область (кеш _tabs)
+   ├── page.run_task(_process_queue)
+   └── page.run_task(_mic_level_loop)
 
 Jarvis Thread
    ├── listener.phrases() → _process(cmd)
@@ -174,95 +182,77 @@ Jarvis Thread
        └── stream → tee → gui.add_stream_chunk(chunk)
 ```
 
-**Связь:** `queue.Queue()` → `gui._queue`. `Jarvis` пишет, GUI читает в `_process_queue`.
+**Связь:** `queue.Queue()` → `gui._queue`.
+**Важно:** Flet — **в главном потоке** (`gui.run_main()`), Jarvis — **в фоне**.
 
-**Важно:** Flet запускается в **главном потоке** (`gui.run_main()`), потому что ставит `signal.signal(SIGINT, ...)`. Jarvis — **в фоне**.
-
-### Режим запуска (launch_mode)
+### Режим запуска
 
 **`config.json`:**
-
 ```json
 "launch_mode": "gui"
 ```
 
-- **`"gui"`** — окно Flet **видимо** при старте (по умолчанию).
-- **`"tray"`** — окно **скрыто** (`page.window.visible = False`). Flet **всё равно запущен** — `show_window()` из трея показывает окно.
+- `"gui"` — окно видимо (по умолчанию).
+- `"tray"` — окно скрыто. **Но:** трей сейчас отключён, `main.py` принудительно переключает на `"gui"`.
 
-**Защита:** если `launch_mode="tray"`, но `tray_enabled=false` — автоматически переключается на `"gui"`.
+### Трей (отключён)
 
-**Трей:**
-- **Двойной клик** по иконке → `on_show_window` (`default=True`).
-- **Правый клик** → «Открыть окно», «Настройки», «Слушать микрофон», «Сделать скриншот», «Открыть конфиг», «Открыть журнал», «Выход».
+**Причина:** pystray требует **свой Windows message loop**, а главный поток **занят flet'ом**. Запуск pystray в фоне — **зависает GUI**.
+
+**Позже:** отдельный процесс `tray_runner.py` с обменом через файл-сигнал.
 
 ### Темы GUI
 
-```text
-PALETTES = {
-    "dark":  { bg_main, bg_card, bg_bubble_user, bg_bubble_ai, accent, text, text_dim, ... },
-    "light": { bg_main, bg_card, bg_bubble_user, bg_bubble_ai, accent, text, text_dim, ... },
-}
-
-_apply_palette(name) — подменяет глобальные BG_DARK, TEXT, ACCENT.
-
-_detect_system_theme() — читает HKCU\...\Themes\Personalize\AppsUseLightTheme.
-    0 = dark, 1 = light.
-
-_on_theme_change → _apply_palette + _rebuild_ui_for_theme.
-_mic_level_loop  → раз в 2 сек проверяет тему Windows (если gui_theme = "Системная").
-_rebuild_ui_for_theme → сохраняет историю чата (_history_list.controls) перед пересборкой.
+```
+PALETTES = { "dark": {...}, "light": {...} }
+_apply_palette(name) — подменяет глобальные BG_DARK, TEXT, ACCENT
+_detect_system_theme() — HKCU\...\AppsUseLightTheme (0=dark, 1=light)
+_mic_level_loop → раз в 5 сек проверяет тему Windows (если gui_theme = "Системная")
+_rebuild_ui_for_theme → сохраняет историю чата перед пересборкой
 ```
 
 ### Вкладка «Микрофон»
 
-- `Listener.current_rms` — текущий RMS, обновляется в `_callback`.
+- `Listener.current_rms` — RMS, обновляется в `_callback`.
 - `Listener.peak` — пик за сессию.
-- `Listener.utterances` — сколько фраз распознано.
-- `Listener.reset_stats()` — сброс для кнопки «Проверить».
-- `_on_mic_test` — 3 сек, показывает результат (≥500 ✅, ≥100 ⚠️, <100 ❌).
-- `_update_mic_level` — обновляет прогресс-бар.
+- `Listener.utterances` — распознано фраз.
+- `_on_mic_test` — 3 сек, порог ≥500 ✅, ≥100 ⚠️, <100 ❌.
 - `mic_watchdog` → `("open_mic_tab", None)` в очередь GUI.
+
+### Иконка окна
+
+`jarvis/icon.ico` генерируется `scripts/make_icon.py`. Подключена в `_main()` через `page.window.icon`.
 
 ---
 
 ## Мультипрофиль
 
-```text
-profiles/
-├── <user1>/
-│   ├── profile.json    ← name, default_city, facts, tts_voice,
-│   │                     persona (в планах), onboarding_done (в планах)
+```
+%APPDATA%\Phoenix\profiles\
+├── <user1>\
+│   ├── profile.json    ← name, default_city, facts, tts_voice
 │   └── dialog.json     ← история диалога
-├── <user2>/
+├── <user2>\
 │   ├── profile.json
 │   └── dialog.json
-└── ...
 ```
 
 - **Активный профиль** — по имени Windows-юзера (`getpass.getuser()`).
-- **`profile.switch(name)`** — переключение («я — Маша»). **Один `RLock`** — гонка исключена.
-- **`profile.subscribe(callback)`** — подписка на смену (old_name, new_name).
-- **`IntentHandler._on_profile_switch`** — перечитывает `dialog`.
-- **`FenixGUI._on_profile_switch`** — `rebuild_ui` (пересборка вкладок с **сохранением истории**).
-- **Миграция** из старого `user_profile.json` при первом запуске.
-- **`.gitignore`:** `profiles/`.
+- **`profile.switch(name)`** — один `RLock`.
+- **`profile.subscribe(callback)`** — подписка (old_name, new_name).
+- **Миграция** из старого `user_profile.json`.
 
-### Универсальные команды профиля
-
+**Универсальные команды:**
 - «меня зовут X» → `set_profile` → `name`.
 - «мой город Y» → `set_profile` → `default_city`.
-- «поменяй город на Z» → `set_profile` → `default_city` + `prev_city`.
-- «как меня зовут» → `get_profile` → `name`.
-- «какой город» → `get_profile` → `default_city`.
 - «открой профиль» → `open_profile` → Notepad++ / VS Code / системный.
-- «что ты обо мне знаешь» → `_profile_fast` → name, default_city, facts.
 
 ---
 
 ## Поток конфига
 
-```text
-config.json → Config.__init__ → config_manager.load() (один раз)
+```
+%APPDATA%\Phoenix\config.json → Config.__init__ → config_manager.load()
    ↓
 Config._data (в памяти) — источник истины
    ↓
@@ -286,64 +276,59 @@ config.get("key") / config.set("key", value)
 
 ## Погода и курс валют
 
-```text
+```
 weather.py
-   ├── _CACHE: dict = {}          ← (key, timestamp, data)
+   ├── _CACHE: dict — (key, timestamp, data)
    ├── _CACHE_LOCK: threading.Lock
-   ├── _config = None             ← ссылка на Config (через set_config)
-   │
-   ├── set_config(config)          ← вызывается из main.py
-   ├── _current_ttl() → int        ← читает weather_cache_ttl_sec каждый раз
-   └── _cached(key, fetcher)       ← TTL применяется на каждый вызов
+   ├── _config — ссылка на Config (set_config)
+   ├── _current_ttl() — читает weather_cache_ttl_sec каждый раз
+   └── _cached(key, fetcher) — TTL применяется на каждый вызов
 ```
 
-**TTL:** `weather_cache_ttl_sec` — по умолчанию `600` (10 мин), для Local — `86400` (24 ч).
+**TTL:** 600 сек (10 мин) по умолчанию.
 
-**Ключи кэша:**
+**Ключи:**
 - `("geo", "москва")` — геокодинг.
-- `("weather", "москва", "today")` / `("weather", "москва", "tomorrow")` — погода.
+- `("weather", "москва", "today")` — погода.
 - `("currency", "cbr")` — курс ЦБ.
 
 ---
 
 ## Открытие файлов в редакторе
 
-```text
+```
 actions.open_in_editor(path, prefer="auto")
-   ├── prefer="notepad++" → _find_notepadpp()
-   ├── prefer="vscode"    → _find_vscode()
-   ├── prefer="system"    → os.startfile()
-   └── prefer="auto"      → [_find_notepadpp, _find_vscode] → os.startfile()
-
-_find_notepadpp():
-   C:\Program Files\Notepad++\notepad++.exe
-   C:\Program Files (x86)\Notepad++\notepad++.exe
-   %LOCALAPPDATA%\Notepad++\notepad++.exe
-   shutil.which("notepad++")
-
-_find_vscode():
-   %LOCALAPPDATA%\Programs\Microsoft VS Code\Code.exe
-   C:\Program Files\Microsoft VS Code\Code.exe
-   shutil.which("code")
+   ├── "notepad++" → _find_notepadpp()
+   ├── "vscode"    → _find_vscode()
+   ├── "system"    → os.startfile()
+   └── "auto"      → [_find_notepadpp, _find_vscode] → os.startfile()
 ```
 
 **Активация окна** — `_activate_window_hard(title_part)`:
+- `win32gui.EnumWindows`
+- `AttachThreadInput` — иначе `SetForegroundWindow` блокируется Windows
+- `SetForegroundWindow` + `BringWindowToTop`
 
-- `win32gui.EnumWindows` — поиск по заголовку.
-- `AttachThreadInput` — **трюк**, чтобы Windows разрешила `SetForegroundWindow`.
-- `SetForegroundWindow` + `BringWindowToTop` — окно **всплывает**.
+---
 
-**Вызов из `_open_profile_fast`:**
+## Лаунчер (Феникс.exe)
 
-```python
-prof_path = profile.profile_path()
-ok = actions.open_in_editor(prof_path, prefer=prefer)
+`launcher.py` → `Феникс.exe` (PyInstaller). При запуске:
+
+```
+1. Ищет Python 3.10–3.12 (py launcher, where python, типичные пути).
+2. Нет → MessageBox: [Скачать Python 3.11] [Отмена].
+   Качает python-3.11.9-amd64.exe, запускает installer.
+3. Проверяет .venv311. Нет → создаёт.
+4. Проверяет зависимости (flet, vosk). Нет → pip install.
+5. Проверяет Vosk-модель в C:\ProgramData\Phoenix\models. Нет → скачивает.
+6. Проверяет Ollama (URL + поиск). Нет → MessageBox.
+7. Запускает .venv311\Scripts\pythonw.exe -m jarvis.
 ```
 
-**Редактор** — по фразе:
-- «открой профиль» → auto.
-- «открой профиль в вс код» → vscode.
-- «открой профиль в блокноте» → system.
+**Диалоги** — через `ctypes.windll.user32.MessageBoxW` (встроено в Windows).
+**Логи** — `logs/launcher.log`.
+**Мьютекс** — `Global\JarvisPhoenixSingleInstance`.
 
 ---
 
@@ -352,33 +337,30 @@ ok = actions.open_in_editor(prof_path, prefer=prefer)
 | Объект | Модуль | Роль |
 |---|---|---|
 | `Config` | `config.py` | Конфиг в памяти + подписки |
-| `IntentHandler` | `intents.py` | Разбор команд, `_fast_handlers()` — реестр |
-| `Brain` | `brain.py` | LLM: `parse()` и `chat_stream()` |
-| `Speaker` | `tts.py` | Синтез + воспроизведение, per-call token |
-| `Listener` | `stt.py` | Микрофон, Vosk, ring buffer, current_rms |
-| `WhisperTranscriber` | `stt.py` | Точная расшифровка |
-| `Jarvis` | `main.py` | Связка всего, wake-логика, mic_watchdog |
-| `FenixGUI` | `gui.py` | Flet GUI, PALETTES, mic_level_loop |
+| `IntentHandler` | `intents.py` | Разбор, `_fast_handlers()` |
+| `Brain` | `brain.py` | LLM: `parse()` / `chat_stream()` |
+| `Speaker` | `tts.py` | Синтез, per-call token |
+| `Listener` | `stt.py` | Vosk, ring buffer |
+| `WhisperTranscriber` | `stt.py` | Расшифровка |
+| `Jarvis` | `main.py` | Связка, wake, watchdog |
+| `FenixGUI` | `gui.py` | Flet GUI |
 | `Reply` | `reply.py` | `text` \| `stream` |
 | `history` | `history.py` | Стек отмены |
 
 ---
 
-## Файлы данных (не в гит)
+## Файлы данных
 
-| Файл | Что хранит |
+| Файл | Где |
 |---|---|
-| `config.json` | Настройки |
-| `profiles/<user>/profile.json` | Имя, город, факты, persona |
-| `profiles/<user>/dialog.json` | История диалога |
-| `profiles/<user>/custom_commands.json` | Мои команды (в планах) |
-| `timers.json` | Напоминания |
-| `tasks.json` | Задачи |
-| `system_caps.json` | Возможности системы (volume/brightness/layout/cpu) |
-| `logs/` | Логи |
-| `config.json.lock` | FileLock |
-
-**Все эти файлы — в `.gitignore`.**
+| `config.json` | `%APPDATA%\Phoenix\` |
+| `profiles/<user>/profile.json` | `%APPDATA%\Phoenix\` |
+| `profiles/<user>/dialog.json` | `%APPDATA%\Phoenix\` |
+| `timers.json` / `tasks.json` | `%APPDATA%\Phoenix\` |
+| `models/vosk-model-small-ru-0.22/` | `C:\ProgramData\Phoenix\` |
+| `whisper-cache/` | `C:\ProgramData\Phoenix\` |
+| `logs/` | `%APPDATA%\Phoenix\` |
+| `system_caps.json` | `C:\jarvis\` (только для разработки) |
 
 ---
 
@@ -391,22 +373,17 @@ ok = actions.open_in_editor(prof_path, prefer=prefer)
 | open-meteo.com | `api.open-meteo.com` | Погода |
 | cbr-xml-daily.ru | `www.cbr-xml-daily.ru` | Курс ЦБ |
 | HuggingFace | `rhasspy/piper-voices` | Голоса Piper |
-| HuggingFace | `coriollon/whisper-large-v3-turbo-russian` | Whisper (в планах) |
-| HuggingFace | `deepdml/faster-whisper-large-v3-turbo-ct2` | Whisper (текущая) |
+| HuggingFace | `deepdml/faster-whisper-large-v3-turbo-ct2` | Whisper |
 | alphacephei.com | `vosk-model-small-ru-0.22` | Vosk |
+| python.org | `python-3.11.9-amd64.exe` | Установщик Python |
 
-**Облачные (в планах):**
-
-| Сервис | URL | Зачем |
-|---|---|---|
-| Groq | `api.groq.com` | LLM (Llama 3.3 70B), STT (Whisper) |
-| Microsoft Edge | `edge-tts` | TTS |
+**Облачные (в планах):** Groq (Llama 3.3 70B, Whisper), Edge TTS.
 
 ---
 
 ## Тесты
 
-- **`test_intents.py`** — 40 сценариев (30 базовых + 2 danger + learning).
+- **`test_intents.py`** — 40 сценариев.
 - **`tests/test_config_manager.py`** — параллельная запись.
 - **`tests/test_weather.py`** — погода/курс с моками.
 - **`tests/test_caps.py`** — структура `system_caps.json`.
@@ -416,50 +393,56 @@ ok = actions.open_in_editor(prof_path, prefer=prefer)
 ## Инфраструктура
 
 ### `.venv311`
-
-**Python 3.11** в **отдельном venv** — обход падения Vosk на Python 3.13/3.14.
-
-- `.gitignore` — `.venv311/`.
-- `snapshot.py` — `EXCLUDE_DIRS` содержит `.venv311`.
-- `commit.bat`, `check_all.bat`, `check_syntax.bat` — активируют venv.
+**Python 3.11** в отдельном venv — обход падения Vosk на 3.13/3.14.
 
 ### Git
-
-- **`.gitignore`:** `.venv311/`, `*.bak`, `config.json`, `profiles/`, `logs/`, `system_caps.json`, `models/`, `voices/`.
-- **`SNAPSHOT.md`** — 520 КБ, обновляется при `commit.bat`.
-- **`git filter-repo`** — `.venv311` вырезан из истории (`.git` = 12 МБ).
+- **`.gitignore`:** `.venv311/`, `config.json`, `profiles/`, `logs/`, `system_caps.json`, `models/`, `voices/`, `dist/`, `build/`, `*.bak`.
+- **`SNAPSHOT.md`** — генерируется `snapshot.py`.
 
 ### `commit.bat`
+Активирует `.venv311` → `snapshot.py` → `git add .` → `commit` → `push`.
 
-Автокоммит:
-1. Активирует `.venv311`.
-2. Запускает `snapshot.py`.
-3. `git add .`.
-4. `git commit -m "%~1"`.
-5. `git push`.
+---
+
+## Сборка и установка
+
+### `scripts/make_icon.py`
+Генерирует `jarvis/icon.ico` (16/24/32/48/64/128/256). Синий круг с «J».
+
+### `scripts/build_exe.py`
+Собирает `launcher.py` → `dist/Феникс.exe` (~9 МБ) + копия в корень.
+
+### `installer.iss`
+Inno Setup → `Феникс_Setup.exe` (~11 МБ). Ставит в `C:\ProgramData\Phoenix`. Ярлыки, автозапуск, деинсталлятор.
+
+### `create_shortcut.bat`
+Создаёт ярлык на рабочем столе для `Феникс.exe`.
 
 ---
 
 ## Что важно помнить при доработке
 
-1. **Не добавляй `_atomic_write`** — используй `config_manager.save()` или `Config.set()`.
-2. **Не читай `config.json` напрямую** — `config.get()`.
+1. **Не читай `config.json` напрямую** — `config.get()`.
+2. **Не пиши в `config.json` напрямую** — `Config.set()` или `config_manager.save()`.
 3. **Не плоди глобальное состояние** — кроме `Config._GLOBAL`.
 4. **Нормализация (города, валюты, паков) — задача LLM.**
 5. **Логи в `actions.log`** — главный инструмент отладки.
 6. **`test_intents.py`** — первое, что запускаешь после правок.
 7. **GUI Flet — только в главном потоке.** Jarvis — в фоне.
-8. **Связь GUI ↔ Jarvis — через `queue.Queue()`, не напрямую.**
+8. **Связь GUI ↔ Jarvis — через `queue.Queue()`.**
 9. **`normalize(cmd)` в `IntentHandler.handle()`** — единая точка.
-10. **Per-call stop-token в `tts.py`** — не общий `_stop_flag`.
-11. **`PALETTES` в `gui.py`** — две темы, `_detect_system_theme()` для системной.
-12. **`ft.Button`** вместо `ElevatedButton`/`TextButton` в Flet 1.x.
-13. **`ft.BoxShadow`** — без `blur_style` (в Flet 1.0.3 нет `ShadowBlurStyle`).
-14. **Личные данные — только в `config.json`, `profiles/`, `system_caps.json`** (в `.gitignore`).
-15. **`weather_cache_ttl_sec`** — настраиваемый TTL кэша погоды (600 по умолчанию, 86400 для Local).
-16. **Python 3.10–3.12** — Vosk не работает на 3.13/3.14. Только `.venv311`.
-17. **`snapshot.py`** — исключать `.venv311` (иначе `SNAPSHOT.md` = 52 МБ).
-18. **Реестр `_fast_handlers()`** — новые быстрые правила добавляй **туда**, а не в 22 if.
-19. **`open_profile` — выше `open`** в реестре (иначе `_open_fast` съест).
-20. **`set_profile` / `get_profile`** — через LLM, без `re.match`-костылей.
-21. **Активация окон — через `win32gui` + `AttachThreadInput`** (`pygetwindow` не работает).
+10. **Per-call stop-token в `tts.py`.**
+11. **`PALETTES` в `gui.py`** — две темы.
+12. **`ft.Button`** вместо `ElevatedButton`/`TextButton`.
+13. **`ft.BoxShadow`** — без `blur_style`.
+14. **Личные данные — только в `config.json`, `profiles/`, `system_caps.json`.**
+15. **`weather_cache_ttl_sec`** — настраиваемый TTL.
+16. **Python 3.10–3.12** — только `.venv311`.
+17. **`snapshot.py`** — исключать `.venv311` и `profiles/`.
+18. **Реестр `_fast_handlers()`** — новые правила **туда**.
+19. **`open_profile` — выше `open`.**
+20. **`set_profile` / `get_profile`** — через LLM.
+21. **Активация окон — `win32gui` + `AttachThreadInput`.**
+22. **`paths.py`** — единственное место для путей.
+23. **Модели Vosk/Whisper — ВСЕГДА в `PROGRAM_DIR` (ASCII).**
+24. **`HF_HOME` для Whisper — временно.**

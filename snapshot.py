@@ -31,6 +31,10 @@ EXCLUDE_FILES = {
     ".gitignore",
     "config.json.lock",
     "user_profile.json.lock",
+    "ft.Control",
+    "None",
+    "python",
+    "str",
 }
 
 EXCLUDE_EXT = {

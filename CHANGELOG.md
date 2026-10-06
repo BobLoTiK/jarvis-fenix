@@ -4,26 +4,101 @@
 Формат: [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/),
 версии: [Semantic Versioning](https://semver.org/lang/ru/).
 
-## [Unreleased] — 0.3.0
+---
 
-### Добавлено (сессия 06.10.2026, вечерняя)
+## [Unreleased] — 0.4.0
 
-- **`set_profile` / `get_profile`** — универсальные action'ы для LLM. Теперь «меня зовут X», «поменяй город на Y», «как меня зовут», «какой город» — **работают через LLM**, без костылей-`re.match`.
+### Добавлено (сессия 07.10.2026)
+
+#### Unicode / пути (критично)
+
+- **`jarvis/paths.py`** — новый модуль. Два корня:
+  - `PROGRAM_DIR` → `C:\ProgramData\Phoenix\` (**ASCII**, для Vosk/Whisper).
+  - `USER_DIR` → `%APPDATA%\Phoenix\` (личные данные, кириллица ок).
+  - Fallback для `PROGRAM_DIR`: `ProgramData` → `C:\Phoenix` → `%TEMP%` → `<рядом с exe>\runtime`.
+- **Vosk падал на `C:\Users\Максим\...`** (`Failed to create a model`) — теперь модель всегда в ASCII-пути.
+- **`HF_HOME` для Whisper** ставится **временно** на импорт и **сбрасывается** до Piper — иначе Piper качал модели в наш ASCII-кэш в degraded mode (без symlinks).
+
+#### Автолаунчер
+
+- **`launcher.py`** — полный автозапуск:
+  - Ищет Python 3.10–3.12 (py launcher, where python, типичные пути).
+  - Если нет — `MessageBox` со ссылкой на скачивание `python-3.11.9-amd64.exe`.
+  - Создаёт `.venv311`, если нет.
+  - Проверяет зависимости (`flet`, `vosk`). Если нет — `pip install`.
+  - Проверяет Vosk-модель в `C:\ProgramData\Phoenix\models`. Если нет — качает.
+  - Проверяет Ollama (URL + поиск на дисках). Если нет — `MessageBox`.
+  - Запускает `.venv311\Scripts\pythonw.exe -m jarvis`.
+  - Мьютекс `Global\JarvisPhoenixSingleInstance`.
+  - Логи — `logs/launcher.log`.
+
+#### UI/UX
+
+- **`scripts/make_icon.py`** — генерирует `jarvis/icon.ico` (16/24/32/48/64/128/256), синий круг с «J».
+- **`scripts/build_exe.py`** — сборка `launcher.py` → `dist/Феникс.exe` (~9 МБ) + копия в корне проекта.
+- **`installer.iss`** — Inno Setup → `Феникс_Setup.exe` (~11 МБ). Установка в `C:\ProgramData\Phoenix`.
+- **`create_shortcut.bat`** — ярлык на рабочем столе.
+- **Иконка окна** в GUI — `page.window.icon`.
+
+#### Модули
+
+- **`jarvis/text_utils.py`** — новый. `normalize()`, `strip_cjk()`, `strip_cjk_chunk()`, `prepare_text()`. Убрано дублирование из `brain.py`, `tts.py`, `intents.py`.
+
+#### Настройки
+
+- `DEFAULT_CONFIG` в `config.py`: модель Whisper — `deepdml/faster-whisper-large-v3-turbo-ct2` (правильная, рабочая).
+- `DEFAULT_CONFIG["launch_mode"]: "gui"`.
+
+### Исправлено (сессия 07.10.2026)
+
+- **№99** — Vosk падал на не-ASCII путях. Фикс — `paths.py`.
+- **№100** — `HF_HOME` глобально ломал Piper. Фикс — временная установка.
+- **№103** — `sys.stdout = None` под `pythonw` ломал `_progress` в `model.py`. Фикс — `if sys.stdout is None: return`.
+- **№104** — `wait_end` бросал `RuntimeError: cannot join thread before it is started`. Фикс — проверка `thread.is_alive()` перед `join`.
+- **№106** — `normalize` / `strip_cjk` / `prepare_text` дублировались в 3 модулях. Фикс — `text_utils.py`.
+- **№22** — падежи погоды.
+- **№23** — LLM видит `name` / `default_city`.
+
+### Изменено (сессия 07.10.2026)
+
+- `jarvis/config.py` → `load_config()` возвращает Config с `paths.config_path()`.
+- `jarvis/profile.py` → `PROFILES_DIR = paths.profiles_dir()`.
+- `jarvis/main.py` → `LOGS_DIR = paths.logs_dir()`, `ensure_model(local_models)`.
+- `jarvis/model.py` → всегда копирует/скачивает в `paths.program_models_dir()`.
+- `jarvis/stt.py` → `WhisperTranscriber.__init__` ставит `HF_HOME` временно.
+- `jarvis/gui.py` → `_mic_level_loop` проверяет тему Windows раз в 5 сек (было 2).
+- `jarvis/gui.py` → `page.window.icon` — иконка окна.
+- `installer.iss` → `DefaultDirName={commonappdata}\Phoenix`.
+
+### Удалено
+
+- `jarvis/tray_runner.py` — временно не нужен.
+
+---
+
+## [0.3.0] — 2026-10-06 (вечерняя)
+
+### Добавлено
+
+- **`set_profile` / `get_profile`** — универсальные action'ы для LLM. Теперь «меня зовут X», «поменяй город на Y», «как меня зовут», «какой город» — работают **через LLM**, без костылей-`re.match`.
 - **`open_profile`** — «открой профиль» → Notepad++ → VS Code → системный. Активация окна через `win32gui` + `AttachThreadInput`.
-- **Реестр `_fast_handlers()`** в `intents.py` — вместо 22 `if reply: return reply`. Порядок = приоритет, легко добавить новый обработчик.
-- **`launch_mode`** в config — `"gui"` (окно) или `"tray"` (только трей, окно скрыто).
-- **Трей: «Открыть окно»** — двойной клик по иконке, `default=True`.
-- **`_activate_window_hard`** в `actions.py` — надёжная активация через `win32gui`.
+- **Реестр `_fast_handlers()`** в `intents.py` — вместо 22 `if reply: return reply`. Порядок = приоритет.
+- **`launch_mode`** в config — `"gui"` или `"tray"`.
+- **`_activate_window_hard`** в `actions.py`.
+- **`Config.unsubscribe`** — удаление подписки.
+- **`_split_compound`** — многослойные команды («открой стим и запусти доту»).
+- **`learning.build_context`** — факты + коррекции в промпт.
+- **`history.push_macro`** — макрос как одна запись в стеке отмены.
 
-### Исправлено (сессия 06.10.2026, вечерняя)
+### Исправлено
 
-- **№67** — «открой стим и запусти доту» — теперь **обе части**.
+- **№67** — «открой стим и запусти доту» — обе части.
 - **№68** — «открой ютуб и сделай громче» — не мусорный URL.
-- **№69** — «сделай на 10 потише» — работает.
-- **№70** — «аааааааа» — «Не расслышал».
-- **№71** — `scripts/__init__.py` создан.
-- **№72** — `speaker.wait_end` → `bool`.
-- **№73** — стрим-пузырь не зависает.
+- **№69** — «сделай на 10 потише».
+- **№70** — «аааааааа» → «Не расслышал».
+- **№71** — `scripts/__init__.py`.
+- **№72** — `wait_end` → `bool`.
+- **№73** — стрим-пузырь не зависает (`try/finally` в `_say_stream`).
 - **№74** — TTS не накладывается.
 - **№76** — `profile.switch` — один `RLock`.
 - **№80** — Groq в README помечен «🚧 в планах».
@@ -39,145 +114,24 @@
 - **№96** — `SITES` из `packs/sites.json`.
 - **№97** — `build_context` / `_profile_fast` без дублей.
 - **№98** — `check_syntax.bat` — `%~dp0`.
-- **№22** — падежи погоды.
-- **№23** — LLM видит `name` / `default_city`.
-
-### Исправлено (сессия 06.10.2026)
-
-- **№26** — «открой стим» → «Открываю Spotify» (`_match_custom` ловил нечётко «стим» на «споти»).
-- **№28** — «мой город казань» в фактах вместо `default_city`.
-- **№29** — «мой город X» сохранялся как факт, а не `default_city`.
-- **№31** — `_match_custom`: нечёткий матч только для фраз ≥ 12 символов.
-- **№32** — **Vosk падает с access violation на Python 3.14** → переход на Python 3.11 через `.venv311`.
-- **№34** — `.bat` и doskey: активация venv, `chcp 65001`, проверка `errorlevel`.
-- **№35** — `.venv311` попал в git → `.gitignore`.
-- **№36** — `SNAPSHOT.md` 52 МБ → 520 КБ (исключён `.venv311` из `snapshot.py`).
-- **№37** — `.git` 110 МБ → 12 МБ (`git filter-repo`).
-- **О9** — TTL кэша погоды: `weather_cache_ttl_sec` в config.
-- **№39** — README: требование Python 3.10–3.12.
-
-### Добавлено (сессия 06.10.2026)
-
-- **`weather_cache_ttl_sec`** в config — настраиваемый TTL кэша погоды (по умолчанию 600 сек = 10 мин).
-- **Специальные шаблоны в `_profile_fast`:**
-  - «запомни: мой город X» / «мой город X» → `default_city`
-  - «запомни: меня зовут X» / «меня зовут X» → `name`
-  - «запомни: я живу в X» / «я живу в X» → `default_city`
-- **Глобальный `threading.excepthook`** — падения в фоновых потоках логируются в `errors.log`.
-- **`try/except SystemExit`** вокруг трея — pystray не роняет процесс.
-- **`commit.bat`** — автокоммит с обновлением `SNAPSHOT.md` (активация venv + `chcp 65001`).
-
-### Добавлено
-
-- **Flet GUI** (`jarvis/gui.py`):
-  - Окно 1100×760, тёмная тема.
-  - NavigationRail — разделы: Главная, Микрофон, Настройки.
-  - **Статус-сфера** с анимацией (смена цвета и размера).
-  - **Чат-пузыри** с аватарами (👤 / 🦅), тенями, fade-in.
-  - Поле ввода + кнопки Send / Mic.
-  - **Настройки:** модель LLM, Ollama URL, TTS бэкенд, скорость речи (слайдер), тема.
-  - **Смена темы на лету** (Тёмная / Светлая / Системная) — `PALETTES` + `_rebuild_ui_for_theme`.
-  - **Системная тема** — автоопределение через реестр Windows (`_detect_system_theme`).
-  - **Подхват смены темы Windows** — раз в 2 сек в `_mic_level_loop`.
-  - **Стриминг в GUI** через tee-генератор в `main._say_stream`.
-  - **Кеш разделов** — история чата не теряется при переключении.
-  - **Микрофон:** выбор устройства + сохранение в config.
-  - **Вкладка «Микрофон»:**
-    - Прогресс-бар уровня сигнала в реальном времени.
-    - Кнопка «🎙 Проверить микрофон (3 сек)».
-    - Статус: ✅ Работает / ⚠️ Тихий / ⏸ Ожидание.
-    - Автооткрытие по сигналу `mic_watchdog`.
-
-- **Системные команды:**
-  - **Раскладка RU/EN:** `switch_layout`, `set_layout_ru`, `set_layout_en`, `get_layout`. Через `SendInput`.
-  - **Громкость в %:** `get_volume` / `set_volume` через `pycaw`.
-  - **Яркость в %:** `get_brightness` / `set_brightness` через `screen-brightness-control`.
-
-- **Диагностика:**
-  - «Что ты слышал?» — ring buffer последних 10 фраз в `stt.Listener`.
-  - «Почему не понял?» — `_last_debug` в `IntentHandler`.
-
-- **Отмена действий (Н1):**
-  - `jarvis/history.py` — стек последних 5 действий.
-  - «Стоп, не то» / «отмени» — откат.
-  - Отмена: `open_app` → `close_app`, `set_mode`, `change_voice`, `set_volume`, `set_brightness`, `switch_layout`.
-
-- **Пароль на опасные (2.13):**
-  - `danger_password` в config.
-  - «Выключи компьютер» → запрос пароля.
-
-- **Мультипрофиль:**
-  - `profiles/<user>/profile.json` + `profiles/<user>/dialog.json`.
-  - `profile.init()` — инициализация + миграция.
-  - `profile.switch()`, `profile.delete()`, `profile.list_all()`.
-  - `profile.subscribe()` — уведомление подписчиков при смене профиля.
-  - Голосовые: «я — Маша», «кто активен», «список профилей», «запомни: …».
-
-- **Память:** `memory.append(limit)`, `memory.load(limit)`, `memory.clear()`.
-- **Лимиты в config:** `memory_max`, `llm_context_messages`, `danger_password`, `gui_enabled`, `gui_theme`, `gui_x`, `gui_y`, `tray_enabled`, `mic_watchdog_enabled`, `weather_cache_ttl_sec`.
-- **CI:** `.github/workflows/test.yml` на `windows-latest`.
-
-- **`mic_watchdog`:**
-  - Одно предупреждение за сессию (не спамит).
-  - Порог пика ≥ 50 (микрофон живой).
-  - Автооткрытие вкладки «Микрофон» в GUI.
-  - Опция `mic_watchdog_enabled` в config.
+- **№9** — `weather._CACHE` — лок уже был.
+- **№11** — `Vosk.Reset()` — `flush()` прогоняет тишину.
+- **№16** — `_debug_fast` — берёт из `listener.recent_phrases`.
+- **№17** — макрос — `push_macro()`.
+- **№18** — мусорные профили удалены.
+- **№38** — `requirements-dev.txt` создан.
 
 ### Изменено
 
-- `IntentHandler.handle()` → **`cmd = normalize(cmd)`** в начале (единая точка нормализации для GUI и голоса).
+- `IntentHandler.handle()` → `cmd = normalize(cmd)` в начале.
 - `Jarvis.say()` → принимает `Reply`.
-- `brain.chat_stream()` → без `[-40:]` (лимит у вызывающего).
+- `brain.chat_stream()` → без `[-40:]`.
 - `_execute_steps` → сохранение `history` для отмены.
-- `main.py` → **Jarvis в фоне**, **Flet в главном** (`gui.run_main()`).
+- `main.py` → Jarvis в фоне, Flet в главном.
 - `requirements.txt` → `flet>=1.0.3`.
-- **`tts.py`:** per-call stop-token вместо общего `_stop_flag`.
-- **`gui.py`:** `PALETTES` (две темы), `_detect_system_theme()`, `_rebuild_ui_for_theme()`, `_mic_level_loop()`.
-- **`profile.py`:** `_current_lock`, `_listeners`, `subscribe()`, `_on_profile_switch`.
-
-### Исправлено
-
-- **№1** — `profile._current` гонка. `threading.Lock`.
-- **№2** — Маша видит диалог Максима. `profile.subscribe()` + `_on_profile_switch`.
-- **№3** — `_awaiting_until` после `say()`. Перенесено **до** `say()`.
-- **№6** — `CANCEL` не первым. В начало `_handle_single`.
-- **№8** — `any([...])` в `_do_close`. Генератор + early exit.
-- **№14** — `brain.parse` без `.strip()`. `.strip().lower()`.
-- **№20** — TTS накладывается (2–3 голоса). Per-call stop-token.
-- **№21** — `_profile_fast` не матчит из GUI. `normalize(cmd)` в `handle()`.
-- **№24** — Светлая тема ломала GUI. `PALETTES` + пересборка.
-- **№24.5** — Системная тема не автоопределялась. `_detect_system_theme()`.
-- **№25** — `mic_watchdog` спамил. Одно предупреждение за сессию.
-- **№25.5** — Микрофон не проверить из GUI. Вкладка + прогресс-бар + кнопка.
-- **Flet 1.x API** — `ft.ElevatedButton` → `ft.Button`.
-- **Раскладка:** `SendInput` вместо `keybd_event` — работает второй раз.
-- **Стриминг в GUI:** tee-генератор — чанки и в TTS, и в GUI.
-- **История чата** не теряется при переключении разделов (кеш `_tabs`).
-- **`signal only works in main thread`** — Flet в главном потоке.
-- `open_site` без LLM через `_open_fast`.
-- `small_talk_how` — не перехватывается `pending_question`.
-- `UnicodeEncodeError` на CI — `reconfigure` + `PYTHONUTF8`.
-- **`удали профиль`** обрабатывается **до** `tasks.handle_task_command`.
-
-### Обновления технологий
-
-- ✅ **О1** — `vosk 0.3.45`, `faster-whisper 1.2.1`, `ctranslate2 4.8.2`, `piper-tts 1.8.0`.
-- ✅ **О2** — `whisper_model: deepdml/faster-whisper-large-v3-turbo-ct2`.
-- ✅ **О3** — `check_cpu()` в `check_caps.py` + `system_caps.json`.
-- ✅ **О4** — `tts_voice_quality` в config.
-- ✅ **О5** — `_init_piper` quality + fallback.
-- ✅ **О9** — настраиваемый TTL кэша погоды.
-- ❌ О6 — GUI RadioGroup «Качество голоса».
-- ❌ О7 — README + `config.example.json` (синхронизированы).
-
-### В планах
-
-- **Ф1–Ф13** — облачные провайдеры (Groq, Edge TTS).
-- **З1–З7** — знакомство (persona).
-- **С1–С3** — стресс-тест (20 фраз).
-- **М1–М9** — мои команды голосом.
-- **Ф14–Ф19** — платные провайдеры (OpenAI, Fish Audio).
-- **№5, №7, №9–№13, №15–№19, №22, №23** — открытые баги.
+- `tts.py` → per-call stop-token.
+- `gui.py` → `PALETTES`, `_detect_system_theme`, `_rebuild_ui_for_theme`, `_mic_level_loop`.
+- `profile.py` → `_current_lock`, `_listeners`, `subscribe()`, `_on_profile_switch`.
 
 ---
 
@@ -185,10 +139,10 @@
 
 ### Добавлено
 
-- Этап 0 (рефакторинг): `config_manager`, `Config` в памяти, barge-in, CJK-фильтр, few-shot промпт.
-- Этап 1: голосовые режимы, паки, макросы, память, голоса Piper.
-- Этап 2: streaming TTS, barge-in, логи, буфер обмена, погода и курс.
-- `test_intents.py` + `pytest tests/`.
+- **Этап 0 (рефакторинг):** `config_manager`, `Config` в памяти, barge-in, CJK-фильтр, few-shot промпт.
+- **Этап 1:** голосовые режимы, паки, макросы, память, голоса Piper.
+- **Этап 2:** streaming TTS, barge-in, логи, буфер обмена, погода и курс.
+- **`test_intents.py`** + **`pytest tests/`**.
 
 ### Исправлено
 
@@ -197,6 +151,8 @@
 - `tts.Speaker.stop()` — barge-in через sounddevice.
 - `stt._enable_cuda_dlls` — флаг.
 - `brain.py` — `close_app` в отдельный блок.
+
+---
 
 ## [0.2.1] и раньше
 
