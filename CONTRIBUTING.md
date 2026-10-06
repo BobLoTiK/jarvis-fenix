@@ -17,8 +17,9 @@ jarvis/             — пакет
   brain.py          — Ollama: parse() и chat_stream()
   config.py         — Config в памяти + подписки
   config_manager.py — атомарная запись
-  tts.py            — Piper / XTTS / WinRT / SAPI
-  stt.py            — Vosk + Whisper
+  tts.py            — Piper / XTTS / WinRT / SAPI + per-call token
+  stt.py            — Vosk + Whisper + ring buffer
+  gui.py            — Flet GUI + PALETTES + _detect_system_theme()
   ...
 
 tests/              — pytest-тесты
@@ -40,56 +41,11 @@ scripts/            — утилиты (mics, wakebench, build_exe)
 5. **Логи в `actions.log`** — главный инструмент отладки.
 6. **Не выбрасывай ошибки в `errors.log`** — это сигнал, что что-то сломалось, разбирайся.
 7. **`test_intents.py`** — первое, что запускаешь после правки `intents.py`, `brain.py`, `actions.py`.
+8. **`normalize(cmd)` в `IntentHandler.handle()`** — единая точка нормализации для GUI и голоса.
+9. **Per-call stop-token в `tts.py`** — не используй общий `_stop_flag`. Каждый вызов `play_async` / `speak_stream` создаёт свой токен.
+10. **`PALETTES` в `gui.py`** — две палитры (dark/light), `_detect_system_theme()` для системной темы через реестр Windows.
+11. **`ft.Button`** вместо `ft.ElevatedButton` / `ft.TextButton` — в Flet 1.x их удалили.
 
-## 🧪 Тесты
+## 🔒 Правила безопасности
 
-### Локально
-
-```bat
-python check_syntax.py
-python -m pytest tests/ -q
-python test_intents.py
-```
-
-### С флагами
-
-```bat
-python test_intents.py --network        # + тесты погоды/курса
-python test_intents.py --llm            # + тесты с LLM (нужна Ollama)
-python test_intents.py --llm --network  # всё
-python test_intents.py --voice          # с озвучкой
-python test_intents.py -k weather       # только тесты со словом 'weather'
-```
-
-### В CI
-
-GitHub Actions запускает при каждом push:
-- `check_syntax.py`
-- `pytest tests/`
-- `test_intents.py` — **без флагов** (без LLM, без сети, без озвучки).
-
-Это значит: **новые тесты должны работать без LLM и без сети**. Если тест
-требует сеть — помечай `requires_network=True`. Если LLM — `requires_llm=True`.
-
-## 🏷️ Коммиты
-
-Пиши так, чтобы через полгода понять без `git diff`:
-
-```
-День 3: Reply, CI, тесты с моками
-
-- jarvis/reply.py — новый тип
-- intents.py: handle() возвращает Reply
-- ...
-```
-
-Одна строка — суть. Тело — список изменений.
-
-## ✅ Чеклист перед коммитом
-
-- [ ] `python check_syntax.py` — все файлы OK
-- [ ] `python -m pytest tests/ -q` — все тесты passed
-- [ ] `python test_intents.py` — 20/20 (без флагов)
-- [ ] Если добавил фичу — обнови `README.md`
-- [ ] Если сломал API — обнови `ARCHITECTURE.md` и `SNAPSHOT.md`
-- [ ] Закоммить, запушить, посмотреть CI (✅ или ❌)
+**Никогда не упоминай в публичных файлах** (`
