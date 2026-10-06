@@ -329,11 +329,14 @@ def _strip_cjk(text: str) -> str:
 class Brain:
     def __init__(self, model="qwen2.5:7b-instruct",
                  url="http://127.0.0.1:11434", timeout=20.0,
-                 prompt_level="auto", temperature=0.7):
+                 prompt_level="auto", temperature=0.7,
+                 config=None):
         self.model = model
         self.url = url.rstrip("/")
         self.timeout = timeout
         self.temperature = float(temperature)
+        self._prompt_level_override = prompt_level
+        self._config = config
 
         self.prompt_level, self.system_prompt = pick_prompt(model, prompt_level)
         log.info("Промпт: %s (для %s)", self.prompt_level, model)
@@ -344,6 +347,26 @@ class Brain:
             threading.Thread(target=self._warmup, daemon=True, name="brain-warmup").start()
         else:
             log.warning("Ollama недоступна — LLM выключена")
+
+        # Подписка на смену модели в config
+        if config is not None and hasattr(config, "subscribe"):
+            config.subscribe(self._on_config_change)
+
+    def _on_config_change(self, key: str, value) -> None:
+        """Реагирует на смену llm_model / ollama_url в рантайме."""
+        if key == "llm_model" and value and value != self.model:
+            log.info("LLM: смена модели %s → %s", self.model, value)
+            self.model = value
+            self.prompt_level, self.system_prompt = pick_prompt(
+                value, self._prompt_level_override
+            )
+            log.info("LLM: промпт переключён на %s", self.prompt_level)
+            # Прогреваем новую модель в фоне
+            threading.Thread(target=self._warmup, daemon=True,
+                             name="brain-rewarmup").start()
+        elif key == "ollama_url" and value:
+            self.url = value.rstrip("/")
+            log.info("LLM: URL Ollama → %s", self.url)
 
     def _ping(self):
         try:
@@ -464,8 +487,14 @@ class Brain:
             self._chat("привет", timeout=120)
             log.info("LLM прогрета за %.1f с", time.time() - t0)
         except Exception:
-            log.exception("Прогрев LLM не удался")
-            self.available = False
+            log.exception("Прогрев LLM не удался (модель %s)", self.model)
+            # НЕ выключаем Brain — пользователь может переключиться на другую модель
+            log.warning(
+                "LLM: модель %s не загрузилась. "
+                "Проверь `ollama list` — возможно, модель не скачана. "
+                "Выбери рабочую модель в Настройках → LLM.",
+                self.model,
+            )
 
     def parse(self, cmd):
         if not self.available:

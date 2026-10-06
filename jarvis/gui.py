@@ -772,6 +772,9 @@ class FenixGUI:
                     _label("Бэкенд:"),
                     tts_dropdown,
                     ft.Container(height=8),
+                    _label("Качество голоса:"),
+                    self._build_voice_quality_row(),
+                    ft.Container(height=8),
                     _label("Скорость речи:"),
                     rate_slider,
                     ft.Container(height=25),
@@ -787,6 +790,42 @@ class FenixGUI:
             expand=True,
         )
 
+    def _build_voice_quality_row(self) -> ft.Control:
+        """RadioGroup «Качество голоса» + рекомендация из system_caps.json."""
+        current = self.config.get("tts_voice_quality", "medium")
+
+        # Читаем рекомендацию из system_caps.json
+        recommended = "medium"
+        try:
+            import json
+            from pathlib import Path
+            caps_path = Path(__file__).resolve().parent.parent / "system_caps.json"
+            if caps_path.exists():
+                caps = json.loads(caps_path.read_text(encoding="utf-8"))
+                recommended = caps.get("cpu", {}).get("recommended_piper", "medium")
+        except Exception:
+            log.exception("Не удалось прочитать рекомендацию Piper")
+
+        radio = ft.RadioGroup(
+            value=current,
+            on_change=self._on_voice_quality_change,
+            content=ft.Row(
+                controls=[
+                    ft.Radio(value="medium", label="medium (быстрее)", active_color=ACCENT),
+                    ft.Radio(value="high", label="high (лучше)", active_color=ACCENT),
+                ],
+                spacing=15,
+            ),
+        )
+
+        hint = ft.Text(
+            f"Рекомендация по CPU: {recommended}. "
+            f"⚠ Для русских голосов high пока недоступен — используется medium.",
+            size=11,
+            color=TEXT_DIM,
+        )
+
+        return ft.Column(controls=[radio, hint], spacing=4)
     # ---------------------------------------------------------------
     # Очередь
     # ---------------------------------------------------------------
@@ -1053,6 +1092,32 @@ class FenixGUI:
 
     def _on_tts_change(self, e) -> None:
         self.config.set("tts_backend", e.control.value)
+       
+    def _on_voice_quality_change(self, e) -> None:
+        """Смена качества голоса — пересоздаёт Piper на лету."""
+        quality = e.control.value
+        if quality not in ("medium", "high"):
+            quality = "medium"
+
+        self.config.set("tts_voice_quality", quality)
+
+        if self.jarvis is not None and self.jarvis.speaker is not None:
+            voice = self.config.get("tts_voice", "ruslan")
+            try:
+                self.jarvis.speaker._init_piper(voice)
+                # Проверяем, какое качество реально загрузилось
+                actual = getattr(self.jarvis.speaker, "_piper_quality", quality)
+                if actual != quality:
+                    log.warning(
+                        "Piper: %s/%s не найден, использован %s/%s",
+                        voice, quality, voice, actual,
+                    )
+                    if self._mic_test_result is not None:
+                        # Не критично, но покажем в логе
+                        pass
+                log.info("Piper переключён на %s/%s", voice, actual)
+            except Exception:
+                log.exception("Не удалось переключить качество голоса")
 
     def _on_rate_change(self, e) -> None:
         self.config.set("voice_rate", round(float(e.control.value), 2))

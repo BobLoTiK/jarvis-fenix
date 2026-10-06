@@ -895,6 +895,7 @@ pause
   "tts_backend": "auto",
   "xtts_ref": "voices/jarvis.wav",
   "tts_voice": "ruslan",
+  "tts_voice_quality": "medium",
   "voice_rate": 1.15,
   "voice": "Pavel",
   "music_app": "яндекс музыка",
@@ -920,7 +921,7 @@ pause
   "gui_y": null,
   "tray_enabled": true,
   "use_whisper": true,
-  "whisper_model": "auto",
+  "whisper_model": "coriollon/whisper-large-v3-turbo-russian",
   "whisper_device": "auto",
   "use_llm": true,
   "llm_model": "qwen2.5:7b-instruct",
@@ -2676,11 +2677,14 @@ def _strip_cjk(text: str) -> str:
 class Brain:
     def __init__(self, model="qwen2.5:7b-instruct",
                  url="http://127.0.0.1:11434", timeout=20.0,
-                 prompt_level="auto", temperature=0.7):
+                 prompt_level="auto", temperature=0.7,
+                 config=None):
         self.model = model
         self.url = url.rstrip("/")
         self.timeout = timeout
         self.temperature = float(temperature)
+        self._prompt_level_override = prompt_level
+        self._config = config
 
         self.prompt_level, self.system_prompt = pick_prompt(model, prompt_level)
         log.info("Промпт: %s (для %s)", self.prompt_level, model)
@@ -2691,6 +2695,26 @@ class Brain:
             threading.Thread(target=self._warmup, daemon=True, name="brain-warmup").start()
         else:
             log.warning("Ollama недоступна — LLM выключена")
+
+        # Подписка на смену модели в config
+        if config is not None and hasattr(config, "subscribe"):
+            config.subscribe(self._on_config_change)
+
+    def _on_config_change(self, key: str, value) -> None:
+        """Реагирует на смену llm_model / ollama_url в рантайме."""
+        if key == "llm_model" and value and value != self.model:
+            log.info("LLM: смена модели %s → %s", self.model, value)
+            self.model = value
+            self.prompt_level, self.system_prompt = pick_prompt(
+                value, self._prompt_level_override
+            )
+            log.info("LLM: промпт переключён на %s", self.prompt_level)
+            # Прогреваем новую модель в фоне
+            threading.Thread(target=self._warmup, daemon=True,
+                             name="brain-rewarmup").start()
+        elif key == "ollama_url" and value:
+            self.url = value.rstrip("/")
+            log.info("LLM: URL Ollama → %s", self.url)
 
     def _ping(self):
         try:
@@ -2811,8 +2835,14 @@ class Brain:
             self._chat("привет", timeout=120)
             log.info("LLM прогрета за %.1f с", time.time() - t0)
         except Exception:
-            log.exception("Прогрев LLM не удался")
-            self.available = False
+            log.exception("Прогрев LLM не удался (модель %s)", self.model)
+            # НЕ выключаем Brain — пользователь может переключиться на другую модель
+            log.warning(
+                "LLM: модель %s не загрузилась. "
+                "Проверь `ollama list` — возможно, модель не скачана. "
+                "Выбери рабочую модель в Настройках → LLM.",
+                self.model,
+            )
 
     def parse(self, cmd):
         if not self.available:
@@ -2905,6 +2935,7 @@ DEFAULT_CONFIG = {
     "tts_backend": "auto",
     "xtts_ref": "voices/jarvis.wav",
     "tts_voice": "ruslan",
+    "tts_voice_quality": "medium",
     "voice_rate": 1.15,
     "voice": "Pavel",
     "sample_rate": 16000,
@@ -2914,7 +2945,7 @@ DEFAULT_CONFIG = {
     "command_window_sec": 8,
     "dialog_window_sec": 20,
     "use_whisper": True,
-    "whisper_model": "auto",
+    "whisper_model": "coriollon/whisper-large-v3-turbo-russian",
     "whisper_device": "auto",
     "mode": "combo",
     "barge_enabled": True,
@@ -4030,6 +4061,9 @@ class FenixGUI:
                     _label("Бэкенд:"),
                     tts_dropdown,
                     ft.Container(height=8),
+                    _label("Качество голоса:"),
+                    self._build_voice_quality_row(),
+                    ft.Container(height=8),
                     _label("Скорость речи:"),
                     rate_slider,
                     ft.Container(height=25),
@@ -4045,6 +4079,42 @@ class FenixGUI:
             expand=True,
         )
 
+    def _build_voice_quality_row(self) -> ft.Control:
+        """RadioGroup «Качество голоса» + рекомендация из system_caps.json."""
+        current = self.config.get("tts_voice_quality", "medium")
+
+        # Читаем рекомендацию из system_caps.json
+        recommended = "medium"
+        try:
+            import json
+            from pathlib import Path
+            caps_path = Path(__file__).resolve().parent.parent / "system_caps.json"
+            if caps_path.exists():
+                caps = json.loads(caps_path.read_text(encoding="utf-8"))
+                recommended = caps.get("cpu", {}).get("recommended_piper", "medium")
+        except Exception:
+            log.exception("Не удалось прочитать рекомендацию Piper")
+
+        radio = ft.RadioGroup(
+            value=current,
+            on_change=self._on_voice_quality_change,
+            content=ft.Row(
+                controls=[
+                    ft.Radio(value="medium", label="medium (быстрее)", active_color=ACCENT),
+                    ft.Radio(value="high", label="high (лучше)", active_color=ACCENT),
+                ],
+                spacing=15,
+            ),
+        )
+
+        hint = ft.Text(
+            f"Рекомендация по CPU: {recommended}. "
+            f"⚠ Для русских голосов high пока недоступен — используется medium.",
+            size=11,
+            color=TEXT_DIM,
+        )
+
+        return ft.Column(controls=[radio, hint], spacing=4)
     # ---------------------------------------------------------------
     # Очередь
     # ---------------------------------------------------------------
@@ -4311,6 +4381,32 @@ class FenixGUI:
 
     def _on_tts_change(self, e) -> None:
         self.config.set("tts_backend", e.control.value)
+       
+    def _on_voice_quality_change(self, e) -> None:
+        """Смена качества голоса — пересоздаёт Piper на лету."""
+        quality = e.control.value
+        if quality not in ("medium", "high"):
+            quality = "medium"
+
+        self.config.set("tts_voice_quality", quality)
+
+        if self.jarvis is not None and self.jarvis.speaker is not None:
+            voice = self.config.get("tts_voice", "ruslan")
+            try:
+                self.jarvis.speaker._init_piper(voice)
+                # Проверяем, какое качество реально загрузилось
+                actual = getattr(self.jarvis.speaker, "_piper_quality", quality)
+                if actual != quality:
+                    log.warning(
+                        "Piper: %s/%s не найден, использован %s/%s",
+                        voice, quality, voice, actual,
+                    )
+                    if self._mic_test_result is not None:
+                        # Не критично, но покажем в логе
+                        pass
+                log.info("Piper переключён на %s/%s", voice, actual)
+            except Exception:
+                log.exception("Не удалось переключить качество голоса")
 
     def _on_rate_change(self, e) -> None:
         self.config.set("voice_rate", round(float(e.control.value), 2))
@@ -6402,6 +6498,7 @@ def main() -> None:
             config.get("ollama_url", "http://127.0.0.1:11434"),
             prompt_level=config.get("prompt_level", "auto"),
             temperature=config.get("llm_temperature", 0.7),
+            config=config,   # ← передаём config для подписки
         )
         if not brain.available:
             brain = None
@@ -8534,6 +8631,7 @@ def _prepare_text(text: str) -> str:
 
 class Speaker:
     def __init__(self, config):
+        self._config = config
         cfg = config if hasattr(config, "get") else {}
         self.rate = float(cfg.get("voice_rate", 1.15))
         self.voice = cfg.get("tts_voice", "ruslan")
@@ -8695,13 +8793,34 @@ class Speaker:
         from huggingface_hub import hf_hub_download
         from piper import PiperVoice, SynthesisConfig
 
-        rel = f"ru/ru_RU/{voice}/medium/ru_RU-{voice}-medium.onnx"
-        onnx = hf_hub_download(PIPER_REPO, rel)
-        hf_hub_download(PIPER_REPO, rel + ".json")
+        # Качество — из config. Fallback на medium, если high не скачается.
+        cfg = self._config if hasattr(self, "_config") else {}
+        quality = "medium"
+        if hasattr(cfg, "get"):
+            quality = cfg.get("tts_voice_quality", "medium")
+        if quality not in ("medium", "high"):
+            quality = "medium"
+
+        rel = f"ru/ru_RU/{voice}/{quality}/ru_RU-{voice}-{quality}.onnx"
+
+        try:
+            onnx = hf_hub_download(PIPER_REPO, rel)
+            hf_hub_download(PIPER_REPO, rel + ".json")
+            log.info("TTS: piper, голос %s/%s", voice, quality)
+        except Exception:
+            log.warning(
+                "Голос %s/%s не найден, откат на medium", voice, quality
+            )
+            quality = "medium"
+            rel = f"ru/ru_RU/{voice}/medium/ru_RU-{voice}-medium.onnx"
+            onnx = hf_hub_download(PIPER_REPO, rel)
+            hf_hub_download(PIPER_REPO, rel + ".json")
+
         self._piper = PiperVoice.load(onnx)
         self._piper_cfg = SynthesisConfig(length_scale=round(1.0 / self.rate, 2))
         self._mode = "piper"
-        log.info("TTS: piper, голос %s, скорость %.2f", voice, self.rate)
+        self._piper_quality = quality   # ← сохраняем фактическое качество
+        log.info("TTS: piper, голос %s/%s, скорость %.2f", voice, quality, self.rate)
 
     def _speak_piper(self, text: str, token: threading.Event) -> None:
         if token.is_set():
@@ -11392,6 +11511,40 @@ def check_layout() -> dict:
     except Exception as e:
         return {"available": False, "method": "none", "reason": str(e)[:80]}
 
+def check_cpu() -> dict:
+    """Определяет категорию CPU для рекомендации Piper.
+
+    Возвращает: категория (weak/normal/strong) + рекомендация (medium/high).
+    Никаких конкретных моделей CPU — только количество ядер/потоков.
+    """
+    try:
+        import psutil
+    except ImportError:
+        return {"available": False, "reason": "psutil не установлен"}
+
+    try:
+        cores = psutil.cpu_count(logical=False) or 0
+        threads = psutil.cpu_count(logical=True) or 0
+
+        if cores >= 6 and threads >= 12:
+            power = "strong"
+            recommended_piper = "high"
+        elif cores >= 4 and threads >= 8:
+            power = "normal"
+            recommended_piper = "medium"
+        else:
+            power = "weak"
+            recommended_piper = "medium"
+
+        return {
+            "available": True,
+            "cores": cores,
+            "threads": threads,
+            "power": power,
+            "recommended_piper": recommended_piper,
+        }
+    except Exception as e:
+        return {"available": False, "reason": str(e)[:80]}
 
 def main() -> int:
     log.info("=" * 60)
@@ -11402,6 +11555,7 @@ def main() -> int:
         "volume": check_volume(),
         "brightness": check_brightness(),
         "layout": check_layout(),
+        "cpu": check_cpu(),
         "checked_at": time.time(),
     }
 
@@ -11410,6 +11564,20 @@ def main() -> int:
         if name == "checked_at":
             continue
         mark = "[OK]  " if info.get("available") else "[FAIL]"
+
+        if name == "cpu":
+            # Специальный вывод для CPU
+            if info.get("available"):
+                log.info(
+                    "%s %-12s %s ядер / %s потоков → рекомендация: %s",
+                    mark, name,
+                    info.get("cores"), info.get("threads"),
+                    info.get("recommended_piper", "medium"),
+                )
+            else:
+                log.info("%s %-12s %s", mark, name, info.get("reason", "?"))
+            continue
+
         reason = f"  ({info.get('reason', '')})" if not info.get("available") else ""
         log.info("%s %-12s %s%s", mark, name, info.get("method", "?"), reason)
 
@@ -11960,7 +12128,14 @@ pause >nul
     "available": true,
     "method": "sendinput"
   },
-  "checked_at": 1791231172.692957
+  "cpu": {
+    "available": true,
+    "cores": 6,
+    "threads": 12,
+    "power": "strong",
+    "recommended_piper": "high"
+  },
+  "checked_at": 1791272042.5586116
 }
 ```
 

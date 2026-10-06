@@ -89,6 +89,40 @@ def check_layout() -> dict:
     except Exception as e:
         return {"available": False, "method": "none", "reason": str(e)[:80]}
 
+def check_cpu() -> dict:
+    """Определяет категорию CPU для рекомендации Piper.
+
+    Возвращает: категория (weak/normal/strong) + рекомендация (medium/high).
+    Никаких конкретных моделей CPU — только количество ядер/потоков.
+    """
+    try:
+        import psutil
+    except ImportError:
+        return {"available": False, "reason": "psutil не установлен"}
+
+    try:
+        cores = psutil.cpu_count(logical=False) or 0
+        threads = psutil.cpu_count(logical=True) or 0
+
+        if cores >= 6 and threads >= 12:
+            power = "strong"
+            recommended_piper = "high"
+        elif cores >= 4 and threads >= 8:
+            power = "normal"
+            recommended_piper = "medium"
+        else:
+            power = "weak"
+            recommended_piper = "medium"
+
+        return {
+            "available": True,
+            "cores": cores,
+            "threads": threads,
+            "power": power,
+            "recommended_piper": recommended_piper,
+        }
+    except Exception as e:
+        return {"available": False, "reason": str(e)[:80]}
 
 def main() -> int:
     log.info("=" * 60)
@@ -99,6 +133,7 @@ def main() -> int:
         "volume": check_volume(),
         "brightness": check_brightness(),
         "layout": check_layout(),
+        "cpu": check_cpu(),
         "checked_at": time.time(),
     }
 
@@ -107,6 +142,20 @@ def main() -> int:
         if name == "checked_at":
             continue
         mark = "[OK]  " if info.get("available") else "[FAIL]"
+
+        if name == "cpu":
+            # Специальный вывод для CPU
+            if info.get("available"):
+                log.info(
+                    "%s %-12s %s ядер / %s потоков → рекомендация: %s",
+                    mark, name,
+                    info.get("cores"), info.get("threads"),
+                    info.get("recommended_piper", "medium"),
+                )
+            else:
+                log.info("%s %-12s %s", mark, name, info.get("reason", "?"))
+            continue
+
         reason = f"  ({info.get('reason', '')})" if not info.get("available") else ""
         log.info("%s %-12s %s%s", mark, name, info.get("method", "?"), reason)
 

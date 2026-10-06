@@ -369,6 +369,7 @@ def main() -> None:
             config.get("ollama_url", "http://127.0.0.1:11434"),
             prompt_level=config.get("prompt_level", "auto"),
             temperature=config.get("llm_temperature", 0.7),
+            config=config,   # ← передаём config для подписки
         )
         if not brain.available:
             brain = None

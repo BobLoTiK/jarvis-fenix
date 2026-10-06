@@ -107,6 +107,7 @@ def _prepare_text(text: str) -> str:
 
 class Speaker:
     def __init__(self, config):
+        self._config = config
         cfg = config if hasattr(config, "get") else {}
         self.rate = float(cfg.get("voice_rate", 1.15))
         self.voice = cfg.get("tts_voice", "ruslan")
@@ -268,13 +269,34 @@ class Speaker:
         from huggingface_hub import hf_hub_download
         from piper import PiperVoice, SynthesisConfig
 
-        rel = f"ru/ru_RU/{voice}/medium/ru_RU-{voice}-medium.onnx"
-        onnx = hf_hub_download(PIPER_REPO, rel)
-        hf_hub_download(PIPER_REPO, rel + ".json")
+        # Качество — из config. Fallback на medium, если high не скачается.
+        cfg = self._config if hasattr(self, "_config") else {}
+        quality = "medium"
+        if hasattr(cfg, "get"):
+            quality = cfg.get("tts_voice_quality", "medium")
+        if quality not in ("medium", "high"):
+            quality = "medium"
+
+        rel = f"ru/ru_RU/{voice}/{quality}/ru_RU-{voice}-{quality}.onnx"
+
+        try:
+            onnx = hf_hub_download(PIPER_REPO, rel)
+            hf_hub_download(PIPER_REPO, rel + ".json")
+            log.info("TTS: piper, голос %s/%s", voice, quality)
+        except Exception:
+            log.warning(
+                "Голос %s/%s не найден, откат на medium", voice, quality
+            )
+            quality = "medium"
+            rel = f"ru/ru_RU/{voice}/medium/ru_RU-{voice}-medium.onnx"
+            onnx = hf_hub_download(PIPER_REPO, rel)
+            hf_hub_download(PIPER_REPO, rel + ".json")
+
         self._piper = PiperVoice.load(onnx)
         self._piper_cfg = SynthesisConfig(length_scale=round(1.0 / self.rate, 2))
         self._mode = "piper"
-        log.info("TTS: piper, голос %s, скорость %.2f", voice, self.rate)
+        self._piper_quality = quality   # ← сохраняем фактическое качество
+        log.info("TTS: piper, голос %s/%s, скорость %.2f", voice, quality, self.rate)
 
     def _speak_piper(self, text: str, token: threading.Event) -> None:
         if token.is_set():
