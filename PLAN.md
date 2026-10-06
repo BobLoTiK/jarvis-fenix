@@ -279,7 +279,7 @@
   },
   "onboarding_done": true
 }
-
+```
 | # | Задача | Время |
 |---|---|---|
 | З1 | `persona` + `onboarding_done` в `profile.json` | 20 мин |
