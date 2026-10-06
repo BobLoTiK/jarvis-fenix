@@ -262,6 +262,18 @@ class FenixGUI:
             _apply_palette("dark")
 
         page.title = "Феникс"
+
+        # Иконка окна — из jarvis/icon.ico
+        icon_path = Path(__file__).resolve().parent / "icon.ico"
+        if icon_path.exists():
+            try:
+                page.window.icon = str(icon_path)
+                log.info("GUI: иконка загружена из %s", icon_path.name)
+            except Exception:
+                log.exception("Не удалось загрузить иконку окна")
+        else:
+            log.warning("GUI: иконки нет — %s", icon_path)
+
         page.window.width = 1100
         page.window.height = 760
         page.window.min_width = 900
@@ -285,6 +297,17 @@ class FenixGUI:
         if self.start_hidden:
             page.window.visible = False
             log.info("GUI: окно скрыто при старте (launch_mode=tray)")
+
+        # prevent_close + on_event в Flet 1.0.3 НЕ РАБОТАЮТ:
+        # prevent_close блокирует закрытие, но on_event НЕ вызывается —
+        # окно просто висит, крестик не работает.
+        #
+        # Поэтому перехвата нет: окно закрывается нормально.
+        # Феникс при этом тоже завершается (flet возвращает управление
+        # из ft.run, main() идёт к jarvis.shutdown()).
+        #
+        # Трей, который решил бы эту проблему, отключён.
+        # TODO: вернуть трей через pystray в отдельном процессе.
 
         self._build_ui(page)
         page.run_task(self._process_queue)

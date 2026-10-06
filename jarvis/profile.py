@@ -33,10 +33,14 @@ from jarvis import config_manager
 
 log = logging.getLogger("jarvis.profile")
 
+from jarvis import paths as _paths
+
 BASE_DIR = Path(__file__).resolve().parent.parent
-PROFILES_DIR = BASE_DIR / "profiles"
-_OLD_PROFILE = BASE_DIR / "user_profile.json"
-_OLD_DIALOG = BASE_DIR / "dialog.json"
+# profiles/ — в USER_DIR, а не рядом с кодом.
+# Может содержать кириллицу — это ок (Vosk их не читает).
+PROFILES_DIR = _paths.profiles_dir()
+_OLD_PROFILE = _paths.user_dir() / "user_profile.json"
+_OLD_DIALOG = _paths.user_dir() / "dialog.json"
 
 # №76: один RLock вместо двух локов. Раньше _current_lock и _listeners_lock
 # могли дать гонку: _current менялся, а подписчики читали memory со старым

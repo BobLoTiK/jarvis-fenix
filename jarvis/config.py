@@ -168,11 +168,15 @@ _GLOBAL: Config | None = None
 
 
 def load_config(base_dir: Path | None = None) -> Config:
-    """Создаёт глобальный Config."""
+    """Создаёт глобальный Config.
+
+    base_dir — оставлен для совместимости, но config.json
+    теперь ВСЕГДА в USER_DIR (%APPDATA%\\Phoenix).
+    """
     global _GLOBAL
     if _GLOBAL is None:
-        path = (base_dir / "config.json") if base_dir else None
-        _GLOBAL = Config(path)
+        from jarvis import paths
+        _GLOBAL = Config(paths.config_path())
     return _GLOBAL
 
 

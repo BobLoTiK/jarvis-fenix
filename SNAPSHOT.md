@@ -1,7 +1,7 @@
 # SNAPSHOT проекта «Феникс»
 
 _Автоматически сгенерировано `snapshot.py`. Обновляется при `git push`._
-_Файлов в снимке: 73_
+_Файлов в снимке: 80_
 
 ---
 
@@ -36,6 +36,7 @@ jarvis/
 │   ├── model.py
 │   ├── modes.py
 │   ├── packs.py
+│   ├── paths.py
 │   ├── profile.py
 │   ├── recorder.py
 │   ├── reply.py
@@ -58,6 +59,7 @@ jarvis/
 │   ├── __init__.py
 │   ├── build_exe.py
 │   ├── check_caps.py
+│   ├── make_icon.py
 │   ├── mics.py
 │   ├── selftest.py
 │   ├── set_llm_model.py
@@ -75,10 +77,15 @@ jarvis/
 ├── CI.md
 ├── config.example.json
 ├── CONTRIBUTING.md
+├── create_shortcut.bat
+├── ft.Control
 ├── install.bat
+├── installer.iss
 ├── launcher.py
+├── None
 ├── PLAN.md
 ├── PROMPT.md
+├── python
 ├── README.md
 ├── requirements-ci.txt
 ├── requirements-dev.txt
@@ -86,9 +93,9 @@ jarvis/
 ├── snapshot.py
 ├── start_fenix.bat
 ├── start_fenix_debug.bat
+├── str
 ├── system_caps.json
 ├── test_intents.py
-├── вкладка
 ```
 
 ---
@@ -1505,6 +1512,66 @@ git reset --hard HEAD~1
 **Погнали, брат.** 🚀
 ```
 
+### `create_shortcut.bat`
+
+```batch
+@echo off
+setlocal EnableDelayedExpansion
+chcp 65001 >nul
+title Ярлык Феникса
+
+echo ============================================================
+echo   Создание ярлыка Феникса на рабочем столе
+echo ============================================================
+echo.
+
+cd /d "%~dp0"
+
+REM Целевой файл — Феникс.exe в корне проекта
+set "TARGET=%~dp0Феникс.exe"
+
+if not exist "%TARGET%" (
+    echo   ОШИБКА: Феникс.exe не найден в корне проекта.
+    echo.
+    echo   Сначала собери его: python scripts\build_exe.py
+    echo.
+    pause
+    exit /b 1
+)
+
+set "ICON=%TARGET%"
+
+echo   Цель:    %TARGET%
+echo   Иконка:  %ICON%
+echo.
+
+powershell -NoProfile -Command ^
+    "$ws = New-Object -ComObject WScript.Shell;" ^
+    "$sc = $ws.CreateShortcut([System.IO.Path]::Combine([Environment]::GetFolderPath('Desktop'), 'Феникс.lnk'));" ^
+    "$sc.TargetPath = '%TARGET%';" ^
+    "$sc.IconLocation = '%ICON%';" ^
+    "$sc.Description = 'Феникс — голосовой ассистент';" ^
+    "$sc.WorkingDirectory = '%~dp0';" ^
+    "$sc.Save()"
+
+if errorlevel 1 (
+    echo.
+    echo   ОШИБКА: не удалось создать ярлык.
+    pause
+    exit /b 1
+)
+
+echo ============================================================
+echo   Ярлык создан на рабочем столе: Феникс.lnk
+echo ============================================================
+echo.
+pause
+```
+
+### `ft.Control`
+
+_Бинарный или нетекстовый файл: .Control_
+
 ### `install.bat`
 
 ```batch
@@ -1919,6 +1986,10 @@ if /i "%RUN_MICS%"=="y" (
 echo.
 pause
 ```
+
+### `installer.iss`
+
+_Бинарный или нетекстовый файл: .iss_
 
 ### `jarvis\__init__.py`
 
@@ -3342,6 +3413,17 @@ none
 НИКОГДА не используй search, если не сказано «найди», «поищи», «загугли».
 По умолчанию отвечай через answer — даже на факты.
 
+set_profile ИСПОЛЬЗУЙ ТОЛЬКО ДЛЯ:
+    «меня зовут X» → {"action":"set_profile","key":"name","value":"X"}
+    «мой город X» / «поменяй город на X» → {"action":"set_profile","key":"default_city","value":"X"}
+
+НЕ ИСПОЛЬЗУЙ set_profile ДЛЯ:
+    «верни яндекс» → open_site target яндекс
+    «открой ютуб» → open_site target ютуб
+    «включи музыку» → open_app target яндекс музыка
+
+Если фраза начинается с «верни», «открой», «запусти» — это open_app или open_site, НЕ set_profile.
+
 === СТИЛЬ ДИАЛОГА (chat_stream) ===
 Ты — Феникс. Спокойный, вежливый, с сухим юмором, обращаешься «сэр».
 Отвечай в 2–5 предложениях. Без списков, без markdown, без эмодзи.
@@ -3406,6 +3488,7 @@ none
 Не путай погоду и курс.
 Не используй search без «найди», «поищи», «загугли».
 По умолчанию — answer.
+set_profile — только для «меня зовут X» и «мой город X». НЕ для «верни яндекс» / «открой ютуб».
 
 === ДИАЛОГ ===
 Ты — Феникс. Спокойный, вежливый, с сухим юмором, «сэр».
@@ -3461,7 +3544,12 @@ get_profile (key: name|default_city — прочитать из профиля).
 Если не уверен — не выдумывай, отвечай {"action":"none"} или {"action":"answer","reply":"..."}.
 Если фраза — вопрос, используй answer.
 Если это команда — выбери подходящий action.
-Думай сам."""
+Думай сам.
+
+=== SET_PROFILE ===
+set_profile — ТОЛЬКО для «меня зовут X» и «мой город X» / «поменяй город на X».
+«верни яндекс» / «открой ютуб» → open_site.
+«включи музыку» → open_app."""
 
 
 # =================================================================
@@ -3915,11 +4003,15 @@ _GLOBAL: Config | None = None
 
 
 def load_config(base_dir: Path | None = None) -> Config:
-    """Создаёт глобальный Config."""
+    """Создаёт глобальный Config.
+
+    base_dir — оставлен для совместимости, но config.json
+    теперь ВСЕГДА в USER_DIR (%APPDATA%\\Phoenix).
+    """
     global _GLOBAL
     if _GLOBAL is None:
-        path = (base_dir / "config.json") if base_dir else None
-        _GLOBAL = Config(path)
+        from jarvis import paths
+        _GLOBAL = Config(paths.config_path())
     return _GLOBAL
 
 
@@ -4405,6 +4497,18 @@ class FenixGUI:
             _apply_palette("dark")
 
         page.title = "Феникс"
+
+        # Иконка окна — из jarvis/icon.ico
+        icon_path = Path(__file__).resolve().parent / "icon.ico"
+        if icon_path.exists():
+            try:
+                page.window.icon = str(icon_path)
+                log.info("GUI: иконка загружена из %s", icon_path.name)
+            except Exception:
+                log.exception("Не удалось загрузить иконку окна")
+        else:
+            log.warning("GUI: иконки нет — %s", icon_path)
+
         page.window.width = 1100
         page.window.height = 760
         page.window.min_width = 900
@@ -4428,6 +4532,17 @@ class FenixGUI:
         if self.start_hidden:
             page.window.visible = False
             log.info("GUI: окно скрыто при старте (launch_mode=tray)")
+
+        # prevent_close + on_event в Flet 1.0.3 НЕ РАБОТАЮТ:
+        # prevent_close блокирует закрытие, но on_event НЕ вызывается —
+        # окно просто висит, крестик не работает.
+        #
+        # Поэтому перехвата нет: окно закрывается нормально.
+        # Феникс при этом тоже завершается (flet возвращает управление
+        # из ft.run, main() идёт к jarvis.shutdown()).
+        #
+        # Трей, который решил бы эту проблему, отключён.
+        # TODO: вернуть трей через pystray в отдельном процессе.
 
         self._build_ui(page)
         page.run_task(self._process_queue)
@@ -7372,7 +7487,7 @@ def build_context() -> str:
 ### `jarvis\main.py`
 
 ```python
-"""Точка входа: связывает распознавание, интенты, синтез речи и трей.
+"""Точка входа: связывает распознавание, интенты, синтез речи и GUI.
 
 Barge-in: во время речи Феникса микрофон НЕ глушится, а следит за громкостью.
 Если юзер заговорил — TTS прерывается через speaker.stop().
@@ -7380,9 +7495,18 @@ Barge-in: во время речи Феникса микрофон НЕ глуш
 
 Стриминг: генератор оборачивается в tee — чанки идут и в TTS, и в GUI.
 
+ТРЕЙ ВРЕМЕННО ОТКЛЮЧЁН.
+Причина: pystray требует свой Windows message loop, а главный поток
+занят flet'ом (ft.run блокирует). Попытка запустить pystray в фоне
+приводит к зависанию GUI.
+
+Решение будет позже — отдельный процесс tray_runner.py с общением
+через файл-сигнал. Пока трей не работает.
+
 launch_mode:
-    "gui"  — окно Flet + трей + голос (по умолчанию).
-    "tray" — только трей + голос, без окна.
+    "gui"  — окно Flet + голос (по умолчанию).
+    "tray" — тоже окно, но скрытое (показать можно только через трей,
+             который сейчас не работает — фактически не используется).
 """
 
 import logging
@@ -7401,7 +7525,6 @@ from jarvis.text_utils import normalize
 from jarvis.model import ensure_model
 from jarvis.reply import Reply
 from jarvis.stt import Listener
-from jarvis.tray import build_tray
 from jarvis import timers
 from jarvis.tts import Speaker
 from jarvis.gui import FenixGUI
@@ -7652,12 +7775,13 @@ class Jarvis:
 
 
 def setup_logging() -> None:
+    from jarvis import paths as _paths
+
     logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("urllib3").setLevel(logging.WARNING)
 
-    LOGS_DIR = BASE_DIR / "logs"
-    LOGS_DIR.mkdir(exist_ok=True)
+    LOGS_DIR = _paths.logs_dir()
 
     fmt = "%(asctime)s %(name)s %(levelname)s %(message)s"
     formatter = logging.Formatter(fmt)
@@ -7752,7 +7876,13 @@ def main() -> None:
     from jarvis import weather as _weather
     _profile.init()
     _weather.set_config(config)
-    model_dir = ensure_model(BASE_DIR / "models")
+    # ensure_model сам найдёт/скопирует/скачает модель в ASCII-путь.
+    # Передаём локальную папку models (может быть в C:\jarvis\models),
+    # если она есть — модель скопируется оттуда, иначе скачается.
+    local_models = BASE_DIR / "models"
+    if not local_models.exists():
+        local_models = None
+    model_dir = ensure_model(local_models)
 
     whisper = None
     if config.get("use_whisper", True):
@@ -7827,36 +7957,34 @@ def main() -> None:
 
     jarvis.say(Reply(text=f"{APP_NAME} запущен и готов к работе."))
 
-    # Трей — в отдельном потоке (может не работать на некоторых системах)
-    if config.get("tray_enabled", True):
-        try:
-            tray = build_tray(jarvis)
-
-            def _run_tray():
-                try:
-                    tray.run()
-                except (Exception, SystemExit):
-                    # №90: SystemExit — наследник BaseException, не Exception.
-                    # pystray может его бросить при выходе — не роняем процесс.
-                    log.exception("Трей упал в потоке — работаю без него")
-
-            threading.Thread(target=_run_tray, daemon=True, name="tray").start()
-        except (Exception, SystemExit):
-            log.exception("Трей не завёлся — работаю без него")
+    # =================================================================
+    # ТРЕЙ ВРЕМЕННО ОТКЛЮЧЁН.
+    #
+    # Причина: pystray требует свой Windows message loop, а главный поток
+    # занят flet'ом (ft.run блокирует). Попытка запустить pystray в фоне
+    # приводит к зависанию GUI.
+    #
+    # Что будет позже: отдельный процесс jarvis/tray_runner.py, который
+    # общается с основным через файл-сигнал logs/tray_signal.txt.
+    #
+    # Как только трей заработает — раскомментировать блок и удалить заглушку.
+    # =================================================================
+    if config.get("tray_enabled", False):
+        log.warning(
+            "tray_enabled=true, но трей временно отключён (в разработке). "
+            "Феникс работает без трея. Выход — Ctrl+C или диспетчер задач."
+        )
 
     # === Режим запуска (№84) ===
-    # launch_mode:
-    #   "gui"  — окно Flet (по умолчанию).
-    #   "tray" — только трей + голос, без окна.
     launch_mode = str(config.get("launch_mode", "gui") or "gui").lower()
     if launch_mode not in ("gui", "tray"):
         launch_mode = "gui"
 
-    # Защита от конфликта: launch_mode=tray, но трей выключен.
-    # Иначе окно скрыто, трея нет — показать некому.
-    if launch_mode == "tray" and not config.get("tray_enabled", True):
+    # Защита: launch_mode=tray, но трей не работает — окно будет скрыто,
+    # показать некому. Поэтому принудительно gui.
+    if launch_mode == "tray":
         log.warning(
-            "launch_mode=tray, но tray_enabled=false — переключаюсь на gui"
+            "launch_mode=tray, но трей отключён — переключаюсь на gui"
         )
         launch_mode = "gui"
 
@@ -8127,13 +8255,21 @@ def handle_memory_command(cmd: str, messages: list) -> tuple[str | None, bool]:
 ### `jarvis\model.py`
 
 ```python
-"""Скачивание и распаковка модели Vosk для русского языка (~45 МБ)."""
+"""Скачивание и распаковка модели Vosk для русского языка (~45 МБ).
+
+Модель всегда лежит в ASCII-пути (C:\\ProgramData\\Phoenix\\models).
+Vosk (C++ на Kaldi) ломается на не-ASCII путях — поэтому копируем
+в safe-путь при первом обращении.
+"""
 
 import logging
+import shutil
 import sys
 import urllib.request
 import zipfile
 from pathlib import Path
+
+from jarvis import paths
 
 log = logging.getLogger("jarvis.model")
 
@@ -8142,34 +8278,85 @@ MODEL_URL = f"https://alphacephei.com/vosk/models/{MODEL_NAME}.zip"
 
 
 def _progress(blocks: int, block_size: int, total: int) -> None:
-    if total > 0:
+    """Прогресс-бар скачивания модели.
+
+    ВАЖНО: под pythonw.exe sys.stdout = None (нет консоли).
+    Проверяем — если stdout нет, тихо пропускаем прогресс.
+    """
+    if total <= 0:
+        return
+    if sys.stdout is None:
+        return
+    try:
         pct = min(100, blocks * block_size * 100 // total)
         sys.stdout.write(f"\rСкачивание модели: {pct}%")
         sys.stdout.flush()
+    except Exception:
+        pass
 
 
-def ensure_model(models_dir: Path) -> Path:
-    """Возвращает путь к модели, при необходимости скачивает её."""
-    model_dir = models_dir / MODEL_NAME
-    if model_dir.exists():
-        return model_dir
+def ensure_model(local_models_dir: Path | None = None) -> Path:
+    """Возвращает путь к модели Vosk в ASCII-пути.
 
-    models_dir.mkdir(parents=True, exist_ok=True)
-    zip_path = models_dir / f"{MODEL_NAME}.zip"
-    log.info("Модель не найдена, скачиваю %s", MODEL_URL)
+    Аргумент local_models_dir — необязательный. Если модель есть там,
+    но путь не-ASCII, копируем её в safe-путь.
+    """
+    safe_dir = paths.program_models_dir() / MODEL_NAME
+
+    if safe_dir.exists() and (safe_dir / "am").exists():
+        log.info("Модель Vosk готова: %s", safe_dir)
+        return safe_dir
+
+    # Если есть локальная копия (например, C:\jarvis\models\...) — копируем
+    if local_models_dir is not None:
+        local_model = local_models_dir / MODEL_NAME
+        if local_model.exists() and (local_model / "am").exists():
+            log.info("Копирую модель Vosk: %s → %s", local_model, safe_dir)
+            try:
+                if safe_dir.exists():
+                    shutil.rmtree(safe_dir)
+                shutil.copytree(local_model, safe_dir)
+                log.info("Модель скопирована")
+                return safe_dir
+            except Exception:
+                log.exception("Не удалось скопировать модель")
+
+    # Скачиваем
+    safe_dir.parent.mkdir(parents=True, exist_ok=True)
+    zip_path = safe_dir.parent / f"{MODEL_NAME}.zip"
+
+    log.info("Скачиваю модель Vosk: %s", MODEL_URL)
     try:
         urllib.request.urlretrieve(MODEL_URL, zip_path, reporthook=_progress)
-        sys.stdout.write("\n")
-        log.info("Распаковка модели...")
+        if sys.stdout is not None:
+            sys.stdout.write("\n")
+    except Exception:
+        log.exception("Не удалось скачать модель Vosk")
+        raise
+
+    log.info("Распаковка модели...")
+    try:
         with zipfile.ZipFile(zip_path) as zf:
-            zf.extractall(models_dir)
+            # В архиве одна папка vosk-model-small-ru-0.22/.
+            # Распаковываем её СОДЕРЖИМОЕ в safe_dir, без вложенности.
+            for member in zf.namelist():
+                parts = member.split("/", 1)
+                if len(parts) < 2 or not parts[1]:
+                    continue
+                target = safe_dir / parts[1]
+                if member.endswith("/"):
+                    target.mkdir(parents=True, exist_ok=True)
+                else:
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    with zf.open(member) as src, open(target, "wb") as dst:
+                        dst.write(src.read())
     finally:
         zip_path.unlink(missing_ok=True)
 
-    if not model_dir.exists():
-        raise RuntimeError(f"После распаковки не найдена папка {model_dir}")
-    log.info("Модель готова: %s", model_dir)
-    return model_dir
+    if not safe_dir.exists():
+        raise RuntimeError(f"После распаковки не найдена папка {safe_dir}")
+    log.info("Модель готова: %s", safe_dir)
+    return safe_dir
 ```
 
 ### `jarvis\modes.py`
@@ -8350,6 +8537,182 @@ def handle_pack_command(cmd: str, current_active: list[str], config=None) -> tup
     return None, current_active
 ```
 
+### `jarvis\paths.py`
+
+```python
+"""Централизованное определение путей Феникса.
+
+Два корня:
+
+    PROGRAM_DIR  — код, модели, всё что читает Vosk.
+                   ВСЕГДА ASCII. По умолчанию: C:\\ProgramData\\Phoenix
+                   (или fallback, если нет прав / не-ASCII).
+
+    USER_DIR     — config.json, profiles/, logs/.
+                   Может содержать кириллицу — Vosk их не читает.
+                   По умолчанию: %APPDATA%\\Phoenix
+
+Почему так:
+    Vosk (C++ на Kaldi) ломается на не-ASCII путях.
+    Значит модель ОБЯЗАНА быть в ASCII-пути.
+    Всё остальное (настройки, логи, профили) — где угодно.
+
+Fallback для PROGRAM_DIR:
+    1. C:\\ProgramData\\Phoenix          (стандарт, ASCII)
+    2. C:\\Phoenix                       (если ProgramData недоступен)
+    3. %TEMP%\\Phoenix                   (последний шанс)
+    4. <рядом с exe>                     (если совсем ничего)
+"""
+
+import logging
+import os
+import tempfile
+from pathlib import Path
+
+log = logging.getLogger("jarvis.paths")
+
+APP_NAME = "Phoenix"
+
+
+def _is_ascii(path: Path | str) -> bool:
+    """Проверяет, что путь — чистая ASCII (без кириллицы, иероглифов)."""
+    try:
+        str(path).encode("ascii")
+        return True
+    except UnicodeEncodeError:
+        return False
+
+
+def _try_mkdir(path: Path) -> bool:
+    """Пробует создать папку. Возвращает True, если получилось."""
+    try:
+        path.mkdir(parents=True, exist_ok=True)
+        # Проверяем, что можем писать
+        probe = path / ".write_test"
+        probe.write_text("ok", encoding="ascii")
+        probe.unlink()
+        return True
+    except Exception:
+        return False
+
+
+def _pick_program_dir() -> Path:
+    """Выбирает ASCII-путь для кода и моделей.
+
+    Порядок:
+        1. C:\\ProgramData\\Phoenix
+        2. C:\\Phoenix
+        3. %TEMP%\\Phoenix
+        4. <рядом с jarvis/>
+    """
+    candidates = []
+
+    program_data = os.environ.get("PROGRAMDATA")
+    if program_data:
+        candidates.append(Path(program_data) / APP_NAME)
+
+    candidates.append(Path(r"C:\Phoenix"))
+
+    temp = Path(tempfile.gettempdir())
+    candidates.append(temp / APP_NAME)
+
+    # Последний — рядом с кодом
+    candidates.append(Path(__file__).resolve().parent.parent / "runtime")
+
+    for cand in candidates:
+        if not _is_ascii(cand):
+            log.debug("Пропускаю не-ASCII путь: %s", cand)
+            continue
+        if _try_mkdir(cand):
+            log.info("PROGRAM_DIR: %s", cand)
+            return cand
+        log.debug("Не удалось создать: %s", cand)
+
+    # Совсем крайний случай — temp (гарантированно есть)
+    fallback = temp / APP_NAME
+    fallback.mkdir(parents=True, exist_ok=True)
+    log.warning("PROGRAM_DIR: fallback на %s", fallback)
+    return fallback
+
+
+def _pick_user_dir() -> Path:
+    """Путь для данных юзера. Может быть с кириллицей — это ок."""
+    appdata = os.environ.get("APPDATA")
+    if appdata:
+        d = Path(appdata) / APP_NAME
+    else:
+        # Linux/macOS fallback
+        d = Path.home() / f".{APP_NAME.lower()}"
+
+    try:
+        d.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        log.exception("Не удалось создать USER_DIR %s", d)
+        d = Path(tempfile.gettempdir()) / APP_NAME
+        d.mkdir(parents=True, exist_ok=True)
+
+    log.info("USER_DIR: %s", d)
+    return d
+
+
+# ============================================================
+# Публичный API
+# ============================================================
+
+# Ленивая инициализация — чтобы не дёргать файловую систему при импорте
+_PROGRAM_DIR: Path | None = None
+_USER_DIR: Path | None = None
+
+
+def program_dir() -> Path:
+    """ASCII-путь для кода и моделей."""
+    global _PROGRAM_DIR
+    if _PROGRAM_DIR is None:
+        _PROGRAM_DIR = _pick_program_dir()
+    return _PROGRAM_DIR
+
+
+def user_dir() -> Path:
+    """Путь для config.json, profiles/, logs/."""
+    global _USER_DIR
+    if _USER_DIR is None:
+        _USER_DIR = _pick_user_dir()
+    return _USER_DIR
+
+
+def program_models_dir() -> Path:
+    """Модели Vosk — ВСЕГДА в ASCII-пути."""
+    d = program_dir() / "models"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def program_whisper_cache_dir() -> Path:
+    """Кэш Whisper — ВСЕГДА в ASCII-пути."""
+    d = program_dir() / "whisper-cache"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def logs_dir() -> Path:
+    """Логи — в USER_DIR (кириллица ок)."""
+    d = user_dir() / "logs"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def profiles_dir() -> Path:
+    """Профили — в USER_DIR."""
+    d = user_dir() / "profiles"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def config_path() -> Path:
+    """config.json — в USER_DIR."""
+    return user_dir() / "config.json"
+```
+
 ### `jarvis\profile.py`
 
 ```python
@@ -8388,10 +8751,14 @@ from jarvis import config_manager
 
 log = logging.getLogger("jarvis.profile")
 
+from jarvis import paths as _paths
+
 BASE_DIR = Path(__file__).resolve().parent.parent
-PROFILES_DIR = BASE_DIR / "profiles"
-_OLD_PROFILE = BASE_DIR / "user_profile.json"
-_OLD_DIALOG = BASE_DIR / "dialog.json"
+# profiles/ — в USER_DIR, а не рядом с кодом.
+# Может содержать кириллицу — это ок (Vosk их не читает).
+PROFILES_DIR = _paths.profiles_dir()
+_OLD_PROFILE = _paths.user_dir() / "user_profile.json"
+_OLD_DIALOG = _paths.user_dir() / "dialog.json"
 
 # №76: один RLock вместо двух локов. Раньше _current_lock и _listeners_lock
 # могли дать гонку: _current менялся, а подписчики читали memory со старым
@@ -9244,6 +9611,13 @@ class Listener:
 
 class WhisperTranscriber:
     def __init__(self, model_name="auto", device="auto"):
+        # HF_HOME — кэш моделей HuggingFace.
+        # Если путь с кириллицей, ctranslate2 может сломаться.
+        # Ставим ASCII-путь ДО импорта.
+        from jarvis import paths as _paths
+        os.environ["HF_HOME"] = str(_paths.program_whisper_cache_dir())
+        os.environ["HUGGINGFACE_HUB_CACHE"] = str(_paths.program_whisper_cache_dir())
+
         _enable_cuda_dlls()
         import ctranslate2
         from faster_whisper import WhisperModel
@@ -9537,6 +9911,17 @@ def strip_cjk(text: str) -> str:
     if not cleaned:
         return "Извините, не удалось ответить. Повторите, пожалуйста."
     return cleaned
+
+
+def strip_cjk_chunk(text: str) -> str:
+    """Убирает иероглифы БЕЗ заглушки — для стриминга.
+
+    В стриме заглушку вставлять нельзя: чанки склеиваются,
+    и заглушка попадёт в середину ответа.
+    """
+    if not text:
+        return text
+    return CJK_RE.sub("", text)
 
 
 # ---------------------------------------------------------------
@@ -10370,11 +10755,22 @@ class Speaker:
         №72: возвращает bool — успел ли поток завершиться.
         _playing = False ставится ТОЛЬКО если поток реально завершился.
         Иначе is_playing() начнёт врать.
+
+        Защита: thread.join() на НЕзапущенном потоке бросает RuntimeError
+        («cannot join thread before it is started»). Проверяем is_alive()
+        перед join — если поток уже мёртв или ещё не стартовал, join не нужен.
         """
         with self._play_lock:
             thread = self._play_thread
         if thread is None:
             return True
+
+        # Защита от join() на незапущенном/уже завершённом потоке.
+        if not thread.is_alive():
+            with self._play_lock:
+                self._playing = False
+            return True
+
         thread.join(timeout=timeout)
         finished = not thread.is_alive()
         if finished:
@@ -10827,38 +11223,144 @@ def describe_currency(rates: dict, code: str = "") -> str:
 ### `launcher.py`
 
 ```python
-"""Лаунчер Феникса: молча запускает `pythonw -m jarvis` без окна консоли.
+"""Лаунчер Феникса — полный автозапуск.
 
-Собирается в exe и кладётся в корень проекта. Вычисляет рабочую папку
-(где лежит exe) и интерпретатор (pythonw из PATH). Защищён от повторного
-запуска именованным мьютексом.
+Что делает при запуске:
+    1. Ищет Python 3.10-3.12 (py -3.X, where python, типичные пути).
+    2. Если не нашёл — MessageBox: [Скачать Python 3.11] [Отмена].
+       Скачивает python-3.11.9-amd64.exe, запускает installer.
+    3. Проверяет .venv311. Если нет — создаёт.
+    4. Проверяет зависимости (flet, vosk, piper). Если нет — pip install.
+    5. Проверяет Vosk-модель. Если нет — скачивает.
+    6. Проверяет Ollama (URL + поиск на дисках). Если нет — MessageBox.
+    7. Запускает Феникс через .venv311\\Scripts\\pythonw.exe -m jarvis.
+
+Собирается в exe (PyInstaller). Защищён от повторного запуска.
+Логи — в logs/launcher.log рядом с exe.
 """
 
 import ctypes
+import logging
 import os
 import shutil
 import subprocess
 import sys
+import time
+import urllib.request
+import zipfile
 from pathlib import Path
 
-MUTEX_NAME = "Global\\JarvisPhoenixSingleInstance"
+# ============================================================
+# Константы
+# ============================================================
 
-# №88: держим HANDLE мьютекса на уровне модуля, чтобы он не терялся.
-# Без этого второй вызов already_running() в том же процессе вернул бы
-# True ложно (мьютекс уже наш, но HANDLE потерян — Windows посчитала бы,
-# что мы «уже запущены» и это не мы).
+MUTEX_NAME = "Global\\JarvisPhoenixSingleInstance"
 _MUTEX_HANDLE = None
 
+PYTHON_INSTALLER_URL = "https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe"
+PYTHON_INSTALLER_FILE = "python-3.11.9-amd64.exe"
 
-def already_running() -> bool:
-    """Проверяет, запущен ли уже Феникс.
+VOSK_MODEL_NAME = "vosk-model-small-ru-0.22"
+VOSK_MODEL_URL = f"https://alphacephei.com/vosk/models/{VOSK_MODEL_NAME}.zip"
 
-    №88: HANDLE мьютекса сохраняется в _MUTEX_HANDLE. Пока процесс жив,
-    мьютекс остаётся захваченным — второй запуск увидит ERROR_ALREADY_EXISTS.
-    """
+OLLAMA_URL = "http://127.0.0.1:11434"
+OLLAMA_DOWNLOAD_PAGE = "https://ollama.com/download"
+
+# Где искать Python, если py launcher не работает
+PYTHON_SEARCH_PATHS = [
+    r"C:\Python312\python.exe",
+    r"C:\Python311\python.exe",
+    r"C:\Python310\python.exe",
+    r"C:\Program Files\Python312\python.exe",
+    r"C:\Program Files\Python311\python.exe",
+    r"C:\Program Files\Python310\python.exe",
+]
+
+# Где искать Ollama
+OLLAMA_SEARCH_PATHS = [
+    r"C:\Program Files\Ollama\ollama.exe",
+    r"C:\Program Files (x86)\Ollama\ollama.exe",
+]
+
+# Какие версии Python подходят
+REQUIRED_PY_VERSIONS = ("3.12", "3.11", "3.10")
+
+# MessageBox флаги
+MB_OK = 0x00
+MB_OKCANCEL = 0x01
+MB_YESNO = 0x04
+MB_ICONERROR = 0x10
+MB_ICONWARNING = 0x30
+MB_ICONINFORMATION = 0x40
+MB_ICONQUESTION = 0x20
+
+IDYES = 6
+IDNO = 7
+IDOK = 1
+IDCANCEL = 2
+
+# Флаги subprocess
+CREATE_NO_WINDOW = 0x08000000
+DETACHED_PROCESS = 0x00000008
+
+
+# ============================================================
+# MessageBox
+# ============================================================
+
+def msg_box(text: str, title: str = "Феникс", flags: int = MB_OK) -> int:
+    """Показывает Windows MessageBox. Возвращает ID нажатой кнопки."""
+    try:
+        return ctypes.windll.user32.MessageBoxW(0, text, title, flags)
+    except Exception:
+        return 0
+
+
+def info(text: str, title: str = "Феникс") -> None:
+    msg_box(text, title, MB_OK | MB_ICONINFORMATION)
+
+
+def warn(text: str, title: str = "Феникс") -> None:
+    msg_box(text, title, MB_OK | MB_ICONWARNING)
+
+
+def error(text: str, title: str = "Феникс — ошибка") -> None:
+    msg_box(text, title, MB_OK | MB_ICONERROR)
+
+
+def ask_yes_no(text: str, title: str = "Феникс") -> bool:
+    return msg_box(text, title, MB_YESNO | MB_ICONQUESTION) == IDYES
+
+
+# ============================================================
+# Логирование
+# ============================================================
+
+def _setup_logging(base_dir: Path) -> Path:
+    logs_dir = base_dir / "logs"
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    log_file = logs_dir / "launcher.log"
+
+    logger = logging.getLogger("launcher")
+    logger.setLevel(logging.INFO)
+    logger.handlers.clear()
+
+    fh = logging.FileHandler(log_file, mode="a", encoding="utf-8")
+    fh.setFormatter(logging.Formatter(
+        "%(asctime)s launcher %(levelname)s %(message)s"
+    ))
+    logger.addHandler(fh)
+
+    return log_file
+
+
+# ============================================================
+# Мьютекс
+# ============================================================
+
+def already_running(logger) -> bool:
     global _MUTEX_HANDLE
 
-    # Если уже проверяли в этом процессе — не создаём второй мьютекс.
     if _MUTEX_HANDLE is not None:
         return False
 
@@ -10866,49 +11368,616 @@ def already_running() -> bool:
     handle = kernel32.CreateMutexW(None, False, MUTEX_NAME)
     last_error = kernel32.GetLastError()
 
-    if last_error == 183:  # ERROR_ALREADY_EXISTS
-        # Мьютекс уже занят другим процессом — закрываем наш HANDLE
+    if last_error == 183:
         if handle:
             kernel32.CloseHandle(handle)
+        logger.info("Феникс уже запущен")
         return True
 
-    # Наш мьютекс — держим HANDLE до конца процесса.
-    # НЕ закрываем — если закроем, мьютекс освободится и второй
-    # запуск не увидит «уже запущен».
     _MUTEX_HANDLE = handle
     return False
 
 
-def project_dir() -> Path:
-    base = Path(sys.executable if getattr(sys, "frozen", False) else __file__)
-    return base.resolve().parent
+# ============================================================
+# Поиск папки проекта
+# ============================================================
+
+def find_project_dir(logger) -> Path:
+    if getattr(sys, "frozen", False):
+        exe_dir = Path(sys.executable).resolve().parent
+    else:
+        exe_dir = Path(__file__).resolve().parent
+
+    candidates = [exe_dir, exe_dir.parent, Path.cwd()]
+    for cand in candidates:
+        if (cand / "jarvis" / "__init__.py").exists():
+            logger.info("Проект найден: %s", cand)
+            return cand
+
+    logger.error("Не найдена папка с jarvis/ (проверены: %s)",
+                 ", ".join(str(c) for c in candidates))
+    return exe_dir
 
 
-def find_pythonw() -> str:
-    for name in ("pythonw.exe", "pythonw"):
+# ============================================================
+# Python: поиск, скачивание installer
+# ============================================================
+
+def _check_python_version(python_exe: str, logger) -> str | None:
+    """Возвращает версию ('3.11.9') или None, если не подходит."""
+    try:
+        result = subprocess.run(
+            [python_exe, "--version"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            creationflags=CREATE_NO_WINDOW,
+        )
+        if result.returncode != 0:
+            return None
+        out = result.stdout.strip() or result.stderr.strip()
+        # "Python 3.11.9"
+        if out.startswith("Python "):
+            version = out[7:].strip()
+            for req in REQUIRED_PY_VERSIONS:
+                if version.startswith(req):
+                    return version
+        return None
+    except Exception:
+        return None
+
+
+def find_python(logger) -> str | None:
+    """Ищет Python 3.10-3.12. Возвращает путь к python.exe или None."""
+    # 1. py launcher
+    for ver in REQUIRED_PY_VERSIONS:
+        try:
+            result = subprocess.run(
+                ["py", f"-{ver}", "-c", "import sys; print(sys.executable)"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+                creationflags=CREATE_NO_WINDOW,
+            )
+            if result.returncode == 0:
+                exe = result.stdout.strip()
+                if exe and Path(exe).exists():
+                    logger.info("Python %s найден через py: %s", ver, exe)
+                    return exe
+        except Exception:
+            pass
+
+    # 2. where python
+    for name in ("python.exe", "python"):
         found = shutil.which(name)
         if found:
-            return found
-    cand = Path(sys.base_prefix) / "pythonw.exe"
-    return str(cand) if cand.exists() else "pythonw"
+            version = _check_python_version(found, logger)
+            if version:
+                logger.info("Python %s найден в PATH: %s", version, found)
+                return found
 
+    # 3. Типичные пути
+    for path_str in PYTHON_SEARCH_PATHS:
+        p = Path(path_str)
+        if p.exists():
+            version = _check_python_version(str(p), logger)
+            if version:
+                logger.info("Python %s найден: %s", version, p)
+                return str(p)
+
+    # 4. %LOCALAPPDATA%\Programs\Python\PythonXY
+    local_appdata = os.environ.get("LOCALAPPDATA")
+    if local_appdata:
+        for ver in ("312", "311", "310"):
+            cand = Path(local_appdata) / "Programs" / "Python" / f"Python{ver}" / "python.exe"
+            if cand.exists():
+                version = _check_python_version(str(cand), logger)
+                if version:
+                    logger.info("Python %s найден: %s", version, cand)
+                    return str(cand)
+
+    logger.info("Python 3.10-3.12 не найден")
+    return None
+
+
+def download_python_installer(logger) -> Path | None:
+    """Скачивает официальный installer Python в temp.
+
+    Показывает MessageBox до и после скачивания.
+    """
+    temp_dir = Path(os.environ.get("TEMP", "."))
+    installer = temp_dir / PYTHON_INSTALLER_FILE
+
+    if installer.exists():
+        logger.info("Installer уже есть: %s", installer)
+        return installer
+
+    info(
+        "Сейчас будет скачан установщик Python 3.11 (~25 МБ).\n\n"
+        "После скачивания откроется окно установки — "
+        "нажми «Install Now» и дождись завершения.\n\n"
+        "Нажми ОК, чтобы начать скачивание.",
+        "Феникс — установка Python",
+    )
+
+    logger.info("Скачиваю installer: %s", PYTHON_INSTALLER_URL)
+    try:
+        urllib.request.urlretrieve(PYTHON_INSTALLER_URL, installer)
+        logger.info("Installer скачан: %s", installer)
+        return installer
+    except Exception:
+        logger.exception("Не удалось скачать installer Python")
+        error(
+            "Не удалось скачать Python.\n\n"
+            "Проверь интернет или скачай вручную:\n"
+            "https://www.python.org/downloads/release/python-3119/\n\n"
+            "Логи: logs\\launcher.log",
+        )
+        return None
+
+
+def run_python_installer(installer: Path, logger) -> bool:
+    """Запускает installer Python. Ждёт завершения.
+
+    Возвращает True, если после запуска Python найден.
+    """
+    logger.info("Запускаю installer: %s", installer)
+    try:
+        # subprocess.run ждёт завершения.
+        # installer покажет GUI — пользователь нажмёт Install Now.
+        subprocess.run([str(installer)], check=False)
+    except Exception:
+        logger.exception("Ошибка запуска installer")
+        return False
+
+    # После установки Python может быть в новом месте,
+    # но PATH текущего процесса не обновился.
+    # Ищем python заново — find_python проверит типичные пути.
+    logger.info("Installer завершён, ищу Python заново")
+    time.sleep(2)  # дать установщику время завершить запись
+    python = find_python(logger)
+    return python is not None
+
+
+# ============================================================
+# Venv: создание
+# ============================================================
+
+def find_venv_pythonw(project_dir: Path, logger) -> Path | None:
+    candidates = [
+        project_dir / ".venv311" / "Scripts" / "pythonw.exe",
+        project_dir / ".venv" / "Scripts" / "pythonw.exe",
+    ]
+    for cand in candidates:
+        if cand.exists():
+            logger.info("venv найден: %s", cand)
+            return cand
+    return None
+
+
+def create_venv(project_dir: Path, python_exe: str, logger) -> bool:
+    """Создаёт .venv311 через указанный Python."""
+    venv_dir = project_dir / ".venv311"
+
+    if venv_dir.exists():
+        logger.info("venv уже существует: %s", venv_dir)
+        return True
+
+    info(
+        "Создаю виртуальное окружение...\n\n"
+        "Это займёт несколько секунд.",
+        "Феникс — окружение",
+    )
+
+    logger.info("Создаю venv: %s", venv_dir)
+    try:
+        result = subprocess.run(
+            [python_exe, "-m", "venv", str(venv_dir)],
+            capture_output=True,
+            text=True,
+            timeout=120,
+            creationflags=CREATE_NO_WINDOW,
+        )
+        if result.returncode != 0:
+            logger.error("venv не создан: %s", result.stderr)
+            error(
+                "Не удалось создать виртуальное окружение.\n\n"
+                f"{result.stderr[:500]}\n\n"
+                "Логи: logs\\launcher.log",
+            )
+            return False
+        logger.info("venv создан: %s", venv_dir)
+        return True
+    except Exception:
+        logger.exception("Ошибка создания venv")
+        error("Не удалось создать окружение. Логи: logs\\launcher.log")
+        return False
+
+
+# ============================================================
+# Зависимости: установка
+# ============================================================
+
+def check_dependencies(project_dir: Path, logger) -> bool:
+    """Проверяет, установлены ли ключевые зависимости в venv."""
+    python = project_dir / ".venv311" / "Scripts" / "python.exe"
+    if not python.exists():
+        return False
+    try:
+        result = subprocess.run(
+            [str(python), "-c", "import flet, vosk; print('ok')"],
+            capture_output=True,
+            text=True,
+            timeout=15,
+            creationflags=CREATE_NO_WINDOW,
+        )
+        return result.returncode == 0
+    except Exception:
+        return False
+
+
+def install_dependencies(project_dir: Path, logger) -> bool:
+    """Устанавливает зависимости из requirements.txt."""
+    python = project_dir / ".venv311" / "Scripts" / "python.exe"
+    req = project_dir / "requirements.txt"
+
+    if not req.exists():
+        logger.error("requirements.txt не найден: %s", req)
+        error("requirements.txt не найден. Феникс установлен неправильно.")
+        return False
+
+    info(
+        "Устанавливаю зависимости.\n\n"
+        "Это займёт 5–10 минут (flet, vosk, piper, faster-whisper).\n\n"
+        "Нажми ОК, чтобы начать. После завершения появится ещё одно окно.",
+        "Феникс — установка",
+    )
+
+    logger.info("pip install -r requirements.txt")
+    try:
+        # Запускаем без CREATE_NO_WINDOW — открывается консоль,
+        # пользователь видит прогресс pip.
+        # Или можно скрыть — тогда progress не видно.
+        # По умолчанию: показываем консоль.
+        result = subprocess.run(
+            [str(python), "-m", "pip", "install", "-r", str(req)],
+            cwd=str(project_dir),
+            # НЕ используем CREATE_NO_WINDOW — пусть пользователь видит прогресс.
+        )
+        if result.returncode != 0:
+            logger.error("pip install упал: returncode=%d", result.returncode)
+            error(
+                "Не удалось установить зависимости.\n\n"
+                "Возможные причины:\n"
+                "  - Нет интернета\n"
+                "  - Нет Visual C++ Redistributable\n\n"
+                "Смотри: logs\\launcher.log",
+            )
+            return False
+        logger.info("Зависимости установлены")
+        info("Зависимости установлены. OK", "Феникс")
+        return True
+    except Exception:
+        logger.exception("Ошибка pip install")
+        error("Ошибка установки зависимостей. Логи: logs\\launcher.log")
+        return False
+
+
+# ============================================================
+# Vosk-модель: проверка, скачивание
+# ============================================================
+
+def check_vosk_model(project_dir: Path, logger) -> bool:
+    """Проверяет Vosk-модель в ASCII-пути (C:\\ProgramData\\Phoenix\\models)."""
+    program_data = os.environ.get("PROGRAMDATA", r"C:\ProgramData")
+    model_dir = Path(program_data) / "Phoenix" / "models" / VOSK_MODEL_NAME
+    ok = model_dir.exists() and (model_dir / "am").exists()
+    logger.info("Vosk-модель в %s: %s", model_dir, "есть" if ok else "нет")
+    return ok
+
+
+def download_vosk_model(project_dir: Path, logger) -> bool:
+    """Скачивает и распаковывает Vosk-модель в ASCII-путь (C:\\ProgramData\\Phoenix\\models).
+
+    Vosk (C++) ломается на не-ASCII путях. Поэтому модель
+    ВСЕГДА в C:\\ProgramData\\Phoenix\\models, независимо от того,
+    где установлен Феникс.
+    """
+    # Определяем безопасную папку для модели — ASCII-путь.
+    program_data = os.environ.get("PROGRAMDATA", r"C:\ProgramData")
+    safe_models = Path(program_data) / "Phoenix" / "models"
+
+    try:
+        safe_models.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        # Fallback: C:\Phoenix\models
+        safe_models = Path(r"C:\Phoenix\models")
+        safe_models.mkdir(parents=True, exist_ok=True)
+
+    logger.info("Vosk-модель будет в: %s", safe_models)
+
+    zip_path = safe_models / f"{VOSK_MODEL_NAME}.zip"
+    target_dir = safe_models / VOSK_MODEL_NAME
+
+    if target_dir.exists() and (target_dir / "am").exists():
+        logger.info("Vosk-модель уже есть: %s", target_dir)
+        return True
+
+    info(
+        "Скачиваю модель Vosk (~45 МБ) в C:\\ProgramData\\Phoenix\\models.\n\n"
+        "Это займёт 1–2 минуты.",
+        "Феникс — модель Vosk",
+    )
+
+    logger.info("Скачиваю Vosk: %s", VOSK_MODEL_URL)
+    try:
+        urllib.request.urlretrieve(VOSK_MODEL_URL, zip_path)
+        logger.info("Vosk скачан: %s", zip_path)
+    except Exception:
+        logger.exception("Не удалось скачать Vosk")
+        error("Не удалось скачать модель Vosk. Проверь интернет. Смотри logs\\launcher.log")
+        return False
+
+    info("Распаковываю модель Vosk...", "Феникс")
+    logger.info("Распаковываю Vosk")
+    try:
+        import zipfile as _zf
+        with _zf.ZipFile(zip_path) as zf:
+            for member in zf.namelist():
+                parts = member.split("/", 1)
+                if len(parts) < 2 or not parts[1]:
+                    continue
+                target = target_dir / parts[1]
+                if member.endswith("/"):
+                    target.mkdir(parents=True, exist_ok=True)
+                else:
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    with zf.open(member) as src, open(target, "wb") as dst:
+                        dst.write(src.read())
+        zip_path.unlink(missing_ok=True)
+        logger.info("Vosk распакован: %s", target_dir)
+        info("Модель Vosk готова. OK", "Феникс")
+        return True
+    except Exception:
+        logger.exception("Ошибка распаковки Vosk")
+        error("Не удалось распаковать модель. Логи: logs\\launcher.log")
+        return False
+
+    info(
+        "Скачиваю модель Vosk (~45 МБ).\n\n"
+        "Это займёт 1–2 минуты.",
+        "Феникс — модель Vosk",
+    )
+
+    logger.info("Скачиваю Vosk: %s", VOSK_MODEL_URL)
+    try:
+        urllib.request.urlretrieve(VOSK_MODEL_URL, zip_path)
+        logger.info("Vosk скачан: %s", zip_path)
+    except Exception:
+        logger.exception("Не удалось скачать Vosk")
+        error(
+            "Не удалось скачать модель Vosk.\n\n"
+            "Проверь интернет или скачай вручную:\n"
+            f"{VOSK_MODEL_URL}\n\n"
+            "Распакуй в: models\\",
+        )
+        return False
+
+    info("Распаковываю модель Vosk...", "Феникс")
+    logger.info("Распаковываю Vosk")
+    try:
+        with zipfile.ZipFile(zip_path) as zf:
+            zf.extractall(models_dir)
+        zip_path.unlink(missing_ok=True)
+        logger.info("Vosk распакован")
+        info("Модель Vosk готова. OK", "Феникс")
+        return True
+    except Exception:
+        logger.exception("Ошибка распаковки Vosk")
+        error("Не удалось распаковать модель. Логи: logs\\launcher.log")
+        return False
+
+
+# ============================================================
+# Ollama: проверка, поиск
+# ============================================================
+
+def check_ollama_running(logger) -> bool:
+    try:
+        with urllib.request.urlopen(OLLAMA_URL + "/api/version", timeout=2):
+            logger.info("Ollama сервер отвечает")
+            return True
+    except Exception:
+        return False
+
+
+def find_ollama_exe(logger) -> Path | None:
+    found = shutil.which("ollama") or shutil.which("ollama.exe")
+    if found:
+        logger.info("Ollama в PATH: %s", found)
+        return Path(found)
+
+    candidates = [Path(p) for p in OLLAMA_SEARCH_PATHS]
+    local_appdata = os.environ.get("LOCALAPPDATA")
+    if local_appdata:
+        candidates.append(Path(local_appdata) / "Programs" / "Ollama" / "ollama.exe")
+
+    for cand in candidates:
+        if cand.exists():
+            logger.info("Ollama найден: %s", cand)
+            return cand
+    return None
+
+
+def handle_ollama(logger) -> None:
+    """Проверяет Ollama. Если нет — предлагает поставить."""
+    if check_ollama_running(logger):
+        return
+
+    ollama_exe = find_ollama_exe(logger)
+    if ollama_exe:
+        logger.info("Ollama найден, запускаю serve")
+        try:
+            subprocess.Popen(
+                [str(ollama_exe), "serve"],
+                creationflags=CREATE_NO_WINDOW,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            return
+        except Exception:
+            logger.exception("Не удалось запустить ollama serve")
+
+    # Ollama не найдена
+    logger.warning("Ollama не найдена")
+    reply = msg_box(
+        "Ollama не найдена.\n\n"
+        "Без неё Феникс работает в УРЕЗАННОМ режиме:\n"
+        "  ✓ Команды\n"
+        "  ✓ Распознавание речи\n"
+        "  ✓ Синтез речи\n"
+        "  ✗ Свободный диалог с ИИ\n"
+        "  ✗ Разбор сложных фраз\n\n"
+        "Поставить Ollama?\n"
+        "(откроется ollama.com/download)",
+        "Феникс — Ollama",
+        MB_YESNO | MB_ICONQUESTION,
+    )
+    if reply == IDYES:
+        try:
+            os.startfile(OLLAMA_DOWNLOAD_PAGE)
+        except Exception:
+            logger.exception("Не удалось открыть ollama.com")
+
+
+# ============================================================
+# Запуск Феникса
+# ============================================================
+
+def run_jarvis(project_dir: Path, pythonw: Path, logger) -> None:
+    logger.info("Запускаю Феникс: %s -m jarvis", pythonw)
+    try:
+        proc = subprocess.Popen(
+            [str(pythonw), "-m", "jarvis"],
+            cwd=str(project_dir),
+            creationflags=CREATE_NO_WINDOW | DETACHED_PROCESS,
+            close_fds=True,
+        )
+        logger.info("Феникс запущен, PID=%d", proc.pid)
+    except Exception:
+        logger.exception("Не удалось запустить Феникс")
+        error("Не удалось запустить Феникс. Логи: logs\\launcher.log")
+
+
+# ============================================================
+# Главная функция
+# ============================================================
 
 def main() -> None:
-    if already_running():
+    # exe_dir для логирования
+    if getattr(sys, "frozen", False):
+        exe_dir = Path(sys.executable).resolve().parent
+    else:
+        exe_dir = Path(__file__).resolve().parent
+
+    log_file = _setup_logging(exe_dir)
+    logger = logging.getLogger("launcher")
+
+    logger.info("=" * 60)
+    logger.info("Лаунчер стартует")
+    logger.info("exe: %s", sys.executable)
+    logger.info("cwd: %s", os.getcwd())
+    logger.info("log: %s", log_file)
+    logger.info("=" * 60)
+
+    # 1. Мьютекс
+    if already_running(logger):
+        info("Феникс уже запущен.\n\nПроверь панель задач или трей.")
         return
-    cwd = project_dir()
-    pythonw = find_pythonw()
-    creationflags = 0x08000000 | 0x00000008  # NO_WINDOW | DETACHED_PROCESS
-    subprocess.Popen(
-        [pythonw, "-m", "jarvis"],
-        cwd=str(cwd),
-        creationflags=creationflags,
-        close_fds=True,
-    )
+
+    # 2. Папка проекта
+    project_dir = find_project_dir(logger)
+    if not (project_dir / "jarvis" / "__init__.py").exists():
+        error(
+            "Не найден пакет jarvis/ рядом с Феникс.exe.\n\n"
+            "Переустанови Феникс. Логи: logs\\launcher.log",
+        )
+        return
+
+    # 3. Python
+    python_exe = find_python(logger)
+    if python_exe is None:
+        logger.info("Python не найден, предлагаю установить")
+        reply = msg_box(
+            "Python 3.10-3.12 не найден.\n\n"
+            "Фениксу нужен Python 3.11.\n\n"
+            "Сейчас будет скачан официальный установщик Python "
+            "(~25 МБ). После скачивания откроется окно установки — "
+            "нажми «Install Now».\n\n"
+            "Продолжить?",
+            "Феникс — нужен Python",
+            MB_OKCANCEL | MB_ICONQUESTION,
+        )
+        if reply != IDOK:
+            logger.info("Пользователь отменил установку Python")
+            return
+
+        installer = download_python_installer(logger)
+        if installer is None:
+            return
+
+        if not run_python_installer(installer, logger):
+            error(
+                "Python не установлен.\n\n"
+                "Установи вручную: https://www.python.org/downloads/\n"
+                "Затем запусти Феникс.exe снова.",
+            )
+            return
+
+        python_exe = find_python(logger)
+        if python_exe is None:
+            error(
+                "Python установлен, но не найден.\n\n"
+                "Перезапусти Феникс.exe.",
+            )
+            return
+        logger.info("Python после установки: %s", python_exe)
+
+    # 4. venv
+    pythonw = find_venv_pythonw(project_dir, logger)
+    if pythonw is None:
+        if not create_venv(project_dir, python_exe, logger):
+            return
+        pythonw = find_venv_pythonw(project_dir, logger)
+        if pythonw is None:
+            error("venv создан, но pythonw не найден. Логи: logs\\launcher.log")
+            return
+
+    # 5. Зависимости
+    if not check_dependencies(project_dir, logger):
+        if not install_dependencies(project_dir, logger):
+            return
+
+    # 6. Vosk-модель
+    if not check_vosk_model(project_dir, logger):
+        if not download_vosk_model(project_dir, logger):
+            return
+
+    # 7. Ollama
+    handle_ollama(logger)
+
+    # 8. Запуск Феникса
+    run_jarvis(project_dir, pythonw, logger)
 
 
 if __name__ == "__main__":
     main()
+```
+
+### `None`
+
+```
+
 ```
 
 ### `packs\apps.json`
@@ -11701,6 +12770,12 @@ Jarvis фоновый поток
 ---
 
 **Погнали, брат.** 🚀
+```
+
+### `python`
+
+```
+
 ```
 
 ### `README.md`
@@ -12496,10 +13571,20 @@ send2trash>=1.8
 ### `scripts\build_exe.py`
 
 ```python
-"""Сборка Феникс.exe (лёгкий лаунчер) и иконки.
+"""Сборка Феникс.exe (лёгкий лаунчер).
 
-Запуск: python scripts/build_exe.py
-Результат: <корень>/Феникс.exe — кладётся рядом с пакетом jarvis.
+Собирает launcher.py в один exe с иконкой. Exe запускает pythonw -m jarvis
+из папки проекта. Требует установленный Python на машине.
+
+Запуск:
+    python scripts/build_exe.py
+
+Результат:
+    dist/Феникс.exe       — исходник от PyInstaller
+    Феникс.exe            — копия в корне проекта
+
+ВАЖНО: иконка должна существовать: jarvis/icon.ico.
+Если её нет — сначала запусти: python scripts/make_icon.py
 """
 
 import subprocess
@@ -12511,32 +13596,34 @@ ICON = BASE / "jarvis" / "icon.ico"
 EXE_NAME = "Феникс"
 
 
-def make_icon() -> None:
-    """Иконка из того же рисунка, что и в трее (несколько размеров)."""
-    from PIL import Image, ImageDraw
+def ensure_icon() -> None:
+    """Если иконки нет — генерирует её через make_icon.py."""
+    if ICON.exists():
+        print(f"Иконка: {ICON}")
+        return
 
-    def draw(size: int) -> Image.Image:
-        k = size / 64
-        img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-        d = ImageDraw.Draw(img)
-        d.ellipse((2 * k, 2 * k, 62 * k, 62 * k), fill=(18, 32, 58, 255),
-                  outline=(86, 156, 255, 255), width=max(1, int(3 * k)))
-        d.line((38 * k, 16 * k, 38 * k, 42 * k), fill=(86, 156, 255, 255),
-               width=max(1, int(6 * k)))
-        d.arc((20 * k, 30 * k, 42 * k, 52 * k), start=20, end=180,
-              fill=(86, 156, 255, 255), width=max(1, int(6 * k)))
-        return img
+    print("Иконка не найдена — генерирую...")
+    make_icon = BASE / "scripts" / "make_icon.py"
+    if not make_icon.exists():
+        print("ОШИБКА: scripts/make_icon.py не найден.")
+        sys.exit(1)
 
-    sizes = [16, 24, 32, 48, 64, 128, 256]
-    draw(256).save(ICON, sizes=[(s, s) for s in sizes])
-    print("Иконка:", ICON)
+    subprocess.run([sys.executable, str(make_icon)], check=True)
+
+    if not ICON.exists():
+        print(f"ОШИБКА: иконка не создалась: {ICON}")
+        sys.exit(1)
 
 
 def build() -> None:
-    make_icon()
+    ensure_icon()
+
     cmd = [
         sys.executable, "-m", "PyInstaller",
-        "--onefile", "--noconsole", "--clean", "--noconfirm",
+        "--onefile",
+        "--noconsole",
+        "--clean",
+        "--noconfirm",
         "--name", EXE_NAME,
         "--icon", str(ICON),
         "--distpath", str(BASE / "dist"),
@@ -12544,13 +13631,20 @@ def build() -> None:
         "--specpath", str(BASE / "build"),
         str(BASE / "launcher.py"),
     ]
+
     print("PyInstaller:", " ".join(cmd))
     subprocess.run(cmd, check=True)
 
     src = BASE / "dist" / f"{EXE_NAME}.exe"
     dst = BASE / f"{EXE_NAME}.exe"
+
+    if not src.exists():
+        print(f"ОШИБКА: PyInstaller не собрал {src}")
+        sys.exit(1)
+
     dst.write_bytes(src.read_bytes())
-    print("Готово:", dst)
+    print(f"Готово: {dst}")
+    print(f"Размер: {dst.stat().st_size / 1024 / 1024:.1f} МБ")
 
 
 if __name__ == "__main__":
@@ -12729,6 +13823,91 @@ def main() -> int:
     log.info("Сохранено: %s", OUTPUT)
     log.info("=" * 60)
 
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+
+### `scripts\make_icon.py`
+
+```python
+"""Генерация иконки Феникса (jarvis/icon.ico).
+
+Рисует синий круг с буквой «J» — тот же стиль, что в трее.
+Размеры: 16, 24, 32, 48, 64, 128, 256.
+
+Запуск:
+    python scripts/make_icon.py
+
+Результат:
+    jarvis/icon.ico
+"""
+
+import sys
+from pathlib import Path
+
+from PIL import Image, ImageDraw
+
+BASE = Path(__file__).resolve().parent.parent
+OUTPUT = BASE / "jarvis" / "icon.ico"
+
+# Цвета — те же, что в tray.py
+BG_COLOR = (18, 32, 58, 255)       # тёмно-синий фон
+ACCENT = (86, 156, 255, 255)       # акцентный синий
+
+
+def draw_icon(size: int) -> Image.Image:
+    """Рисует иконку заданного размера.
+
+    Пропорции считаются от 64×64 — базовый размер.
+    """
+    k = size / 64
+    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+
+    # Круг
+    d.ellipse(
+        (2 * k, 2 * k, 62 * k, 62 * k),
+        fill=BG_COLOR,
+        outline=ACCENT,
+        width=max(1, int(3 * k)),
+    )
+
+    # Вертикальная линия буквы «J»
+    d.line(
+        (38 * k, 16 * k, 38 * k, 42 * k),
+        fill=ACCENT,
+        width=max(1, int(6 * k)),
+    )
+
+    # Дуга буквы «J» — нижний загиб
+    d.arc(
+        (20 * k, 30 * k, 42 * k, 52 * k),
+        start=20,
+        end=180,
+        fill=ACCENT,
+        width=max(1, int(6 * k)),
+    )
+
+    return img
+
+
+def main() -> int:
+    print("Генерация иконки...")
+
+    # Базовый размер 256×256 — качественный исходник
+    base = draw_icon(256)
+
+    # Все стандартные размеры Windows
+    sizes = [(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)]
+
+    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+    base.save(OUTPUT, format="ICO", sizes=sizes)
+
+    print(f"Готово: {OUTPUT}")
+    print(f"Размеры: {', '.join(f'{w}x{h}' for w, h in sizes)}")
     return 0
 
 
@@ -13260,6 +14439,12 @@ echo  Феникс остановлен.
 echo  Нажми любую клавишу, чтобы закрыть окно.
 echo ============================================
 pause >nul
+```
+
+### `str`
+
+```
+
 ```
 
 ### `system_caps.json`
@@ -13987,10 +15172,4 @@ def test_cache_different_cities():
         weather.geocode("Москва")
         weather.geocode("Казань")
     assert mock.call_count == 2
-```
-
-### `вкладка`
-
-```
-    Win+R - - - "Экран"
 ```

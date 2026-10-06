@@ -239,6 +239,13 @@ class Listener:
 
 class WhisperTranscriber:
     def __init__(self, model_name="auto", device="auto"):
+        # HF_HOME — кэш моделей HuggingFace.
+        # Если путь с кириллицей, ctranslate2 может сломаться.
+        # Ставим ASCII-путь ДО импорта.
+        from jarvis import paths as _paths
+        os.environ["HF_HOME"] = str(_paths.program_whisper_cache_dir())
+        os.environ["HUGGINGFACE_HUB_CACHE"] = str(_paths.program_whisper_cache_dir())
+
         _enable_cuda_dlls()
         import ctranslate2
         from faster_whisper import WhisperModel

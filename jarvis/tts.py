@@ -349,11 +349,22 @@ class Speaker:
         №72: возвращает bool — успел ли поток завершиться.
         _playing = False ставится ТОЛЬКО если поток реально завершился.
         Иначе is_playing() начнёт врать.
+
+        Защита: thread.join() на НЕзапущенном потоке бросает RuntimeError
+        («cannot join thread before it is started»). Проверяем is_alive()
+        перед join — если поток уже мёртв или ещё не стартовал, join не нужен.
         """
         with self._play_lock:
             thread = self._play_thread
         if thread is None:
             return True
+
+        # Защита от join() на незапущенном/уже завершённом потоке.
+        if not thread.is_alive():
+            with self._play_lock:
+                self._playing = False
+            return True
+
         thread.join(timeout=timeout)
         finished = not thread.is_alive()
         if finished:

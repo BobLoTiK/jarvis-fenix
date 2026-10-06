@@ -1,4 +1,4 @@
-"""Точка входа: связывает распознавание, интенты, синтез речи и трей.
+"""Точка входа: связывает распознавание, интенты, синтез речи и GUI.
 
 Barge-in: во время речи Феникса микрофон НЕ глушится, а следит за громкостью.
 Если юзер заговорил — TTS прерывается через speaker.stop().
@@ -6,9 +6,18 @@ Barge-in: во время речи Феникса микрофон НЕ глуш
 
 Стриминг: генератор оборачивается в tee — чанки идут и в TTS, и в GUI.
 
+ТРЕЙ ВРЕМЕННО ОТКЛЮЧЁН.
+Причина: pystray требует свой Windows message loop, а главный поток
+занят flet'ом (ft.run блокирует). Попытка запустить pystray в фоне
+приводит к зависанию GUI.
+
+Решение будет позже — отдельный процесс tray_runner.py с общением
+через файл-сигнал. Пока трей не работает.
+
 launch_mode:
-    "gui"  — окно Flet + трей + голос (по умолчанию).
-    "tray" — только трей + голос, без окна.
+    "gui"  — окно Flet + голос (по умолчанию).
+    "tray" — тоже окно, но скрытое (показать можно только через трей,
+             который сейчас не работает — фактически не используется).
 """
 
 import logging
@@ -27,7 +36,6 @@ from jarvis.text_utils import normalize
 from jarvis.model import ensure_model
 from jarvis.reply import Reply
 from jarvis.stt import Listener
-from jarvis.tray import build_tray
 from jarvis import timers
 from jarvis.tts import Speaker
 from jarvis.gui import FenixGUI
@@ -278,12 +286,13 @@ class Jarvis:
 
 
 def setup_logging() -> None:
+    from jarvis import paths as _paths
+
     logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("urllib3").setLevel(logging.WARNING)
 
-    LOGS_DIR = BASE_DIR / "logs"
-    LOGS_DIR.mkdir(exist_ok=True)
+    LOGS_DIR = _paths.logs_dir()
 
     fmt = "%(asctime)s %(name)s %(levelname)s %(message)s"
     formatter = logging.Formatter(fmt)
@@ -378,7 +387,13 @@ def main() -> None:
     from jarvis import weather as _weather
     _profile.init()
     _weather.set_config(config)
-    model_dir = ensure_model(BASE_DIR / "models")
+    # ensure_model сам найдёт/скопирует/скачает модель в ASCII-путь.
+    # Передаём локальную папку models (может быть в C:\jarvis\models),
+    # если она есть — модель скопируется оттуда, иначе скачается.
+    local_models = BASE_DIR / "models"
+    if not local_models.exists():
+        local_models = None
+    model_dir = ensure_model(local_models)
 
     whisper = None
     if config.get("use_whisper", True):
@@ -453,36 +468,34 @@ def main() -> None:
 
     jarvis.say(Reply(text=f"{APP_NAME} запущен и готов к работе."))
 
-    # Трей — в отдельном потоке (может не работать на некоторых системах)
-    if config.get("tray_enabled", True):
-        try:
-            tray = build_tray(jarvis)
-
-            def _run_tray():
-                try:
-                    tray.run()
-                except (Exception, SystemExit):
-                    # №90: SystemExit — наследник BaseException, не Exception.
-                    # pystray может его бросить при выходе — не роняем процесс.
-                    log.exception("Трей упал в потоке — работаю без него")
-
-            threading.Thread(target=_run_tray, daemon=True, name="tray").start()
-        except (Exception, SystemExit):
-            log.exception("Трей не завёлся — работаю без него")
+    # =================================================================
+    # ТРЕЙ ВРЕМЕННО ОТКЛЮЧЁН.
+    #
+    # Причина: pystray требует свой Windows message loop, а главный поток
+    # занят flet'ом (ft.run блокирует). Попытка запустить pystray в фоне
+    # приводит к зависанию GUI.
+    #
+    # Что будет позже: отдельный процесс jarvis/tray_runner.py, который
+    # общается с основным через файл-сигнал logs/tray_signal.txt.
+    #
+    # Как только трей заработает — раскомментировать блок и удалить заглушку.
+    # =================================================================
+    if config.get("tray_enabled", False):
+        log.warning(
+            "tray_enabled=true, но трей временно отключён (в разработке). "
+            "Феникс работает без трея. Выход — Ctrl+C или диспетчер задач."
+        )
 
     # === Режим запуска (№84) ===
-    # launch_mode:
-    #   "gui"  — окно Flet (по умолчанию).
-    #   "tray" — только трей + голос, без окна.
     launch_mode = str(config.get("launch_mode", "gui") or "gui").lower()
     if launch_mode not in ("gui", "tray"):
         launch_mode = "gui"
 
-    # Защита от конфликта: launch_mode=tray, но трей выключен.
-    # Иначе окно скрыто, трея нет — показать некому.
-    if launch_mode == "tray" and not config.get("tray_enabled", True):
+    # Защита: launch_mode=tray, но трей не работает — окно будет скрыто,
+    # показать некому. Поэтому принудительно gui.
+    if launch_mode == "tray":
         log.warning(
-            "launch_mode=tray, но tray_enabled=false — переключаюсь на gui"
+            "launch_mode=tray, но трей отключён — переключаюсь на gui"
         )
         launch_mode = "gui"
 

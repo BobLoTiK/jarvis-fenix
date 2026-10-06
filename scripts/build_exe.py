@@ -1,7 +1,17 @@
-"""Сборка Феникс.exe (лёгкий лаунчер) и иконки.
+"""Сборка Феникс.exe (лёгкий лаунчер).
 
-Запуск: python scripts/build_exe.py
-Результат: <корень>/Феникс.exe — кладётся рядом с пакетом jarvis.
+Собирает launcher.py в один exe с иконкой. Exe запускает pythonw -m jarvis
+из папки проекта. Требует установленный Python на машине.
+
+Запуск:
+    python scripts/build_exe.py
+
+Результат:
+    dist/Феникс.exe       — исходник от PyInstaller
+    Феникс.exe            — копия в корне проекта
+
+ВАЖНО: иконка должна существовать: jarvis/icon.ico.
+Если её нет — сначала запусти: python scripts/make_icon.py
 """
 
 import subprocess
@@ -13,32 +23,34 @@ ICON = BASE / "jarvis" / "icon.ico"
 EXE_NAME = "Феникс"
 
 
-def make_icon() -> None:
-    """Иконка из того же рисунка, что и в трее (несколько размеров)."""
-    from PIL import Image, ImageDraw
+def ensure_icon() -> None:
+    """Если иконки нет — генерирует её через make_icon.py."""
+    if ICON.exists():
+        print(f"Иконка: {ICON}")
+        return
 
-    def draw(size: int) -> Image.Image:
-        k = size / 64
-        img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-        d = ImageDraw.Draw(img)
-        d.ellipse((2 * k, 2 * k, 62 * k, 62 * k), fill=(18, 32, 58, 255),
-                  outline=(86, 156, 255, 255), width=max(1, int(3 * k)))
-        d.line((38 * k, 16 * k, 38 * k, 42 * k), fill=(86, 156, 255, 255),
-               width=max(1, int(6 * k)))
-        d.arc((20 * k, 30 * k, 42 * k, 52 * k), start=20, end=180,
-              fill=(86, 156, 255, 255), width=max(1, int(6 * k)))
-        return img
+    print("Иконка не найдена — генерирую...")
+    make_icon = BASE / "scripts" / "make_icon.py"
+    if not make_icon.exists():
+        print("ОШИБКА: scripts/make_icon.py не найден.")
+        sys.exit(1)
 
-    sizes = [16, 24, 32, 48, 64, 128, 256]
-    draw(256).save(ICON, sizes=[(s, s) for s in sizes])
-    print("Иконка:", ICON)
+    subprocess.run([sys.executable, str(make_icon)], check=True)
+
+    if not ICON.exists():
+        print(f"ОШИБКА: иконка не создалась: {ICON}")
+        sys.exit(1)
 
 
 def build() -> None:
-    make_icon()
+    ensure_icon()
+
     cmd = [
         sys.executable, "-m", "PyInstaller",
-        "--onefile", "--noconsole", "--clean", "--noconfirm",
+        "--onefile",
+        "--noconsole",
+        "--clean",
+        "--noconfirm",
         "--name", EXE_NAME,
         "--icon", str(ICON),
         "--distpath", str(BASE / "dist"),
@@ -46,13 +58,20 @@ def build() -> None:
         "--specpath", str(BASE / "build"),
         str(BASE / "launcher.py"),
     ]
+
     print("PyInstaller:", " ".join(cmd))
     subprocess.run(cmd, check=True)
 
     src = BASE / "dist" / f"{EXE_NAME}.exe"
     dst = BASE / f"{EXE_NAME}.exe"
+
+    if not src.exists():
+        print(f"ОШИБКА: PyInstaller не собрал {src}")
+        sys.exit(1)
+
     dst.write_bytes(src.read_bytes())
-    print("Готово:", dst)
+    print(f"Готово: {dst}")
+    print(f"Размер: {dst.stat().st_size / 1024 / 1024:.1f} МБ")
 
 
 if __name__ == "__main__":
