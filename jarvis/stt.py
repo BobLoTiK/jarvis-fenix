@@ -66,7 +66,8 @@ class Listener:
         self._utt_len = 0
         self.peak = 0
         self.utterances = 0
-
+        self.current_rms = 0  # текущий уровень сигнала (для GUI)
+        
         self.barge_enabled = True
         self.muted = False
         self.barge_flag = False
@@ -167,8 +168,10 @@ class Listener:
         if arr.size:
             self.peak = max(self.peak, int(np.abs(arr).max()))
             rms = int(np.sqrt(np.mean(arr.astype(np.float32) ** 2)))
+            self.current_rms = rms
         else:
             rms = 0
+            self.current_rms = 0
         self._process_barge(rms)
         if not self.muted:
             self._audio.put(bytes(indata))
@@ -182,6 +185,12 @@ class Listener:
         self._utt_buf.clear()
         self._utt_len = 0
         self._rec.Reset()
+        
+    def reset_stats(self):
+        """Сбрасывает peak и utterances — для кнопки «Проверить микрофон»."""
+        self.peak = 0
+        self.utterances = 0
+        log.info("Listener: статистика сброшена")
 
     def phrases(self, stop_event):
         max_buf = self._sample_rate * 2 * 30

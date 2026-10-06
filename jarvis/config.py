@@ -30,6 +30,7 @@ DEFAULT_CONFIG = {
     "sample_rate": 16000,
     "input_device": None,
     "mic_check_sec": 20,
+    "mic_watchdog_enabled": True,
     "command_window_sec": 8,
     "dialog_window_sec": 20,
     "use_whisper": True,

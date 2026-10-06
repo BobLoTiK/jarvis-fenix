@@ -22,7 +22,69 @@ import flet as ft
 
 log = logging.getLogger("jarvis.gui")
 
-# --- Палитра (глубокая тёмная) ---
+# --- Палитра: две темы ---
+PALETTES = {
+    "dark": {
+        "bg_main": "#0e1116",
+        "bg_card": "#161b22",
+        "bg_bubble_user": "#1f6feb",
+        "bg_bubble_ai": "#21262d",
+        "accent": "#58a6ff",
+        "text": "#e6edf3",
+        "text_dim": "#8b949e",
+        "border": "#30363d",
+        "error": "#f85149",
+        "success": "#3fb950",
+        "warning": "#d29922",
+    },
+    "light": {
+        "bg_main": "#f6f8fa",
+        "bg_card": "#ffffff",
+        "bg_bubble_user": "#0969da",
+        "bg_bubble_ai": "#eaeef2",
+        "accent": "#0969da",
+        "text": "#1f2328",
+        "text_dim": "#656d76",
+        "border": "#d0d7de",
+        "error": "#cf222e",
+        "success": "#1a7f37",
+        "warning": "#9a6700",
+    },
+}
+
+
+def _detect_system_theme() -> str:
+    """Определяет тему Windows: 'dark' или 'light'.
+
+    Читает HKCU\\...\\Themes\\Personalize\\AppsUseLightTheme.
+    0 = тёмная, 1 = светлая, отсутствует = тёмная (default).
+    """
+    try:
+        import winreg
+        key_path = r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path) as key:
+            value, _ = winreg.QueryValueEx(key, "AppsUseLightTheme")
+            return "light" if value == 1 else "dark"
+    except Exception:
+        log.exception("Не удалось определить тему Windows — беру тёмную")
+        return "dark"
+
+
+# Текущая тема — объект-обёртка, чтобы существующий код не переписывать.
+class _Palette:
+    def __init__(self):
+        self._data = PALETTES["dark"]
+
+    def set(self, name: str):
+        self._data = PALETTES.get(name, PALETTES["dark"])
+
+    def __getattr__(self, key):
+        return self._data.get(key, "")
+
+
+P = _Palette()
+
+# Совместимость — существующий код читает эти имена.
 BG_DARK = "#0e1116"
 BG_CARD = "#161b22"
 BG_BUBBLE_USER = "#1f6feb"
@@ -30,6 +92,20 @@ BG_BUBBLE_AI = "#21262d"
 ACCENT = "#58a6ff"
 TEXT = "#e6edf3"
 TEXT_DIM = "#8b949e"
+
+
+def _apply_palette(name: str) -> None:
+    """Обновляет глобальные BG_*, TEXT, ACCENT из палитры."""
+    global BG_DARK, BG_CARD, BG_BUBBLE_USER, BG_BUBBLE_AI, ACCENT, TEXT, TEXT_DIM
+    P.set(name)
+    BG_DARK = P.bg_main
+    BG_CARD = P.bg_card
+    BG_BUBBLE_USER = P.bg_bubble_user
+    BG_BUBBLE_AI = P.bg_bubble_ai
+    ACCENT = P.accent
+    TEXT = P.text
+    TEXT_DIM = P.text_dim
+
 
 # --- Состояния: (цвет, название, подпись) ---
 STATES = {
@@ -40,9 +116,9 @@ STATES = {
 }
 
 THEMES = {
+    "Системная": ft.ThemeMode.SYSTEM,
     "Тёмная": ft.ThemeMode.DARK,
     "Светлая": ft.ThemeMode.LIGHT,
-    "Системная": ft.ThemeMode.SYSTEM,
 }
 
 LLM_MODELS = [
@@ -79,6 +155,15 @@ class FenixGUI:
         self._mic_btn = None
         self._content_area = None
         self._rail = None
+
+        # Контролы вкладки «Микрофон»
+        self._mic_dropdown = None
+        self._mic_level_bar = None
+        self._mic_level_text = None
+        self._mic_status_text = None
+        self._mic_peak_text = None
+        self._mic_utt_text = None
+        self._mic_test_result = None
 
         self._page = None
 
@@ -136,6 +221,23 @@ class FenixGUI:
 
     def _main(self, page: ft.Page) -> None:
         self._page = page
+
+        # Определяем тему по config ДО построения UI.
+        # Если "Системная" — читаем тему Windows через реестр.
+        theme_name = self.config.get("gui_theme", "Системная")
+        if theme_name not in THEMES:
+            theme_name = "Системная"
+        theme_mode = THEMES[theme_name]
+
+        if theme_mode == ft.ThemeMode.SYSTEM:
+            palette_name = _detect_system_theme()
+            log.info("Системная тема: %s", palette_name)
+            _apply_palette(palette_name)
+        elif theme_mode == ft.ThemeMode.LIGHT:
+            _apply_palette("light")
+        else:
+            _apply_palette("dark")
+
         page.title = "Феникс"
         page.window.width = 1100
         page.window.height = 760
@@ -144,7 +246,7 @@ class FenixGUI:
         page.padding = 0
         page.spacing = 0
         page.bgcolor = BG_DARK
-        page.theme_mode = ft.ThemeMode.DARK
+        page.theme_mode = theme_mode
         page.theme = ft.Theme(
             color_scheme_seed=ACCENT,
             font_family="Segoe UI",
@@ -158,6 +260,7 @@ class FenixGUI:
 
         self._build_ui(page)
         page.run_task(self._process_queue)
+        page.run_task(self._mic_level_loop)
 
     def _build_ui(self, page: ft.Page) -> None:
         # --- NavigationRail ---
@@ -220,7 +323,6 @@ class FenixGUI:
 
     def _build_main_tab(self) -> ft.Control:
         # --- Статус ---
-        # Сфера с анимацией
         self._status_circle = ft.Container(
             width=80,
             height=80,
@@ -256,10 +358,8 @@ class FenixGUI:
             padding=ft.Padding(left=30, top=25, right=30, bottom=20),
         )
 
-        # --- Контролы ---
         controls_bar = self._build_controls()
 
-        # --- История ---
         self._history_list = ft.ListView(
             spacing=10,
             auto_scroll=True,
@@ -271,7 +371,6 @@ class FenixGUI:
             padding=ft.Padding(left=30, right=30, top=10, bottom=10),
         )
 
-        # --- Ввод ---
         input_bar = self._build_input()
 
         return ft.Column(
@@ -291,7 +390,6 @@ class FenixGUI:
         def _label(text):
             return ft.Text(text, width=80, color=TEXT_DIM, size=13)
 
-        # Режим
         mode_row = ft.Row(
             controls=[
                 _label("Режим:"),
@@ -311,7 +409,6 @@ class FenixGUI:
             spacing=10,
         )
 
-        # Голос
         voice_row = ft.Row(
             controls=[
                 _label("Голос:"),
@@ -333,7 +430,6 @@ class FenixGUI:
             spacing=10,
         )
 
-        # Память
         mm = self.config.get("memory_max", 100)
         mem_value = {40: "short", 100: "normal", 200: "long"}.get(mm, "normal")
         mem_row = ft.Row(
@@ -435,6 +531,28 @@ class FenixGUI:
             on_select=self._on_mic_change,
         )
 
+        self._mic_level_bar = ft.ProgressBar(
+            value=0.0,
+            width=400,
+            color=ACCENT,
+            bgcolor="#21262d",
+        )
+        self._mic_level_text = ft.Text(
+            "Уровень сигнала: —", size=13, color=TEXT_DIM,
+        )
+        self._mic_status_text = ft.Text(
+            "Статус: ожидание проверки", size=13, color=TEXT_DIM,
+        )
+        self._mic_peak_text = ft.Text(
+            "Пик за сессию: 0", size=13, color=TEXT_DIM,
+        )
+        self._mic_utt_text = ft.Text(
+            "Распознано фраз: 0", size=13, color=TEXT_DIM,
+        )
+        self._mic_test_result = ft.Text(
+            "", size=13, color=TEXT_DIM,
+        )
+
         return ft.Container(
             content=ft.Column(
                 controls=[
@@ -442,6 +560,44 @@ class FenixGUI:
                     ft.Container(height=25),
                     ft.Text(f"Текущее устройство: {name}", size=14, color=TEXT),
                     ft.Container(height=20),
+
+                    ft.Container(
+                        content=ft.Column(
+                            controls=[
+                                self._mic_level_text,
+                                self._mic_level_bar,
+                                ft.Container(height=8),
+                                self._mic_peak_text,
+                                self._mic_utt_text,
+                                self._mic_status_text,
+                                self._mic_test_result,
+                            ],
+                            spacing=6,
+                        ),
+                        padding=16,
+                        bgcolor=BG_CARD,
+                        border_radius=12,
+                    ),
+                    ft.Container(height=15),
+
+                    ft.Button(
+                        content=ft.Row(
+                            controls=[
+                                ft.Icon(ft.Icons.MIC, color=BG_DARK),
+                                ft.Text("🎙 Проверить микрофон (3 сек)", color=BG_DARK),
+                            ],
+                            spacing=8,
+                            alignment=ft.MainAxisAlignment.CENTER,
+                        ),
+                        on_click=self._on_mic_test,
+                        style=ft.ButtonStyle(
+                            bgcolor=ACCENT,
+                            shape=ft.RoundedRectangleBorder(radius=10),
+                            padding=ft.Padding(left=20, right=20, top=12, bottom=12),
+                        ),
+                    ),
+                    ft.Container(height=20),
+
                     ft.Text("Выбрать устройство:", size=13, color=TEXT_DIM),
                     self._mic_dropdown,
                     ft.Container(height=15),
@@ -455,14 +611,9 @@ class FenixGUI:
                         bgcolor="#2d2210",
                         border_radius=8,
                     ),
-                    ft.Container(height=20),
-                    ft.Text(
-                        "Проверить микрофон: python scripts/mics.py",
-                        size=12,
-                        color=TEXT_DIM,
-                    ),
                 ],
                 spacing=5,
+                scroll=ft.ScrollMode.AUTO,
             ),
             padding=ft.Padding(left=40, top=40, right=40, bottom=40),
             expand=True,
@@ -474,6 +625,78 @@ class FenixGUI:
             value = None
         self.config.set("input_device", value)
         log.info("Микрофон сохранён: %r (перезапусти Феникса)", value)
+
+    def _on_mic_test(self, e) -> None:
+        """Тест микрофона — слушает 3 сек, показывает результат."""
+        if self.jarvis is None or self.jarvis.listener is None:
+            self._mic_test_result.value = "❌ Listener не запущен"
+            self._mic_test_result.color = "#f85149"
+            try:
+                self._page.update()
+            except Exception:
+                pass
+            return
+
+        def _run():
+            listener = self.jarvis.listener
+            listener.reset_stats()
+            self._mic_test_result.value = "🎙 Слушаю 3 секунды... говори!"
+            self._mic_test_result.color = ACCENT
+            try:
+                self._page.update()
+            except Exception:
+                pass
+
+            time.sleep(3.0)
+
+            peak = listener.peak
+            if peak >= 500:
+                self._mic_test_result.value = f"✅ Микрофон работает (пик {peak})"
+                self._mic_test_result.color = "#3fb950"
+            elif peak >= 100:
+                self._mic_test_result.value = f"⚠️ Микрофон очень тихий (пик {peak}). Говори громче или выбери другое устройство."
+                self._mic_test_result.color = "#d29922"
+            else:
+                self._mic_test_result.value = f"❌ Микрофон молчит (пик {peak}). Проверь, включён ли он, или выбери другое устройство."
+                self._mic_test_result.color = "#f85149"
+
+            try:
+                self._page.update()
+            except Exception:
+                pass
+
+        threading.Thread(target=_run, daemon=True, name="mic-test").start()
+
+    def _update_mic_level(self) -> None:
+        """Обновляет прогресс-бар уровня микрофона. Вызывается из очереди."""
+        if self.jarvis is None or self.jarvis.listener is None:
+            return
+        listener = self.jarvis.listener
+        rms = listener.current_rms
+        level = min(1.0, rms / 2000.0)
+
+        try:
+            if self._mic_level_bar is not None:
+                self._mic_level_bar.value = level
+            if self._mic_level_text is not None:
+                pct = int(level * 100)
+                self._mic_level_text.value = f"Уровень сигнала: {pct}%"
+            if self._mic_peak_text is not None:
+                self._mic_peak_text.value = f"Пик за сессию: {listener.peak}"
+            if self._mic_utt_text is not None:
+                self._mic_utt_text.value = f"Распознано фраз: {listener.utterances}"
+            if self._mic_status_text is not None:
+                if listener.peak >= 500:
+                    self._mic_status_text.value = "Статус: ✅ Работает"
+                    self._mic_status_text.color = "#3fb950"
+                elif listener.peak >= 100:
+                    self._mic_status_text.value = "Статус: ⚠️ Тихий сигнал"
+                    self._mic_status_text.color = "#d29922"
+                else:
+                    self._mic_status_text.value = "Статус: ⏸ Ожидание звука"
+                    self._mic_status_text.color = TEXT_DIM
+        except Exception:
+            log.exception("_update_mic_level упал")
 
     # ---------------------------------------------------------------
     # Настройки
@@ -517,7 +740,7 @@ class FenixGUI:
         )
 
         theme_dropdown = ft.Dropdown(
-            value=self.config.get("gui_theme", "Тёмная"),
+            value=self.config.get("gui_theme", "Системная"),
             options=[ft.dropdown.Option(t) for t in THEMES.keys()],
             width=250,
             border_color="#30363d",
@@ -587,6 +810,12 @@ class FenixGUI:
                     self._apply_stream_chunk(value)
                 elif kind == "stream_end":
                     self._apply_stream_end()
+                elif kind == "open_mic_tab":
+                    self._open_mic_tab()
+                elif kind == "mic_level":
+                    self._update_mic_level()
+                elif kind == "rebuild_theme":
+                    self._rebuild_ui_for_theme()
 
                 try:
                     self._page.update()
@@ -595,13 +824,39 @@ class FenixGUI:
             except Exception:
                 log.exception("Ошибка в _process_queue")
 
+    async def _mic_level_loop(self) -> None:
+        """Цикл обновления уровня микрофона + слежение за темой Windows."""
+        last_system_theme = _detect_system_theme()
+        counter = 0
+
+        while self._running:
+            try:
+                if self._rail and self._rail.selected_index == 1:
+                    self._queue.put(("mic_level", None))
+
+                counter += 1
+                if counter >= 10:  # 10 * 0.2 = 2 сек
+                    counter = 0
+                    if self.config.get("gui_theme") == "Системная":
+                        current = _detect_system_theme()
+                        if current != last_system_theme:
+                            log.info("Системная тема Windows изменилась: %s → %s",
+                                     last_system_theme, current)
+                            last_system_theme = current
+                            _apply_palette(current)
+                            self._queue.put(("rebuild_theme", current))
+
+                await asyncio.sleep(0.2)
+            except Exception:
+                log.exception("_mic_level_loop упал")
+                await asyncio.sleep(1.0)
+
     def _apply_state(self, state: str) -> None:
         if state not in STATES:
             return
         self._state = state
         color, text, sub = STATES[state]
 
-        # Размер сферы — разный для состояний
         size = {
             "idle": 80,
             "listening": 90,
@@ -615,7 +870,6 @@ class FenixGUI:
                 self._status_circle.width = size
                 self._status_circle.height = size
                 self._status_circle.border_radius = size // 2
-                # Тень — тот же цвет, что и сфера
                 self._status_circle.shadow = ft.BoxShadow(
                     blur_radius=30,
                     color=color,
@@ -633,7 +887,6 @@ class FenixGUI:
             ts = datetime.now().strftime("%H:%M")
             is_user = (role == "user")
 
-            # Аватар
             avatar = ft.Container(
                 content=ft.Text(
                     "👤" if is_user else "🦅",
@@ -646,7 +899,6 @@ class FenixGUI:
                 alignment=ft.Alignment.CENTER,
             )
 
-            # Текст
             text_col = ft.Column(
                 controls=[
                     ft.Text(
@@ -660,7 +912,6 @@ class FenixGUI:
                 expand=True,
             )
 
-            # Пузырь с тенью
             bubble = ft.Container(
                 content=ft.Row(
                     controls=[avatar, text_col] if not is_user else [text_col, avatar],
@@ -679,7 +930,6 @@ class FenixGUI:
                 opacity=1.0,
             )
 
-            # Обёртка с выравниванием
             wrapper = ft.Container(
                 content=bubble,
                 alignment=ft.Alignment.CENTER_RIGHT if is_user else ft.Alignment.CENTER_LEFT,
@@ -755,6 +1005,15 @@ class FenixGUI:
         self._stream_label = None
         self._stream_text = ""
 
+    def _open_mic_tab(self) -> None:
+        """Переключает GUI на вкладку «Микрофон»."""
+        try:
+            self._rail.selected_index = 1
+            self._content_area.content = self._tabs[1]
+            log.info("GUI: открыл вкладку «Микрофон» по сигналу watchdog")
+        except Exception:
+            log.exception("Не удалось открыть вкладку «Микрофон»")
+
     # ---------------------------------------------------------------
     # Действия
     # ---------------------------------------------------------------
@@ -800,13 +1059,47 @@ class FenixGUI:
 
     def _on_theme_change(self, e) -> None:
         theme_name = e.control.value
-        mode = THEMES.get(theme_name, ft.ThemeMode.DARK)
+        if theme_name not in THEMES:
+            theme_name = "Системная"
+        mode = THEMES[theme_name]
         self.config.set("gui_theme", theme_name)
+
+        if mode == ft.ThemeMode.SYSTEM:
+            palette_name = _detect_system_theme()
+            log.info("Системная тема: %s", palette_name)
+            _apply_palette(palette_name)
+        elif mode == ft.ThemeMode.LIGHT:
+            _apply_palette("light")
+        else:
+            _apply_palette("dark")
+
         try:
             self._page.theme_mode = mode
+            self._page.bgcolor = BG_DARK
+            self._rebuild_ui_for_theme()
             self._page.update()
         except Exception:
-            pass
+            log.exception("Ошибка в _on_theme_change")
+
+    def _rebuild_ui_for_theme(self) -> None:
+        """Пересобирает UI с новой палитрой. Вызывается при смене темы."""
+        current_index = self._rail.selected_index if self._rail else 0
+
+        self._tabs = {
+            0: self._build_main_tab(),
+            1: self._build_mic_tab(),
+            2: self._build_settings_tab(),
+        }
+
+        if self._content_area is not None:
+            self._content_area.bgcolor = BG_DARK
+            self._content_area.content = self._tabs.get(current_index, self._tabs[0])
+
+        if self._rail is not None:
+            self._rail.bgcolor = BG_CARD
+            self._rail.indicator_color = ACCENT
+
+        log.info("UI пересобран для темы (палитра применена)")
 
     def _on_send(self, e) -> None:
         text = self._input_field.value.strip()
@@ -835,8 +1128,6 @@ class FenixGUI:
                 self.set_state("listening")
                 self.add_message("user", cmd)
 
-                # Прерываем старое воспроизведение перед новой командой.
-                # Без этого GUI-«стой» накладывается на голосовой стрим.
                 self.jarvis.speaker.stop()
                 self.jarvis.speaker.wait_end(timeout=1.0)
 

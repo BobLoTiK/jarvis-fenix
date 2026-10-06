@@ -139,6 +139,9 @@ class IntentHandler:
         # Подписка на изменения memory_max / llm_context_messages
         config.subscribe(self._on_config_change)
 
+        # Подписка на смену профиля — чтобы перечитать dialog
+        profile.subscribe(self._on_profile_switch)
+
     def _on_config_change(self, key: str, value) -> None:
         """Реагирует на смену memory_max / llm_context_messages в рантайме."""
         if key == "memory_max":
@@ -158,9 +161,34 @@ class IntentHandler:
                 return
             log.info("IntentHandler: llm_context_messages = %d", self._llm_context)
 
+    def _on_profile_switch(self, old_name: str, new_name: str) -> None:
+        """Перечитывает dialog при смене профиля.
+
+        Без этого Феникс продолжает помнить диалог старого профиля
+        и подсовывает его в LLM-контекст нового пользователя.
+        """
+        # Защита от повторного вызова при пустом old_name (init)
+        if old_name == new_name:
+            return
+
+        self.dialog.clear()
+        for msg in memory.load(limit=self._memory_max):
+            self.dialog.append(msg)
+        log.info(
+            "Профиль сменился: %s → %s, диалог перечитан (%d сообщений)",
+            old_name, new_name, len(self.dialog),
+        )
+
     def handle(self, cmd: str) -> Reply:
         """Возвращает Reply: либо text, либо stream."""
         self.last_was_chat = False
+
+        # Нормализация — единая точка входа.
+        # Голосовой путь уже нормализует в Jarvis._process,
+        # но GUI передаёт сырой текст. Нормализуем здесь,
+        # чтобы все regex в _*_fast работали одинаково.
+        cmd = normalize(cmd)
+
         actions_log.info("Команда: %r (режим: %s)", cmd, self.mode)
 
         # Диагностика: сохраняем последнюю команду

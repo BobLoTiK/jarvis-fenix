@@ -32,6 +32,7 @@ import getpass
 import json
 import logging
 import re
+import threading
 import time
 from pathlib import Path
 
@@ -44,8 +45,16 @@ PROFILES_DIR = BASE_DIR / "profiles"
 _OLD_PROFILE = BASE_DIR / "user_profile.json"
 _OLD_DIALOG = BASE_DIR / "dialog.json"
 
-# Кэш текущего профиля — чтобы не читать файл каждый раз
+# Кэш текущего профиля — чтобы не читать файл каждый раз.
+# _current_lock защищает от гонки между потоками:
+# switch() вызывается из Jarvis-потока, current() — из GUI, memory.append() и т.д.
 _current: str | None = None
+_current_lock = threading.Lock()
+
+# Подписчики на смену профиля. Callback(old_name, new_name).
+# IntentHandler подписывается, чтобы перечитать свой dialog.
+_listeners: list = []
+_listeners_lock = threading.Lock()
 
 
 # ---------------------------------------------------------------
@@ -153,15 +162,30 @@ def _migrate_old() -> None:
 def current() -> str:
     """Имя текущего активного профиля (папки)."""
     global _current
-    if _current is None:
-        _current = _windows_user()
-    return _current
+    with _current_lock:
+        if _current is None:
+            _current = _windows_user()
+        return _current
+
+
+def subscribe(callback) -> None:
+    """Регистрирует callback(old_name, new_name) — вызывается при switch()."""
+    with _listeners_lock:
+        _listeners.append(callback)
 
 
 def switch(name: str) -> str:
-    """Переключает текущий профиль. Создаёт папку, если нет."""
+    """Переключает текущий профиль. Создаёт папку, если нет.
+
+    После смены _current уведомляет подписчиков (old_name, new_name).
+    Подписчики перечитывают свои данные — например, IntentHandler.dialog.
+    """
     global _current
     safe = _sanitize(name)
+
+    with _current_lock:
+        old_name = _current or _windows_user()
+
     user_dir = PROFILES_DIR / safe
     _ensure_dir(user_dir)
 
@@ -174,9 +198,21 @@ def switch(name: str) -> str:
         config_manager.save(data, path=profile_file)
         log.info("Создан новый профиль: %s", profile_file)
 
-    _current = safe
+    with _current_lock:
+        _current = safe
+
     human = get("name", safe)
-    log.info("Активный профиль: %s (%s)", human, safe)
+    log.info("Активный профиль: %s (%s → %s)", human, old_name, safe)
+
+    # Уведомляем подписчиков — IntentHandler перечитает dialog
+    with _listeners_lock:
+        listeners = list(_listeners)
+    for cb in listeners:
+        try:
+            cb(old_name, safe)
+        except Exception:
+            log.exception("Подписчик profile упал на switch(%r)", safe)
+
     return f"Профиль переключён на {human}."
 
 
@@ -308,15 +344,11 @@ def forget_fact(key: str) -> bool:
 # ---------------------------------------------------------------
 
 def init() -> None:
-    """Вызывается при старте Феникса.
-
-    - Мигрирует старые user_profile.json и dialog.json.
-    - Создаёт папку текущего профиля, если нет.
-    - Логирует активный профиль.
-    """
+    """Вызывается при старте Феникса."""
     global _current
     _ensure_dir(PROFILES_DIR)
-    _current = _windows_user()
+    with _current_lock:
+        _current = _windows_user()
     _migrate_old()
 
     user_dir = profile_dir()

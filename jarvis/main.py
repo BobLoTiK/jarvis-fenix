@@ -142,14 +142,37 @@ class Jarvis:
         self.stop_event.set()
 
     def mic_watchdog(self) -> None:
+        """Проверяет микрофон ОДИН РАЗ через mic_check_sec.
+
+        Больше не спамит: если микрофон молчит — предупреждает один раз
+        за сессию. Дальше — тишина, пока пользователь сам не разберётся.
+        """
+        if not self.config.get("mic_watchdog_enabled", True):
+            log.info("mic_watchdog выключен в config")
+            return
+
         delay = float(self.config.get("mic_check_sec", 20))
         if self.stop_event.wait(delay):
             return
-        if self.listener.utterances == 0 and self.listener.peak < 200:
-            log.warning("Микрофон молчит (пик %d за %.0f с): %s — проверьте устройство",
-                        self.listener.peak, delay, self.listener.device_name)
-            self.say(Reply(text="Я не слышу микрофон. Проверьте, включён ли он, "
-                               "или укажите нужный в настройках."))
+
+        # Пик > 50 — микрофон живой, просто тихо. Не спамим.
+        if self.listener.peak >= 50:
+            log.info("mic_watchdog: пик %d — микрофон живой", self.listener.peak)
+            return
+
+        # Микрофон молчит (пик < 50 за mic_check_sec)
+        log.warning("Микрофон молчит (пик %d за %.0f с): %s",
+                    self.listener.peak, delay, self.listener.device_name)
+
+        self.say(Reply(text="Я не слышу микрофон. Проверьте, включён ли он, "
+                           "или выберите другое устройство в настройках."))
+
+        # Сообщаем GUI — открыть вкладку «Микрофон»
+        if self.gui is not None:
+            self.gui._queue.put(("open_mic_tab", None))
+
+        # Больше не повторяем — предупредили один раз
+        log.info("mic_watchdog: предупреждение показано, больше не повторяем")
 
     def run_loop(self) -> None:
         try:

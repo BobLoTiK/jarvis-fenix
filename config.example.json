@@ -19,6 +19,7 @@
   "sample_rate": 16000,
   "input_device": null,
   "mic_check_sec": 20,
+  "mic_watchdog_enabled": true,
   "command_window_sec": 9,
   "mode": "combo",
   "barge_enabled": true,
