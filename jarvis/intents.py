@@ -558,9 +558,52 @@ class IntentHandler:
                 return "Профилей нет."
             return f"Профили: {', '.join(all_p)}."
 
+        # === Специальные факты → правильные поля профиля ===
+        # «запомни: мой город X» → default_city, а не facts
+        # «мой город X» (без запомни) → default_city
+
+        m = re.match(r"^(?:запомни|запиши)\s*[,:]?\s*(?:что\s+)?мой\s+город\s+(.+)$", cmd)
+        if not m:
+            m = re.match(r"^мой\s+город\s+(.+)$", cmd)
+        if m:
+            city = m.group(1).strip(" ,.:!?")
+            if city:
+                profile.set("default_city", city)
+                return f"Запомнил: твой город — {city}."
+
+        m = re.match(r"^(?:запомни|запиши)\s*[,:]?\s*(?:что\s+)?меня\s+зовут\s+(.+)$", cmd)
+        if not m:
+            m = re.match(r"^меня\s+зовут\s+(.+)$", cmd)
+        if m:
+            name = m.group(1).strip(" ,.:!?")
+            if name:
+                profile.set("name", name)
+                return f"Запомнил: тебя зовут {name}."
+
+        m = re.match(r"^(?:запомни|запиши)\s*[,:]?\s*(?:что\s+)?я\s+живу\s+в\s+(.+)$", cmd)
+        if not m:
+            m = re.match(r"^я\s+живу\s+в\s+(.+)$", cmd)
+        if m:
+            city = m.group(1).strip(" ,.:!?")
+            if city:
+                profile.set("default_city", city)
+                return f"Запомнил: ты живёшь в {city}."
+
+        # === Общий «запомни: X — Y» → facts ===
         m = re.match(r"^(?:запомни|запиши)\s*[,:]?\s*(?:что\s+)?(.+)$", cmd)
         if m:
             fact = m.group(1).strip(" ,.:!?")
+            if not fact:
+                return "Что запомнить?"
+            sep = re.match(r"^(.+?)\s*[—\-=:]\s*(.+)$", fact)
+            if sep:
+                key, value = sep.group(1).strip(), sep.group(2).strip()
+            else:
+                key, value = fact, "да"
+            ok = learning.add_fact(key, value)
+            if ok:
+                return f"Запомнил: {key} — {value}."
+            return "Не удалось сохранить — проверь профиль (возможно, битый JSON)."
             if not fact:
                 return "Что запомнить?"
             sep = re.match(r"^(.+?)\s*[—\-=:]\s*(.+)$", fact)
@@ -577,9 +620,12 @@ class IntentHandler:
                 or cmd in {"что ты обо мне знаешь", "что ты знаешь"}:
             facts = profile.all_facts()
             name = profile.get("name")
+            city = profile.get("default_city")
             parts = []
             if name:
                 parts.append(f"Тебя зовут {name}")
+            if city:
+                parts.append(f"твой город — {city}")
             if facts:
                 facts_str = "; ".join(f"{k} — {v}" for k, v in facts.items())
                 parts.append(f"Знаю: {facts_str}")
@@ -1332,11 +1378,24 @@ class IntentHandler:
     def _match_custom(self, cmd: str) -> str | None:
         for phrases, action, reply in self.custom:
             for phrase in phrases:
-                if cmd == phrase or SequenceMatcher(None, cmd, phrase).ratio() >= 0.85:
+                # Точное совпадение — всегда.
+                if cmd == phrase:
+                    log.info("Custom (точно): %r → %r, action=%r", cmd, phrase, action)
                     if isinstance(action, list):
                         return self._execute_steps(action) or reply
                     actions.run_spec(actions.spec_from_string(action))
                     return reply
+                # Нечёткое — только для длинных фраз, чтобы не ловить
+                # «открой стим» → «открой споти» (ratio 0.87, ложное срабатывание).
+                if len(cmd) >= 12 and len(phrase) >= 12:
+                    ratio = SequenceMatcher(None, cmd, phrase).ratio()
+                    if ratio >= 0.85:
+                        log.info("Custom (нечётко %.2f): %r → %r, action=%r",
+                                 ratio, cmd, phrase, action)
+                        if isinstance(action, list):
+                            return self._execute_steps(action) or reply
+                        actions.run_spec(actions.spec_from_string(action))
+                        return reply
         return None
 
     def _take_screenshot(self, cmd: str) -> str:

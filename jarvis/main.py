@@ -332,6 +332,33 @@ def setup_logging() -> None:
     actions_handler.setFormatter(formatter)
     actions_logger.addHandler(actions_handler)
 
+    # === Глобальный перехват исключений в потоках ===
+    # Без этого падения в фоновых потоках (трей, watchdog, tts-stream)
+    # уходят в stderr и теряются. Теперь — в errors.log.
+    def _thread_excepthook(args):
+        thread_name = args.thread.name if args.thread else "?"
+        log.critical(
+            "Необработанное исключение в потоке %r:",
+            thread_name,
+            exc_info=(args.exc_type, args.exc_value, args.exc_traceback),
+        )
+
+    threading.excepthook = _thread_excepthook
+    # === Глобальный перехват для ГЛАВНОГО потока ===
+    # threading.excepthook ловит только фоновые потоки.
+    # Падения в main() идут в sys.excepthook.
+    import sys
+
+    def _sys_excepthook(exc_type, exc_value, exc_tb):
+        if issubclass(exc_type, KeyboardInterrupt):
+            # Ctrl+C — не логируем как критичное
+            return
+        log.critical(
+            "Необработанное исключение в главном потоке:",
+            exc_info=(exc_type, exc_value, exc_tb),
+        )
+
+    sys.excepthook = _sys_excepthook
 
 def main() -> None:
     setup_logging()
@@ -353,7 +380,9 @@ def main() -> None:
 
     config: Config = load_config(BASE_DIR)
     from jarvis import profile as _profile
+    from jarvis import weather as _weather
     _profile.init()
+    _weather.set_config(config)
     model_dir = ensure_model(BASE_DIR / "models")
 
     whisper = None
@@ -434,7 +463,14 @@ def main() -> None:
     if config.get("tray_enabled", True):
         try:
             tray = build_tray(jarvis)
-            threading.Thread(target=tray.run, daemon=True, name="tray").start()
+
+            def _run_tray():
+                try:
+                    tray.run()
+                except Exception:
+                    log.exception("Трей упал в потоке — работаю без него")
+
+            threading.Thread(target=_run_tray, daemon=True, name="tray").start()
         except Exception:
             log.exception("Трей не завёлся — работаю без него")
 

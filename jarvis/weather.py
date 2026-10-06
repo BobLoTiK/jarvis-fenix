@@ -22,17 +22,50 @@ log = logging.getLogger("jarvis.weather")
 
 # Кэш: {(тип, ключ): (timestamp, data)}
 _CACHE: dict = {}
-_CACHE_TTL = 600  # 10 минут
 _CACHE_LOCK = threading.Lock()
+
+# TTL по умолчанию, если Config недоступен.
+_DEFAULT_TTL = 600  # 10 минут
+
+# Ссылка на Config — устанавливается через set_config() из main.py.
+_config = None
+
+
+def set_config(config) -> None:
+    """Регистрирует Config — оттуда читаем weather_cache_ttl_sec.
+
+    Вызывается один раз при старте Феникса.
+    """
+    global _config
+    _config = config
+    log.info("weather: Config подключён, TTL = %d сек",
+             _current_ttl())
+
+
+def _current_ttl() -> int:
+    """Актуальный TTL кэша в секундах.
+
+    Читает weather_cache_ttl_sec из Config на КАЖДЫЙ вызов —
+    чтобы смена значения на лету работала.
+    """
+    if _config is None:
+        return _DEFAULT_TTL
+    try:
+        v = _config.get("weather_cache_ttl_sec", _DEFAULT_TTL)
+        v = int(v)
+        return v if v > 0 else _DEFAULT_TTL
+    except (TypeError, ValueError):
+        return _DEFAULT_TTL
 
 
 def _cached(key: tuple, fetcher):
     now = time.time()
+    ttl = _current_ttl()
 
     with _CACHE_LOCK:
         if key in _CACHE:
             ts, data = _CACHE[key]
-            if now - ts < _CACHE_TTL:
+            if now - ts < ttl:
                 return data
 
     # fetcher() вызываем ВНЕ лока — иначе блокируем HTTP на весь кэш

@@ -9,6 +9,7 @@ echo ============================================================
 echo.
 
 cd /d "%~dp0"
+call .venv311\Scripts\activate.bat
 
 set FAILED=0
 

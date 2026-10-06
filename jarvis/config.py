@@ -54,6 +54,7 @@ DEFAULT_CONFIG = {
     "memory_file": "dialog.json",
     "memory_max": 100,
     "llm_context_messages": 20,
+    "weather_cache_ttl_sec": 600,
     "danger_password": "",
     "gui_enabled": True,
     "gui_theme": "dark-blue",
