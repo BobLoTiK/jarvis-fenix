@@ -30,6 +30,7 @@ jarvis/
 ├── tasks.py          — списки задач
 ├── actions.py        — окна, медиа, печать, буфер, громкость, яркость, раскладка,
 │                       open_in_editor, _activate_window_hard
+├── text_utils.py     — normalize(), strip_cjk(), strip_cjk_chunk(), prepare_text()
 ├── files.py          — папки (Desktop, Downloads, ...)
 ├── apps.py           — каталог приложений
 ├── installed.py      — индекс меню «Пуск»

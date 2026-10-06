@@ -18,6 +18,7 @@ EXCLUDE_DIRS = {
     ".idea", ".vscode", "node_modules",
     ".mypy_cache", ".ruff_cache",
     "voices",
+    "profiles",   # №1: личные данные — НЕ в снимок
 }
 
 EXCLUDE_FILES = {

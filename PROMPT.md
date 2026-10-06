@@ -95,6 +95,7 @@ jarvis/
 ├── tasks.py          — задачи
 ├── actions.py        — окна, медиа, печать, буфер, громкость, яркость, раскладка,
 │                       open_in_editor, _activate_window_hard
+├── text_utils.py     — normalize(), strip_cjk(), prepare_text()
 ├── files.py          — папки
 ├── apps.py           — каталог приложений
 ├── installed.py      — индекс «Пуск»

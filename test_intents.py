@@ -51,24 +51,29 @@ log.addHandler(_ch)
 # =================================================================
 # Setup / teardown для тестов, которым нужно особое окружение.
 # Возвращают (setup, teardown), либо None.
+#
+# ВАЖНО: работаем с config._data напрямую (в памяти), НЕ через config.set().
+# Иначе пароль пользователя уйдёт на диск — если тест упадёт между
+# setup и teardown, пароль потеряется.
 # =================================================================
 
 def _no_password_setup(handler):
-    """Временно выставить danger_password = "" — сценарий без пароля."""
-    handler._saved_password = handler.config.get("danger_password", "")
-    handler.config.set("danger_password", "")
+    """Временно выставить danger_password = "" в памяти."""
+    handler._saved_password = handler.config._data.get("danger_password", "")
+    handler.config._data["danger_password"] = ""
 
 
 def _no_password_teardown(handler):
-    """Вернуть пароль как было."""
-    handler.config.set("danger_password", getattr(handler, "_saved_password", ""))
+    """Вернуть пароль как было — в памяти, без записи на диск."""
+    saved = getattr(handler, "_saved_password", "")
+    handler.config._data["danger_password"] = saved
     handler._saved_password = ""
 
 
 def _with_password_setup(handler):
-    """Временно выставить danger_password = 'test_password_123'."""
-    handler._saved_password = handler.config.get("danger_password", "")
-    handler.config.set("danger_password", "test_password_123")
+    """Временно выставить danger_password = 'test_password_123' в памяти."""
+    handler._saved_password = handler.config._data.get("danger_password", "")
+    handler.config._data["danger_password"] = "test_password_123"
 
 
 # teardown — тот же, что у _no_password_teardown

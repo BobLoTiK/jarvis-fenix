@@ -11,13 +11,13 @@
 
 import json
 import logging
-import re
 import subprocess
 import threading
 import time
 import urllib.request
 
 from jarvis import learning
+from jarvis.text_utils import strip_cjk, strip_cjk_chunk
 
 log = logging.getLogger("jarvis.brain")
 
@@ -343,21 +343,6 @@ CHAT_SYSTEM = (
     "ОТВЕЧАЙ ИСКЛЮЧИТЕЛЬНО НА РУССКОМ. Категорически запрещены иероглифы."
 )
 
-_CJK_RE = re.compile(
-    r"[\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff"
-    r"\uac00-\ud7af\u3000-\u303f\uff00-\uffef]+"
-)
-
-
-def _strip_cjk(text: str) -> str:
-    if not text:
-        return text
-    cleaned = _CJK_RE.sub(" ", text)
-    cleaned = re.sub(r"\s+", " ", cleaned).strip()
-    if not cleaned:
-        return "Извините, не удалось ответить. Повторите, пожалуйста."
-    return cleaned
-
 
 class Brain:
     def __init__(self, model="qwen2.5:7b-instruct",
@@ -466,7 +451,7 @@ class Brain:
             text = self._request(msgs, self.timeout, fmt=None,
                                  temperature=self.temperature,
                                  num_predict=600).strip()
-            text = _strip_cjk(text)
+            text = strip_cjk(text)
             log.info("LLM-диалог (%.2f с): %r -> %r", time.time() - t0, cmd, text[:120])
             return text or None
         except Exception:
@@ -504,7 +489,7 @@ class Brain:
                         continue
                     chunk = data.get("message", {}).get("content", "")
                     if chunk:
-                        chunk = _CJK_RE.sub("", chunk)
+                        chunk = strip_cjk_chunk(chunk)
                         if chunk:
                             if first is None:
                                 first = time.time() - t0

@@ -42,6 +42,7 @@ jarvis/
 │   ├── steam.py
 │   ├── stt.py
 │   ├── tasks.py
+│   ├── text_utils.py
 │   ├── timers.py
 │   ├── tray.py
 │   ├── tts.py
@@ -53,9 +54,6 @@ jarvis/
 │   ├── sites.json
 │   ├── system.json
 │   ├── work.json
-├── profiles/
-│   ├── maksim/
-│   │   ├── profile.json
 ├── scripts/
 │   ├── __init__.py
 │   ├── build_exe.py
@@ -237,6 +235,7 @@ jarvis/
 ├── tasks.py          — списки задач
 ├── actions.py        — окна, медиа, печать, буфер, громкость, яркость, раскладка,
 │                       open_in_editor, _activate_window_hard
+├── text_utils.py     — normalize(), strip_cjk(), strip_cjk_chunk(), prepare_text()
 ├── files.py          — папки (Desktop, Downloads, ...)
 ├── apps.py           — каталог приложений
 ├── installed.py      — индекс меню «Пуск»
@@ -3175,13 +3174,13 @@ def find_app(apps: list[App], target: str) -> App | None:
 
 import json
 import logging
-import re
 import subprocess
 import threading
 import time
 import urllib.request
 
 from jarvis import learning
+from jarvis.text_utils import strip_cjk, strip_cjk_chunk
 
 log = logging.getLogger("jarvis.brain")
 
@@ -3507,21 +3506,6 @@ CHAT_SYSTEM = (
     "ОТВЕЧАЙ ИСКЛЮЧИТЕЛЬНО НА РУССКОМ. Категорически запрещены иероглифы."
 )
 
-_CJK_RE = re.compile(
-    r"[\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff"
-    r"\uac00-\ud7af\u3000-\u303f\uff00-\uffef]+"
-)
-
-
-def _strip_cjk(text: str) -> str:
-    if not text:
-        return text
-    cleaned = _CJK_RE.sub(" ", text)
-    cleaned = re.sub(r"\s+", " ", cleaned).strip()
-    if not cleaned:
-        return "Извините, не удалось ответить. Повторите, пожалуйста."
-    return cleaned
-
 
 class Brain:
     def __init__(self, model="qwen2.5:7b-instruct",
@@ -3630,7 +3614,7 @@ class Brain:
             text = self._request(msgs, self.timeout, fmt=None,
                                  temperature=self.temperature,
                                  num_predict=600).strip()
-            text = _strip_cjk(text)
+            text = strip_cjk(text)
             log.info("LLM-диалог (%.2f с): %r -> %r", time.time() - t0, cmd, text[:120])
             return text or None
         except Exception:
@@ -3668,7 +3652,7 @@ class Brain:
                         continue
                     chunk = data.get("message", {}).get("content", "")
                     if chunk:
-                        chunk = _CJK_RE.sub("", chunk)
+                        chunk = strip_cjk_chunk(chunk)
                         if chunk:
                             if first is None:
                                 first = time.time() - t0
@@ -5018,6 +5002,12 @@ class FenixGUI:
                 log.exception("Ошибка в _process_queue")
 
     async def _mic_level_loop(self) -> None:
+        """Обновляет уровень микрофона и следит за сменой системной темы.
+
+        Уровень микрофона — 5 раз в секунду (0.2 с).
+        Системная тема — раз в 5 секунд (25 итераций × 0.2 с).
+        Реже не имеет смысла: реестр дёргать лишний раз незачем.
+        """
         last_system_theme = _detect_system_theme()
         counter = 0
 
@@ -5027,7 +5017,7 @@ class FenixGUI:
                     self._queue.put(("mic_level", None))
 
                 counter += 1
-                if counter >= 10:
+                if counter >= 25:
                     counter = 0
                     if self.config.get("gui_theme") == "Системная":
                         current = _detect_system_theme()
@@ -5542,6 +5532,7 @@ from jarvis import profile
 from jarvis import history
 from jarvis import learning
 from jarvis.reply import Reply
+from jarvis.text_utils import normalize
 
 
 log = logging.getLogger("jarvis.intents")
@@ -5571,6 +5562,10 @@ def _verify_password(candidate: str, stored: str) -> bool:
 
     Если stored ещё старый (plaintext) — сравнивает напрямую
     и возвращает True. Миграция произойдёт при следующем set.
+
+    Legacy-ветка: до v0.3.0 пароль хранился в plaintext.
+    Оставлена для совместимости, но после _migrate_password_if_needed
+    срабатывает только если что-то пошло не так.
     """
     if not stored:
         return False
@@ -5578,16 +5573,6 @@ def _verify_password(candidate: str, stored: str) -> bool:
         return _hash_password(candidate) == stored
     # legacy plaintext — сравнение напрямую
     return candidate == stored
-
-
-# =================================================================
-# Нормализация
-# =================================================================
-
-def normalize(text: str) -> str:
-    text = text.lower().replace("ё", "е")
-    text = re.sub(r"[^\w\s]", " ", text)
-    return re.sub(r"\s+", " ", text).strip()
 
 
 CANCEL = {"отмена", "стоп", "стой", "хватит", "замолчи", "ничего", "забудь", "отбой"}
@@ -5598,7 +5583,7 @@ SEARCH_VERBS = ("найди", "поищи", "ищи", "загугли", "пог�
 
 
 # =================================================================
-# SITES — fallback на хардкод, если packs/sites.json недоступен (№96)
+# SITES — ленивая загрузка из packs/sites.json (№96 + ленивость)
 # =================================================================
 
 _SITES_FALLBACK = {
@@ -5648,7 +5633,15 @@ def _load_sites() -> dict:
     return sites
 
 
-SITES = _load_sites()
+_SITES_CACHE: dict | None = None
+
+
+def _get_sites() -> dict:
+    """Ленивая загрузка SITES — при первом обращении, не при импорте."""
+    global _SITES_CACHE
+    if _SITES_CACHE is None:
+        _SITES_CACHE = _load_sites()
+    return _SITES_CACHE
 
 
 MONTHS = ["января", "февраля", "марта", "апреля", "мая", "июня",
@@ -5748,6 +5741,28 @@ class IntentHandler:
                     (phrases, action, entry.get("reply", "Выполняю."))
                 )
         self.custom = list(self._config_custom_original) + self._load_packs_as_custom(config)
+
+        # Кэш реестра быстрых обработчиков — строится один раз.
+        # Порядок = приоритет. Специфичные — ВЫШЕ общих.
+        # open_profile ВЫШЕ open — иначе _open_fast съест «открой профиль».
+        self._fast_handlers_cache = [
+            ("custom", self._match_custom),
+            ("small_talk", self._small_talk),
+            ("music", self._music_fast),
+            ("open_profile", self._open_profile_fast),
+            ("open", self._open_fast),
+            ("voices", lambda cmd: voices.handle_voice_command(cmd, self.config)),
+            ("packs", self._packs_handler),
+            ("timers", timers.handle_timer_command),
+            ("tasks", tasks.handle_task_command),
+            ("profile", self._profile_fast),
+            ("memory", self._memory_fast),
+            ("system", self._system_fast),
+            ("debug", self._debug_fast),
+            ("correction", self._correction_fast),
+            ("undo", self._undo_fast),
+            ("weather_currency", self._weather_currency_fast),
+        ]
 
         # Подписка на изменения memory_max / llm_context_messages
         config.subscribe(self._on_config_change)
@@ -5979,9 +5994,9 @@ class IntentHandler:
             # Если ни одна часть не дала ответа — идём дальше обычным путём.
 
         # --- Быстрые правила без LLM (реестр) ---
-        # Порядок в _fast_handlers() = приоритет.
+        # Порядок в _fast_handlers_cache = приоритет.
         # Специфичные — выше общих (open_profile выше open).
-        for name, handler in self._fast_handlers():
+        for name, handler in self._fast_handlers_cache:
             try:
                 reply = handler(cmd)
             except Exception:
@@ -6107,37 +6122,6 @@ class IntentHandler:
             result = self._execute_intent(intent)
         return result or "Готово."
 
-    def _fast_handlers(self):
-        """Реестр быстрых обработчиков без LLM.
-
-        Порядок = приоритет. Специфичные — выше общих.
-
-        Каждый обработчик: (cmd: str) -> str | None.
-        Если вернул непустую строку — команда обработана.
-        Если None — идём к следующему.
-        """
-        return [
-            # Специфичные — ВЫШЕ
-            ("custom", self._match_custom),
-            ("small_talk", self._small_talk),
-            ("music", self._music_fast),
-            ("open_profile", self._open_profile_fast),
-
-            # Общие — ниже
-            ("open", self._open_fast),
-            ("voices", lambda cmd: voices.handle_voice_command(cmd, self.config)),
-            ("packs", self._packs_handler),
-            ("timers", timers.handle_timer_command),
-            ("tasks", tasks.handle_task_command),
-            ("profile", self._profile_fast),
-            ("memory", self._memory_fast),
-            ("system", self._system_fast),
-            ("debug", self._debug_fast),
-            ("correction", self._correction_fast),
-            ("undo", self._undo_fast),
-            ("weather_currency", self._weather_currency_fast),
-        ]
-
     def _packs_handler(self, cmd: str) -> str | None:
         """Обёртка для packs с side-effect.
 
@@ -6183,12 +6167,20 @@ class IntentHandler:
         return None
 
     def _open_fast(self, cmd: str) -> str | None:
-        """Быстрое открытие приложений/сайтов/папок — без LLM."""
+        """Быстрое открытие приложений/сайтов/папок — без LLM.
+
+        Исключение «профиль»: если пользователь говорит «открой профиль»,
+        это должно уйти в _open_profile_fast (который выше в реестре).
+        Дополнительная защита — если по какой-то причине порядок нарушен.
+        """
         m = re.match(r"^(?:открой|запусти|врубай|включи|открывай)\s+(.+)$", cmd)
         if not m:
             return None
         target = m.group(1).strip()
         if not target:
+            return None
+        # Защита: «открой профиль» — не наше дело.
+        if "профиль" in target:
             return None
         return self._do_open(target)
 
@@ -6214,7 +6206,6 @@ class IntentHandler:
             return f"Профили: {', '.join(all_p)}."
 
         # === Общий «запомни: X — Y» → facts ===
-        # (УДАЛЁН ДУБЛЬ, который был в строках 558–569)
         m = re.match(r"^(?:запомни|запиши)\s*[,:]?\s*(?:что\s+)?(.+)$", cmd)
         if m:
             fact = m.group(1).strip(" ,.:!?")
@@ -6379,7 +6370,7 @@ class IntentHandler:
             return f"Яркость: {br}%." if br is not None else "Не смог узнать."
 
         return None
-        
+
     def _open_profile_fast(self, cmd: str) -> str | None:
         """«открой профиль» → открыть profile.json в Notepad++ / VS Code / системном редакторе.
 
@@ -6413,7 +6404,7 @@ class IntentHandler:
             }.get(prefer, "редакторе")
             return f"Открываю профиль в {editor_name}."
         return "Не удалось открыть профиль."
-        
+
     def _debug_fast(self, cmd: str) -> str | None:
         """Команды диагностики: что слышал, почему не понял."""
         if re.search(r"(что|чё)\s+ты\s+слышал", cmd) \
@@ -6601,8 +6592,14 @@ class IntentHandler:
         return "Не понял уточнение."
 
     def _execute_steps(self, steps: list) -> str | None:
+        """Выполняет многошаговый сценарий.
+
+        ВАЖНО: push_macro делаем ТОЛЬКО для успешно выполненных шагов.
+        Иначе откат макроса, упавшего на середине, попытается откатить
+        и те шаги, что не выполнялись.
+        """
         reply = None
-        history.push_macro(steps)
+        executed: list = []
 
         for step in steps[:6]:
             if not isinstance(step, dict):
@@ -6610,13 +6607,24 @@ class IntentHandler:
             action = step.get("action")
             if action == "wait":
                 time.sleep(min(float(step.get("seconds", 1) or 1), 15))
+                # wait не откатывается, но фиксируем как «выполнен»
+                executed.append(step)
                 continue
             if action == "media_key":
                 actions.media_key(str(step.get("key", "")), int(step.get("times", 1) or 1))
+                executed.append(step)
                 continue
             r = self._execute_intent(step)
             if r:
                 reply = r
+            executed.append(step)
+
+        # Пушим только реально выполненные шаги (без wait — их откатывать нечего)
+        real_steps = [s for s in executed
+                      if isinstance(s, dict) and s.get("action") not in ("wait",)]
+        if real_steps:
+            history.push_macro(real_steps)
+
         return reply
 
     def _execute_intent(self, intent: dict) -> str | None:
@@ -7036,7 +7044,7 @@ class IntentHandler:
             actions.run_spec(spec)
             return f"Открываю {app.title}."
 
-        for key, (title, url) in SITES.items():
+        for key, (title, url) in _get_sites().items():
             if key in target.split() or target == key:
                 actions.open_url(url)
                 return f"Открываю {title}."
@@ -7064,7 +7072,7 @@ class IntentHandler:
     def _open_site(self, name: str) -> str:
         if not name:
             return "Какой сайт открыть?"
-        for key, (title, url) in SITES.items():
+        for key, (title, url) in _get_sites().items():
             if name == key or key in name.split():
                 actions.open_url(url)
                 return f"Открываю {title}."
@@ -7388,7 +7396,8 @@ from jarvis.matching import wake_score
 from jarvis import APP_NAME, __version__
 from jarvis.apps import build_apps
 from jarvis.config import Config, load_config
-from jarvis.intents import IntentHandler, normalize
+from jarvis.intents import IntentHandler
+from jarvis.text_utils import normalize
 from jarvis.model import ensure_model
 from jarvis.reply import Reply
 from jarvis.stt import Listener
@@ -7517,6 +7526,9 @@ class Jarvis:
 
         Больше не спамит: если микрофон молчит — предупреждает один раз
         за сессию. Дальше — тишина, пока пользователь сам не разберётся.
+
+        self.say обёрнут в try/except: если TTS упадёт, watchdog-поток
+        не умрёт молча.
         """
         if not self.config.get("mic_watchdog_enabled", True):
             log.info("mic_watchdog выключен в config")
@@ -7533,8 +7545,11 @@ class Jarvis:
         log.warning("Микрофон молчит (пик %d за %.0f с): %s",
                     self.listener.peak, delay, self.listener.device_name)
 
-        self.say(Reply(text="Я не слышу микрофон. Проверьте, включён ли он, "
-                           "или выберите другое устройство в настройках."))
+        try:
+            self.say(Reply(text="Я не слышу микрофон. Проверьте, включён ли он, "
+                               "или выберите другое устройство в настройках."))
+        except Exception:
+            log.exception("mic_watchdog: не удалось озвучить предупреждение")
 
         if self.gui is not None:
             self.gui._queue.put(("open_mic_tab", None))
@@ -9483,6 +9498,132 @@ def handle_task_command(cmd: str) -> str | None:
     return None
 ```
 
+### `jarvis\text_utils.py`
+
+```python
+"""Общие текстовые утилиты для Феникса.
+
+Здесь:
+    - normalize()      — нормализация команды (нижний регистр, ё→е, без пунктуации).
+    - CJK_RE, strip_cjk() — вырезание иероглифов (LLM иногда «срывается» в китайский).
+    - prepare_text()   — подготовка текста для TTS (единицы, символы, числа).
+
+Раньше это было продублировано в intents.py, brain.py и tts.py.
+Теперь — одна точка правды.
+"""
+
+import re
+
+# ---------------------------------------------------------------
+# Иероглифы (CJK): китайский, японский, корейский + полноширинные символы
+# ---------------------------------------------------------------
+
+CJK_RE = re.compile(
+    r"[\u4e00-\u9fff"      # китайские иероглифы
+    r"\u3040-\u309f"       # хирагана
+    r"\u30a0-\u30ff"       # катакана
+    r"\uac00-\ud7af"       # хангыль
+    r"\u3000-\u303f"       # CJK-пунктуация
+    r"\uff00-\uffef]+"     # полноширинные формы
+)
+
+
+def strip_cjk(text: str) -> str:
+    """Убирает иероглифы. Если после чистки пусто — возвращает заглушку."""
+    if not text:
+        return text
+    cleaned = CJK_RE.sub(" ", text)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    if not cleaned:
+        return "Извините, не удалось ответить. Повторите, пожалуйста."
+    return cleaned
+
+
+# ---------------------------------------------------------------
+# Нормализация команды
+# ---------------------------------------------------------------
+
+def normalize(text: str) -> str:
+    """Нормализует команду: нижний регистр, ё→е, убирает пунктуацию.
+
+    Пример:
+        "Открой, Стим!" → "открой стим"
+    """
+    text = text.lower().replace("ё", "е")
+    text = re.sub(r"[^\w\s]", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+# ---------------------------------------------------------------
+# Подготовка текста для TTS
+# ---------------------------------------------------------------
+
+_REPLACEMENTS = [
+    (r"\bм/с\b", " метров в секунду"),
+    (r"\bкм/ч\b", " километров в час"),
+    (r"\bкм/с\b", " километров в секунду"),
+    (r"\bм/c\b", " метров в секунду"),
+    (r"\bкм/ч\.", " километров в час"),
+    (r"([+-]?\d+)\s*°\s*[CFЦ]?\b", r"\1 градусов"),
+    (r"°\s*[CFЦ]?\b", " градусов"),
+    (r"(\d+)\s*%", r"\1 процентов"),
+    (r"\bт\.\s*д\.", " так далее"),
+    (r"\bт\.\s*е\.", " то есть"),
+    (r"\bт\.\s*к\.", " так как"),
+    (r"\bт\.\s*п\.", " тому подобное"),
+    (r"\bдр\.", " другие"),
+    (r"\bг\.", " год"),
+    (r"\bгг\.", " годы"),
+    (r"\bруб\.", " рублей"),
+    (r"\bкоп\.", " копеек"),
+    (r"\bтыс\.", " тысяч"),
+    (r"\bмлн\.", " миллионов"),
+    (r"\bмлрд\.", " миллиардов"),
+    (r"\b(\d+)\s*см\b", r"\1 сантиметров"),
+    (r"\b(\d+)\s*мм\b", r"\1 миллиметров"),
+    (r"\b(\d+)\s*км\b", r"\1 километров"),
+    (r"\b(\d+)\s*кг\b", r"\1 килограммов"),
+    (r"\b(\d+)\s*мг\b", r"\1 миллиграммов"),
+    (r"\b(\d+)\s*МБ\b", r"\1 мегабайт"),
+    (r"\b(\d+)\s*ГБ\b", r"\1 гигабайт"),
+    (r"\b(\d+)\s*КБ\b", r"\1 килобайт"),
+    (r"\b(\d+)\s*м\b", r"\1 метров"),
+    (r"\b(\d+)\s*г\b", r"\1 граммов"),
+    (r"→", " стремится к "),
+    (r"←", " из "),
+    (r"≈", " примерно "),
+    (r"≥", " больше или равно "),
+    (r"≤", " меньше или равно "),
+    (r"≠", " не равно "),
+    (r"&", " и "),
+    (r"\+", " плюс "),
+    (r"(?<!\w)-(?!\w)", " минус "),
+    (r"\*+", ""),
+    (r"_+", ""),
+    (r"#+\s*", ""),
+    (r"`+", ""),
+    (r"^\s*[-•]\s+", ""),
+]
+
+_RE_COMPILED = [(re.compile(pat), repl) for pat, repl in _REPLACEMENTS]
+
+
+def prepare_text(text: str) -> str:
+    """Подготавливает текст для TTS: убирает иероглифы, расшифровывает единицы.
+
+    Пример:
+        "5 °C, 80%" → "5 градусов, 80 процентов"
+    """
+    if not text:
+        return text
+    text = CJK_RE.sub(" ", text)
+    for pattern, repl in _RE_COMPILED:
+        text = pattern.sub(repl, text)
+    text = re.sub(r"\s+", " ", text).strip()
+    text = re.sub(r"\s+([,.!?;:])", r"\1", text)
+    return text
+```
+
 ### `jarvis\timers.py`
 
 ```python
@@ -9885,7 +10026,7 @@ def build_tray(jarvis) -> pystray.Icon:
 Streaming: speak_stream(iterator) — озвучивает по предложениям.
 Barge-in: воспроизведение через sounddevice с проверкой per-call токена —
 реально прерывает звук.
-Предобработка текста: _prepare_text() — CJK, единицы, числа.
+Предобработка текста: prepare_text() из text_utils — CJK, единицы, числа.
 
 Фикс гонки: вместо одного _stop_flag — per-call stop-token. Каждый
 play_async / speak_stream создаёт свой threading.Event, stop() взводит
@@ -9907,86 +10048,16 @@ import time
 import wave
 from pathlib import Path
 
+import numpy as np
+
+from jarvis.text_utils import prepare_text
+
 log = logging.getLogger("jarvis.tts")
 
 PIPER_REPO = "rhasspy/piper-voices"
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 _SENTENCE_END = re.compile(r"[.!?…]+\s+")
-
-
-# ---------------------------------------------------------------
-# Предобработка текста
-# ---------------------------------------------------------------
-
-_REPLACEMENTS = [
-    (r"\bм/с\b", " метров в секунду"),
-    (r"\bкм/ч\b", " километров в час"),
-    (r"\bкм/с\b", " километров в секунду"),
-    (r"\bм/c\b", " метров в секунду"),
-    (r"\bкм/ч\.", " километров в час"),
-    (r"([+-]?\d+)\s*°\s*[CFЦ]?\b", r"\1 градусов"),
-    (r"°\s*[CFЦ]?\b", " градусов"),
-    (r"(\d+)\s*%", r"\1 процентов"),
-    (r"\bт\.\s*д\.", " так далее"),
-    (r"\bт\.\s*е\.", " то есть"),
-    (r"\bт\.\s*к\.", " так как"),
-    (r"\bт\.\s*п\.", " тому подобное"),
-    (r"\bдр\.", " другие"),
-    (r"\bг\.", " год"),
-    (r"\bгг\.", " годы"),
-    (r"\bруб\.", " рублей"),
-    (r"\bкоп\.", " копеек"),
-    (r"\bтыс\.", " тысяч"),
-    (r"\bмлн\.", " миллионов"),
-    (r"\bмлрд\.", " миллиардов"),
-    (r"\b(\d+)\s*см\b", r"\1 сантиметров"),
-    (r"\b(\d+)\s*мм\b", r"\1 миллиметров"),
-    (r"\b(\d+)\s*км\b", r"\1 километров"),
-    (r"\b(\d+)\s*кг\b", r"\1 килограммов"),
-    (r"\b(\d+)\s*мг\b", r"\1 миллиграммов"),
-    (r"\b(\d+)\s*МБ\b", r"\1 мегабайт"),
-    (r"\b(\d+)\s*ГБ\b", r"\1 гигабайт"),
-    (r"\b(\d+)\s*КБ\b", r"\1 килобайт"),
-    (r"\b(\d+)\s*м\b", r"\1 метров"),
-    (r"\b(\d+)\s*г\b", r"\1 граммов"),
-    (r"→", " стремится к "),
-    (r"←", " из "),
-    (r"≈", " примерно "),
-    (r"≥", " больше или равно "),
-    (r"≤", " меньше или равно "),
-    (r"≠", " не равно "),
-    (r"&", " и "),
-    (r"\+", " плюс "),
-    (r"(?<!\w)-(?!\w)", " минус "),
-    (r"\*+", ""),
-    (r"_+", ""),
-    (r"#+\s*", ""),
-    (r"`+", ""),
-    (r"^\s*[-•]\s+", ""),
-]
-
-_RE_COMPILED = [(re.compile(pat), repl) for pat, repl in _REPLACEMENTS]
-
-_CJK_RE = re.compile(
-    r"[\u4e00-\u9fff"
-    r"\u3040-\u309f"
-    r"\u30a0-\u30ff"
-    r"\uac00-\ud7af"
-    r"\u3000-\u303f"
-    r"\uff00-\uffef]+"
-)
-
-
-def _prepare_text(text: str) -> str:
-    if not text:
-        return text
-    text = _CJK_RE.sub(" ", text)
-    for pattern, repl in _RE_COMPILED:
-        text = pattern.sub(repl, text)
-    text = re.sub(r"\s+", " ", text).strip()
-    text = re.sub(r"\s+([,.!?;:])", r"\1", text)
-    return text
 
 
 class Speaker:
@@ -10078,12 +10149,11 @@ class Speaker:
     def _play_wav(self, wav_bytes: bytes, token: threading.Event) -> None:
         """Играет WAV-байты чанками, проверяя per-call token."""
         try:
-            import numpy as np
             import sounddevice as sd
         except ImportError:
             log.warning(
-                "sounddevice/numpy недоступны — играю через winsound. "
-                "Barge-in НЕ БУДЕТ РАБОТАТЬ. Установи: pip install sounddevice numpy"
+                "sounddevice недоступен — играю через winsound. "
+                "Barge-in НЕ БУДЕТ РАБОТАТЬ. Установи: pip install sounddevice"
             )
             import winsound
             winsound.PlaySound(wav_bytes, winsound.SND_MEMORY)
@@ -10133,7 +10203,6 @@ class Speaker:
         log.info("TTS: XTTS-v2, клон голоса из %s", ref.name)
 
     def _speak_xtts(self, text: str, token: threading.Event) -> None:
-        import numpy as np
         if token.is_set():
             return
         samples = self._xtts.tts(text=text, speaker_wav=self._xtts_ref,
@@ -10222,7 +10291,7 @@ class Speaker:
         return bytes(reader.read_buffer(stream.size))
 
     def _speak_one(self, text: str, token: threading.Event) -> None:
-        text = _prepare_text(text)
+        text = prepare_text(text)
         if not text or token.is_set():
             return
         log.info("Говорю: %s", text)
@@ -11216,18 +11285,6 @@ if __name__ == "__main__":
 | 💤 Долгий ящик | 💤 |
 ```
 
-### `profiles\maksim\profile.json`
-
-```json
-{
-  "created_at": 1791301628.2279227,
-  "name": "максим",
-  "facts": {
-    "мой город казань": "да"
-  }
-}
-```
-
 ### `PROMPT.md`
 
 ```markdown
@@ -11328,6 +11385,7 @@ jarvis/
 ├── tasks.py          — задачи
 ├── actions.py        — окна, медиа, печать, буфер, громкость, яркость, раскладка,
 │                       open_in_editor, _activate_window_hard
+├── text_utils.py     — normalize(), strip_cjk(), prepare_text()
 ├── files.py          — папки
 ├── apps.py           — каталог приложений
 ├── installed.py      — индекс «Пуск»
@@ -13002,6 +13060,7 @@ EXCLUDE_DIRS = {
     ".idea", ".vscode", "node_modules",
     ".mypy_cache", ".ruff_cache",
     "voices",
+    "profiles",   # №1: личные данные — НЕ в снимок
 }
 
 EXCLUDE_FILES = {
@@ -13286,24 +13345,29 @@ log.addHandler(_ch)
 # =================================================================
 # Setup / teardown для тестов, которым нужно особое окружение.
 # Возвращают (setup, teardown), либо None.
+#
+# ВАЖНО: работаем с config._data напрямую (в памяти), НЕ через config.set().
+# Иначе пароль пользователя уйдёт на диск — если тест упадёт между
+# setup и teardown, пароль потеряется.
 # =================================================================
 
 def _no_password_setup(handler):
-    """Временно выставить danger_password = "" — сценарий без пароля."""
-    handler._saved_password = handler.config.get("danger_password", "")
-    handler.config.set("danger_password", "")
+    """Временно выставить danger_password = "" в памяти."""
+    handler._saved_password = handler.config._data.get("danger_password", "")
+    handler.config._data["danger_password"] = ""
 
 
 def _no_password_teardown(handler):
-    """Вернуть пароль как было."""
-    handler.config.set("danger_password", getattr(handler, "_saved_password", ""))
+    """Вернуть пароль как было — в памяти, без записи на диск."""
+    saved = getattr(handler, "_saved_password", "")
+    handler.config._data["danger_password"] = saved
     handler._saved_password = ""
 
 
 def _with_password_setup(handler):
-    """Временно выставить danger_password = 'test_password_123'."""
-    handler._saved_password = handler.config.get("danger_password", "")
-    handler.config.set("danger_password", "test_password_123")
+    """Временно выставить danger_password = 'test_password_123' в памяти."""
+    handler._saved_password = handler.config._data.get("danger_password", "")
+    handler.config._data["danger_password"] = "test_password_123"
 
 
 # teardown — тот же, что у _no_password_teardown

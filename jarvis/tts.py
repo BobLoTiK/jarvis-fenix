@@ -5,7 +5,7 @@
 Streaming: speak_stream(iterator) — озвучивает по предложениям.
 Barge-in: воспроизведение через sounddevice с проверкой per-call токена —
 реально прерывает звук.
-Предобработка текста: _prepare_text() — CJK, единицы, числа.
+Предобработка текста: prepare_text() из text_utils — CJK, единицы, числа.
 
 Фикс гонки: вместо одного _stop_flag — per-call stop-token. Каждый
 play_async / speak_stream создаёт свой threading.Event, stop() взводит
@@ -27,86 +27,16 @@ import time
 import wave
 from pathlib import Path
 
+import numpy as np
+
+from jarvis.text_utils import prepare_text
+
 log = logging.getLogger("jarvis.tts")
 
 PIPER_REPO = "rhasspy/piper-voices"
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 _SENTENCE_END = re.compile(r"[.!?…]+\s+")
-
-
-# ---------------------------------------------------------------
-# Предобработка текста
-# ---------------------------------------------------------------
-
-_REPLACEMENTS = [
-    (r"\bм/с\b", " метров в секунду"),
-    (r"\bкм/ч\b", " километров в час"),
-    (r"\bкм/с\b", " километров в секунду"),
-    (r"\bм/c\b", " метров в секунду"),
-    (r"\bкм/ч\.", " километров в час"),
-    (r"([+-]?\d+)\s*°\s*[CFЦ]?\b", r"\1 градусов"),
-    (r"°\s*[CFЦ]?\b", " градусов"),
-    (r"(\d+)\s*%", r"\1 процентов"),
-    (r"\bт\.\s*д\.", " так далее"),
-    (r"\bт\.\s*е\.", " то есть"),
-    (r"\bт\.\s*к\.", " так как"),
-    (r"\bт\.\s*п\.", " тому подобное"),
-    (r"\bдр\.", " другие"),
-    (r"\bг\.", " год"),
-    (r"\bгг\.", " годы"),
-    (r"\bруб\.", " рублей"),
-    (r"\bкоп\.", " копеек"),
-    (r"\bтыс\.", " тысяч"),
-    (r"\bмлн\.", " миллионов"),
-    (r"\bмлрд\.", " миллиардов"),
-    (r"\b(\d+)\s*см\b", r"\1 сантиметров"),
-    (r"\b(\d+)\s*мм\b", r"\1 миллиметров"),
-    (r"\b(\d+)\s*км\b", r"\1 километров"),
-    (r"\b(\d+)\s*кг\b", r"\1 килограммов"),
-    (r"\b(\d+)\s*мг\b", r"\1 миллиграммов"),
-    (r"\b(\d+)\s*МБ\b", r"\1 мегабайт"),
-    (r"\b(\d+)\s*ГБ\b", r"\1 гигабайт"),
-    (r"\b(\d+)\s*КБ\b", r"\1 килобайт"),
-    (r"\b(\d+)\s*м\b", r"\1 метров"),
-    (r"\b(\d+)\s*г\b", r"\1 граммов"),
-    (r"→", " стремится к "),
-    (r"←", " из "),
-    (r"≈", " примерно "),
-    (r"≥", " больше или равно "),
-    (r"≤", " меньше или равно "),
-    (r"≠", " не равно "),
-    (r"&", " и "),
-    (r"\+", " плюс "),
-    (r"(?<!\w)-(?!\w)", " минус "),
-    (r"\*+", ""),
-    (r"_+", ""),
-    (r"#+\s*", ""),
-    (r"`+", ""),
-    (r"^\s*[-•]\s+", ""),
-]
-
-_RE_COMPILED = [(re.compile(pat), repl) for pat, repl in _REPLACEMENTS]
-
-_CJK_RE = re.compile(
-    r"[\u4e00-\u9fff"
-    r"\u3040-\u309f"
-    r"\u30a0-\u30ff"
-    r"\uac00-\ud7af"
-    r"\u3000-\u303f"
-    r"\uff00-\uffef]+"
-)
-
-
-def _prepare_text(text: str) -> str:
-    if not text:
-        return text
-    text = _CJK_RE.sub(" ", text)
-    for pattern, repl in _RE_COMPILED:
-        text = pattern.sub(repl, text)
-    text = re.sub(r"\s+", " ", text).strip()
-    text = re.sub(r"\s+([,.!?;:])", r"\1", text)
-    return text
 
 
 class Speaker:
@@ -198,12 +128,11 @@ class Speaker:
     def _play_wav(self, wav_bytes: bytes, token: threading.Event) -> None:
         """Играет WAV-байты чанками, проверяя per-call token."""
         try:
-            import numpy as np
             import sounddevice as sd
         except ImportError:
             log.warning(
-                "sounddevice/numpy недоступны — играю через winsound. "
-                "Barge-in НЕ БУДЕТ РАБОТАТЬ. Установи: pip install sounddevice numpy"
+                "sounddevice недоступен — играю через winsound. "
+                "Barge-in НЕ БУДЕТ РАБОТАТЬ. Установи: pip install sounddevice"
             )
             import winsound
             winsound.PlaySound(wav_bytes, winsound.SND_MEMORY)
@@ -253,7 +182,6 @@ class Speaker:
         log.info("TTS: XTTS-v2, клон голоса из %s", ref.name)
 
     def _speak_xtts(self, text: str, token: threading.Event) -> None:
-        import numpy as np
         if token.is_set():
             return
         samples = self._xtts.tts(text=text, speaker_wav=self._xtts_ref,
@@ -342,7 +270,7 @@ class Speaker:
         return bytes(reader.read_buffer(stream.size))
 
     def _speak_one(self, text: str, token: threading.Event) -> None:
-        text = _prepare_text(text)
+        text = prepare_text(text)
         if not text or token.is_set():
             return
         log.info("Говорю: %s", text)

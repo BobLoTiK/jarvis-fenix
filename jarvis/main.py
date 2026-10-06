@@ -22,7 +22,8 @@ from jarvis.matching import wake_score
 from jarvis import APP_NAME, __version__
 from jarvis.apps import build_apps
 from jarvis.config import Config, load_config
-from jarvis.intents import IntentHandler, normalize
+from jarvis.intents import IntentHandler
+from jarvis.text_utils import normalize
 from jarvis.model import ensure_model
 from jarvis.reply import Reply
 from jarvis.stt import Listener
@@ -151,6 +152,9 @@ class Jarvis:
 
         Больше не спамит: если микрофон молчит — предупреждает один раз
         за сессию. Дальше — тишина, пока пользователь сам не разберётся.
+
+        self.say обёрнут в try/except: если TTS упадёт, watchdog-поток
+        не умрёт молча.
         """
         if not self.config.get("mic_watchdog_enabled", True):
             log.info("mic_watchdog выключен в config")
@@ -167,8 +171,11 @@ class Jarvis:
         log.warning("Микрофон молчит (пик %d за %.0f с): %s",
                     self.listener.peak, delay, self.listener.device_name)
 
-        self.say(Reply(text="Я не слышу микрофон. Проверьте, включён ли он, "
-                           "или выберите другое устройство в настройках."))
+        try:
+            self.say(Reply(text="Я не слышу микрофон. Проверьте, включён ли он, "
+                               "или выберите другое устройство в настройках."))
+        except Exception:
+            log.exception("mic_watchdog: не удалось озвучить предупреждение")
 
         if self.gui is not None:
             self.gui._queue.put(("open_mic_tab", None))

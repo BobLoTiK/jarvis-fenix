@@ -26,6 +26,7 @@ from jarvis import profile
 from jarvis import history
 from jarvis import learning
 from jarvis.reply import Reply
+from jarvis.text_utils import normalize
 
 
 log = logging.getLogger("jarvis.intents")
@@ -55,6 +56,10 @@ def _verify_password(candidate: str, stored: str) -> bool:
 
     Если stored ещё старый (plaintext) — сравнивает напрямую
     и возвращает True. Миграция произойдёт при следующем set.
+
+    Legacy-ветка: до v0.3.0 пароль хранился в plaintext.
+    Оставлена для совместимости, но после _migrate_password_if_needed
+    срабатывает только если что-то пошло не так.
     """
     if not stored:
         return False
@@ -62,16 +67,6 @@ def _verify_password(candidate: str, stored: str) -> bool:
         return _hash_password(candidate) == stored
     # legacy plaintext — сравнение напрямую
     return candidate == stored
-
-
-# =================================================================
-# Нормализация
-# =================================================================
-
-def normalize(text: str) -> str:
-    text = text.lower().replace("ё", "е")
-    text = re.sub(r"[^\w\s]", " ", text)
-    return re.sub(r"\s+", " ", text).strip()
 
 
 CANCEL = {"отмена", "стоп", "стой", "хватит", "замолчи", "ничего", "забудь", "отбой"}
@@ -82,7 +77,7 @@ SEARCH_VERBS = ("найди", "поищи", "ищи", "загугли", "пог�
 
 
 # =================================================================
-# SITES — fallback на хардкод, если packs/sites.json недоступен (№96)
+# SITES — ленивая загрузка из packs/sites.json (№96 + ленивость)
 # =================================================================
 
 _SITES_FALLBACK = {
@@ -132,7 +127,15 @@ def _load_sites() -> dict:
     return sites
 
 
-SITES = _load_sites()
+_SITES_CACHE: dict | None = None
+
+
+def _get_sites() -> dict:
+    """Ленивая загрузка SITES — при первом обращении, не при импорте."""
+    global _SITES_CACHE
+    if _SITES_CACHE is None:
+        _SITES_CACHE = _load_sites()
+    return _SITES_CACHE
 
 
 MONTHS = ["января", "февраля", "марта", "апреля", "мая", "июня",
@@ -232,6 +235,28 @@ class IntentHandler:
                     (phrases, action, entry.get("reply", "Выполняю."))
                 )
         self.custom = list(self._config_custom_original) + self._load_packs_as_custom(config)
+
+        # Кэш реестра быстрых обработчиков — строится один раз.
+        # Порядок = приоритет. Специфичные — ВЫШЕ общих.
+        # open_profile ВЫШЕ open — иначе _open_fast съест «открой профиль».
+        self._fast_handlers_cache = [
+            ("custom", self._match_custom),
+            ("small_talk", self._small_talk),
+            ("music", self._music_fast),
+            ("open_profile", self._open_profile_fast),
+            ("open", self._open_fast),
+            ("voices", lambda cmd: voices.handle_voice_command(cmd, self.config)),
+            ("packs", self._packs_handler),
+            ("timers", timers.handle_timer_command),
+            ("tasks", tasks.handle_task_command),
+            ("profile", self._profile_fast),
+            ("memory", self._memory_fast),
+            ("system", self._system_fast),
+            ("debug", self._debug_fast),
+            ("correction", self._correction_fast),
+            ("undo", self._undo_fast),
+            ("weather_currency", self._weather_currency_fast),
+        ]
 
         # Подписка на изменения memory_max / llm_context_messages
         config.subscribe(self._on_config_change)
@@ -463,9 +488,9 @@ class IntentHandler:
             # Если ни одна часть не дала ответа — идём дальше обычным путём.
 
         # --- Быстрые правила без LLM (реестр) ---
-        # Порядок в _fast_handlers() = приоритет.
+        # Порядок в _fast_handlers_cache = приоритет.
         # Специфичные — выше общих (open_profile выше open).
-        for name, handler in self._fast_handlers():
+        for name, handler in self._fast_handlers_cache:
             try:
                 reply = handler(cmd)
             except Exception:
@@ -591,37 +616,6 @@ class IntentHandler:
             result = self._execute_intent(intent)
         return result or "Готово."
 
-    def _fast_handlers(self):
-        """Реестр быстрых обработчиков без LLM.
-
-        Порядок = приоритет. Специфичные — выше общих.
-
-        Каждый обработчик: (cmd: str) -> str | None.
-        Если вернул непустую строку — команда обработана.
-        Если None — идём к следующему.
-        """
-        return [
-            # Специфичные — ВЫШЕ
-            ("custom", self._match_custom),
-            ("small_talk", self._small_talk),
-            ("music", self._music_fast),
-            ("open_profile", self._open_profile_fast),
-
-            # Общие — ниже
-            ("open", self._open_fast),
-            ("voices", lambda cmd: voices.handle_voice_command(cmd, self.config)),
-            ("packs", self._packs_handler),
-            ("timers", timers.handle_timer_command),
-            ("tasks", tasks.handle_task_command),
-            ("profile", self._profile_fast),
-            ("memory", self._memory_fast),
-            ("system", self._system_fast),
-            ("debug", self._debug_fast),
-            ("correction", self._correction_fast),
-            ("undo", self._undo_fast),
-            ("weather_currency", self._weather_currency_fast),
-        ]
-
     def _packs_handler(self, cmd: str) -> str | None:
         """Обёртка для packs с side-effect.
 
@@ -667,12 +661,20 @@ class IntentHandler:
         return None
 
     def _open_fast(self, cmd: str) -> str | None:
-        """Быстрое открытие приложений/сайтов/папок — без LLM."""
+        """Быстрое открытие приложений/сайтов/папок — без LLM.
+
+        Исключение «профиль»: если пользователь говорит «открой профиль»,
+        это должно уйти в _open_profile_fast (который выше в реестре).
+        Дополнительная защита — если по какой-то причине порядок нарушен.
+        """
         m = re.match(r"^(?:открой|запусти|врубай|включи|открывай)\s+(.+)$", cmd)
         if not m:
             return None
         target = m.group(1).strip()
         if not target:
+            return None
+        # Защита: «открой профиль» — не наше дело.
+        if "профиль" in target:
             return None
         return self._do_open(target)
 
@@ -698,7 +700,6 @@ class IntentHandler:
             return f"Профили: {', '.join(all_p)}."
 
         # === Общий «запомни: X — Y» → facts ===
-        # (УДАЛЁН ДУБЛЬ, который был в строках 558–569)
         m = re.match(r"^(?:запомни|запиши)\s*[,:]?\s*(?:что\s+)?(.+)$", cmd)
         if m:
             fact = m.group(1).strip(" ,.:!?")
@@ -863,7 +864,7 @@ class IntentHandler:
             return f"Яркость: {br}%." if br is not None else "Не смог узнать."
 
         return None
-        
+
     def _open_profile_fast(self, cmd: str) -> str | None:
         """«открой профиль» → открыть profile.json в Notepad++ / VS Code / системном редакторе.
 
@@ -897,7 +898,7 @@ class IntentHandler:
             }.get(prefer, "редакторе")
             return f"Открываю профиль в {editor_name}."
         return "Не удалось открыть профиль."
-        
+
     def _debug_fast(self, cmd: str) -> str | None:
         """Команды диагностики: что слышал, почему не понял."""
         if re.search(r"(что|чё)\s+ты\s+слышал", cmd) \
@@ -1085,8 +1086,14 @@ class IntentHandler:
         return "Не понял уточнение."
 
     def _execute_steps(self, steps: list) -> str | None:
+        """Выполняет многошаговый сценарий.
+
+        ВАЖНО: push_macro делаем ТОЛЬКО для успешно выполненных шагов.
+        Иначе откат макроса, упавшего на середине, попытается откатить
+        и те шаги, что не выполнялись.
+        """
         reply = None
-        history.push_macro(steps)
+        executed: list = []
 
         for step in steps[:6]:
             if not isinstance(step, dict):
@@ -1094,13 +1101,24 @@ class IntentHandler:
             action = step.get("action")
             if action == "wait":
                 time.sleep(min(float(step.get("seconds", 1) or 1), 15))
+                # wait не откатывается, но фиксируем как «выполнен»
+                executed.append(step)
                 continue
             if action == "media_key":
                 actions.media_key(str(step.get("key", "")), int(step.get("times", 1) or 1))
+                executed.append(step)
                 continue
             r = self._execute_intent(step)
             if r:
                 reply = r
+            executed.append(step)
+
+        # Пушим только реально выполненные шаги (без wait — их откатывать нечего)
+        real_steps = [s for s in executed
+                      if isinstance(s, dict) and s.get("action") not in ("wait",)]
+        if real_steps:
+            history.push_macro(real_steps)
+
         return reply
 
     def _execute_intent(self, intent: dict) -> str | None:
@@ -1520,7 +1538,7 @@ class IntentHandler:
             actions.run_spec(spec)
             return f"Открываю {app.title}."
 
-        for key, (title, url) in SITES.items():
+        for key, (title, url) in _get_sites().items():
             if key in target.split() or target == key:
                 actions.open_url(url)
                 return f"Открываю {title}."
@@ -1548,7 +1566,7 @@ class IntentHandler:
     def _open_site(self, name: str) -> str:
         if not name:
             return "Какой сайт открыть?"
-        for key, (title, url) in SITES.items():
+        for key, (title, url) in _get_sites().items():
             if name == key or key in name.split():
                 actions.open_url(url)
                 return f"Открываю {title}."

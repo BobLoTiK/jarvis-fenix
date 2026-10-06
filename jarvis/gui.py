@@ -859,6 +859,12 @@ class FenixGUI:
                 log.exception("Ошибка в _process_queue")
 
     async def _mic_level_loop(self) -> None:
+        """Обновляет уровень микрофона и следит за сменой системной темы.
+
+        Уровень микрофона — 5 раз в секунду (0.2 с).
+        Системная тема — раз в 5 секунд (25 итераций × 0.2 с).
+        Реже не имеет смысла: реестр дёргать лишний раз незачем.
+        """
         last_system_theme = _detect_system_theme()
         counter = 0
 
@@ -868,7 +874,7 @@ class FenixGUI:
                     self._queue.put(("mic_level", None))
 
                 counter += 1
-                if counter >= 10:
+                if counter >= 25:
                     counter = 0
                     if self.config.get("gui_theme") == "Системная":
                         current = _detect_system_theme()
