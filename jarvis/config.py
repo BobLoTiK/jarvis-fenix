@@ -5,8 +5,7 @@
 
 Запись — через config_manager (единый FileLock).
 
-Совместимость: Config поддерживает config["key"] и config.get("key"),
-поэтому старый код, который работал с dict, продолжит работать.
+Совместимость: Config поддерживает config["key"] и config.get("key").
 """
 
 import logging
@@ -61,6 +60,7 @@ DEFAULT_CONFIG = {
     "gui_x": None,
     "gui_y": None,
     "tray_enabled": True,
+    "launch_mode": "gui",
 }
 
 
@@ -74,10 +74,7 @@ class Config:
         self.reload()
 
     def reload(self) -> None:
-        """Перечитывает config.json с диска. Вызывается при старте.
-
-        Если файла нет — создаёт с DEFAULT_CONFIG.
-        """
+        """Перечитывает config.json с диска. Вызывается при старте."""
         raw = config_manager.load(path=self.path)
         if not self.path.exists():
             merged = dict(DEFAULT_CONFIG)
@@ -142,7 +139,18 @@ class Config:
 
     def subscribe(self, callback: Callable[[str, Any], None]) -> None:
         """Регистрирует callback(key, value), вызываемый при set/update."""
+        if callback in self._listeners:
+            return
         self._listeners.append(callback)
+
+    def unsubscribe(self, callback: Callable[[str, Any], None]) -> None:
+        """№95: удаляет подписку. Без этого Brain при пересоздании
+        оставался в списке — утечка."""
+        try:
+            self._listeners.remove(callback)
+            log.info("Config: подписка удалена (%s)", callback)
+        except ValueError:
+            log.debug("Config: подписки %s не было", callback)
 
     # --- совместимость с dict --------------------------------------------
 
@@ -156,16 +164,11 @@ class Config:
         return f"Config({len(self._data)} keys)"
 
 
-# --- Совместимость со старым API -----------------------------------------
-
 _GLOBAL: Config | None = None
 
 
 def load_config(base_dir: Path | None = None) -> Config:
-    """Создаёт глобальный Config. Старый API сохранён, но возвращает Config,
-    а не dict. Код, использующий config["x"] или config.get("x"), продолжит
-    работать, потому что Config поддерживает __getitem__ и .get().
-    """
+    """Создаёт глобальный Config."""
     global _GLOBAL
     if _GLOBAL is None:
         path = (base_dir / "config.json") if base_dir else None

@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import re
+import shutil
 import subprocess
 import time
 import urllib.parse
@@ -141,6 +142,170 @@ def open_path(path, minimized: bool = False) -> bool:
         log.exception("open_path не удался: %s", path)
         return False
 
+def _activate_window_hard(title_part: str) -> bool:
+    """Активирует окно по части заголовка — надёжно, через win32gui.
+
+    Windows блокирует SetForegroundWindow от не-активного окна.
+    Трюк: AttachThreadInput — присоединяемся к потоку целевого окна,
+    тогда система разрешает смену фокуса.
+
+    Возвращает True, если окно найдено и активировано.
+    """
+    if not title_part:
+        return False
+    try:
+        import win32gui
+        import win32con
+        import win32process
+        import win32api
+    except ImportError:
+        log.warning("pywin32 не установлен — активация через win32gui недоступна")
+        return False
+
+    target_hwnd = [None]
+
+    def _enum_cb(hwnd, _):
+        if target_hwnd[0] is not None:
+            return
+        if not win32gui.IsWindowVisible(hwnd):
+            return
+        title = win32gui.GetWindowText(hwnd) or ""
+        if title_part.lower() in title.lower():
+            target_hwnd[0] = hwnd
+
+    win32gui.EnumWindows(_enum_cb, None)
+
+    hwnd = target_hwnd[0]
+    if not hwnd:
+        log.info("_activate_window_hard: окно %r не найдено", title_part)
+        return False
+
+    try:
+        if win32gui.IsIconic(hwnd):
+            win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+
+        # Трюк AttachThreadInput
+        fg_hwnd = win32gui.GetForegroundWindow()
+        fg_thread = win32process.GetWindowThreadProcessId(fg_hwnd)[0]
+        target_thread = win32process.GetWindowThreadProcessId(hwnd)[0]
+        cur_thread = win32api.GetCurrentThreadId()
+
+        attached_fg = False
+        attached_target = False
+        try:
+            if fg_thread != cur_thread:
+                win32process.AttachThreadInput(fg_thread, cur_thread, True)
+                attached_fg = True
+            if target_thread != cur_thread:
+                win32process.AttachThreadInput(target_thread, cur_thread, True)
+                attached_target = True
+
+            win32gui.SetForegroundWindow(hwnd)
+            win32gui.BringWindowToTop(hwnd)
+        finally:
+            if attached_fg:
+                win32process.AttachThreadInput(fg_thread, cur_thread, False)
+            if attached_target:
+                win32process.AttachThreadInput(target_thread, cur_thread, False)
+
+        log.info("_activate_window_hard: активировал %r", title_part)
+        return True
+    except Exception:
+        log.exception("_activate_window_hard: не удалось активировать %r", title_part)
+        return False
+
+def open_in_editor(path, prefer: str = "auto") -> bool:
+    """Открывает файл в редакторе.
+
+    prefer:
+        "auto"       — Notepad++ → VS Code → системный редактор (по умолчанию).
+        "notepad++"  — только Notepad++.
+        "vscode"     — только VS Code.
+        "system"     — системный редактор (os.startfile).
+
+    Возвращает True, если удалось открыть.
+    """
+    path = Path(path)
+    if not path.exists():
+        log.warning("open_in_editor: файла нет: %s", path)
+        return False
+
+    # Порядок редакторов для auto
+    editors = []
+
+    if prefer == "notepad++":
+        editors = [_find_notepadpp]
+    elif prefer == "vscode":
+        editors = [_find_vscode]
+    elif prefer == "system":
+        editors = []
+    else:  # auto
+        editors = [_find_notepadpp, _find_vscode]
+
+    for finder in editors:
+        exe = finder()
+        if exe:
+            try:
+                subprocess.Popen([exe, str(path)],
+                                 creationflags=subprocess.CREATE_NO_WINDOW)
+                log.info("open_in_editor: %s → %s", path, exe)
+
+                # Активируем окно редактора через 0.5 сек —
+                # иначе Notepad++ открывается за другими окнами.
+                import threading
+                editor_name = Path(exe).stem.lower()
+
+                def _activate():
+                    time.sleep(0.6)
+                    # Ищем окно по имени редактора
+                    if "notepad" in editor_name:
+                        _activate_window_hard("notepad++")
+                    elif "code" in editor_name:
+                        _activate_window_hard("visual studio code")
+
+                threading.Thread(target=_activate, daemon=True,
+                                 name="editor-activate").start()
+                return True
+            except Exception:
+                log.exception("open_in_editor: не удалось запустить %s", exe)
+                continue
+
+    # Fallback: системный редактор
+    try:
+        os.startfile(str(path))
+        log.info("open_in_editor: %s → системный редактор", path)
+        return True
+    except Exception:
+        log.exception("open_in_editor: не удалось открыть %s", path)
+        return False
+
+
+def _find_notepadpp() -> str | None:
+    """Ищет notepad++.exe в типичных местах."""
+    candidates = [
+        Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "Notepad++" / "notepad++.exe",
+        Path(os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)")) / "Notepad++" / "notepad++.exe",
+        Path(os.environ.get("LOCALAPPDATA", "")) / "Notepad++" / "notepad++.exe",
+    ]
+    for c in candidates:
+        if c and c.exists():
+            return str(c)
+    # В PATH?
+    exe = shutil.which("notepad++") or shutil.which("notepad++.exe")
+    return exe
+
+
+def _find_vscode() -> str | None:
+    """Ищет code.exe (VS Code) в типичных местах."""
+    candidates = [
+        Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "Microsoft VS Code" / "Code.exe",
+        Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "Microsoft VS Code" / "Code.exe",
+    ]
+    for c in candidates:
+        if c and c.exists():
+            return str(c)
+    exe = shutil.which("code") or shutil.which("code.exe")
+    return exe
 
 def open_url(url: str) -> bool:
     log.info("Открываю URL: %s", url)
@@ -282,14 +447,94 @@ def ensure_music_playing() -> bool:
     return media_key("play")
 
 
+# --- примитивы для сценариев (К2) -----------------------------------------
+
+def key_press(key: str) -> bool:
+    """Нажимает одну клавишу.
+
+    key: "enter", "escape", "tab", "space", "pagedown", "pageup",
+         "up", "down", "left", "right", "f1".."f12",
+         "a".."z", "0".."9".
+    Для сценариев: «нажми Enter» → key_press("enter").
+    """
+    if not key:
+        return False
+    log.info("key_press: %s", key)
+    try:
+        import pyautogui
+        pyautogui.press(key)
+        return True
+    except Exception:
+        log.exception("key_press не удался: %s", key)
+        return False
+
+
+def hotkey(keys) -> bool:
+    """Нажимает сочетание клавиш одновременно.
+
+    keys: список строк, например ["ctrl", "k"] или ["ctrl", "shift", "n"].
+    Для сценариев: «нажми Ctrl+K» → hotkey(["ctrl", "k"]).
+
+    Модификаторы: ctrl, alt, shift, win.
+    """
+    if not keys:
+        return False
+    if isinstance(keys, str):
+        keys = [k.strip() for k in keys.replace("+", " ").split() if k.strip()]
+    if not keys:
+        return False
+    log.info("hotkey: %s", keys)
+    try:
+        import pyautogui
+        pyautogui.hotkey(*keys)
+        return True
+    except Exception:
+        log.exception("hotkey не удался: %s", keys)
+        return False
+
+
+def scroll(direction: str, amount: int = 3) -> bool:
+    """Листает вверх или вниз.
+
+    direction: "up" | "down".
+    amount: сколько «щелчков» колеса (по умолчанию 3).
+    Для сценариев: «листни ниже» → scroll("down").
+    """
+    if direction not in ("up", "down"):
+        log.warning("scroll: неизвестное направление %r", direction)
+        return False
+    log.info("scroll: %s x%d", direction, amount)
+    try:
+        import pyautogui
+        clicks = amount if direction == "up" else -amount
+        pyautogui.scroll(clicks)
+        return True
+    except Exception:
+        log.exception("scroll не удался: %s", direction)
+        return False
+
+
+def click_at(x: int, y: int, button: str = "left") -> bool:
+    """Кликает в координаты на экране.
+
+    x, y: пиксели.
+    button: "left" | "right" | "middle".
+    Для сценариев: «кликни в 500 300» → click_at(500, 300).
+    """
+    log.info("click_at: (%d, %d) %s", x, y, button)
+    try:
+        import pyautogui
+        pyautogui.click(x, y, button=button)
+        return True
+    except Exception:
+        log.exception("click_at не удался: (%d, %d)", x, y)
+        return False
+
+
 # --- раскладка клавиатуры --------------------------------------------------
 
 def switch_layout() -> bool:
-    """Переключает раскладку через Alt+Shift (SendInput).
-
-    keybd_event не работает для системных сочетаний — используем SendInput
-    с задержкой между нажатиями.
-    """
+    """Переключает раскладку через Alt+Shift (SendInput)."""
     log.info("Переключаю раскладку (Alt+Shift)")
     try:
         import ctypes
@@ -297,7 +542,6 @@ def switch_layout() -> bool:
 
         user32 = ctypes.windll.user32
 
-        # Структуры для SendInput
         class KEYBDINPUT(ctypes.Structure):
             _fields_ = [
                 ("wVk", wintypes.WORD),
@@ -314,8 +558,8 @@ def switch_layout() -> bool:
                 ("padding", ctypes.c_ubyte * 8),
             ]
 
-        VK_MENU = 0x12       # Alt
-        VK_SHIFT = 0x10      # Shift
+        VK_MENU = 0x12
+        VK_SHIFT = 0x10
         KEYEVENTF_KEYUP = 0x0002
         INPUT_KEYBOARD = 1
 
@@ -329,21 +573,20 @@ def switch_layout() -> bool:
             inp.ki.dwExtraInfo = None
             user32.SendInput(1, ctypes.byref(inp), ctypes.sizeof(inp))
 
-        # Alt down
         _key(VK_MENU)
         import time as _t
         _t.sleep(0.05)
-        # Shift down + up
         _key(VK_SHIFT)
         _t.sleep(0.05)
         _key(VK_SHIFT, up=True)
         _t.sleep(0.05)
-        # Alt up
         _key(VK_MENU, up=True)
         return True
     except Exception:
         log.exception("switch_layout не удался")
         return False
+
+
 def _set_layout_hkl(hkl_hex: str) -> bool:
     """Устанавливает раскладку по HKL через PostMessage с фокусом."""
     log.info("Установка раскладки: %s", hkl_hex)
@@ -356,10 +599,8 @@ def _set_layout_hkl(hkl_hex: str) -> bool:
             log.warning("Нет foreground-окна")
             return False
 
-        # Форсируем фокус — иначе Windows блокирует смену
         user32.SetForegroundWindow(hwnd)
         hkl = user32.LoadKeyboardLayoutW(hkl_hex, 1)
-        # 0x50 = WM_INPUTLANGCHANGEREQUEST
         user32.PostMessageW(hwnd, 0x50, 0, hkl)
         return True
     except Exception:
@@ -390,14 +631,11 @@ def get_layout() -> str | None:
         log.exception("get_layout не удался")
         return None
 
+
 # --- громкость -------------------------------------------------------------
 
 def get_volume() -> int | None:
-    """Возвращает громкость в процентах (0..100).
-
-    Метод (volume_percent / endpoint_volume / activate) определён
-    при установке в system_caps.json.
-    """
+    """Возвращает громкость в процентах (0..100)."""
     if not _caps_available("volume"):
         log.warning("Громкость недоступна (см. system_caps.json)")
         return None
@@ -424,10 +662,7 @@ def get_volume() -> int | None:
 
 
 def set_volume(percent: int) -> bool:
-    """Ставит громкость в процентах (0..100).
-
-    Метод определён при установке в system_caps.json.
-    """
+    """Ставит громкость в процентах (0..100)."""
     if not _caps_available("volume"):
         log.warning("Громкость недоступна (см. system_caps.json)")
         return False
@@ -458,13 +693,11 @@ def set_volume(percent: int) -> bool:
         log.exception("set_volume не удался (method=%s)", method)
     return False
 
+
 # --- яркость ---------------------------------------------------------------
 
 def get_brightness() -> int | None:
-    """Возвращает яркость в процентах (0..100).
-
-    Доступность проверена при установке в system_caps.json.
-    """
+    """Возвращает яркость в процентах (0..100)."""
     if not _caps_available("brightness"):
         log.warning("Яркость недоступна (см. system_caps.json)")
         return None
@@ -493,6 +726,8 @@ def set_brightness(percent: int) -> bool:
     except Exception:
         log.exception("set_brightness не удался")
         return False
+
+
 # --- процессы --------------------------------------------------------------
 
 def find_process(name: str, threshold: float = 0.7):
@@ -542,10 +777,21 @@ def kill_process(name: str) -> bool:
 
 
 def close_browser() -> bool:
-    for name in ("chrome.exe", "firefox.exe", "msedge.exe", "opera.exe", "brave.exe"):
-        if find_process(name.removesuffix(".exe")) and kill_process(name):
-            return True
-    return False
+    """Закрывает ВСЕ известные браузеры.
+
+    №89: раньше был early exit — при открытых Chrome + Firefox + Edge
+    закрывался только первый. Теперь проходим по всем и убиваем всё,
+    что нашли. Возвращаем True, если хоть один процесс убит.
+    """
+    any_killed = False
+    for name in ("chrome.exe", "firefox.exe", "msedge.exe",
+                 "opera.exe", "brave.exe", "yandex.exe"):
+        base = name.removesuffix(".exe")
+        if find_process(base) and kill_process(name):
+            any_killed = True
+    if any_killed:
+        log.info("close_browser: закрыл все найденные браузеры")
+    return any_killed
 
 
 def minimize_window(name: str) -> bool:

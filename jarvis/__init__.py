@@ -1,8 +1,8 @@
 """Феникс — локальный голосовой ассистент для Windows.
 
-Имя выбрано бенчмарком wake-слов (scripts/wakebench.py): «феникс» Vosk-small
-распознаёт 3/3 и у него нет созвучных частых слов (порог ложных срабатываний).
+Ассистент: Vosk (wake) + Whisper (расшифровка) + Ollama (LLM) + Piper (TTS).
+Ключевые модули: jarvis.main, jarvis.intents, jarvis.brain, jarvis.tts, jarvis.stt.
 """
 
-__version__ = "0.2.2"
+__version__ = "1.0.0"
 APP_NAME = "Феникс"

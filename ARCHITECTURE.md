@@ -13,7 +13,7 @@ jarvis/
 ├── config.py         — объект Config в памяти + подписки
 ├── config_manager.py — атомарная запись config.json (один FileLock)
 ├── brain.py          — LLM (Ollama): parse() и chat_stream()
-├── intents.py        — IntentHandler: правила + LLM-разбор
+├── intents.py        — IntentHandler: правила + LLM + _fast_handlers()
 ├── reply.py          — тип Reply (text | stream)
 ├── gui.py            — Flet GUI + PALETTES + _detect_system_theme()
 ├── history.py        — стек отмены («стоп, не то»)
@@ -28,7 +28,8 @@ jarvis/
 ├── weather.py        — погода (open-meteo) и курс (ЦБ РФ) + настраиваемый TTL
 ├── timers.py         — напоминания
 ├── tasks.py          — списки задач
-├── actions.py        — окна, медиа, печать, буфер, громкость, яркость, раскладка
+├── actions.py        — окна, медиа, печать, буфер, громкость, яркость, раскладка,
+│                       open_in_editor, _activate_window_hard
 ├── files.py          — папки (Desktop, Downloads, ...)
 ├── apps.py           — каталог приложений
 ├── installed.py      — индекс меню «Пуск»
@@ -53,28 +54,23 @@ stt.WhisperTranscriber — уточняет расшифровку
 main.Jarvis._process → извлекает команду (без wake-слова)
    ↓
 intents.IntentHandler.handle(cmd)   ← normalize(cmd)
-   ├── 1. Конструктор команд (learn_trigger / learn_action / learn_confirm)
-   ├── 2. CANCEL (стой, хватит, ...)
-   ├── 3. memory.handle_memory_command
-   ├── 4. pending_question (город для погоды, пароль)
-   ├── 5. Буфер обмена
-   ├── 6. Режимы (modes)
-   ├── 7. Custom commands + паки
-   ├── 8. Small talk
-   ├── 9. Скриншот
-   ├── 10. _open_fast (открытие приложений)
-   ├── 11. Голоса (voices)
-   ├── 12. Паки (packs)
-   ├── 13. Таймеры (timers)
-   ├── 14. Задачи (tasks)
-   ├── 15. Профиль (_profile_fast)
-   ├── 16. Память (_memory_fast)
-   ├── 17. Системное (_system_fast — раскладка, громкость, яркость)
-   ├── 18. Диагностика (_debug_fast — «что слышал», «почему не понял»)
-   ├── 19. Отмена (_undo_fast — «стоп, не то»)
-   ├── 20. Погода/курс (_weather_currency_fast)
-   ├── 21. brain.parse(cmd) → intent → _execute_intent
-   └── 22. brain.chat_stream() → генератор
+   ├── CANCEL («стой», «хватит», ...)
+   ├── Коррекции (learning.find_correction)
+   ├── Пароль (pending_password)
+   ├── Удаление профиля
+   ├── Память диалога (memory.handle_memory_command)
+   ├── pending_question (уточнения)
+   ├── Буфер обмена (4 проверки)
+   ├── Режимы (modes)
+   ├── Custom / small_talk / скриншот
+   ├── _split_compound (многослойные)
+   ├── ⚡ РЕЕСТР _fast_handlers()  ← здесь ВСЕ быстрые правила
+   │   ├── custom, small_talk, music, open_profile
+   │   ├── open, voices, packs, timers, tasks
+   │   └── profile, memory, system, debug, correction,
+   │       undo, weather_currency
+   ├── brain.parse(cmd) → intent → _execute_intent
+   └── brain.chat_stream() → генератор
    ↓
 main.Jarvis.say(reply)
    ├── если text → speaker.play_async()
@@ -82,6 +78,78 @@ main.Jarvis.say(reply)
    ↓
 tts.Speaker → Piper / XTTS / WinRT / SAPI
 ```
+
+---
+
+## Реестр быстрых обработчиков
+
+`IntentHandler._fast_handlers()` — **список `(имя, функция)`**. Порядок = приоритет.
+
+Каждый обработчик: `(cmd: str) -> str | None`. Если вернул строку — команда обработана. Если `None` — идём к следующему.
+
+**Правило:** специфичные — **выше** общих. Например, `open_profile` — **выше** `open` (иначе `_open_fast` съест «открой профиль»).
+
+**Сейчас:**
+
+```python
+[
+    ("custom", self._match_custom),
+    ("small_talk", self._small_talk),
+    ("music", self._music_fast),
+    ("open_profile", self._open_profile_fast),   # ВЫШЕ open
+    ("open", self._open_fast),
+    ("voices", lambda cmd: voices.handle_voice_command(cmd, self.config)),
+    ("packs", self._packs_handler),              # side-effect: active_packs
+    ("timers", timers.handle_timer_command),
+    ("tasks", tasks.handle_task_command),
+    ("profile", self._profile_fast),
+    ("memory", self._memory_fast),
+    ("system", self._system_fast),
+    ("debug", self._debug_fast),
+    ("correction", self._correction_fast),
+    ("undo", self._undo_fast),
+    ("weather_currency", self._weather_currency_fast),
+]
+```
+
+**Добавить новый обработчик** — **одна строка** в список, **не искать место в 22 if**.
+
+**Обработчики со side-effect** (например, `packs`, меняющий `self.active_packs`) — **обёртки** с методом (`_packs_handler`).
+
+**Исключения** в обработчике **логируются** через `log.exception`, но **не роняют** команду — идём к следующему.
+
+---
+
+## Универсальный профиль (set_profile / get_profile)
+
+**Раньше:** куча `re.match` под каждую фразу — «мой город X», «меня зовут Y», «поменяй город Z», ... **Костыли.**
+
+**Сейчас:** LLM **сама разбирает**, что нужно:
+
+```
+Пользователь: «меня зовут Максим»
+LLM: {"action": "set_profile", "key": "name", "value": "Максим"}
+
+Пользователь: «какой город»
+LLM: {"action": "get_profile", "key": "default_city"}
+```
+
+**В `brain.py`** — `set_profile` и `get_profile` **в `ACTIONS`** + **примеры в промптах**.
+
+**В `intents._execute_intent`** — обработка:
+
+```python
+if action == "set_profile":
+    key = intent.get("key")
+    value = intent.get("value")
+    key_map = {"имя": "name", "город": "default_city", ...}
+    key = key_map.get(key.lower(), key.lower())
+    ...
+    ok = profile.set(key, value)
+    return f"Имя изменено на {value}." if key == "name" else ...
+```
+
+**Никаких костылей** — **любая фраза** через LLM.
 
 ---
 
@@ -109,6 +177,23 @@ Jarvis Thread
 
 **Важно:** Flet запускается в **главном потоке** (`gui.run_main()`), потому что ставит `signal.signal(SIGINT, ...)`. Jarvis — **в фоне**.
 
+### Режим запуска (launch_mode)
+
+**`config.json`:**
+
+```json
+"launch_mode": "gui"
+```
+
+- **`"gui"`** — окно Flet **видимо** при старте (по умолчанию).
+- **`"tray"`** — окно **скрыто** (`page.window.visible = False`). Flet **всё равно запущен** — `show_window()` из трея показывает окно.
+
+**Защита:** если `launch_mode="tray"`, но `tray_enabled=false` — автоматически переключается на `"gui"`.
+
+**Трей:**
+- **Двойной клик** по иконке → `on_show_window` (`default=True`).
+- **Правый клик** → «Открыть окно», «Настройки», «Слушать микрофон», «Сделать скриншот», «Открыть конфиг», «Открыть журнал», «Выход».
+
 ### Темы GUI
 
 ```text
@@ -124,6 +209,7 @@ _detect_system_theme() — читает HKCU\...\Themes\Personalize\AppsUseLight
 
 _on_theme_change → _apply_palette + _rebuild_ui_for_theme.
 _mic_level_loop  → раз в 2 сек проверяет тему Windows (если gui_theme = "Системная").
+_rebuild_ui_for_theme → сохраняет историю чата (_history_list.controls) перед пересборкой.
 ```
 
 ### Вкладка «Микрофон»
@@ -153,19 +239,22 @@ profiles/
 ```
 
 - **Активный профиль** — по имени Windows-юзера (`getpass.getuser()`).
-- **`profile.switch(name)`** — переключение («я — Маша»).
+- **`profile.switch(name)`** — переключение («я — Маша»). **Один `RLock`** — гонка исключена.
 - **`profile.subscribe(callback)`** — подписка на смену (old_name, new_name).
 - **`IntentHandler._on_profile_switch`** — перечитывает `dialog`.
-- **`FenixGUI._on_profile_switch`** (в планах) — открывает вкладку «Знакомство».
+- **`FenixGUI._on_profile_switch`** — `rebuild_ui` (пересборка вкладок с **сохранением истории**).
 - **Миграция** из старого `user_profile.json` при первом запуске.
 - **`.gitignore`:** `profiles/`.
 
-### Специальные шаблоны в `_profile_fast`
+### Универсальные команды профиля
 
-- «запомни: мой город X» / «мой город X» → `default_city`.
-- «запомни: меня зовут X» / «меня зовут X» → `name`.
-- «запомни: я живу в X» / «я живу в X» → `default_city`.
-- «запомни: X» → `facts["X"] = "да"`.
+- «меня зовут X» → `set_profile` → `name`.
+- «мой город Y» → `set_profile` → `default_city`.
+- «поменяй город на Z» → `set_profile` → `default_city` + `prev_city`.
+- «как меня зовут» → `get_profile` → `name`.
+- «какой город» → `get_profile` → `default_city`.
+- «открой профиль» → `open_profile` → Notepad++ / VS Code / системный.
+- «что ты обо мне знаешь» → `_profile_fast` → name, default_city, facts.
 
 ---
 
@@ -187,6 +276,10 @@ config.get("key") / config.set("key", value)
        ├── "llm_context_messages" → handler._llm_context
        └── "gui_theme" → PALETTES + _rebuild_ui_for_theme
 ```
+
+**Подписки:**
+- `Config.subscribe(callback)` — добавить.
+- `Config.unsubscribe(callback)` — удалить.
 
 ---
 
@@ -212,12 +305,53 @@ weather.py
 
 ---
 
+## Открытие файлов в редакторе
+
+```text
+actions.open_in_editor(path, prefer="auto")
+   ├── prefer="notepad++" → _find_notepadpp()
+   ├── prefer="vscode"    → _find_vscode()
+   ├── prefer="system"    → os.startfile()
+   └── prefer="auto"      → [_find_notepadpp, _find_vscode] → os.startfile()
+
+_find_notepadpp():
+   C:\Program Files\Notepad++\notepad++.exe
+   C:\Program Files (x86)\Notepad++\notepad++.exe
+   %LOCALAPPDATA%\Notepad++\notepad++.exe
+   shutil.which("notepad++")
+
+_find_vscode():
+   %LOCALAPPDATA%\Programs\Microsoft VS Code\Code.exe
+   C:\Program Files\Microsoft VS Code\Code.exe
+   shutil.which("code")
+```
+
+**Активация окна** — `_activate_window_hard(title_part)`:
+
+- `win32gui.EnumWindows` — поиск по заголовку.
+- `AttachThreadInput` — **трюк**, чтобы Windows разрешила `SetForegroundWindow`.
+- `SetForegroundWindow` + `BringWindowToTop` — окно **всплывает**.
+
+**Вызов из `_open_profile_fast`:**
+
+```python
+prof_path = profile.profile_path()
+ok = actions.open_in_editor(prof_path, prefer=prefer)
+```
+
+**Редактор** — по фразе:
+- «открой профиль» → auto.
+- «открой профиль в вс код» → vscode.
+- «открой профиль в блокноте» → system.
+
+---
+
 ## Ключевые объекты
 
 | Объект | Модуль | Роль |
 |---|---|---|
 | `Config` | `config.py` | Конфиг в памяти + подписки |
-| `IntentHandler` | `intents.py` | Разбор команд |
+| `IntentHandler` | `intents.py` | Разбор команд, `_fast_handlers()` — реестр |
 | `Brain` | `brain.py` | LLM: `parse()` и `chat_stream()` |
 | `Speaker` | `tts.py` | Синтез + воспроизведение, per-call token |
 | `Listener` | `stt.py` | Микрофон, Vosk, ring buffer, current_rms |
@@ -275,7 +409,6 @@ weather.py
 - **`tests/test_config_manager.py`** — параллельная запись.
 - **`tests/test_weather.py`** — погода/курс с моками.
 - **`tests/test_caps.py`** — структура `system_caps.json`.
-- **`scripts/stress_test.py`** (в планах) — 20 фраз.
 
 ---
 
@@ -291,7 +424,7 @@ weather.py
 
 ### Git
 
-- **`.gitignore`:** `.venv311/`, `*.bak`, `config.json`, `profiles/`, `logs/`, `system_caps.json`, `SNAPSHOT.md` (нет), `models/`, `voices/`.
+- **`.gitignore`:** `.venv311/`, `*.bak`, `config.json`, `profiles/`, `logs/`, `system_caps.json`, `models/`, `voices/`.
 - **`SNAPSHOT.md`** — 520 КБ, обновляется при `commit.bat`.
 - **`git filter-repo`** — `.venv311` вырезан из истории (`.git` = 12 МБ).
 
@@ -320,8 +453,12 @@ weather.py
 10. **Per-call stop-token в `tts.py`** — не общий `_stop_flag`.
 11. **`PALETTES` в `gui.py`** — две темы, `_detect_system_theme()` для системной.
 12. **`ft.Button`** вместо `ElevatedButton`/`TextButton` в Flet 1.x.
-13. **Личные данные — только в `config.json`, `profiles/`, `system_caps.json`** (в `.gitignore`).
-14. **`weather_cache_ttl_sec`** — настраиваемый TTL кэша погоды (600 по умолчанию, 86400 для Local-режима).
-15. **Python 3.10–3.12** — Vosk не работает на 3.13/3.14. Только `.venv311`.
-16. **`snapshot.py`** — исключать `.venv311` (иначе `SNAPSHOT.md` = 52 МБ).
-17. **`.venv311` в `.gitignore`** — не коммитить. Если попал — `git rm -r --cached .venv311`.
+13. **`ft.BoxShadow`** — без `blur_style` (в Flet 1.0.3 нет `ShadowBlurStyle`).
+14. **Личные данные — только в `config.json`, `profiles/`, `system_caps.json`** (в `.gitignore`).
+15. **`weather_cache_ttl_sec`** — настраиваемый TTL кэша погоды (600 по умолчанию, 86400 для Local).
+16. **Python 3.10–3.12** — Vosk не работает на 3.13/3.14. Только `.venv311`.
+17. **`snapshot.py`** — исключать `.venv311` (иначе `SNAPSHOT.md` = 52 МБ).
+18. **Реестр `_fast_handlers()`** — новые быстрые правила добавляй **туда**, а не в 22 if.
+19. **`open_profile` — выше `open`** в реестре (иначе `_open_fast` съест).
+20. **`set_profile` / `get_profile`** — через LLM, без `re.match`-костылей.
+21. **Активация окон — через `win32gui` + `AttachThreadInput`** (`pygetwindow` не работает).

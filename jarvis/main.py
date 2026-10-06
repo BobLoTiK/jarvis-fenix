@@ -5,6 +5,10 @@ Barge-in: во время речи Феникса микрофон НЕ глуш
 После barge-in окно диалога открывается заново — можно продолжать без wake-слова.
 
 Стриминг: генератор оборачивается в tee — чанки идут и в TTS, и в GUI.
+
+launch_mode:
+    "gui"  — окно Flet + трей + голос (по умолчанию).
+    "tray" — только трей + голос, без окна.
 """
 
 import logging
@@ -53,10 +57,7 @@ class Jarvis:
         self._barge_just_happened = False
 
     def say(self, reply: Reply) -> bool:
-        """Озвучивает Reply. Возвращает True, если сработал barge-in.
-
-        reply — всегда Reply (из handler.handle или собранный вручную).
-        """
+        """Озвучивает Reply. Возвращает True, если сработал barge-in."""
         if reply is None:
             return False
         if not reply.is_stream and not reply.text:
@@ -99,8 +100,11 @@ class Jarvis:
     def _say_stream(self, gen) -> None:
         """Озвучивает стрим и показывает чанки в GUI.
 
-        Генератор оборачивается в tee: каждый чанк идёт
-        и в speak_stream, и в GUI через add_stream_chunk.
+        №73: end_stream вызывается ВСЕГДА (try/finally) — иначе при
+        ошибке внутри потока стрим-пузырь в GUI зависает навсегда.
+
+        Генератор оборачивается в tee: каждый чанк идёт и в speak_stream,
+        и в GUI через add_stream_chunk.
         """
         result = {"text": ""}
 
@@ -121,22 +125,23 @@ class Jarvis:
         t = threading.Thread(target=_run, daemon=True, name="tts-stream")
         t.start()
 
-        while t.is_alive():
-            if self.barge_enabled and self.listener.barge_flag:
-                log.info("Barge-in сработал — прерываю стриминг")
-                self.speaker.stop()
-                t.join(timeout=1.0)
-                break
-            time.sleep(0.05)
-        t.join(timeout=5.0)
+        try:
+            while t.is_alive():
+                if self.barge_enabled and self.listener.barge_flag:
+                    log.info("Barge-in сработал — прерываю стриминг")
+                    self.speaker.stop()
+                    t.join(timeout=1.0)
+                    break
+                time.sleep(0.05)
+            t.join(timeout=5.0)
+        finally:
+            # №73: закрываем стрим-пузырь ВСЕГДА
+            if self.gui is not None:
+                self.gui.end_stream()
 
-        # Закрываем стрим-пузырь в GUI
-        if self.gui is not None:
-            self.gui.end_stream()
-
-        # Финальный текст — в память
-        if result["text"] and hasattr(self.handler, "finalize_stream"):
-            self.handler.finalize_stream("", result["text"])
+            # Финальный текст — в память
+            if result["text"] and hasattr(self.handler, "finalize_stream"):
+                self.handler.finalize_stream("", result["text"])
 
     def shutdown(self) -> None:
         self.stop_event.set()
@@ -155,23 +160,19 @@ class Jarvis:
         if self.stop_event.wait(delay):
             return
 
-        # Пик > 50 — микрофон живой, просто тихо. Не спамим.
         if self.listener.peak >= 50:
             log.info("mic_watchdog: пик %d — микрофон живой", self.listener.peak)
             return
 
-        # Микрофон молчит (пик < 50 за mic_check_sec)
         log.warning("Микрофон молчит (пик %d за %.0f с): %s",
                     self.listener.peak, delay, self.listener.device_name)
 
         self.say(Reply(text="Я не слышу микрофон. Проверьте, включён ли он, "
                            "или выберите другое устройство в настройках."))
 
-        # Сообщаем GUI — открыть вкладку «Микрофон»
         if self.gui is not None:
             self.gui._queue.put(("open_mic_tab", None))
 
-        # Больше не повторяем — предупредили один раз
         log.info("mic_watchdog: предупреждение показано, больше не повторяем")
 
     def run_loop(self) -> None:
@@ -207,27 +208,18 @@ class Jarvis:
             if refined:
                 cmd = refined
 
-        # Сообщаем GUI о команде
         if self.gui is not None:
             self.gui.add_message("user", cmd)
             self.gui.set_state("listening")
 
         reply = self.handler.handle(cmd)
 
-        # Текстовый ответ — сразу в GUI.
-        # Стрим — добавится в _say_stream через tee.
         if self.gui is not None and not reply.is_stream:
             self.gui.add_message("assistant", reply.text or "")
 
-        # Окно диалога открываем ДО say(): пока Феникс говорит, пользователь
-        # уже может перебить и продолжить без wake-слова. Иначе окно
-        # открывалось только ПОСЛЕ того, как Феникс замолчал — и barge-in
-        # был бесполезен для последующей фразы.
         self._awaiting_until = time.time() + float(
             self.config.get("dialog_window_sec", 8))
 
-        # Если это CANCEL — прерываем всё, что звучит, ДО say().
-        # Иначе старый speak_stream доигрывает поверх «Жду обращение».
         if getattr(self.handler, "_reset_requested", False):
             self.speaker.stop()
             self.speaker.wait_end(timeout=1.0)
@@ -242,7 +234,6 @@ class Jarvis:
 
         if barge_happened:
             log.info("Barge-in: окно диалога уже открыто (без wake-слова)")
-            # Продлеваем окно — пользователь только что перебил, ему нужно время
             self._awaiting_until = time.time() + float(
                 self.config.get("dialog_window_sec", 8))
 
@@ -332,9 +323,7 @@ def setup_logging() -> None:
     actions_handler.setFormatter(formatter)
     actions_logger.addHandler(actions_handler)
 
-    # === Глобальный перехват исключений в потоках ===
-    # Без этого падения в фоновых потоках (трей, watchdog, tts-stream)
-    # уходят в stderr и теряются. Теперь — в errors.log.
+    # Глобальный перехват исключений в потоках
     def _thread_excepthook(args):
         thread_name = args.thread.name if args.thread else "?"
         log.critical(
@@ -344,14 +333,12 @@ def setup_logging() -> None:
         )
 
     threading.excepthook = _thread_excepthook
-    # === Глобальный перехват для ГЛАВНОГО потока ===
-    # threading.excepthook ловит только фоновые потоки.
-    # Падения в main() идут в sys.excepthook.
+
+    # Глобальный перехват для ГЛАВНОГО потока
     import sys
 
     def _sys_excepthook(exc_type, exc_value, exc_tb):
         if issubclass(exc_type, KeyboardInterrupt):
-            # Ctrl+C — не логируем как критичное
             return
         log.critical(
             "Необработанное исключение в главном потоке:",
@@ -359,6 +346,7 @@ def setup_logging() -> None:
         )
 
     sys.excepthook = _sys_excepthook
+
 
 def main() -> None:
     setup_logging()
@@ -404,7 +392,7 @@ def main() -> None:
             config.get("ollama_url", "http://127.0.0.1:11434"),
             prompt_level=config.get("prompt_level", "auto"),
             temperature=config.get("llm_temperature", 0.7),
-            config=config,   # ← передаём config для подписки
+            config=config,
         )
         if not brain.available:
             brain = None
@@ -424,7 +412,6 @@ def main() -> None:
 
     if gui is not None:
         gui.jarvis = jarvis
-        # НЕ запускаем здесь — запустим в конце main() в главном потоке
 
     # --- Подписки: изменения конфига применяются на лету ---
     def _on_config_change(key: str, value):
@@ -467,16 +454,39 @@ def main() -> None:
             def _run_tray():
                 try:
                     tray.run()
-                except Exception:
+                except (Exception, SystemExit):
+                    # №90: SystemExit — наследник BaseException, не Exception.
+                    # pystray может его бросить при выходе — не роняем процесс.
                     log.exception("Трей упал в потоке — работаю без него")
 
             threading.Thread(target=_run_tray, daemon=True, name="tray").start()
-        except Exception:
+        except (Exception, SystemExit):
             log.exception("Трей не завёлся — работаю без него")
 
-    # Flet — в ГЛАВНОМ потоке (блокирует до закрытия окна)
+    # === Режим запуска (№84) ===
+    # launch_mode:
+    #   "gui"  — окно Flet (по умолчанию).
+    #   "tray" — только трей + голос, без окна.
+    launch_mode = str(config.get("launch_mode", "gui") or "gui").lower()
+    if launch_mode not in ("gui", "tray"):
+        launch_mode = "gui"
+
+    # Защита от конфликта: launch_mode=tray, но трей выключен.
+    # Иначе окно скрыто, трея нет — показать некому.
+    if launch_mode == "tray" and not config.get("tray_enabled", True):
+        log.warning(
+            "launch_mode=tray, но tray_enabled=false — переключаюсь на gui"
+        )
+        launch_mode = "gui"
+
     if gui is not None:
-        log.info("Запускаю Flet в главном потоке")
+        if launch_mode == "tray":
+            log.info("launch_mode=tray — GUI запущен, но окно скрыто")
+            gui.start_hidden = True
+        else:
+            log.info("Запускаю Flet в главном потоке (launch_mode=gui)")
+
+        # Flet ВСЕГДА в главном потоке (signal.signal)
         gui.run_main()
     else:
         log.info("GUI выключен — жду завершения")

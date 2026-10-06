@@ -43,12 +43,27 @@ def _num_norm(s: str) -> str:
 
 
 def wake_score(token: str, wake_word: str) -> float:
-    """Строгая похожесть для wake-слова: только полный ratio (с транслитом),
-    без бонусов за подстроку/слова — иначе «фен» будил бы «феникса»."""
+    """Строгая похожесть для wake-слова.
+
+    №94: убраны лишние сравнения. Раньше было 4 сравнения через
+    set comprehension, включая бессмысленное token vs token-транслит.
+    Теперь — 4 явных сравнения, семантика ясная:
+        token ~ wake
+        translit(token) ~ translit(wake)
+        token ~ translit(wake)
+        translit(token) ~ wake
+    """
+    if not token or not wake_word:
+        return 0.0
+    tok = token.lower()
+    wake = wake_word.lower()
+    tok_t = translit(tok)
+    wake_t = translit(wake)
     return max(
-        SequenceMatcher(None, a, b).ratio()
-        for a in {token, translit(token)}
-        for b in {wake_word, translit(wake_word)}
+        SequenceMatcher(None, tok, wake).ratio(),
+        SequenceMatcher(None, tok_t, wake_t).ratio(),
+        SequenceMatcher(None, tok, wake_t).ratio(),
+        SequenceMatcher(None, tok_t, wake).ratio(),
     )
 
 
@@ -68,8 +83,6 @@ def match_score(spoken: str, candidate: str) -> float:
     spoken = _num_norm(spoken)
     cand = _num_norm(cand)
 
-    # Короткие цели обрабатываем отдельно: только точное совпадение
-    # или совпадение по словам (не по подстроке!). Иначе «лок» ловит «блокнот».
     len_spoken = len(spoken.replace(" ", ""))
 
     best = 0.0
@@ -77,8 +90,6 @@ def match_score(spoken: str, candidate: str) -> float:
         for c in {cand, _fold(translit(cand))}:
             if s == c:
                 return 1.0
-            # Нечёткое вхождение — только для строк длиной >= 5.
-            # Это защищает от ложных срабатываний («лок» в «блокнот»).
             if len(s) >= 5 and (s in c or c in s):
                 best = max(best, 0.9)
             best = max(best, SequenceMatcher(None, s, c).ratio())
@@ -86,7 +97,6 @@ def match_score(spoken: str, candidate: str) -> float:
             s_words, c_words = s.split(), c.split()
             for word in c_words:
                 best = max(best, SequenceMatcher(None, s, word).ratio())
-            # Многословные цели: «роблокс плеер» ~ «roblox player installer»
             if len(s_words) > 1 and c_words:
                 avg = sum(
                     max(SequenceMatcher(None, sw, cw).ratio() for cw in c_words)
@@ -97,8 +107,6 @@ def match_score(spoken: str, candidate: str) -> float:
     if len(sk_s) >= 3 and sk_s == sk_c:
         best = max(best, 0.8)
 
-    # Дополнительная защита: если spoken короче 4 символов, а нечёткий
-    # результат ниже 0.85 — считаем это неуверенным совпадением.
     if len_spoken < 4 and best < 0.85:
         return 0.0
 

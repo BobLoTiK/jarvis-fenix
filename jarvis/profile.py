@@ -18,13 +18,6 @@
     - Если нет — создаётся (с миграцией из старого user_profile.json).
     - «Феникс, я — Маша» → переключает на profiles/masha/.
 
-Хранит:
-    - name — человеческое имя
-    - default_city — город для погоды
-    - tts_voice — голос
-    - facts — произвольные факты («запомни: ...»)
-    - created_at — timestamp создания
-
 Запись — через config_manager (единый FileLock, атомарная замена).
 """
 
@@ -45,16 +38,13 @@ PROFILES_DIR = BASE_DIR / "profiles"
 _OLD_PROFILE = BASE_DIR / "user_profile.json"
 _OLD_DIALOG = BASE_DIR / "dialog.json"
 
-# Кэш текущего профиля — чтобы не читать файл каждый раз.
-# _current_lock защищает от гонки между потоками:
-# switch() вызывается из Jarvis-потока, current() — из GUI, memory.append() и т.д.
-_current: str | None = None
-_current_lock = threading.Lock()
+# №76: один RLock вместо двух локов. Раньше _current_lock и _listeners_lock
+# могли дать гонку: _current менялся, а подписчики читали memory со старым
+# профилем. RLock реентерабельный — безопасен для вложенных вызовов.
+_lock = threading.RLock()
 
-# Подписчики на смену профиля. Callback(old_name, new_name).
-# IntentHandler подписывается, чтобы перечитать свой dialog.
+_current: str | None = None
 _listeners: list = []
-_listeners_lock = threading.Lock()
 
 
 # ---------------------------------------------------------------
@@ -62,11 +52,7 @@ _listeners_lock = threading.Lock()
 # ---------------------------------------------------------------
 
 def _sanitize(name: str) -> str:
-    """Приводит имя к безопасному имени папки.
-
-    «Маша» → «masha» (транслит), «Максим» → «maksim».
-    Пустое → «default».
-    """
+    """Приводит имя к безопасному имени папки."""
     if not name:
         return "default"
     name = name.strip().lower()
@@ -101,7 +87,9 @@ def _windows_user() -> str:
 
 def profile_dir() -> Path:
     """Папка текущего профиля. Создаётся при вызове."""
-    path = PROFILES_DIR / _sanitize(current())
+    with _lock:
+        cur = current()
+    path = PROFILES_DIR / _sanitize(cur)
     _ensure_dir(path)
     return path
 
@@ -121,10 +109,7 @@ def dialog_path() -> Path:
 # ---------------------------------------------------------------
 
 def _migrate_old() -> None:
-    """Переносит старые user_profile.json и dialog.json в profiles/<user>/.
-
-    Старые файлы НЕ удаляем — на случай, если что-то пойдёт не так.
-    """
+    """Переносит старые user_profile.json и dialog.json в profiles/<user>/."""
     if not PROFILES_DIR.exists():
         return
     user_dir = PROFILES_DIR / _sanitize(_windows_user())
@@ -162,7 +147,7 @@ def _migrate_old() -> None:
 def current() -> str:
     """Имя текущего активного профиля (папки)."""
     global _current
-    with _current_lock:
+    with _lock:
         if _current is None:
             _current = _windows_user()
         return _current
@@ -170,43 +155,80 @@ def current() -> str:
 
 def subscribe(callback) -> None:
     """Регистрирует callback(old_name, new_name) — вызывается при switch()."""
-    with _listeners_lock:
+    with _lock:
+        if callback in _listeners:
+            return
         _listeners.append(callback)
+
+
+def unsubscribe(callback) -> None:
+    """Удаляет подписку."""
+    with _lock:
+        try:
+            _listeners.remove(callback)
+        except ValueError:
+            pass
 
 
 def switch(name: str) -> str:
     """Переключает текущий профиль. Создаёт папку, если нет.
 
-    После смены _current уведомляет подписчиков (old_name, new_name).
-    Подписчики перечитывают свои данные — например, IntentHandler.dialog.
+    №76: всё под одним _lock. Пока _current меняется и уведомляются
+    подписчики — другие потоки не могут читать profile_dir()/memory.
     """
     global _current
     safe = _sanitize(name)
 
-    with _current_lock:
+    with _lock:
         old_name = _current or _windows_user()
 
-    user_dir = PROFILES_DIR / safe
-    _ensure_dir(user_dir)
+        user_dir = PROFILES_DIR / safe
+        _ensure_dir(user_dir)
 
-    profile_file = user_dir / "profile.json"
-    if not profile_file.exists():
-        data = {
-            "name": name.strip()[:60] or safe,
-            "created_at": time.time(),
-        }
-        config_manager.save(data, path=profile_file)
-        log.info("Создан новый профиль: %s", profile_file)
+        profile_file = user_dir / "profile.json"
+        if not profile_file.exists():
+            data = {
+                "name": name.strip()[:60] or safe,
+                "created_at": time.time(),
+            }
+            config_manager.save(data, path=profile_file)
+            log.info("Создан новый профиль: %s", profile_file)
+        else:
+            # Профиль существует — если name нет, ставим его.
+            # Иначе "я — Максим" на старом профиле вернёт старое имя
+            # (например, "тест" из стресс-теста).
+            try:
+                raw = profile_file.read_text(encoding="utf-8")
+                if raw.strip():
+                    d = json.loads(raw)
+                    if not d.get("name"):
+                        d["name"] = name.strip()[:60] or safe
+                        config_manager.save(d, path=profile_file)
+                        log.info("Профиль %s: добавлено name = %r",
+                                 safe, d["name"])
+            except Exception:
+                log.exception("Не удалось проверить name в профиле %s", safe)
 
-    with _current_lock:
         _current = safe
 
-    human = get("name", safe)
-    log.info("Активный профиль: %s (%s → %s)", human, old_name, safe)
+        # human — читаем имя из нового профиля
+        human = safe
+        try:
+            raw = profile_file.read_text(encoding="utf-8")
+            if raw.strip():
+                d = json.loads(raw)
+                human = d.get("name") or safe
+        except Exception:
+            log.exception("Не удалось прочитать name из нового профиля")
 
-    # Уведомляем подписчиков — IntentHandler перечитает dialog
-    with _listeners_lock:
+        log.info("Активный профиль: %s (%s → %s)", human, old_name, safe)
+
+        # Уведомляем подписчиков под тем же локом
         listeners = list(_listeners)
+
+    # Вызываем подписчиков ВНЕ лока, но с уже обновлённым _current.
+    # Подписчики (IntentHandler._on_profile_switch) перечитывают dialog —
+    # к этому моменту _current уже новый.
     for cb in listeners:
         try:
             cb(old_name, safe)
@@ -223,16 +245,13 @@ def list_all() -> list[str]:
 
 
 def delete(name: str) -> bool:
-    """Удаляет папку профиля. Активный — нельзя.
-
-    Перемещает в корзину, если доступно (send2trash).
-    Иначе — простое удаление.
-    """
+    """Удаляет папку профиля. Активный — нельзя."""
     import shutil
     safe = _sanitize(name)
-    if safe == current():
-        log.warning("Нельзя удалить активный профиль: %s", safe)
-        return False
+    with _lock:
+        if safe == current():
+            log.warning("Нельзя удалить активный профиль: %s", safe)
+            return False
     path = PROFILES_DIR / safe
     if not path.exists() or not path.is_dir():
         return False
@@ -277,18 +296,19 @@ def get(key: str, default=None):
 
 
 def set(key: str, value) -> bool:
-    try:
-        data = _safe_load()
-    except json.JSONDecodeError:
-        return False
-    data[key] = value
-    data.setdefault("created_at", time.time())
-    ok = config_manager.save(data, path=profile_path())
-    if ok:
-        log.info("Профиль %s: %s = %r", current(), key, value)
-    else:
-        log.error("Профиль %s: не удалось сохранить %s", current(), key)
-    return ok
+    with _lock:
+        try:
+            data = _safe_load()
+        except json.JSONDecodeError:
+            return False
+        data[key] = value
+        data.setdefault("created_at", time.time())
+        ok = config_manager.save(data, path=profile_path())
+        if ok:
+            log.info("Профиль %s: %s = %r", current(), key, value)
+        else:
+            log.error("Профиль %s: не удалось сохранить %s", current(), key)
+        return ok
 
 
 def all_data() -> dict:
@@ -299,17 +319,18 @@ def all_data() -> dict:
 
 
 def forget(key: str) -> bool:
-    try:
-        data = _safe_load()
-    except json.JSONDecodeError:
-        return False
-    if key not in data:
-        return False
-    del data[key]
-    ok = config_manager.save(data, path=profile_path())
-    if ok:
-        log.info("Профиль %s: удалено %s", current(), key)
-    return ok
+    with _lock:
+        try:
+            data = _safe_load()
+        except json.JSONDecodeError:
+            return False
+        if key not in data:
+            return False
+        del data[key]
+        ok = config_manager.save(data, path=profile_path())
+        if ok:
+            log.info("Профиль %s: удалено %s", current(), key)
+        return ok
 
 
 # ---------------------------------------------------------------
@@ -347,7 +368,7 @@ def init() -> None:
     """Вызывается при старте Феникса."""
     global _current
     _ensure_dir(PROFILES_DIR)
-    with _current_lock:
+    with _lock:
         _current = _windows_user()
     _migrate_old()
 

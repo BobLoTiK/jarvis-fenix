@@ -1,6 +1,7 @@
 """Разбор команды: быстрые правила + LLM."""
 
 import datetime
+import hashlib
 import logging
 import random
 import re
@@ -31,6 +32,42 @@ log = logging.getLogger("jarvis.intents")
 actions_log = logging.getLogger("jarvis.actions")
 
 
+# =================================================================
+# Хеширование пароля (№81)
+# =================================================================
+
+_PASSWORD_PREFIX = "sha256:"
+
+
+def _hash_password(password: str) -> str:
+    """SHA-256 с префиксом. Префикс нужен, чтобы отличать
+    уже захешированный пароль от старого (plaintext)."""
+    digest = hashlib.sha256(password.encode("utf-8")).hexdigest()
+    return f"{_PASSWORD_PREFIX}{digest}"
+
+
+def _is_hashed(value: str) -> bool:
+    return bool(value) and value.startswith(_PASSWORD_PREFIX)
+
+
+def _verify_password(candidate: str, stored: str) -> bool:
+    """Сравнивает введённый пароль с сохранённым.
+
+    Если stored ещё старый (plaintext) — сравнивает напрямую
+    и возвращает True. Миграция произойдёт при следующем set.
+    """
+    if not stored:
+        return False
+    if _is_hashed(stored):
+        return _hash_password(candidate) == stored
+    # legacy plaintext — сравнение напрямую
+    return candidate == stored
+
+
+# =================================================================
+# Нормализация
+# =================================================================
+
 def normalize(text: str) -> str:
     text = text.lower().replace("ё", "е")
     text = re.sub(r"[^\w\s]", " ", text)
@@ -43,7 +80,12 @@ BROWSER_WORDS = {"браузер", "браузере", "браузером", "х
 
 SEARCH_VERBS = ("найди", "поищи", "ищи", "загугли", "погугли", "поиск")
 
-SITES = {
+
+# =================================================================
+# SITES — fallback на хардкод, если packs/sites.json недоступен (№96)
+# =================================================================
+
+_SITES_FALLBACK = {
     "ютуб": ("Ютуб", "https://www.youtube.com"),
     "гугл": ("Гугл", "https://www.google.com"),
     "яндекс": ("Яндекс", "https://ya.ru"),
@@ -55,6 +97,43 @@ SITES = {
     "википедия": ("Википедию", "https://ru.wikipedia.org"),
     "почта": ("Почту", "https://mail.google.com"),
 }
+
+
+def _load_sites() -> dict:
+    """Загружает sites.json из packs/. Fallback — хардкод.
+
+    Формат packs/sites.json — список:
+        [{"phrases": ["открой ютуб"], "action": "https://...", "reply": "..."}]
+    Превращаем в {ключ: (title, url)}.
+    """
+    sites = dict(_SITES_FALLBACK)
+    try:
+        from jarvis.packs import PACKS_DIR
+        import json
+        path = PACKS_DIR / "sites.json"
+        if not path.exists():
+            return sites
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(data, list):
+            return sites
+        for entry in data:
+            action = entry.get("action", "")
+            if not action.startswith(("http://", "https://")):
+                continue
+            for phrase in entry.get("phrases", []):
+                # «открой ютуб» → ключ «ютуб»
+                key = phrase.lower().replace("открой", "").strip()
+                if key and key not in sites:
+                    title = entry.get("reply", key).replace("Открываю ", "").rstrip(".")
+                    sites[key] = (title, action)
+        log.info("SITES загружены из packs/sites.json: %d записей", len(sites))
+    except Exception:
+        log.exception("Не удалось загрузить packs/sites.json — fallback на хардкод")
+    return sites
+
+
+SITES = _load_sites()
+
 
 MONTHS = ["января", "февраля", "марта", "апреля", "мая", "июня",
           "июля", "августа", "сентября", "октября", "ноября", "декабря"]
@@ -89,6 +168,20 @@ _DANGER_ACTIONS = {
 
 
 class IntentHandler:
+
+    # Глаголы, с которых может начинаться часть составной команды (№67)
+    _COMPOUND_VERBS = (
+        "открой", "открывай", "закрой", "закрывай",
+        "запусти", "врубай", "включи", "выключи",
+        "найди", "поищи", "загугли", "погугли",
+        "поставь", "сделай",
+        "добавь", "запиши", "внеси",
+        "покажи", "убери", "удали", "очисти",
+        "смени", "поменяй", "переключи",
+        "сверни", "разверни", "переключись",
+        "напомни", "запомни",
+        "громче", "тише", "потише", "погромче",
+    )
 
     def __init__(self, config, apps, brain=None, listener=None):
         self.config = config
@@ -127,6 +220,9 @@ class IntentHandler:
         # Пароль (2.13)
         self._pending_password: dict | None = None
 
+        # Миграция plaintext → sha256 при старте (№81)
+        self._migrate_password_if_needed()
+
         self._config_custom_original = []
         for entry in config.get("custom_commands", []):
             phrases = [normalize(p) for p in entry.get("phrases", []) if p.strip()]
@@ -142,6 +238,14 @@ class IntentHandler:
 
         # Подписка на смену профиля — чтобы перечитать dialog
         profile.subscribe(self._on_profile_switch)
+
+    def _migrate_password_if_needed(self) -> None:
+        """Если danger_password в plaintext — захешировать (№81)."""
+        raw = str(self.config.get("danger_password") or "").strip()
+        if not raw or _is_hashed(raw):
+            return
+        self.config.set("danger_password", _hash_password(raw))
+        log.info("Пароль миграции: plaintext → sha256")
 
     def _on_config_change(self, key: str, value) -> None:
         """Реагирует на смену memory_max / llm_context_messages в рантайме."""
@@ -168,7 +272,6 @@ class IntentHandler:
         Без этого Феникс продолжает помнить диалог старого профиля
         и подсовывает его в LLM-контекст нового пользователя.
         """
-        # Защита от повторного вызова при пустом old_name (init)
         if old_name == new_name:
             return
 
@@ -185,9 +288,6 @@ class IntentHandler:
         self.last_was_chat = False
 
         # Нормализация — единая точка входа.
-        # Голосовой путь уже нормализует в Jarvis._process,
-        # но GUI передаёт сырой текст. Нормализуем здесь,
-        # чтобы все regex в _*_fast работали одинаково.
         cmd = normalize(cmd)
 
         actions_log.info("Команда: %r (режим: %s)", cmd, self.mode)
@@ -195,8 +295,7 @@ class IntentHandler:
         # Диагностика: сохраняем последнюю команду
         self._recent_phrases.append(cmd)
 
-        # Запоминаем ДО применения коррекции — чтобы «это не то»
-        # знало, что именно было сказано (а не то, во что превратила коррекция).
+        # Запоминаем ДО применения коррекции
         prev_cmd = self._last_cmd
         self._last_cmd = cmd
 
@@ -234,12 +333,39 @@ class IntentHandler:
         return self.brain.chat_stream(cmd, ctx)
 
     def _danger_password(self) -> str:
+        """Возвращает СОХРАНЁННЫЙ (захешированный) пароль. №81."""
         return str(self.config.get("danger_password") or "").strip()
+
+    # =================================================================
+    # Разбиение составных команд (№67)
+    # =================================================================
+
+    def _split_compound(self, cmd: str) -> list[str] | None:
+        """Разбивает «открой стим и запусти доту» на части.
+
+        Возвращает список частей или None, если это не составная команда.
+        Разбиваем по « и » (с пробелами) или «, ».
+
+        Ключевое: все части должны начинаться с глагола-команды.
+        Иначе «добавь в список купить хлеб и молоко» разобьётся зря.
+        """
+        parts = re.split(r"\s+и\s+|,\s*", cmd)
+        if len(parts) < 2:
+            return None
+
+        parts = [p.strip() for p in parts if p.strip()]
+        if len(parts) < 2:
+            return None
+
+        for part in parts:
+            first_word = part.split()[0].lower() if part.split() else ""
+            if first_word not in self._COMPOUND_VERBS:
+                return None
+
+        return parts
 
     def _handle_single(self, cmd: str) -> str | Iterator[str]:
         # === CANCEL — самый первый (фикс №6) ===
-        # «стой», «отмена», «хватит» должны срабатывать ВСЕГДА, даже если
-        # висит _pending_password / _pending_question.
         if cmd in CANCEL:
             self._pending_password = None
             self._pending_question = None
@@ -258,7 +384,7 @@ class IntentHandler:
         elif self._pending_password:
             self._pending_password = None
 
-        # Удаление профиля — до tasks (иначе tasks перехватит «удали профиль X»)
+        # Удаление профиля — до tasks
         m = re.match(r"^удали\s+профиль\s+(\S+)$", cmd)
         if m:
             name = m.group(1)
@@ -323,63 +449,31 @@ class IntentHandler:
         if re.search(r"скрин|снимок экрана", cmd):
             return self._take_screenshot(cmd)
 
-        # --- Быстрые правила без LLM ---
+        # === Многослойные команды: «открой стим и запусти доту» (№67) ===
+        compound = self._split_compound(cmd)
+        if compound:
+            replies = []
+            for part in compound:
+                sub = self._handle_single(part)
+                if isinstance(sub, str) and sub.strip():
+                    replies.append(sub.strip())
+                # Если sub — генератор (chat_stream), пропускаем.
+            if replies:
+                return ". ".join(replies) + "."
+            # Если ни одна часть не дала ответа — идём дальше обычным путём.
 
-        # Музыка — ДО _open_fast, иначе «включи музыку» откроет папку
-        reply = self._music_fast(cmd)
-        if reply:
-            return reply
-
-        reply = self._open_fast(cmd)
-        if reply:
-            return reply
-
-        reply = voices.handle_voice_command(cmd, self.config)
-        if reply:
-            return reply
-
-        reply, new_active = packs.handle_pack_command(cmd, self.active_packs, self.config)
-        if reply:
-            if new_active != self.active_packs:
-                self.active_packs = new_active
-                self._reload_packs()
-            return reply
-
-        reply = timers.handle_timer_command(cmd)
-        if reply:
-            return reply
-
-        reply = tasks.handle_task_command(cmd)
-        if reply:
-            return reply
-
-        reply = self._profile_fast(cmd)
-        if reply:
-            return reply
-
-        reply = self._memory_fast(cmd)
-        if reply:
-            return reply
-
-        reply = self._system_fast(cmd)
-        if reply:
-            return reply
-
-        reply = self._debug_fast(cmd)
-        if reply:
-            return reply
-
-        reply = self._correction_fast(cmd)
-        if reply:
-            return reply
-
-        reply = self._undo_fast(cmd)
-        if reply:
-            return reply
-
-        reply = self._weather_currency_fast(cmd)
-        if reply:
-            return reply
+        # --- Быстрые правила без LLM (реестр) ---
+        # Порядок в _fast_handlers() = приоритет.
+        # Специфичные — выше общих (open_profile выше open).
+        for name, handler in self._fast_handlers():
+            try:
+                reply = handler(cmd)
+            except Exception:
+                log.exception("Обработчик %s упал на %r", name, cmd)
+                continue
+            if reply:
+                log.debug("Команда %r обработана: %s", cmd, name)
+                return reply
 
         if self.mode == "commands":
             self._last_debug = {
@@ -395,6 +489,19 @@ class IntentHandler:
             }
             return "LLM недоступна. Скажите «режим команды»."
 
+        # === Мусорный ввод (№70) ===
+        # Одна повторяющаяся буква или слишком коротко — LLM
+        # на такое галлюцинирует («Всё в порядке»), лучше явно сказать.
+        # Исключения: «да», «нет», «ок» — это ответы на pending-вопросы.
+        clean = cmd.replace(" ", "")
+        if cmd not in {"да", "нет", "ок"}:
+            if len(cmd) < 3 or (len(clean) > 0 and len(set(clean)) <= 2):
+                self._last_debug = {
+                    "cmd": cmd, "reason": "мусорный ввод",
+                    "mode": self.mode, "llm": False,
+                }
+                return "Не расслышал, сэр. Повторите, пожалуйста."
+
         intent = self.brain.parse(cmd)
         self._last_debug = {
             "cmd": cmd,
@@ -403,7 +510,6 @@ class IntentHandler:
             "llm": True,
         }
         if intent and intent.get("action") not in ("answer", "none"):
-            # Пароль на опасные (2.13)
             if self._is_danger(intent):
                 return self._ask_password(intent)
 
@@ -438,7 +544,6 @@ class IntentHandler:
         action = intent.get("action")
         if action in _DANGER_ACTIONS:
             return True
-        # open_app с target: выключение/перезагрузка (shutdown /s)
         if action == "open_app":
             target = str(intent.get("target") or "").lower()
             if "shutdown" in target or "выключ" in target or "перезагруз" in target:
@@ -468,39 +573,77 @@ class IntentHandler:
         pending = self._pending_password
         self._pending_password = None
 
-        # Страховка: если проскочил CANCEL — отменяем действие.
-        # (Основная проверка CANCEL уже в начале _handle_single, но
-        #  пусть будет — на случай рефакторинга.)
         if cmd in CANCEL:
             return "Жду обращение, сэр."
 
         # Убираем «пароль», «код», лишние слова
         candidate = re.sub(r"^(?:пароль|код|пин)\s*", "", cmd).strip()
 
-        if candidate != self._danger_password():
-            log.warning("Пароль неверный: %r", candidate)
+        # №81: сравнение через _verify_password (sha256 или legacy plaintext)
+        if not _verify_password(candidate, self._danger_password()):
+            log.warning("Пароль неверный")
             return "Пароль неверный. Действие отменено."
 
         intent = pending.get("intent") or {}
-        # Выполняем
         if isinstance(intent.get("steps"), list):
             result = self._execute_steps(intent["steps"])
         else:
             result = self._execute_intent(intent)
         return result or "Готово."
 
-    def _music_fast(self, cmd: str) -> str | None:
-        """Музыка — ДО _open_fast. Иначе «включи музыку» откроет папку.
+    def _fast_handlers(self):
+        """Реестр быстрых обработчиков без LLM.
 
-        Ловит: включи/врубай/играй музыку, плей, пауза, следующий трек,
-        предыдущий трек, стоп, громче, тише, без звука.
+        Порядок = приоритет. Специфичные — выше общих.
+
+        Каждый обработчик: (cmd: str) -> str | None.
+        Если вернул непустую строку — команда обработана.
+        Если None — идём к следующему.
         """
-        # «включи музыку» / «врубай музыку» / «играй музыку»
+        return [
+            # Специфичные — ВЫШЕ
+            ("custom", self._match_custom),
+            ("small_talk", self._small_talk),
+            ("music", self._music_fast),
+            ("open_profile", self._open_profile_fast),
+
+            # Общие — ниже
+            ("open", self._open_fast),
+            ("voices", lambda cmd: voices.handle_voice_command(cmd, self.config)),
+            ("packs", self._packs_handler),
+            ("timers", timers.handle_timer_command),
+            ("tasks", tasks.handle_task_command),
+            ("profile", self._profile_fast),
+            ("memory", self._memory_fast),
+            ("system", self._system_fast),
+            ("debug", self._debug_fast),
+            ("correction", self._correction_fast),
+            ("undo", self._undo_fast),
+            ("weather_currency", self._weather_currency_fast),
+        ]
+
+    def _packs_handler(self, cmd: str) -> str | None:
+        """Обёртка для packs с side-effect.
+
+        packs.handle_pack_command возвращает (reply, new_active),
+        и меняет self.active_packs. Инкапсулируем это здесь.
+        """
+        reply, new_active = packs.handle_pack_command(
+            cmd, self.active_packs, self.config
+        )
+        if reply:
+            if new_active != self.active_packs:
+                self.active_packs = new_active
+                self._reload_packs()
+            return reply
+        return None
+
+    def _music_fast(self, cmd: str) -> str | None:
+        """Музыка — ДО _open_fast."""
         if re.search(r"(включи|врубай|играй|поставь)\s+(музыку|музыка|плейлист)", cmd):
             actions.media_key("play")
             return "Включаю музыку."
 
-        # «пауза», «плей», «играть/стоп»
         if cmd in {"пауза", "плей", "play", "pause"}:
             actions.media_key("play")
             return "Готово."
@@ -508,24 +651,20 @@ class IntentHandler:
             actions.media_key("play")
             return "Включаю."
 
-        # «следующий трек», «дальше», «переключи трек»
         if re.search(r"(следующ|дальше|переключи|переключ)\w*\s*(трек|песн|музык)?", cmd):
             if any(w in cmd for w in ("трек", "песн", "музык", "дальше")):
                 actions.media_key("next")
                 return "Переключаю."
 
-        # «предыдущий трек», «назад трек»
         if re.search(r"(предыдущ|назад)\w*\s*(трек|песн|музык)", cmd):
             actions.media_key("prev")
             return "Возвращаю."
 
-        # «стоп музыка», «останови музыку»
         if re.search(r"(останови|стоп)\s+(музык|трек|песн)", cmd):
             actions.media_key("play")
             return "Останавливаю."
 
         return None
-
 
     def _open_fast(self, cmd: str) -> str | None:
         """Быстрое открытие приложений/сайтов/папок — без LLM."""
@@ -558,52 +697,11 @@ class IntentHandler:
                 return "Профилей нет."
             return f"Профили: {', '.join(all_p)}."
 
-        # === Специальные факты → правильные поля профиля ===
-        # «запомни: мой город X» → default_city, а не facts
-        # «мой город X» (без запомни) → default_city
-
-        m = re.match(r"^(?:запомни|запиши)\s*[,:]?\s*(?:что\s+)?мой\s+город\s+(.+)$", cmd)
-        if not m:
-            m = re.match(r"^мой\s+город\s+(.+)$", cmd)
-        if m:
-            city = m.group(1).strip(" ,.:!?")
-            if city:
-                profile.set("default_city", city)
-                return f"Запомнил: твой город — {city}."
-
-        m = re.match(r"^(?:запомни|запиши)\s*[,:]?\s*(?:что\s+)?меня\s+зовут\s+(.+)$", cmd)
-        if not m:
-            m = re.match(r"^меня\s+зовут\s+(.+)$", cmd)
-        if m:
-            name = m.group(1).strip(" ,.:!?")
-            if name:
-                profile.set("name", name)
-                return f"Запомнил: тебя зовут {name}."
-
-        m = re.match(r"^(?:запомни|запиши)\s*[,:]?\s*(?:что\s+)?я\s+живу\s+в\s+(.+)$", cmd)
-        if not m:
-            m = re.match(r"^я\s+живу\s+в\s+(.+)$", cmd)
-        if m:
-            city = m.group(1).strip(" ,.:!?")
-            if city:
-                profile.set("default_city", city)
-                return f"Запомнил: ты живёшь в {city}."
-
         # === Общий «запомни: X — Y» → facts ===
+        # (УДАЛЁН ДУБЛЬ, который был в строках 558–569)
         m = re.match(r"^(?:запомни|запиши)\s*[,:]?\s*(?:что\s+)?(.+)$", cmd)
         if m:
             fact = m.group(1).strip(" ,.:!?")
-            if not fact:
-                return "Что запомнить?"
-            sep = re.match(r"^(.+?)\s*[—\-=:]\s*(.+)$", fact)
-            if sep:
-                key, value = sep.group(1).strip(), sep.group(2).strip()
-            else:
-                key, value = fact, "да"
-            ok = learning.add_fact(key, value)
-            if ok:
-                return f"Запомнил: {key} — {value}."
-            return "Не удалось сохранить — проверь профиль (возможно, битый JSON)."
             if not fact:
                 return "Что запомнить?"
             sep = re.match(r"^(.+?)\s*[—\-=:]\s*(.+)$", fact)
@@ -697,7 +795,7 @@ class IntentHandler:
                     return "Сейчас английская раскладка."
                 return "Не смог определить раскладку."
 
-        # --- громкость ---
+        # --- громкость: «громкость 50» ---
         m = re.search(r"громкость\s+(?:на\s+)?(\d+)", cmd)
         if m:
             pct = int(m.group(1))
@@ -706,6 +804,43 @@ class IntentHandler:
             if ok:
                 history.push({"action": "set_volume", "prev_value": prev})
             return f"Громкость: {pct}%." if ok else "Не удалось."
+
+        # --- громкость: «сделай на 10 потише» (№69) ---
+        m = re.search(
+            r"(?:сделай|поставь|сделай\s+пожалуйста)\s+(?:на\s+)?(\d+)\s+(потише|тише|погромче|громче)",
+            cmd,
+        )
+        if m:
+            delta = int(m.group(1))
+            direction = m.group(2)
+            if "тише" in direction:
+                delta = -delta
+            prev = actions.get_volume()
+            if prev is not None:
+                new_vol = max(0, min(100, prev + delta))
+                ok = actions.set_volume(new_vol)
+                if ok:
+                    history.push({"action": "set_volume", "prev_value": prev})
+                return f"Громкость: {new_vol}%." if ok else "Не удалось."
+
+        # --- громкость: «потише» / «погромче» (без числа, ±10) ---
+        if re.search(r"\b(потише|тише)\b", cmd):
+            prev = actions.get_volume()
+            if prev is not None:
+                new_vol = max(0, prev - 10)
+                ok = actions.set_volume(new_vol)
+                if ok:
+                    history.push({"action": "set_volume", "prev_value": prev})
+                return f"Громкость: {new_vol}%." if ok else "Не удалось."
+
+        if re.search(r"\b(погромче|громче)\b", cmd):
+            prev = actions.get_volume()
+            if prev is not None:
+                new_vol = min(100, prev + 10)
+                ok = actions.set_volume(new_vol)
+                if ok:
+                    history.push({"action": "set_volume", "prev_value": prev})
+                return f"Громкость: {new_vol}%." if ok else "Не удалось."
 
         if re.search(r"(какая|текущ|узнай)\s+громкость", cmd) \
                 or cmd in {"какая громкость", "текущая громкость"}:
@@ -728,13 +863,45 @@ class IntentHandler:
             return f"Яркость: {br}%." if br is not None else "Не смог узнать."
 
         return None
+        
+    def _open_profile_fast(self, cmd: str) -> str | None:
+        """«открой профиль» → открыть profile.json в Notepad++ / VS Code / системном редакторе.
 
+        Опционально: «открой профиль в вс код», «открой профиль в блокноте».
+        """
+        if not re.search(r"откр\w*\s+профиль", cmd):
+            return None
+
+        # Определяем предпочитаемый редактор
+        prefer = "auto"
+        if re.search(r"\bв\s+(vs\s*code|вс\s*код|вскод|code)\b", cmd):
+            prefer = "vscode"
+        elif re.search(r"\bв\s+(notepad\+\+|нотпад\s*плюс|нотепад)\b", cmd):
+            prefer = "notepad++"
+        elif re.search(r"\bв\s+(блокнот|notepad)\b", cmd):
+            prefer = "system"
+        elif re.search(r"\bв\s+(системн|обычн)\w*\s+редактор", cmd):
+            prefer = "system"
+
+        prof_path = profile.profile_path()
+        if not prof_path.exists():
+            return f"Профиль не найден: {prof_path.name}"
+
+        ok = actions.open_in_editor(prof_path, prefer=prefer)
+        if ok:
+            editor_name = {
+                "auto": "редакторе",
+                "vscode": "VS Code",
+                "notepad++": "Notepad++",
+                "system": "системном редакторе",
+            }.get(prefer, "редакторе")
+            return f"Открываю профиль в {editor_name}."
+        return "Не удалось открыть профиль."
+        
     def _debug_fast(self, cmd: str) -> str | None:
         """Команды диагностики: что слышал, почему не понял."""
         if re.search(r"(что|чё)\s+ты\s+слышал", cmd) \
                 or cmd in {"что ты слышал", "что слышал", "история"}:
-            # Берём из Listener — то, что услышал Vosk сырым.
-            # Fallback на _recent_phrases — то, что дошло до handle().
             phrases = []
             if self.listener is not None and hasattr(self.listener, "recent_phrases"):
                 phrases = list(self.listener.recent_phrases)
@@ -775,7 +942,6 @@ class IntentHandler:
 
         action = item.get("action")
 
-        # macro → откатываем все шаги в обратном порядке
         if action == "macro":
             steps = item.get("steps") or []
             if not steps:
@@ -787,19 +953,16 @@ class IntentHandler:
                 if s_action == "open_app" and s_target:
                     r = self._do_close(s_target)
                     results.append(r)
-                # Добавлять другие типы шагов по мере надобности
             if results:
                 return "Откатываю макрос: " + "; ".join(results)
             return "Макрос отменён."
 
-        # open_app → close_app
         if action == "open_app":
             target = item.get("target") or ""
             if target:
                 result = self._do_close(target)
                 return f"Откатываю: {result}"
 
-        # set_mode → вернуть предыдущий
         if action == "set_mode":
             prev = item.get("prev_value")
             if prev:
@@ -807,28 +970,24 @@ class IntentHandler:
                 self.mode = prev
                 return f"Вернул режим: {reply}"
 
-        # change_voice → вернуть предыдущий
         if action == "change_voice":
             prev = item.get("prev_value")
             if prev:
                 reply = voices.switch(prev, self.config)
                 return f"Вернул голос: {reply}"
 
-        # set_volume → вернуть предыдущее
         if action == "set_volume":
             prev = item.get("prev_value")
             if prev is not None:
                 actions.set_volume(int(prev))
                 return f"Вернул громкость: {prev}%."
 
-        # set_brightness → вернуть предыдущее
         if action == "set_brightness":
             prev = item.get("prev_value")
             if prev is not None:
                 actions.set_brightness(int(prev))
                 return f"Вернул яркость: {prev}%."
 
-        # switch_layout → переключить обратно
         if action == "switch_layout":
             actions.switch_layout()
             return "Переключил раскладку обратно."
@@ -836,11 +995,7 @@ class IntentHandler:
         return f"Действие «{action}» отменить нельзя."
 
     def _correction_fast(self, cmd: str) -> str | None:
-        """Коррекция: «это не то, я сказал логи».
-
-        Использует self._last_cmd — команду, которую пользователь
-        сказал ПЕРЕД этой («это не то»).
-        """
+        """Коррекция: «это не то, я сказал логи»."""
         m = re.match(
             r"^(?:это\s+)?не\s+то\s*,?\s*(?:я\s+сказал[а]?\s+)?(.+)$",
             cmd,
@@ -849,8 +1004,6 @@ class IntentHandler:
             right = m.group(1).strip(" ,.:!?")
             if not right:
                 return None
-            # self._last_cmd — это команда ДО текущей («это не то»).
-            # Мы её сохранили в handle() в момент прихода.
             wrong = self._last_cmd
             if wrong and wrong != cmd:
                 learning.add_correction(wrong, right)
@@ -933,8 +1086,6 @@ class IntentHandler:
 
     def _execute_steps(self, steps: list) -> str | None:
         reply = None
-        # Кладём макрос как ОДНУ запись в историю — иначе стек на 5
-        # быстро забивается, и «отмени» откатит только последний шаг.
         history.push_macro(steps)
 
         for step in steps[:6]:
@@ -1249,6 +1400,15 @@ class IntentHandler:
             log_path = Path(__file__).resolve().parent.parent / "logs" / "jarvis.log"
             actions.open_path(log_path)
             return "Открываю журнал."
+        if action == "open_profile":
+            # Открывает profiles/<current>/profile.json в редакторе.
+            # Notepad++ → VS Code → системный (os.startfile).
+            prof_path = profile.profile_path()
+            prefer = str(intent.get("editor") or "auto").lower()
+            ok = actions.open_in_editor(prof_path, prefer=prefer)
+            if ok:
+                return f"Открываю профиль {profile.current()}."
+            return f"Не удалось открыть профиль: {prof_path}"
 
         if action == "get_weather":
             city = str(intent.get("target") or "").strip()
@@ -1283,6 +1443,55 @@ class IntentHandler:
             if profile.delete(name):
                 return f"Профиль {name} удалён."
             return f"Профиль {name} не найден или активен."
+        # Профиль — универсально через LLM
+        if action == "set_profile":
+            key = str(intent.get("key") or "").strip()
+            value = str(intent.get("value") or "").strip()
+            if not key or not value:
+                return "Не понял, что сохранить."
+
+            # Нормализация ключей (LLM может вернуть синонимы)
+            key_map = {
+                "имя": "name", "name": "name",
+                "город": "default_city", "default_city": "default_city",
+                "city": "default_city", "мой город": "default_city",
+            }
+            key = key_map.get(key.lower(), key.lower())
+
+            if key not in ("name", "default_city", "prev_city"):
+                return f"Не знаю, что такое «{key}»."
+
+            # Для города — сохраняем предыдущий
+            if key == "default_city":
+                prev = profile.get("default_city")
+                if prev and prev.lower() != value.lower():
+                    profile.set("prev_city", prev)
+
+            ok = profile.set(key, value)
+            if ok:
+                if key == "name":
+                    return f"Имя изменено на {value}."
+                if key == "default_city":
+                    return f"Город изменён на {value}."
+                return f"Сохранено: {key} = {value}."
+            return "Не удалось сохранить."
+
+        if action == "get_profile":
+            key = str(intent.get("key") or "").strip()
+            key_map = {
+                "имя": "name", "name": "name",
+                "город": "default_city", "default_city": "default_city",
+                "city": "default_city",
+            }
+            key = key_map.get(key.lower(), key.lower())
+
+            if key == "name":
+                v = profile.get("name")
+                return f"Тебя зовут {v}." if v else "Имя не задано."
+            if key == "default_city":
+                v = profile.get("default_city")
+                return f"Твой город — {v}." if v else "Город не задан."
+            return "Не знаю, что прочитать."
 
         if action == "answer" and intent.get("reply"):
             return str(intent["reply"])[:600]
@@ -1362,8 +1571,6 @@ class IntentHandler:
             return "Закрываю браузер." if actions.close_browser() else "Браузер не запущен."
         app = find_app(self.apps, target)
         if app and app.procs:
-            # Генератор, а не список: kill_process вызывается по одному,
-            # при первом True — early exit. Не убиваем все процессы подряд.
             ok = any(actions.kill_process(p) for p in app.procs)
             if ok:
                 return f"Закрываю {app.title}."
@@ -1378,15 +1585,12 @@ class IntentHandler:
     def _match_custom(self, cmd: str) -> str | None:
         for phrases, action, reply in self.custom:
             for phrase in phrases:
-                # Точное совпадение — всегда.
                 if cmd == phrase:
                     log.info("Custom (точно): %r → %r, action=%r", cmd, phrase, action)
                     if isinstance(action, list):
                         return self._execute_steps(action) or reply
                     actions.run_spec(actions.spec_from_string(action))
                     return reply
-                # Нечёткое — только для длинных фраз, чтобы не ловить
-                # «открой стим» → «открой споти» (ratio 0.87, ложное срабатывание).
                 if len(cmd) >= 12 and len(phrase) >= 12:
                     ratio = SequenceMatcher(None, cmd, phrase).ratio()
                     if ratio >= 0.85:

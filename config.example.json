@@ -37,6 +37,7 @@
   "gui_x": null,
   "gui_y": null,
   "tray_enabled": true,
+  "launch_mode": "gui",
   "use_whisper": true,
   "whisper_model": "deepdml/faster-whisper-large-v3-turbo-ct2",
   "whisper_device": "auto",

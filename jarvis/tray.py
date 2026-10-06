@@ -29,11 +29,26 @@ def build_tray(jarvis) -> pystray.Icon:
     def on_screenshot(icon, item):
         actions.take_screenshot()
 
+    def on_show_window(icon, item):
+        """Показать окно GUI (для launch_mode=tray)."""
+        if getattr(jarvis, "gui", None) is not None:
+            jarvis.gui.show_window()
+        else:
+            log.warning("GUI не запущен — окно показать нельзя")
+
+    def on_open_settings(icon, item):
+        """Открыть GUI и переключиться на вкладку «Настройки»."""
+        if getattr(jarvis, "gui", None) is not None:
+            jarvis.gui.show_window()
+            jarvis.gui.open_settings_tab()
+        else:
+            log.warning("GUI не запущен — настройки открыть нельзя")
+
     def on_config(icon, item):
         os.startfile(jarvis.base_dir / "config.json")
 
     def on_log(icon, item):
-        os.startfile(jarvis.base_dir / "jarvis.log")
+        os.startfile(jarvis.base_dir / "logs" / "jarvis.log")
 
     def on_exit(icon, item):
         jarvis.shutdown()
@@ -42,9 +57,14 @@ def build_tray(jarvis) -> pystray.Icon:
     menu = pystray.Menu(
         pystray.MenuItem(f"{APP_NAME} v{__version__}", None, enabled=False),
         pystray.Menu.SEPARATOR,
+        # default=True — двойной клик по иконке открывает окно
+        pystray.MenuItem("Открыть окно", on_show_window, default=True),
+        pystray.MenuItem("Настройки", on_open_settings),
+        pystray.Menu.SEPARATOR,
         pystray.MenuItem("Слушать микрофон", on_toggle,
                          checked=lambda item: jarvis.listening_enabled),
         pystray.MenuItem("Сделать скриншот", on_screenshot),
+        pystray.Menu.SEPARATOR,
         pystray.MenuItem("Открыть конфиг", on_config),
         pystray.MenuItem("Открыть журнал", on_log),
         pystray.Menu.SEPARATOR,

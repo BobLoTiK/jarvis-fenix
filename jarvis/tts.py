@@ -11,6 +11,10 @@ Barge-in: воспроизведение через sounddevice с провер�
 play_async / speak_stream создаёт свой threading.Event, stop() взводит
 ТОЛЬКО текущий. Старый поток проверяет свой токен, который новый
 поток не сбрасывает. Иначе 2-3 голоса одновременно.
+
+wait_end: возвращает bool (успел ли поток завершиться). play_async
+проверяет результат — если старый поток не завершился, новый не
+запускается (иначе наложение TTS).
 """
 
 import asyncio
@@ -116,14 +120,14 @@ class Speaker:
         self._engine = None
         self._piper = None
         self._piper_cfg = None
+        self._piper_quality = "medium"
 
         # Глобальное состояние воспроизведения
         self._play_thread = None
         self._playing = False
         self._play_lock = threading.Lock()
 
-        # Per-call stop-token: текущий токен. stop() взводит его.
-        # Каждый play_async / speak_stream создаёт СВОЙ токен.
+        # Per-call stop-token
         self._current_token: threading.Event = threading.Event()
         self._token_lock = threading.Lock()
 
@@ -269,7 +273,6 @@ class Speaker:
         from huggingface_hub import hf_hub_download
         from piper import PiperVoice, SynthesisConfig
 
-        # Качество — из config. Fallback на medium, если high не скачается.
         cfg = self._config if hasattr(self, "_config") else {}
         quality = "medium"
         if hasattr(cfg, "get"):
@@ -284,9 +287,7 @@ class Speaker:
             hf_hub_download(PIPER_REPO, rel + ".json")
             log.info("TTS: piper, голос %s/%s", voice, quality)
         except Exception:
-            log.warning(
-                "Голос %s/%s не найден, откат на medium", voice, quality
-            )
+            log.warning("Голос %s/%s не найден, откат на medium", voice, quality)
             quality = "medium"
             rel = f"ru/ru_RU/{voice}/medium/ru_RU-{voice}-medium.onnx"
             onnx = hf_hub_download(PIPER_REPO, rel)
@@ -295,7 +296,7 @@ class Speaker:
         self._piper = PiperVoice.load(onnx)
         self._piper_cfg = SynthesisConfig(length_scale=round(1.0 / self.rate, 2))
         self._mode = "piper"
-        self._piper_quality = quality   # ← сохраняем фактическое качество
+        self._piper_quality = quality
         log.info("TTS: piper, голос %s/%s, скорость %.2f", voice, quality, self.rate)
 
     def _speak_piper(self, text: str, token: threading.Event) -> None:
@@ -352,7 +353,6 @@ class Speaker:
                 self._speak_piper(text, token)
             elif self._mode == "winrt":
                 wav = asyncio.run(self._synthesize(text))
-                # Проверяем токен ПОСЛЕ синтеза — если взведён, не играем
                 if token.is_set():
                     return
                 self._play_wav(wav, token)
@@ -372,12 +372,22 @@ class Speaker:
         self._speak_one(text, token)
 
     def play_async(self, text: str) -> None:
-        """Асинхронная озвучка одного текста."""
-        # Останавливаем предыдущее
-        self.stop()
-        self.wait_end(timeout=1.0)
+        """Асинхронная озвучка одного текста.
 
-        # Новый токен для этого вызова
+        №74: если старый поток не завершился за timeout — НЕ запускаем
+        новый (иначе наложение TTS). Логируем и выходим.
+        """
+        self.stop()
+
+        # Ждём завершения старого потока. Если не успел — не запускаем новый.
+        finished = self.wait_end(timeout=2.0)
+        if not finished:
+            log.warning(
+                "TTS: старый поток не завершился за 2 сек — пропускаю новый вызов "
+                "(иначе наложение)"
+            )
+            return
+
         token = self._new_token()
 
         with self._play_lock:
@@ -394,8 +404,7 @@ class Speaker:
         self._play_thread.start()
 
     def stop(self) -> None:
-        """Взводит ТЕКУЩИЙ токен. Старые токены не трогает —
-        старые потоки завершатся сами, увидя свои токены взведёнными."""
+        """Взводит ТЕКУЩИЙ токен. Старые токены не трогает."""
         with self._token_lock:
             token = self._current_token
         if not token.is_set():
@@ -406,16 +415,32 @@ class Speaker:
         with self._play_lock:
             return self._playing and self._play_thread is not None and self._play_thread.is_alive()
 
-    def wait_end(self, timeout: float = 30.0) -> None:
+    def wait_end(self, timeout: float = 30.0) -> bool:
+        """Ждёт завершения текущего TTS-потока.
+
+        №72: возвращает bool — успел ли поток завершиться.
+        _playing = False ставится ТОЛЬКО если поток реально завершился.
+        Иначе is_playing() начнёт врать.
+        """
         with self._play_lock:
             thread = self._play_thread
-        if thread is not None:
-            thread.join(timeout=timeout)
-        with self._play_lock:
-            self._playing = False
+        if thread is None:
+            return True
+        thread.join(timeout=timeout)
+        finished = not thread.is_alive()
+        if finished:
+            with self._play_lock:
+                self._playing = False
+        else:
+            log.warning("TTS: поток не завершился за %.1f сек (timeout)", timeout)
+        return finished
 
     def speak_stream(self, text_iter, timeout: float = 30.0) -> str:
-        """Streaming TTS. Разбивает текст по предложениям и озвучивает по мере поступления."""
+        """Streaming TTS. Разбивает текст по предложениям и озвучивает по мере поступления.
+
+        №93: append чанка в full_text_parts ДО проверки токена —
+        иначе последний прочитанный чанк теряется.
+        """
         self.stop()
         self.wait_end(timeout=1.0)
 
@@ -444,11 +469,14 @@ class Speaker:
 
         try:
             for chunk in text_iter:
+                # №93: append ДО проверки токена — иначе при barge-in
+                # последний чанк теряется.
+                if chunk:
+                    full_text_parts.append(chunk)
+                    buffer += chunk
                 if token.is_set():
                     log.info("TTS: стриминг прерван")
                     break
-                buffer += chunk
-                full_text_parts.append(chunk)
                 _flush_sentences()
                 while pending and not token.is_set():
                     sentence = pending.pop(0)
