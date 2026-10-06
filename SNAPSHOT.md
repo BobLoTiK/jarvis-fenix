@@ -1,7 +1,7 @@
 # SNAPSHOT проекта «Феникс»
 
 _Автоматически сгенерировано `snapshot.py`. Обновляется при `git push`._
-_Файлов в снимке: 76_
+_Файлов в снимке: 77_
 
 ---
 
@@ -81,6 +81,7 @@ jarvis/
 ├── install.bat
 ├── installer.iss
 ├── launcher.py
+├── LICENSE
 ├── PLAN.md
 ├── PROMPT.md
 ├── README.md
@@ -664,6 +665,12 @@ Inno Setup → `Феникс_Setup.exe` (~11 МБ). Ставит в `C:\ProgramD
 Все значимые изменения проекта.
 Формат: [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/),
 версии: [Semantic Versioning](https://semver.org/lang/ru/).
+
+> **Attribution:** этот проект — форк
+> [jsays12/jarvis](https://github.com/jsays12/jarvis).
+> Коммиты до июня 2026 — от оригинала.
+> Оригинальный код — собственность автора `jsays12`.
+> См. [LICENSE](LICENSE).
 
 ---
 
@@ -11937,6 +11944,36 @@ if __name__ == "__main__":
     main()
 ```
 
+### `LICENSE`
+
+```
+MIT License
+
+Copyright (c) 2026 BobLoTiK
+
+Portions of this software are derived from the project "jarvis"
+by jsays12 (https://github.com/jsays12/jarvis),
+used with attribution. Original copyright (c) jsays12.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
 ### `packs\apps.json`
 
 ```json
@@ -12455,6 +12492,8 @@ if __name__ == "__main__":
 - **Упоминать личные данные** (имя, город, CPU, GPU, ОС) в публичных файлах:
   `PLAN.md`, `README.md`, `CHANGELOG.md`, `PROMPT.md`, `ARCHITECTURE.md`,
   `CONTRIBUTING.md`, `config.example.json`.
+- **Удалять attribution `jsays12`** из `LICENSE`, `README.md`, `CHANGELOG.md`.
+  Проект — **форк**, оригинальный код — **собственность `jsays12`**.
 - **Дёргать Vosk API из главного потока.** Vosk **не thread-safe**. Всё, что вызывает `Model`, `KaldiRecognizer`, `Reset()`, `AcceptWaveform()` — **только в listener-потоке**.
 - **`prevent_close = True` + `on_event`** в Flet 1.0.3 — **не работает**. Крестик перестаёт закрывать окно.
 - **Ставить `HF_HOME` глобально** — Piper скачает модель в degraded mode. Ставить **временно** на импорт Whisper, **сбрасывать** до Piper.
@@ -13588,7 +13627,18 @@ python test_intents.py -k weather       # фильтр
 
 ## Лицензия
 
-См. оригинальный репозиторий [jsays12/jarvis](https://github.com/jsays12/jarvis).
+**MIT License.** См. [LICENSE](LICENSE).
+
+Этот проект — **форк** [jsays12/jarvis](https://github.com/jsays12/jarvis).
+Оригинальный код — собственность автора `jsays12`.
+Части кода использованы с указанием источника.
+
+**Что это значит:**
+- Ты можешь **использовать**, **изменять**, **распространять** этот код.
+- **Указывай** авторов (BobLoTiK + jsays12).
+- **Никаких гарантий** — «as is».
+
+**Оригинал** (без файла LICENSE) — под **авторским правом** `jsays12`.
 ```
 
 ### `requirements-ci.txt`

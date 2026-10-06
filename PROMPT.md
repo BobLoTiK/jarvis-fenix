@@ -68,6 +68,8 @@
 - **Упоминать личные данные** (имя, город, CPU, GPU, ОС) в публичных файлах:
   `PLAN.md`, `README.md`, `CHANGELOG.md`, `PROMPT.md`, `ARCHITECTURE.md`,
   `CONTRIBUTING.md`, `config.example.json`.
+- **Удалять attribution `jsays12`** из `LICENSE`, `README.md`, `CHANGELOG.md`.
+  Проект — **форк**, оригинальный код — **собственность `jsays12`**.
 - **Дёргать Vosk API из главного потока.** Vosk **не thread-safe**. Всё, что вызывает `Model`, `KaldiRecognizer`, `Reset()`, `AcceptWaveform()` — **только в listener-потоке**.
 - **`prevent_close = True` + `on_event`** в Flet 1.0.3 — **не работает**. Крестик перестаёт закрывать окно.
 - **Ставить `HF_HOME` глобально** — Piper скачает модель в degraded mode. Ставить **временно** на импорт Whisper, **сбрасывать** до Piper.

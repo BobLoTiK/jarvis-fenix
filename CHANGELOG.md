@@ -4,6 +4,12 @@
 Формат: [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/),
 версии: [Semantic Versioning](https://semver.org/lang/ru/).
 
+> **Attribution:** этот проект — форк
+> [jsays12/jarvis](https://github.com/jsays12/jarvis).
+> Коммиты до июня 2026 — от оригинала.
+> Оригинальный код — собственность автора `jsays12`.
+> См. [LICENSE](LICENSE).
+
 ---
 
 ## [Unreleased] — 0.4.0
