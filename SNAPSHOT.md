@@ -4297,29 +4297,40 @@ log = logging.getLogger("jarvis.config_manager")
 # Кэш локов: один FileLock на каждый resolved path.
 # Иначе при параллельной записи в один файл через разные вызовы
 # можно получить гонку.
-_locks: dict[str, FileLock] = {}
+# FileLock — для межпроцессной синхронизации.
+# threading.Lock — для внутрипроцессной (несколько потоков).
+# Только вместе они дают надёжную сериализацию:
+# FileLock сам по себе не защищает от гонок между потоками
+# внутри одного процесса.
+_thread_locks: dict[str, threading.RLock] = {}
+_file_locks: dict[str, FileLock] = {}
 _locks_guard = threading.Lock()
 
 
 def _default_path() -> Path:
-    """Дефолтный путь config.json — через paths.py (USER_DIR).
-
-    Раньше был BASE_DIR/config.json — это писало конфиг в папку кода,
-    что ломается после установки (нет прав) и мусорит в репозитории.
-    """
     from jarvis import paths as _paths
     return _paths.config_path()
 
 
-def _get_lock(path: Path) -> FileLock:
-    """Возвращает FileLock для конкретного файла (кэшируется)."""
+def _get_lock(path: Path) -> tuple[threading.RLock, FileLock]:
+    """Возвращает (threading.RLock, FileLock) для конкретного файла.
+
+    threading.RLock — сериализация внутри процесса.
+    FileLock — сериализация между процессами.
+    """
     key = str(path.resolve())
     with _locks_guard:
-        lock = _locks.get(key)
-        if lock is None:
-            lock = FileLock(key + ".lock")
-            _locks[key] = lock
-        return lock
+        t_lock = _thread_locks.get(key)
+        if t_lock is None:
+            t_lock = threading.RLock()
+            _thread_locks[key] = t_lock
+
+        f_lock = _file_locks.get(key)
+        if f_lock is None:
+            f_lock = FileLock(key + ".lock")
+            _file_locks[key] = f_lock
+
+        return t_lock, f_lock
 
 
 def load(path: Path | None = None) -> dict:
@@ -4347,7 +4358,8 @@ def save(data: dict, path: Path | None = None) -> bool:
         return False
     try:
         p.parent.mkdir(parents=True, exist_ok=True)
-        with _get_lock(p):
+        t_lock, f_lock = _get_lock(p)
+        with t_lock, f_lock:
             log.info("save: пишу %d ключей → %s", len(data), p.name)
             fd, tmp_name = tempfile.mkstemp(
                 dir=str(p.parent), suffix=".tmp", prefix=p.stem + "."
@@ -4355,8 +4367,18 @@ def save(data: dict, path: Path | None = None) -> bool:
             try:
                 with os.fdopen(fd, "w", encoding="utf-8") as f:
                     json.dump(data, f, ensure_ascii=False, indent=2)
-                os.replace(tmp_name, p)
-                return True
+
+                # os.replace на Windows иногда падает от антивируса
+                # или временной блокировки файла. 3 попытки с паузой.
+                last_exc = None
+                for attempt in range(3):
+                    try:
+                        os.replace(tmp_name, p)
+                        return True
+                    except PermissionError as e:
+                        last_exc = e
+                        time.sleep(0.05 * (attempt + 1))
+                raise last_exc
             except Exception:
                 try:
                     os.unlink(tmp_name)
