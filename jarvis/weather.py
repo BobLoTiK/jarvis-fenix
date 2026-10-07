@@ -18,6 +18,8 @@ import urllib.parse
 import urllib.request
 from typing import Optional
 
+from jarvis import __version__
+
 log = logging.getLogger("jarvis.weather")
 
 # Кэш: {(тип, ключ): (timestamp, data)}
@@ -78,8 +80,10 @@ def _cached(key: tuple, fetcher):
 
 
 def _http_get_json(url: str, timeout: float = 8.0):
+    # User-Agent — из версии проекта, чтобы не отставать от __version__.
+    ua = f"Phoenix/{__version__}"
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": "Phoenix/0.2.2"})
+        req = urllib.request.Request(url, headers={"User-Agent": ua})
         with urllib.request.urlopen(req, timeout=timeout) as r:
             return json.loads(r.read().decode("utf-8"))
     except Exception:

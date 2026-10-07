@@ -7,21 +7,36 @@
     «убери хлеб из списка»                    → удаляет
     «очисти список»                           → удаляет всё
 
-Хранение: tasks.json.
+Хранение: %APPDATA%\Phoenix\tasks.json (USER_DIR — не папка кода).
 """
 
 import json
 import logging
+import os
 import re
+import tempfile
 import threading
 from difflib import SequenceMatcher
-from pathlib import Path
+
+from jarvis import paths as _paths
 
 log = logging.getLogger("jarvis.tasks")
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-TASKS_FILE = BASE_DIR / "tasks.json"
-_lock = threading.RLock()   # RLock — find() вызывается из-под лока в remove/mark_done
+_lock = threading.RLock()
+
+
+# ---------------------------------------------------------------
+# Пути
+# ---------------------------------------------------------------
+
+def _tasks_file():
+    """Путь к tasks.json в USER_DIR.
+
+    Раньше файл лежал в BASE_DIR (папка кода) — баг:
+    после установки туда писать нельзя, а на dev-машине
+    файл мусорил в репозитории.
+    """
+    return _paths.user_dir() / "tasks.json"
 
 
 # ---------------------------------------------------------------
@@ -29,24 +44,42 @@ _lock = threading.RLock()   # RLock — find() вызывается из-под 
 # ---------------------------------------------------------------
 
 def _load() -> list:
-    if not TASKS_FILE.exists():
+    path = _tasks_file()
+    if not path.exists():
         return []
     try:
-        data = json.loads(TASKS_FILE.read_text(encoding="utf-8"))
+        data = json.loads(path.read_text(encoding="utf-8"))
         return data if isinstance(data, list) else []
     except Exception:
-        log.exception("Не удалось прочитать tasks.json")
+        log.exception("Не удалось прочитать %s", path)
         return []
 
 
 def _save(tasks: list) -> None:
+    """Атомарная запись tasks.json.
+
+    Уникальный .tmp через tempfile.mkstemp, os.replace для подмены.
+    Иначе два параллельных вызова _save могут пересечься и оставить
+    полупустой файл.
+    """
+    path = _tasks_file()
+    path.parent.mkdir(parents=True, exist_ok=True)
     try:
-        tmp = TASKS_FILE.with_suffix(".tmp")
-        tmp.write_text(json.dumps(tasks, ensure_ascii=False, indent=2),
-                       encoding="utf-8")
-        tmp.replace(TASKS_FILE)
+        fd, tmp_name = tempfile.mkstemp(
+            dir=str(path.parent), suffix=".tmp", prefix=path.stem + "."
+        )
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                json.dump(tasks, f, ensure_ascii=False, indent=2)
+            os.replace(tmp_name, path)
+        except Exception:
+            try:
+                os.unlink(tmp_name)
+            except OSError:
+                pass
+            raise
     except Exception:
-        log.exception("Не удалось сохранить tasks.json")
+        log.exception("Не удалось сохранить %s", path)
 
 
 # ---------------------------------------------------------------
@@ -156,15 +189,6 @@ def format_list(tasks: list | None = None) -> str:
 # ---------------------------------------------------------------
 # Обработка команд
 # ---------------------------------------------------------------
-
-def _extract_text(cmd: str, verb: str) -> str:
-    """Вырезает текст задачи после глагола."""
-    # убираем «в список», «из списка», «задачу» и т.п.
-    text = re.sub(rf"^{verb}\s+", "", cmd, count=1)
-    text = re.sub(r"^(в\s+список|в\s+задачи|задачу|задачу\s+в\s+список)\s*", "", text)
-    text = re.sub(r"^(из\s+списка|из\s+задач|задачу)\s*", "", text)
-    return text.strip(" ,.:!?")
-
 
 def handle_task_command(cmd: str) -> str | None:
     """Разбирает команды списка задач. Возвращает ответ или None."""

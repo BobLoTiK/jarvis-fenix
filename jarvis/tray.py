@@ -1,4 +1,13 @@
-"""Иконка в системном трее (pystray)."""
+"""Иконка в системном трее (pystray).
+
+ВРЕМЕННО ОТКЛЮЧЕН — см. main.py.
+Проблема: pystray требует свой Windows message loop, а главный поток
+занят Flet'ом (ft.run блокирует).
+Правильное решение — отдельный процесс tray_runner.py (в планах).
+
+Пока этот модуль лежит без дела, но пути здесь уже правильные —
+чтобы при включении трея не было сюрпризов.
+"""
 
 import logging
 import os
@@ -45,10 +54,24 @@ def build_tray(jarvis) -> pystray.Icon:
             log.warning("GUI не запущен — настройки открыть нельзя")
 
     def on_config(icon, item):
-        os.startfile(jarvis.base_dir / "config.json")
+        """Открыть config.json из USER_DIR (%APPDATA%\\Phoenix).
+
+        Раньше было jarvis.base_dir/"config.json" — неверно, потому что
+        config теперь живёт в USER_DIR, а не рядом с кодом.
+        """
+        from jarvis import paths as _paths
+        try:
+            os.startfile(str(_paths.config_path()))
+        except Exception:
+            log.exception("Не удалось открыть config.json")
 
     def on_log(icon, item):
-        os.startfile(jarvis.base_dir / "logs" / "jarvis.log")
+        """Открыть jarvis.log из USER_DIR."""
+        from jarvis import paths as _paths
+        try:
+            os.startfile(str(_paths.logs_dir() / "jarvis.log"))
+        except Exception:
+            log.exception("Не удалось открыть jarvis.log")
 
     def on_exit(icon, item):
         jarvis.shutdown()

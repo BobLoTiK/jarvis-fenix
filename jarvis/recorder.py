@@ -52,23 +52,37 @@ def start() -> bool:
 
 
 def stop() -> dict | None:
+    """Останавливает запись и снимает хуки.
+
+    Раньше keyboard.unhook_all() / mouse.unhook_all() вызывались
+    БЕЗУСЛОВНО — даже если мы не записывали. Это убивало все хуки
+    keyboard/mouse в процессе, включая чужие (например, если
+    keyboard уже использовался другим модулем).
+    Теперь снимаем хуки только если шла запись.
+    """
     global _recording
-    try:
-        import keyboard
-        import mouse
-        keyboard.unhook_all()
-        mouse.unhook_all()
-    except Exception:
-        pass
 
     with _lock:
-        if not _recording:
-            return None
-        _recording = False
-        events = list(_events)
+        was_recording = _recording
+        if was_recording:
+            _recording = False
+            events = list(_events)
+        else:
+            events = []
 
-    log.info("Запись действий остановлена: %d событий", len(events))
-    return {"events": events, "duration": time.time() - _start_time}
+    if was_recording:
+        try:
+            import keyboard
+            import mouse
+            keyboard.unhook_all()
+            mouse.unhook_all()
+        except Exception:
+            log.exception("Не удалось снять хуки keyboard/mouse")
+
+        log.info("Запись действий остановлена: %d событий", len(events))
+        return {"events": events, "duration": time.time() - _start_time}
+
+    return None
 
 
 def _add_wait_if_needed():

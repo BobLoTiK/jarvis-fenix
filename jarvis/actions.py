@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import time
@@ -43,6 +44,59 @@ def _caps_method(name: str) -> str:
 
 # --- запуск приложений и файлов -------------------------------------------
 
+# Известные системные команды, которые надо запускать через subprocess
+# (а не через os.startfile). Иначе `os.startfile("shutdown /s /t 10")`
+# падает с FileNotFoundError — РАНЬШЕ это была неработающая ветка
+# для pack-команд вида "shutdown /s /t 10", "cmd /k ipconfig".
+_CMD_VERBS = {
+    "shutdown", "cmd", "cmd.exe", "powershell", "powershell.exe", "pwsh",
+    "rundll32", "rundll32.exe",
+    "ipconfig", "tasklist", "taskkill", "ping", "tracert", "winver",
+    "control", "control.exe", "reg", "reg.exe", "net", "netstat",
+    "systeminfo", "chkdsk", "msconfig", "resmon", "resmon.exe",
+}
+
+
+def _looks_like_cmd(s: str) -> bool:
+    """Эвристика: строка похожа на команду с аргументами?
+
+    Примеры, которые должны вернуть True:
+        "shutdown /s /t 10"
+        "cmd /k ipconfig"
+        "rundll32.exe user32.dll,LockWorkStation"
+        "powershell -Command ..."
+
+    Примеры, которые НЕ должны:
+        "C:\\Program Files\\App\\app.exe"  — это путь (есть пробел, но файл существует)
+        "notepad.exe"                       — без аргументов
+        "C:\\jarvis\\config.json"           — путь
+    """
+    if not s or " " not in s.strip():
+        return False
+
+    # Если это существующий путь целиком — не команда.
+    if os.path.exists(s):
+        return False
+
+    try:
+        tokens = shlex.split(s, posix=False)
+    except ValueError:
+        return False
+    if not tokens:
+        return False
+
+    first = tokens[0].lower()
+    if first in _CMD_VERBS:
+        return True
+
+    # Первый токен — .exe/.msc/.cpl, но такого файла нет — значит команда.
+    if first.endswith((".exe", ".msc", ".cpl", ".bat", ".cmd")):
+        if not os.path.exists(tokens[0]):
+            return True
+
+    return False
+
+
 def spec_from_string(s: str):
     s = s.strip()
     if s.startswith("open_app:"):
@@ -51,10 +105,18 @@ def spec_from_string(s: str):
         return ("url", s)
     if s.startswith("steam://"):
         return ("uri", s)
-    if s.lower().endswith((".bat", ".cmd")):
-        return ("path", s)
     if s.lower() in ("browser", "браузер"):
         return ("browser", None)
+    # Команды с аргументами — ДО проверки на .bat/.cmd/path.
+    # Иначе "shutdown /s /t 10" провалится в os.startfile.
+    if _looks_like_cmd(s):
+        try:
+            return ("cmd", shlex.split(s, posix=False))
+        except ValueError:
+            log.exception("shlex.split не справился: %r", s)
+            return ("path", s)
+    if s.lower().endswith((".bat", ".cmd")):
+        return ("path", s)
     if os.path.exists(s):
         return ("path", s)
     return ("path", s)

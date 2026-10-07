@@ -13,15 +13,16 @@
 jarvis/             — пакет
   reply.py          — тип Reply (text | stream)
   intents.py        — разбор команд, быстрые правила + LLM
-  main.py           — точка входа, Jarvis, barge-in
+  main.py           — точка входа, Jarvis, barge-in, cmd_lock
   brain.py          — Ollama: parse() и chat_stream()
   config.py         — Config в памяти + подписки
-  config_manager.py — атомарная запись
+  config_manager.py — атомарная запись (FileLock per-path)
   paths.py          — PROGRAM_DIR / USER_DIR
   text_utils.py     — normalize, strip_cjk, prepare_text
   tts.py            — Piper / XTTS / WinRT / SAPI + per-call token
   stt.py            — Vosk + Whisper + ring buffer
-  gui.py            — Flet GUI + PALETTES + _detect_system_theme()
+  gui.py            — Flet GUI + PALETTES + fireworks
+  celebrations.py   — поздравление с ДР
   ...
 
 tests/              — pytest-тесты
@@ -39,22 +40,29 @@ scripts/            — утилиты (make_icon, build_exe, mics, ...)
 1. **Не читай `config.json` напрямую** — `config.get()` из объекта `Config`.
 2. **Не пиши в `config.json` напрямую** — только `Config.set()` или `config_manager.save()`.
 3. **Не плоди глобальное состояние** — кроме `Config._GLOBAL`.
-4. **Нормализация (города, валюты, паков) — задача LLM.** Не добавляй словари синонимов в код без нужды.
+4. **Нормализация (города, валюты, паков) — задача LLM.**
 5. **Логи в `actions.log`** — главный инструмент отладки.
 6. **`test_intents.py`** — первое, что запускаешь после правки `intents.py`, `brain.py`, `actions.py`.
-7. **`normalize(cmd)` в `IntentHandler.handle()`** — единая точка нормализации.
-8. **Per-call stop-token в `tts.py`** — не используй общий `_stop_flag`.
+7. **`normalize(cmd)` в `IntentHandler.handle()`** — единая точка.
+8. **Per-call stop-token в `tts.py`.**
 9. **`PALETTES` в `gui.py`** — две палитры, `_detect_system_theme()` для системной.
 10. **`ft.Button`** вместо `ft.ElevatedButton` / `ft.TextButton` (в Flet 1.x их удалили).
-11. **`weather_cache_ttl_sec`** — читается **на каждый вызов** через `weather._current_ttl()`, не кэшируй TTL.
-12. **`snapshot.py`** — исключай `.venv311` и `profiles/`.
-13. **Пути — только через `jarvis/paths.py`.** Никакого хардкода.
-14. **Модели Vosk/Whisper — ВСЕГДА в `PROGRAM_DIR` (ASCII).** Иначе Vosk падает.
-15. **`HF_HOME` для Whisper — временно.** Сбрасывай до импорта Piper.
+11. **`weather_cache_ttl_sec`** — читается **на каждый вызов**.
+12. **`snapshot.py`** — исключать `.venv311` и `profiles/`.
+13. **Пути — только через `jarvis/paths.py`.**
+14. **Модели Vosk/Whisper — ВСЕГДА в `PROGRAM_DIR` (ASCII).**
+15. **`HF_HOME` для Whisper — временно.**
+16. **Vosk API — только из listener-потока.**
+17. **Pack-команды с аргументами — `_looks_like_cmd` + `shlex`.**
+18. **Атомарная запись везде — `mkstemp` + `os.replace`.**
+19. **Zip Slip защита при распаковке.**
+20. **`cmd_lock` в Jarvis — сериализация GUI↔голос.**
 
 ## 🔒 Правила безопасности
 
-**Никогда не упоминай в публичных файлах** (`README.md`, `PLAN.md`, `CHANGELOG.md`, `ARCHITECTURE.md`, `PROMPT.md`, `CONTRIBUTING.md`, `config.example.json`):
+**Никогда не упоминай в публичных файлах** (`README.md`, `PLAN.md`,
+`CHANGELOG.md`, `ARCHITECTURE.md`, `PROMPT.md`, `CONTRIBUTING.md`,
+`config.example.json`):
 
 - Имя пользователя.
 - Город.
@@ -67,6 +75,8 @@ scripts/            — утилиты (make_icon, build_exe, mics, ...)
 - `system_caps.json`.
 
 **И они — в `.gitignore`.**
+
+**Не удаляй attribution `jsays12`** из `LICENSE`, `README.md`, `CHANGELOG.md`.
 
 ## 🚀 Рабочий процесс
 
@@ -167,12 +177,20 @@ print("custom matched")
 10. **Хардкодить пути** — через `jarvis/paths.py`.
 11. **Хардкодить модели в `USER_DIR`** — Vosk сломается, только `PROGRAM_DIR`.
 12. **Ставить `HF_HOME` глобально** — сломает Piper, ставить временно.
+13. **Дёргать Vosk API из главного потока** — только listener-поток.
+14. **`prevent_close` + `on_event`** — в Flet 1.0.3 не работает.
+15. **Zip Slip** — всегда проверяй `is_relative_to` при распаковке.
+16. **`Global\` мьютекс** — требует админа. Используй `Local\`.
+17. **Pack-команды с аргументами** — через `_looks_like_cmd` + `shlex`.
+18. **Открывать файлы с кириллицей в пути через Vosk** — модель только в ASCII.
+19. **Писать `timers.json` / `tasks.json` в `BASE_DIR`** — только `USER_DIR`.
+20. **Забывать `cmd_lock`** — GUI и голос должны сериализоваться.
 
 ## 📦 Как добавить новый интент
 
 ### 1. Быстрое правило (без LLM)
 
-**Добавь новую функцию** — например, `_my_handler(self, cmd) -> str | None` в `IntentHandler`.
+**Добавь функцию** `_my_handler(self, cmd) -> str | None` в `IntentHandler`.
 
 **Зарегистрируй в `_fast_handlers_cache`** в `__init__`:
 
@@ -227,7 +245,7 @@ if action == "my_new_action":
 
 ## 📦 Как добавить свою фразу
 
-1. В `config.json` → `custom_commands`:
+1. В `%APPDATA%\Phoenix\config.json` → `custom_commands`:
 
 ```json
 {
@@ -259,9 +277,10 @@ PIPER_VOICES = {
 1. **Посмотри `%APPDATA%\Phoenix\logs\errors.log`** — там трейсбек.
 2. **Посмотри `%APPDATA%\Phoenix\logs\actions.log`** — там команды и интенты.
 3. **Посмотри `%APPDATA%\Phoenix\logs\launcher.log`** — если проблема с запуском.
-4. **Запусти `check_syntax.py`** — может, опечатка.
-5. **Запусти `test_intents.py`** — может, регрессия.
-6. **Откати коммит** — если совсем плохо:
+4. **Проверь Event Viewer** — `eventvwr.msc` → Application / System.
+5. **Запусти `check_syntax.py`** — может, опечатка.
+6. **Запусти `test_intents.py`** — может, регрессия.
+7. **Откати коммит** — если совсем плохо:
 
 ```bat
 git reset --hard HEAD~1
@@ -272,9 +291,10 @@ git reset --hard HEAD~1
 - [ ] `python check_syntax.py` — без ошибок.
 - [ ] `python -m pytest tests/ -q` — все тесты зелёные.
 - [ ] `python test_intents.py` — все интенты проходят.
-- [ ] **Не коммичу** `.venv311`, `config.json`, `profiles/`, `system_caps.json`, `models/`, `dist/`, `build/`.
+- [ ] **Не коммичу** `.venv311`, `config.json`, `profiles/`, `system_caps.json`, `timers.json`, `tasks.json`, `models/`, `voices/`, `dist/`, `build/`.
 - [ ] **Проверил** `git status` — нет лишних файлов.
 - [ ] **Личные данные** не попали в публичные файлы.
+- [ ] **Attribution `jsays12`** на месте.
 - [ ] **Сообщение коммита** — понятное.
 
 ## 🤝 Как задавать вопросы
@@ -306,6 +326,8 @@ git reset --hard HEAD~1
 6. **Пути — через `paths.py`.** Никаких `Path.home()` в коде.
 7. **Модели — в ASCII.** Vosk не переваривает кириллицу в пути.
 8. **Тесты и CI — святое.** Красный CI — стоп всему.
+9. **Attribution — не трогать.** Мы форк, и указываем источник.
+10. **Один `cmd_lock`.** GUI и голос — не параллельно.
 
 ---
 

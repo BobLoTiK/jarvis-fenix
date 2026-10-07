@@ -12,7 +12,9 @@ PROGRAM_DIR — C:\ProgramData\Phoenix\   (ASCII, для Vosk/Whisper)
 USER_DIR    — %APPDATA%\Phoenix\         (личные данные юзера)
 ```
 
-**Почему:** Vosk (C++ на Kaldi) **ломается** на не-ASCII путях (`C:\Users\Максим\...`). Поэтому модель Vosk и кэш Whisper — **всегда в `PROGRAM_DIR`** (ASCII). Остальное — в `USER_DIR` (кириллица ок — Vosk не читает).
+**Почему:** Vosk (C++ на Kaldi) **ломается** на не-ASCII путях
+(`C:\Users\Максим\...`). Поэтому модель Vosk и кэш Whisper — **всегда
+в `PROGRAM_DIR`** (ASCII). Остальное — в `USER_DIR` (кириллица ок).
 
 Управляет **`jarvis/paths.py`**:
 
@@ -26,11 +28,16 @@ paths.profiles_dir()              → %APPDATA%\Phoenix\profiles
 paths.config_path()               → %APPDATA%\Phoenix\config.json
 ```
 
-**Fallback для PROGRAM_DIR** (если ProgramData недоступен или не-ASCII):
+**Fallback для PROGRAM_DIR:**
 1. `C:\ProgramData\Phoenix`
 2. `C:\Phoenix`
 3. `%TEMP%\Phoenix`
 4. `<рядом с exe>\runtime`
+
+**В `USER_DIR` теперь также живут:**
+- `timers.json` — напоминания.
+- `tasks.json` — задачи.
+- `dialog.json` — в `profiles/<user>/`.
 
 ---
 
@@ -38,29 +45,29 @@ paths.config_path()               → %APPDATA%\Phoenix\config.json
 
 ```
 jarvis/
-├── main.py           — точка входа, Jarvis, barge-in
+├── main.py           — точка входа, Jarvis, barge-in, cmd_lock
 ├── config.py         — Config в памяти + подписки
-├── config_manager.py — атомарная запись (FileLock, mkstemp, os.replace)
+├── config_manager.py — атомарная запись (FileLock per-path)
 ├── paths.py          — PROGRAM_DIR / USER_DIR
-├── brain.py          — Ollama: parse() и chat_stream()
+├── brain.py          — Ollama: parse() / chat_stream()
 ├── intents.py        — IntentHandler: правила + LLM + _fast_handlers()
 ├── reply.py          — Reply (text | stream)
-├── gui.py            — Flet GUI + PALETTES + _detect_system_theme()
-├── history.py        — стек отмены («стоп, не то»)
-├── stt.py            — Vosk + Whisper + ring buffer, HF_HOME → ASCII
-├── tts.py            — Piper / XTTS / WinRT / SAPI + barge-in + per-call token
+├── gui.py            — Flet GUI + PALETTES + fireworks
+├── history.py        — стек отмены
+├── stt.py            — Vosk (wake) + Whisper, HF_HOME временно
+├── tts.py            — Piper / XTTS / WinRT / SAPI, per-call token
 ├── modes.py          — commands / llm / combo
 ├── voices.py         — смена голоса Piper
 ├── packs.py          — загрузка/выгрузка паков
 ├── profile.py        — profiles/<user>/profile.json + subscribe
-├── memory.py         — profiles/<user>/dialog.json
+├── memory.py         — profiles/<user>/dialog.json (атомарно)
 ├── learning.py       — факты + коррекции
-├── weather.py        — погода + курс + настраиваемый TTL
-├── timers.py         — напоминания
-├── tasks.py          — списки задач
-├── actions.py        — окна, медиа, печать, буфер, громкость, яркость, раскладка,
-│                       open_in_editor, _activate_window_hard
-├── text_utils.py     — normalize(), strip_cjk(), strip_cjk_chunk(), prepare_text()
+├── weather.py        — погода/курс + настраиваемый TTL
+├── timers.py         — напоминания (USER_DIR, атомарно)
+├── tasks.py          — задачи (USER_DIR, атомарно)
+├── actions.py        — окна, медиа, _looks_like_cmd, _activate_window_hard
+├── text_utils.py     — normalize(), strip_cjk(), prepare_text()
+├── celebrations.py   — поздравление с ДР + двойной салют
 ├── files.py          — папки (Desktop, Downloads, ...)
 ├── apps.py           — каталог приложений
 ├── installed.py      — индекс меню «Пуск»
@@ -68,7 +75,11 @@ jarvis/
 ├── matching.py       — нечёткое сравнение + транслитерация
 ├── model.py          — загрузка Vosk (всегда в ASCII-путь)
 ├── recorder.py       — запись макросов
-└── tray.py           — иконка в трее (временно отключён)
+├── tray.py           — трей (временно отключён)
+├── uia.py            — UI Automation (в планах, Этап 1.10)
+├── vision.py         — VLM-зрение (в планах, Этап 10)
+├── hermes.py         — мост к Hermes (в планах, Этап 11)
+└── resources.py      — приоритеты и очередь (в планах, Этап 12)
 ```
 
 ---
@@ -80,9 +91,9 @@ jarvis/
    ↓
 stt.Listener (Vosk) — ловит wake-слово
    ↓
-stt.WhisperTranscriber — уточняет расшифровку (HF_HOME → ASCII)
+stt.WhisperTranscriber — уточняет (HF_HOME временно → ASCII)
    ↓
-main.Jarvis._process → извлекает команду (без wake-слова)
+main.Jarvis._process → извлекает команду (без wake)
    ↓
 intents.IntentHandler.handle(cmd)   ← normalize(cmd)
    ├── CANCEL («стой», «хватит», ...)
@@ -94,8 +105,9 @@ intents.IntentHandler.handle(cmd)   ← normalize(cmd)
    ├── Буфер обмена (4 проверки)
    ├── Режимы (modes)
    ├── Custom / small_talk / скриншот
+   ├── celebrations.match_celebration (ДР)
    ├── _split_compound (многослойные)
-   ├── ⚡ РЕЕСТР _fast_handlers()  ← здесь ВСЕ быстрые правила
+   ├── ⚡ РЕЕСТР _fast_handlers()
    │   ├── custom, small_talk, music, open_profile
    │   ├── open, voices, packs, timers, tasks
    │   └── profile, memory, system, debug, correction,
@@ -103,7 +115,7 @@ intents.IntentHandler.handle(cmd)   ← normalize(cmd)
    ├── brain.parse(cmd) → intent → _execute_intent
    └── brain.chat_stream() → генератор
    ↓
-main.Jarvis.say(reply)
+main.Jarvis.say(reply) ← cmd_lock
    ├── если text → speaker.play_async()
    └── если stream → speaker.speak_stream() + tee → gui.add_stream_chunk()
    ↓
@@ -116,42 +128,19 @@ tts.Speaker → Piper / XTTS / WinRT / SAPI
 
 `IntentHandler._fast_handlers()` — **список `(имя, функция)`**. Порядок = приоритет.
 
-Каждый обработчик: `(cmd: str) -> str | None`. Если вернул строку — команда обработана. Если `None` — идём к следующему.
+Каждый: `(cmd: str) -> str | None`. Вернул строку — команда обработана. `None` — идём дальше.
 
-**Правило:** специфичные — **выше** общих. Например, `open_profile` — **выше** `open` (иначе `_open_fast` съест «открой профиль»).
-
-**Сейчас:**
-
-```python
-[
-    ("custom", self._match_custom),
-    ("small_talk", self._small_talk),
-    ("music", self._music_fast),
-    ("open_profile", self._open_profile_fast),   # ВЫШЕ open
-    ("open", self._open_fast),
-    ("voices", lambda cmd: voices.handle_voice_command(cmd, self.config)),
-    ("packs", self._packs_handler),              # side-effect: active_packs
-    ("timers", timers.handle_timer_command),
-    ("tasks", tasks.handle_task_command),
-    ("profile", self._profile_fast),
-    ("memory", self._memory_fast),
-    ("system", self._system_fast),
-    ("debug", self._debug_fast),
-    ("correction", self._correction_fast),
-    ("undo", self._undo_fast),
-    ("weather_currency", self._weather_currency_fast),
-]
-```
+**Правило:** специфичные — **выше** общих. `open_profile` — **выше** `open`.
 
 **Кэш:** список строится **один раз** в `__init__` (`self._fast_handlers_cache`).
 
-**Исключения** в обработчике **логируются** через `log.exception`, но **не роняют** команду.
+**Исключения** в обработчике **логируются**, но **не роняют** команду.
 
 ---
 
 ## Универсальный профиль (set_profile / get_profile)
 
-**Раньше:** куча `re.match` под каждую фразу — «мой город X», «меня зовут Y», ... **Костыли.**
+**Раньше:** куча `re.match` под каждую фразу. **Костыли.**
 
 **Сейчас:** LLM **сама разбирает**:
 
@@ -160,8 +149,8 @@ tts.Speaker → Piper / XTTS / WinRT / SAPI
 «какой город»       → {"action": "get_profile", "key": "default_city"}
 ```
 
-**В `brain.py`** — action'ы в `ACTIONS` + примеры в промптах.
-**В `intents._execute_intent`** — обработка с `key_map` для синонимов.
+**Regex `_profile_fast`:** **тире обязательно** — `я\s*[-—]\s*Имя`.
+Голое `я ` **не матчится** (иначе «я хочу спать» создаёт профиль).
 
 ---
 
@@ -175,11 +164,9 @@ Flet Main Thread
    └── page.run_task(_mic_level_loop)
 
 Jarvis Thread
-   ├── listener.phrases() → _process(cmd)
+   ├── listener.phrases() → _process(cmd) ← cmd_lock
    ├── handler.handle(cmd) → Reply
-   └── say(reply):
-       ├── text → gui.add_message("assistant", text)
-       └── stream → tee → gui.add_stream_chunk(chunk)
+   └── say(reply) ← cmd_lock
 ```
 
 **Связь:** `queue.Queue()` → `gui._queue`.
@@ -187,41 +174,45 @@ Jarvis Thread
 
 ### Режим запуска
 
-**`config.json`:**
 ```json
 "launch_mode": "gui"
 ```
 
 - `"gui"` — окно видимо (по умолчанию).
-- `"tray"` — окно скрыто. **Но:** трей сейчас отключён, `main.py` принудительно переключает на `"gui"`.
+- `"tray"` — окно скрыто. **Трей отключён**, `main.py` принудительно `"gui"`.
 
 ### Трей (отключён)
 
-**Причина:** pystray требует **свой Windows message loop**, а главный поток **занят flet'ом**. Запуск pystray в фоне — **зависает GUI**.
-
-**Позже:** отдельный процесс `tray_runner.py` с обменом через файл-сигнал.
+**Причина:** pystray требует **свой Windows message loop**, а главный поток
+**занят flet'ом**. Позже — отдельный процесс `tray_runner.py`.
 
 ### Темы GUI
 
 ```
 PALETTES = { "dark": {...}, "light": {...} }
-_apply_palette(name) — подменяет глобальные BG_DARK, TEXT, ACCENT
-_detect_system_theme() — HKCU\...\AppsUseLightTheme (0=dark, 1=light)
-_mic_level_loop → раз в 5 сек проверяет тему Windows (если gui_theme = "Системная")
-_rebuild_ui_for_theme → сохраняет историю чата перед пересборкой
+_apply_palette(name)
+_detect_system_theme() — HKCU\...\AppsUseLightTheme
+_mic_level_loop → раз в 5 сек проверяет тему Windows
+_rebuild_ui_for_theme → сохраняет историю чата
 ```
 
 ### Вкладка «Микрофон»
 
-- `Listener.current_rms` — RMS, обновляется в `_callback`.
+- `Listener.current_rms` — RMS.
 - `Listener.peak` — пик за сессию.
-- `Listener.utterances` — распознано фраз.
-- `_on_mic_test` — 3 сек, порог ≥500 ✅, ≥100 ⚠️, <100 ❌.
-- `mic_watchdog` → `("open_mic_tab", None)` в очередь GUI.
+- `Listener.utterances` — распознано.
+- `_on_mic_test` — **через очередь** (`set_mic_test_result`).
+- `mic_watchdog` → `("open_mic_tab", None)`.
+
+### Салют (праздничный)
+
+- `gui.launch_fireworks(duration)` — кладёт в очередь.
+- `_launch_fireworks_async(duration)` — анимация через **Stack + Container** (не Canvas — API капризный).
+- `n_bursts` зависит от длительности.
 
 ### Иконка окна
 
-`jarvis/icon.ico` генерируется `scripts/make_icon.py`. Подключена в `_main()` через `page.window.icon`.
+`jarvis/icon.ico` → `page.window.icon`.
 
 ---
 
@@ -231,21 +222,14 @@ _rebuild_ui_for_theme → сохраняет историю чата перед 
 %APPDATA%\Phoenix\profiles\
 ├── <user1>\
 │   ├── profile.json    ← name, default_city, facts, tts_voice
-│   └── dialog.json     ← история диалога
-├── <user2>\
-│   ├── profile.json
 │   └── dialog.json
+└── <user2>\
 ```
 
-- **Активный профиль** — по имени Windows-юзера (`getpass.getuser()`).
-- **`profile.switch(name)`** — один `RLock`.
-- **`profile.subscribe(callback)`** — подписка (old_name, new_name).
-- **Миграция** из старого `user_profile.json`.
-
-**Универсальные команды:**
-- «меня зовут X» → `set_profile` → `name`.
-- «мой город Y» → `set_profile` → `default_city`.
-- «открой профиль» → `open_profile` → Notepad++ / VS Code / системный.
+- Активный профиль — по имени Windows-юзера.
+- `profile.switch(name)` — один `RLock`.
+- `profile.subscribe(callback)` — подписка (old_name, new_name).
+- Миграция из старого `user_profile.json`.
 
 ---
 
@@ -258,14 +242,9 @@ Config._data (в памяти) — источник истины
    ↓
 config.get("key") / config.set("key", value)
    ├── config_manager.save() — атомарно
-   └── Оповещение подписчиков:
-       ├── "tts_voice" → speaker.set_voice()
-       ├── "voice_rate" → speaker.set_rate()
-       ├── "mode" → handler.mode
-       ├── "barge_enabled" → jarvis.barge_enabled
-       ├── "memory_max" → handler._memory_max + deque
-       ├── "llm_context_messages" → handler._llm_context
-       └── "gui_theme" → PALETTES + _rebuild_ui_for_theme
+   │   ├── OK → оповещение подписчиков
+   │   └── FAIL → откат в памяти (Config.set/update)
+   └── ...
 ```
 
 **Подписки:**
@@ -282,15 +261,11 @@ weather.py
    ├── _CACHE_LOCK: threading.Lock
    ├── _config — ссылка на Config (set_config)
    ├── _current_ttl() — читает weather_cache_ttl_sec каждый раз
-   └── _cached(key, fetcher) — TTL применяется на каждый вызов
+   ├── _cached(key, fetcher) — TTL применяется на каждый вызов
+   └── _http_get_json — User-Agent из __version__
 ```
 
 **TTL:** 600 сек (10 мин) по умолчанию.
-
-**Ключи:**
-- `("geo", "москва")` — геокодинг.
-- `("weather", "москва", "today")` — погода.
-- `("currency", "cbr")` — курс ЦБ.
 
 ---
 
@@ -306,8 +281,28 @@ actions.open_in_editor(path, prefer="auto")
 
 **Активация окна** — `_activate_window_hard(title_part)`:
 - `win32gui.EnumWindows`
-- `AttachThreadInput` — иначе `SetForegroundWindow` блокируется Windows
+- `AttachThreadInput` (обход блокировки `SetForegroundWindow`)
 - `SetForegroundWindow` + `BringWindowToTop`
+
+---
+
+## Пак-команды с аргументами
+
+```
+actions.spec_from_string(s)
+   ├── open_app: → ...
+   ├── http(s):// → url
+   ├── steam:// → uri
+   ├── browser/браузер → browser
+   ├── _looks_like_cmd(s) → ("cmd", shlex.split(s, posix=False))
+   │   (для "shutdown /s /t 10", "cmd /k ipconfig", "rundll32.exe ...")
+   ├── .bat/.cmd → path
+   └── os.path.exists(s) → path
+```
+
+**`_CMD_VERBS`** — известные системные команды (shutdown, cmd, rundll32, ...).
+
+**Zip Slip защита** — при распаковке Vosk: `resolved.is_relative_to(base)`.
 
 ---
 
@@ -316,19 +311,19 @@ actions.open_in_editor(path, prefer="auto")
 `launcher.py` → `Феникс.exe` (PyInstaller). При запуске:
 
 ```
-1. Ищет Python 3.10–3.12 (py launcher, where python, типичные пути).
+1. Ищет Python 3.10–3.12.
 2. Нет → MessageBox: [Скачать Python 3.11] [Отмена].
-   Качает python-3.11.9-amd64.exe, запускает installer.
 3. Проверяет .venv311. Нет → создаёт.
 4. Проверяет зависимости (flet, vosk). Нет → pip install.
-5. Проверяет Vosk-модель в C:\ProgramData\Phoenix\models. Нет → скачивает.
-6. Проверяет Ollama (URL + поиск). Нет → MessageBox.
+5. Проверяет Vosk-модель в C:\ProgramData\Phoenix\models.
+6. Проверяет Ollama.
 7. Запускает .venv311\Scripts\pythonw.exe -m jarvis.
 ```
 
-**Диалоги** — через `ctypes.windll.user32.MessageBoxW` (встроено в Windows).
-**Логи** — `logs/launcher.log`.
-**Мьютекс** — `Global\JarvisPhoenixSingleInstance`.
+- **Диалоги** — `ctypes.windll.user32.MessageBoxW`.
+- **Логи** — `logs/launcher.log`.
+- **Мьютекс** — `Local\JarvisPhoenixSingleInstance` (без админа).
+- **Zip Slip защита** при распаковке Vosk.
 
 ---
 
@@ -342,10 +337,11 @@ actions.open_in_editor(path, prefer="auto")
 | `Speaker` | `tts.py` | Синтез, per-call token |
 | `Listener` | `stt.py` | Vosk, ring buffer |
 | `WhisperTranscriber` | `stt.py` | Расшифровка |
-| `Jarvis` | `main.py` | Связка, wake, watchdog |
-| `FenixGUI` | `gui.py` | Flet GUI |
+| `Jarvis` | `main.py` | Связка, wake, cmd_lock |
+| `FenixGUI` | `gui.py` | Flet GUI, fireworks |
 | `Reply` | `reply.py` | `text` \| `stream` |
 | `history` | `history.py` | Стек отмены |
+| `celebrations` | `celebrations.py` | Поздравление с ДР |
 
 ---
 
@@ -360,7 +356,7 @@ actions.open_in_editor(path, prefer="auto")
 | `models/vosk-model-small-ru-0.22/` | `C:\ProgramData\Phoenix\` |
 | `whisper-cache/` | `C:\ProgramData\Phoenix\` |
 | `logs/` | `%APPDATA%\Phoenix\` |
-| `system_caps.json` | `C:\jarvis\` (только для разработки) |
+| `system_caps.json` | `C:\jarvis\` (только dev) |
 
 ---
 
@@ -377,7 +373,7 @@ actions.open_in_editor(path, prefer="auto")
 | alphacephei.com | `vosk-model-small-ru-0.22` | Vosk |
 | python.org | `python-3.11.9-amd64.exe` | Установщик Python |
 
-**Облачные (в планах):** Groq (Llama 3.3 70B, Whisper), Edge TTS.
+**Облачные (в планах):** Groq, Edge TTS.
 
 ---
 
@@ -396,7 +392,7 @@ actions.open_in_editor(path, prefer="auto")
 **Python 3.11** в отдельном venv — обход падения Vosk на 3.13/3.14.
 
 ### Git
-- **`.gitignore`:** `.venv311/`, `config.json`, `profiles/`, `logs/`, `system_caps.json`, `models/`, `voices/`, `dist/`, `build/`, `*.bak`.
+- **`.gitignore`:** `.venv311/`, `config.json`, `profiles/`, `logs/`, `system_caps.json`, `models/`, `voices/`, `dist/`, `build/`, `timers.json`, `tasks.json`, `*.bak`.
 - **`SNAPSHOT.md`** — генерируется `snapshot.py`.
 
 ### `commit.bat`
@@ -446,3 +442,9 @@ Inno Setup → `Феникс_Setup.exe` (~11 МБ). Ставит в `C:\ProgramD
 22. **`paths.py`** — единственное место для путей.
 23. **Модели Vosk/Whisper — ВСЕГДА в `PROGRAM_DIR` (ASCII).**
 24. **`HF_HOME` для Whisper — временно.**
+25. **Vosk API — только из listener-потока.**
+26. **Pack-команды с аргументами — `_looks_like_cmd` + `shlex`.**
+27. **Атомарная запись везде — `mkstemp` + `os.replace`.**
+28. **Zip Slip защита при распаковке.**
+29. **`cmd_lock` в Jarvis — сериализация голос↔GUI.**
+30. **`Local\` мьютекс — без админа.**

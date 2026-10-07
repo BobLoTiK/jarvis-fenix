@@ -273,6 +273,12 @@ class Speaker:
         text = prepare_text(text)
         if not text or token.is_set():
             return
+        # Пропускаем, если в тексте только невидимые символы
+        # (zero-width space, BOM, soft hyphen). Иначе Piper падает
+        # с wave.Error('# channels not specified').
+        if not text.strip().strip("\u200b\u200c\u200d\ufeff\u00ad"):
+            log.debug("TTS: пропускаю невидимый текст %r", text)
+            return
         log.info("Говорю: %s", text)
         try:
             if self._mode == "xtts":

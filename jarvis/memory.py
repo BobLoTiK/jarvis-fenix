@@ -15,15 +15,16 @@ API чистое:
 
 import json
 import logging
+import os
 import re
+import tempfile
 import threading
-from pathlib import Path
 
 from jarvis import profile as _profile
 
 log = logging.getLogger("jarvis.memory")
 
-_lock = threading.Lock()
+_lock = threading.RLock()
 
 
 # ---------------------------------------------------------------
@@ -49,7 +50,12 @@ def load(limit: int | None = None) -> list:
 
 
 def append(message: dict) -> None:
-    """Добавляет одно сообщение и пишет на диск."""
+    """Добавляет одно сообщение и пишет на диск атомарно.
+
+    Атомарная запись через tempfile.mkstemp + os.replace:
+    иначе два параллельных вызова (голосовой поток + GUI) могут
+    пересечься и оставить полупустой dialog.json.
+    """
     if not isinstance(message, dict):
         return
     path = _profile.dialog_path()
@@ -63,10 +69,21 @@ def append(message: dict) -> None:
                     if isinstance(parsed, list):
                         data = parsed
             data.append(message)
-            path.write_text(
-                json.dumps(data, ensure_ascii=False, indent=2),
-                encoding="utf-8",
+
+            path.parent.mkdir(parents=True, exist_ok=True)
+            fd, tmp_name = tempfile.mkstemp(
+                dir=str(path.parent), suffix=".tmp", prefix=path.stem + "."
             )
+            try:
+                with os.fdopen(fd, "w", encoding="utf-8") as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+                os.replace(tmp_name, path)
+            except Exception:
+                try:
+                    os.unlink(tmp_name)
+                except OSError:
+                    pass
+                raise
         except Exception:
             log.exception("Не удалось дописать в %s", path)
 

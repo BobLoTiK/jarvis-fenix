@@ -34,7 +34,9 @@ DEFAULT_CONFIG = {
     "command_window_sec": 8,
     "dialog_window_sec": 20,
     "use_whisper": True,
-    "whisper_model": "coriollon/whisper-large-v3-turbo-russian",
+    # Правильная рабочая модель — как в config.example.json.
+    # Раньше тут был "coriollon/..." — сломанная репа на HF.
+    "whisper_model": "deepdml/faster-whisper-large-v3-turbo-ct2",
     "whisper_device": "auto",
     "mode": "combo",
     "barge_enabled": True,
@@ -56,7 +58,9 @@ DEFAULT_CONFIG = {
     "weather_cache_ttl_sec": 600,
     "danger_password": "",
     "gui_enabled": True,
-    "gui_theme": "dark-blue",
+    # Системная — валидное значение (в gui.py THEMES).
+    # Раньше было "dark-blue" — такого ключа в THEMES нет.
+    "gui_theme": "Системная",
     "gui_x": None,
     "gui_y": None,
     "tray_enabled": True,
@@ -68,7 +72,10 @@ class Config:
     """Конфиг в памяти с подписками на изменения."""
 
     def __init__(self, path: Path | None = None):
-        self.path = path or (BASE_DIR / "config.json")
+        if path is None:
+            from jarvis import paths as _paths
+            path = _paths.config_path()
+        self.path = path
         self._data: dict = {}
         self._listeners: list[Callable[[str, Any], None]] = []
         self.reload()
@@ -97,14 +104,20 @@ class Config:
     # --- запись ----------------------------------------------------------
 
     def set(self, key: str, value) -> bool:
-        """Ставит значение, сохраняет на диск, оповещает подписчиков."""
+        """Ставит значение, сохраняет на диск, оповещает подписчиков.
+
+        Если save не удался — откатываем в памяти.
+        """
         if self._data.get(key) == value:
             return True
+        old_value = self._data.get(key)
         self._data[key] = value
         ok = config_manager.save(self._data, path=self.path)
 
         if not ok:
-            log.error("Config.set: save не удался на ключе %s", key)
+            # Откат: не оставляем рассинхрон память ↔ диск.
+            self._data[key] = old_value
+            log.error("Config.set: save не удался на ключе %s — откатил", key)
             return False
 
         for cb in list(self._listeners):
@@ -115,16 +128,25 @@ class Config:
         return True
 
     def update(self, data: dict) -> bool:
-        """Массовое обновление. Оповещает по каждому ключу."""
+        """Массовое обновление. Оповещает по каждому ключу.
+
+        Если save не удался — откатываем в памяти.
+        """
         changed = {k: v for k, v in data.items() if self._data.get(k) != v}
         if not changed:
             return True
+
+        # Запоминаем старые значения для отката
+        old_values = {k: self._data.get(k) for k in changed}
+
         self._data.update(changed)
         ok = config_manager.save(self._data, path=self.path)
 
         if not ok:
+            # Откат
+            self._data.update(old_values)
             log.error(
-                "Config.update: save не удался, подписчики не уведомлены (%d ключей)",
+                "Config.update: save не удался — откатил %d ключей",
                 len(changed),
             )
             return False
@@ -144,8 +166,7 @@ class Config:
         self._listeners.append(callback)
 
     def unsubscribe(self, callback: Callable[[str, Any], None]) -> None:
-        """№95: удаляет подписку. Без этого Brain при пересоздании
-        оставался в списке — утечка."""
+        """Удаляет подписку."""
         try:
             self._listeners.remove(callback)
             log.info("Config: подписка удалена (%s)", callback)

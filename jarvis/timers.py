@@ -8,27 +8,41 @@
     «отмени все напоминания»                  → очистка
     «таймер на 5 минут»                       → обратный отсчёт
 
-Хранение: timers.json (сохраняется на диск).
+Хранение: %APPDATA%\Phoenix\timers.json (USER_DIR — не папка кода).
 При старте Феникса: загружает, проверяет, ставит threading.Timer на каждое.
 """
 
 import datetime
 import json
 import logging
+import os
 import re
+import tempfile
 import threading
 import time
 from pathlib import Path
 
+from jarvis import paths as _paths
+
 log = logging.getLogger("jarvis.timers")
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-TIMERS_FILE = BASE_DIR / "timers.json"
-
-_lock = threading.Lock()
+_lock = threading.RLock()
 _scheduled: dict[int, threading.Timer] = {}  # id → Timer
-_next_id = 1
 _on_fire_callback = None  # функция, которая вызывается при срабатывании
+
+
+# ---------------------------------------------------------------
+# Пути
+# ---------------------------------------------------------------
+
+def _timers_file() -> Path:
+    """Путь к timers.json в USER_DIR.
+
+    Раньше файл лежал в BASE_DIR (папка кода) — баг:
+    после установки туда писать нельзя, а на dev-машине
+    файл мусорил в репозитории.
+    """
+    return _paths.user_dir() / "timers.json"
 
 
 # ---------------------------------------------------------------
@@ -36,24 +50,42 @@ _on_fire_callback = None  # функция, которая вызывается 
 # ---------------------------------------------------------------
 
 def _load() -> list:
-    if not TIMERS_FILE.exists():
+    path = _timers_file()
+    if not path.exists():
         return []
     try:
-        data = json.loads(TIMERS_FILE.read_text(encoding="utf-8"))
+        data = json.loads(path.read_text(encoding="utf-8"))
         return data if isinstance(data, list) else []
     except Exception:
-        log.exception("Не удалось прочитать timers.json")
+        log.exception("Не удалось прочитать %s", path)
         return []
 
 
 def _save(timers: list) -> None:
+    """Атомарная запись timers.json.
+
+    Уникальный .tmp через tempfile.mkstemp, os.replace для подмены.
+    Иначе два параллельных вызова _save могут пересечься и оставить
+    полупустой файл.
+    """
+    path = _timers_file()
+    path.parent.mkdir(parents=True, exist_ok=True)
     try:
-        tmp = TIMERS_FILE.with_suffix(".tmp")
-        tmp.write_text(json.dumps(timers, ensure_ascii=False, indent=2),
-                       encoding="utf-8")
-        tmp.replace(TIMERS_FILE)
+        fd, tmp_name = tempfile.mkstemp(
+            dir=str(path.parent), suffix=".tmp", prefix=path.stem + "."
+        )
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                json.dump(timers, f, ensure_ascii=False, indent=2)
+            os.replace(tmp_name, path)
+        except Exception:
+            try:
+                os.unlink(tmp_name)
+            except OSError:
+                pass
+            raise
     except Exception:
-        log.exception("Не удалось сохранить timers.json")
+        log.exception("Не удалось сохранить %s", path)
 
 
 # ---------------------------------------------------------------
@@ -191,7 +223,6 @@ def _next_id(timers: list) -> int:
 
 def add(text: str, fire_at: float) -> dict:
     """Добавляет напоминание. Возвращает dict таймера."""
-    global _next_id
     with _lock:
         timers = _load()
         tid = _next_id(timers)

@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Iterator
 
 from jarvis import APP_NAME, __version__, actions, files
+from jarvis import paths as _paths
 from jarvis.apps import find_app
 from jarvis.installed import find_installed, scan_start_menu
 from jarvis.steam import find_game, scan_steam_games
@@ -683,7 +684,13 @@ class IntentHandler:
     def _profile_fast(self, cmd: str) -> str | None:
         """Команды профиля: смена, список, факты."""
         log.info("_profile_fast: %r", cmd)
-        m = re.match(r"^(?:я\s*[-—]?\s*|зови\s+меня\s+|переключись\s+на\s+|я\s+это\s+)([а-яёa-z][а-яёa-z\s\-]{0,40})$", cmd)
+        # «я — Маша» / «я - Маша» / «зови меня X» / «переключись на X» / «я это X».
+        # БЕЗ голого «я » — иначе «я хочу спать» создаёт профиль «хочу спать».
+        m = re.match(
+            r"^(?:я\s*[-—]\s*|зови\s+меня\s+|переключись\s+на\s+|я\s+это\s+)"
+            r"([а-яёa-z][а-яёa-z\s\-]{0,40})$",
+            cmd,
+        )
         if m:
             name = m.group(1).strip()
             if name and name not in _NOT_A_CITY:
@@ -1413,11 +1420,11 @@ class IntentHandler:
             return f"Очищено задач: {n}." if n else "Список и так пуст."
 
         if action == "open_config":
-            cfg_path = Path(__file__).resolve().parent.parent / "config.json"
+            cfg_path = _paths.config_path()
             actions.open_path(cfg_path)
             return "Открываю конфиг."
         if action == "open_log":
-            log_path = Path(__file__).resolve().parent.parent / "logs" / "jarvis.log"
+            log_path = _paths.logs_dir() / "jarvis.log"
             actions.open_path(log_path)
             return "Открываю журнал."
         if action == "open_profile":

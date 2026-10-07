@@ -232,6 +232,19 @@ class FenixGUI:
     def set_state(self, state: str) -> None:
         self._queue.put(("state", state))
 
+    def set_mic_test_result(self, text: str, color: str) -> None:
+        """Обновляет результат mic-теста через очередь GUI.
+
+        Раньше _on_mic_test дёргал self._page.update() прямо из
+        своего потока — это нарушает правило Flet «UI только в главном
+        потоке» и иногда ломает рендер.
+        """
+        self._queue.put(("mic_test", (text, color)))
+
+    def launch_fireworks(self, duration: float = 6.0) -> None:
+        """Запускает анимацию салюта (через очередь GUI)."""
+        self._queue.put(("fireworks", duration))
+
     # ---------------------------------------------------------------
     # Flet
     # ---------------------------------------------------------------
@@ -297,17 +310,6 @@ class FenixGUI:
         if self.start_hidden:
             page.window.visible = False
             log.info("GUI: окно скрыто при старте (launch_mode=tray)")
-
-        # prevent_close + on_event в Flet 1.0.3 НЕ РАБОТАЮТ:
-        # prevent_close блокирует закрытие, но on_event НЕ вызывается —
-        # окно просто висит, крестик не работает.
-        #
-        # Поэтому перехвата нет: окно закрывается нормально.
-        # Феникс при этом тоже завершается (flet возвращает управление
-        # из ft.run, main() идёт к jarvis.shutdown()).
-        #
-        # Трей, который решил бы эту проблему, отключён.
-        # TODO: вернуть трей через pystray в отдельном процессе.
 
         self._build_ui(page)
         page.run_task(self._process_queue)
@@ -652,41 +654,39 @@ class FenixGUI:
         log.info("Микрофон сохранён: %r (перезапусти Феникса)", value)
 
     def _on_mic_test(self, e) -> None:
+        """Кнопка «Проверить микрофон».
+
+        ВАЖНО: раньше этот метод дёргал self._page.update() из рабочего
+        потока — нарушение Flet. Теперь все обновления UI идут через
+        очередь (set_mic_test_result).
+        """
         if self.jarvis is None or self.jarvis.listener is None:
-            self._mic_test_result.value = "Listener не запущен"
-            self._mic_test_result.color = "#f85149"
-            try:
-                self._page.update()
-            except Exception:
-                pass
+            # Этот case уже в главном потоке — можно обновить напрямую.
+            if self._mic_test_result is not None:
+                self._mic_test_result.value = "Listener не запущен"
+                self._mic_test_result.color = "#f85149"
             return
 
         def _run():
             listener = self.jarvis.listener
             listener.reset_stats()
-            self._mic_test_result.value = "Слушаю 3 секунды... говори!"
-            self._mic_test_result.color = ACCENT
-            try:
-                self._page.update()
-            except Exception:
-                pass
+            # Первое сообщение — через очередь
+            self.set_mic_test_result("Слушаю 3 секунды... говори!", ACCENT)
 
             time.sleep(3.0)
             peak = listener.peak
             if peak >= 500:
-                self._mic_test_result.value = f"Микрофон работает (пик {peak})"
-                self._mic_test_result.color = "#3fb950"
+                self.set_mic_test_result(
+                    f"Микрофон работает (пик {peak})", "#3fb950"
+                )
             elif peak >= 100:
-                self._mic_test_result.value = f"Микрофон очень тихий (пик {peak})."
-                self._mic_test_result.color = "#d29922"
+                self.set_mic_test_result(
+                    f"Микрофон очень тихий (пик {peak}).", "#d29922"
+                )
             else:
-                self._mic_test_result.value = f"Микрофон молчит (пик {peak})."
-                self._mic_test_result.color = "#f85149"
-
-            try:
-                self._page.update()
-            except Exception:
-                pass
+                self.set_mic_test_result(
+                    f"Микрофон молчит (пик {peak}).", "#f85149"
+                )
 
         threading.Thread(target=_run, daemon=True, name="mic-test").start()
 
@@ -869,12 +869,16 @@ class FenixGUI:
                     self._show_window_now()
                 elif kind == "mic_level":
                     self._update_mic_level()
+                elif kind == "mic_test":
+                    self._apply_mic_test_result(*value)
                 elif kind == "rebuild_theme":
                     self._rebuild_ui_for_theme()
                 elif kind == "rebuild_ui":
                     self._rebuild_ui_for_theme()
                 elif kind == "fireworks":
-                    self._page.run_task(self._launch_fireworks_async)
+                    self._page.run_task(
+                        self._launch_fireworks_async, float(value or 6.0)
+                    )
 
                 try:
                     self._page.update()
@@ -883,12 +887,139 @@ class FenixGUI:
             except Exception:
                 log.exception("Ошибка в _process_queue")
 
+    def _apply_mic_test_result(self, text: str, color: str) -> None:
+        """Обновляет результат mic-теста — уже в главном потоке."""
+        try:
+            if self._mic_test_result is not None:
+                self._mic_test_result.value = text
+                self._mic_test_result.color = color
+        except Exception:
+            log.exception("_apply_mic_test_result упал")
+
+    async def _launch_fireworks_async(self, duration: float = 6.0) -> None:
+        """Анимация салюта — duration секунд, через Stack + Container.
+
+        Используем Stack и Container вместо Canvas — в Flet 1.0.3
+        Canvas API капризный, а Container.top/left анимируется стабильно.
+
+        duration — длительность в секундах.
+        """
+        import random
+        import math
+
+        try:
+            w = self._page.window.width or 1100
+            h = self._page.window.height or 760
+
+            # Stack — слой поверх всего окна
+            stack = ft.Stack(width=w, height=h)
+
+            # Тёмная подложка
+            backdrop = ft.Container(
+                width=w,
+                height=h,
+                bgcolor=ft.Colors.with_opacity(0.35, "#000000"),
+            )
+            stack.controls.append(backdrop)
+
+            particles: list[dict] = []
+
+            # Количество взрывов — пропорционально длительности
+            n_bursts = max(4, int(duration * 1.2))
+            bursts = []
+            for i in range(n_bursts):
+                cx = random.randint(150, w - 150)
+                cy = random.randint(100, h - 250)
+                color = random.choice([
+                    "#ff1744", "#ffea00", "#00e5ff",
+                    "#00e676", "#d500f9", "#ff6d00",
+                ])
+                # Интервал между взрывами
+                spawn_time = (duration / max(1, n_bursts - 1)) * i * 0.6
+                bursts.append((spawn_time, cx, cy, color))
+
+            overlay = ft.Container(
+                width=w, height=h, left=0, top=0,
+                content=stack,
+            )
+
+            self._page.overlay.append(overlay)
+            self._page.update()
+
+            total_time = max(3.0, float(duration))
+            frame_time = 0.05
+            elapsed = 0.0
+            spawned = [False] * len(bursts)
+
+            while elapsed < total_time:
+                # Спавн новых взрывов
+                for i, (spawn_time, cx, cy, color) in enumerate(bursts):
+                    if not spawned[i] and elapsed >= spawn_time:
+                        spawned[i] = True
+                        for _ in range(25):
+                            angle = random.uniform(0, 2 * math.pi)
+                            speed = random.uniform(2.5, 5.0)
+                            container = ft.Container(
+                                width=5, height=5,
+                                border_radius=3,
+                                bgcolor=color,
+                                left=cx, top=cy,
+                            )
+                            stack.controls.append(container)
+                            particles.append({
+                                "ctrl": container,
+                                "x": cx, "y": cy,
+                                "vx": math.cos(angle) * speed,
+                                "vy": math.sin(angle) * speed,
+                                "life": 50,
+                            })
+
+                # Обновляем позиции
+                for p in particles:
+                    if p["life"] <= 0:
+                        continue
+                    p["x"] += p["vx"]
+                    p["y"] += p["vy"]
+                    p["vy"] += 0.15
+                    p["life"] -= 1
+                    try:
+                        p["ctrl"].left = p["x"]
+                        p["ctrl"].top = p["y"]
+                        p["ctrl"].opacity = max(0.0, p["life"] / 50.0)
+                    except Exception:
+                        pass
+
+                # Убираем мёртвые
+                dead = [p for p in particles if p["life"] <= 0]
+                for p in dead:
+                    try:
+                        stack.controls.remove(p["ctrl"])
+                    except Exception:
+                        pass
+                particles = [p for p in particles if p["life"] > 0]
+
+                try:
+                    self._page.update()
+                except Exception:
+                    pass
+
+                await asyncio.sleep(frame_time)
+                elapsed += frame_time
+
+            try:
+                self._page.overlay.remove(overlay)
+                self._page.update()
+            except Exception:
+                pass
+
+        except Exception:
+            log.exception("Fireworks: ошибка анимации")
+
     async def _mic_level_loop(self) -> None:
         """Обновляет уровень микрофона и следит за сменой системной темы.
 
         Уровень микрофона — 5 раз в секунду (0.2 с).
         Системная тема — раз в 5 секунд (25 итераций × 0.2 с).
-        Реже не имеет смысла: реестр дёргать лишний раз незачем.
         """
         last_system_theme = _detect_system_theme()
         counter = 0
@@ -1059,11 +1190,6 @@ class FenixGUI:
         self._stream_label = None
         self._stream_text = ""
 
-    def launch_fireworks(self, duration: float = 6.0) -> None:
-        """Запускает анимацию салюта (через очередь GUI)."""
-        self._queue.put(("fireworks", None))
-
-
     def _open_mic_tab(self) -> None:
         try:
             self._rail.selected_index = 1
@@ -1090,195 +1216,6 @@ class FenixGUI:
                 log.info("GUI: окно показано")
         except Exception:
             log.exception("Не удалось показать окно")
-            
-    async def _launch_fireworks_async(self) -> None:
-        """Анимация салюта — 6 секунд, через Stack + Container.
-
-        Используем Stack и Container вместо Canvas — в Flet 1.0.3
-        Canvas API капризный, а Container.top/left анимируется
-        стабильно.
-        """
-        import random
-        import math
-
-        try:
-            w = self._page.window.width or 1100
-            h = self._page.window.height or 760
-
-            # Stack — слой поверх всего окна
-            stack = ft.Stack(width=w, height=h)
-
-            # Тёмная подложка
-            backdrop = ft.Container(
-                width=w,
-                height=h,
-                bgcolor=ft.Colors.with_opacity(0.35, "#000000"),
-            )
-            stack.controls.append(backdrop)
-
-            # Частицы — каждая ft.Container
-            particles: list[dict] = []
-
-            # 6 взрывов
-            bursts = []
-            for i in range(6):
-                cx = random.randint(150, w - 150)
-                cy = random.randint(100, h - 250)
-                color = random.choice([
-                    "#ff1744", "#ffea00", "#00e5ff",
-                    "#00e676", "#d500f9", "#ff6d00",
-                ])
-                bursts.append((i * 0.35, cx, cy, color))
-
-            # Оверлей
-            overlay = ft.Container(
-                width=w, height=h, left=0, top=0,
-                content=stack,
-            )
-
-            self._page.overlay.append(overlay)
-            self._page.update()
-
-            total_time = 6.0
-            frame_time = 0.05  # ~20 fps (достаточно, Container медленнее Canvas)
-            elapsed = 0.0
-            spawned = [False] * len(bursts)
-
-            while elapsed < total_time:
-                # Спавн новых взрывов
-                for i, (spawn_time, cx, cy, color) in enumerate(bursts):
-                    if not spawned[i] and elapsed >= spawn_time:
-                        spawned[i] = True
-                        for _ in range(25):  # меньше частиц — Container тяжёлый
-                            angle = random.uniform(0, 2 * math.pi)
-                            speed = random.uniform(2.5, 5.0)
-                            container = ft.Container(
-                                width=5, height=5,
-                                border_radius=3,
-                                bgcolor=color,
-                                left=cx, top=cy,
-                            )
-                            stack.controls.append(container)
-                            particles.append({
-                                "ctrl": container,
-                                "x": cx, "y": cy,
-                                "vx": math.cos(angle) * speed,
-                                "vy": math.sin(angle) * speed,
-                                "life": 50,
-                            })
-
-                # Обновляем позиции
-                for p in particles:
-                    if p["life"] <= 0:
-                        continue
-                    p["x"] += p["vx"]
-                    p["y"] += p["vy"]
-                    p["vy"] += 0.15
-                    p["life"] -= 1
-                    try:
-                        p["ctrl"].left = p["x"]
-                        p["ctrl"].top = p["y"]
-                        # Прозрачность через opacity
-                        p["ctrl"].opacity = max(0.0, p["life"] / 50.0)
-                    except Exception:
-                        pass
-
-                # Убираем мёртвые
-                dead = [p for p in particles if p["life"] <= 0]
-                for p in dead:
-                    try:
-                        stack.controls.remove(p["ctrl"])
-                    except Exception:
-                        pass
-                particles = [p for p in particles if p["life"] > 0]
-
-                try:
-                    self._page.update()
-                except Exception:
-                    pass
-
-                await asyncio.sleep(frame_time)
-                elapsed += frame_time
-
-            # Убираем оверлей
-            try:
-                self._page.overlay.remove(overlay)
-                self._page.update()
-            except Exception:
-                pass
-
-        except Exception:
-            log.exception("Fireworks: ошибка анимации")
-
-            particles: list[dict] = []
-
-            # 6 взрывов с задержкой 0.4 сек
-            bursts = []
-            for i in range(6):
-                cx = random.randint(150, w - 150)
-                cy = random.randint(100, h - 250)
-                color = random.choice([
-                    "#ff1744", "#ffea00", "#00e5ff",
-                    "#00e676", "#d500f9", "#ff6d00",
-                ])
-                bursts.append((i * 0.4, cx, cy, color))
-
-            self._page.overlay.append(overlay)
-            self._page.update()
-
-            total_time = 8.0
-            frame_time = 0.03
-            elapsed = 0.0
-            spawned = [False] * len(bursts)
-
-            while elapsed < total_time:
-                # Спавн взрывов по времени
-                for i, (spawn_time, cx, cy, color) in enumerate(bursts):
-                    if not spawned[i] and elapsed >= spawn_time:
-                        spawned[i] = True
-                        for _ in range(40):
-                            angle = random.uniform(0, 2 * math.pi)
-                            speed = random.uniform(2.0, 6.0)
-                            particles.append({
-                                "x": cx, "y": cy,
-                                "vx": math.cos(angle) * speed,
-                                "vy": math.sin(angle) * speed,
-                                "color": color,
-                                "life": 60,
-                            })
-
-                canvas.shapes.clear()
-                for p in particles:
-                    if p["life"] <= 0:
-                        continue
-                    p["x"] += p["vx"]
-                    p["y"] += p["vy"]
-                    p["vy"] += 0.12
-                    p["life"] -= 1
-                    canvas.shapes.append(
-                        ft.canvas.Circle(
-                            x=p["x"], y=p["y"], radius=2.5,
-                            paint=ft.Paint(color=p["color"]),
-                        )
-                    )
-                particles = [p for p in particles if p["life"] > 0]
-
-                try:
-                    self._page.update()
-                except Exception:
-                    pass
-
-                await asyncio.sleep(frame_time)
-                elapsed += frame_time
-
-            try:
-                self._page.overlay.remove(overlay)
-                self._page.update()
-            except Exception:
-                pass
-
-        except Exception:
-            log.exception("Fireworks: ошибка анимации")
 
     # ---------------------------------------------------------------
     # Действия
@@ -1376,7 +1313,6 @@ class FenixGUI:
         """
         current_index = self._rail.selected_index if self._rail else 0
 
-        # Сохранить историю чата перед пересборкой
         saved_history = []
         if self._history_list is not None:
             saved_history = list(self._history_list.controls)
@@ -1387,7 +1323,6 @@ class FenixGUI:
             2: self._build_settings_tab(),
         }
 
-        # Восстановить историю в новый _history_list
         if saved_history and self._history_list is not None:
             self._history_list.controls = saved_history
 
@@ -1421,6 +1356,12 @@ class FenixGUI:
             pass
 
     def _run_command(self, cmd: str) -> None:
+        """Запускает команду из GUI (текстовый ввод).
+
+        Берёт тот же cmd_lock, что и голосовой поток — иначе два
+        одновременных handle+say ломают stateful-поля IntentHandler
+        и накладывают TTS.
+        """
         if self.jarvis is None:
             return
 
@@ -1430,10 +1371,11 @@ class FenixGUI:
                 self.add_message("user", cmd)
                 self.jarvis.speaker.stop()
                 self.jarvis.speaker.wait_end(timeout=1.0)
-                reply = self.jarvis.handler.handle(cmd)
-                if not reply.is_stream:
-                    self.add_message("assistant", reply.text or "")
-                self.jarvis.say(reply)
+                with self.jarvis.cmd_lock:
+                    reply = self.jarvis.handler.handle(cmd)
+                    if not reply.is_stream:
+                        self.add_message("assistant", reply.text or "")
+                    self.jarvis.say(reply)
             except Exception:
                 log.exception("Ошибка команды %r", cmd)
                 self.set_state("error")

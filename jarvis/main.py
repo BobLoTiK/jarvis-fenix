@@ -6,18 +6,9 @@ Barge-in: во время речи Феникса микрофон НЕ глуш
 
 Стриминг: генератор оборачивается в tee — чанки идут и в TTS, и в GUI.
 
-ТРЕЙ ВРЕМЕННО ОТКЛЮЧЁН.
-Причина: pystray требует свой Windows message loop, а главный поток
-занят flet'ом (ft.run блокирует). Попытка запустить pystray в фоне
-приводит к зависанию GUI.
-
-Решение будет позже — отдельный процесс tray_runner.py с общением
-через файл-сигнал. Пока трей не работает.
-
 launch_mode:
-    "gui"  — окно Flet + голос (по умолчанию).
-    "tray" — тоже окно, но скрытое (показать можно только через трей,
-             который сейчас не работает — фактически не используется).
+    "gui"  — окно Flet + трей + голос (по умолчанию).
+    "tray" — только трей + голос, без окна.
 """
 
 import logging
@@ -65,6 +56,12 @@ class Jarvis:
             self.listener.barge_enabled = self.barge_enabled
         self._barge_just_happened = False
 
+        # Сериализация обработки команд: голосовой поток и GUI
+        # не должны входить в handler.handle + say() одновременно.
+        # Иначе два TTS накладываются, а stateful-поля IntentHandler
+        # (pending_password, pending_question) портятся.
+        self.cmd_lock = threading.Lock()
+
     def say(self, reply: Reply) -> bool:
         """Озвучивает Reply. Возвращает True, если сработал barge-in."""
         if reply is None:
@@ -77,7 +74,7 @@ class Jarvis:
 
         if self.barge_enabled and self.listener is not None:
             self.listener.barge_start()
-        else:
+        elif self.listener is not None:
             self.listener.muted = True
 
         barge_happened = False
@@ -86,16 +83,18 @@ class Jarvis:
                 self._say_stream(reply.stream)
             else:
                 self._say_text(reply.text)
-            barge_happened = self.barge_enabled and self.listener.barge_flag
+            barge_happened = (
+                self.barge_enabled
+                and self.listener is not None
+                and self.listener.barge_flag
+            )
         finally:
             if self.barge_enabled and self.listener is not None:
                 self.listener.barge_end()
-            # ВАЖНО: НЕ вызываем flush() из основного потока.
-            # Vosk — не thread-safe. AcceptWaveform + Reset() из двух потоков
-            # роняют libvosk.dll с access violation (0xc0000015).
-            # flush() вызывает только listener в своём потоке phrases().
-            # self.listener.flush()
-            self.listener.muted = False
+            if self.listener is not None:
+                # flush() теперь чистит только очередь — Vosk не трогает.
+                self.listener.flush()
+                self.listener.muted = False
             if self.gui is not None:
                 self.gui.set_state("idle")
         return barge_happened
@@ -103,7 +102,7 @@ class Jarvis:
     def _say_text(self, text: str) -> None:
         self.speaker.play_async(text)
         while self.speaker.is_playing():
-            if self.barge_enabled and self.listener.barge_flag:
+            if self.barge_enabled and self.listener is not None and self.listener.barge_flag:
                 log.info("Barge-in сработал — прерываю TTS")
                 self.speaker.stop()
                 break
@@ -140,7 +139,7 @@ class Jarvis:
 
         try:
             while t.is_alive():
-                if self.barge_enabled and self.listener.barge_flag:
+                if self.barge_enabled and self.listener is not None and self.listener.barge_flag:
                     log.info("Barge-in сработал — прерываю стриминг")
                     self.speaker.stop()
                     t.join(timeout=1.0)
@@ -231,30 +230,33 @@ class Jarvis:
             self.gui.add_message("user", cmd)
             self.gui.set_state("listening")
 
-        reply = self.handler.handle(cmd)
+        # Сериализация с GUI: пока GUI не отдаст cmd_lock,
+        # голосовой поток ждёт. И наоборот.
+        with self.cmd_lock:
+            reply = self.handler.handle(cmd)
 
-        if self.gui is not None and not reply.is_stream:
-            self.gui.add_message("assistant", reply.text or "")
+            if self.gui is not None and not reply.is_stream:
+                self.gui.add_message("assistant", reply.text or "")
 
-        self._awaiting_until = time.time() + float(
-            self.config.get("dialog_window_sec", 8))
-
-        if getattr(self.handler, "_reset_requested", False):
-            self.speaker.stop()
-            self.speaker.wait_end(timeout=1.0)
-
-        barge_happened = self.say(reply)
-
-        if getattr(self.handler, "_reset_requested", False):
-            self._awaiting_until = 0.0
-            self.handler._reset_requested = False
-            log.info("Сброс: жду wake-слово")
-            return
-
-        if barge_happened:
-            log.info("Barge-in: окно диалога уже открыто (без wake-слова)")
             self._awaiting_until = time.time() + float(
                 self.config.get("dialog_window_sec", 8))
+
+            if getattr(self.handler, "_reset_requested", False):
+                self.speaker.stop()
+                self.speaker.wait_end(timeout=1.0)
+
+            barge_happened = self.say(reply)
+
+            if getattr(self.handler, "_reset_requested", False):
+                self._awaiting_until = 0.0
+                self.handler._reset_requested = False
+                log.info("Сброс: жду wake-слово")
+                return
+
+            if barge_happened:
+                log.info("Barge-in: окно диалога уже открыто (без wake-слова)")
+                self._awaiting_until = time.time() + float(
+                    self.config.get("dialog_window_sec", 8))
 
     def _refine(self, audio: bytes, awaiting: bool):
         try:
@@ -440,6 +442,7 @@ def main() -> None:
 
     jarvis = Jarvis(config, listener, speaker, handler, BASE_DIR, whisper, gui=gui)
 
+    # Обратные ссылки для праздничных триггеров
     handler.jarvis = jarvis
     if gui is not None:
         gui.jarvis = jarvis
@@ -483,11 +486,6 @@ def main() -> None:
     # Причина: pystray требует свой Windows message loop, а главный поток
     # занят flet'ом (ft.run блокирует). Попытка запустить pystray в фоне
     # приводит к зависанию GUI.
-    #
-    # Что будет позже: отдельный процесс jarvis/tray_runner.py, который
-    # общается с основным через файл-сигнал logs/tray_signal.txt.
-    #
-    # Как только трей заработает — раскомментировать блок и удалить заглушку.
     # =================================================================
     if config.get("tray_enabled", False):
         log.warning(
@@ -500,8 +498,6 @@ def main() -> None:
     if launch_mode not in ("gui", "tray"):
         launch_mode = "gui"
 
-    # Защита: launch_mode=tray, но трей не работает — окно будет скрыто,
-    # показать некому. Поэтому принудительно gui.
     if launch_mode == "tray":
         log.warning(
             "launch_mode=tray, но трей отключён — переключаюсь на gui"

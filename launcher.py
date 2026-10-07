@@ -29,7 +29,9 @@ from pathlib import Path
 # Константы
 # ============================================================
 
-MUTEX_NAME = "Global\\JarvisPhoenixSingleInstance"
+# Local\ вместо Global\ — работает без прав администратора
+# (Global\ требует SeCreateGlobalPrivilege).
+MUTEX_NAME = "Local\\JarvisPhoenixSingleInstance"
 _MUTEX_HANDLE = None
 
 PYTHON_INSTALLER_URL = "https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe"
@@ -191,7 +193,6 @@ def _check_python_version(python_exe: str, logger) -> str | None:
         if result.returncode != 0:
             return None
         out = result.stdout.strip() or result.stderr.strip()
-        # "Python 3.11.9"
         if out.startswith("Python "):
             version = out[7:].strip()
             for req in REQUIRED_PY_VERSIONS:
@@ -256,10 +257,7 @@ def find_python(logger) -> str | None:
 
 
 def download_python_installer(logger) -> Path | None:
-    """Скачивает официальный installer Python в temp.
-
-    Показывает MessageBox до и после скачивания.
-    """
+    """Скачивает официальный installer Python в temp."""
     temp_dir = Path(os.environ.get("TEMP", "."))
     installer = temp_dir / PYTHON_INSTALLER_FILE
 
@@ -292,24 +290,16 @@ def download_python_installer(logger) -> Path | None:
 
 
 def run_python_installer(installer: Path, logger) -> bool:
-    """Запускает installer Python. Ждёт завершения.
-
-    Возвращает True, если после запуска Python найден.
-    """
+    """Запускает installer Python. Ждёт завершения."""
     logger.info("Запускаю installer: %s", installer)
     try:
-        # subprocess.run ждёт завершения.
-        # installer покажет GUI — пользователь нажмёт Install Now.
         subprocess.run([str(installer)], check=False)
     except Exception:
         logger.exception("Ошибка запуска installer")
         return False
 
-    # После установки Python может быть в новом месте,
-    # но PATH текущего процесса не обновился.
-    # Ищем python заново — find_python проверит типичные пути.
     logger.info("Installer завершён, ищу Python заново")
-    time.sleep(2)  # дать установщику время завершить запись
+    time.sleep(2)
     python = find_python(logger)
     return python is not None
 
@@ -410,14 +400,9 @@ def install_dependencies(project_dir: Path, logger) -> bool:
 
     logger.info("pip install -r requirements.txt")
     try:
-        # Запускаем без CREATE_NO_WINDOW — открывается консоль,
-        # пользователь видит прогресс pip.
-        # Или можно скрыть — тогда progress не видно.
-        # По умолчанию: показываем консоль.
         result = subprocess.run(
             [str(python), "-m", "pip", "install", "-r", str(req)],
             cwd=str(project_dir),
-            # НЕ используем CREATE_NO_WINDOW — пусть пользователь видит прогресс.
         )
         if result.returncode != 0:
             logger.error("pip install упал: returncode=%d", result.returncode)
@@ -452,20 +437,13 @@ def check_vosk_model(project_dir: Path, logger) -> bool:
 
 
 def download_vosk_model(project_dir: Path, logger) -> bool:
-    """Скачивает и распаковывает Vosk-модель в ASCII-путь (C:\\ProgramData\\Phoenix\\models).
-
-    Vosk (C++) ломается на не-ASCII путях. Поэтому модель
-    ВСЕГДА в C:\\ProgramData\\Phoenix\\models, независимо от того,
-    где установлен Феникс.
-    """
-    # Определяем безопасную папку для модели — ASCII-путь.
+    """Скачивает и распаковывает Vosk-модель в ASCII-путь."""
     program_data = os.environ.get("PROGRAMDATA", r"C:\ProgramData")
     safe_models = Path(program_data) / "Phoenix" / "models"
 
     try:
         safe_models.mkdir(parents=True, exist_ok=True)
     except Exception:
-        # Fallback: C:\Phoenix\models
         safe_models = Path(r"C:\Phoenix\models")
         safe_models.mkdir(parents=True, exist_ok=True)
 
@@ -496,13 +474,23 @@ def download_vosk_model(project_dir: Path, logger) -> bool:
     info("Распаковываю модель Vosk...", "Феникс")
     logger.info("Распаковываю Vosk")
     try:
-        import zipfile as _zf
-        with _zf.ZipFile(zip_path) as zf:
+        with zipfile.ZipFile(zip_path) as zf:
             for member in zf.namelist():
                 parts = member.split("/", 1)
                 if len(parts) < 2 or not parts[1]:
                     continue
                 target = target_dir / parts[1]
+                # Защита от Zip Slip: путь должен оставаться внутри target_dir.
+                try:
+                    resolved = target.resolve()
+                    base = target_dir.resolve()
+                    if base not in resolved.parents and resolved != base:
+                        logger.warning("Zip Slip попытка: %r", member)
+                        continue
+                except Exception:
+                    logger.warning("Не удалось проверить путь: %r", member)
+                    continue
+
                 if member.endswith("/"):
                     target.mkdir(parents=True, exist_ok=True)
                 else:
@@ -511,40 +499,6 @@ def download_vosk_model(project_dir: Path, logger) -> bool:
                         dst.write(src.read())
         zip_path.unlink(missing_ok=True)
         logger.info("Vosk распакован: %s", target_dir)
-        info("Модель Vosk готова. OK", "Феникс")
-        return True
-    except Exception:
-        logger.exception("Ошибка распаковки Vosk")
-        error("Не удалось распаковать модель. Логи: logs\\launcher.log")
-        return False
-
-    info(
-        "Скачиваю модель Vosk (~45 МБ).\n\n"
-        "Это займёт 1–2 минуты.",
-        "Феникс — модель Vosk",
-    )
-
-    logger.info("Скачиваю Vosk: %s", VOSK_MODEL_URL)
-    try:
-        urllib.request.urlretrieve(VOSK_MODEL_URL, zip_path)
-        logger.info("Vosk скачан: %s", zip_path)
-    except Exception:
-        logger.exception("Не удалось скачать Vosk")
-        error(
-            "Не удалось скачать модель Vosk.\n\n"
-            "Проверь интернет или скачай вручную:\n"
-            f"{VOSK_MODEL_URL}\n\n"
-            "Распакуй в: models\\",
-        )
-        return False
-
-    info("Распаковываю модель Vosk...", "Феникс")
-    logger.info("Распаковываю Vosk")
-    try:
-        with zipfile.ZipFile(zip_path) as zf:
-            zf.extractall(models_dir)
-        zip_path.unlink(missing_ok=True)
-        logger.info("Vosk распакован")
         info("Модель Vosk готова. OK", "Феникс")
         return True
     except Exception:
@@ -603,7 +557,6 @@ def handle_ollama(logger) -> None:
         except Exception:
             logger.exception("Не удалось запустить ollama serve")
 
-    # Ollama не найдена
     logger.warning("Ollama не найдена")
     reply = msg_box(
         "Ollama не найдена.\n\n"
@@ -649,7 +602,6 @@ def run_jarvis(project_dir: Path, pythonw: Path, logger) -> None:
 # ============================================================
 
 def main() -> None:
-    # exe_dir для логирования
     if getattr(sys, "frozen", False):
         exe_dir = Path(sys.executable).resolve().parent
     else:
@@ -665,12 +617,10 @@ def main() -> None:
     logger.info("log: %s", log_file)
     logger.info("=" * 60)
 
-    # 1. Мьютекс
     if already_running(logger):
         info("Феникс уже запущен.\n\nПроверь панель задач или трей.")
         return
 
-    # 2. Папка проекта
     project_dir = find_project_dir(logger)
     if not (project_dir / "jarvis" / "__init__.py").exists():
         error(
@@ -679,7 +629,6 @@ def main() -> None:
         )
         return
 
-    # 3. Python
     python_exe = find_python(logger)
     if python_exe is None:
         logger.info("Python не найден, предлагаю установить")
@@ -718,7 +667,6 @@ def main() -> None:
             return
         logger.info("Python после установки: %s", python_exe)
 
-    # 4. venv
     pythonw = find_venv_pythonw(project_dir, logger)
     if pythonw is None:
         if not create_venv(project_dir, python_exe, logger):
@@ -728,20 +676,16 @@ def main() -> None:
             error("venv создан, но pythonw не найден. Логи: logs\\launcher.log")
             return
 
-    # 5. Зависимости
     if not check_dependencies(project_dir, logger):
         if not install_dependencies(project_dir, logger):
             return
 
-    # 6. Vosk-модель
     if not check_vosk_model(project_dir, logger):
         if not download_vosk_model(project_dir, logger):
             return
 
-    # 7. Ollama
     handle_ollama(logger)
 
-    # 8. Запуск Феникса
     run_jarvis(project_dir, pythonw, logger)
 
 

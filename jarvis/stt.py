@@ -67,7 +67,7 @@ class Listener:
         self.peak = 0
         self.utterances = 0
         self.current_rms = 0  # текущий уровень сигнала (для GUI)
-        
+
         self.barge_enabled = True
         self.muted = False
         self.barge_flag = False
@@ -177,11 +177,14 @@ class Listener:
             self._audio.put(bytes(indata))
 
     def flush(self):
-        """Сброс буфера и Vosk-контекста.
+        """Сброс аудио-буфера.
 
-        ВАЖНО: вызывать ТОЛЬКО из потока phrases() (listener-поток).
-        Vosk не thread-safe. Если дёргать Reset()/AcceptWaveform из
-        другого потока — libvosk.dll падает с access violation.
+        ВАЖНО: НЕ трогаем Vosk (Reset / AcceptWaveform) — только чистим
+        очередь. Vosk не thread-safe: если дёргать его API из разных
+        потоков, libvosk.dll падает с access violation (0xc0000015).
+
+        Vosk-контекст сбрасывает сам listener в phrases() через Reset(),
+        когда накапливается слишком много тишины.
         """
         while not self._audio.empty():
             try:
@@ -190,7 +193,7 @@ class Listener:
                 break
         self._utt_buf.clear()
         self._utt_len = 0
-        
+
     def reset_stats(self):
         """Сбрасывает peak и utterances — для кнопки «Проверить микрофон»."""
         self.peak = 0
@@ -231,32 +234,60 @@ class Listener:
 
 class WhisperTranscriber:
     def __init__(self, model_name="auto", device="auto"):
-        # HF_HOME — кэш моделей HuggingFace.
-        # Если путь с кириллицей, ctranslate2 может сломаться.
-        # Ставим ASCII-путь ДО импорта.
+        # HF_HOME нужен ТОЛЬКО для Whisper: ctranslate2 ломается
+        # на не-ASCII путях. Но Piper тоже использует huggingface_hub —
+        # и если HF_HOME стоит, Piper качает модель в наш ASCII-кэш
+        # в degraded-режиме (без symlinks).
+        #
+        # Решение: ставим HF_HOME временно — на время импорта faster_whisper
+        # и загрузки модели. Потом восстанавливаем — чтобы Piper качал
+        # в свой обычный кэш (~/.cache/huggingface).
         from jarvis import paths as _paths
+
+        _old_hf_home = os.environ.get("HF_HOME")
+        _old_hf_cache = os.environ.get("HUGGINGFACE_HUB_CACHE")
+
         os.environ["HF_HOME"] = str(_paths.program_whisper_cache_dir())
         os.environ["HUGGINGFACE_HUB_CACHE"] = str(_paths.program_whisper_cache_dir())
 
-        _enable_cuda_dlls()
-        import ctranslate2
-        from faster_whisper import WhisperModel
+        try:
+            _enable_cuda_dlls()
+            import ctranslate2
+            from faster_whisper import WhisperModel
 
-        if device == "auto":
-            device = "cuda" if ctranslate2.get_cuda_device_count() > 0 else "cpu"
-        if device == "cuda":
-            name = TURBO_MODEL if model_name == "auto" else model_name
-            try:
-                log.info("Загрузка Whisper (%s) на GPU...", name)
-                self._model = WhisperModel(name, device="cuda", compute_type="int8_float16")
-                log.info("Whisper готов (GPU)")
-                return
-            except Exception:
-                log.exception("GPU не завёлся, откатываюсь на CPU")
-        name = "small" if model_name == "auto" else model_name
-        log.info("Загрузка Whisper (%s) на CPU...", name)
-        self._model = WhisperModel(name, device="cpu", compute_type="int8")
-        log.info("Whisper готов (CPU)")
+            if device == "auto":
+                device = "cuda" if ctranslate2.get_cuda_device_count() > 0 else "cpu"
+
+            self._model = None
+
+            if device == "cuda":
+                name = TURBO_MODEL if model_name == "auto" else model_name
+                try:
+                    log.info("Загрузка Whisper (%s) на GPU...", name)
+                    self._model = WhisperModel(
+                        name, device="cuda", compute_type="int8_float16"
+                    )
+                    log.info("Whisper готов (GPU)")
+                except Exception:
+                    log.exception("GPU не завёлся, откатываюсь на CPU")
+
+            if self._model is None:
+                name = "small" if model_name == "auto" else model_name
+                log.info("Загрузка Whisper (%s) на CPU...", name)
+                self._model = WhisperModel(
+                    name, device="cpu", compute_type="int8"
+                )
+                log.info("Whisper готов (CPU)")
+        finally:
+            # Восстанавливаем — чтобы Piper не качал в наш ASCII-кэш.
+            if _old_hf_home is None:
+                os.environ.pop("HF_HOME", None)
+            else:
+                os.environ["HF_HOME"] = _old_hf_home
+            if _old_hf_cache is None:
+                os.environ.pop("HUGGINGFACE_HUB_CACHE", None)
+            else:
+                os.environ["HUGGINGFACE_HUB_CACHE"] = _old_hf_cache
 
     def transcribe(self, pcm, sample_rate=16000):
         audio = np.frombuffer(pcm, dtype=np.int16).astype(np.float32) / 32768.0

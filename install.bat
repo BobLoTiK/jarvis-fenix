@@ -395,8 +395,8 @@ echo        .venv311\Scripts\activate.bat
 echo        python scripts\mics.py
 echo.
 echo   2. Запусти Феникса:
-echo        start_fenix_311.bat        — Python 3.11 venv, без консоли
-echo        start_fenix_311_debug.bat  — с логами в консоли
+echo        start_fenix.bat        — без консоли
+echo        start_fenix_debug.bat  — с логами в консоли
 echo.
 echo   3. Говори "Феникс ..." — и он ответит.
 echo.

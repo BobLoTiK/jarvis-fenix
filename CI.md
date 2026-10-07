@@ -28,13 +28,13 @@ GitHub запускает их сам.
 ## 🚀 Как смотреть результат
 
 1. Открой репозиторий на GitHub.
-2. Вкладка **Actions** (сверху).
+2. Вкладка **Actions**.
 3. Последний запуск — ✅ или ❌.
 4. Кликни → увидишь шаги и логи.
 
 ## 🔧 Если упало
 
-**Шаг `Check syntax`** — синтаксис где-то сломан. Открой лог, найди файл и строку.
+**Шаг `Check syntax`** — синтаксис сломан. Открой лог, найди файл и строку.
 
 **Шаг `pytest`** — юнит-тест упал. Лог покажет какой.
 
@@ -53,9 +53,9 @@ GitHub запускает их сам.
 - `pytest`, `pytest-asyncio`
 
 **Чего нет:**
-- `piper-tts`, `faster-whisper`, `sounddevice`, `vosk`, `winrt-*` — на сервере нет звука
-- `pycaw`, `screen-brightness-control` — Windows-специфичные, тяжёлые
-- `pyautogui`, `pygetwindow`, `keyboard`, `mouse` — GUI
+- `piper-tts`, `faster-whisper`, `sounddevice`, `vosk`, `winrt-*` — на сервере нет звука.
+- `pycaw`, `screen-brightness-control` — Windows-специфичные, тяжёлые.
+- `pyautogui`, `pygetwindow`, `keyboard`, `mouse` — GUI.
 
 **Почему:** CI ускоряется с ~5 мин до ~40 сек. И не падает на «нет звука».
 
@@ -76,7 +76,7 @@ GitHub запускает их сам.
 [![tests](https://github.com/USER/REPO/actions/workflows/test.yml/badge.svg)](https://github.com/USER/REPO/actions/workflows/test.yml)
 ```
 
-Замени `USER/REPO` на свой. Вставь в начало README.
+Замени `USER/REPO` на свой.
 
 ## 📋 Что проверять **локально** перед пушем
 
@@ -95,6 +95,35 @@ python test_intents.py
 **`jarvis/paths.py`** использует `%PROGRAMDATA%` и `%APPDATA%`.
 На GitHub Actions они **стандартные** — пути разрешатся в:
 - `PROGRAM_DIR` → `C:\ProgramData\Phoenix\` (ASCII).
-- `USER_DIR` → `C:\Users\runneradmin\AppData\Roaming\Phoenix\` (ASCII — **это не кириллица**, повезло).
+- `USER_DIR` → `C:\Users\runneradmin\AppData\Roaming\Phoenix\` (ASCII — повезло).
 
-**Плюс:** CI **не тестирует** Vosk/Whisper/Piper — они в `requirements-ci.txt` **не стоят**. Значит `paths.py` вызывается, но **модели не качаются**.
+**Плюс:** CI **не тестирует** Vosk/Whisper/Piper — они в
+`requirements-ci.txt` **не стоят**. Значит `paths.py` вызывается,
+но **модели не качаются**.
+
+## 🎯 Автоматизация релизов (в планах)
+
+**Идея:** при пуше тега `v*` GitHub Actions **сам**:
+1. Собирает `.exe` (PyInstaller).
+2. Собирает `Феникс_Setup.exe` (Inno Setup).
+3. Создаёт релиз на GitHub.
+4. Прикрепляет файлы.
+
+**Что нужно:**
+- PyInstaller в CI.
+- Скачивание + тихая установка Inno Setup.
+- Компиляция `installer.iss` через `ISCC.exe`.
+
+**Время:** 4–6 часов на настройку. **В планах (№121).**
+
+## 📌 Полезное
+
+- **Бейдж релиза:**
+  ```markdown
+  [![Release](https://img.shields.io/github/v/release/USER/REPO)](https://github.com/USER/REPO/releases)
+  ```
+- **Бейдж скачиваний:**
+  ```markdown
+  [![Downloads](https://img.shields.io/github/downloads/USER/REPO/total)](https://github.com/USER/REPO/releases)
+  ```
+- **Workflow файл:** `.github/workflows/test.yml`.
