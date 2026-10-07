@@ -6,9 +6,11 @@
     Плюс path.with_suffix(".tmp") давал общий временный файл.
 
 Как работает:
-    - Один FileLock на целевой файл (кэшируется per-path).
+    - Один threading.RLock + FileLock на целевой файл (кэш per-path).
+    - threading.RLock — сериализация внутри процесса (потоки).
+    - FileLock — сериализация между процессами.
     - Уникальный .tmp через tempfile.mkstemp.
-    - os.replace для атомарной подмены.
+    - os.replace для атомарной подмены (с retry на PermissionError).
     - Логи: сколько ключей прочитано / записано.
 
 Дефолтный путь — paths.config_path() (%APPDATA%\\Phoenix\\config.json).
@@ -20,36 +22,29 @@ import logging
 import os
 import tempfile
 import threading
+import time
 from pathlib import Path
 
 from filelock import FileLock
 
 log = logging.getLogger("jarvis.config_manager")
 
-# Кэш локов: один FileLock на каждый resolved path.
-# Иначе при параллельной записи в один файл через разные вызовы
-# можно получить гонку.
-# FileLock — для межпроцессной синхронизации.
-# threading.Lock — для внутрипроцессной (несколько потоков).
-# Только вместе они дают надёжную сериализацию:
-# FileLock сам по себе не защищает от гонок между потоками
-# внутри одного процесса.
+# Кэш локов per-path. Для каждого целевого файла — свой набор.
+# threading.RLock защищает от гонок внутри одного процесса.
+# FileLock — от гонок между процессами.
+_locks_guard = threading.Lock()
 _thread_locks: dict[str, threading.RLock] = {}
 _file_locks: dict[str, FileLock] = {}
-_locks_guard = threading.Lock()
 
 
 def _default_path() -> Path:
+    """Дефолтный путь config.json — через paths.py (USER_DIR)."""
     from jarvis import paths as _paths
     return _paths.config_path()
 
 
-def _get_lock(path: Path) -> tuple[threading.RLock, FileLock]:
-    """Возвращает (threading.RLock, FileLock) для конкретного файла.
-
-    threading.RLock — сериализация внутри процесса.
-    FileLock — сериализация между процессами.
-    """
+def _get_locks(path: Path) -> tuple[threading.RLock, FileLock]:
+    """Возвращает пару (threading.RLock, FileLock) для файла (кэшируется)."""
     key = str(path.resolve())
     with _locks_guard:
         t_lock = _thread_locks.get(key)
@@ -63,6 +58,24 @@ def _get_lock(path: Path) -> tuple[threading.RLock, FileLock]:
             _file_locks[key] = f_lock
 
         return t_lock, f_lock
+
+
+def _atomic_replace(tmp_name: str, target: Path) -> None:
+    """os.replace с 3 retry на Windows PermissionError.
+
+    На Windows os.replace иногда падает от антивируса или от кратковременной
+    блокировки файла. 3 попытки с паузой обычно решают.
+    """
+    last_exc: PermissionError | None = None
+    for attempt in range(3):
+        try:
+            os.replace(tmp_name, target)
+            return
+        except PermissionError as e:
+            last_exc = e
+            time.sleep(0.05 * (attempt + 1))
+    if last_exc is not None:
+        raise last_exc
 
 
 def load(path: Path | None = None) -> dict:
@@ -88,9 +101,10 @@ def save(data: dict, path: Path | None = None) -> bool:
     if not isinstance(data, dict):
         log.error("save: data не словарь (%s) — отказ", type(data).__name__)
         return False
+
     try:
         p.parent.mkdir(parents=True, exist_ok=True)
-        t_lock, f_lock = _get_lock(p)
+        t_lock, f_lock = _get_locks(p)
         with t_lock, f_lock:
             log.info("save: пишу %d ключей → %s", len(data), p.name)
             fd, tmp_name = tempfile.mkstemp(
@@ -99,18 +113,8 @@ def save(data: dict, path: Path | None = None) -> bool:
             try:
                 with os.fdopen(fd, "w", encoding="utf-8") as f:
                     json.dump(data, f, ensure_ascii=False, indent=2)
-
-                # os.replace на Windows иногда падает от антивируса
-                # или временной блокировки файла. 3 попытки с паузой.
-                last_exc = None
-                for attempt in range(3):
-                    try:
-                        os.replace(tmp_name, p)
-                        return True
-                    except PermissionError as e:
-                        last_exc = e
-                        time.sleep(0.05 * (attempt + 1))
-                raise last_exc
+                _atomic_replace(tmp_name, p)
+                return True
             except Exception:
                 try:
                     os.unlink(tmp_name)
@@ -125,9 +129,11 @@ def save(data: dict, path: Path | None = None) -> bool:
 def update(key: str, value, path: Path | None = None) -> bool:
     """Читает, меняет одно поле, записывает. Всё под одним локом."""
     p = Path(path) if path else _default_path()
+
     try:
         p.parent.mkdir(parents=True, exist_ok=True)
-        with _get_lock(p):
+        t_lock, f_lock = _get_locks(p)
+        with t_lock, f_lock:
             data = load(p)
             log.info("update: key=%r, до=%d ключей, файл=%s", key, len(data), p.name)
             data[key] = value
@@ -137,7 +143,7 @@ def update(key: str, value, path: Path | None = None) -> bool:
             try:
                 with os.fdopen(fd, "w", encoding="utf-8") as f:
                     json.dump(data, f, ensure_ascii=False, indent=2)
-                os.replace(tmp_name, p)
+                _atomic_replace(tmp_name, p)
                 return True
             except Exception:
                 try:
