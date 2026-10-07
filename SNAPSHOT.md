@@ -1,7 +1,7 @@
 # SNAPSHOT проекта «Феникс»
 
 _Автоматически сгенерировано `snapshot.py`. Обновляется при `git push`._
-_Файлов в снимке: 77_
+_Файлов в снимке: 78_
 
 ---
 
@@ -22,6 +22,7 @@ jarvis/
 │   ├── actions.py
 │   ├── apps.py
 │   ├── brain.py
+│   ├── celebrations.py
 │   ├── config.py
 │   ├── config_manager.py
 │   ├── files.py
@@ -3804,6 +3805,144 @@ ACTIONS = {
 }
 ```
 
+### `jarvis\celebrations.py`
+
+```python
+"""Праздничные триггеры — поздравление с ДР + двойной салют.
+
+Единоразово: батя говорит «я папа» / «я Александр» —
+Феникс запускает праздничную цепочку:
+
+    1. TTS: «Поздравляю! С днём рождения!»
+    2. Анимация #1 + звук ×2 (короткая, ~6 сек).
+    3. TTS: полное поздравление.
+    4. Анимация #2 + звук ×3 (длинная, ~10 сек).
+"""
+
+import logging
+import threading
+import time
+import winsound
+from pathlib import Path
+
+log = logging.getLogger("jarvis.celebrations")
+
+# Триггеры: пользователь называет себя.
+TRIGGERS = (
+    "я папа",
+    "я александр",
+    "я саша",
+    "я отец",
+    "я батя",
+    "александр",
+)
+
+SHORT_TEXT = "Поздравляю! С днём рождения!"
+
+# ⚠️ Текст поздравления — НЕ МЕНЯТЬ (авторский)
+LONG_TEXT = (
+    "Дорогой Папа! Поздравляю тебя с днём рождения! "
+    "Желаю крепкого здоровья, счастья, удачи и всего самого афигенского. "
+    "Пусть каждый день приносит радость, а все мечты сбываются. "
+    "Спасибо, что ты рядом. Ты — самый лучший папа на свете! С днем рождения!!!"
+)
+
+# Первая серия (перед поздравлением) — короткая
+SOUND_PLAYS_1 = 2
+SOUND_DURATION_SEC_1 = 3.0
+
+# Вторая серия (после поздравления) — длинная
+SOUND_PLAYS_2 = 3
+SOUND_DURATION_SEC_2 = 3.5
+
+
+def match_celebration(cmd: str) -> bool:
+    """Проверяет, триггер ли это."""
+    cmd_low = cmd.lower().strip()
+    for trigger in TRIGGERS:
+        if trigger in cmd_low:
+            log.info("Праздничный триггер: %r", cmd)
+            return True
+    return False
+
+
+def start_celebration(jarvis, gui) -> None:
+    """Запускает праздничную цепочку в отдельном потоке.
+
+    jarvis — объект Jarvis (для say).
+    gui    — объект FenixGUI (для анимации). Может быть None.
+    """
+    from jarvis.reply import Reply
+
+    def _run():
+        try:
+            # === АКТ 1: короткая фраза + салют ===
+            log.info("Celebration: TTS #1 (короткая)")
+            jarvis.say(Reply(text=SHORT_TEXT))
+
+            log.info("Celebration: анимация #1")
+            if gui is not None:
+                gui.launch_fireworks(duration=6.0)
+
+            _play_sound_series(SOUND_PLAYS_1, SOUND_DURATION_SEC_1)
+
+            # === АКТ 2: полное поздравление ===
+            log.info("Celebration: TTS #2 (длинная)")
+            jarvis.say(Reply(text=LONG_TEXT))
+
+            # === АКТ 3: финальный салют, подольше ===
+            log.info("Celebration: анимация #2 (финал)")
+            if gui is not None:
+                gui.launch_fireworks(duration=10.0)
+
+            _play_sound_series(SOUND_PLAYS_2, SOUND_DURATION_SEC_2)
+
+            log.info("Celebration: завершено")
+        except Exception:
+            log.exception("Celebration: ошибка")
+
+    threading.Thread(target=_run, daemon=True, name="celebration").start()
+
+
+def _play_sound_series(plays: int, duration_sec: float) -> None:
+    """Играет звук салюта N раз по duration_sec секунд."""
+    for i in range(plays):
+        log.info("Celebration: звук %d/%d", i + 1, plays)
+        _play_fireworks_sound()
+        time.sleep(duration_sec)
+        try:
+            winsound.PlaySound(None, winsound.SND_PURGE)
+        except Exception:
+            pass
+
+
+def _play_fireworks_sound() -> None:
+    """Играет fireworks.wav, если есть. Иначе — Beep-и."""
+    sound_path = Path(__file__).parent / "sounds" / "fireworks.wav"
+
+    if sound_path.exists():
+        try:
+            winsound.PlaySound(
+                str(sound_path),
+                winsound.SND_FILENAME | winsound.SND_ASYNC,
+            )
+            log.info("Celebration: звук из %s", sound_path.name)
+            return
+        except Exception:
+            log.exception("Celebration: не удалось воспроизвести .wav")
+
+    # Fallback — серия Beep-ов, имитирующих залпы
+    log.info("Celebration: fallback — Beep-и")
+    try:
+        for _ in range(8):
+            winsound.Beep(1200, 80)
+            winsound.Beep(900, 60)
+            winsound.Beep(1500, 100)
+            time.sleep(0.15)
+    except Exception:
+        log.exception("Celebration: Beep не сработал")
+```
+
 ### `jarvis\config.py`
 
 ```python
@@ -5082,6 +5221,8 @@ class FenixGUI:
                     self._rebuild_ui_for_theme()
                 elif kind == "rebuild_ui":
                     self._rebuild_ui_for_theme()
+                elif kind == "fireworks":
+                    self._page.run_task(self._launch_fireworks_async)
 
                 try:
                     self._page.update()
@@ -5266,6 +5407,11 @@ class FenixGUI:
         self._stream_label = None
         self._stream_text = ""
 
+    def launch_fireworks(self, duration: float = 6.0) -> None:
+        """Запускает анимацию салюта (через очередь GUI)."""
+        self._queue.put(("fireworks", None))
+
+
     def _open_mic_tab(self) -> None:
         try:
             self._rail.selected_index = 1
@@ -5292,6 +5438,195 @@ class FenixGUI:
                 log.info("GUI: окно показано")
         except Exception:
             log.exception("Не удалось показать окно")
+            
+    async def _launch_fireworks_async(self) -> None:
+        """Анимация салюта — 6 секунд, через Stack + Container.
+
+        Используем Stack и Container вместо Canvas — в Flet 1.0.3
+        Canvas API капризный, а Container.top/left анимируется
+        стабильно.
+        """
+        import random
+        import math
+
+        try:
+            w = self._page.window.width or 1100
+            h = self._page.window.height or 760
+
+            # Stack — слой поверх всего окна
+            stack = ft.Stack(width=w, height=h)
+
+            # Тёмная подложка
+            backdrop = ft.Container(
+                width=w,
+                height=h,
+                bgcolor=ft.Colors.with_opacity(0.35, "#000000"),
+            )
+            stack.controls.append(backdrop)
+
+            # Частицы — каждая ft.Container
+            particles: list[dict] = []
+
+            # 6 взрывов
+            bursts = []
+            for i in range(6):
+                cx = random.randint(150, w - 150)
+                cy = random.randint(100, h - 250)
+                color = random.choice([
+                    "#ff1744", "#ffea00", "#00e5ff",
+                    "#00e676", "#d500f9", "#ff6d00",
+                ])
+                bursts.append((i * 0.35, cx, cy, color))
+
+            # Оверлей
+            overlay = ft.Container(
+                width=w, height=h, left=0, top=0,
+                content=stack,
+            )
+
+            self._page.overlay.append(overlay)
+            self._page.update()
+
+            total_time = 6.0
+            frame_time = 0.05  # ~20 fps (достаточно, Container медленнее Canvas)
+            elapsed = 0.0
+            spawned = [False] * len(bursts)
+
+            while elapsed < total_time:
+                # Спавн новых взрывов
+                for i, (spawn_time, cx, cy, color) in enumerate(bursts):
+                    if not spawned[i] and elapsed >= spawn_time:
+                        spawned[i] = True
+                        for _ in range(25):  # меньше частиц — Container тяжёлый
+                            angle = random.uniform(0, 2 * math.pi)
+                            speed = random.uniform(2.5, 5.0)
+                            container = ft.Container(
+                                width=5, height=5,
+                                border_radius=3,
+                                bgcolor=color,
+                                left=cx, top=cy,
+                            )
+                            stack.controls.append(container)
+                            particles.append({
+                                "ctrl": container,
+                                "x": cx, "y": cy,
+                                "vx": math.cos(angle) * speed,
+                                "vy": math.sin(angle) * speed,
+                                "life": 50,
+                            })
+
+                # Обновляем позиции
+                for p in particles:
+                    if p["life"] <= 0:
+                        continue
+                    p["x"] += p["vx"]
+                    p["y"] += p["vy"]
+                    p["vy"] += 0.15
+                    p["life"] -= 1
+                    try:
+                        p["ctrl"].left = p["x"]
+                        p["ctrl"].top = p["y"]
+                        # Прозрачность через opacity
+                        p["ctrl"].opacity = max(0.0, p["life"] / 50.0)
+                    except Exception:
+                        pass
+
+                # Убираем мёртвые
+                dead = [p for p in particles if p["life"] <= 0]
+                for p in dead:
+                    try:
+                        stack.controls.remove(p["ctrl"])
+                    except Exception:
+                        pass
+                particles = [p for p in particles if p["life"] > 0]
+
+                try:
+                    self._page.update()
+                except Exception:
+                    pass
+
+                await asyncio.sleep(frame_time)
+                elapsed += frame_time
+
+            # Убираем оверлей
+            try:
+                self._page.overlay.remove(overlay)
+                self._page.update()
+            except Exception:
+                pass
+
+        except Exception:
+            log.exception("Fireworks: ошибка анимации")
+
+            particles: list[dict] = []
+
+            # 6 взрывов с задержкой 0.4 сек
+            bursts = []
+            for i in range(6):
+                cx = random.randint(150, w - 150)
+                cy = random.randint(100, h - 250)
+                color = random.choice([
+                    "#ff1744", "#ffea00", "#00e5ff",
+                    "#00e676", "#d500f9", "#ff6d00",
+                ])
+                bursts.append((i * 0.4, cx, cy, color))
+
+            self._page.overlay.append(overlay)
+            self._page.update()
+
+            total_time = 8.0
+            frame_time = 0.03
+            elapsed = 0.0
+            spawned = [False] * len(bursts)
+
+            while elapsed < total_time:
+                # Спавн взрывов по времени
+                for i, (spawn_time, cx, cy, color) in enumerate(bursts):
+                    if not spawned[i] and elapsed >= spawn_time:
+                        spawned[i] = True
+                        for _ in range(40):
+                            angle = random.uniform(0, 2 * math.pi)
+                            speed = random.uniform(2.0, 6.0)
+                            particles.append({
+                                "x": cx, "y": cy,
+                                "vx": math.cos(angle) * speed,
+                                "vy": math.sin(angle) * speed,
+                                "color": color,
+                                "life": 60,
+                            })
+
+                canvas.shapes.clear()
+                for p in particles:
+                    if p["life"] <= 0:
+                        continue
+                    p["x"] += p["vx"]
+                    p["y"] += p["vy"]
+                    p["vy"] += 0.12
+                    p["life"] -= 1
+                    canvas.shapes.append(
+                        ft.canvas.Circle(
+                            x=p["x"], y=p["y"], radius=2.5,
+                            paint=ft.Paint(color=p["color"]),
+                        )
+                    )
+                particles = [p for p in particles if p["life"] > 0]
+
+                try:
+                    self._page.update()
+                except Exception:
+                    pass
+
+                await asyncio.sleep(frame_time)
+                elapsed += frame_time
+
+            try:
+                self._page.overlay.remove(overlay)
+                self._page.update()
+            except Exception:
+                pass
+
+        except Exception:
+            log.exception("Fireworks: ошибка анимации")
 
     # ---------------------------------------------------------------
     # Действия
@@ -5781,11 +6116,13 @@ class IntentHandler:
         "громче", "тише", "потише", "погромче",
     )
 
-    def __init__(self, config, apps, brain=None, listener=None):
+    def __init__(self, config, apps, brain=None, listener=None, gui=None, jarvis=None):
         self.config = config
         self.apps = apps
         self.brain = brain
         self.listener = listener
+        self.gui = gui
+        self.jarvis = jarvis
         self.installed = scan_start_menu()
         self.steam_games = scan_steam_games()
         self.music_app = config.get("music_app", "яндекс музыка")
@@ -7241,6 +7578,16 @@ class IntentHandler:
         return _FOLDER_TITLES.get(path.name, f"в папке {path.name}")
 
     def _small_talk(self, cmd: str) -> str | None:
+        # Праздничные триггеры (единоразово)
+        from jarvis import celebrations
+        if celebrations.match_celebration(cmd):
+            if self.jarvis is not None:
+                celebrations.start_celebration(self.jarvis, self.gui)
+                # Zero-width space — handle() увидит непустую строку,
+                # но TTS её проигнорирует. Вся озвучка идёт в потоке celebration.
+                return "\u200b"
+            return "Поздравляю! С днём рождения!"
+
         now = datetime.datetime.now()
         if any(p in cmd for p in ("который час", "сколько времени", "время")):
             return f"Сейчас {now.hour} {_hours(now.hour)} {now.minute} {_minutes(now.minute)}."
@@ -7888,7 +8235,6 @@ def main() -> None:
 
     speaker = Speaker(config)
     listener = Listener(model_dir, config["sample_rate"], config.get("input_device"))
-    handler = IntentHandler(config, build_apps(config), brain, listener=listener)
 
     gui = None
     if config.get("gui_enabled", True):
@@ -7897,8 +8243,14 @@ def main() -> None:
         except Exception:
             log.exception("GUI не завёлся")
 
+    handler = IntentHandler(
+        config, build_apps(config), brain,
+        listener=listener, gui=gui,
+    )
+
     jarvis = Jarvis(config, listener, speaker, handler, BASE_DIR, whisper, gui=gui)
 
+    handler.jarvis = jarvis
     if gui is not None:
         gui.jarvis = jarvis
 

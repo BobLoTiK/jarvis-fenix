@@ -186,11 +186,13 @@ class IntentHandler:
         "громче", "тише", "потише", "погромче",
     )
 
-    def __init__(self, config, apps, brain=None, listener=None):
+    def __init__(self, config, apps, brain=None, listener=None, gui=None, jarvis=None):
         self.config = config
         self.apps = apps
         self.brain = brain
         self.listener = listener
+        self.gui = gui
+        self.jarvis = jarvis
         self.installed = scan_start_menu()
         self.steam_games = scan_steam_games()
         self.music_app = config.get("music_app", "яндекс музыка")
@@ -1646,6 +1648,16 @@ class IntentHandler:
         return _FOLDER_TITLES.get(path.name, f"в папке {path.name}")
 
     def _small_talk(self, cmd: str) -> str | None:
+        # Праздничные триггеры (единоразово)
+        from jarvis import celebrations
+        if celebrations.match_celebration(cmd):
+            if self.jarvis is not None:
+                celebrations.start_celebration(self.jarvis, self.gui)
+                # Zero-width space — handle() увидит непустую строку,
+                # но TTS её проигнорирует. Вся озвучка идёт в потоке celebration.
+                return "\u200b"
+            return "Поздравляю! С днём рождения!"
+
         now = datetime.datetime.now()
         if any(p in cmd for p in ("который час", "сколько времени", "время")):
             return f"Сейчас {now.hour} {_hours(now.hour)} {now.minute} {_minutes(now.minute)}."

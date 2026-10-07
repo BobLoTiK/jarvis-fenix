@@ -873,6 +873,8 @@ class FenixGUI:
                     self._rebuild_ui_for_theme()
                 elif kind == "rebuild_ui":
                     self._rebuild_ui_for_theme()
+                elif kind == "fireworks":
+                    self._page.run_task(self._launch_fireworks_async)
 
                 try:
                     self._page.update()
@@ -1057,6 +1059,11 @@ class FenixGUI:
         self._stream_label = None
         self._stream_text = ""
 
+    def launch_fireworks(self, duration: float = 6.0) -> None:
+        """Запускает анимацию салюта (через очередь GUI)."""
+        self._queue.put(("fireworks", None))
+
+
     def _open_mic_tab(self) -> None:
         try:
             self._rail.selected_index = 1
@@ -1083,6 +1090,195 @@ class FenixGUI:
                 log.info("GUI: окно показано")
         except Exception:
             log.exception("Не удалось показать окно")
+            
+    async def _launch_fireworks_async(self) -> None:
+        """Анимация салюта — 6 секунд, через Stack + Container.
+
+        Используем Stack и Container вместо Canvas — в Flet 1.0.3
+        Canvas API капризный, а Container.top/left анимируется
+        стабильно.
+        """
+        import random
+        import math
+
+        try:
+            w = self._page.window.width or 1100
+            h = self._page.window.height or 760
+
+            # Stack — слой поверх всего окна
+            stack = ft.Stack(width=w, height=h)
+
+            # Тёмная подложка
+            backdrop = ft.Container(
+                width=w,
+                height=h,
+                bgcolor=ft.Colors.with_opacity(0.35, "#000000"),
+            )
+            stack.controls.append(backdrop)
+
+            # Частицы — каждая ft.Container
+            particles: list[dict] = []
+
+            # 6 взрывов
+            bursts = []
+            for i in range(6):
+                cx = random.randint(150, w - 150)
+                cy = random.randint(100, h - 250)
+                color = random.choice([
+                    "#ff1744", "#ffea00", "#00e5ff",
+                    "#00e676", "#d500f9", "#ff6d00",
+                ])
+                bursts.append((i * 0.35, cx, cy, color))
+
+            # Оверлей
+            overlay = ft.Container(
+                width=w, height=h, left=0, top=0,
+                content=stack,
+            )
+
+            self._page.overlay.append(overlay)
+            self._page.update()
+
+            total_time = 6.0
+            frame_time = 0.05  # ~20 fps (достаточно, Container медленнее Canvas)
+            elapsed = 0.0
+            spawned = [False] * len(bursts)
+
+            while elapsed < total_time:
+                # Спавн новых взрывов
+                for i, (spawn_time, cx, cy, color) in enumerate(bursts):
+                    if not spawned[i] and elapsed >= spawn_time:
+                        spawned[i] = True
+                        for _ in range(25):  # меньше частиц — Container тяжёлый
+                            angle = random.uniform(0, 2 * math.pi)
+                            speed = random.uniform(2.5, 5.0)
+                            container = ft.Container(
+                                width=5, height=5,
+                                border_radius=3,
+                                bgcolor=color,
+                                left=cx, top=cy,
+                            )
+                            stack.controls.append(container)
+                            particles.append({
+                                "ctrl": container,
+                                "x": cx, "y": cy,
+                                "vx": math.cos(angle) * speed,
+                                "vy": math.sin(angle) * speed,
+                                "life": 50,
+                            })
+
+                # Обновляем позиции
+                for p in particles:
+                    if p["life"] <= 0:
+                        continue
+                    p["x"] += p["vx"]
+                    p["y"] += p["vy"]
+                    p["vy"] += 0.15
+                    p["life"] -= 1
+                    try:
+                        p["ctrl"].left = p["x"]
+                        p["ctrl"].top = p["y"]
+                        # Прозрачность через opacity
+                        p["ctrl"].opacity = max(0.0, p["life"] / 50.0)
+                    except Exception:
+                        pass
+
+                # Убираем мёртвые
+                dead = [p for p in particles if p["life"] <= 0]
+                for p in dead:
+                    try:
+                        stack.controls.remove(p["ctrl"])
+                    except Exception:
+                        pass
+                particles = [p for p in particles if p["life"] > 0]
+
+                try:
+                    self._page.update()
+                except Exception:
+                    pass
+
+                await asyncio.sleep(frame_time)
+                elapsed += frame_time
+
+            # Убираем оверлей
+            try:
+                self._page.overlay.remove(overlay)
+                self._page.update()
+            except Exception:
+                pass
+
+        except Exception:
+            log.exception("Fireworks: ошибка анимации")
+
+            particles: list[dict] = []
+
+            # 6 взрывов с задержкой 0.4 сек
+            bursts = []
+            for i in range(6):
+                cx = random.randint(150, w - 150)
+                cy = random.randint(100, h - 250)
+                color = random.choice([
+                    "#ff1744", "#ffea00", "#00e5ff",
+                    "#00e676", "#d500f9", "#ff6d00",
+                ])
+                bursts.append((i * 0.4, cx, cy, color))
+
+            self._page.overlay.append(overlay)
+            self._page.update()
+
+            total_time = 8.0
+            frame_time = 0.03
+            elapsed = 0.0
+            spawned = [False] * len(bursts)
+
+            while elapsed < total_time:
+                # Спавн взрывов по времени
+                for i, (spawn_time, cx, cy, color) in enumerate(bursts):
+                    if not spawned[i] and elapsed >= spawn_time:
+                        spawned[i] = True
+                        for _ in range(40):
+                            angle = random.uniform(0, 2 * math.pi)
+                            speed = random.uniform(2.0, 6.0)
+                            particles.append({
+                                "x": cx, "y": cy,
+                                "vx": math.cos(angle) * speed,
+                                "vy": math.sin(angle) * speed,
+                                "color": color,
+                                "life": 60,
+                            })
+
+                canvas.shapes.clear()
+                for p in particles:
+                    if p["life"] <= 0:
+                        continue
+                    p["x"] += p["vx"]
+                    p["y"] += p["vy"]
+                    p["vy"] += 0.12
+                    p["life"] -= 1
+                    canvas.shapes.append(
+                        ft.canvas.Circle(
+                            x=p["x"], y=p["y"], radius=2.5,
+                            paint=ft.Paint(color=p["color"]),
+                        )
+                    )
+                particles = [p for p in particles if p["life"] > 0]
+
+                try:
+                    self._page.update()
+                except Exception:
+                    pass
+
+                await asyncio.sleep(frame_time)
+                elapsed += frame_time
+
+            try:
+                self._page.overlay.remove(overlay)
+                self._page.update()
+            except Exception:
+                pass
+
+        except Exception:
+            log.exception("Fireworks: ошибка анимации")
 
     # ---------------------------------------------------------------
     # Действия

@@ -425,7 +425,6 @@ def main() -> None:
 
     speaker = Speaker(config)
     listener = Listener(model_dir, config["sample_rate"], config.get("input_device"))
-    handler = IntentHandler(config, build_apps(config), brain, listener=listener)
 
     gui = None
     if config.get("gui_enabled", True):
@@ -434,8 +433,14 @@ def main() -> None:
         except Exception:
             log.exception("GUI не завёлся")
 
+    handler = IntentHandler(
+        config, build_apps(config), brain,
+        listener=listener, gui=gui,
+    )
+
     jarvis = Jarvis(config, listener, speaker, handler, BASE_DIR, whisper, gui=gui)
 
+    handler.jarvis = jarvis
     if gui is not None:
         gui.jarvis = jarvis
 
