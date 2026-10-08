@@ -37,8 +37,12 @@ SetupIconFile=jarvis\icon.ico
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
-PrivilegesRequired=admin
-ArchitecturesInstallIn64BitMode=x64
+WizardImageFile=installer_banner.bmp
+WizardSmallImageFile=installer_small.bmp
+WizardImageStretch=yes
+WizardImageBackColor=$00160E0A
+PrivilegesRequired=lowest
+ArchitecturesInstallIn64BitMode=x64compatible
 
 [Languages]
 Name: "russian"; MessagesFile: "compiler:Languages\Russian.isl"
@@ -51,11 +55,11 @@ Name: "autostart"; Description: "Запускать Феникс при стар
 ; Главный exe
 Source: "Феникс.exe"; DestDir: "{app}"; Flags: ignoreversion
 ; Пакет jarvis
-Source: "jarvis\*"; DestDir: "{app}\jarvis"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "jarvis\*"; DestDir: "{app}\jarvis"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "__pycache__,*.pyc"
 ; Паки
 Source: "packs\*"; DestDir: "{app}\packs"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; Скрипты
-Source: "scripts\*"; DestDir: "{app}\scripts"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "scripts\*"; DestDir: "{app}\scripts"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "__pycache__,*.pyc"
 ; Конфиг-пример
 Source: "config.example.json"; DestDir: "{app}"; Flags: ignoreversion
 ; Зависимости
