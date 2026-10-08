@@ -1,7 +1,7 @@
 # SNAPSHOT проекта «Феникс»
 
 _Автоматически сгенерировано `snapshot.py`. Обновляется при `git push`._
-_Файлов в снимке: 79_
+_Файлов в снимке: 80_
 
 ---
 
@@ -82,6 +82,7 @@ jarvis/
 ├── create_shortcut.bat
 ├── install.bat
 ├── installer.iss
+├── jarvis-fenix.code-workspace
 ├── launcher.py
 ├── LICENSE
 ├── PLAN.md
@@ -11823,6 +11824,10 @@ def describe_currency(rates: dict, code: str = "") -> str:
     date = rates.get("date") or "сегодня"
     return f"Курс ЦБ на {date}: " + ", ".join(parts) + "."
 ```
+
+### `jarvis-fenix.code-workspace`
+
+_Бинарный или нетекстовый файл: .code-workspace_
 
 ### `launcher.py`
 
