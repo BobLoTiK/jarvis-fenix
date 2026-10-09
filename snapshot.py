@@ -23,6 +23,7 @@ EXCLUDE_DIRS = {
 
 EXCLUDE_FILES = {
     "config.json",
+    "system_caps.json",
     "user_profile.json",
     "dialog.json",
     "timers.json",

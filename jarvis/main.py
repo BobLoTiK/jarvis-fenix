@@ -154,7 +154,7 @@ class Jarvis:
 
             # Финальный текст — в память
             if result["text"] and hasattr(self.handler, "finalize_stream"):
-                self.handler.finalize_stream("", result["text"])
+                self.handler.finalize_stream(result["text"])
 
     def shutdown(self) -> None:
         self.stop_event.set()

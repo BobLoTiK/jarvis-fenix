@@ -265,6 +265,9 @@ def delete(name: str) -> bool:
             send2trash(str(path))
             log.info("Профиль перемещён в корзину: %s", safe)
         except ImportError:
+            log.warning(
+                "send2trash не установлен — профиль удаляется НАВСЕГДА"
+            )
             shutil.rmtree(path)
             log.info("Профиль удалён: %s", safe)
         return True

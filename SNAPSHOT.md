@@ -1,7 +1,7 @@
 # SNAPSHOT проекта «Феникс»
 
 _Автоматически сгенерировано `snapshot.py`. Обновляется при `git push`._
-_Файлов в снимке: 120_
+_Файлов в снимке: 119_
 
 ---
 
@@ -137,7 +137,6 @@ jarvis/
 ├── snapshot.py
 ├── start_fenix.bat
 ├── start_fenix_debug.bat
-├── system_caps.json
 ├── test_intents.py
 ```
 
@@ -9973,7 +9972,7 @@ class Jarvis:
 
             # Финальный текст — в память
             if result["text"] and hasattr(self.handler, "finalize_stream"):
-                self.handler.finalize_stream("", result["text"])
+                self.handler.finalize_stream(result["text"])
 
     def shutdown(self) -> None:
         self.stop_event.set()
@@ -11733,6 +11732,9 @@ def delete(name: str) -> bool:
             send2trash(str(path))
             log.info("Профиль перемещён в корзину: %s", safe)
         except ImportError:
+            log.warning(
+                "send2trash не установлен — профиль удаляется НАВСЕГДА"
+            )
             shutil.rmtree(path)
             log.info("Профиль удалён: %s", safe)
         return True
@@ -17888,6 +17890,7 @@ EXCLUDE_DIRS = {
 
 EXCLUDE_FILES = {
     "config.json",
+    "system_caps.json",
     "user_profile.json",
     "dialog.json",
     "timers.json",
@@ -18089,33 +18092,6 @@ echo  Феникс остановлен.
 echo  Нажми любую клавишу, чтобы закрыть окно.
 echo ============================================
 pause >nul
-```
-
-### `system_caps.json`
-
-```json
-{
-  "volume": {
-    "available": true,
-    "method": "volume_percent"
-  },
-  "brightness": {
-    "available": true,
-    "method": "sbc"
-  },
-  "layout": {
-    "available": true,
-    "method": "sendinput"
-  },
-  "cpu": {
-    "available": true,
-    "cores": 6,
-    "threads": 12,
-    "power": "strong",
-    "recommended_piper": "high"
-  },
-  "checked_at": 1791272042.5586116
-}
 ```
 
 ### `test_intents.py`
