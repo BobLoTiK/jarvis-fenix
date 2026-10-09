@@ -469,6 +469,14 @@ def main() -> None:
 
     jarvis = Jarvis(config, listener, speaker, handler, BASE_DIR, whisper, gui=gui)
 
+    # Прогрев тяжёлых API — brightness через WMI (~0.5 сек).
+    # Иначе первый голосовой запрос «какая яркость» виснет.
+    try:
+        from jarvis import actions
+        actions.get_brightness()
+    except Exception:
+        log.debug("Прогрев brightness не удался — не критично")
+
     # Обратные ссылки для праздничных триггеров
     handler.jarvis = jarvis
     if gui is not None:
@@ -523,6 +531,21 @@ def main() -> None:
     worker = threading.Thread(target=jarvis.run_loop, daemon=True, name="jarvis-listener")
     worker.start()
     threading.Thread(target=jarvis.mic_watchdog, daemon=True, name="mic-watchdog").start()
+
+    # Mood: раз в 60 сек проверяем, не «устарело» ли состояние.
+    # Возврат к neutral через 5 мин (см. mood.decay).
+    def _mood_decay_loop():
+        while not jarvis.stop_event.is_set():
+            if jarvis.stop_event.wait(60.0):
+                return
+            try:
+                from jarvis import mood
+                mood.decay()
+            except Exception:
+                log.exception("mood.decay упал в фоновом потоке")
+
+    threading.Thread(target=_mood_decay_loop, daemon=True,
+                     name="mood-decay").start()
 
     try:
         from jarvis import first_run, persona

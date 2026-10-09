@@ -230,9 +230,22 @@ class Speaker:
     def _speak_piper(self, text: str, token: threading.Event) -> None:
         if token.is_set():
             return
+
+        # Mood влияет на скорость речи.
+        # excited → +10%, tired → -10%.
+        cfg = self._piper_cfg
+        try:
+            from jarvis import mood
+            eff_rate = mood.effective_rate(self.rate)
+            from piper import SynthesisConfig
+            cfg = SynthesisConfig(length_scale=round(1.0 / eff_rate, 2))
+        except Exception:
+            log.exception("mood.effective_rate упал — использую базовую скорость")
+            cfg = self._piper_cfg
+
         buf = io.BytesIO()
         with wave.open(buf, "wb") as wf:
-            self._piper.synthesize_wav(text, wf, self._piper_cfg)
+            self._piper.synthesize_wav(text, wf, cfg)
         if token.is_set():
             return
         self._play_wav(buf.getvalue(), token)
@@ -261,7 +274,12 @@ class Speaker:
         if voice is not None:
             synth.voice = voice
         try:
-            synth.options.speaking_rate = self.rate
+            from jarvis import mood
+            eff = mood.effective_rate(self.rate)
+        except Exception:
+            eff = self.rate
+        try:
+            synth.options.speaking_rate = eff
         except Exception:
             pass
         stream = await synth.synthesize_text_to_stream_async(text)
@@ -293,6 +311,14 @@ class Speaker:
             else:
                 if token.is_set():
                     return
+                # Mood влияет на скорость SAPI.
+                try:
+                    from jarvis import mood
+                    self._engine.setProperty(
+                        "rate", int((mood.effective_rate(self.rate) - 1.0) * 100)
+                    )
+                except Exception:
+                    log.exception("Не удалось применить mood к SAPI rate")
                 self._engine.say(text)
                 self._engine.runAndWait()
         except Exception:

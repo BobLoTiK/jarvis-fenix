@@ -46,6 +46,18 @@ DEFAULT_CONFIG = {
     "ollama_url": "http://127.0.0.1:11434",
     "prompt_level": "auto",
     "llm_temperature": 0.7,
+
+    # Праздничные триггеры. По умолчанию ВЫКЛЮЧЕНО.
+    # Пользователь сам пишет триггеры и текст в config.json.
+    "celebration_enabled": False,
+    "celebration_triggers": [],
+    "celebration_short_text": "Поздравляю! С днём рождения!",
+    "celebration_long_text": "Поздравляю с днём рождения! Здоровья, счастья и удачи!",
+    "celebration_sound_1_plays": 2,
+    "celebration_sound_2_plays": 3,
+    "celebration_duration_1": 6.0,
+    "celebration_duration_2": 10.0,
+
     "music_app": "яндекс музыка",
     "music_wait_sec": 6,
     "active_packs": [],

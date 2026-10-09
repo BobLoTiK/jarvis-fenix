@@ -82,6 +82,15 @@ open_log
 open_profile (открыть profile.json в редакторе)
 get_weather (target — город; day: today|tomorrow)
 get_currency (target — ISO: USD|EUR|CNY|BYN|KZT|GBP|JPY|TRY|UAH)
+uia_read_window (прочитать текст активного окна)
+uia_read_url (URL активной вкладки)
+uia_read_tab (заголовок активной вкладки)
+uia_list_tabs (список вкладок браузера)
+uia_close_tab (target — часть заголовка вкладки)
+uia_switch_tab (target — часть заголовка вкладки)
+uia_click_button (target — часть имени кнопки)
+uia_active_window (описать активное окно)
+uia_menu (target — путь меню, например «Файл > Сохранить»)
 set_profile (key: name|default_city, value — сохранить в профиль)
 get_profile (key: name|default_city — прочитать из профиля)
 answer (reply)
@@ -167,6 +176,16 @@ none
 мой город Казань -> {"action":"set_profile","key":"default_city","value":"Казань"}
 как меня зовут -> {"action":"get_profile","key":"name"}
 какой город -> {"action":"get_profile","key":"default_city"}
+прочитай окно -> {"action":"uia_read_window"}
+что написано в блокноте -> {"action":"uia_read_window"}
+какой сайт открыт -> {"action":"uia_read_url"}
+какая вкладка -> {"action":"uia_read_tab"}
+какие вкладки -> {"action":"uia_list_tabs"}
+закрой вкладку ютуб -> {"action":"uia_close_tab","target":"ютуб"}
+переключись на вкладку хабр -> {"action":"uia_switch_tab","target":"хабр"}
+нажми кнопку ок -> {"action":"uia_click_button","target":"ок"}
+нажми сохранить -> {"action":"uia_click_button","target":"сохранить"}
+что открыто -> {"action":"uia_active_window"}
 включи музыку -> {"steps":[{"action":"open_app","target":"яндекс музыка","minimized":true},{"action":"wait","seconds":6},{"action":"media_key","key":"play"}]}
 расскажи шутку -> {"action":"answer","reply":"Почему медведь не ездит на машине? Потому что нет прав."}
 как дела -> {"action":"answer","reply":"Отлично, сэр. Готов к работе."}
@@ -230,6 +249,9 @@ set_timer (text; seconds|time) / list_timers / cancel_timers
 add_task (text) / list_tasks / done_task (task) / remove_task (task) / clear_tasks
 open_config / open_log / open_profile
 get_weather (target; day) / get_currency (target)
+uia_read_window / uia_read_url / uia_read_tab / uia_list_tabs
+uia_close_tab (target) / uia_switch_tab (target)
+uia_click_button (target) / uia_active_window / uia_menu (target)
 set_profile (key: name|default_city, value) / get_profile (key: name|default_city)
 answer (reply)
 none
@@ -249,6 +271,14 @@ none
 смени голос на ирину -> change_voice voice irina
 меня зовут Максим -> set_profile key=name value=Максим
 какой город -> get_profile key=default_city
+прочитай окно -> uia_read_window
+какой сайт открыт -> uia_read_url
+какая вкладка -> uia_read_tab
+какие вкладки -> uia_list_tabs
+закрой вкладку ютуб -> uia_close_tab target=ютуб
+переключись на вкладку хабр -> uia_switch_tab target=хабр
+нажми кнопку ок -> uia_click_button target=ок
+что открыто -> uia_active_window
 
 === ПРАВИЛА ===
 Не путай погоду и курс.
@@ -281,7 +311,10 @@ change_voice, list_voices, set_timer, list_timers, cancel_timers,
 add_task, list_tasks, done_task, remove_task, clear_tasks,
 open_config, open_log, open_profile, get_weather, get_currency, answer, none,
 set_profile (key: name|default_city, value — сохранить в профиль),
-get_profile (key: name|default_city — прочитать из профиля).
+get_profile (key: name|default_city — прочитать из профиля),
+uia_read_window, uia_read_url, uia_read_tab, uia_list_tabs,
+uia_close_tab (target), uia_switch_tab (target),
+uia_click_button (target), uia_active_window, uia_menu (target).
 
 === ПРОФИЛЬ ===
 Пользователь просит запомнить/поменять → set_profile.
@@ -301,6 +334,16 @@ get_profile (key: name|default_city — прочитать из профиля).
     «открой профиль в блокноте» → {"action":"open_profile","editor":"system"}
     «открой конфиг» → {"action":"open_config"}
     «открой журнал» → {"action":"open_log"}
+
+    «прочитай окно» → {"action":"uia_read_window"}
+    «какой сайт открыт» → {"action":"uia_read_url"}
+    «какая вкладка» → {"action":"uia_read_tab"}
+    «какие вкладки» → {"action":"uia_list_tabs"}
+    «закрой вкладку ютуб» → {"action":"uia_close_tab","target":"ютуб"}
+    «переключись на вкладку хабр» → {"action":"uia_switch_tab","target":"хабр"}
+    «нажми кнопку ок» → {"action":"uia_click_button","target":"ок"}
+    «нажми сохранить» → {"action":"uia_click_button","target":"сохранить"}
+    «что открыто» → {"action":"uia_active_window"}
 
 === ДИАЛОГ ===
 Ты — Феникс. Спокойный, вежливый, с сухим юмором, «сэр».
@@ -456,7 +499,7 @@ class Brain:
             return json.loads(r.read())["message"]["content"]
 
     def _system_with_context(self, base: str) -> str:
-        """Добавляет к промпту персону + факты + corrections."""
+        """Добавляет к промпту персону + mood + факты + corrections."""
         parts = []
 
         try:
@@ -466,6 +509,14 @@ class Brain:
                 parts.append(persona_block)
         except Exception:
             log.exception("Не удалось собрать блок персоны")
+
+        try:
+            from jarvis import mood
+            mood_block = mood.build_prompt_block()
+            if mood_block:
+                parts.append(mood_block)
+        except Exception:
+            log.exception("Не удалось собрать блок mood")
 
         try:
             extra = learning.build_context()
@@ -718,4 +769,14 @@ ACTIONS = {
     "delete_profile",
     "set_profile", "get_profile",
     "open_profile",
+    # === UIA ===
+    "uia_read_window",       # прочитать текст активного окна
+    "uia_read_url",          # URL активной вкладки
+    "uia_read_tab",          # заголовок активной вкладки
+    "uia_list_tabs",         # список вкладок
+    "uia_close_tab",         # закрыть вкладку (target)
+    "uia_switch_tab",        # переключиться на вкладку (target)
+    "uia_click_button",      # нажать кнопку (target)
+    "uia_active_window",     # описать активное окно
+    "uia_menu",              # клик по меню (target = «Файл > Сохранить»)
 }

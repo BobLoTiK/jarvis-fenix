@@ -1,7 +1,7 @@
 # SNAPSHOT проекта «Феникс»
 
 _Автоматически сгенерировано `snapshot.py`. Обновляется при `git push`._
-_Файлов в снимке: 119_
+_Файлов в снимке: 127_
 
 ---
 
@@ -34,6 +34,7 @@ jarvis/
 │   │   │   ├── system.py
 │   │   │   ├── tasks.py
 │   │   │   ├── timers.py
+│   │   │   ├── uia.py
 │   │   │   ├── undo.py
 │   │   │   ├── voices.py
 │   │   │   ├── weather.py
@@ -77,6 +78,7 @@ jarvis/
 │   ├── memory.py
 │   ├── model.py
 │   ├── modes.py
+│   ├── mood.py
 │   ├── observer.py
 │   ├── packs.py
 │   ├── paths.py
@@ -91,6 +93,7 @@ jarvis/
 │   ├── timers.py
 │   ├── tray.py
 │   ├── tts.py
+│   ├── uia.py
 │   ├── voices.py
 │   ├── weather.py
 ├── packs/
@@ -111,8 +114,11 @@ jarvis/
 │   ├── voicedemo.py
 │   ├── wakebench.py
 ├── tests/
+│   ├── __init__.py
 │   ├── test_caps.py
 │   ├── test_config_manager.py
+│   ├── test_mood.py
+│   ├── test_uia.py
 │   ├── test_weather.py
 ├── ARCHITECTURE.md
 ├── CHANGELOG.md
@@ -138,6 +144,8 @@ jarvis/
 ├── start_fenix.bat
 ├── start_fenix_debug.bat
 ├── test_intents.py
+├── test_uia_dump.py
+├── test_uia_manual.py
 ```
 
 ---
@@ -261,37 +269,60 @@ jobs:
 
 ## 📑 Содержание
 
-- [🗂 Два корня путей](#-два-корня-путей)
-- [🗺 Карта модулей](#-карта-модулей)
-- [🔄 Поток обработки фразы](#-поток-обработки-фразы)
-- [🎓 Онбординг](#-онбординг-первый-запуск)
-- [👁 Observer](#-observer-фоновое-извлечение-фактов)
-- [🎭 Персона](#-персона)
-- [⚡ Реестр быстрых обработчиков](#-реестр-быстрых-обработчиков)
-- [👤 Универсальный профиль](#-универсальный-профиль-set_profile--get_profile)
-- [🖼 GUI](#-gui-flet-103)
-- [👥 Мультипрофиль](#-мультипрофиль)
-- [⚙️ Поток конфига](#️-поток-конфига)
-- [🌤 Погода и курс](#-погода-и-курс-валют)
-- [📂 Открытие файлов](#-открытие-файлов-в-редакторе)
-- [📦 Пак-команды](#-пак-команды-с-аргументами)
-- [🚀 Лаунчер](#-лаунчер-фениксеxe)
-- [🧩 Ключевые объекты](#-ключевые-объекты)
-- [💾 Файлы данных](#-файлы-данных)
-- [🌐 Внешние зависимости](#-внешние-зависимости)
-- [🧪 Тесты](#-тесты)
-- [🏗 Инфраструктура](#-инфраструктура)
-- [📦 Сборка и установка](#-сборка-и-установка)
-- [⚠️ Что важно помнить](#️-что-важно-помнить-при-доработке)
+- [🏗 Архитектура «Феникс»](#-архитектура-феникс)
+  - [📑 Содержание](#-содержание)
+  - [🗂 Два корня путей](#-два-корня-путей)
+    - [Fallback для `PROGRAM_DIR`](#fallback-для-program_dir)
+    - [В `USER_DIR` также живут](#в-user_dir-также-живут)
+  - [🗺 Карта модулей](#-карта-модулей)
+  - [🔄 Поток обработки фразы](#-поток-обработки-фразы)
+  - [🎓 Онбординг (первый запуск)](#-онбординг-первый-запуск)
+  - [👁 Observer (фоновое извлечение фактов)](#-observer-фоновое-извлечение-фактов)
+  - [🎭 Персона](#-персона)
+  - [💗 Mood](#-mood)
+  - [🖥 UIA](#-uia)
+  - [⚡ Реестр быстрых обработчиков](#-реестр-быстрых-обработчиков)
+  - [👤 Универсальный профиль (`set_profile` / `get_profile`)](#-универсальный-профиль-set_profile--get_profile)
+  - [🖼 GUI (Flet 1.0.3)](#-gui-flet-103)
+    - [Режим запуска](#режим-запуска)
+    - [Трей (отключён)](#трей-отключён)
+    - [Темы GUI](#темы-gui)
+    - [Подписки GUI](#подписки-gui)
+    - [Вкладка «Микрофон»](#вкладка-микрофон)
+    - [Салют (праздничный)](#салют-праздничный)
+    - [Иконка окна](#иконка-окна)
+  - [👥 Мультипрофиль](#-мультипрофиль)
+  - [⚙️ Поток конфига](#️-поток-конфига)
+  - [🌤 Погода и курс валют](#-погода-и-курс-валют)
+  - [📂 Открытие файлов в редакторе](#-открытие-файлов-в-редакторе)
+  - [📦 Пак-команды с аргументами](#-пак-команды-с-аргументами)
+  - [🚀 Лаунчер (`Феникс.exe`)](#-лаунчер-фениксexe)
+  - [🧩 Ключевые объекты](#-ключевые-объекты)
+  - [💾 Файлы данных](#-файлы-данных)
+  - [🌐 Внешние зависимости](#-внешние-зависимости)
+  - [🧪 Тесты](#-тесты)
+  - [🏗 Инфраструктура](#-инфраструктура)
+    - [`.venv311`](#venv311)
+    - [Git](#git)
+    - [`commit.bat`](#commitbat)
+  - [📦 Сборка и установка](#-сборка-и-установка)
+    - [`scripts/make_icon.py`](#scriptsmake_iconpy)
+    - [`scripts/make_installer_images.py`](#scriptsmake_installer_imagespy)
+    - [`scripts/build_exe.py`](#scriptsbuild_exepy)
+    - [`installer.iss`](#installeriss)
+    - [`create_shortcut.bat`](#create_shortcutbat)
+  - [⚠️ Что важно помнить при доработке](#️-что-важно-помнить-при-доработке)
+    - [Код](#код)
+    - [GUI](#gui)
 
 ---
 
 ## 🗂 Два корня путей
 
-```
+~~~~
 PROGRAM_DIR — C:\ProgramData\Phoenix\   (ASCII, для Vosk/Whisper)
 USER_DIR    — %APPDATA%\Phoenix\         (личные данные юзера)
-```
+~~~~
 
 > **Почему:** Vosk (C++ на Kaldi) **ломается** на не-ASCII путях
 > (`C:\Users\Максим\...`). Поэтому модель Vosk и кэш Whisper — **всегда
@@ -326,15 +357,39 @@ USER_DIR    — %APPDATA%\Phoenix\         (личные данные юзера
 
 ## 🗺 Карта модулей
 
-```
+~~~~
 jarvis/
 ├── main.py           — точка входа, Jarvis, barge-in, cmd_lock
 ├── config.py         — Config в памяти + подписки
 ├── config_manager.py — атомарная запись (FileLock per-path)
 ├── paths.py          — PROGRAM_DIR / USER_DIR
 ├── brain.py          — Ollama: parse() / chat_stream() / onboarding_chat()
-├── intents.py        — IntentHandler: правила + LLM + _fast_handlers()
-│                       + _onboarding_chat_step() + _looks_like_command()
+├── intents/          — пакет (после рефакторинга)
+│   ├── handler.py    — IntentHandler, pipeline, подписки
+│   ├── context.py    — Ctx для стадий
+│   ├── verbs.py      — COMMAND_VERBS, CANCEL, SEARCH_VERBS
+│   ├── password.py   — хеш пароля, миграция, DANGER_ACTIONS
+│   ├── sites.py      — SITES из packs/sites.json
+│   ├── execute.py    — dispatch: action → функция + UIA-обработчики
+│   ├── stages/       — 11 стадий pipeline
+│   │   ├── base.py       — class Stage
+│   │   ├── cancel.py     — «стоп», «хватит»
+│   │   ├── onboarding.py — LLM-диалог + _looks_like_command
+│   │   ├── correction.py — learning.find_correction
+│   │   ├── password.py   — пароль + «удали профиль»
+│   │   ├── memory.py     — dialog
+│   │   ├── pending.py    — уточнения
+│   │   ├── clipboard.py  — 4 команды буфера
+│   │   ├── modes.py      — commands/llm/combo
+│   │   ├── compound.py   — «открой стим и запусти доту»
+│   │   ├── fast.py       — вызов реестра
+│   │   └── llm.py        — brain.parse + chat_stream
+│   └── fast/         — 17 быстрых обработчиков
+│       ├── custom.py, small_talk.py, music.py, screenshot.py
+│       ├── uia.py, open.py, voices.py, packs.py
+│       ├── timers.py, tasks.py, persona.py, profile.py
+│       ├── memory.py, system.py, debug.py
+│       └── undo.py, correction.py, weather.py
 ├── reply.py          — Reply (text | stream)
 ├── gui.py            — Flet GUI + PALETTES + fireworks
 ├── history.py        — стек отмены
@@ -345,6 +400,8 @@ jarvis/
 ├── packs.py          — загрузка/выгрузка паков
 ├── profile.py        — profiles/<user>/profile.json + subscribe
 ├── persona.py        — персона: стиль, черты, backstory
+├── mood.py           — эмоциональное состояние (neutral/happy/...)
+├── uia.py            — окна, вкладки, кнопки (20+ браузеров)
 ├── memory.py         — profiles/<user>/dialog.json (атомарно)
 ├── observer.py       — фоновое извлечение фактов через LLM
 ├── first_run.py      — greeting, is_first_run, mark_done
@@ -354,7 +411,7 @@ jarvis/
 ├── tasks.py          — задачи (USER_DIR, атомарно)
 ├── actions.py        — окна, медиа, _looks_like_cmd, _activate_window_hard
 ├── text_utils.py     — normalize(), strip_cjk(), prepare_text()
-├── celebrations.py   — поздравление с ДР + двойной салют
+├── celebrations.py   — поздравление с ДР (триггеры из config)
 ├── files.py          — папки (Desktop, Downloads, ...)
 ├── apps.py           — каталог приложений
 ├── installed.py      — индекс меню «Пуск»
@@ -363,17 +420,16 @@ jarvis/
 ├── model.py          — загрузка Vosk (всегда в ASCII-путь)
 ├── recorder.py       — запись макросов
 ├── tray.py           — трей (временно отключён)
-├── uia.py            — UI Automation (в планах, Этап 1.10)
-├── vision.py         — VLM-зрение (в планах, Этап 10)
-├── hermes.py         — мост к Hermes (в планах, Этап 11)
-└── resources.py      — приоритеты и очередь (в планах, Этап 12)
-```
+├── vision.py         — VLM-зрение (в планах, Этап 8)
+├── hermes.py         — мост к Hermes (в планах, Этап 8)
+└── resources.py      — приоритеты и очередь (в планах, Этап 8)
+~~~~
 
 ---
 
 ## 🔄 Поток обработки фразы
 
-```
+~~~~
 Микрофон
    ↓
 stt.Listener (Vosk) — ловит wake-слово
@@ -383,32 +439,29 @@ stt.WhisperTranscriber — уточняет (HF_HOME временно → ASCII)
 main.Jarvis._process → извлекает команду (без wake)
    ↓
 intents.IntentHandler.handle(cmd)   ← normalize(cmd)
-   ├── _onboarding_chat_step (первый запуск, LLM-диалог)
-   ├── CANCEL («стой», «хватит», ...)
-   ├── Коррекции (learning.find_correction)
-   ├── Пароль (pending_password)
-   ├── Удаление профиля
-   ├── Память диалога (memory.handle_memory_command)
-   ├── pending_question (уточнения)
-   ├── Буфер обмена (4 проверки)
-   ├── Режимы (modes)
-   ├── Custom / small_talk / скриншот
-   ├── celebrations.match_celebration (ДР)
-   ├── _split_compound (многослойные)
-   ├── ⚡ РЕЕСТР _fast_handlers()
-   │   ├── custom, small_talk, music, open_profile
-   │   ├── open, voices, packs, timers, tasks
-   │   └── persona, profile, memory, system, debug,
-   │       correction, undo, weather_currency
-   ├── brain.parse(cmd) → intent → _execute_intent
-   └── brain.chat_stream() → генератор
+   ↓
+Pipeline (11 стадий, порядок важен):
+   ├── cancel       — «стой», «хватит»
+   ├── onboarding   — первый запуск, LLM-диалог
+   ├── correction   — «это не то, я сказал …»
+   ├── password     — пароль / «удали профиль X»
+   ├── memory       — «что обсуждали», «забудь всё»
+   ├── pending      — уточнения («в каком городе?»)
+   ├── clipboard    — 4 команды буфера
+   ├── modes        — commands/llm/combo
+   ├── compound     — «открой стим и запусти доту»
+   ├── fast         — реестр быстрых правил
+   └── llm          — brain.parse + chat_stream
    ↓
 main.Jarvis.say(reply) ← cmd_lock
    ├── если text → speaker.play_async()
    └── если stream → speaker.speak_stream() + tee → gui.add_stream_chunk()
    ↓
 tts.Speaker → Piper / XTTS / WinRT / SAPI
-```
+~~~~
+
+**Плюс:** в `handle` **до** pipeline идёт `mood.apply_from_text(cmd)` —
+детекция эмоции из текста.
 
 ---
 
@@ -416,31 +469,31 @@ tts.Speaker → Piper / XTTS / WinRT / SAPI
 
 > **Не сценарии.** LLM ведёт **живой диалог**.
 
-```
+~~~~
 first_run.greeting() → «Привет! Я Феникс, локальный голосовой помощник.
                         Не хочешь немного поболтать? Расскажи — чем
                         занимаешься, что нового?»
 
 Пользователь отвечает
    ↓
-intents._onboarding_chat_step(cmd)
+stages/onboarding.py
    ├── if not first_run.is_first_run() → None
    ├── if LLM недоступна → first_run.mark_done() → None
-   ├── if self._looks_like_command(cmd) → None (пусть идёт в обычный handle)
-   ├── history = list(self.dialog)[-10:]
+   ├── if _looks_like_command(cmd) → None (пусть идёт в обычный handle)
+   ├── history = list(dialog)[-10:]
    ├── force_done = user_msgs >= 6
    ├── result = brain.onboarding_chat(cmd, history)
    │   → {"reply": str, "name": str|None, "style": str|None, "onboarding_done": bool}
    ├── profile.set("name", ...) если LLM вернула
    ├── persona.set_field("speech_style", ...) если LLM вернула
    └── if onboarding_done or force_done → first_run.mark_done()
-```
+~~~~
 
 **`brain.onboarding_chat()`** — отдельный промпт (`ONBOARDING_CHAT_PROMPT`).
 Цели: узнать имя/стиль, **не допрашивать**, завершить за 3–5 обменов.
 
-**`_looks_like_command(cmd)`** — быстрая проверка: если фраза начинается с
-глагола-команды (`открой`, `закрой`, `найди`, ...), онбординг её **пропускает**.
+**`_looks_like_command(cmd)`** — быстрая проверка: если фраза начинается
+с глагола-команды (`COMMAND_VERBS`), онбординг её **пропускает**.
 
 **`first_run.py`** — минимальный:
 
@@ -456,7 +509,7 @@ intents._onboarding_chat_step(cmd)
 
 > **Не спрашивает — слушает.** Раз в 30 сек отправляет **историю диалога** в LLM.
 
-```
+~~~~
 Jarvis._process → observer.observe("user", cmd)
                 → observer.observe("assistant", reply)
    ↓
@@ -472,7 +525,7 @@ DialogObserver._loop (раз в 5 сек)
        ├── profile.set("age", ...) если пусто
        ├── persona.set_field("speech_style", ...) если friendly
        └── learning.add_fact(k, v) для facts
-```
+~~~~
 
 **Ключевое:** observer **не блокирует** диалог. Работает **параллельно**.
 
@@ -486,7 +539,7 @@ DialogObserver._loop (раз в 5 сек)
 
 **Хранится в `profile.json` → `persona`:**
 
-```json
+~~~~json
 {
   "assistant_name": "Феникс",
   "speech_style": "friendly",
@@ -496,7 +549,7 @@ DialogObserver._loop (раз в 5 сек)
   "onboarding_at": 0.0,
   "onboarding_step": 0
 }
-```
+~~~~
 
 **Стили:** `formal` / `friendly` / `sarcastic` / `brief`.
 
@@ -515,11 +568,13 @@ DialogObserver._loop (раз в 5 сек)
 
 **В `brain._system_with_context()`:**
 
-```
-base (CHAT_SYSTEM) + persona.build_prompt_block() + learning.build_context()
-```
+~~~~
+base (CHAT_SYSTEM) + persona.build_prompt_block()
+                  + mood.build_prompt_block()
+                  + learning.build_context()
+~~~~
 
-**Команды (`_persona_fast`):**
+**Команды (`fast/persona.py`):**
 
 | Фраза | Действие |
 |---|---|
@@ -530,15 +585,159 @@ base (CHAT_SYSTEM) + persona.build_prompt_block() + learning.build_context()
 
 ---
 
+## 💗 Mood
+
+**Файл:** `jarvis/mood.py`.
+
+**Состояния:** `neutral` / `happy` / `excited` / `annoyed` / `bored` / `tired`.
+
+**Хранится в `profile.json` → `mood`:**
+
+~~~~json
+{
+  "state": "happy",
+  "since": 1791626400.0,
+  "reason": "похвала"
+}
+~~~~
+
+**API:**
+
+| Метод | Что делает |
+|---|---|
+| `get()` | dict (с дефолтами) |
+| `get_state()` | строка состояния |
+| `set_mood(state, reason)` | установить + оповестить подписчиков |
+| `detect(cmd)` | эвристика: какое состояние вызвать? |
+| `apply_from_text(cmd)` | detect + set |
+| `decay(max_age_sec)` | возврат к `neutral` |
+| `effective_rate(base)` | множитель для TTS |
+| `color()` | цвет для GUI |
+| `build_prompt_block()` | блок для LLM |
+| `describe()` | человеческое описание |
+| `handle_mood_command(cmd)` | «как настроение», «не грусти», «успокойся» |
+
+**Детекция из текста:**
+
+| Регулярка | Состояние |
+|---|---|
+| `_RUDE` (тупой, дурак, идиот) | `annoyed` |
+| `_TIRED` (устал, спать хочу) | `tired` |
+| `_EXCITED` (ура, получилось, вау) | `excited` |
+| `_PRAISE` (спасибо, молодец, круто) | `happy` |
+
+**Приоритет:** `rude` > `tired` > `excited` > `praise`.
+
+**Влияние:**
+
+- **TTS** — `effective_rate()`: `excited` +10%, `tired` -10%.
+- **GUI** — `color()` перекрашивает статус-сферу в `idle`.
+- **LLM** — `build_prompt_block()` добавляется в system prompt.
+
+**Decay** — фоновый поток в `main.py` раз в 60 сек вызывает `mood.decay()`.
+Возврат к `neutral` через 5 минут.
+
+**Подписки:** `mood.subscribe(cb)` → `cb(old_state, new_state)`.
+GUI использует это для перекраски сферы.
+
+---
+
+## 🖥 UIA
+
+**Файл:** `jarvis/uia.py`.
+
+**Обёртка над `uiautomation`** (Windows UI Automation через COM).
+
+**Поиск браузера — по PID процесса**, а не по имени окна.
+20+ известных процессов: `chrome.exe`, `msedge.exe`, `browser.exe`
+(Яндекс), `opera.exe`, `brave.exe`, `vivaldi.exe`, `firefox.exe`,
+`arc.exe`, `chromium.exe`, `librewolf.exe`, `waterfox.exe`, и др.
+
+**API:**
+
+| Метод | Что делает |
+|---|---|
+| `list_windows()` | все видимые окна (для отладки) |
+| `list_browsers()` | запущенные браузеры (по процессам) |
+| `find_browser_window()` | найти окно любого браузера |
+| `get_active_window()` | активное окно |
+| `get_active_window_title()` | заголовок активного окна |
+| `read_browser_tab_title()` | заголовок активной вкладки |
+| `read_browser_tabs()` | список всех вкладок |
+| `read_browser_url()` | URL адресной строки |
+| `close_browser_tab(name)` | закрыть вкладку по имени |
+| `switch_browser_tab(name)` | переключиться на вкладку |
+| `read_active_text(max_chars)` | текст активного окна |
+| `click_button(name)` | нажать кнопку по имени |
+| `click_menu_item(path)` | клик по меню («Файл > Сохранить») |
+| `describe_active_window()` | описание активного окна |
+| `describe_browsers()` | описание запущенных браузеров |
+
+**Команды голосом (`fast/uia.py`):**
+
+| Фраза | Что делает |
+|---|---|
+| «Что открыто» | описание активного окна |
+| «Прочитай окно» | текст активного окна |
+| «Какой сайт открыт» | URL или заголовок |
+| «Какая вкладка» | заголовок активной вкладки |
+| «Какие вкладки» | список вкладок |
+| «Закрой вкладку ютуб» | находит и закрывает |
+| «Переключись на вкладку хабр» | активирует |
+| «Нажми OK» | ищет кнопку |
+| «Нажми enter» | key_press |
+
+**LLM-actions:** `uia_read_window`, `uia_read_url`, `uia_read_tab`,
+`uia_list_tabs`, `uia_close_tab`, `uia_switch_tab`, `uia_click_button`,
+`uia_active_window`, `uia_menu`.
+
+**Особенности:**
+
+- **Chromium-браузеры** (Chrome, Edge, Яндекс) держат вкладки внутри
+  `ToolBarControl 'Вкладки'` → `TabItemControl`.
+  Ищем через `uiautomation.ToolBarControl(searchFromControl=..., Name="Вкладки")`.
+- **URL** Яндекс.Браузер **не отдаёт** через UIA. Fallback — заголовок
+  окна. В Chrome/Edge — работает.
+- **Поиск по процессу** — работает даже если браузер не в фокусе.
+- **`FindAll` не существует** у `WindowControl`. Использовать
+  конструкторы `auto.EditControl(searchFromControl=...)` и
+  `auto.ToolBarControl(searchFromControl=..., Name="Вкладки")`.
+
+---
+
 ## ⚡ Реестр быстрых обработчиков
 
-`IntentHandler._fast_handlers()` — **список `(имя, функция)`**. Порядок = приоритет.
+`IntentHandler._fast_handlers_cache` — **список `(имя, lambda)`**. Порядок = приоритет.
 
 Каждый: `(cmd: str) -> str | None`. Вернул строку — команда обработана. `None` — идём дальше.
 
-> **Правило:** специфичные — **выше** общих. `open_profile` — **выше** `open`.
+> **Правило:** специфичные — **выше** общих.
 
-- **Кэш:** список строится **один раз** в `__init__` (`self._fast_handlers_cache`).
+Порядок (из `fast/__init__.py`):
+
+| # | Имя | Обработчик |
+|---|---|---|
+| 1 | custom | `match_custom` |
+| 2 | small_talk | `small_talk` |
+| 3 | music | `music_fast` |
+| 4 | screenshot | `screenshot_fast` |
+| 5 | uia | `uia_fast` |
+| 6 | open_profile | `open_profile_fast` |
+| 7 | open | `open_fast` |
+| 8 | voices | `voices_fast` |
+| 9 | packs | `packs_fast` |
+| 10 | timers | `timers_fast` |
+| 11 | tasks | `tasks_fast` |
+| 12 | persona | `persona_fast` |
+| 13 | profile | `profile_fast` |
+| 14 | memory | `memory_fast` |
+| 15 | system | `system_fast` |
+| 16 | debug | `debug_fast` |
+| 17 | correction | `correction_fast` |
+| 18 | undo | `undo_fast` |
+| 19 | weather_currency | `weather_currency_fast` |
+
+- **Кэш:** список строится **один раз** в `__init__` (`_fast_handlers_cache`).
 - **Исключения** в обработчике **логируются**, но **не роняют** команду.
 
 ---
@@ -549,21 +748,26 @@ base (CHAT_SYSTEM) + persona.build_prompt_block() + learning.build_context()
 
 **Сейчас:** LLM **сама разбирает**:
 
-```
+~~~~
 «меня зовут Максим» → {"action": "set_profile", "key": "name", "value": "Максим"}
 «какой город»       → {"action": "get_profile", "key": "default_city"}
-```
+~~~~
 
 **Regex `_profile_fast`:** **тире обязательно** — `я\s*[-—]\s*Имя`.
 Голое `я ` **не матчится** (иначе «я хочу спать» создаёт профиль).
+
+**Обработчики:** `_do_set_profile` / `_do_get_profile` в `execute.py`.
+
+**Нормализация ключей:** `_KEY_MAP` — `"имя" → "name"`, `"город" → "default_city"`,
+`"city" → "default_city"`, `"мой город" → "default_city"`.
 
 ---
 
 ## 🖼 GUI (Flet 1.0.3)
 
-```
+~~~~
 Flet Main Thread
-   ├── NavigationRail (слева): Главная / Микрофон / Настройки
+   ├── NavigationRail (слева): Главная / Микрофон / Персона / Настройки
    ├── Контент-область (кеш _tabs)
    ├── page.run_task(_process_queue)
    └── page.run_task(_mic_level_loop)
@@ -572,16 +776,16 @@ Jarvis Thread
    ├── listener.phrases() → _process(cmd) ← cmd_lock
    ├── handler.handle(cmd) → Reply
    └── say(reply) ← cmd_lock
-```
+~~~~
 
 > **Связь:** `queue.Queue()` → `gui._queue`.
 > **Важно:** Flet — **в главном потоке** (`gui.run_main()`), Jarvis — **в фоне**.
 
 ### Режим запуска
 
-```json
+~~~~json
 "launch_mode": "gui"
-```
+~~~~
 
 | Значение | Что делает |
 |---|---|
@@ -595,13 +799,18 @@ Jarvis Thread
 
 ### Темы GUI
 
-```
+~~~~
 PALETTES = { "dark": {...}, "light": {...} }
 _apply_palette(name)
 _detect_system_theme() — HKCU\...\AppsUseLightTheme
 _mic_level_loop → раз в 5 сек проверяет тему Windows
 _rebuild_ui_for_theme → сохраняет историю чата
-```
+~~~~
+
+### Подписки GUI
+
+- `profile.subscribe(self._on_profile_switch)` — пересборка UI при смене профиля.
+- `mood.subscribe(self._on_mood_change)` — перекраска статус-сферы при смене настроения.
 
 ### Вкладка «Микрофон»
 
@@ -626,13 +835,13 @@ _rebuild_ui_for_theme → сохраняет историю чата
 
 ## 👥 Мультипрофиль
 
-```
+~~~~
 %APPDATA%\Phoenix\profiles\
 ├── <user1>\
-│   ├── profile.json    ← name, default_city, facts, tts_voice, persona
+│   ├── profile.json    ← name, default_city, facts, tts_voice, persona, mood
 │   └── dialog.json
 └── <user2>\
-```
+~~~~
 
 - Активный профиль — по имени Windows-юзера.
 - `profile.switch(name)` — один `RLock`.
@@ -643,7 +852,7 @@ _rebuild_ui_for_theme → сохраняет историю чата
 
 ## ⚙️ Поток конфига
 
-```
+~~~~
 %APPDATA%\Phoenix\config.json → Config.__init__ → config_manager.load()
    ↓
 Config._data (в памяти) — источник истины
@@ -653,7 +862,7 @@ config.get("key") / config.set("key", value)
    │   ├── OK → оповещение подписчиков
    │   └── FAIL → откат в памяти (Config.set/update)
    └── ...
-```
+~~~~
 
 **Подписки:**
 
@@ -662,11 +871,17 @@ config.get("key") / config.set("key", value)
 | `Config.subscribe(callback)` | добавить |
 | `Config.unsubscribe(callback)` | удалить |
 
+**Кто подписан:**
+
+- `main.py` → `_on_config_change` (tts_voice, voice_rate, mode, barge_enabled).
+- `handler.py` → `_on_config_change` (memory_max, llm_context_messages).
+- `brain.py` → `_on_config_change` (llm_model, ollama_url).
+
 ---
 
 ## 🌤 Погода и курс валют
 
-```
+~~~~
 weather.py
    ├── _CACHE: dict — (key, timestamp, data)
    ├── _CACHE_LOCK: threading.Lock
@@ -674,21 +889,23 @@ weather.py
    ├── _current_ttl() — читает weather_cache_ttl_sec каждый раз
    ├── _cached(key, fetcher) — TTL применяется на каждый вызов
    └── _http_get_json — User-Agent из __version__
-```
+~~~~
 
 **TTL:** 600 сек (10 мин) по умолчанию.
+
+**Источники:** `open-meteo.com` (погода), `cbr-xml-daily.ru` (курс ЦБ).
 
 ---
 
 ## 📂 Открытие файлов в редакторе
 
-```
+~~~~
 actions.open_in_editor(path, prefer="auto")
    ├── "notepad++" → _find_notepadpp()
    ├── "vscode"    → _find_vscode()
    ├── "system"    → os.startfile()
    └── "auto"      → [_find_notepadpp, _find_vscode] → os.startfile()
-```
+~~~~
 
 **Активация окна** — `_activate_window_hard(title_part)`:
 
@@ -700,7 +917,7 @@ actions.open_in_editor(path, prefer="auto")
 
 ## 📦 Пак-команды с аргументами
 
-```
+~~~~
 actions.spec_from_string(s)
    ├── open_app: → ...
    ├── http(s):// → url
@@ -710,7 +927,7 @@ actions.spec_from_string(s)
    │   (для "shutdown /s /t 10", "cmd /k ipconfig", "rundll32.exe ...")
    ├── .bat/.cmd → path
    └── os.path.exists(s) → path
-```
+~~~~
 
 - **`_CMD_VERBS`** — известные системные команды (`shutdown`, `cmd`, `rundll32`, ...).
 - **Zip Slip защита** — при распаковке Vosk: `resolved.is_relative_to(base)`.
@@ -721,7 +938,7 @@ actions.spec_from_string(s)
 
 `launcher.py` → `Феникс.exe` (PyInstaller). При запуске:
 
-```
+~~~~
 1. Ищет Python 3.10–3.12.
 2. Нет → MessageBox: [Скачать Python 3.11] [Отмена].
 3. Проверяет .venv311. Нет → создаёт.
@@ -729,7 +946,7 @@ actions.spec_from_string(s)
 5. Проверяет Vosk-модель в C:\ProgramData\Phoenix\models.
 6. Проверяет Ollama.
 7. Запускает .venv311\Scripts\pythonw.exe -m jarvis.
-```
+~~~~
 
 - **Диалоги** — `ctypes.windll.user32.MessageBoxW`.
 - **Логи** — `logs/launcher.log`.
@@ -743,7 +960,7 @@ actions.spec_from_string(s)
 | Объект | Модуль | Роль |
 |---|---|---|
 | `Config` | `config.py` | Конфиг в памяти + подписки |
-| `IntentHandler` | `intents.py` | Разбор, `_fast_handlers()` |
+| `IntentHandler` | `intents/handler.py` | Оркестрация pipeline |
 | `Brain` | `brain.py` | LLM: `parse()` / `chat_stream()` / `onboarding_chat()` |
 | `Speaker` | `tts.py` | Синтез, per-call token |
 | `Listener` | `stt.py` | Vosk, ring buffer |
@@ -752,8 +969,10 @@ actions.spec_from_string(s)
 | `FenixGUI` | `gui.py` | Flet GUI, fireworks |
 | `Reply` | `reply.py` | `text` \| `stream` |
 | `history` | `history.py` | Стек отмены |
-| `celebrations` | `celebrations.py` | Поздравление с ДР |
+| `celebrations` | `celebrations.py` | Поздравление с ДР (из config) |
 | `persona` | `persona.py` | Персона, стиль, промпт-блок |
+| `mood` | `mood.py` | Эмоциональное состояние |
+| `uia` | `uia.py` | UI Automation |
 | `DialogObserver` | `observer.py` | Фоновое извлечение фактов |
 | `first_run` | `first_run.py` | greeting, `is_first_run`, `mark_done` |
 
@@ -770,7 +989,7 @@ actions.spec_from_string(s)
 | `models/vosk-model-small-ru-0.22/` | `C:\ProgramData\Phoenix\` |
 | `whisper-cache/` | `C:\ProgramData\Phoenix\` |
 | `logs/` | `%APPDATA%\Phoenix\` |
-| `system_caps.json` | `C:\jarvis\` (только dev) |
+| `system_caps.json` | `C:\jarvis\` (только dev, в `.gitignore`) |
 
 ---
 
@@ -795,10 +1014,16 @@ actions.spec_from_string(s)
 
 | Файл | Что тестирует |
 |---|---|
-| `test_intents.py` | 40 сценариев |
+| `test_intents.py` | 32 сценария (без LLM, без сети) |
 | `tests/test_config_manager.py` | параллельная запись |
 | `tests/test_weather.py` | погода/курс с моками |
 | `tests/test_caps.py` | структура `system_caps.json` |
+| `tests/test_mood.py` | Mood: состояние, детекция, decay, влияние (29 тестов) |
+| `tests/test_uia.py` | UIA: логика обёртки с моками (17 тестов) |
+
+**CI:** `.github/workflows/test.yml` — `check_syntax.py` + `pytest tests/` + `test_intents.py`.
+
+**`requirements-ci.txt`** — лёгкие зависимости, без звука и Windows-специфики.
 
 ---
 
@@ -812,13 +1037,16 @@ actions.spec_from_string(s)
 
 **`.gitignore`:**
 
-```
+~~~~
 .venv311/     config.json     profiles/     logs/
 system_caps.json     models/     voices/
-dist/     build/     timers.json     tasks.json     *.bak
-```
+dist/     build/     timers.json     tasks.json
+*.bak*
+jarvis/intents_old.py
+~~~~
 
-**`SNAPSHOT.md`** — генерируется `snapshot.py`.
+**`SNAPSHOT.md`** — генерируется `snapshot.py`. Исключает `.venv311`,
+`profiles/`, `system_caps.json`, `*.bak*`.
 
 ### `commit.bat`
 
@@ -847,7 +1075,8 @@ dist/     build/     timers.json     tasks.json     *.bak
 
 ### `installer.iss`
 
-Inno Setup 6.7 → `Феникс_Setup.exe`. Ставит в `C:\ProgramData\Phoenix`. Ярлыки, автозапуск, деинсталлятор.
+Inno Setup 6.7 → `Феникс_Setup.exe`. Ставит в `C:\ProgramData\Phoenix`.
+Ярлыки, автозапуск, деинсталлятор.
 
 **Ключевые директивы:**
 
@@ -882,7 +1111,7 @@ Inno Setup 6.7 → `Феникс_Setup.exe`. Ставит в `C:\ProgramData\Pho
 8. **Per-call stop-token в `tts.py`.**
 9. **`ft.Button`** вместо `ElevatedButton`/`TextButton`.
 10. **`ft.BoxShadow`** — без `blur_style`.
-11. **Реестр `_fast_handlers()`** — новые правила **туда**.
+11. **Реестр `fast/__init__.py`** — новые правила **туда**.
 12. **`open_profile` — выше `open`.**
 13. **`set_profile` / `get_profile`** — через LLM.
 14. **Активация окон — `win32gui` + `AttachThreadInput`.**
@@ -895,11 +1124,17 @@ Inno Setup 6.7 → `Феникс_Setup.exe`. Ставит в `C:\ProgramData\Pho
 21. **Zip Slip защита при распаковке.**
 22. **`cmd_lock` в Jarvis — сериализация голос↔GUI.**
 23. **`Local\` мьютекс — без админа.**
-24. **Онбординг — через LLM.** `_onboarding_chat_step()` + `brain.onboarding_chat()`. Никаких `if/elif`-сценариев.
-25. **Observer — фоновое извлечение фактов.** `observer.observe()` не блокирует диалог.
+24. **Онбординг — через LLM.** `stages/onboarding.py` + `brain.onboarding_chat()`.
+25. **Observer — фоновое извлечение фактов.** `observer.observe()` не блокирует.
 26. **Персона — в system prompt.** `persona.build_prompt_block()` → `_system_with_context()`.
-27. **Правки только в VS Code.** Терминал портит кодировку и BOM.
-28. **UTF-8 без BOM.** `files.encoding: utf8`, `files.autoGuessEncoding: false`.
+27. **Mood — в system prompt и TTS.** `mood.build_prompt_block()` + `mood.effective_rate()`.
+28. **Праздничные триггеры — в `config.json`.** `enabled: false` по умолчанию.
+29. **UIA — поиск браузера по PID процесса**, не по имени окна.
+30. **`FindAll` не существует** у `WindowControl`. Используй `auto.EditControl(searchFromControl=...)` и `auto.ToolBarControl(searchFromControl=..., Name="Вкладки")`.
+31. **`_COMPOUND_VERBS` — единый `COMMAND_VERBS`** в `intents/verbs.py`.
+32. **Пакет `intents/`** — новые правила в `fast/`, стадии в `stages/`.
+33. **Правки только в VS Code.** Терминал портит кодировку и BOM.
+34. **UTF-8 без BOM.** `files.encoding: utf8`, `files.autoGuessEncoding: false`.
 
 ### GUI
 
@@ -909,7 +1144,7 @@ Inno Setup 6.7 → `Феникс_Setup.exe`. Ставит в `C:\ProgramData\Pho
 4. **`weather_cache_ttl_sec`** — настраиваемый TTL.
 5. **Личные данные — только в `config.json`, `profiles/`, `system_caps.json`.**
 6. **Python 3.10–3.12** — только `.venv311`.
-7. **`snapshot.py`** — исключать `.venv311` и `profiles/`.
+7. **`snapshot.py`** — исключать `.venv311`, `profiles/`, `system_caps.json`, `*.bak*`.
 ```
 
 ### `CHANGELOG.md`
@@ -933,6 +1168,7 @@ Inno Setup 6.7 → `Феникс_Setup.exe`. Ставит в `C:\ProgramData\Pho
 ## 📑 Содержание
 
 - [Unreleased — 0.4.0](#-unreleased--040)
+  - [Сессия 10.10.2026](#сессия-10102026)
   - [Сессия 09.10.2026](#сессия-09102026)
   - [Сессия 08.10.2026](#сессия-08102026)
   - [Сессия 07.10.2026](#сессия-07102026)
@@ -943,6 +1179,94 @@ Inno Setup 6.7 → `Феникс_Setup.exe`. Ставит в `C:\ProgramData\Pho
 ---
 
 ## 🚧 [Unreleased] — 0.4.0
+
+### 📅 Сессия 10.10.2026
+
+#### ✨ Добавлено
+
+##### 🧹 Технический долг (ТД)
+
+- **`intents.py` → пакет `jarvis/intents/`** — распил на ~40 файлов:
+  `handler.py`, `context.py`, `verbs.py`, `password.py`, `sites.py`,
+  `execute.py`, `stages/` (11 стадий), `fast/` (17 обработчиков).
+- **`snapshot.py`** — `system_caps.json` в `EXCLUDE_FILES`.
+- **`.gitignore`** — `*.bak*`, `jarvis/intents_old.py`, `system_caps.json`.
+- **`jarvis/profile.py`** — warning про `send2trash`
+  (не удалять навсегда, если модуля нет).
+- **`jarvis/main.py`** — `finalize_stream(full_text)` без лишнего `cmd`.
+- **`jarvis/intents/fast/profile.py`** — парсинг «мой город Казань» →
+  `("город", "Казань")`, а не `("мой город казань", "да")`.
+
+##### 🎭 Mood — эмоциональное состояние ассистента
+
+- **`jarvis/mood.py`** — состояния `neutral/happy/excited/annoyed/bored/tired`.
+- Хранится в `profile.json` → `mood` (`state`, `since`, `reason`).
+- Детекция из текста: похвала → `happy`, грубость → `annoyed`,
+  радость → `excited`, усталость → `tired`.
+- **Приоритет:** `rude` > `tired` > `excited` > `praise`.
+- **Decay** — возврат к `neutral` через 5 мин.
+- Подписки: `mood.subscribe(cb)`.
+- **Влияние на TTS** — `mood.effective_rate()`: `excited` +10%, `tired` -10%.
+- **Влияние на GUI** — `mood.color()` для статус-сферы.
+- **Влияние на LLM** — `mood.build_prompt_block()` в system prompt.
+- **Команды**: «как настроение», «не грусти», «успокойся».
+- **`tests/test_mood.py`** — 29 тестов.
+
+##### 🖥 UIA — управление окнами Windows
+
+- **`jarvis/uia.py`** — обёртка над `uiautomation`:
+  - `find_browser_window()` — находит любой браузер (Chrome, Edge,
+    Яндекс, Opera, Brave, Firefox и др.) **по PID процесса**,
+    а не по имени окна.
+  - `list_windows()` — все видимые окна (для отладки).
+  - `list_browsers()` — запущенные браузеры.
+  - `read_browser_tab_title()` — заголовок активной вкладки.
+  - `read_browser_tabs()` — список всех вкладок (18+ на Яндексе).
+  - `read_browser_url()` — URL адресной строки (с fallback на заголовок).
+  - `close_browser_tab(name)` / `switch_browser_tab(name)`.
+  - `read_active_text()` — текст активного окна.
+  - `click_button(name)` — нажать кнопку по имени.
+  - `click_menu_item(path)` — клик по меню («Файл > Сохранить»).
+  - `describe_active_window()` / `describe_browsers()` — для отладки.
+- **`jarvis/intents/fast/uia.py`** — 10 голосовых команд без LLM.
+- **`jarvis/brain.py`** — 9 UIA-actions в `ACTIONS` + промпты
+  (SMALL/MEDIUM/LARGE).
+- **`jarvis/intents/execute.py`** — 9 UIA-обработчиков + dispatch.
+- **`tests/test_uia.py`** — 17 тестов с моками.
+
+**Примеры:**
+
+- «Прочитай окно» → текст активного окна.
+- «Какой сайт открыт» → URL (если браузер отдаёт) или заголовок.
+- «Какая вкладка» → заголовок.
+- «Какие вкладки» → список.
+- «Закрой вкладку ютуб» → ищет и закрывает.
+- «Переключись на вкладку хабр» → активирует.
+- «Нажми OK» → ищет кнопку.
+- «Что открыто» → активное окно.
+
+##### 🎉 Праздничные триггеры — в config
+
+- **`jarvis/celebrations.py`** — триггеры и текст из `config.json`.
+- По умолчанию `celebration_enabled: false` — **не срабатывает
+  без настройки**.
+- Ключи: `celebration_enabled`, `celebration_triggers`,
+  `celebration_short_text`, `celebration_long_text`,
+  `celebration_sound_1_plays`, `celebration_sound_2_plays`,
+  `celebration_duration_1`, `celebration_duration_2`.
+- **`config.example.json`** — блок `celebration_*` в конце.
+
+#### 🐛 Исправлено
+
+- **`tests/test_uia.py`** — `uia.ControlTypeName` → строки
+  (`"TabItemControl"`, `"ButtonControl"`).
+- **`jarvis/intents/__init__.py`** — `IntentHandler` из `handler.py`.
+- **`jarvis/intents/stages/password.py`** — «удали профиль X»
+  обрабатывается **до** `fast`-реестра (иначе `tasks_fast` перехватывает).
+- **`jarvis/intents/fast/__init__.py`** — `screenshot` добавлен в реестр
+  (был в pipeline напрямую, при распиле забыли перенести).
+
+---
 
 ### 📅 Сессия 09.10.2026
 
@@ -968,7 +1292,8 @@ Inno Setup 6.7 → `Феникс_Setup.exe`. Ставит в `C:\ProgramData\Pho
   `{reply, name, style, onboarding_done}`.
 - `intents._onboarding_chat_step()` — обёртка. Пропускает команды
   (`_looks_like_command`).
-- `intents._looks_like_command()` — эвристика «это команда или свободный текст».
+- `intents._looks_like_command()` — эвристика
+  «это команда или свободный текст».
 - Принудительное завершение: если 6+ фраз от юзера — `mark_done()`.
 - `first_run.py` — упрощён до `greeting()`, `is_first_run()`, `mark_done()`.
 
@@ -1015,8 +1340,8 @@ Inno Setup 6.7 → `Феникс_Setup.exe`. Ставит в `C:\ProgramData\Pho
 
 ##### 🛡 Защита от BOM и кракозябр
 
-- **Ошибка №39** — BOM в `intents.py` (`invalid non-printable character U+FEFF`).
-  **Фикс:** UTF-8 без BOM.
+- **Ошибка №39** — BOM в `intents.py`
+  (`invalid non-printable character U+FEFF`). **Фикс:** UTF-8 без BOM.
 - **Ошибка №40** — `CHAT_SYSTEM` с `??` от cp1251.
   **Фикс:** правки только в VS Code.
 - **Правило:** `files.encoding: utf8`, `files.autoGuessEncoding: false`.
@@ -1163,8 +1488,10 @@ Inno Setup 6.7 → `Феникс_Setup.exe`. Ставит в `C:\ProgramData\Pho
 - `brain.chat_stream()` — без `[-40:]`.
 - `main.py` → Jarvis в фоне, Flet в главном.
 - `tts.py` → per-call stop-token.
-- `gui.py` → `PALETTES`, `_detect_system_theme`, `_rebuild_ui_for_theme`, `_mic_level_loop`.
-- `profile.py` → `_current_lock`, `_listeners`, `subscribe()`, `_on_profile_switch`.
+- `gui.py` → `PALETTES`, `_detect_system_theme`,
+  `_rebuild_ui_for_theme`, `_mic_level_loop`.
+- `profile.py` → `_current_lock`, `_listeners`, `subscribe()`,
+  `_on_profile_switch`.
 
 ---
 
@@ -1172,7 +1499,8 @@ Inno Setup 6.7 → `Феникс_Setup.exe`. Ставит в `C:\ProgramData\Pho
 
 ### ✨ Добавлено
 
-- **Этап 0:** `config_manager`, `Config` в памяти, barge-in, CJK-фильтр, few-shot промпт.
+- **Этап 0:** `config_manager`, `Config` в памяти, barge-in, CJK-фильтр,
+  few-shot промпт.
 - **Этап 1:** голосовые режимы, паки, макросы, память, голоса Piper.
 - **Этап 2:** streaming TTS, barge-in, логи, буфер обмена, погода и курс.
 - **`test_intents.py`** + **`pytest tests/`**.
@@ -1564,7 +1892,16 @@ pause
   "prompt_level": "auto",
   "llm_temperature": 0.7,
   "app_paths": {},
-  "custom_commands": []
+  "custom_commands": [],
+
+  "celebration_enabled": false,
+  "celebration_triggers": [],
+  "celebration_short_text": "Поздравляю! С днём рождения!",
+  "celebration_long_text": "Поздравляю с днём рождения! Здоровья, счастья и удачи!",
+  "celebration_sound_1_plays": 2,
+  "celebration_sound_2_plays": 3,
+  "celebration_duration_1": 6.0,
+  "celebration_duration_2": 10.0
 }
 ```
 
@@ -3769,6 +4106,15 @@ open_log
 open_profile (открыть profile.json в редакторе)
 get_weather (target — город; day: today|tomorrow)
 get_currency (target — ISO: USD|EUR|CNY|BYN|KZT|GBP|JPY|TRY|UAH)
+uia_read_window (прочитать текст активного окна)
+uia_read_url (URL активной вкладки)
+uia_read_tab (заголовок активной вкладки)
+uia_list_tabs (список вкладок браузера)
+uia_close_tab (target — часть заголовка вкладки)
+uia_switch_tab (target — часть заголовка вкладки)
+uia_click_button (target — часть имени кнопки)
+uia_active_window (описать активное окно)
+uia_menu (target — путь меню, например «Файл > Сохранить»)
 set_profile (key: name|default_city, value — сохранить в профиль)
 get_profile (key: name|default_city — прочитать из профиля)
 answer (reply)
@@ -3854,6 +4200,16 @@ none
 мой город Казань -> {"action":"set_profile","key":"default_city","value":"Казань"}
 как меня зовут -> {"action":"get_profile","key":"name"}
 какой город -> {"action":"get_profile","key":"default_city"}
+прочитай окно -> {"action":"uia_read_window"}
+что написано в блокноте -> {"action":"uia_read_window"}
+какой сайт открыт -> {"action":"uia_read_url"}
+какая вкладка -> {"action":"uia_read_tab"}
+какие вкладки -> {"action":"uia_list_tabs"}
+закрой вкладку ютуб -> {"action":"uia_close_tab","target":"ютуб"}
+переключись на вкладку хабр -> {"action":"uia_switch_tab","target":"хабр"}
+нажми кнопку ок -> {"action":"uia_click_button","target":"ок"}
+нажми сохранить -> {"action":"uia_click_button","target":"сохранить"}
+что открыто -> {"action":"uia_active_window"}
 включи музыку -> {"steps":[{"action":"open_app","target":"яндекс музыка","minimized":true},{"action":"wait","seconds":6},{"action":"media_key","key":"play"}]}
 расскажи шутку -> {"action":"answer","reply":"Почему медведь не ездит на машине? Потому что нет прав."}
 как дела -> {"action":"answer","reply":"Отлично, сэр. Готов к работе."}
@@ -3917,6 +4273,9 @@ set_timer (text; seconds|time) / list_timers / cancel_timers
 add_task (text) / list_tasks / done_task (task) / remove_task (task) / clear_tasks
 open_config / open_log / open_profile
 get_weather (target; day) / get_currency (target)
+uia_read_window / uia_read_url / uia_read_tab / uia_list_tabs
+uia_close_tab (target) / uia_switch_tab (target)
+uia_click_button (target) / uia_active_window / uia_menu (target)
 set_profile (key: name|default_city, value) / get_profile (key: name|default_city)
 answer (reply)
 none
@@ -3936,6 +4295,14 @@ none
 смени голос на ирину -> change_voice voice irina
 меня зовут Максим -> set_profile key=name value=Максим
 какой город -> get_profile key=default_city
+прочитай окно -> uia_read_window
+какой сайт открыт -> uia_read_url
+какая вкладка -> uia_read_tab
+какие вкладки -> uia_list_tabs
+закрой вкладку ютуб -> uia_close_tab target=ютуб
+переключись на вкладку хабр -> uia_switch_tab target=хабр
+нажми кнопку ок -> uia_click_button target=ок
+что открыто -> uia_active_window
 
 === ПРАВИЛА ===
 Не путай погоду и курс.
@@ -3968,7 +4335,10 @@ change_voice, list_voices, set_timer, list_timers, cancel_timers,
 add_task, list_tasks, done_task, remove_task, clear_tasks,
 open_config, open_log, open_profile, get_weather, get_currency, answer, none,
 set_profile (key: name|default_city, value — сохранить в профиль),
-get_profile (key: name|default_city — прочитать из профиля).
+get_profile (key: name|default_city — прочитать из профиля),
+uia_read_window, uia_read_url, uia_read_tab, uia_list_tabs,
+uia_close_tab (target), uia_switch_tab (target),
+uia_click_button (target), uia_active_window, uia_menu (target).
 
 === ПРОФИЛЬ ===
 Пользователь просит запомнить/поменять → set_profile.
@@ -3988,6 +4358,16 @@ get_profile (key: name|default_city — прочитать из профиля).
     «открой профиль в блокноте» → {"action":"open_profile","editor":"system"}
     «открой конфиг» → {"action":"open_config"}
     «открой журнал» → {"action":"open_log"}
+
+    «прочитай окно» → {"action":"uia_read_window"}
+    «какой сайт открыт» → {"action":"uia_read_url"}
+    «какая вкладка» → {"action":"uia_read_tab"}
+    «какие вкладки» → {"action":"uia_list_tabs"}
+    «закрой вкладку ютуб» → {"action":"uia_close_tab","target":"ютуб"}
+    «переключись на вкладку хабр» → {"action":"uia_switch_tab","target":"хабр"}
+    «нажми кнопку ок» → {"action":"uia_click_button","target":"ок"}
+    «нажми сохранить» → {"action":"uia_click_button","target":"сохранить"}
+    «что открыто» → {"action":"uia_active_window"}
 
 === ДИАЛОГ ===
 Ты — Феникс. Спокойный, вежливый, с сухим юмором, «сэр».
@@ -4143,7 +4523,7 @@ class Brain:
             return json.loads(r.read())["message"]["content"]
 
     def _system_with_context(self, base: str) -> str:
-        """Добавляет к промпту персону + факты + corrections."""
+        """Добавляет к промпту персону + mood + факты + corrections."""
         parts = []
 
         try:
@@ -4153,6 +4533,14 @@ class Brain:
                 parts.append(persona_block)
         except Exception:
             log.exception("Не удалось собрать блок персоны")
+
+        try:
+            from jarvis import mood
+            mood_block = mood.build_prompt_block()
+            if mood_block:
+                parts.append(mood_block)
+        except Exception:
+            log.exception("Не удалось собрать блок mood")
 
         try:
             extra = learning.build_context()
@@ -4405,6 +4793,16 @@ ACTIONS = {
     "delete_profile",
     "set_profile", "get_profile",
     "open_profile",
+    # === UIA ===
+    "uia_read_window",       # прочитать текст активного окна
+    "uia_read_url",          # URL активной вкладки
+    "uia_read_tab",          # заголовок активной вкладки
+    "uia_list_tabs",         # список вкладок
+    "uia_close_tab",         # закрыть вкладку (target)
+    "uia_switch_tab",        # переключиться на вкладку (target)
+    "uia_click_button",      # нажать кнопку (target)
+    "uia_active_window",     # описать активное окно
+    "uia_menu",              # клик по меню (target = «Файл > Сохранить»)
 }
 ```
 
@@ -4413,13 +4811,22 @@ ACTIONS = {
 ```python
 """Праздничные триггеры — поздравление с ДР + двойной салют.
 
-Единоразово: батя говорит «я папа» / «я Александр» —
-Феникс запускает праздничную цепочку:
+Триггеры и текст ПОЗДРАВЛЕНИЯ настраиваются в config.json:
 
-    1. TTS: «Поздравляю! С днём рождения!»
-    2. Анимация #1 + звук ×2 (короткая, ~6 сек).
-    3. TTS: полное поздравление.
-    4. Анимация #2 + звук ×3 (длинная, ~10 сек).
+    "celebration_enabled": false,
+    "celebration_triggers": ["я папа", "я александр"],
+    "celebration_short_text": "Поздравляю! С днём рождения!",
+    "celebration_long_text": "Дорогой Папа! Поздравляю тебя...",
+    "celebration_sound_1_plays": 2,
+    "celebration_sound_2_plays": 3,
+    "celebration_duration_1": 6.0,
+    "celebration_duration_2": 10.0,
+
+По умолчанию — ВЫКЛЮЧЕНО. Пользователь сам включает и пишет свои
+триггеры. Иначе получается «поздравь моего батю Александра» на
+чужой машине.
+
+Если enabled=false или triggers пустой — функция не срабатывает.
 """
 
 import logging
@@ -4430,41 +4837,57 @@ from pathlib import Path
 
 log = logging.getLogger("jarvis.celebrations")
 
-# Триггеры: пользователь называет себя.
-TRIGGERS = (
-    "я папа",
-    "я александр",
-    "я саша",
-    "я отец",
-    "я батя",
-    "александр",
-)
 
-SHORT_TEXT = "Поздравляю! С днём рождения!"
+# Значения по умолчанию (если config не передан).
+DEFAULTS = {
+    "enabled": False,
+    "triggers": [],
+    "short_text": "Поздравляю! С днём рождения!",
+    "long_text": "Поздравляю с днём рождения! Здоровья, счастья и удачи!",
+    "sound_1_plays": 2,
+    "sound_2_plays": 3,
+    "duration_1": 6.0,
+    "duration_2": 10.0,
+}
 
-# ⚠️ Текст поздравления — НЕ МЕНЯТЬ (авторский)
-LONG_TEXT = (
-    "Дорогой Папа! Поздравляю тебя с днём рождения! "
-    "Желаю крепкого здоровья, счастья, удачи и всего самого афигенского. "
-    "Пусть каждый день приносит радость, а все мечты сбываются. "
-    "Спасибо, что ты рядом. Ты — самый лучший папа на свете! С днем рождения!!!"
-)
 
-# Первая серия (перед поздравлением) — короткая
-SOUND_PLAYS_1 = 2
-SOUND_DURATION_SEC_1 = 3.0
+def _get_config():
+    """Возвращает текущий Config или None."""
+    try:
+        from jarvis.config import get_global
+        return get_global()
+    except Exception:
+        return None
 
-# Вторая серия (после поздравления) — длинная
-SOUND_PLAYS_2 = 3
-SOUND_DURATION_SEC_2 = 3.5
+
+def _cfg(key: str, default):
+    """Читает значение из config.json → celebration_*."""
+    cfg = _get_config()
+    if cfg is None:
+        return DEFAULTS.get(key, default)
+    return cfg.get(f"celebration_{key}", DEFAULTS.get(key, default))
 
 
 def match_celebration(cmd: str) -> bool:
-    """Проверяет, триггер ли это."""
+    """Проверяет, триггер ли это.
+
+    Возвращает False, если:
+        - celebration_enabled = false
+        - celebration_triggers пустой
+        - ни один триггер не найден в cmd
+    """
+    if not _cfg("enabled", False):
+        return False
+
+    triggers = _cfg("triggers", []) or []
+    if not triggers:
+        return False
+
     cmd_low = cmd.lower().strip()
-    for trigger in TRIGGERS:
-        if trigger in cmd_low:
-            log.info("Праздничный триггер: %r", cmd)
+    for trigger in triggers:
+        trigger_low = str(trigger).lower().strip()
+        if trigger_low and trigger_low in cmd_low:
+            log.info("Праздничный триггер: %r (найден %r)", cmd, trigger)
             return True
     return False
 
@@ -4477,28 +4900,35 @@ def start_celebration(jarvis, gui) -> None:
     """
     from jarvis.reply import Reply
 
+    short_text = _cfg("short_text", DEFAULTS["short_text"])
+    long_text = _cfg("long_text", DEFAULTS["long_text"])
+    plays_1 = int(_cfg("sound_1_plays", DEFAULTS["sound_1_plays"]))
+    plays_2 = int(_cfg("sound_2_plays", DEFAULTS["sound_2_plays"]))
+    dur_1 = float(_cfg("duration_1", DEFAULTS["duration_1"]))
+    dur_2 = float(_cfg("duration_2", DEFAULTS["duration_2"]))
+
     def _run():
         try:
             # === АКТ 1: короткая фраза + салют ===
             log.info("Celebration: TTS #1 (короткая)")
-            jarvis.say(Reply(text=SHORT_TEXT))
+            jarvis.say(Reply(text=short_text))
 
-            log.info("Celebration: анимация #1")
+            log.info("Celebration: анимация #1 (%.1f сек)", dur_1)
             if gui is not None:
-                gui.launch_fireworks(duration=6.0)
+                gui.launch_fireworks(duration=dur_1)
 
-            _play_sound_series(SOUND_PLAYS_1, SOUND_DURATION_SEC_1)
+            _play_sound_series(plays_1, max(1.0, dur_1 / max(plays_1, 1)))
 
             # === АКТ 2: полное поздравление ===
             log.info("Celebration: TTS #2 (длинная)")
-            jarvis.say(Reply(text=LONG_TEXT))
+            jarvis.say(Reply(text=long_text))
 
-            # === АКТ 3: финальный салют, подольше ===
-            log.info("Celebration: анимация #2 (финал)")
+            # === АКТ 3: финальный салют ===
+            log.info("Celebration: анимация #2 (финал, %.1f сек)", dur_2)
             if gui is not None:
-                gui.launch_fireworks(duration=10.0)
+                gui.launch_fireworks(duration=dur_2)
 
-            _play_sound_series(SOUND_PLAYS_2, SOUND_DURATION_SEC_2)
+            _play_sound_series(plays_2, max(1.0, dur_2 / max(plays_2, 1)))
 
             log.info("Celebration: завершено")
         except Exception:
@@ -4507,12 +4937,12 @@ def start_celebration(jarvis, gui) -> None:
     threading.Thread(target=_run, daemon=True, name="celebration").start()
 
 
-def _play_sound_series(plays: int, duration_sec: float) -> None:
-    """Играет звук салюта N раз по duration_sec секунд."""
-    for i in range(plays):
+def _play_sound_series(plays: int, gap_sec: float) -> None:
+    """Играет звук салюта N раз с паузой gap_sec."""
+    for i in range(max(1, plays)):
         log.info("Celebration: звук %d/%d", i + 1, plays)
         _play_fireworks_sound()
-        time.sleep(duration_sec)
+        time.sleep(gap_sec)
         try:
             winsound.PlaySound(None, winsound.SND_PURGE)
         except Exception:
@@ -4534,7 +4964,7 @@ def _play_fireworks_sound() -> None:
         except Exception:
             log.exception("Celebration: не удалось воспроизвести .wav")
 
-    # Fallback — серия Beep-ов, имитирующих залпы
+    # Fallback — серия Beep-ов, имитирующих залпы.
     log.info("Celebration: fallback — Beep-и")
     try:
         for _ in range(8):
@@ -4597,6 +5027,18 @@ DEFAULT_CONFIG = {
     "ollama_url": "http://127.0.0.1:11434",
     "prompt_level": "auto",
     "llm_temperature": 0.7,
+
+    # Праздничные триггеры. По умолчанию ВЫКЛЮЧЕНО.
+    # Пользователь сам пишет триггеры и текст в config.json.
+    "celebration_enabled": False,
+    "celebration_triggers": [],
+    "celebration_short_text": "Поздравляю! С днём рождения!",
+    "celebration_long_text": "Поздравляю с днём рождения! Здоровья, счастья и удачи!",
+    "celebration_sound_1_plays": 2,
+    "celebration_sound_2_plays": 3,
+    "celebration_duration_1": 6.0,
+    "celebration_duration_2": 10.0,
+
     "music_app": "яндекс музыка",
     "music_wait_sec": 6,
     "active_packs": [],
@@ -5237,13 +5679,19 @@ class FenixGUI:
         except Exception:
             log.exception("Не удалось подписаться на смену профиля в GUI")
 
-    def _on_profile_switch(self, old_name: str, new_name: str) -> None:
-        """№92: при смене профиля просим UI пересобраться."""
-        if old_name == new_name:
+        # Mood: подписка на смену настроения.
+        try:
+            from jarvis import mood as _mood
+            _mood.subscribe(self._on_mood_change)
+        except Exception:
+            log.exception("Не удалось подписаться на mood в GUI")
+
+    def _on_mood_change(self, old_state: str, new_state: str) -> None:
+        """Mood сменился — обновляем цвет статус-сферы."""
+        if old_state == new_state:
             return
-        log.info("GUI: профиль сменился %s → %s — пересобираю вкладки",
-                 old_name, new_name)
-        self._queue.put(("rebuild_ui", None))
+        log.info("GUI: mood %s → %s", old_state, new_state)
+        self._queue.put(("mood", new_state))
 
     # ---------------------------------------------------------------
     # Публичный API
@@ -6085,6 +6533,8 @@ class FenixGUI:
                     self._rebuild_ui_for_theme()
                 elif kind == "rebuild_ui":
                     self._rebuild_ui_for_theme()
+                elif kind == "mood":
+                    self._apply_mood_color(value)
                 elif kind == "fireworks":
                     self._page.run_task(
                         self._launch_fireworks_async, float(value or 6.0)
@@ -6279,6 +6729,22 @@ class FenixGUI:
                 self._status_sub.value = sub
         except Exception:
             log.exception("Ошибка в _apply_state")
+
+    def _apply_mood_color(self, mood_state: str) -> None:
+        """Обновляет свечение статус-сферы по mood (только в idle)."""
+        try:
+            from jarvis import mood as _mood
+            if self._state != "idle":
+                return  # во время listening/speaking цвет другой
+            color = _mood.color()
+            if self._status_circle:
+                self._status_circle.bgcolor = color
+                self._status_circle.shadow = ft.BoxShadow(
+                    blur_radius=32, color=color, spread_radius=3,
+                )
+            log.info("GUI: статус-сфера перекрашена под mood=%s", mood_state)
+        except Exception:
+            log.exception("_apply_mood_color упал")
 
     def _avatar(self, is_user: bool) -> ft.Container:
         if is_user:
@@ -6799,7 +7265,7 @@ import logging
 import time
 from pathlib import Path
 
-from jarvis import APP_NAME, actions, files, history
+from jarvis import APP_NAME, actions, files, history, uia
 from jarvis import modes, packs, profile, tasks, timers, voices, weather
 from jarvis import paths as _paths
 from jarvis.text_utils import normalize
@@ -7485,6 +7951,75 @@ def _reload_packs(handler) -> None:
 
 
 # =================================================================
+# UIA-обработчики
+# =================================================================
+
+def _do_uia_read_window(handler, intent, target, query):
+    text = uia.read_active_text_stripped(max_chars=1500)
+    if not text:
+        return "В активном окне не вижу текста."
+    if len(text) > 400:
+        text = text[:400] + "... (ещё много)"
+    return f"Читаю: {text}"
+
+
+def _do_uia_read_url(handler, intent, target, query):
+    url = uia.read_browser_url()
+    if not url:
+        return "Активное окно — не браузер, или не вижу URL."
+    return f"Открыт сайт: {url}"
+
+
+def _do_uia_read_tab(handler, intent, target, query):
+    title = uia.read_browser_tab_title()
+    if not title:
+        return "Активное окно — не браузер."
+    return f"Активная вкладка: {title}"
+
+
+def _do_uia_list_tabs(handler, intent, target, query):
+    tabs = uia.read_browser_tabs()
+    if not tabs:
+        return "Не вижу открытых вкладок."
+    return "Открыты: " + "; ".join(tabs[:10]) + "."
+
+
+def _do_uia_close_tab(handler, intent, target, query):
+    if not target:
+        return "Какую вкладку закрыть?"
+    if target.lower() in ("эту", "текущую", "это"):
+        actions.hotkey(["ctrl", "w"])
+        return "Закрыл текущую вкладку."
+    ok = uia.close_browser_tab(target)
+    return f"Закрыл вкладку {target}." if ok else f"Вкладку «{target}» не нашёл."
+
+
+def _do_uia_switch_tab(handler, intent, target, query):
+    if not target:
+        return "На какую вкладку переключиться?"
+    ok = uia.switch_browser_tab(target)
+    return f"Переключился на {target}." if ok else f"Вкладку «{target}» не нашёл."
+
+
+def _do_uia_click_button(handler, intent, target, query):
+    if not target:
+        return "Какую кнопку нажать?"
+    ok = uia.click_button(target)
+    return f"Нажал «{target}»." if ok else f"Кнопку «{target}» не нашёл."
+
+
+def _do_uia_active_window(handler, intent, target, query):
+    return uia.describe_active_window()
+
+
+def _do_uia_menu(handler, intent, target, query):
+    if not target:
+        return "Какой пункт меню?"
+    ok = uia.click_menu_item(target)
+    return f"Кликнул: {target}." if ok else f"Меню «{target}» не нашёл."
+
+
+# =================================================================
 # Dispatch-таблица
 # =================================================================
 
@@ -7548,6 +8083,16 @@ _DISPATCH = {
     "set_profile":        _do_set_profile,
     "get_profile":        _do_get_profile,
     "answer":             _do_answer,
+    # === UIA ===
+    "uia_read_window":    _do_uia_read_window,
+    "uia_read_url":       _do_uia_read_url,
+    "uia_read_tab":       _do_uia_read_tab,
+    "uia_list_tabs":      _do_uia_list_tabs,
+    "uia_close_tab":      _do_uia_close_tab,
+    "uia_switch_tab":     _do_uia_switch_tab,
+    "uia_click_button":   _do_uia_click_button,
+    "uia_active_window":  _do_uia_active_window,
+    "uia_menu":           _do_uia_menu,
 }
 ```
 
@@ -7566,6 +8111,7 @@ from jarvis.intents.fast.custom import match_custom, load_custom
 from jarvis.intents.fast.small_talk import small_talk
 from jarvis.intents.fast.music import music_fast
 from jarvis.intents.fast.screenshot import screenshot_fast
+from jarvis.intents.fast.uia import uia_fast
 from jarvis.intents.fast.open import open_fast, open_profile_fast
 from jarvis.intents.fast.voices import voices_fast
 from jarvis.intents.fast.packs import packs_fast
@@ -7591,6 +8137,7 @@ def build_registry(handler) -> list:
         ("small_talk",       lambda cmd: small_talk(handler, cmd)),
         ("music",            lambda cmd: music_fast(handler, cmd)),
         ("screenshot",       lambda cmd: screenshot_fast(handler, cmd)),
+        ("uia",              lambda cmd: uia_fast(handler, cmd)),
         ("open_profile",     lambda cmd: open_profile_fast(handler, cmd)),
         ("open",             lambda cmd: open_fast(handler, cmd)),
         ("voices",           lambda cmd: voices_fast(handler, cmd)),
@@ -7953,12 +8500,24 @@ def _reload_packs(handler) -> None:
 ```python
 """Команды персоны: стиль общения, описание, сброс онбординга."""
 
+import logging
 import re
 
 from jarvis import persona
 
+log = logging.getLogger("jarvis.intents")
+
 
 def persona_fast(handler, cmd: str) -> str | None:
+    # Mood: «как настроение», «не грусти», «успокойся»
+    try:
+        from jarvis import mood
+        reply = mood.handle_mood_command(cmd)
+        if reply:
+            return reply
+    except Exception:
+        log.exception("mood.handle_mood_command упал")
+
     # «поменяй стиль на строгий», «говори на ты»
     if (re.search(r"(поменяй|смени|переключи|поставь|установи)\s+стил", cmd)
             or re.search(r"(говори|общайся)\s+(на\s+)?(ты|вы)", cmd)):
@@ -8411,6 +8970,111 @@ def timers_fast(handler, cmd: str) -> str | None:
     return timers.handle_timer_command(cmd)
 ```
 
+### `jarvis\intents\fast\uia.py`
+
+```python
+"""UIA-команды голосом: «прочитай окно», «закрой вкладку ютуб», «какой сайт».
+
+Быстрые правила — БЕЗ LLM. Если фраза явно про окно/вкладку/браузер —
+обрабатываем здесь. Иначе None → идём дальше.
+
+В реестре ставится ВЫШЕ open_fast — иначе «закрой вкладку ютуб»
+перехватится как «закрой окно».
+"""
+
+import logging
+import re
+
+from jarvis import uia
+
+log = logging.getLogger("jarvis.intents")
+
+
+def uia_fast(handler, cmd: str) -> str | None:
+    """Быстрые команды UIA. None, если не наша."""
+
+    # === Активное окно — что открыто ===
+    if re.search(r"(что|какое)\s+(у\s+меня\s+)?(открыто|окно|приложение)", cmd) \
+            or cmd in {"что открыто", "какое окно", "активное окно"}:
+        return uia.describe_active_window()
+
+    # === Прочитать текст активного окна ===
+    if re.search(r"(прочитай|что\s+написано|что\s+в)\s+(в\s+)?(окн|блокнот|текст|документ)",
+                 cmd) \
+            or cmd in {"прочитай окно", "прочитай блокнот", "что в блокноте",
+                       "что написано в окне"}:
+        text = uia.read_active_text_stripped(max_chars=1500)
+        if not text:
+            return "В активном окне не вижу текста."
+        # Ограничим озвучку — читать 4000 символов вслух долго.
+        if len(text) > 400:
+            text = text[:400] + "... (ещё много)"
+        return f"Читаю: {text}"
+
+    # === URL активной вкладки ===
+    if re.search(r"(какой|какая)\s+(сайт|url|адрес|ссылка)", cmd) \
+            or cmd in {"какой сайт", "какой сайт открыт", "какая ссылка"}:
+        url = uia.read_browser_url()
+        if not url:
+            return "Активное окно — не браузер, или не вижу URL."
+        return f"Открыт сайт: {url}"
+
+    # === Заголовок активной вкладки ===
+    if re.search(r"(что|какая)\s+(за\s+)?(вкладка|страница)", cmd) \
+            or cmd in {"какая вкладка", "что за вкладка"}:
+        title = uia.read_browser_tab_title()
+        if not title:
+            return "Активное окно — не браузер."
+        return f"Активная вкладка: {title}"
+
+    # === Список вкладок ===
+    if re.search(r"(какие|список|покажи)\s+вкладк", cmd) \
+            or cmd in {"какие вкладки", "список вкладок", "покажи вкладки"}:
+        tabs = uia.read_browser_tabs()
+        if not tabs:
+            return "Не вижу открытых вкладок. Возможно, активное окно — не браузер."
+        short = tabs[:10]
+        return "Открыты: " + "; ".join(short) + "."
+
+    # === Закрыть вкладку ===
+    m = re.search(r"закр\w+\s+вкладк\w*\s+(.+)", cmd)
+    if m:
+        target = m.group(1).strip().rstrip(".,!?")
+        if target in ("эту", "текущую", "это"):
+            # «закрой эту вкладку» — просто Ctrl+W, безопаснее.
+            from jarvis import actions
+            actions.hotkey(["ctrl", "w"])
+            return "Закрыл текущую вкладку."
+        ok = uia.close_browser_tab(target)
+        return f"Закрыл вкладку {target}." if ok else f"Вкладку «{target}» не нашёл."
+
+    # === Переключиться на вкладку ===
+    m = re.search(r"переключ\w*\s+(?:на\s+)?вкладк\w*\s+(.+)", cmd) \
+        or re.search(r"перейди\s+на\s+вкладк\w*\s+(.+)", cmd)
+    if m:
+        target = m.group(1).strip().rstrip(".,!?")
+        ok = uia.switch_browser_tab(target)
+        return f"Переключился на {target}." if ok else f"Вкладку «{target}» не нашёл."
+
+    # === Нажать кнопку ===
+    m = re.search(r"нажми\s+(?:кнопку\s+)?(.+)", cmd)
+    if m:
+        target = m.group(1).strip().rstrip(".,!?")
+        # «нажми enter» / «нажми tab» — это клавиши, не кнопки.
+        if target.lower() in ("enter", "escape", "esc", "tab", "space",
+                              "пробел", "энтер", "эскейп"):
+            from jarvis import actions
+            key = {"пробел": "space", "энтер": "enter", "эскейп": "escape"}.get(
+                target.lower(), target.lower()
+            )
+            actions.key_press(key)
+            return f"Нажал {target}."
+        ok = uia.click_button(target)
+        return f"Нажал «{target}»." if ok else f"Кнопку «{target}» не нашёл."
+
+    return None
+```
+
 ### `jarvis\intents\fast\undo.py`
 
 ```python
@@ -8662,6 +9326,16 @@ class IntentHandler:
         self._last_cmd = cmd
 
         result = self._handle_single(cmd)
+
+        # Mood: реагируем на эмоциональный окрас фразы.
+        # Делается ДО сохранения user_msg, чтобы mood был актуален
+        # для уже сформированного ответа. Это осознанный tradeoff:
+        # ответ сгенерирован со старым mood, но следующий уже учтёт.
+        try:
+            from jarvis import mood
+            mood.apply_from_text(cmd)
+        except Exception:
+            log.exception("mood.apply_from_text упал на %r", cmd)
 
         user_msg = {"role": "user", "content": cmd}
         self.dialog.append(user_msg)
@@ -10287,6 +10961,14 @@ def main() -> None:
 
     jarvis = Jarvis(config, listener, speaker, handler, BASE_DIR, whisper, gui=gui)
 
+    # Прогрев тяжёлых API — brightness через WMI (~0.5 сек).
+    # Иначе первый голосовой запрос «какая яркость» виснет.
+    try:
+        from jarvis import actions
+        actions.get_brightness()
+    except Exception:
+        log.debug("Прогрев brightness не удался — не критично")
+
     # Обратные ссылки для праздничных триггеров
     handler.jarvis = jarvis
     if gui is not None:
@@ -10341,6 +11023,21 @@ def main() -> None:
     worker = threading.Thread(target=jarvis.run_loop, daemon=True, name="jarvis-listener")
     worker.start()
     threading.Thread(target=jarvis.mic_watchdog, daemon=True, name="mic-watchdog").start()
+
+    # Mood: раз в 60 сек проверяем, не «устарело» ли состояние.
+    # Возврат к neutral через 5 мин (см. mood.decay).
+    def _mood_decay_loop():
+        while not jarvis.stop_event.is_set():
+            if jarvis.stop_event.wait(60.0):
+                return
+            try:
+                from jarvis import mood
+                mood.decay()
+            except Exception:
+                log.exception("mood.decay упал в фоновом потоке")
+
+    threading.Thread(target=_mood_decay_loop, daemon=True,
+                     name="mood-decay").start()
 
     try:
         from jarvis import first_run, persona
@@ -10820,6 +11517,346 @@ def handle_mode_command(cmd: str, current_mode: str, config=None) -> tuple[str |
         return f"Сейчас режим: {NAMES.get(current_mode, current_mode)}.", current_mode
 
     return None, current_mode
+```
+
+### `jarvis\mood.py`
+
+```python
+"""Mood — эмоциональное состояние ассистента.
+
+Persona = "кто я" (стиль, черты, backstory). Стабильное.
+Mood    = "как я реагирую сейчас" (настроение). Меняется.
+
+Хранится в profile.json → mood:
+    {
+        "state": "happy",
+        "since": 1791626400.0,
+        "reason": "похвала"
+    }
+
+Состояния:
+    neutral  — по умолчанию
+    happy    — похвала, благодарность
+    excited  — радость, восторг
+    annoyed  — грубость в адрес ассистента
+    bored    — долгое молчание
+    tired    — юзер сказал «устал»
+
+Влияние:
+    - TTS: скорость речи (excited +10%, tired -10%).
+    - GUI: цвет статус-сферы.
+    - System prompt: LLM отвечает с учётом настроения.
+
+Подписки: subscribe(callback(old_state, new_state)).
+"""
+
+import logging
+import re
+import time
+from threading import RLock
+
+from jarvis import profile
+
+log = logging.getLogger("jarvis.mood")
+
+# Все допустимые состояния.
+STATES = ("neutral", "happy", "excited", "annoyed", "bored", "tired")
+
+# Значение по умолчанию.
+DEFAULT_MOOD = {
+    "state": "neutral",
+    "since": 0.0,
+    "reason": "",
+}
+
+# Подписки и лок.
+_lock = RLock()
+_listeners: list = []
+
+# Время «жизни» состояния до возврата к neutral.
+DEFAULT_DECAY_SEC = 300  # 5 минут
+
+
+# =================================================================
+# Чтение / запись
+# =================================================================
+
+def get() -> dict:
+    """Текущее настроение (с дефолтами)."""
+    raw = profile.get("mood", {}) or {}
+    result = dict(DEFAULT_MOOD)
+    if isinstance(raw, dict):
+        for k in DEFAULT_MOOD:
+            if raw.get(k) is not None:
+                result[k] = raw[k]
+    return result
+
+
+def get_state() -> str:
+    """Только state — для быстрых проверок."""
+    return get().get("state", "neutral")
+
+
+def set_mood(state: str, reason: str = "") -> bool:
+    """Устанавливает настроение + оповещает подписчиков.
+
+    Если state совпадает с текущим — ничего не делает (кроме reason).
+    """
+    if state not in STATES:
+        log.warning("mood.set_mood: неизвестное состояние %r", state)
+        return False
+
+    current = get_state()
+    current_reason = get().get("reason", "")
+
+    # Если ничего не изменилось — выходим.
+    if current == state and current_reason == reason:
+        return True
+
+    ok = profile.set("mood", {
+        "state": state,
+        "since": time.time(),
+        "reason": reason,
+    })
+    if not ok:
+        log.error("mood.set_mood: не удалось сохранить %r", state)
+        return False
+
+    log.info("Mood: %s → %s (%s)", current, state, reason)
+
+    with _lock:
+        listeners = list(_listeners)
+    for cb in listeners:
+        try:
+            cb(current, state)
+        except Exception:
+            log.exception("Подписчик mood упал на %s → %s", current, state)
+
+    return True
+
+
+# =================================================================
+# Подписки
+# =================================================================
+
+def subscribe(callback) -> None:
+    """callback(old_state, new_state) — вызывается при смене настроения."""
+    with _lock:
+        if callback not in _listeners:
+            _listeners.append(callback)
+
+
+def unsubscribe(callback) -> None:
+    """Удаляет подписку."""
+    with _lock:
+        try:
+            _listeners.remove(callback)
+        except ValueError:
+            pass
+
+
+# =================================================================
+# Детекция из текста
+# =================================================================
+
+# Регулярки для быстрой эвристики.
+_PRAISE = re.compile(
+    r"\b(спасибо|благодар\w*|молодец|умниц\w*|круто|отлично|"
+    r"супер|класс|здорово|хорош\w*|правильно|верно)\b",
+    flags=re.IGNORECASE,
+)
+
+_EXCITED = re.compile(
+    r"\b(ура|ура-ура|получилось|вау|ого|ничего себе|невероятно|"
+    r"офигенно|офигеть|обалдеть|кайф)\b",
+    flags=re.IGNORECASE,
+)
+
+_RUDE = re.compile(
+    r"\b(тупой|тупая|тупица|дурак|дура|идиот|идиотка|дебил|дебилка|"
+    r"кретин|кретинка|бестолочь|ничего не понимаешь|"
+    r"туп\w* ты|идиот\w*)\b",
+    flags=re.IGNORECASE,
+)
+
+_TIRED = re.compile(
+    r"\b(устал\w*|засыпаю|спать хочу|вымотан\w*|без сил|"
+    r"не могу больше|замучил\w*)\b",
+    flags=re.IGNORECASE,
+)
+
+
+def detect(cmd: str) -> str | None:
+    """Быстрая эвристика: какое настроение вызвать?
+
+    Возвращает state или None (не менять).
+    """
+    if not cmd:
+        return None
+
+    # Порядок важен — грубость выше похвалы.
+    # Иначе «спасибо, ты тупой» уйдёт в happy.
+    if _RUDE.search(cmd):
+        return "annoyed"
+    if _TIRED.search(cmd):
+        return "tired"
+    if _EXCITED.search(cmd):
+        return "excited"
+    if _PRAISE.search(cmd):
+        return "happy"
+    return None
+
+
+def apply_from_text(cmd: str) -> bool:
+    """Определяет и устанавливает mood. Возвращает True, если изменил."""
+    detected = detect(cmd)
+    if not detected:
+        return False
+    return set_mood(detected, reason="dialog")
+
+
+# =================================================================
+# Decay — возврат к neutral
+# =================================================================
+
+def decay(max_age_sec: int = DEFAULT_DECAY_SEC) -> bool:
+    """Возвращает к neutral, если состояние «старое».
+
+    Вызывается периодически (раз в минуту) из фонового потока.
+    """
+    m = get()
+    if m["state"] == "neutral":
+        return False
+
+    age = time.time() - m.get("since", 0)
+    if age < max_age_sec:
+        return False
+
+    log.info("Mood: %s устарел (%.0f сек) → neutral",
+             m["state"], age)
+    set_mood("neutral", reason="decay")
+    return True
+
+
+# =================================================================
+# Влияние на систему
+# =================================================================
+
+# Множители скорости речи для TTS.
+_RATE_MULTIPLIERS = {
+    "neutral": 1.0,
+    "happy":   1.0,
+    "excited": 1.1,
+    "annoyed": 1.0,
+    "bored":   0.95,
+    "tired":   0.9,
+}
+
+
+def effective_rate(base_rate: float) -> float:
+    """Скорость речи с учётом mood."""
+    mult = _RATE_MULTIPLIERS.get(get_state(), 1.0)
+    return round(base_rate * mult, 3)
+
+
+# Цвета для GUI — статус-сфера.
+_COLORS = {
+    "neutral": "#484f58",
+    "happy":   "#3fb950",
+    "excited": "#d29922",
+    "annoyed": "#f85149",
+    "bored":   "#8b949e",
+    "tired":   "#6e7681",
+}
+
+
+def color() -> str:
+    """Цвет статус-сферы для текущего настроения."""
+    return _COLORS.get(get_state(), _COLORS["neutral"])
+
+
+# =================================================================
+# System prompt
+# =================================================================
+
+_PROMPT_HINTS = {
+    "happy":   "Пользователь тебя похвалил или поблагодарил — "
+               "отвечай теплее, бодрее, можно слегка самодовольно.",
+    "excited": "Пользователь в восторге — поддержи его энергию, "
+               "отвечай эмоциональнее.",
+    "annoyed": "Пользователь грубит — НЕ извиняйся, ответь сухо, "
+               "с лёгкой иронией, но не хами. Осади спокойно.",
+    "bored":   "Давно молчание или скучный диалог — отвечай коротко, "
+               "с ленцой, не разворачивайся.",
+    "tired":   "Пользователь устал — отвечай мягко, чуть медленнее, "
+               "без лишних слов.",
+}
+
+
+def build_prompt_block() -> str:
+    """Блок для system prompt на основе текущего настроения."""
+    state = get_state()
+    hint = _PROMPT_HINTS.get(state)
+    if not hint:
+        return ""
+    return f"\n\nТекущее настроение диалога: {state}.\n{hint}\n"
+
+
+# =================================================================
+# Описание для озвучки
+# =================================================================
+
+_DESCRIPTIONS = {
+    "neutral": "Спокойное, ровное.",
+    "happy":   "Хорошее, тёплое.",
+    "excited": "Восторженное, бодрое.",
+    "annoyed": "Раздражённое.",
+    "bored":   "Скучающее.",
+    "tired":   "Уставшее.",
+}
+
+
+def describe() -> str:
+    """Человеческое описание для озвучки."""
+    state = get_state()
+    desc = _DESCRIPTIONS.get(state, "Спокойное.")
+    since = get().get("since", 0)
+    if since:
+        age = int(time.time() - since)
+        if age < 60:
+            when = f"{age} секунд назад"
+        elif age < 3600:
+            when = f"{age // 60} минут назад"
+        else:
+            when = f"{age // 3600} часов назад"
+        return f"Настроение: {desc} Установлено {when}."
+    return f"Настроение: {desc}"
+
+
+# =================================================================
+# Команды (для fast/persona.py)
+# =================================================================
+
+def handle_mood_command(cmd: str) -> str | None:
+    """Голосовые команды настроения. Возвращает ответ или None."""
+    low = cmd.lower()
+
+    # «как настроение» / «какое у тебя настроение»
+    if (re.search(r"(какое|как)\s+(у\s+тебя\s+)?настроение", low)
+            or low in {"настроение", "как настроение"}):
+        return describe()
+
+    # «не грусти» / «взбодрись»
+    if re.search(r"(не\s+грусти|взбодрись|улыбнись|повеселей)", low):
+        set_mood("happy", reason="user_request")
+        return "Стараюсь."
+
+    # «успокойся»
+    if re.search(r"(успокойся|не\s+злись|не\s+сердись)", low):
+        set_mood("neutral", reason="user_request")
+        return "Уже спокоен."
+
+    return None
 ```
 
 ### `jarvis\observer.py`
@@ -13503,9 +14540,22 @@ class Speaker:
     def _speak_piper(self, text: str, token: threading.Event) -> None:
         if token.is_set():
             return
+
+        # Mood влияет на скорость речи.
+        # excited → +10%, tired → -10%.
+        cfg = self._piper_cfg
+        try:
+            from jarvis import mood
+            eff_rate = mood.effective_rate(self.rate)
+            from piper import SynthesisConfig
+            cfg = SynthesisConfig(length_scale=round(1.0 / eff_rate, 2))
+        except Exception:
+            log.exception("mood.effective_rate упал — использую базовую скорость")
+            cfg = self._piper_cfg
+
         buf = io.BytesIO()
         with wave.open(buf, "wb") as wf:
-            self._piper.synthesize_wav(text, wf, self._piper_cfg)
+            self._piper.synthesize_wav(text, wf, cfg)
         if token.is_set():
             return
         self._play_wav(buf.getvalue(), token)
@@ -13534,7 +14584,12 @@ class Speaker:
         if voice is not None:
             synth.voice = voice
         try:
-            synth.options.speaking_rate = self.rate
+            from jarvis import mood
+            eff = mood.effective_rate(self.rate)
+        except Exception:
+            eff = self.rate
+        try:
+            synth.options.speaking_rate = eff
         except Exception:
             pass
         stream = await synth.synthesize_text_to_stream_async(text)
@@ -13566,6 +14621,14 @@ class Speaker:
             else:
                 if token.is_set():
                     return
+                # Mood влияет на скорость SAPI.
+                try:
+                    from jarvis import mood
+                    self._engine.setProperty(
+                        "rate", int((mood.effective_rate(self.rate) - 1.0) * 100)
+                    )
+                except Exception:
+                    log.exception("Не удалось применить mood к SAPI rate")
                 self._engine.say(text)
                 self._engine.runAndWait()
         except Exception:
@@ -13711,6 +14774,617 @@ class Speaker:
                 self._playing = False
 
         return "".join(full_text_parts).strip()
+```
+
+### `jarvis\uia.py`
+
+```python
+"""UI Automation — видим окна и элементы интерфейса.
+
+Обёртка над `uiautomation` (Windows UIA через COM).
+
+Что умеем:
+    - Найти окно по части заголовка.
+    - Прочитать весь видимый текст активного окна.
+    - Прочитать URL активной вкладки браузера.
+    - Нажать кнопку по имени.
+    - Закрыть вкладку браузера.
+    - Переключиться на вкладку по имени.
+
+Всё через `uiautomation`, thread-safe через RLock (COM не любит
+многопоточность без инициализации).
+
+ВАЖНО: UIA требует STA (Single-Threaded Apartment). Первый вызов
+в потоке инициализирует COM. Не дёргать из разных потоков без
+`uiautomation.InitializeUIAutomationInCurrentThread()`.
+"""
+
+import logging
+import re
+import threading
+import time
+
+log = logging.getLogger("jarvis.uia")
+
+_lock = threading.RLock()
+
+# Ленивая инициализация uiautomation.
+_uia = None
+
+
+def _ensure_init():
+    """Ленивая инициализация UIA в текущем потоке."""
+    global _uia
+    if _uia is None:
+        try:
+            import uiautomation as auto
+            _uia = auto
+            log.info("UIA инициализирован")
+        except ImportError:
+            log.error("uiautomation не установлен. pip install uiautomation")
+            raise
+    return _uia
+
+
+# =================================================================
+# Поиск окна
+# =================================================================
+
+def find_window(title_part: str, timeout: float = 2.0):
+    """Находит окно по части заголовка. None, если не нашёл."""
+    uia = _ensure_init()
+    title_low = title_part.lower()
+
+    with _lock:
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            try:
+                for w in uia.GetRootControl().GetChildren():
+                    try:
+                        name = (w.Name or "").strip()
+                        if name and title_low in name.lower():
+                            return w
+                    except Exception:
+                        continue
+            except Exception:
+                log.exception("find_window: обход окон упал")
+                return None
+            time.sleep(0.1)
+    return None
+
+
+def get_active_window():
+    """Возвращает активное окно или None."""
+    uia = _ensure_init()
+    try:
+        with _lock:
+            return uia.GetForegroundControl()
+    except Exception:
+        log.exception("get_active_window упал")
+        return None
+
+
+def get_active_window_title() -> str:
+    """Заголовок активного окна."""
+    w = get_active_window()
+    if w is None:
+        return ""
+    try:
+        return (w.Name or "").strip()
+    except Exception:
+        return ""
+
+
+# =================================================================
+# Чтение текста
+# =================================================================
+
+def read_active_text(max_chars: int = 4000) -> str:
+    """Читает весь видимый текст активного окна.
+
+    Обходим дерево через _walk_controls (рекурсия по GetChildren).
+    """
+    uia = _ensure_init()
+    w = get_active_window()
+    if w is None:
+        return ""
+
+    texts: list[str] = []
+    total = 0
+
+    with _lock:
+        for ctrl in _walk_controls(w, depth=20):
+            if total >= max_chars:
+                break
+            try:
+                ct = ctrl.ControlType
+                if ct not in (uia.ControlType.EditControl,
+                              uia.ControlType.DocumentControl,
+                              uia.ControlType.TextControl):
+                    continue
+                if ctrl.IsValuePatternAvailable():
+                    val = ctrl.GetValuePattern().Value
+                else:
+                    val = ctrl.Name
+                if val:
+                    val = val.strip()
+                    if val and val not in texts:
+                        texts.append(val)
+                        total += len(val)
+            except Exception:
+                continue
+
+    result = "\n".join(texts)
+    if len(result) > max_chars:
+        result = result[:max_chars] + "..."
+    return result
+
+
+def read_active_text_stripped(max_chars: int = 2000) -> str:
+    """read_active_text + склеивание пробелов."""
+    text = read_active_text(max_chars=max_chars)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+# =================================================================
+# Кнопки
+# =================================================================
+
+def click_button(name_part: str, window_title: str | None = None,
+                 timeout: float = 2.0) -> bool:
+    """Нажимает кнопку по части имени.
+
+    window_title — если задан, ищем кнопку только в этом окне.
+    Иначе — в активном.
+    """
+    uia = _ensure_init()
+    name_low = name_part.lower()
+
+    with _lock:
+        window = (find_window(window_title) if window_title
+                  else get_active_window())
+        if window is None:
+            return False
+
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            try:
+                for ctrl in window.GetChildren():
+                    for c in _walk_controls(ctrl, depth=10):
+                        try:
+                            if c.ControlType != uia.ControlTypeName.ButtonControl:
+                                continue
+                            cname = (c.Name or "").strip().lower()
+                            if name_low in cname:
+                                c.GetInvokePattern().Invoke()
+                                log.info("Нажал кнопку %r", c.Name)
+                                return True
+                        except Exception:
+                            continue
+            except Exception:
+                pass
+            time.sleep(0.1)
+    return False
+
+
+def _walk_controls(root, depth: int = 15):
+    """Рекурсивно обходит контролы. Ловит исключения на каждом уровне."""
+    if depth <= 0:
+        return
+    try:
+        children = root.GetChildren()
+    except Exception:
+        return
+    for c in children:
+        yield c
+        yield from _walk_controls(c, depth=depth - 1)
+
+
+# =================================================================
+# Браузеры — определяем по процессам, а не по заголовку окна.
+# Так работает и в Chrome, и в Edge, Opera, Brave, Vivaldi, Arc, ...
+# =================================================================
+
+# Известные браузерные процессы (имя .exe в нижнем регистре).
+_BROWSER_PROCESSES = {
+    "chrome.exe":              "Chrome",
+    "msedge.exe":              "Edge",
+    "firefox.exe":             "Firefox",
+    "opera.exe":               "Opera",
+    "opera_gx.exe":            "Opera GX",
+    "brave.exe":               "Brave",
+    "yandex.exe":              "Яндекс",
+    "browser.exe":             "Яндекс",     # старый Яндекс.Браузер
+    "vivaldi.exe":             "Vivaldi",
+    "arc.exe":                 "Arc",
+    "chromium.exe":            "Chromium",
+    "librewolf.exe":           "LibreWolf",
+    "waterfox.exe":            "Waterfox",
+    "tor.exe":                 "Tor Browser",
+    "thorium.exe":             "Thorium",
+    "slimjet.exe":             "Slimjet",
+    "epic.exe":                "Epic",
+    "maxthon.exe":             "Maxthon",
+    "sleipnir.exe":            "Sleipnir",
+    "palemoon.exe":            "Pale Moon",
+    "basilisk.exe":            "Basilisk",
+}
+
+
+def list_windows() -> list[str]:
+    """Список заголовков всех видимых окон. Для отладки."""
+    uia = _ensure_init()
+    result = []
+    with _lock:
+        try:
+            for w in uia.GetRootControl().GetChildren():
+                try:
+                    name = (w.Name or "").strip()
+                    if name:
+                        result.append(name)
+                except Exception:
+                    continue
+        except Exception:
+            log.exception("list_windows упал")
+    return result
+
+
+def list_browsers() -> list[tuple[str, str]]:
+    """Список запущенных браузеров: [(exe, human_name), ...].
+
+    Ищем по процессам — не по заголовкам окон. Работает для любых
+    браузеров, даже если окно сейчас не в фокусе.
+    """
+    try:
+        import psutil
+    except ImportError:
+        log.warning("psutil не установлен — не могу определить процессы браузеров")
+        return []
+
+    found: dict[str, str] = {}
+    for proc in psutil.process_iter(["name"]):
+        try:
+            pname = (proc.info.get("name") or "").lower()
+            if pname in _BROWSER_PROCESSES:
+                found[pname] = _BROWSER_PROCESSES[pname]
+        except Exception:
+            continue
+    return sorted(found.items())
+
+
+def _find_window_by_process(process_names: set[str], timeout: float = 2.0):
+    """Ищет видимое окно, чей PID принадлежит процессу из process_names."""
+    uia = _ensure_init()
+    try:
+        import psutil
+    except ImportError:
+        return None
+
+    # Собираем PID-ы процессов с нужными именами.
+    pids = set()
+    for proc in psutil.process_iter(["name", "pid"]):
+        try:
+            if (proc.info.get("name") or "").lower() in process_names:
+                pids.add(proc.info["pid"])
+        except Exception:
+            continue
+
+    if not pids:
+        return None
+
+    with _lock:
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            try:
+                for w in uia.GetRootControl().GetChildren():
+                    try:
+                        if not w.Name:
+                            continue
+                        pid = w.ProcessId
+                        if pid in pids:
+                            return w
+                    except Exception:
+                        continue
+            except Exception:
+                log.exception("_find_window_by_process: обход упал")
+                return None
+            time.sleep(0.1)
+    return None
+
+
+def find_browser_window():
+    """Находит окно ЛЮБОГО запущенного браузера.
+
+    Возвращает uiautomation.WindowControl или None.
+    Порядок: сначала активное окно (если это браузер) → потом по процессам.
+    """
+    # 1. Активное окно — а вдруг это уже браузер?
+    active = get_active_window()
+    if active is not None:
+        try:
+            active_pid = active.ProcessId
+            import psutil
+            try:
+                pname = psutil.Process(active_pid).name().lower()
+                if pname in _BROWSER_PROCESSES:
+                    return active
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+    # 2. Ищем по процессам.
+    return _find_window_by_process(set(_BROWSER_PROCESSES.keys()))
+
+
+def _get_browser_window():
+    """Совместимость: обёртка над find_browser_window."""
+    return find_browser_window()
+
+
+def read_browser_url() -> str:
+    """Читает URL активной вкладки. Пусто, если не браузер.
+
+    На Chromium-браузерах адресная строка — EditControl с именем
+    «Адресная строка и строка поиска» или пустым.
+    """
+    uia = _ensure_init()
+    w = _get_browser_window()
+    if w is None:
+        return ""
+
+    with _lock:
+        # Ищем EditControl внутри окна.
+        try:
+            edit = uia.EditControl(searchFromControl=w, searchDepth=20)
+            if edit.Exists(2):
+                try:
+                    value = edit.GetValuePattern().Value
+                    if value:
+                        value = value.strip()
+                        if re.match(r"^https?://", value, re.I):
+                            return value
+                        if re.match(r"^[a-z0-9-]+\.[a-z]{2,}(/|$)", value, re.I):
+                            return "https://" + value
+                except Exception:
+                    log.exception("read_browser_url: чтение Edit упало")
+        except Exception:
+            log.exception("read_browser_url: поиск Edit упал")
+
+        # Fallback: домен из заголовка окна.
+        try:
+            title = (w.Name or "").strip()
+            for sep in (" — ", " - ", " | "):
+                if sep in title:
+                    title = title.split(sep)[0].strip()
+                    break
+            m = re.search(r"([a-z0-9-]+\.(ru|com|org|net|io|dev|me|рф))",
+                          title, re.I)
+            if m:
+                return "https://" + m.group(1)
+        except Exception:
+            pass
+
+    return ""
+
+
+def read_browser_tab_title() -> str:
+    """Заголовок активной вкладки (без имени браузера)."""
+    w = _get_browser_window()
+    if w is None:
+        return ""
+    try:
+        title = (w.Name or "").strip()
+        # Формат: «Имя страницы — Chrome» → «Имя страницы»
+        for sep in (" - ", " — ", " | "):
+            if sep in title:
+                return title.split(sep)[0].strip()
+        return title
+    except Exception:
+        return ""
+
+
+def read_browser_tabs() -> list[str]:
+    """Список заголовков вкладок.
+
+    Работает для Chromium-браузеров (Chrome, Edge, Яндекс):
+        - Ищем ToolBarControl с именем 'Вкладки'.
+        - Внутри него — TabItemControl с именами.
+    """
+    uia = _ensure_init()
+    w = _get_browser_window()
+    if w is None:
+        return []
+
+    tabs: list[str] = []
+    with _lock:
+        try:
+            # Ищем тулбар «Вкладки» внутри окна браузера.
+            # auto.ToolBarControl(searchFromControl=..., searchDepth=...)
+            # возвращает ПЕРВЫЙ найденный тулбар.
+            toolbar = uia.ToolBarControl(
+                searchFromControl=w,
+                Name="Вкладки",
+                searchDepth=15,
+            )
+            if toolbar.Exists(2):
+                # Обходим прямых детей тулбара — это TabItemControl.
+                for child in toolbar.GetChildren():
+                    try:
+                        if child.ControlType != uia.ControlType.TabItemControl:
+                            continue
+                        name = (child.Name or "").strip()
+                        if name and name not in tabs:
+                            tabs.append(name)
+                    except Exception:
+                        continue
+
+                # Если прямые дети — кнопки (Новая вкладка и т.п.),
+                # обходим на один уровень глубже.
+                if not tabs:
+                    for child in toolbar.GetChildren():
+                        for sub in child.GetChildren():
+                            try:
+                                if sub.ControlType != uia.ControlType.TabItemControl:
+                                    continue
+                                name = (sub.Name or "").strip()
+                                if name and name not in tabs:
+                                    tabs.append(name)
+                            except Exception:
+                                continue
+
+            log.info("read_browser_tabs: %d вкладок", len(tabs))
+        except Exception:
+            log.exception("read_browser_tabs упал")
+
+    # Fallback — хотя бы активная.
+    if not tabs:
+        title = read_browser_tab_title()
+        if title:
+            tabs = [title]
+
+    return tabs
+
+
+def close_browser_tab(tab_title_part: str) -> bool:
+    """Закрывает вкладку браузера по части заголовка."""
+    uia = _ensure_init()
+    w = _get_browser_window()
+    if w is None:
+        return False
+
+    tab_low = tab_title_part.lower()
+    with _lock:
+        try:
+            for ctrl in _walk_controls(w, depth=15):
+                try:
+                    if ctrl.ControlType != uia.ControlTypeName.TabItemControl:
+                        continue
+                    name = (ctrl.Name or "").lower()
+                    if tab_low not in name:
+                        continue
+                    # Ищем кнопку закрытия внутри вкладки.
+                    for child in ctrl.GetChildren():
+                        try:
+                            if child.ControlType == uia.ControlTypeName.ButtonControl:
+                                cname = (child.Name or "").lower()
+                                if "close" in cname or "закры" in cname or not cname:
+                                    child.GetInvokePattern().Invoke()
+                                    log.info("Закрыл вкладку %r", ctrl.Name)
+                                    return True
+                        except Exception:
+                            continue
+                except Exception:
+                    continue
+        except Exception:
+            log.exception("close_browser_tab упал")
+    return False
+
+
+def switch_browser_tab(tab_title_part: str) -> bool:
+    """Переключается на вкладку по части заголовка."""
+    uia = _ensure_init()
+    w = _get_browser_window()
+    if w is None:
+        return False
+
+    tab_low = tab_title_part.lower()
+    with _lock:
+        try:
+            for ctrl in _walk_controls(w, depth=15):
+                try:
+                    if ctrl.ControlType != uia.ControlTypeName.TabItemControl:
+                        continue
+                    name = (ctrl.Name or "").lower()
+                    if tab_low in name:
+                        ctrl.GetSelectionItemPattern().Select()
+                        log.info("Переключился на вкладку %r", ctrl.Name)
+                        return True
+                except Exception:
+                    continue
+        except Exception:
+            log.exception("switch_browser_tab упал")
+    return False
+
+
+# =================================================================
+# Меню
+# =================================================================
+
+def click_menu_item(path: str) -> bool:
+    """Кликает пункт меню по пути «Файл > Сохранить как».
+
+    Работает для приложений с классическим меню (Notepad++, старые приложения).
+    """
+    uia = _ensure_init()
+    parts = [p.strip() for p in re.split(r"\s*[>»]\s*", path) if p.strip()]
+    if not parts:
+        return False
+
+    w = get_active_window()
+    if w is None:
+        return False
+
+    with _lock:
+        try:
+            for ctrl in _walk_controls(w, depth=10):
+                try:
+                    if ctrl.ControlType != uia.ControlTypeName.MenuItemControl:
+                        continue
+                    name = (ctrl.Name or "").strip().lower()
+                    if parts[0].lower() in name:
+                        if len(parts) == 1:
+                            ctrl.GetInvokePattern().Invoke()
+                            return True
+                        ctrl.GetExpandCollapsePattern().Expand()
+                        time.sleep(0.1)
+                        # Дальше — обход подменю.
+                        for sub in _walk_controls(ctrl, depth=5):
+                            try:
+                                if sub.ControlType != uia.ControlTypeName.MenuItemControl:
+                                    continue
+                                sname = (sub.Name or "").strip().lower()
+                                if parts[1].lower() in sname:
+                                    sub.GetInvokePattern().Invoke()
+                                    return True
+                            except Exception:
+                                continue
+                except Exception:
+                    continue
+        except Exception:
+            log.exception("click_menu_item упал")
+    return False
+
+
+# =================================================================
+# Диагностика
+# =================================================================
+
+def is_available() -> bool:
+    """Проверяет, работает ли UIA (COM инициализируется)."""
+    try:
+        _ensure_init()
+        w = get_active_window()
+        return w is not None
+    except Exception:
+        return False
+
+
+def describe_active_window() -> str:
+    """Человеческое описание активного окна — для отладки."""
+    title = get_active_window_title()
+    if not title:
+        return "Не вижу активного окна."
+    return f"Активное окно: «{title}»."
+
+
+def describe_browsers() -> str:
+    """Человеческое описание запущенных браузеров — для отладки."""
+    browsers = list_browsers()
+    if not browsers:
+        return "Запущенных браузеров не вижу."
+    names = [human for _, human in browsers]
+    return "Запущены браузеры: " + ", ".join(names) + "."
 ```
 
 ### `jarvis\voices.py`
@@ -15015,8 +16689,8 @@ SOFTWARE.
 | 🆕 Персона + стиль общения | 1 | 1 | 0 |
 | 🆕 Observer | 1 | 1 | 0 |
 | 🆕 GUI-вкладка «Персона» | 1 | 1 | 0 |
-| 🆕 Mood | 3 | 0 | 3 |
-| 🆕 UIA (элементы окон) | 6 | 0 | 6 |
+| 🆕 Mood | 3 | 3 | 0 |
+| 🆕 UIA (элементы окон) | 6 | 6 | 0 |
 | 🆕 Silero TTS | 3 | 0 | 3 |
 | 🆕 VAD (Silero) | 2 | 0 | 2 |
 | 🆕 Persistent + Vector memory (RAG) | 3 | 0 | 3 |
@@ -15327,7 +17001,7 @@ SOFTWARE.
 
 **Стили:** `formal` / `friendly` / `sarcastic` / `brief`.
 
-### 🆕 Mood (3) ⭐ AIRI-концепция ⭐ СЛЕДУЮЩИЙ
+### 🆕 Mood (3) ⭐ AIRI-концепция ✅
 
 | № | Задача | Время |
 |---|---|---|
@@ -15348,7 +17022,7 @@ SOFTWARE.
   - GUI (цвет статус-сферы).
   - Спрайт (выражение — когда будет).
 
-### 🆕 UIA — элементы окон (6)
+### 🆕 UIA — элементы окон (6) ✅
 
 | № | Задача | Время |
 |---|---|---|
@@ -15785,7 +17459,15 @@ Callback → Феникс озвучивает
 
 З1–З7. **Сделано.**
 
-### ЭТАП 1.9 — Mood ⭐ СЛЕДУЮЩИЙ
+### ЭТАП 1.9 — Mood ✅
+
+№152–154. **Сделано.**
+
+### ЭТАП 1.10 — UIA ✅
+
+№115–120. **Сделано.**
+
+### ЭТАП 1.11 — Silero TTS ⭐ СЛЕДУЮЩИЙ
 
 №152–154. Отдельно, но сразу после Знакомства. **~1–2 дня.**
 
@@ -15912,69 +17594,308 @@ Callback → Феникс озвучивает
 ### `PROMPT.md`
 
 ```markdown
-# 🗺 ПЛАН РАЗВИТИЯ — «Феникс»
+# 🤖 ПРОМПТ для LLM — «Феникс»
 
-> Локальный голосовой ассистент для Windows.
-> Форк [`jsays12/jarvis`](https://github.com/jsays12/jarvis) → [`BobLoTiK/jarvis-fenix`](https://github.com/BobLoTiK/jarvis-fenix).
-> Лицензия: MIT + attribution.
-
----
-
-## 📑 Содержание
-
-- [🎯 Философия](#-философия)
-- [📊 Статус](#-статус)
-- [🚀 Этапы](#-этапы)
-  - [Этап 1 — Баги](#этап-1--баги-)
-  - [Этап 1.5 — Документация](#этап-15--документация-)
-  - [Этап 1.6 — UI/UX](#этап-16--uiux-)
-  - [Этап 1.7 — Установщик](#этап-17--установщик-)
-  - [Этап 1.8 — Знакомство + Персона + Observer](#этап-18--знакомство--персона--observer-)
-  - [Этап 1.9 — Mood](#этап-19--mood-)
-  - [Этап 1.10 — UIA](#этап-110--uia-)
-  - [Этап 1.11 — Silero TTS](#этап-111--silero-tts-)
-  - [Этап 1.12 — VAD](#этап-112--vad-)
-  - [Этап 2 — Облако](#этап-2--облако-)
-  - [Этап 3 — Управление приложениями](#этап-3--управление-приложениями-)
-  - [Этап 4 — Vector memory](#этап-4--vector-memory-)
-  - [Этап 5 — MCP](#этап-5--mcp-)
-  - [Этап 6 — Telegram + веб](#этап-6--telegram--веб-)
-  - [Этап 7 — Визуализация + Спрайт](#этап-7--визуализация--спрайт-)
-  - [Этап 8 — PyInstaller + CI + VLM + Hermes](#этап-8--pyinstaller--ci--vlm--hermes-)
-- [💤 Долгий ящик](#-долгий-ящик)
-- [📎 Ссылки](#-ссылки)
+> Самодостаточный промпт. Копируй целиком в новый чат,
+> если текущий переполнен или меняешь модель.
 
 ---
 
-## 🎯 Философия
+## 🎯 Контекст
 
-**«Феникс»** — приватный голосовой ассистент. Всё локально, без облака по умолчанию.
-Никаких костылей, хардкода и глобального состояния. Только `Config`, только `paths.py`, только VS Code.
+**«Феникс»** — локальный голосовой ассистент для Windows.
+Форк `jsays12/jarvis`. Коммиты до июня 2026 — от оригинала,
+с октября 2026 — мои.
 
-**Принципы:**
+**Стек:**
 
-| Принцип | Правило |
-|---|---|
-| 🔒 Приватность | Личные данные — в `%APPDATA%\Phoenix\` |
-| 🧩 Модульность | Один модуль — одна ответственность |
-| ⚙️ Конфигурируемость | Всё через `config.json` + `Config.set()` |
-| 🧠 LLM-first | Нормализация, разбор, диалог — задача LLM |
-| 🚫 Без костылей | «Работает, но грязно» = не работает |
-| 🧪 Тесты | `pytest` + `test_intents.py` после правок |
-| 📝 Логи | `jarvis.log`, `actions.log`, `errors.log` |
+- **Python 3.11** (только `.venv311`) — Vosk не работает на 3.13/3.14.
+- **Vosk** (wake) + **faster-whisper** (расшифровка).
+- **Piper** / **XTTS** / **WinRT** (TTS).
+- **Ollama** (LLM: qwen2.5, gemma2, llama3.1, mistral).
+- **Flet 1.0.3** (GUI).
+- **PyInstaller** (`Феникс.exe`).
+- **Inno Setup** (установщик).
+- **UIA** (`uiautomation`) — управление окнами. **Готово.**
+- **VLM** (через Ollama) — в планах.
+- **Prosody** (эмоции из голоса) — в планах.
+
+**Репозиторий:** `C:\jarvis`
+**GitHub:** `https://github.com/BobLoTiK/jarvis-fenix`
+**Лицензия:** MIT + attribution jsays12.
+
+**Два корня путей:**
+
+- `C:\ProgramData\Phoenix\` — **ASCII**, модели (Vosk, Whisper).
+- `%APPDATA%\Phoenix\` — **личные данные** (config, profiles, logs, tasks, timers).
+
+**Почему:** Vosk (C++ Kaldi) **ломается** на не-ASCII путях.
+См. `jarvis/paths.py`.
 
 ---
 
-## 📊 Статус
+## 🎭 Как со мной работать
+
+**Обращение:** «брат».
+
+**Стиль:** кратко, без воды, с юмором. Русский.
+
+**Формат:**
+
+- **Команды** — в `bat`/`powershell`-блоках.
+- **Код** — в `python`-блоках, целиком или точечные патчи.
+- **Патч** — с точным маркером: «найди X, замени на Y».
+- **Полные файлы** — в Markdown-блоках с языком.
+- **Плотно.** Не разжёвывать очевидное.
+- **Не переписывать то, что не менялось.**
+- **Порядок файлов в документации:** `PLAN.md`, `PROMPT.md`, остальные.
+- **Отступы сохранять ровно** — не ломать при копипасте.
+- **Документацию кидать в один markdown-блок целиком** — не частями,
+  не с `python` внутри.
+- **Вложенные ```-блоки:** внешний блок делать через `~~~~` (тильды),
+  чтобы вложенные ``` не рвали парсер.
+
+**Запрещено:**
+
+- **Костыли.** «Работает, но грязно» = не решение.
+- **Хардкод.** Всё через `config.json` и `Config`.
+- **Прямая запись/чтение `config.json`** — только `Config.set()`/`config.get()`.
+- **Глобальное состояние** — кроме `Config._GLOBAL`.
+- **Словари синонимов** для городов/валют — задача LLM.
+- **Хардкод путей** — только `jarvis/paths.py`.
+- **Python 3.13/3.14** — Vosk падает.
+- **Коммитить** `.venv311`, `config.json`, `profiles/`,
+  `system_caps.json`, `timers.json`, `tasks.json`, `models/`,
+  `voices/`, `dist/`, `build/`, `*.bak*`, `jarvis/intents_old.py`.
+- **Vosk API из главного потока** — только listener-поток.
+- **`prevent_close` + `on_event`** в Flet 1.0.3 — не работает.
+- **`HF_HOME` глобально** — Piper degraded mode. Временно, сброс.
+- **Удалять attribution `jsays12`**.
+- **Упоминать личные данные** (имя, город, CPU, GPU, ОС) в публичных файлах.
+- **Хардкод браузеров** — использовать список процессов (`_BROWSER_PROCESSES`).
+- **Праздничные триггеры в коде** — только через `config.json`.
+
+**Поощряется:**
+
+- **`Config.subscribe`** для реакции на изменения.
+- **Разделение ответственности** — один модуль = одна задача.
+- **Тесты** — `pytest` + `test_intents.py`.
+- **Логи** — `jarvis.log`, `actions.log`, `errors.log`.
+- **Реестр `fast/__init__.py`** — новые быстрые правила туда.
+- **Пакеты вместо монолитов** — `intents/` — пример.
+
+---
+
+## 🚨 Ошибки, которые я уже делал (не повторяй)
+
+1. **Дробил файл на куски** без указания, куда вставлять. → **Целиком** или **точный маркер**.
+2. **`prevent_close` + `on_event`** в Flet 1.0.3 — крестик ломается.
+3. **`HF_HOME` глобально** — Piper в degraded mode.
+4. **Забыл `sys.stdout is None`** под `pythonw`.
+5. **`wait_end` на не-стартовавшем потоке** — `RuntimeError`.
+6. **`subprocess.Popen` для трея** — `main()` зависал.
+7. **`strip_cjk_chunk` не создал** — `ImportError`.
+8. **Не исключил `profiles/` из `snapshot.py`** — личные данные.
+9. **`chat_stream` терял чанк** — `append` до проверки токена.
+10. **Патч без точного маркера.**
+11. **`text`/`markdown` внутри код-блока** — мешает копипасте.
+12. **Обрезал diff** — ты не видишь изменений.
+13. **Порядок файлов** — `PLAN.md` первым, потом `PROMPT.md`.
+14. **Не смотрел логи** — гадал.
+15. **`flush()` из главного потока** — `libvosk.dll` падал (`0xc0000015`).
+16. **Zip Slip** при распаковке Vosk.
+17. **Мьютекс `Global\`** — требует админа. → `Local\`.
+18. **Pack-команды** (`shutdown /s /t 10`) шли в `os.startfile`.
+19. **`timers.py`/`tasks.py` писали в `BASE_DIR`.**
+20. **`memory.append` не атомарный.**
+21. **`config_manager` дефолт — `BASE_DIR`.**
+22. **`_profile_fast` regex** — «я хочу спать» создавал профиль.
+23. **`say()` падал при `listener=None`.**
+24. **GUI ↔ голос — гонка.** → `cmd_lock` в Jarvis.
+25. **`recorder.stop()`** — `unhook_all()` безусловно.
+26. **`launcher.py`** — мёртвый код после `return`.
+27. **`install.bat`** — ссылки на несуществующие `.bat`.
+28. **`weather.py` UA** — из `__version__`.
+29. **`set_llm_model.py`** — путь и неатомарность.
+30. **`start_fenix.bat`** — хардкод `C:\jarvis`. → `%~dp0`.
+31. **`tts.py`** падал на невидимом тексте (`\u200b`).
+32. **`CHAT_SYSTEM` с кракозябрами** — правки только в VS Code.
+33. **BOM в `intents.py`** — UTF-8 без BOM.
+34. **Онбординг на `if/elif`** — LLM-диалог вместо.
+35. **`_extract_name` пропускал «работает»** — blacklist + LLM.
+36. **`_small_talk` перехватывал всё** — убрать «привет», «как дела».
+37. **Правки через терминал → порча файлов.**
+38. **`_small_talk` тест FAIL без LLM.**
+39. **Монолит `intents.py` (2000+ строк)** — распил на пакет.
+40. **Хардкод браузеров в `uia.py`** — список процессов.
+41. **`FindAll` не существует** у `WindowControl` — использовать
+    `ToolBarControl(searchFromControl=..., Name="Вкладки")` или
+    `EditControl(searchFromControl=...)`.
+42. **Праздничные триггеры в коде** — в `config.json`, `enabled: false` по умолчанию.
+43. **`uia.ControlTypeName`** — не существует. Использовать строки `"TabItemControl"`.
+44. **Скриншот не в `_fast_handlers`** — был в pipeline напрямую, забыли перенести.
+45. **«Удали профиль X» перехватывается `tasks_fast`** — обрабатывать в `PasswordStage`.
+46. **Вложенные ``` внутри markdown** — внешний блок через `~~~~`.
+
+---
+
+## 🗂 Пути (главное правило)
+
+**Всё, что читает Vosk** — только в `PROGRAM_DIR` (ASCII):
+
+- `paths.program_models_dir()` → `C:\ProgramData\Phoenix\models\`
+- `paths.program_whisper_cache_dir()` → `C:\ProgramData\Phoenix\whisper-cache\`
+
+**Личные данные** — в `USER_DIR`:
+
+- `paths.config_path()` → `%APPDATA%\Phoenix\config.json`
+- `paths.logs_dir()` → `%APPDATA%\Phoenix\logs\`
+- `paths.profiles_dir()` → `%APPDATA%\Phoenix\profiles\`
+
+**HF_HOME для Whisper** — временно, сброс после.
+
+---
+
+## 🏗 Архитектура (кратко)
+
+### Модули
+
+~~~~
+jarvis/
+├── main.py           — Jarvis, barge-in, cmd_lock
+├── config.py         — Config в памяти + подписки
+├── config_manager.py — атомарная запись (FileLock per-path)
+├── paths.py          — PROGRAM_DIR / USER_DIR
+├── brain.py          — Ollama: parse() / chat_stream() / onboarding_chat()
+├── intents/          — пакет (после рефакторинга)
+│   ├── handler.py    — IntentHandler, pipeline, подписки
+│   ├── context.py    — Ctx для стадий
+│   ├── verbs.py      — COMMAND_VERBS, CANCEL, SEARCH_VERBS
+│   ├── password.py   — хеш, миграция, DANGER_ACTIONS
+│   ├── sites.py      — SITES из packs/sites.json
+│   ├── execute.py    — dispatch: action → функция + UIA
+│   ├── stages/       — 11 стадий pipeline
+│   │   ├── base.py, cancel.py, onboarding.py
+│   │   ├── correction.py, password.py, memory.py
+│   │   ├── pending.py, clipboard.py, modes.py
+│   │   └── compound.py, fast.py, llm.py
+│   └── fast/         — 17 быстрых обработчиков
+│       ├── custom.py, small_talk.py, music.py, screenshot.py
+│       ├── uia.py, open.py, voices.py, packs.py
+│       ├── timers.py, tasks.py, persona.py, profile.py
+│       ├── memory.py, system.py, debug.py
+│       └── undo.py, correction.py, weather.py
+├── reply.py          — Reply (text | stream)
+├── gui.py            — Flet GUI + PALETTES + fireworks
+├── history.py        — стек отмены
+├── stt.py            — Vosk + Whisper, HF_HOME временно
+├── tts.py            — Piper / XTTS / WinRT / SAPI, per-call token
+├── modes.py          — commands / llm / combo
+├── voices.py         — смена голоса Piper
+├── packs.py          — загрузка/выгрузка паков
+├── profile.py        — profiles/<user>/profile.json + subscribe
+├── persona.py        — стиль, черты, backstory
+├── mood.py           — состояние (neutral/happy/...)
+├── uia.py            — окна, вкладки, кнопки (20+ браузеров)
+├── memory.py         — dialog.json (атомарно)
+├── observer.py       — фоновое извлечение фактов
+├── first_run.py      — greeting, is_first_run, mark_done
+├── learning.py       — факты + коррекции
+├── weather.py        — погода/курс + TTL
+├── timers.py         — напоминания (USER_DIR)
+├── tasks.py          — задачи (USER_DIR)
+├── actions.py        — окна, медиа, _looks_like_cmd
+├── text_utils.py     — normalize, strip_cjk, prepare_text
+├── celebrations.py   — поздравление с ДР (триггеры из config)
+├── files.py          — папки
+├── apps.py           — каталог приложений
+├── installed.py      — индекс «Пуск»
+├── steam.py          — индекс Steam
+├── matching.py       — нечёткое сравнение
+├── model.py          — загрузка Vosk
+├── recorder.py       — макросы
+├── tray.py           — трей (отключён)
+├── vision.py         — VLM (в планах)
+├── hermes.py         — мост Hermes (в планах)
+└── resources.py      — приоритеты (в планах)
+~~~~
+
+### Поток обработки
+
+~~~~
+Микрофон → Vosk (wake) → Whisper → Jarvis._process
+   → IntentHandler.handle(cmd)  ← normalize(cmd)
+   → mood.apply_from_text(cmd)
+   → Pipeline (11 стадий):
+       cancel → onboarding → correction → password
+       → memory → pending → clipboard → modes
+       → compound → fast (реестр) → llm
+   → Reply (text | stream)
+   → Jarvis.say(reply)  ← cmd_lock
+~~~~
+
+### Mood
+
+~~~~
+Jarvis._process → mood.apply_from_text(cmd)
+   → detect: rude/tired/excited/praise
+   → set_mood → notify subscribers
+      ├── TTS: effective_rate()
+      ├── GUI: color() для статус-сферы
+      └── LLM: build_prompt_block()
+~~~~
+
+**Decay:** фоновый поток раз в 60 сек → `mood.decay()`.
+
+### UIA
+
+~~~~
+Команда → fast/uia.py (быстрые) → uia.py
+   ├── find_browser_window() — по PID процесса
+   ├── read_browser_tab_title() / read_browser_tabs()
+   ├── read_browser_url() — с fallback
+   ├── close_browser_tab() / switch_browser_tab()
+   ├── read_active_text()
+   └── click_button() / click_menu_item()
+~~~~
+
+---
+
+## 📋 Режимы работы
+
+### 🏠 Local
+
+- LLM: Qwen через Ollama.
+- STT: Vosk + Whisper small CPU.
+- TTS: Piper medium.
+- Погода: кэш 24 ч.
+
+### 🌐 Hybrid
+
+- LLM: Qwen 14b/32b.
+- STT: Whisper large-v3-turbo на GPU.
+- TTS: Piper.
+
+### ☁️ Cloud — 🚧 в планах
+
+Ф1–Ф13.
+
+### 💎 Premium — ⏸
+
+Ф14–Ф19.
+
+---
+
+## 📊 ТЕКУЩИЙ СТАТУС
 
 ### ✅ Закрыто
 
 | Категория | Всего | ✅ |
-|---|---:|---:|
+|---|---|---|
 | 🔴 Критичные | 8 | 8 |
 | 🟡 Серьёзные | 7 | 7 |
 | 🟢 Мелкие | 8 | 8 |
-| 🏗 Архитектурные | 3 | 1 |
+| 🏗 Архитектурные | 3 | 2 |
 | 📝 Документация | 1 | 1 |
 | 🔐 Безопасность | 1 | 1 |
 | 🆕 Запуск | 1 | 1 |
@@ -15983,267 +17904,165 @@ Callback → Феникс озвучивает
 | 🆕 Автолаунчер | 1 | 1 |
 | 🆕 Установщик (v1) | 1 | 1 |
 | 🆕 Релиз v1.0.0 | 1 | 1 |
-| 🆕 Поздравление | 1 | 1 |
+| 🆕 Поздравление (в config) | 1 | 1 |
 | 🆕 Аудит Kimi | 25 | 25 |
 | 🆕 Inno UI | 1 | 1 |
-| 🆕 Знакомство через LLM-диалог | 1 | 1 |
+| 🆕 Знакомство через LLM | 1 | 1 |
 | 🆕 Персона + стиль | 1 | 1 |
 | 🆕 Observer | 1 | 1 |
+| 🆕 Распил `intents.py` → пакет | 1 | 1 |
+| 🆕 Техдолг (.bak, system_caps, send2trash) | 5 | 5 |
+| 🆕 Mood | 3 | 3 |
+| 🆕 UIA | 6 | 6 |
+
+**Ключевое за последние сессии:**
+
+- **Распил `intents.py`** → пакет `intents/` (~40 файлов).
+- **Mood** — эмоциональное состояние, влияет на TTS/GUI/LLM.
+- **UIA** — управление окнами Windows (браузеры по PID процесса).
+- **Праздничные триггеры** — из `config.json`, по умолчанию выключены.
+- **Техдолг** — `.bak*`, `system_caps.json` в snapshot, `send2trash` warning.
 
 ### 🚧 Осталось
 
-| № | Задача | Статус |
-|---|---|---|
-| №75, №77 | Архитектура | 🚧 |
-| №85 | Отмена | ⏸ |
-| №86 | Wake | 🧪 |
-| №108 | Трей | ⏸ |
-| №147–148 | PyInstaller (20–30 ч) | ⏸ |
-| №121 | GitHub Actions (4–6 ч) | ⏸ |
-| №123 | Тест на виртуалке | ⏸ |
+- №75, №77 — архитектура.
+- №85 — отмена ⏸.
+- №86 — wake 🧪.
+- №108 — трей ⏸.
+- №147–148 — PyInstaller (20–30 ч).
+- №121 — GitHub Actions (4–6 ч).
+- №123 — тест на виртуалке.
+- Этап 1.11 — Silero TTS. **Следующий.**
+- Этап 1.12 — VAD.
+- Этап 1.13.5 — Prosody (эмоции из голоса).
+- Этап 1.13.6 — Non-verbal (смех, вздохи).
+- Этап 2 — Облако.
+- Этап 3 — Управление приложениями.
+- Этап 4 — Vector memory.
+- Этап 5 — MCP заготовки.
+- Этап 6 — Telegram.
+- Этап 7 — Визуализация + Спрайт.
+- Этап 8 — PyInstaller + CI + VLM + Hermes.
 
 ---
 
-## 🚀 Этапы
+## 🎯 ПОРЯДОК РАБОТЫ
 
-### Этап 1 — Баги ✅
-
-**Цель:** стабильное ядро без падений и регрессий.
-
-- [x] Все критичные баги (8/8)
-- [x] Все серьёзные баги (7/7)
-- [x] Все мелкие баги (8/8)
-- [x] Аудит Kimi — 25/25
-- [x] Фикс `test_intents.py` — «кто ты» без LLM
-
-**Итог:** ядро стабильно, ассистент запускается и работает.
-
----
-
-### Этап 1.5 — Документация 🚧
-
-**Цель:** понятный репозиторий для себя и для форка.
-
-- [x] `PROMPT.md`
-- [x] `PLAN.md`
-- [ ] `ARCHITECTURE.md`
-- [ ] `CHANGELOG.md`
-- [ ] `README.md` — актуализация
-- [ ] `CONTRIBUTING.md`
-
-**Порядок файлов в документации:** `PLAN.md` → `PROMPT.md` → остальные.
+1. Этап 1 — Баги — ✅
+2. Этап 1.5 — Документация — 🚧
+3. Этап 1.6 — UI/UX — ✅
+4. Этап 1.7 — Красивый установщик — ✅
+5. Этап 1.8 — Знакомство + Персона + Observer — ✅
+6. Этап 1.9 — Mood — ✅
+7. Этап 1.10 — UIA — ✅
+8. **Этап 1.11 — Silero TTS — ❌ следующий**
+9. Этап 1.12 — VAD — ❌
+10. Этап 1.13.5 — Prosody — ❌ (в планах, будущее)
+11. Этап 1.13.6 — Non-verbal — ❌ (в планах, будущее)
+12. Этап 2 — Облако — ❌
+13. Этап 3 — Управление приложениями — ❌
+14. Этап 4 — Vector memory — ❌
+15. Этап 5 — MCP (заготовки) — ❌
+16. Этап 6 — Telegram + веб — ❌
+17. Этап 7 — Визуализация + Спрайт — ❌
+18. Этап 8 — PyInstaller + CI + VLM + Hermes — ⏸
+19. 💤 Долгий ящик — Фаза 2
 
 ---
 
-### Этап 1.6 — UI/UX ✅
+## 🎯 КЛЮЧЕВЫЕ ПРАВИЛА
 
-**Цель:** красивый и понятный интерфейс.
+### Код
 
-- [x] Flet 1.0.3 — `NavigationRail`, `_tabs`
-- [x] `PALETTES` — светлая/тёмная тема
-- [x] `_rebuild_ui_for_theme` — сохраняет историю
-- [x] Fireworks
-- [x] `ft.Button` вместо `ElevatedButton`
-- [x] `ft.BoxShadow` без `blur_style`
-- [x] Кеш разделов
+1. `Config` — источник истины.
+2. Не плоди `_atomic_write`. `config_manager.save()`.
+3. Не плоди глобальное состояние.
+4. Нормализация — задача LLM.
+5. `test_intents.py` — после правок.
+6. `normalize(cmd)` в `handle()`.
+7. Per-call stop-token в `tts.py`.
+8. `PALETTES` в `gui.py`.
+9. `ft.Button` вместо `ElevatedButton`.
+10. `ft.BoxShadow` без `blur_style`.
+11. Реестр `fast/__init__.py`.
+12. `open_profile` выше `open`.
+13. `set_profile` / `get_profile` через LLM.
+14. Активация окон — `win32gui` + `AttachThreadInput`.
+15. Пути — только `jarvis/paths.py`.
+16. Модели Vosk/Whisper — только `PROGRAM_DIR` (ASCII).
+17. `HF_HOME` для Whisper — временно.
+18. Vosk API — только из listener-потока.
+19. UIA — через `uiautomation`. Поиск браузера — по PID процесса.
+20. `FindAll` не существует. Используй `auto.EditControl(searchFromControl=...)`
+    и `auto.ToolBarControl(searchFromControl=..., Name="Вкладки")`.
+21. Pack-команды с аргументами — через `_looks_like_cmd` + `shlex`.
+22. Атомарная запись везде: `mkstemp` + `os.replace`.
+23. Zip Slip защита при распаковке.
+24. **Онбординг — через LLM.** `stages/onboarding.py` + `brain.onboarding_chat()`.
+25. **Observer — фоновое извлечение фактов.** Не блокирует.
+26. **Персона — в system prompt.** `persona.build_prompt_block()`.
+27. **Mood — в system prompt и TTS.** `mood.build_prompt_block()` +
+    `mood.effective_rate()`.
+28. **Праздничные триггеры — в `config.json`.** `enabled: false`.
+29. **Правки только в VS Code.** Терминал портит кодировку и BOM.
+30. **UTF-8 без BOM.** `files.encoding: utf8`,
+    `files.autoGuessEncoding: false`.
+31. **`intents/` — пакет.** Новые правила в `fast/`, стадии в `stages/`.
+32. **`_COMPOUND_VERBS` = `COMMAND_VERBS`** из `intents/verbs.py`.
+33. **Скриншот — в `fast/screenshot.py`**, не в pipeline.
+34. **`delete_profile` — в `PasswordStage`**, до `fast`.
 
----
+### GUI
 
-### Этап 1.7 — Установщик ✅
+1. Flet — главный поток.
+2. Связь через `queue.Queue()`.
+3. Разделы — `_tabs`.
+4. Тема — `theme_mode` + `PALETTES`.
+5. `launch_mode` — `"gui"` / `"tray"`.
+6. `_rebuild_ui_for_theme` сохраняет историю.
+7. Не использовать `prevent_close` + `on_event`.
 
-**Цель:** установка в один клик, без прав администратора.
+### Безопасность
 
-- [x] Inno Setup
-- [x] `WizardStyle=modern`
-- [x] `WizardImageFile`, `WizardSmallImageFile`
-- [x] `PrivilegesRequired=lowest`
-- [x] `start_fenix.bat` — `%~dp0`
-- [x] Автолаунчер
-- [x] `install.bat` — проверка ссылок
+1. Личные данные — только `config.json`, `profiles/`, `system_caps.json`.
+2. Все — в `.gitignore`.
+3. `config.example.json` — только дефолты.
+4. Пароль — SHA-256.
+5. `send2trash` — warning при отсутствии.
 
----
+### Окружение
 
-### Этап 1.8 — Знакомство + Персона + Observer ✅
+1. Python 3.10–3.12.
+2. `.venv311` — обязательный.
+3. `snapshot.py` — исключать `.venv311`, `profiles/`,
+   `system_caps.json`, `*.bak*`.
 
-**Цель:** ассистент знает пользователя и общается в его стиле.
+### Git
 
-- [x] `first_run.py` — greeting + `is_first_run` + `mark_done`
-- [x] Онбординг через LLM-диалог — `brain.onboarding_chat()`
-- [x] `_onboarding_chat_step()` + `_looks_like_command()`
-- [x] `persona.py` — стили `formal` / `friendly` / `sarcastic` / `brief`
-- [x] `build_prompt_block()` → `_system_with_context()`
-- [x] `observer.py` — фоновое извлечение фактов через LLM
-- [x] `observer.observe("user"/"assistant", text)`
-- [x] Раз в 5 сек, порог 6+ сообщений, 30+ сек с прошлого раза
-- [x] `_small_talk` — только время/дата/«кто ты»
-
----
-
-### Этап 1.9 — Mood ❌
-
-**Цель:** ассистент понимает эмоциональный контекст и реагирует соответственно.
-
-- [ ] `jarvis/mood.py` — детекция тона (LLM + эвристики)
-- [ ] `Config.subscribe("mood")` — реакция на изменения
-- [ ] Влияние на TTS (скорость, pitch) через Piper
-- [ ] Влияние на persona — стиль ответа
-- [ ] Логирование переходов настроения
-- [ ] Тесты `test_mood.py`
-
-**Приоритет:** 🔥 следующий.
-
----
-
-### Этап 1.10 — UIA ❌
-
-**Цель:** ассистент видит окна и элементы интерфейса.
-
-- [ ] `jarvis/uia.py` — обёртка над `uiautomation`
-- [ ] Дерево элементов активного окна
-- [ ] Клик по элементу по имени
-- [ ] Ввод текста в поле
-- [ ] Скриншот элемента
-- [ ] Интеграция с `_fast_handlers()`
-- [ ] Тесты
-
-**Зависимости:** `uiautomation`.
-
----
-
-### Этап 1.11 — Silero TTS ❌
-
-**Цель:** качественный русский голос без облака.
-
-- [ ] Интеграция Silero TTS
-- [ ] Выбор голоса через `Config`
-- [ ] Fallback на Piper
-- [ ] Сравнение latency Piper vs Silero
-- [ ] Тесты
+1. `.gitignore` — `.venv311`, `config.json`, `profiles/`, `logs/`,
+   `system_caps.json`, `models/`, `voices/`, `dist/`, `build/`,
+   `*.bak*`, `jarvis/intents_old.py`.
+2. `LICENSE` — не удалять attribution.
 
 ---
 
-### Этап 1.12 — VAD ❌
+## 🛠 Как чинить баги
 
-**Цель:** ассистент не реагирует на тишину и шум.
-
-- [ ] VAD (Silero VAD или webrtcvad)
-- [ ] Отсечение тишины до Whisper
-- [ ] Экономия CPU/GPU
-- [ ] Настройка порога через `Config`
-- [ ] Тесты
-
----
-
-### Этап 2 — Облако ❌
-
-**Цель:** гибридный режим — локально + облако.
-
-- [ ] Режим `cloud` в `modes.py`
-- [ ] Провайдеры: OpenAI, Anthropic, Google
-- [ ] Роутинг запросов: local → cloud
-- [ ] Ключи через `Config` (зашифрованы)
-- [ ] Fallback local при недоступности
-- [ ] UI для выбора режима
-- [ ] Тесты
+1. Лог: `%APPDATA%\Phoenix\logs\` — `jarvis.log`, `actions.log`, `errors.log`.
+2. Event Viewer: `eventvwr.msc` → Application/System.
+3. Воспроизвести.
+4. Локализовать.
+5. Фикс без костылей.
+6. Тесты: `check_syntax.py` + `pytest` + `test_intents.py`.
+7. Коммит: `fix: <краткое>`.
 
 ---
 
-### Этап 3 — Управление приложениями ❌
-
-**Цель:** ассистент управляет программами, а не только открывает.
-
-- [ ] Закрытие приложений по имени
-- [ ] Переключение между окнами
-- [ ] Управление медиа (play/pause/next)
-- [ ] Громкость системы
-- [ ] `_looks_like_cmd` + `shlex.split`
-- [ ] Тесты
-
----
-
-### Этап 4 — Vector memory ❌
-
-**Цель:** долговременная память с семантическим поиском.
-
-- [ ] Векторная БД (Chroma / Qdrant / FAISS)
-- [ ] Эмбеддинги через Ollama
-- [ ] Замена `memory.py` на векторную
-- [ ] Семантический поиск фактов
-- [ ] Миграция `dialog.json`
-- [ ] Тесты
-
----
-
-### Этап 5 — MCP ❌
-
-**Цель:** заготовки под Model Context Protocol.
-
-- [ ] `jarvis/mcp/` — клиент
-- [ ] Реестр инструментов
-- [ ] Регистрация своих tools
-- [ ] Тестовый сервер
-- [ ] Документация
-
----
-
-### Этап 6 — Telegram + веб ❌
-
-**Цель:** управление ассистентом удалённо.
-
-- [ ] Telegram-бот
-- [ ] Веб-интерфейс (Flet web)
-- [ ] Авторизация
-- [ ] Синхронизация с локальным `Config`
-- [ ] Уведомления
-- [ ] Тесты
-
----
-
-### Этап 7 — Визуализация + Спрайт ❌
-
-**Цель:** визуальный образ ассистента.
-
-- [ ] Спрайт-анимация в GUI
-- [ ] Реакция на голос (амплитуда)
-- [ ] Реакция на mood
-- [ ] Кастомизация через `Config`
-- [ ] Тесты
-
----
-
-### Этап 8 — PyInstaller + CI + VLM + Hermes ⏸
-
-**Цель:** релиз, автоматизация, зрение, интеграции.
-
-- [ ] PyInstaller — `Феникс.exe` (20–30 ч)
-- [ ] GitHub Actions — CI (4–6 ч)
-- [ ] Тест на виртуалке
-- [ ] VLM через Ollama — `vision.py`
-- [ ] Hermes — `hermes.py`
-- [ ] Resources — `resources.py`
-
----
-
-## 💤 Долгий ящик
-
-### Фаза 2
-
-- [ ] Мобильное приложение
-- [ ] Умный дом (MQTT)
-- [ ] Кастомные навыки через плагины
-- [ ] Мультиязычность
-- [ ] Синхронизация между устройствами
-- [ ] Голосовые профили (несколько пользователей)
-
----
-
-## 📎 Ссылки
+## 📎 БЫСТРЫЕ ССЫЛКИ
 
 | Что | Где |
 |---|---|
-| Репозиторий | `C:\jarvis` |
-| GitHub | https://github.com/BobLoTiK/jarvis-fenix |
-| Промпт | `PROMPT.md` |
+| План | `PLAN.md` |
 | Архитектура | `ARCHITECTURE.md` |
 | Changelog | `CHANGELOG.md` |
 | README | `README.md` |
@@ -16252,6 +18071,7 @@ Callback → Феникс озвучивает
 | Логи (installed) | `%APPDATA%\Phoenix\logs\` |
 | Модели | `C:\ProgramData\Phoenix\models\` |
 | Конфиг | `%APPDATA%\Phoenix\config.json` |
+| GitHub | `https://github.com/BobLoTiK/jarvis-fenix` |
 
 ---
 
@@ -16277,38 +18097,61 @@ Callback → Феникс озвучивает
 
 ## 📑 Содержание
 
-- [🆕 Что добавлено в форке](#-что-добавлено-в-форке)
-- [💻 Требования](#-требования)
-- [📥 Установка](#-установка)
-- [🚀 Первый запуск](#-первый-запуск)
-- [🎓 Знакомство](#-знакомство-первый-диалог)
-- [🎭 Персона и стиль](#-персона-и-стиль-общения)
-- [👁 Observer](#-observer-фоновое-обучение)
-- [⚠️ Возможные проблемы](#️-возможные-проблемы)
-- [🖼 GUI](#-gui-flet)
-- [⚙️ Режимы работы](#️-режимы-работы)
-- [🧠 Настройка LLM](#-настройка-llm-ollama)
-- [📦 Паки команд](#-паки-команд)
-- [👥 Мультипрофиль](#-мультипрофиль)
-- [💭 Память диалога](#-память-диалога)
-- [↩️ Отмена действий](#️-отмена-действий)
-- [🔒 Пароль на опасные](#-пароль-на-опасные)
-- [🎙 Голоса](#-голоса)
-- [✋ Barge-in](#-barge-in-перебивание)
-- [🎤 Микрофон](#-микрофон)
-- [🎨 Темы GUI](#-темы-gui)
-- [🎉 Поздравление с ДР](#-поздравление-с-др)
-- [📝 Логи](#-логи)
-- [🌤 Погода и курс](#-погода-и-курс-валют)
-- [🗣 Команды](#-команды)
-- [🛠 Свои команды](#-свои-команды)
-- [📦 Сборка `.exe`](#-сборка-exe-и-установщик)
-- [🔄 Автозапуск](#-автозапуск)
-- [🧰 Инструменты разработчика](#-инструменты-разработчика)
-- [🔁 CI](#-ci)
-- [🗺 Что в планах](#-что-в-планах)
-- [🛠 Технологии](#-технологии)
-- [📜 Лицензия](#-лицензия)
+- [🦅 Феникс](#-феникс)
+  - [📑 Содержание](#-содержание)
+  - [🆕 Что добавлено в форке](#-что-добавлено-в-форке)
+    - [🧱 Этап 0 — рефакторинг](#-этап-0--рефакторинг)
+    - [🗣 Этап 1 — команды](#-этап-1--команды)
+    - [💬 Этап 2 — живой диалог](#-этап-2--живой-диалог)
+    - [📨 Этап 3 — Reply + CI](#-этап-3--reply--ci)
+    - [🖥 Этап 4 — системные команды](#-этап-4--системные-команды)
+    - [👥 Этап 5 — мультипрофиль](#-этап-5--мультипрофиль)
+    - [🎨 Этап 6 — Flet GUI](#-этап-6--flet-gui)
+    - [🔤 Этап 7 — реестр + Unicode-пути](#-этап-7--реестр--unicode-пути)
+    - [📦 Этап 8 — автолаунчер и установщик](#-этап-8--автолаунчер-и-установщик)
+    - [🎉 Этап 9 — поздравление с ДР](#-этап-9--поздравление-с-др)
+    - [🔍 Этап 10 — аудит Kimi (25 багов)](#-этап-10--аудит-kimi-25-багов)
+    - [🎭 Этап 11 — Персона, Онбординг, Observer](#-этап-11--персона-онбординг-observer)
+    - [✨ Этап 12 — красивый установщик (Inno UI)](#-этап-12--красивый-установщик-inno-ui)
+    - [🧹 Этап 13 — Техдолг](#-этап-13--техдолг)
+    - [💗 Этап 14 — Mood](#-этап-14--mood)
+    - [🖥 Этап 15 — UIA](#-этап-15--uia)
+    - [🎉 Этап 16 — Праздничные триггеры в config](#-этап-16--праздничные-триггеры-в-config)
+  - [💻 Требования](#-требования)
+  - [📥 Установка](#-установка)
+    - [🤖 Автоматическая](#-автоматическая)
+    - [🛠 Ручная (для разработки)](#-ручная-для-разработки)
+  - [🚀 Первый запуск](#-первый-запуск)
+  - [🎓 Знакомство (первый диалог)](#-знакомство-первый-диалог)
+  - [🎭 Персона и стиль общения](#-персона-и-стиль-общения)
+  - [💗 Mood (эмоции в моменте)](#-mood-эмоции-в-моменте)
+  - [👁 Observer (фоновое обучение)](#-observer-фоновое-обучение)
+  - [🖥 UIA (управление окнами)](#-uia-управление-окнами)
+  - [⚠️ Возможные проблемы](#️-возможные-проблемы)
+  - [🖼 GUI (Flet)](#-gui-flet)
+  - [⚙️ Режимы работы](#️-режимы-работы)
+  - [🧠 Настройка LLM (Ollama)](#-настройка-llm-ollama)
+  - [📦 Паки команд](#-паки-команд)
+  - [👥 Мультипрофиль](#-мультипрофиль)
+  - [💭 Память диалога](#-память-диалога)
+  - [↩️ Отмена действий](#️-отмена-действий)
+  - [🔒 Пароль на опасные](#-пароль-на-опасные)
+  - [🎙 Голоса](#-голоса)
+  - [✋ Barge-in (перебивание)](#-barge-in-перебивание)
+  - [🎤 Микрофон](#-микрофон)
+  - [🎨 Темы GUI](#-темы-gui)
+  - [🎉 Поздравление с ДР](#-поздравление-с-др)
+  - [📝 Логи](#-логи)
+  - [🌤 Погода и курс валют](#-погода-и-курс-валют)
+  - [🗣 Команды](#-команды)
+  - [🛠 Свои команды](#-свои-команды)
+  - [📦 Сборка `.exe` и установщик](#-сборка-exe-и-установщик)
+  - [🔄 Автозапуск](#-автозапуск)
+  - [🧰 Инструменты разработчика](#-инструменты-разработчика)
+  - [🔁 CI](#-ci)
+  - [🗺 Что в планах](#-что-в-планах)
+  - [🛠 Технологии](#-технологии)
+  - [📜 Лицензия](#-лицензия)
 
 ---
 
@@ -16415,6 +18258,33 @@ Callback → Феникс озвучивает
 - `PrivilegesRequired=lowest` — без админа.
 - `Excludes: "__pycache__,*.pyc"` — мусор не тащится.
 
+### 🧹 Этап 13 — Техдолг
+
+- **`intents.py` → пакет `jarvis/intents/`** (~40 файлов).
+- `snapshot.py` — `system_caps.json` в `EXCLUDE_FILES`.
+- `.gitignore` — `*.bak*`, `jarvis/intents_old.py`, `system_caps.json`.
+- `jarvis/profile.py` — warning про `send2trash`.
+
+### 💗 Этап 14 — Mood
+
+- **`jarvis/mood.py`** — `neutral` / `happy` / `excited` / `annoyed` / `bored` / `tired`.
+- Детекция из текста: похвала → `happy`, грубость → `annoyed`.
+- **Влияние:** TTS (скорость), GUI (цвет статус-сферы), LLM (system prompt).
+- **Decay** — возврат к `neutral` через 5 минут.
+- **Команды:** «как настроение», «не грусти», «успокойся».
+
+### 🖥 Этап 15 — UIA
+
+- **`jarvis/uia.py`** — обёртка над `uiautomation`.
+- Находит **любой** браузер (Chrome, Edge, Яндекс, Opera, Brave, Firefox и др.) **по PID процесса**.
+- Команды: «Что открыто», «Прочитай окно», «Какой сайт открыт», «Какие вкладки», «Закрой вкладку ютуб», «Переключись на вкладку хабр», «Нажми OK».
+- **9 LLM-actions** + 17 тестов с моками.
+
+### 🎉 Этап 16 — Праздничные триггеры в config
+
+- **`celebration_enabled: false`** по умолчанию — не срабатывает без настройки.
+- Триггеры и текст — в `config.json`.
+
 ---
 
 ## 💻 Требования
@@ -16448,14 +18318,14 @@ Callback → Феникс озвучивает
 
 ### 🛠 Ручная (для разработки)
 
-```bat
+~~~~bat
 git clone https://github.com/BobLoTiK/jarvis-fenix.git
 cd jarvis-fenix
 py -3.11 -m venv .venv311
 .venv311\Scripts\activate.bat
 pip install -r requirements.txt
 python -m jarvis
-```
+~~~~
 
 ---
 
@@ -16491,7 +18361,7 @@ python -m jarvis
 
 **Персона хранится в `profile.json` → `persona`:**
 
-```json
+~~~~json
 {
   "assistant_name": "Феникс",
   "speech_style": "friendly",
@@ -16499,7 +18369,7 @@ python -m jarvis
   "backstory": "",
   "onboarding_done": true
 }
-```
+~~~~
 
 **Стили:**
 
@@ -16520,7 +18390,41 @@ python -m jarvis
 | «как тебя зовут» | Скажет имя ассистента |
 | «давай заново познакомимся» | Сброс онбординга |
 
-**Как работает:** `brain._system_with_context()` собирает `CHAT_SYSTEM + persona.build_prompt_block() + learning.build_context()`. Стиль **напрямую влияет** на ответы LLM.
+**Как работает:** `brain._system_with_context()` собирает `CHAT_SYSTEM + persona.build_prompt_block() + mood.build_prompt_block() + learning.build_context()`. Стиль и настроение **напрямую влияют** на ответы LLM.
+
+---
+
+## 💗 Mood (эмоции в моменте)
+
+**Persona = «кто я».** Стабильное.
+**Mood = «как я реагирую сейчас».** Меняется.
+
+**Состояния:**
+
+| Состояние | Когда |
+|---|---|
+| `neutral` | по умолчанию |
+| `happy` | похвала, благодарность |
+| `excited` | радость, восторг |
+| `annoyed` | грубость в адрес ассистента |
+| `bored` | долгое молчание |
+| `tired` | «устал», «спать хочу» |
+
+**Что меняет:**
+
+- **TTS** — `excited` +10%, `tired` -10% скорости.
+- **GUI** — цвет статус-сферы.
+- **LLM** — блок в system prompt, отвечает с учётом настроения.
+
+**Автоматически возвращается к `neutral`** через 5 минут.
+
+**Команды:**
+
+| Фраза | Что делает |
+|---|---|
+| «Как настроение» | описывает |
+| «Не грусти» | `happy` |
+| «Успокойся» | `neutral` |
 
 ---
 
@@ -16550,6 +18454,39 @@ python -m jarvis
 
 ---
 
+## 🖥 UIA (управление окнами)
+
+**UIA** (UI Automation) — Windows-технология, которая позволяет Фениксу **видеть структуру** окон: вкладки, кнопки, поля.
+
+**Что умеет:**
+
+| Фраза | Что делает |
+|---|---|
+| «Что открыто» | описывает активное окно |
+| «Прочитай окно» | читает текст активного окна |
+| «Какой сайт открыт» | URL или заголовок активной вкладки |
+| «Какая вкладка» | заголовок активной вкладки |
+| «Какие вкладки» | список всех вкладок |
+| «Закрой вкладку ютуб» | закрывает **только эту вкладку** |
+| «Переключись на вкладку хабр» | активирует |
+| «Нажми OK» | нажимает кнопку по имени |
+
+**Работает** в Chrome, Edge, Firefox, Opera, Brave, Яндекс.Браузере, Vivaldi, Arc и других (20+).
+
+**Особенности:**
+
+- **URL** Яндекс.Браузер не отдаёт через UIA — используется заголовок окна. Chrome/Edge отдают.
+- **Вкладки** читаются у всех Chromium-браузеров (18+ за раз).
+- **UIA** работает **в 10–100 раз быстрее**, чем VLM-зрение.
+
+**Что не умеет:**
+
+- Читать картинки (это VLM-зрение, в планах).
+- Работать в играх (DirectX/Unity не регистрируют элементы).
+- Взаимодействовать с canvas-приложениями (Figma, Photoshop частично).
+
+---
+
 ## ⚠️ Возможные проблемы
 
 | № | Проблема | Решение |
@@ -16566,17 +18503,19 @@ python -m jarvis
 | 10 | Окно Феникса не открывается | `%APPDATA%\Phoenix\logs\launcher.log` и `jarvis.log` |
 | 11 | Онбординг не завершается | Проверь `observer_enabled`. Если LLM недоступна — завершится сам |
 | 12 | BOM в файлах / кракозябры | **Правки только в VS Code.** `files.encoding: utf8`, `files.autoGuessEncoding: false` |
+| 13 | UIA не читает URL в Яндексе | Яндекс не отдаёт адресную строку через UIA. Открой `browser://accessibility/` и включи **Native accessibility API support**, перезапусти браузер. Или используй Chrome/Edge |
 
 ---
 
 ## 🖼 GUI (Flet)
 
-- NavigationRail: Главная / Микрофон / Настройки.
-- Статус-сфера.
+- NavigationRail: Главная / Микрофон / Персона / Настройки.
+- Статус-сфера (перекрашивается под Mood).
 - Чат-пузыри.
 - Поле ввода + Send / Mic.
 - Настройки: LLM, Ollama URL, TTS, скорость, тема.
 - Микрофон: уровень, тест, выбор устройства.
+- Персона: имя пользователя, имя ассистента, стиль, черты, backstory, сброс онбординга.
 
 **Режим запуска:** `"launch_mode": "gui"`.
 
@@ -16600,11 +18539,11 @@ python -m jarvis
 
 ## 🧠 Настройка LLM (Ollama)
 
-```json
+~~~~json
 "llm_model": "qwen2.5:7b-instruct",
 "use_llm": true,
 "ollama_url": "http://127.0.0.1:11434"
-```
+~~~~
 
 | Модель | VRAM | Качество |
 |---|---|---|
@@ -16634,13 +18573,13 @@ python -m jarvis
 
 ## 👥 Мультипрофиль
 
-```
+~~~~
 %APPDATA%\Phoenix\profiles\
 ├── maksim/
 │   ├── profile.json
 │   └── dialog.json
 └── masha/
-```
+~~~~
 
 **Голосом:**
 
@@ -16678,9 +18617,9 @@ python -m jarvis
 
 ## 🔒 Пароль на опасные
 
-```json
+~~~~json
 "danger_password": "sha256:..."
-```
+~~~~
 
 **Опасные:** выключение, перезагрузка, `kill_process`, `clear_tasks`, `cancel_timers`, `delete_profile`.
 
@@ -16737,9 +18676,20 @@ python -m jarvis
 
 ## 🎉 Поздравление с ДР
 
-Скажи: «**я папа**» / «**я Александр**» / «**Александр**».
+**По умолчанию ВЫКЛЮЧЕНО.** Пользователь сам включает в `config.json`.
 
-Феникс:
+~~~~json
+"celebration_enabled": false,
+"celebration_triggers": ["я папа", "я александр"],
+"celebration_short_text": "Поздравляю! С днём рождения!",
+"celebration_long_text": "...",
+"celebration_sound_1_plays": 2,
+"celebration_sound_2_plays": 3,
+"celebration_duration_1": 6.0,
+"celebration_duration_2": 10.0
+~~~~
+
+**Цепочка:**
 
 1. «Поздравляю! С днём рождения!» (голос).
 2. Салют #1 (6 сек) + звук ×2.
@@ -16769,9 +18719,9 @@ python -m jarvis
 | Погода | `open-meteo.com` |
 | Курс | `cbr-xml-daily.ru` |
 
-```json
+~~~~json
 "weather_cache_ttl_sec": 600
-```
+~~~~
 
 ---
 
@@ -16791,14 +18741,16 @@ python -m jarvis
 | **Раскладка** | «переключи раскладку» |
 | **Время** | «который час» |
 | **Разговор** | «как дела», «расскажи шутку» |
-| **Персона** | «поменяй стиль на строгий», «какой у тебя стиль», «давай заново познакомимся» |
+| **Персона** | «поменяй стиль на строгий», «какой у тебя стиль» |
+| **Mood** | «как настроение», «не грусти», «успокойся» |
+| **UIA** | «прочитай окно», «закрой вкладку ютуб», «нажми OK» |
 | **Голос** | «смени голос на Ирину» |
 | **Буфер** | «что в буфере» |
 | **Погода** | «какая погода», «курс доллара» |
 | **Паки** | «загрузи пак игр» |
 | **Профиль** | «я — Маша», «меня зовут X» |
 | **Память** | «что мы обсуждали», «забудь всё» |
-| **Поздравление** | «я папа», «я Александр» |
+| **Поздравление** | (если включено в config) |
 | **Отмена** | «не то», «отмени» |
 | **Диагностика** | «что ты слышал», «почему не понял» |
 | **Стоп** | «стой», «хватит», «отбой» |
@@ -16807,13 +18759,13 @@ python -m jarvis
 
 ## 🛠 Свои команды
 
-```json
+~~~~json
 {
   "phrases": ["открой конфиг"],
   "action": "C:\\jarvis\\config.json",
   "reply": "Открываю конфиг."
 }
-```
+~~~~
 
 **Типы:** путь, `open_app:discord`, `browser`, URL, `steam://`, `{"steps": [...]}`.
 
@@ -16823,13 +18775,13 @@ python -m jarvis
 
 ## 📦 Сборка `.exe` и установщик
 
-```bat
+~~~~bat
 python scripts\make_icon.py
 python scripts\make_installer_images.py
 python scripts\build_exe.py
 REM потом в Inno Setup → Build → Compile
 create_shortcut.bat
-```
+~~~~
 
 **Что делает `make_installer_images.py`:**
 
@@ -16854,7 +18806,7 @@ create_shortcut.bat
 | `start_fenix.bat` | Без консоли |
 | `start_fenix_debug.bat` | С логами |
 | `check_syntax.py` | Синтаксис |
-| `test_intents.py` | 40 сценариев |
+| `test_intents.py` | 32 сценария |
 | `snapshot.py` | `SNAPSHOT.md` |
 | `commit.bat` | Автокоммит |
 | `scripts/make_icon.py` | Иконка |
@@ -16869,11 +18821,11 @@ create_shortcut.bat
 
 **Тесты:**
 
-```bat
+~~~~bat
 python check_syntax.py
 python -m pytest tests/ -v
 python test_intents.py
-```
+~~~~
 
 ---
 
@@ -16889,14 +18841,14 @@ python test_intents.py
 
 **Локально:**
 
-```bat
+~~~~bat
 python test_intents.py                  # без LLM, без сети
 python test_intents.py --llm            # + LLM
 python test_intents.py --network        # + погода/курс
 python test_intents.py --llm --network  # всё
 python test_intents.py --voice          # с озвучкой
 python test_intents.py -k weather       # фильтр
-```
+~~~~
 
 ---
 
@@ -16904,10 +18856,10 @@ python test_intents.py -k weather       # фильтр
 
 | Этап | Что | Оценка |
 |---|---|---|
-| 🎯 **1.9 — Mood** | Эмоции (`neutral`, `happy`, `annoyed`, `excited`, `bored`). Влияет на TTS и GUI | 1–2 дн |
-| 🎯 **1.10 — UIA** | `uiautomation`. «Закрой вкладку YouTube», «нажми OK» | 13–19 ч |
 | 🎯 **1.11 — Silero TTS** | +6 голосов, чище звук, офлайн | 3–5 дн |
 | 🎯 **1.12 — VAD** | Silero VAD ONNX. Работа без wake-слова | 1–2 дн |
+| 🎯 **1.13.5 — Prosody** | Эмоции из голоса (RMS + ZCR + pitch, потом ML) | 3–5 дн |
+| 🎯 **1.13.6 — Non-verbal** | Смех, вздохи, кашель (audio classification) | 2–4 дн |
 | 🎯 **2 — Облако** | Groq (Llama 3.3 70B, Whisper), Edge TTS | 12 ч |
 | 🎯 **3 — Управление приложениями** | Глубокое управление | 8–10 ч |
 | 🎯 **4 — Vector memory** | ChromaDB + RAG. «Что ты обо мне помнишь» | 2–3 нед |
@@ -16939,12 +18891,14 @@ python test_intents.py -k weather       # фильтр
 | Barge-in | Автокалибровка + per-call token |
 | LLM | Qwen / Gemma / Llama / Mistral через Ollama |
 | Персона | `jarvis/persona.py` + `build_prompt_block()` |
+| Mood | `jarvis/mood.py` — 6 состояний |
 | Онбординг | LLM-диалог (`brain.onboarding_chat()`) |
 | Observer | `jarvis/observer.py` — фоном |
+| UIA | `jarvis/uia.py` — окна, вкладки, кнопки (20+ браузеров) |
 | GUI | Flet 1.0.3 + PALETTES (3 темы) |
 | Мультипрофиль | `profiles/<user>/` + subscribe |
 | Универсальный профиль | `set_profile` / `get_profile` через LLM |
-| Реестр | `_fast_handlers()` |
+| Реестр | `fast/__init__.py` |
 | Отмена | `jarvis/history.py` |
 | Пароль | SHA-256 |
 | Микрофон | sounddevice + прогресс-бар |
@@ -17049,6 +19003,7 @@ pystray>=0.19
 
 # === Автоматизация Windows ===
 pyautogui>=0.9.54
+uiautomation>=2.0.29
 pygetwindow>=0.0.9
 keyboard>=0.13.5
 mouse>=0.7.1
@@ -18472,6 +20427,113 @@ if __name__ == "__main__":
     main()
 ```
 
+### `test_uia_dump.py`
+
+```python
+"""Дамп дерева UIA активного окна браузера.
+
+Показывает, какие контролы видит UIA. По нему видно,
+есть ли EditControl (адресная строка), TabItem (вкладки).
+"""
+
+from jarvis import uia
+import uiautomation as auto
+
+
+def dump_tree(ctrl, depth=0, max_depth=8):
+    if depth > max_depth:
+        return
+    try:
+        ctype = ctrl.ControlTypeName
+        cname = (ctrl.Name or "").strip()
+        # Показываем только «интересное»: Edit, Document, Tab, Button.
+        if ctype in ("EditControl", "DocumentControl", "TabItemControl",
+                     "TabControl", "ButtonControl", "ToolBarControl"):
+            name_short = cname[:80] if cname else ""
+            print(f"{'  ' * depth}[{ctype}] {name_short!r}")
+        for child in ctrl.GetChildren():
+            dump_tree(child, depth + 1, max_depth)
+    except Exception:
+        pass
+
+
+print("Ищу браузер...")
+browser = uia.find_browser_window()
+if browser is None:
+    print("Браузер не найден.")
+    raise SystemExit(1)
+
+print(f"Окно: {browser.Name}")
+print()
+print("Дерево UIA (только Edit/Document/Tab/Button):")
+print("-" * 60)
+dump_tree(browser)
+print("-" * 60)
+```
+
+### `test_uia_manual.py`
+
+```python
+"""Ручная проверка UIA в браузере — без хардкода конкретного браузера."""
+
+import time
+from jarvis import uia
+
+print("=" * 60)
+print("UIA — ручная проверка")
+print("=" * 60)
+
+# 1. Список всех видимых окон.
+print()
+print("[1] Видимые окна системы:")
+windows = uia.list_windows()
+for i, w in enumerate(windows[:20], 1):
+    print(f"    {i:2}. {w}")
+
+# 2. Запущенные браузеры.
+print()
+print("[2] Запущенные браузеры:")
+browsers = uia.list_browsers()
+for exe, human in browsers:
+    print(f"    - {human} ({exe})")
+
+# 3. Найти окно браузера.
+print()
+print("[3] Ищу окно браузера...")
+browser = uia.find_browser_window()
+if browser is None:
+    print("    НЕ найдено.")
+else:
+    print(f"    нашёл: {browser.Name}")
+
+    # 4. Активировать и ждать.
+    print()
+    print("[4] Активирую + жду 1.0 сек...")
+    try:
+        browser.SetActive()
+        browser.SetFocus()
+        time.sleep(1.0)  # ← было 0.5, увеличили
+        print("    ок")
+    except Exception as e:
+        print(f"    ошибка: {e}")
+
+    # 5. Данные.
+    print()
+    print("[5] Читаю данные:")
+    print("    URL:  ", uia.read_browser_url() or "(пусто)")
+    print("    TAB:  ", uia.read_browser_tab_title() or "(пусто)")
+    print("    TABS: ", uia.read_browser_tabs() or "(пусто)")
+
+print()
+print("=" * 60)
+```
+
+### `tests\__init__.py`
+
+```python
+
+```
+
 ### `tests\test_caps.py`
 
 ```python
@@ -18550,6 +20612,649 @@ def test_load_broken(tmp_path):
     bad = tmp_path / "bad.json"
     bad.write_text("{это не json", encoding="utf-8")
     assert config_manager.load(path=bad) == {}
+```
+
+### `tests\test_mood.py`
+
+```python
+"""Тесты jarvis.mood — состояние, детекция, decay, влияние."""
+
+import time
+from unittest.mock import patch
+
+from jarvis import mood
+
+
+# =================================================================
+# get / set / get_state
+# =================================================================
+
+def test_get_default_neutral():
+    """Свежий профиль → neutral."""
+    # Подменяем profile.get, чтобы не трогать реальный profile.json
+    with patch("jarvis.profile.get", return_value=None):
+        m = mood.get()
+    assert m["state"] == "neutral"
+    assert m["reason"] == ""
+
+
+def test_set_mood_valid():
+    """set_mood с валидным состоянием сохраняет."""
+    saved = {}
+
+    def fake_get(key, default=None):
+        return saved.get(key, default)
+
+    def fake_set(key, value):
+        saved[key] = value
+        return True
+
+    with patch("jarvis.profile.get", side_effect=fake_get), \
+         patch("jarvis.profile.set", side_effect=fake_set):
+        ok = mood.set_mood("happy", reason="test")
+        assert ok
+        assert saved["mood"]["state"] == "happy"
+        assert saved["mood"]["reason"] == "test"
+
+
+def test_set_mood_invalid():
+    """Невалидное состояние → False, ничего не сохраняется."""
+    with patch("jarvis.profile.set") as mock_set:
+        ok = mood.set_mood("ecstatic", reason="test")
+        assert not ok
+        mock_set.assert_not_called()
+
+
+def test_set_mood_no_change():
+    """Повторная установка того же состояния с тем же reason → no-op."""
+    saved = {
+        "mood": {"state": "happy", "since": 100.0, "reason": "test"},
+    }
+
+    def fake_get(key, default=None):
+        return saved.get(key, default)
+
+    with patch("jarvis.profile.get", side_effect=fake_get), \
+         patch("jarvis.profile.set") as mock_set:
+        ok = mood.set_mood("happy", reason="test")
+        assert ok
+        mock_set.assert_not_called()
+
+
+# =================================================================
+# Подписки
+# =================================================================
+
+def test_subscribe_and_notify():
+    """Подписчик вызывается при смене состояния."""
+    calls = []
+
+    def cb(old, new):
+        calls.append((old, new))
+
+    mood.subscribe(cb)
+    try:
+        saved = {"mood": {"state": "neutral", "since": 100.0, "reason": ""}}
+
+        def fake_get(key, default=None):
+            return saved.get(key, default)
+
+        def fake_set(key, value):
+            saved[key] = value
+            return True
+
+        with patch("jarvis.profile.get", side_effect=fake_get), \
+             patch("jarvis.profile.set", side_effect=fake_set):
+            mood.set_mood("happy", reason="test")
+    finally:
+        mood.unsubscribe(cb)
+
+    assert calls == [("neutral", "happy")]
+
+
+def test_unsubscribe():
+    """После unsubscribe подписчик не вызывается."""
+    calls = []
+
+    def cb(old, new):
+        calls.append((old, new))
+
+    mood.subscribe(cb)
+    mood.unsubscribe(cb)
+
+    saved = {"mood": {"state": "neutral", "since": 100.0, "reason": ""}}
+
+    def fake_get(key, default=None):
+        return saved.get(key, default)
+
+    def fake_set(key, value):
+        saved[key] = value
+        return True
+
+    with patch("jarvis.profile.get", side_effect=fake_get), \
+         patch("jarvis.profile.set", side_effect=fake_set):
+        mood.set_mood("happy", reason="test")
+
+    assert calls == []
+
+
+# =================================================================
+# Детекция из текста
+# =================================================================
+
+def test_detect_praise():
+    assert mood.detect("спасибо, ты лучший") == "happy"
+    assert mood.detect("молодец!") == "happy"
+    assert mood.detect("отлично справился") == "happy"
+
+
+def test_detect_excited():
+    assert mood.detect("ура, получилось!") == "excited"
+    assert mood.detect("вау, круто") == "excited"
+
+
+def test_detect_rude():
+    assert mood.detect("ты тупой") == "annoyed"
+    assert mood.detect("идиот какой-то") == "annoyed"
+    assert mood.detect("дурак") == "annoyed"
+
+
+def test_detect_tired():
+    assert mood.detect("я устал") == "tired"
+    assert mood.detect("спать хочу") == "tired"
+
+
+def test_detect_none():
+    assert mood.detect("открой стим") is None
+    assert mood.detect("") is None
+    assert mood.detect("какая погода") is None
+
+
+def test_detect_rude_beats_praise():
+    """«спасибо, ты тупой» → annoyed, а не happy."""
+    assert mood.detect("спасибо, ты тупой") == "annoyed"
+
+
+# =================================================================
+# apply_from_text
+# =================================================================
+
+def test_apply_from_text_changes():
+    """apply_from_text меняет mood и возвращает True."""
+    saved = {"mood": {"state": "neutral", "since": 100.0, "reason": ""}}
+
+    def fake_get(key, default=None):
+        return saved.get(key, default)
+
+    def fake_set(key, value):
+        saved[key] = value
+        return True
+
+    with patch("jarvis.profile.get", side_effect=fake_get), \
+         patch("jarvis.profile.set", side_effect=fake_set):
+        changed = mood.apply_from_text("спасибо!")
+
+    assert changed
+    assert saved["mood"]["state"] == "happy"
+
+
+def test_apply_from_text_no_change():
+    """Без триггеров → False, mood не меняется."""
+    with patch("jarvis.profile.set") as mock_set:
+        changed = mood.apply_from_text("открой стим")
+        assert not changed
+        mock_set.assert_not_called()
+
+
+# =================================================================
+# Decay
+# =================================================================
+
+def test_decay_old_state():
+    """Старое состояние (>5 мин) → neutral."""
+    saved = {
+        "mood": {"state": "happy", "since": time.time() - 600, "reason": "test"},
+    }
+
+    def fake_get(key, default=None):
+        return saved.get(key, default)
+
+    def fake_set(key, value):
+        saved[key] = value
+        return True
+
+    with patch("jarvis.profile.get", side_effect=fake_get), \
+         patch("jarvis.profile.set", side_effect=fake_set):
+        changed = mood.decay(max_age_sec=300)
+
+    assert changed
+    assert saved["mood"]["state"] == "neutral"
+
+
+def test_decay_fresh_state():
+    """Свежее состояние → не трогаем."""
+    saved = {
+        "mood": {"state": "happy", "since": time.time() - 60, "reason": "test"},
+    }
+
+    def fake_get(key, default=None):
+        return saved.get(key, default)
+
+    with patch("jarvis.profile.get", side_effect=fake_get), \
+         patch("jarvis.profile.set") as mock_set:
+        changed = mood.decay(max_age_sec=300)
+
+    assert not changed
+    mock_set.assert_not_called()
+
+
+def test_decay_neutral():
+    """neutral не трогаем никогда."""
+    saved = {"mood": {"state": "neutral", "since": 0, "reason": ""}}
+
+    def fake_get(key, default=None):
+        return saved.get(key, default)
+
+    with patch("jarvis.profile.get", side_effect=fake_get), \
+         patch("jarvis.profile.set") as mock_set:
+        changed = mood.decay()
+
+    assert not changed
+    mock_set.assert_not_called()
+
+
+# =================================================================
+# Влияние на систему
+# =================================================================
+
+def test_effective_rate_excited():
+    """excited → +10%."""
+    with patch("jarvis.mood.get_state", return_value="excited"):
+        assert mood.effective_rate(1.0) == 1.1
+
+
+def test_effective_rate_tired():
+    """tired → -10%."""
+    with patch("jarvis.mood.get_state", return_value="tired"):
+        assert mood.effective_rate(1.0) == 0.9
+
+
+def test_effective_rate_neutral():
+    """neutral → без изменений."""
+    with patch("jarvis.mood.get_state", return_value="neutral"):
+        assert mood.effective_rate(1.15) == 1.15
+
+
+def test_color_all_states():
+    """Каждое состояние имеет цвет."""
+    for state in mood.STATES:
+        with patch("jarvis.mood.get_state", return_value=state):
+            c = mood.color()
+            assert c.startswith("#")
+            assert len(c) == 7
+
+
+# =================================================================
+# Prompt block
+# =================================================================
+
+def test_build_prompt_block_neutral():
+    """neutral → пустая строка (не засоряем промпт)."""
+    with patch("jarvis.mood.get_state", return_value="neutral"):
+        assert mood.build_prompt_block() == ""
+
+
+def test_build_prompt_block_annoyed():
+    """annoyed → есть блок с подсказкой."""
+    with patch("jarvis.mood.get_state", return_value="annoyed"):
+        block = mood.build_prompt_block()
+        assert "annoyed" in block
+        assert "не извиняйся" in block.lower() or "ирони" in block.lower()
+
+
+# =================================================================
+# Описание
+# =================================================================
+
+def test_describe_neutral():
+    saved = {"mood": {"state": "neutral", "since": 0, "reason": ""}}
+
+    def fake_get(key, default=None):
+        return saved.get(key, default)
+
+    with patch("jarvis.profile.get", side_effect=fake_get):
+        desc = mood.describe()
+
+    assert "Спокойное" in desc
+
+
+def test_describe_with_time():
+    saved = {
+        "mood": {"state": "happy", "since": time.time() - 120, "reason": "test"},
+    }
+
+    def fake_get(key, default=None):
+        return saved.get(key, default)
+
+    with patch("jarvis.profile.get", side_effect=fake_get):
+        desc = mood.describe()
+
+    assert "Хорошее" in desc
+    assert "2 минут" in desc
+
+
+# =================================================================
+# Команды
+# =================================================================
+
+def test_handle_mood_command_query():
+    """«как настроение» → describe()."""
+    saved = {"mood": {"state": "neutral", "since": 0, "reason": ""}}
+
+    def fake_get(key, default=None):
+        return saved.get(key, default)
+
+    with patch("jarvis.profile.get", side_effect=fake_get):
+        reply = mood.handle_mood_command("как настроение")
+
+    assert reply is not None
+    assert "Спокойное" in reply or "Настроение" in reply
+
+
+def test_handle_mood_command_cheer_up():
+    """«не грусти» → happy."""
+    saved = {"mood": {"state": "neutral", "since": 0, "reason": ""}}
+
+    def fake_get(key, default=None):
+        return saved.get(key, default)
+
+    def fake_set(key, value):
+        saved[key] = value
+        return True
+
+    with patch("jarvis.profile.get", side_effect=fake_get), \
+         patch("jarvis.profile.set", side_effect=fake_set):
+        reply = mood.handle_mood_command("не грусти")
+
+    assert reply is not None
+    assert saved["mood"]["state"] == "happy"
+
+
+def test_handle_mood_command_calm_down():
+    """«успокойся» → neutral."""
+    saved = {"mood": {"state": "annoyed", "since": 100.0, "reason": "rude"}}
+
+    def fake_get(key, default=None):
+        return saved.get(key, default)
+
+    def fake_set(key, value):
+        saved[key] = value
+        return True
+
+    with patch("jarvis.profile.get", side_effect=fake_get), \
+         patch("jarvis.profile.set", side_effect=fake_set):
+        reply = mood.handle_mood_command("успокойся")
+
+    assert reply is not None
+    assert saved["mood"]["state"] == "neutral"
+
+
+def test_handle_mood_command_none():
+    """Не наша команда → None."""
+    assert mood.handle_mood_command("открой стим") is None
+    assert mood.handle_mood_command("какая погода") is None
+```
+
+### `tests\test_uia.py`
+
+```python
+"""Тесты jarvis.uia — логика обёртки. С моками.
+
+CI не имеет браузера, поэтому все внешние вызовы замоканы.
+Проверяем:
+    - Как разбираются результаты FindAll/FindAllControls.
+    - Как работают fallback'и (заголовок окна → URL).
+    - Как ведёт себя describe_active_window.
+"""
+
+from unittest.mock import patch, MagicMock
+
+from jarvis import uia
+
+
+# =================================================================
+# list_windows
+# =================================================================
+
+def test_list_windows_empty():
+    """Пустое дерево → пустой список."""
+    fake_root = MagicMock()
+    fake_root.GetChildren.return_value = []
+    fake_auto = MagicMock()
+    fake_auto.GetRootControl.return_value = fake_root
+
+    with patch.object(uia, "_ensure_init", return_value=fake_auto), \
+         patch.object(uia, "_uia", fake_auto):
+        result = uia.list_windows()
+
+    assert result == []
+
+
+def test_list_windows_names():
+    """Имена окон собираются, пустые — пропускаются."""
+    w1 = MagicMock()
+    w1.Name = "Chrome"
+    w2 = MagicMock()
+    w2.Name = ""
+    w3 = MagicMock()
+    w3.Name = "VS Code"
+
+    fake_root = MagicMock()
+    fake_root.GetChildren.return_value = [w1, w2, w3]
+    fake_auto = MagicMock()
+    fake_auto.GetRootControl.return_value = fake_root
+
+    with patch.object(uia, "_ensure_init", return_value=fake_auto), \
+         patch.object(uia, "_uia", fake_auto):
+        result = uia.list_windows()
+
+    assert result == ["Chrome", "VS Code"]
+
+
+# =================================================================
+# describe_active_window
+# =================================================================
+
+def test_describe_active_window_ok():
+    """Заголовок есть → возвращаем фразу."""
+    fake_w = MagicMock()
+    fake_w.Name = "Chrome"
+    with patch.object(uia, "get_active_window", return_value=fake_w):
+        result = uia.describe_active_window()
+    assert "Chrome" in result
+
+
+def test_describe_active_window_none():
+    """Окна нет → сообщение."""
+    with patch.object(uia, "get_active_window", return_value=None):
+        result = uia.describe_active_window()
+    assert "Не вижу" in result
+
+
+# =================================================================
+# describe_browsers
+# =================================================================
+
+def test_describe_browsers_empty():
+    with patch.object(uia, "list_browsers", return_value=[]):
+        result = uia.describe_browsers()
+    assert "не вижу" in result.lower()
+
+
+def test_describe_browsers_found():
+    fake = [("chrome.exe", "Chrome"), ("msedge.exe", "Edge")]
+    with patch.object(uia, "list_browsers", return_value=fake):
+        result = uia.describe_browsers()
+    assert "Chrome" in result
+    assert "Edge" in result
+
+
+# =================================================================
+# read_browser_tab_title
+# =================================================================
+
+def test_read_browser_tab_title_no_browser():
+    """Нет браузера → пустая строка."""
+    with patch.object(uia, "_get_browser_window", return_value=None):
+        assert uia.read_browser_tab_title() == ""
+
+
+def test_read_browser_tab_title_strips_suffix():
+    """«Страница — Яндекс Браузер» → «Страница»."""
+    fake_w = MagicMock()
+    fake_w.Name = "YouTube — Яндекс Браузер"
+    with patch.object(uia, "_get_browser_window", return_value=fake_w):
+        result = uia.read_browser_tab_title()
+    assert result == "YouTube"
+
+
+def test_read_browser_tab_title_no_suffix():
+    """Без разделителя — возвращаем как есть."""
+    fake_w = MagicMock()
+    fake_w.Name = "YouTube"
+    with patch.object(uia, "_get_browser_window", return_value=fake_w):
+        result = uia.read_browser_tab_title()
+    assert result == "YouTube"
+
+
+# =================================================================
+# read_browser_tabs
+# =================================================================
+
+def test_read_browser_tabs_no_browser():
+    with patch.object(uia, "_get_browser_window", return_value=None):
+        assert uia.read_browser_tabs() == []
+
+
+def test_read_browser_tabs_from_toolbar():
+    """Toolbar 'Вкладки' содержит TabItem-детей."""
+    fake_tab1 = MagicMock()
+    fake_tab1.ControlType = "TabItemControl"
+    fake_tab1.Name = "YouTube"
+    fake_tab2 = MagicMock()
+    fake_tab2.ControlType = "TabItemControl"
+    fake_tab2.Name = "GitHub"
+    fake_tab3 = MagicMock()
+    fake_tab3.ControlType = "ButtonControl"
+    fake_tab3.Name = "Новая вкладка"
+
+    fake_toolbar = MagicMock()
+    fake_toolbar.Exists.return_value = True
+    fake_toolbar.GetChildren.return_value = [fake_tab3, fake_tab1, fake_tab2]
+
+    fake_w = MagicMock()
+    fake_w.Name = "YouTube — Chrome"
+
+    fake_auto = MagicMock()
+    fake_auto.ToolBarControl.return_value = fake_toolbar
+    # Настраиваем ControlType — иначе MagicMock вернёт MagicMock,
+    # и сравнение ctrl.ControlType != fake_auto.ControlType.TabItemControl
+    # всегда даст True.
+    fake_auto.ControlType.TabItemControl = "TabItemControl"
+
+    with patch.object(uia, "_ensure_init", return_value=fake_auto), \
+         patch.object(uia, "_uia", fake_auto), \
+         patch.object(uia, "_get_browser_window", return_value=fake_w):
+        result = uia.read_browser_tabs()
+
+    assert result == ["YouTube", "GitHub"]
+
+
+def test_read_browser_tabs_fallback():
+    """Пусто → fallback на активную вкладку."""
+    fake_toolbar = MagicMock()
+    fake_toolbar.Exists.return_value = False
+
+    fake_w = MagicMock()
+    fake_w.Name = "YouTube — Chrome"
+
+    fake_auto = MagicMock()
+    fake_auto.ToolBarControl.return_value = fake_toolbar
+
+    with patch.object(uia, "_ensure_init", return_value=fake_auto), \
+         patch.object(uia, "_uia", fake_auto), \
+         patch.object(uia, "_get_browser_window", return_value=fake_w):
+        result = uia.read_browser_tabs()
+
+    assert result == ["YouTube"]
+
+
+# =================================================================
+# read_browser_url
+# =================================================================
+
+def test_read_browser_url_no_browser():
+    with patch.object(uia, "_get_browser_window", return_value=None):
+        assert uia.read_browser_url() == ""
+
+
+def test_read_browser_url_from_edit():
+    """EditControl с http URL → возвращаем."""
+    fake_edit = MagicMock()
+    fake_edit.Exists.return_value = True
+    value_pattern = MagicMock()
+    value_pattern.Value = "https://youtube.com/watch?v=abc"
+    fake_edit.GetValuePattern.return_value = value_pattern
+
+    fake_w = MagicMock()
+    fake_w.Name = "YouTube — Chrome"
+
+    fake_auto = MagicMock()
+    fake_auto.EditControl.return_value = fake_edit
+
+    with patch.object(uia, "_ensure_init", return_value=fake_auto), \
+         patch.object(uia, "_uia", fake_auto), \
+         patch.object(uia, "_get_browser_window", return_value=fake_w):
+        result = uia.read_browser_url()
+
+    assert result == "https://youtube.com/watch?v=abc"
+
+
+def test_read_browser_url_fallback_from_title():
+    """Edit пустой → берём домен из заголовка."""
+    fake_edit = MagicMock()
+    fake_edit.Exists.return_value = False
+
+    fake_w = MagicMock()
+    fake_w.Name = "youtube.com — Chrome"
+
+    fake_auto = MagicMock()
+    fake_auto.EditControl.return_value = fake_edit
+
+    with patch.object(uia, "_ensure_init", return_value=fake_auto), \
+         patch.object(uia, "_uia", fake_auto), \
+         patch.object(uia, "_get_browser_window", return_value=fake_w):
+        result = uia.read_browser_url()
+
+    assert result == "https://youtube.com"
+
+
+# =================================================================
+# is_available
+# =================================================================
+
+def test_is_available_true():
+    fake_w = MagicMock()
+    fake_auto = MagicMock()
+    with patch.object(uia, "_ensure_init", return_value=fake_auto), \
+         patch.object(uia, "_uia", fake_auto), \
+         patch.object(uia, "get_active_window", return_value=fake_w):
+        assert uia.is_available() is True
+
+
+def test_is_available_false():
+    with patch.object(uia, "_ensure_init", side_effect=ImportError("no uia")):
+        assert uia.is_available() is False
 ```
 
 ### `tests\test_weather.py`

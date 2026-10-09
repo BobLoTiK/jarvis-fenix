@@ -16,6 +16,7 @@
 ## 📑 Содержание
 
 - [Unreleased — 0.4.0](#-unreleased--040)
+  - [Сессия 10.10.2026](#сессия-10102026)
   - [Сессия 09.10.2026](#сессия-09102026)
   - [Сессия 08.10.2026](#сессия-08102026)
   - [Сессия 07.10.2026](#сессия-07102026)
@@ -26,6 +27,94 @@
 ---
 
 ## 🚧 [Unreleased] — 0.4.0
+
+### 📅 Сессия 10.10.2026
+
+#### ✨ Добавлено
+
+##### 🧹 Технический долг (ТД)
+
+- **`intents.py` → пакет `jarvis/intents/`** — распил на ~40 файлов:
+  `handler.py`, `context.py`, `verbs.py`, `password.py`, `sites.py`,
+  `execute.py`, `stages/` (11 стадий), `fast/` (17 обработчиков).
+- **`snapshot.py`** — `system_caps.json` в `EXCLUDE_FILES`.
+- **`.gitignore`** — `*.bak*`, `jarvis/intents_old.py`, `system_caps.json`.
+- **`jarvis/profile.py`** — warning про `send2trash`
+  (не удалять навсегда, если модуля нет).
+- **`jarvis/main.py`** — `finalize_stream(full_text)` без лишнего `cmd`.
+- **`jarvis/intents/fast/profile.py`** — парсинг «мой город Казань» →
+  `("город", "Казань")`, а не `("мой город казань", "да")`.
+
+##### 🎭 Mood — эмоциональное состояние ассистента
+
+- **`jarvis/mood.py`** — состояния `neutral/happy/excited/annoyed/bored/tired`.
+- Хранится в `profile.json` → `mood` (`state`, `since`, `reason`).
+- Детекция из текста: похвала → `happy`, грубость → `annoyed`,
+  радость → `excited`, усталость → `tired`.
+- **Приоритет:** `rude` > `tired` > `excited` > `praise`.
+- **Decay** — возврат к `neutral` через 5 мин.
+- Подписки: `mood.subscribe(cb)`.
+- **Влияние на TTS** — `mood.effective_rate()`: `excited` +10%, `tired` -10%.
+- **Влияние на GUI** — `mood.color()` для статус-сферы.
+- **Влияние на LLM** — `mood.build_prompt_block()` в system prompt.
+- **Команды**: «как настроение», «не грусти», «успокойся».
+- **`tests/test_mood.py`** — 29 тестов.
+
+##### 🖥 UIA — управление окнами Windows
+
+- **`jarvis/uia.py`** — обёртка над `uiautomation`:
+  - `find_browser_window()` — находит любой браузер (Chrome, Edge,
+    Яндекс, Opera, Brave, Firefox и др.) **по PID процесса**,
+    а не по имени окна.
+  - `list_windows()` — все видимые окна (для отладки).
+  - `list_browsers()` — запущенные браузеры.
+  - `read_browser_tab_title()` — заголовок активной вкладки.
+  - `read_browser_tabs()` — список всех вкладок (18+ на Яндексе).
+  - `read_browser_url()` — URL адресной строки (с fallback на заголовок).
+  - `close_browser_tab(name)` / `switch_browser_tab(name)`.
+  - `read_active_text()` — текст активного окна.
+  - `click_button(name)` — нажать кнопку по имени.
+  - `click_menu_item(path)` — клик по меню («Файл > Сохранить»).
+  - `describe_active_window()` / `describe_browsers()` — для отладки.
+- **`jarvis/intents/fast/uia.py`** — 10 голосовых команд без LLM.
+- **`jarvis/brain.py`** — 9 UIA-actions в `ACTIONS` + промпты
+  (SMALL/MEDIUM/LARGE).
+- **`jarvis/intents/execute.py`** — 9 UIA-обработчиков + dispatch.
+- **`tests/test_uia.py`** — 17 тестов с моками.
+
+**Примеры:**
+
+- «Прочитай окно» → текст активного окна.
+- «Какой сайт открыт» → URL (если браузер отдаёт) или заголовок.
+- «Какая вкладка» → заголовок.
+- «Какие вкладки» → список.
+- «Закрой вкладку ютуб» → ищет и закрывает.
+- «Переключись на вкладку хабр» → активирует.
+- «Нажми OK» → ищет кнопку.
+- «Что открыто» → активное окно.
+
+##### 🎉 Праздничные триггеры — в config
+
+- **`jarvis/celebrations.py`** — триггеры и текст из `config.json`.
+- По умолчанию `celebration_enabled: false` — **не срабатывает
+  без настройки**.
+- Ключи: `celebration_enabled`, `celebration_triggers`,
+  `celebration_short_text`, `celebration_long_text`,
+  `celebration_sound_1_plays`, `celebration_sound_2_plays`,
+  `celebration_duration_1`, `celebration_duration_2`.
+- **`config.example.json`** — блок `celebration_*` в конце.
+
+#### 🐛 Исправлено
+
+- **`tests/test_uia.py`** — `uia.ControlTypeName` → строки
+  (`"TabItemControl"`, `"ButtonControl"`).
+- **`jarvis/intents/__init__.py`** — `IntentHandler` из `handler.py`.
+- **`jarvis/intents/stages/password.py`** — «удали профиль X»
+  обрабатывается **до** `fast`-реестра (иначе `tasks_fast` перехватывает).
+- **`jarvis/intents/fast/__init__.py`** — `screenshot` добавлен в реестр
+  (был в pipeline напрямую, при распиле забыли перенести).
+
+---
 
 ### 📅 Сессия 09.10.2026
 
@@ -51,7 +140,8 @@
   `{reply, name, style, onboarding_done}`.
 - `intents._onboarding_chat_step()` — обёртка. Пропускает команды
   (`_looks_like_command`).
-- `intents._looks_like_command()` — эвристика «это команда или свободный текст».
+- `intents._looks_like_command()` — эвристика
+  «это команда или свободный текст».
 - Принудительное завершение: если 6+ фраз от юзера — `mark_done()`.
 - `first_run.py` — упрощён до `greeting()`, `is_first_run()`, `mark_done()`.
 
@@ -98,8 +188,8 @@
 
 ##### 🛡 Защита от BOM и кракозябр
 
-- **Ошибка №39** — BOM в `intents.py` (`invalid non-printable character U+FEFF`).
-  **Фикс:** UTF-8 без BOM.
+- **Ошибка №39** — BOM в `intents.py`
+  (`invalid non-printable character U+FEFF`). **Фикс:** UTF-8 без BOM.
 - **Ошибка №40** — `CHAT_SYSTEM` с `??` от cp1251.
   **Фикс:** правки только в VS Code.
 - **Правило:** `files.encoding: utf8`, `files.autoGuessEncoding: false`.
@@ -246,8 +336,10 @@
 - `brain.chat_stream()` — без `[-40:]`.
 - `main.py` → Jarvis в фоне, Flet в главном.
 - `tts.py` → per-call stop-token.
-- `gui.py` → `PALETTES`, `_detect_system_theme`, `_rebuild_ui_for_theme`, `_mic_level_loop`.
-- `profile.py` → `_current_lock`, `_listeners`, `subscribe()`, `_on_profile_switch`.
+- `gui.py` → `PALETTES`, `_detect_system_theme`,
+  `_rebuild_ui_for_theme`, `_mic_level_loop`.
+- `profile.py` → `_current_lock`, `_listeners`, `subscribe()`,
+  `_on_profile_switch`.
 
 ---
 
@@ -255,7 +347,8 @@
 
 ### ✨ Добавлено
 
-- **Этап 0:** `config_manager`, `Config` в памяти, barge-in, CJK-фильтр, few-shot промпт.
+- **Этап 0:** `config_manager`, `Config` в памяти, barge-in, CJK-фильтр,
+  few-shot промпт.
 - **Этап 1:** голосовые режимы, паки, макросы, память, голоса Piper.
 - **Этап 2:** streaming TTS, barge-in, логи, буфер обмена, погода и курс.
 - **`test_intents.py`** + **`pytest tests/`**.

@@ -176,13 +176,19 @@ class FenixGUI:
         except Exception:
             log.exception("Не удалось подписаться на смену профиля в GUI")
 
-    def _on_profile_switch(self, old_name: str, new_name: str) -> None:
-        """№92: при смене профиля просим UI пересобраться."""
-        if old_name == new_name:
+        # Mood: подписка на смену настроения.
+        try:
+            from jarvis import mood as _mood
+            _mood.subscribe(self._on_mood_change)
+        except Exception:
+            log.exception("Не удалось подписаться на mood в GUI")
+
+    def _on_mood_change(self, old_state: str, new_state: str) -> None:
+        """Mood сменился — обновляем цвет статус-сферы."""
+        if old_state == new_state:
             return
-        log.info("GUI: профиль сменился %s → %s — пересобираю вкладки",
-                 old_name, new_name)
-        self._queue.put(("rebuild_ui", None))
+        log.info("GUI: mood %s → %s", old_state, new_state)
+        self._queue.put(("mood", new_state))
 
     # ---------------------------------------------------------------
     # Публичный API
@@ -1024,6 +1030,8 @@ class FenixGUI:
                     self._rebuild_ui_for_theme()
                 elif kind == "rebuild_ui":
                     self._rebuild_ui_for_theme()
+                elif kind == "mood":
+                    self._apply_mood_color(value)
                 elif kind == "fireworks":
                     self._page.run_task(
                         self._launch_fireworks_async, float(value or 6.0)
@@ -1218,6 +1226,22 @@ class FenixGUI:
                 self._status_sub.value = sub
         except Exception:
             log.exception("Ошибка в _apply_state")
+
+    def _apply_mood_color(self, mood_state: str) -> None:
+        """Обновляет свечение статус-сферы по mood (только в idle)."""
+        try:
+            from jarvis import mood as _mood
+            if self._state != "idle":
+                return  # во время listening/speaking цвет другой
+            color = _mood.color()
+            if self._status_circle:
+                self._status_circle.bgcolor = color
+                self._status_circle.shadow = ft.BoxShadow(
+                    blur_radius=32, color=color, spread_radius=3,
+                )
+            log.info("GUI: статус-сфера перекрашена под mood=%s", mood_state)
+        except Exception:
+            log.exception("_apply_mood_color упал")
 
     def _avatar(self, is_user: bool) -> ft.Container:
         if is_user:

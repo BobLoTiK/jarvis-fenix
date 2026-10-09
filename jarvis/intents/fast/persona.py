@@ -1,11 +1,23 @@
 """Команды персоны: стиль общения, описание, сброс онбординга."""
 
+import logging
 import re
 
 from jarvis import persona
 
+log = logging.getLogger("jarvis.intents")
+
 
 def persona_fast(handler, cmd: str) -> str | None:
+    # Mood: «как настроение», «не грусти», «успокойся»
+    try:
+        from jarvis import mood
+        reply = mood.handle_mood_command(cmd)
+        if reply:
+            return reply
+    except Exception:
+        log.exception("mood.handle_mood_command упал")
+
     # «поменяй стиль на строгий», «говори на ты»
     if (re.search(r"(поменяй|смени|переключи|поставь|установи)\s+стил", cmd)
             or re.search(r"(говори|общайся)\s+(на\s+)?(ты|вы)", cmd)):

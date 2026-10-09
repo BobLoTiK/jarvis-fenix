@@ -10,6 +10,7 @@ from jarvis.intents.fast.custom import match_custom, load_custom
 from jarvis.intents.fast.small_talk import small_talk
 from jarvis.intents.fast.music import music_fast
 from jarvis.intents.fast.screenshot import screenshot_fast
+from jarvis.intents.fast.uia import uia_fast
 from jarvis.intents.fast.open import open_fast, open_profile_fast
 from jarvis.intents.fast.voices import voices_fast
 from jarvis.intents.fast.packs import packs_fast
@@ -35,6 +36,7 @@ def build_registry(handler) -> list:
         ("small_talk",       lambda cmd: small_talk(handler, cmd)),
         ("music",            lambda cmd: music_fast(handler, cmd)),
         ("screenshot",       lambda cmd: screenshot_fast(handler, cmd)),
+        ("uia",              lambda cmd: uia_fast(handler, cmd)),
         ("open_profile",     lambda cmd: open_profile_fast(handler, cmd)),
         ("open",             lambda cmd: open_fast(handler, cmd)),
         ("voices",           lambda cmd: voices_fast(handler, cmd)),

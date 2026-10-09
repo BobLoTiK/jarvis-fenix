@@ -26,7 +26,7 @@ import logging
 import time
 from pathlib import Path
 
-from jarvis import APP_NAME, actions, files, history
+from jarvis import APP_NAME, actions, files, history, uia
 from jarvis import modes, packs, profile, tasks, timers, voices, weather
 from jarvis import paths as _paths
 from jarvis.text_utils import normalize
@@ -712,6 +712,75 @@ def _reload_packs(handler) -> None:
 
 
 # =================================================================
+# UIA-обработчики
+# =================================================================
+
+def _do_uia_read_window(handler, intent, target, query):
+    text = uia.read_active_text_stripped(max_chars=1500)
+    if not text:
+        return "В активном окне не вижу текста."
+    if len(text) > 400:
+        text = text[:400] + "... (ещё много)"
+    return f"Читаю: {text}"
+
+
+def _do_uia_read_url(handler, intent, target, query):
+    url = uia.read_browser_url()
+    if not url:
+        return "Активное окно — не браузер, или не вижу URL."
+    return f"Открыт сайт: {url}"
+
+
+def _do_uia_read_tab(handler, intent, target, query):
+    title = uia.read_browser_tab_title()
+    if not title:
+        return "Активное окно — не браузер."
+    return f"Активная вкладка: {title}"
+
+
+def _do_uia_list_tabs(handler, intent, target, query):
+    tabs = uia.read_browser_tabs()
+    if not tabs:
+        return "Не вижу открытых вкладок."
+    return "Открыты: " + "; ".join(tabs[:10]) + "."
+
+
+def _do_uia_close_tab(handler, intent, target, query):
+    if not target:
+        return "Какую вкладку закрыть?"
+    if target.lower() in ("эту", "текущую", "это"):
+        actions.hotkey(["ctrl", "w"])
+        return "Закрыл текущую вкладку."
+    ok = uia.close_browser_tab(target)
+    return f"Закрыл вкладку {target}." if ok else f"Вкладку «{target}» не нашёл."
+
+
+def _do_uia_switch_tab(handler, intent, target, query):
+    if not target:
+        return "На какую вкладку переключиться?"
+    ok = uia.switch_browser_tab(target)
+    return f"Переключился на {target}." if ok else f"Вкладку «{target}» не нашёл."
+
+
+def _do_uia_click_button(handler, intent, target, query):
+    if not target:
+        return "Какую кнопку нажать?"
+    ok = uia.click_button(target)
+    return f"Нажал «{target}»." if ok else f"Кнопку «{target}» не нашёл."
+
+
+def _do_uia_active_window(handler, intent, target, query):
+    return uia.describe_active_window()
+
+
+def _do_uia_menu(handler, intent, target, query):
+    if not target:
+        return "Какой пункт меню?"
+    ok = uia.click_menu_item(target)
+    return f"Кликнул: {target}." if ok else f"Меню «{target}» не нашёл."
+
+
+# =================================================================
 # Dispatch-таблица
 # =================================================================
 
@@ -775,4 +844,14 @@ _DISPATCH = {
     "set_profile":        _do_set_profile,
     "get_profile":        _do_get_profile,
     "answer":             _do_answer,
+    # === UIA ===
+    "uia_read_window":    _do_uia_read_window,
+    "uia_read_url":       _do_uia_read_url,
+    "uia_read_tab":       _do_uia_read_tab,
+    "uia_list_tabs":      _do_uia_list_tabs,
+    "uia_close_tab":      _do_uia_close_tab,
+    "uia_switch_tab":     _do_uia_switch_tab,
+    "uia_click_button":   _do_uia_click_button,
+    "uia_active_window":  _do_uia_active_window,
+    "uia_menu":           _do_uia_menu,
 }

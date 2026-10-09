@@ -30,6 +30,7 @@ pystray>=0.19
 
 # === Автоматизация Windows ===
 pyautogui>=0.9.54
+uiautomation>=2.0.29
 pygetwindow>=0.0.9
 keyboard>=0.13.5
 mouse>=0.7.1

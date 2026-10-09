@@ -1,12 +1,21 @@
 """Праздничные триггеры — поздравление с ДР + двойной салют.
 
-Единоразово: батя говорит «я папа» / «я Александр» —
-Феникс запускает праздничную цепочку:
+Триггеры и текст ПОЗДРАВЛЕНИЯ настраиваются в config.json:
 
-    1. TTS: «Поздравляю! С днём рождения!»
-    2. Анимация #1 + звук ×2 (короткая, ~6 сек).
-    3. TTS: полное поздравление.
-    4. Анимация #2 + звук ×3 (длинная, ~10 сек).
+    "celebration_enabled": false,
+    "celebration_triggers": ["я папа", "я александр"],
+    "celebration_short_text": "Поздравляю! С днём рождения!",
+    "celebration_long_text": "Дорогой Папа! Поздравляю тебя...",
+    "celebration_sound_1_plays": 2,
+    "celebration_sound_2_plays": 3,
+    "celebration_duration_1": 6.0,
+    "celebration_duration_2": 10.0,
+
+По умолчанию — ВЫКЛЮЧЕНО. Пользователь сам включает и пишет свои
+триггеры. Иначе получается «поздравь моего батю Александра» на
+чужой машине.
+
+Если enabled=false или triggers пустой — функция не срабатывает.
 """
 
 import logging
@@ -17,41 +26,57 @@ from pathlib import Path
 
 log = logging.getLogger("jarvis.celebrations")
 
-# Триггеры: пользователь называет себя.
-TRIGGERS = (
-    "я папа",
-    "я александр",
-    "я саша",
-    "я отец",
-    "я батя",
-    "александр",
-)
 
-SHORT_TEXT = "Поздравляю! С днём рождения!"
+# Значения по умолчанию (если config не передан).
+DEFAULTS = {
+    "enabled": False,
+    "triggers": [],
+    "short_text": "Поздравляю! С днём рождения!",
+    "long_text": "Поздравляю с днём рождения! Здоровья, счастья и удачи!",
+    "sound_1_plays": 2,
+    "sound_2_plays": 3,
+    "duration_1": 6.0,
+    "duration_2": 10.0,
+}
 
-# ⚠️ Текст поздравления — НЕ МЕНЯТЬ (авторский)
-LONG_TEXT = (
-    "Дорогой Папа! Поздравляю тебя с днём рождения! "
-    "Желаю крепкого здоровья, счастья, удачи и всего самого афигенского. "
-    "Пусть каждый день приносит радость, а все мечты сбываются. "
-    "Спасибо, что ты рядом. Ты — самый лучший папа на свете! С днем рождения!!!"
-)
 
-# Первая серия (перед поздравлением) — короткая
-SOUND_PLAYS_1 = 2
-SOUND_DURATION_SEC_1 = 3.0
+def _get_config():
+    """Возвращает текущий Config или None."""
+    try:
+        from jarvis.config import get_global
+        return get_global()
+    except Exception:
+        return None
 
-# Вторая серия (после поздравления) — длинная
-SOUND_PLAYS_2 = 3
-SOUND_DURATION_SEC_2 = 3.5
+
+def _cfg(key: str, default):
+    """Читает значение из config.json → celebration_*."""
+    cfg = _get_config()
+    if cfg is None:
+        return DEFAULTS.get(key, default)
+    return cfg.get(f"celebration_{key}", DEFAULTS.get(key, default))
 
 
 def match_celebration(cmd: str) -> bool:
-    """Проверяет, триггер ли это."""
+    """Проверяет, триггер ли это.
+
+    Возвращает False, если:
+        - celebration_enabled = false
+        - celebration_triggers пустой
+        - ни один триггер не найден в cmd
+    """
+    if not _cfg("enabled", False):
+        return False
+
+    triggers = _cfg("triggers", []) or []
+    if not triggers:
+        return False
+
     cmd_low = cmd.lower().strip()
-    for trigger in TRIGGERS:
-        if trigger in cmd_low:
-            log.info("Праздничный триггер: %r", cmd)
+    for trigger in triggers:
+        trigger_low = str(trigger).lower().strip()
+        if trigger_low and trigger_low in cmd_low:
+            log.info("Праздничный триггер: %r (найден %r)", cmd, trigger)
             return True
     return False
 
@@ -64,28 +89,35 @@ def start_celebration(jarvis, gui) -> None:
     """
     from jarvis.reply import Reply
 
+    short_text = _cfg("short_text", DEFAULTS["short_text"])
+    long_text = _cfg("long_text", DEFAULTS["long_text"])
+    plays_1 = int(_cfg("sound_1_plays", DEFAULTS["sound_1_plays"]))
+    plays_2 = int(_cfg("sound_2_plays", DEFAULTS["sound_2_plays"]))
+    dur_1 = float(_cfg("duration_1", DEFAULTS["duration_1"]))
+    dur_2 = float(_cfg("duration_2", DEFAULTS["duration_2"]))
+
     def _run():
         try:
             # === АКТ 1: короткая фраза + салют ===
             log.info("Celebration: TTS #1 (короткая)")
-            jarvis.say(Reply(text=SHORT_TEXT))
+            jarvis.say(Reply(text=short_text))
 
-            log.info("Celebration: анимация #1")
+            log.info("Celebration: анимация #1 (%.1f сек)", dur_1)
             if gui is not None:
-                gui.launch_fireworks(duration=6.0)
+                gui.launch_fireworks(duration=dur_1)
 
-            _play_sound_series(SOUND_PLAYS_1, SOUND_DURATION_SEC_1)
+            _play_sound_series(plays_1, max(1.0, dur_1 / max(plays_1, 1)))
 
             # === АКТ 2: полное поздравление ===
             log.info("Celebration: TTS #2 (длинная)")
-            jarvis.say(Reply(text=LONG_TEXT))
+            jarvis.say(Reply(text=long_text))
 
-            # === АКТ 3: финальный салют, подольше ===
-            log.info("Celebration: анимация #2 (финал)")
+            # === АКТ 3: финальный салют ===
+            log.info("Celebration: анимация #2 (финал, %.1f сек)", dur_2)
             if gui is not None:
-                gui.launch_fireworks(duration=10.0)
+                gui.launch_fireworks(duration=dur_2)
 
-            _play_sound_series(SOUND_PLAYS_2, SOUND_DURATION_SEC_2)
+            _play_sound_series(plays_2, max(1.0, dur_2 / max(plays_2, 1)))
 
             log.info("Celebration: завершено")
         except Exception:
@@ -94,12 +126,12 @@ def start_celebration(jarvis, gui) -> None:
     threading.Thread(target=_run, daemon=True, name="celebration").start()
 
 
-def _play_sound_series(plays: int, duration_sec: float) -> None:
-    """Играет звук салюта N раз по duration_sec секунд."""
-    for i in range(plays):
+def _play_sound_series(plays: int, gap_sec: float) -> None:
+    """Играет звук салюта N раз с паузой gap_sec."""
+    for i in range(max(1, plays)):
         log.info("Celebration: звук %d/%d", i + 1, plays)
         _play_fireworks_sound()
-        time.sleep(duration_sec)
+        time.sleep(gap_sec)
         try:
             winsound.PlaySound(None, winsound.SND_PURGE)
         except Exception:
@@ -121,7 +153,7 @@ def _play_fireworks_sound() -> None:
         except Exception:
             log.exception("Celebration: не удалось воспроизвести .wav")
 
-    # Fallback — серия Beep-ов, имитирующих залпы
+    # Fallback — серия Beep-ов, имитирующих залпы.
     log.info("Celebration: fallback — Beep-и")
     try:
         for _ in range(8):

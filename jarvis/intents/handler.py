@@ -98,6 +98,16 @@ class IntentHandler:
 
         result = self._handle_single(cmd)
 
+        # Mood: реагируем на эмоциональный окрас фразы.
+        # Делается ДО сохранения user_msg, чтобы mood был актуален
+        # для уже сформированного ответа. Это осознанный tradeoff:
+        # ответ сгенерирован со старым mood, но следующий уже учтёт.
+        try:
+            from jarvis import mood
+            mood.apply_from_text(cmd)
+        except Exception:
+            log.exception("mood.apply_from_text упал на %r", cmd)
+
         user_msg = {"role": "user", "content": cmd}
         self.dialog.append(user_msg)
         memory.append(user_msg)
