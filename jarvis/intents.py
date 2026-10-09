@@ -1,4 +1,4 @@
-﻿"""Разбор команды: быстрые правила + LLM."""
+"""Разбор команды: быстрые правила + LLM."""
 
 import datetime
 import hashlib
@@ -776,7 +776,7 @@ class IntentHandler:
             return True
         return False
 
-     def _onboarding_chat_step(self, cmd: str) -> str | None:
+    def _onboarding_chat_step(self, cmd: str) -> str | None:
         """Онбординг через LLM-диалог. Один раз при первом запуске."""
         from jarvis import first_run, persona, profile
 
