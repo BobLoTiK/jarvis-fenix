@@ -1,3 +1,6 @@
+## 📄 `PROMPT.md` — полный файл
+
+```markdown
 # 🤖 ПРОМПТ для LLM — «Феникс»
 
 > Самодостаточный промпт. Копируй целиком в новый чат, если текущий переполнен.
@@ -104,6 +107,13 @@
 29. **`set_llm_model.py`** — путь и неатомарность. → `paths` + `config_manager`.
 30. **`start_fenix.bat`** — хардкод `C:\jarvis`. → `%~dp0`.
 31. **`tts.py`** падал на невидимом тексте (`\u200b`). → Пропускать невидимые.
+32. **`CHAT_SYSTEM` с кракозябрами** — `??` в файле от cp1251. → Правки только в VS Code.
+33. **BOM в `intents.py`** — `invalid non-printable character U+FEFF`. → Сохранять UTF-8 **без BOM**.
+34. **Онбординг на `if/elif`** — зацикливался. → LLM-диалог через `onboarding_chat()`.
+35. **`_extract_name` пропускал «работает»** — ставил как имя. → Blacklist + LLM-разбор.
+36. **`_small_talk` перехватывал всё** — LLM не отвечала. → Убрать «привет», «как дела» из `_small_talk`.
+37. **Правки через терминал → порча файлов (cp1251, BOM).** → **Только VS Code.**
+38. **`_small_talk` тест FAIL без LLM** — `small_talk_who` ожидал «Феникс». → Вернуть ответ на «кто ты» в `_small_talk`.
 
 ---
 
@@ -132,8 +142,8 @@ jarvis/
 ├── config.py         — Config в памяти + подписки
 ├── config_manager.py — атомарная запись (FileLock per-path)
 ├── paths.py          — PROGRAM_DIR / USER_DIR
-├── brain.py          — Ollama: parse() / chat_stream()
-├── intents.py        — IntentHandler + _fast_handlers()
+├── brain.py          — Ollama: parse() / chat_stream() / onboarding_chat()
+├── intents.py        — IntentHandler + _fast_handlers() + _onboarding_chat_step()
 ├── reply.py          — Reply (text | stream)
 ├── gui.py            — Flet GUI + PALETTES + fireworks
 ├── history.py        — стек отмены
@@ -143,7 +153,10 @@ jarvis/
 ├── voices.py         — голоса Piper
 ├── packs.py          — паки
 ├── profile.py        — profiles/<user>/
+├── persona.py        — персона: стиль, черты, backstory
 ├── memory.py         — dialog.json (атомарно)
+├── observer.py       — фоновое извлечение фактов через LLM
+├── first_run.py      — greeting, is_first_run, mark_done
 ├── learning.py       — факты + коррекции
 ├── weather.py        — погода/курс + TTL
 ├── timers.py         — напоминания (USER_DIR)
@@ -170,6 +183,7 @@ jarvis/
 ```
 Микрофон → Vosk (wake) → Whisper → Jarvis._process
    → IntentHandler.handle(cmd)   ← normalize(cmd)
+      → _onboarding_chat_step (первый запуск, LLM-диалог)
       → CANCEL / memory / pending / буфер / режимы
       → custom / small_talk / скриншот / celebrations
       → _split_compound
@@ -178,6 +192,19 @@ jarvis/
       → brain.chat_stream() → генератор
    → Reply (text | stream)
    → Jarvis.say(reply) ← cmd_lock
+```
+
+### Observer
+
+```
+Jarvis._process → observer.observe("user", cmd)
+               → observer.observe("assistant", reply)
+   ↓
+Observer._loop (раз в 5 сек)
+   → если 6+ сообщений и 30+ сек с прошлого раза
+   → LLM: EXTRACT_PROMPT
+   → {name, city, age, style, facts}
+   → profile.set / learning.add_fact (если пусто)
 ```
 
 ### GUI
@@ -240,15 +267,23 @@ Jarvis фоновый поток
 | 🆕 Дизайн | 1 | 1 |
 | 🆕 Unicode | 2 | 2 |
 | 🆕 Автолаунчер | 1 | 1 |
-| 🆕 Установщик | 1 | 1 |
+| 🆕 Установщик (v1) | 1 | 1 |
 | 🆕 Релиз v1.0.0 | 1 | 1 |
 | 🆕 Поздравление | 1 | 1 |
-| 🆕 Аудит Kimi | 23 | 23 |
+| 🆕 Аудит Kimi | 25 | 25 |
+| 🆕 Inno UI | 1 | 1 |
+| 🆕 Знакомство через LLM-диалог | 1 | 1 |
+| 🆕 Персона + стиль | 1 | 1 |
+| 🆕 Observer | 1 | 1 |
 
-**Ключевое:**
-- №67 — многослойные команды.
-- №99–107 — Unicode, автолаунчер, Vosk-краш.
-- K1–K23 — аудит Kimi (18 багов + 5 мелких).
+**Ключевое за последние сессии:**
+- **Inno UI** — `WizardStyle=modern`, `WizardImageFile`, `WizardSmallImageFile`, `PrivilegesRequired=lowest`.
+- **Персона** — `jarvis/persona.py`, стили (`formal`/`friendly`/`sarcastic`/`brief`), `build_prompt_block()`.
+- **Observer** — `jarvis/observer.py`, фоновое извлечение фактов через LLM каждые 30 сек.
+- **Онбординг через LLM-диалог** — `brain.onboarding_chat()`, `_onboarding_chat_step()`, `_looks_like_command()`.
+- **`first_run.py`** — упрощён до greeting + is_first_run + mark_done.
+- **`_small_talk`** — только время/дата/«кто ты». Остальное — в LLM.
+- **Фикс `test_intents.py`** — вернул «кто ты» для работы без LLM.
 
 ### 🚧 Осталось
 
@@ -256,11 +291,20 @@ Jarvis фоновый поток
 - №85 — отмена ⏸.
 - №86 — wake 🧪.
 - №108 — трей ⏸.
-- №146 — Inno UI (1–2 ч).
 - №147–148 — PyInstaller (20–30 ч).
 - №121 — GitHub Actions (4–6 ч).
 - №123 — тест на виртуалке.
-- З1–З7, К1–К12, №109–120, №45–61, Ф1–Ф19.
+- Этап 1.9 — Mood.
+- Этап 1.10 — UIA.
+- Этап 1.11 — Silero TTS.
+- Этап 1.12 — VAD.
+- Этап 2 — Облако.
+- Этап 3 — Управление приложениями.
+- Этап 4 — Vector memory.
+- Этап 5 — MCP заготовки.
+- Этап 6 — Telegram.
+- Этап 7 — Визуализация + Спрайт.
+- Этап 8 — PyInstaller + CI + VLM + Hermes.
 
 ---
 
@@ -269,24 +313,20 @@ Jarvis фоновый поток
 1. Этап 1 — Баги — ✅
 2. Этап 1.5 — Документация — 🚧
 3. Этап 1.6 — UI/UX — ✅
-4. **Этап 1.7 — Красивый установщик** — ❌
-5. Этап 1.8 — Знакомство — ❌
-6. Этап 1.9 — Мои команды — ❌
+4. Этап 1.7 — Красивый установщик — ✅
+5. Этап 1.8 — Знакомство + Персона + Observer — ✅
+6. **Этап 1.9 — Mood — ❌ следующий**
 7. Этап 1.10 — UIA — ❌
-8. Этап 2 — Облако — ❌
-9. Этап 3 — Управление — ❌
-10. Этап 4 — Persistent memory — ❌
-11. Этап 5 — MCP — ❌
-12. Этап 6 — Telegram — ❌
-13. Этап 7 — Визуализация — ❌
-14. Этап 8 — PyInstaller — ⏸
-15. Этап 9 — CI — ❌
-16. Этап 10 — VLM — ⏸
-17. Этап 11 — Hermes — ⏸
-18. Этап 12 — Приоритеты — ⏸
-19. Этап 13 — Очередь — ⏸
-20. Этап 14 — Платное — ⏸
-21. 💤 Долгий ящик
+8. Этап 1.11 — Silero TTS — ❌
+9. Этап 1.12 — VAD — ❌
+10. Этап 2 — Облако — ❌
+11. Этап 3 — Управление приложениями — ❌
+12. Этап 4 — Vector memory — ❌
+13. Этап 5 — MCP (заготовки) — ❌
+14. Этап 6 — Telegram + веб — ❌
+15. Этап 7 — Визуализация + Спрайт — ❌
+16. Этап 8 — PyInstaller + CI + VLM + Hermes — ⏸
+17. 💤 Долгий ящик — Фаза 2
 
 ---
 
@@ -315,6 +355,11 @@ Jarvis фоновый поток
 20. Pack-команды с аргументами — через `_looks_like_cmd` + `shlex`.
 21. Атомарная запись везде: `mkstemp` + `os.replace`.
 22. Zip Slip защита при распаковке.
+23. **Онбординг — через LLM.** `_onboarding_chat_step()` + `brain.onboarding_chat()`. Никаких `if/elif`-сценариев.
+24. **Observer — фоновое извлечение фактов.** `observer.observe("user"/"assistant", text)`. Не блокирует.
+25. **Персона — в system prompt.** `persona.build_prompt_block()` → `_system_with_context()`.
+26. **Правки только в VS Code.** Терминал (PowerShell) портит кодировку и BOM.
+27. **UTF-8 без BOM.** `files.encoding: utf8`, `files.autoGuessEncoding: false` в settings.json.
 
 ### GUI
 1. Flet — главный поток.
@@ -372,3 +417,12 @@ Jarvis фоновый поток
 ---
 
 **Погнали, брат.** 🚀
+```
+
+---
+
+**Готово.** `Ctrl+A` в VS Code на `PROMPT.md` → **удали** → **вставь это** → `Ctrl+S`.
+
+**Убрал:** всё, что касается **GUI-вкладки «Персона»** (в статусах).
+
+**Остались в плане:** только **`persona.py`**, `build_prompt_block()`, стили, онбординг через LLM, observer. **Всё, что реально сделано.**
