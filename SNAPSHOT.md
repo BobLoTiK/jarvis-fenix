@@ -1,7 +1,7 @@
 # SNAPSHOT проекта «Феникс»
 
 _Автоматически сгенерировано `snapshot.py`. Обновляется при `git push`._
-_Файлов в снимке: 85_
+_Файлов в снимке: 123_
 
 ---
 
@@ -17,6 +17,47 @@ jarvis/
 │   ├── open_terminal.bat
 │   ├── show_ip.bat
 ├── jarvis/
+│   ├── intents/
+│   │   ├── fast/
+│   │   │   ├── __init__.py
+│   │   │   ├── correction.py
+│   │   │   ├── custom.py
+│   │   │   ├── debug.py
+│   │   │   ├── memory.py
+│   │   │   ├── music.py
+│   │   │   ├── open.py
+│   │   │   ├── packs.py
+│   │   │   ├── persona.py
+│   │   │   ├── profile.py
+│   │   │   ├── screenshot.py
+│   │   │   ├── small_talk.py
+│   │   │   ├── system.py
+│   │   │   ├── tasks.py
+│   │   │   ├── timers.py
+│   │   │   ├── undo.py
+│   │   │   ├── voices.py
+│   │   │   ├── weather.py
+│   │   ├── stages/
+│   │   │   ├── __init__.py
+│   │   │   ├── base.py
+│   │   │   ├── cancel.py
+│   │   │   ├── clipboard.py
+│   │   │   ├── compound.py
+│   │   │   ├── correction.py
+│   │   │   ├── fast.py
+│   │   │   ├── llm.py
+│   │   │   ├── memory.py
+│   │   │   ├── modes.py
+│   │   │   ├── onboarding.py
+│   │   │   ├── password.py
+│   │   │   ├── pending.py
+│   │   ├── __init__.py
+│   │   ├── context.py
+│   │   ├── execute.py
+│   │   ├── handler.py
+│   │   ├── password.py
+│   │   ├── sites.py
+│   │   ├── verbs.py
 │   ├── __init__.py
 │   ├── __main__.py
 │   ├── actions.py
@@ -30,9 +71,9 @@ jarvis/
 │   ├── gui.py
 │   ├── history.py
 │   ├── installed.py
-│   ├── intents.py
 │   ├── intents.py.bak
 │   ├── intents.py.bak2
+│   ├── intents_old.py
 │   ├── learning.py
 │   ├── main.py
 │   ├── matching.py
@@ -6692,7 +6733,2934 @@ def find_installed(index: dict[str, Path], spoken: str,
     return None
 ```
 
-### `jarvis\intents.py`
+### `jarvis\intents\__init__.py`
+
+```python
+"""Разбор команд Феникса — пакет.
+
+Публичный API:
+    IntentHandler  — вызывается из main.py
+    normalize      — реэкспорт (для совместимости)
+"""
+from jarvis.intents.handler import IntentHandler
+from jarvis.text_utils import normalize
+
+__all__ = ["IntentHandler", "normalize"]
+```
+
+### `jarvis\intents\context.py`
+
+```python
+"""Контекст, который передаётся между стадиями pipeline."""
+
+from dataclasses import dataclass, field
+from typing import Any
+
+
+@dataclass
+class Ctx:
+    """Одна команда и её окружение.
+
+    cmd         — текущая команда (может измениться после коррекции)
+    original_cmd — исходная команда (до коррекции) — для логов
+    handler     — ссылка на IntentHandler
+    state       — словарь для передачи данных между стадиями
+    """
+    cmd: str
+    original_cmd: str = ""
+    handler: Any = None
+    state: dict = field(default_factory=dict)
+```
+
+### `jarvis\intents\execute.py`
+
+```python
+"""Dispatch: action → функция-обработчик.
+
+Здесь вся логика выполнения интентов:
+    - open_app / close_app / open_site / search
+    - screenshot / open_folder / list_folder / create_file
+    - media_key / play_pause / next_track / prev_track
+    - volume_* / brightness_* / layout_*
+    - clipboard_*
+    - minimize_* / maximize_* / activate_* / switch_*
+    - set_mode / load_pack / unload_pack / list_packs
+    - change_voice / list_voices
+    - set_timer / list_timers / cancel_timers
+    - add_task / list_tasks / done_task / remove_task / clear_tasks
+    - open_config / open_log / open_profile
+    - get_weather / get_currency
+    - set_profile / get_profile / delete_profile
+    - answer
+
+`execute_steps` — многошаговые сценарии.
+
+Побочное: history.push(...) для отмены.
+"""
+
+import datetime
+import logging
+import time
+from pathlib import Path
+
+from jarvis import APP_NAME, actions, files, history
+from jarvis import modes, packs, profile, tasks, timers, voices, weather
+from jarvis import paths as _paths
+from jarvis.text_utils import normalize
+
+log = logging.getLogger("jarvis.intents")
+actions_log = logging.getLogger("jarvis.actions")
+
+
+# =================================================================
+# Weather / currency — sanity-проверка на мусорный target
+# =================================================================
+
+_WEATHER_BAD_TARGET = (
+    "курс", "доллар", "рубл", "евро", "юан", "валют",
+    "цену", "цена", "поиск", "найди", "погод", "прогноз",
+    "пожалуйста", "сколько", "стоит",
+)
+
+_FOLDER_TITLES = {
+    "Desktop": "на рабочем столе", "Downloads": "в загрузках",
+    "Documents": "в документах", "Pictures": "в изображениях",
+    "Music": "в музыке", "Videos": "в видео",
+    "Screenshots": "в скриншотах",
+}
+
+
+# =================================================================
+# Точка входа
+# =================================================================
+
+def execute_intent(handler, intent: dict) -> str | None:
+    """Находит обработчик в _DISPATCH и вызывает."""
+    action = intent.get("action")
+    target = normalize(str(intent.get("target") or ""))
+    query = str(intent.get("query") or "").strip()
+
+    actions_log.info("Интент: %s (target=%r, query=%r)", action, target, query)
+
+    fn = _DISPATCH.get(action)
+    if fn is None:
+        return None
+    return fn(handler, intent, target, query)
+
+
+def execute_steps(handler, steps: list) -> str | None:
+    """Многошаговый сценарий.
+
+    ВАЖНО: push_macro делаем ТОЛЬКО для успешно выполненных шагов.
+    """
+    reply = None
+    executed: list = []
+
+    for step in steps[:6]:
+        if not isinstance(step, dict):
+            continue
+        action = step.get("action")
+        if action == "wait":
+            time.sleep(min(float(step.get("seconds", 1) or 1), 15))
+            executed.append(step)
+            continue
+        if action == "media_key":
+            actions.media_key(str(step.get("key", "")), int(step.get("times", 1) or 1))
+            executed.append(step)
+            continue
+        r = execute_intent(handler, step)
+        if r:
+            reply = r
+        executed.append(step)
+
+    real_steps = [s for s in executed
+                  if isinstance(s, dict) and s.get("action") not in ("wait",)]
+    if real_steps:
+        history.push_macro(real_steps)
+
+    return reply
+
+
+# =================================================================
+# Обработчики
+# =================================================================
+
+def _do_open_app(handler, intent, target, query):
+    from jarvis.apps import find_app
+    from jarvis.installed import find_installed
+
+    if not target:
+        return None
+    if intent.get("minimized"):
+        hit = find_installed(handler.installed, target)
+        if hit:
+            actions.open_path(hit[1], minimized=True)
+            return f"Открываю {hit[0]}."
+    running = actions.find_process(target, threshold=0.8)
+    if running:
+        from jarvis.actions import activate_window_by_title
+        if activate_window_by_title(target):
+            return f"Переключаюсь на {target}."
+    return _do_open(handler, target)
+
+
+def _do_close_app(handler, intent, target, query):
+    if not target:
+        return None
+    return _do_close(handler, target)
+
+
+def _do_open_file(handler, intent, target, query):
+    if handler.last_file:
+        actions.open_path(handler.last_file)
+        return "Открываю."
+    return "Пока нечего открывать."
+
+
+def _do_open_site(handler, intent, target, query):
+    site = target or query
+    if not site:
+        return None
+    if "." in (intent.get("target") or ""):
+        actions.open_url("https://" + str(intent["target"]).strip().lower())
+        return f"Открываю {site}."
+    return _open_site(site)
+
+
+def _do_search(handler, intent, target, query):
+    q = query or target
+    if not q:
+        return None
+    engine = intent.get("engine")
+    if engine not in ("google", "youtube", "wiki"):
+        engine = "google"
+    actions.open_search(engine, q)
+    return f"Ищу: {q}."
+
+
+def _do_screenshot(handler, intent, target, query):
+    path = actions.take_screenshot()
+    handler.last_file = path
+    return f"Скриншот сохранён в папку {path.parent.name}."
+
+
+def _do_open_folder(handler, intent, target, query):
+    if not target:
+        return None
+    folder = files.resolve_folder(target, explicit=True)
+    if folder:
+        handler.last_folder = folder
+        files.open_folder(folder)
+        return f"Открываю папку {folder.name}."
+    return None
+
+
+def _do_list_folder(handler, intent, target, query):
+    folder = (files.resolve_folder(target, explicit=True)
+              if target else handler.last_folder)
+    if folder:
+        handler.last_folder = folder
+        return files.describe_folder(folder)
+    return None
+
+
+def _do_create_file(handler, intent, target, query):
+    folder_name = str(intent.get("folder") or "").strip()
+    folder = None
+    if folder_name:
+        folder = files.resolve_folder(folder_name, explicit=True)
+        if folder is None:
+            return f"Папку «{folder_name}» не нашёл. Куда создать файл?"
+    if folder is None:
+        folder = Path.home() / "Desktop"
+    path = files.create_file(folder, target or "новый файл")
+    handler.last_file = path
+    title = _FOLDER_TITLES.get(folder.name, f"в папке {folder.name}")
+    return f"Создал {path.name} {title}."
+
+
+def _do_type_text(handler, intent, target, query):
+    text = str(intent.get("text") or intent.get("target") or "").strip()
+    ok = actions.type_text(text)
+    return f"Печатаю: {text}." if ok else "Не удалось напечатать."
+
+
+def _do_media_key(handler, intent, target, query):
+    ok = actions.media_key(str(intent.get("key", "")),
+                           int(intent.get("times", 1) or 1))
+    return "Готово." if ok else None
+
+
+def _do_play_pause(handler, intent, target, query):
+    actions.media_key("play")
+    return "Готово."
+
+
+def _do_next_track(handler, intent, target, query):
+    actions.media_key("next")
+    return "Переключаю."
+
+
+def _do_prev_track(handler, intent, target, query):
+    actions.media_key("prev")
+    return "Возвращаю."
+
+
+def _do_volume_up(handler, intent, target, query):
+    actions.media_key("vol_up", 5)
+    return "Громче."
+
+
+def _do_volume_down(handler, intent, target, query):
+    actions.media_key("vol_down", 5)
+    return "Тише."
+
+
+def _do_mute(handler, intent, target, query):
+    actions.media_key("mute")
+    return "Без звука."
+
+
+def _do_switch_layout(handler, intent, target, query):
+    ok = actions.switch_layout()
+    if ok:
+        history.push({"action": "switch_layout"})
+    return "Переключаю раскладку." if ok else None
+
+
+def _do_set_layout_ru(handler, intent, target, query):
+    return "Русская раскладка." if actions.set_layout_ru() else None
+
+
+def _do_set_layout_en(handler, intent, target, query):
+    return "Английская раскладка." if actions.set_layout_en() else None
+
+
+def _do_get_layout(handler, intent, target, query):
+    layout = actions.get_layout()
+    if layout == "ru":
+        return "Русская раскладка."
+    if layout == "en":
+        return "Английская раскладка."
+    return None
+
+
+def _do_set_volume(handler, intent, target, query):
+    try:
+        pct = int(intent.get("percent") or 50)
+    except (TypeError, ValueError):
+        pct = 50
+    prev = actions.get_volume()
+    ok = actions.set_volume(pct)
+    if ok:
+        history.push({"action": "set_volume", "prev_value": prev})
+    return f"Громкость: {pct}%." if ok else None
+
+
+def _do_get_volume(handler, intent, target, query):
+    vol = actions.get_volume()
+    return f"Громкость: {vol}%." if vol is not None else None
+
+
+def _do_set_brightness(handler, intent, target, query):
+    try:
+        pct = int(intent.get("percent") or 50)
+    except (TypeError, ValueError):
+        pct = 50
+    prev = actions.get_brightness()
+    ok = actions.set_brightness(pct)
+    if ok:
+        history.push({"action": "set_brightness", "prev_value": prev})
+    return f"Яркость: {pct}%." if ok else None
+
+
+def _do_get_brightness(handler, intent, target, query):
+    br = actions.get_brightness()
+    return f"Яркость: {br}%." if br is not None else None
+
+
+def _do_clipboard_read(handler, intent, target, query):
+    text = actions.clipboard_read()
+    if not text:
+        return "Буфер обмена пуст."
+    return f"В буфере: {text[:400]}"
+
+
+def _do_copy_selection(handler, intent, target, query):
+    if not actions.copy_selection():
+        return "Не удалось скопировать."
+    time.sleep(0.15)
+    text = actions.clipboard_read()
+    if text:
+        short = text[:200] + ("..." if len(text) > 200 else "")
+        return f"Скопировал: {short}"
+    return "Скопировал выделенное."
+
+
+def _do_clipboard_copy_last(handler, intent, target, query):
+    last = handler._last_reply
+    if not last:
+        return "Нечего копировать."
+    ok = actions.clipboard_write(last)
+    return "Скопировал свой ответ в буфер." if ok else "Не удалось скопировать."
+
+
+def _do_clipboard_clear(handler, intent, target, query):
+    ok = actions.clipboard_clear()
+    return "Буфер очищен." if ok else "Не удалось очистить буфер."
+
+
+def _do_minimize_all(handler, intent, target, query):
+    actions.minimize_all()
+    return "Сворачиваю всё."
+
+
+def _do_minimize_window(handler, intent, target, query):
+    if not target:
+        return None
+    ok = actions.minimize_window_by_title(target)
+    return f"Сворачиваю {target}." if ok else f"Окно {target} не нашёл."
+
+
+def _do_maximize_window(handler, intent, target, query):
+    if not target:
+        return None
+    ok = actions.maximize_window_by_title(target)
+    return f"Разворачиваю {target}." if ok else f"Окно {target} не нашёл."
+
+
+def _do_activate_window(handler, intent, target, query):
+    if not target:
+        return None
+    ok = actions.activate_window_by_title(target)
+    return f"Переключаюсь на {target}." if ok else f"Окно {target} не нашёл."
+
+
+def _do_minimize_active(handler, intent, target, query):
+    actions.minimize_active()
+    return "Сворачиваю активное окно."
+
+
+def _do_maximize_active(handler, intent, target, query):
+    actions.maximize_active()
+    return "Разворачиваю активное окно."
+
+
+def _do_switch_window(handler, intent, target, query):
+    actions.switch_window(back=bool(intent.get("back")))
+    return "Переключаю окно."
+
+
+def _do_set_mode(handler, intent, target, query):
+    prev_mode = handler.mode
+    mode = str(intent.get("mode") or "combo").lower()
+    if mode not in ("commands", "llm", "combo"):
+        mode = "combo"
+    reply = modes.set_mode(mode, handler.config)
+    if mode != prev_mode:
+        history.push({"action": "set_mode", "prev_value": prev_mode})
+    handler.mode = mode
+    return reply
+
+
+def _do_load_pack(handler, intent, target, query):
+    name = packs.normalize_name(str(intent.get("name") or ""))
+    available = packs.list_available()
+    if name not in available:
+        return f"Пак '{name}' не найден. Доступны: {', '.join(available)}."
+    if name in handler.active_packs:
+        return f"Пак '{name}' уже активен."
+    handler.active_packs.append(name)
+    packs.save_active(handler.active_packs, handler.config)
+    _reload_packs(handler)
+    return f"Пак '{name}' загружен."
+
+
+def _do_unload_pack(handler, intent, target, query):
+    name = packs.normalize_name(str(intent.get("name") or ""))
+    if name not in handler.active_packs:
+        return f"Пак '{name}' и так не активен."
+    handler.active_packs.remove(name)
+    packs.save_active(handler.active_packs, handler.config)
+    _reload_packs(handler)
+    return f"Пак '{name}' выгружен."
+
+
+def _do_list_packs(handler, intent, target, query):
+    available = packs.list_available()
+    active_str = ", ".join(handler.active_packs) if handler.active_packs else "нет"
+    return f"Доступны: {', '.join(available)}. Активны: {active_str}."
+
+
+def _do_change_voice(handler, intent, target, query):
+    prev = voices.current_voice(handler.config)
+    voice = str(intent.get("voice") or "").strip().lower()
+    reply = voices.switch(voice, handler.config)
+    if voice in voices.PIPER_VOICES and voice != prev:
+        history.push({"action": "change_voice", "prev_value": prev})
+    return reply
+
+
+def _do_list_voices(handler, intent, target, query):
+    return voices.handle_voice_command("список голосов", handler.config)
+
+
+def _do_set_timer(handler, intent, target, query):
+    text = str(intent.get("text") or "").strip()
+    seconds = intent.get("seconds")
+    time_str = intent.get("time")
+    fire_at = None
+
+    if seconds:
+        try:
+            fire_at = time.time() + float(seconds)
+        except (TypeError, ValueError):
+            fire_at = None
+    elif time_str:
+        try:
+            hh, mm = str(time_str).split(":")
+            now = datetime.datetime.now()
+            t = now.replace(hour=int(hh), minute=int(mm), second=0, microsecond=0)
+            if t <= now:
+                t += datetime.timedelta(days=1)
+            fire_at = t.timestamp()
+        except Exception:
+            fire_at = None
+
+    if fire_at:
+        timers.add(text, fire_at)
+        when = datetime.datetime.fromtimestamp(fire_at).strftime("%H:%M")
+        return f"Напомню в {when}: {text}." if text else f"Напомню в {when}."
+    return "Не понял время напоминания."
+
+
+def _do_list_timers(handler, intent, target, query):
+    return timers.format_list(timers.list_all())
+
+
+def _do_cancel_timers(handler, intent, target, query):
+    n = timers.remove_all()
+    return f"Отменено напоминаний: {n}." if n else "Напоминаний не было."
+
+
+def _do_add_task(handler, intent, target, query):
+    text = str(intent.get("text") or intent.get("task") or "").strip()
+    if not text:
+        return "Что добавить?"
+    task = tasks.add(text)
+    return f"Добавил: {task['text']}."
+
+
+def _do_list_tasks(handler, intent, target, query):
+    return tasks.format_list()
+
+
+def _do_done_task(handler, intent, target, query):
+    q = str(intent.get("task") or "").strip()
+    task = tasks.mark_done(q)
+    return f"Отметил: {task['text']}." if task else f"Задачу «{q}» не нашёл."
+
+
+def _do_remove_task(handler, intent, target, query):
+    q = str(intent.get("task") or "").strip()
+    task = tasks.remove(q)
+    return f"Убрал: {task['text']}." if task else f"Задачу «{q}» не нашёл."
+
+
+def _do_clear_tasks(handler, intent, target, query):
+    n = tasks.clear_all()
+    return f"Очищено задач: {n}." if n else "Список и так пуст."
+
+
+def _do_open_config(handler, intent, target, query):
+    actions.open_path(_paths.config_path())
+    return "Открываю конфиг."
+
+
+def _do_open_log(handler, intent, target, query):
+    log_path = _paths.logs_dir() / "jarvis.log"
+    actions.open_path(log_path)
+    return "Открываю журнал."
+
+
+def _do_open_profile(handler, intent, target, query):
+    prof_path = profile.profile_path()
+    prefer = str(intent.get("editor") or "auto").lower()
+    ok = actions.open_in_editor(prof_path, prefer=prefer)
+    if ok:
+        return f"Открываю профиль {profile.current()}."
+    return f"Не удалось открыть профиль: {prof_path}"
+
+
+def _do_get_weather(handler, intent, target, query):
+    city = str(intent.get("target") or "").strip()
+    day = "tomorrow" if intent.get("day") == "tomorrow" else "today"
+
+    if any(w in city.lower() for w in _WEATHER_BAD_TARGET):
+        log.warning("get_weather: LLM подсунула мусор target=%r — игнорирую", city)
+        city = ""
+
+    if not city:
+        city = profile.get("default_city")
+    if not city:
+        handler._pending_question = {
+            "type": "city_for_weather",
+            "day": day,
+            "expires_at": time.time() + 30,
+        }
+        return "В каком городе узнать погоду?"
+
+    w = weather.get_weather(city, day=day)
+    if not w:
+        return f"Не удалось узнать погоду для «{city}». Проверь название или интернет."
+    return weather.describe_weather(w)
+
+
+def _do_get_currency(handler, intent, target, query):
+    code = str(intent.get("target") or "").strip().upper()
+    r = weather.get_currency_rates()
+    return weather.describe_currency(r, code=code)
+
+
+def _do_delete_profile(handler, intent, target, query):
+    name = str(intent.get("target") or "").strip()
+    if profile.delete(name):
+        return f"Профиль {name} удалён."
+    return f"Профиль {name} не найден или активен."
+
+
+_KEY_MAP = {
+    "имя": "name", "name": "name",
+    "город": "default_city", "default_city": "default_city",
+    "city": "default_city", "мой город": "default_city",
+}
+
+
+def _do_set_profile(handler, intent, target, query):
+    key = str(intent.get("key") or "").strip()
+    value = str(intent.get("value") or "").strip()
+    if not key or not value:
+        return "Не понял, что сохранить."
+
+    key = _KEY_MAP.get(key.lower(), key.lower())
+    if key not in ("name", "default_city", "prev_city"):
+        return f"Не знаю, что такое «{key}»."
+
+    if key == "default_city":
+        prev = profile.get("default_city")
+        if prev and prev.lower() != value.lower():
+            profile.set("prev_city", prev)
+
+    if profile.set(key, value):
+        if key == "name":
+            return f"Имя изменено на {value}."
+        if key == "default_city":
+            return f"Город изменён на {value}."
+        return f"Сохранено: {key} = {value}."
+    return "Не удалось сохранить."
+
+
+def _do_get_profile(handler, intent, target, query):
+    key = str(intent.get("key") or "").strip()
+    key = _KEY_MAP.get(key.lower(), key.lower())
+
+    if key == "name":
+        v = profile.get("name")
+        return f"Тебя зовут {v}." if v else "Имя не задано."
+    if key == "default_city":
+        v = profile.get("default_city")
+        return f"Твой город — {v}." if v else "Город не задан."
+    return "Не знаю, что прочитать."
+
+
+def _do_answer(handler, intent, target, query):
+    reply = intent.get("reply")
+    return str(reply)[:600] if reply else None
+
+
+# =================================================================
+# Открытие / закрытие — вынесено сюда, используется в open_app
+# =================================================================
+
+BROWSER_WORDS = frozenset({
+    "браузер", "браузере", "браузером",
+    "хром", "хроме", "интернет", "интернете",
+})
+
+
+def _do_open(handler, target: str) -> str:
+    """Открыть что угодно: приложение, сайт, папку, игру, ярлык."""
+    from jarvis.apps import find_app
+    from jarvis.installed import find_installed
+    from jarvis.steam import find_game
+    from jarvis.intents.sites import get_sites
+
+    if not target:
+        return "Что именно открыть?"
+    if target in {"его", "ее", "это", "этот файл", "файл", "последний файл"}:
+        if handler.last_file:
+            actions.open_path(handler.last_file)
+            return "Открываю."
+        return "Пока нечего открывать."
+
+    tokens = target.split()
+    rest = [t for t in tokens if t not in BROWSER_WORDS]
+    if len(rest) < len(tokens):
+        if not rest:
+            actions.open_browser()
+            return "Открываю браузер."
+        return _open_site(" ".join(rest))
+
+    app = find_app(handler.apps, target)
+    if app:
+        spec = app.resolve_open()
+        if spec is None:
+            return f"{app.title} не найден на этом компьютере."
+        actions.run_spec(spec)
+        return f"Открываю {app.title}."
+
+    for key, (title, url) in get_sites().items():
+        if key in target.split() or target == key:
+            actions.open_url(url)
+            return f"Открываю {title}."
+
+    folder = files.resolve_folder(target, explicit="папк" in target)
+    if folder:
+        handler.last_folder = folder
+        files.open_folder(folder)
+        return f"Открываю папку {folder.name}."
+
+    game = find_game(handler.steam_games, target)
+    if game:
+        title, appid = game
+        actions.run_spec(("uri", f"steam://rungameid/{appid}"))
+        return f"Запускаю {title}."
+
+    hit = find_installed(handler.installed, target)
+    if hit:
+        name, lnk = hit
+        actions.open_path(lnk)
+        return f"Открываю {name}."
+
+    return _open_site(target)
+
+
+def _open_site(name: str) -> str:
+    from jarvis.intents.sites import get_sites
+
+    if not name:
+        return "Какой сайт открыть?"
+    for key, (title, url) in get_sites().items():
+        if name == key or key in name.split():
+            actions.open_url(url)
+            return f"Открываю {title}."
+    url = actions.spoken_domain(name) or actions.guess_site(name)
+    if url:
+        actions.open_url(url)
+        return f"Открываю сайт {name}."
+    return f"Сайт {name} не нашёл. Скажите «найди {name}», и я поищу."
+
+
+def _do_close(handler, target: str) -> str:
+    from jarvis.apps import find_app
+
+    if not target:
+        return "Что именно закрыть?"
+    if any(w in target for w in ("браузер", "интернет", "хром")):
+        return "Закрываю браузер." if actions.close_browser() else "Браузер не запущен."
+    app = find_app(handler.apps, target)
+    if app and app.procs:
+        ok = any(actions.kill_process(p) for p in app.procs)
+        if ok:
+            return f"Закрываю {app.title}."
+    exe = actions.find_process(target)
+    if exe:
+        actions.kill_process(exe)
+        return f"Закрываю {exe.removesuffix('.exe')}."
+    if app:
+        return f"{app.title} сейчас не запущен."
+    return f"Не нашёл запущенной программы {target}."
+
+
+def _reload_packs(handler) -> None:
+    from jarvis.intents.fast.custom import load_packs_as_custom
+    handler.custom = (list(handler._config_custom_original)
+                      + load_packs_as_custom(handler.config))
+
+
+# =================================================================
+# Dispatch-таблица
+# =================================================================
+
+_DISPATCH = {
+    "open_app":           _do_open_app,
+    "close_app":          _do_close_app,
+    "open_file":          _do_open_file,
+    "open_site":          _do_open_site,
+    "search":             _do_search,
+    "screenshot":         _do_screenshot,
+    "open_folder":        _do_open_folder,
+    "list_folder":        _do_list_folder,
+    "create_file":        _do_create_file,
+    "type_text":          _do_type_text,
+    "media_key":          _do_media_key,
+    "play_pause":         _do_play_pause,
+    "next_track":         _do_next_track,
+    "prev_track":         _do_prev_track,
+    "volume_up":          _do_volume_up,
+    "volume_down":        _do_volume_down,
+    "mute":               _do_mute,
+    "switch_layout":      _do_switch_layout,
+    "set_layout_ru":      _do_set_layout_ru,
+    "set_layout_en":      _do_set_layout_en,
+    "get_layout":         _do_get_layout,
+    "set_volume":         _do_set_volume,
+    "get_volume":         _do_get_volume,
+    "set_brightness":     _do_set_brightness,
+    "get_brightness":     _do_get_brightness,
+    "clipboard_read":     _do_clipboard_read,
+    "copy_selection":     _do_copy_selection,
+    "clipboard_copy_last": _do_clipboard_copy_last,
+    "clipboard_clear":    _do_clipboard_clear,
+    "minimize_all":       _do_minimize_all,
+    "minimize_window":    _do_minimize_window,
+    "maximize_window":    _do_maximize_window,
+    "activate_window":    _do_activate_window,
+    "minimize_active":    _do_minimize_active,
+    "maximize_active":    _do_maximize_active,
+    "switch_window":      _do_switch_window,
+    "set_mode":           _do_set_mode,
+    "load_pack":          _do_load_pack,
+    "unload_pack":        _do_unload_pack,
+    "list_packs":         _do_list_packs,
+    "change_voice":       _do_change_voice,
+    "list_voices":        _do_list_voices,
+    "set_timer":          _do_set_timer,
+    "list_timers":        _do_list_timers,
+    "cancel_timers":      _do_cancel_timers,
+    "add_task":           _do_add_task,
+    "list_tasks":         _do_list_tasks,
+    "done_task":          _do_done_task,
+    "remove_task":        _do_remove_task,
+    "clear_tasks":        _do_clear_tasks,
+    "open_config":        _do_open_config,
+    "open_log":           _do_open_log,
+    "open_profile":       _do_open_profile,
+    "get_weather":        _do_get_weather,
+    "get_currency":       _do_get_currency,
+    "delete_profile":     _do_delete_profile,
+    "set_profile":        _do_set_profile,
+    "get_profile":        _do_get_profile,
+    "answer":             _do_answer,
+}
+```
+
+### `jarvis\intents\fast\__init__.py`
+
+```python
+"""Реестр быстрых обработчиков.
+
+Порядок = приоритет. Специфичные — ВЫШЕ общих.
+open_profile ВЫШЕ open — иначе open_fast съест «открой профиль».
+
+Каждая функция: (handler, cmd) -> str | None.
+"""
+
+from jarvis.intents.fast.custom import match_custom, load_custom
+from jarvis.intents.fast.small_talk import small_talk
+from jarvis.intents.fast.music import music_fast
+from jarvis.intents.fast.screenshot import screenshot_fast
+from jarvis.intents.fast.open import open_fast, open_profile_fast
+from jarvis.intents.fast.voices import voices_fast
+from jarvis.intents.fast.packs import packs_fast
+from jarvis.intents.fast.timers import timers_fast
+from jarvis.intents.fast.tasks import tasks_fast
+from jarvis.intents.fast.persona import persona_fast
+from jarvis.intents.fast.profile import profile_fast
+from jarvis.intents.fast.memory import memory_fast
+from jarvis.intents.fast.system import system_fast
+from jarvis.intents.fast.debug import debug_fast
+from jarvis.intents.fast.undo import undo_fast
+from jarvis.intents.fast.correction import correction_fast
+from jarvis.intents.fast.weather import weather_currency_fast
+
+
+__all__ = ["build_registry", "load_custom", "match_custom"]
+
+
+def build_registry(handler) -> list:
+    """Собирает реестр для конкретного handler'а."""
+    return [
+        ("custom",           lambda cmd: match_custom(handler, cmd)),
+        ("small_talk",       lambda cmd: small_talk(handler, cmd)),
+        ("music",            lambda cmd: music_fast(handler, cmd)),
+        ("screenshot",       lambda cmd: screenshot_fast(handler, cmd)),
+        ("open_profile",     lambda cmd: open_profile_fast(handler, cmd)),
+        ("open",             lambda cmd: open_fast(handler, cmd)),
+        ("voices",           lambda cmd: voices_fast(handler, cmd)),
+        ("packs",            lambda cmd: packs_fast(handler, cmd)),
+        ("timers",           lambda cmd: timers_fast(handler, cmd)),
+        ("tasks",            lambda cmd: tasks_fast(handler, cmd)),
+        ("persona",          lambda cmd: persona_fast(handler, cmd)),
+        ("profile",          lambda cmd: profile_fast(handler, cmd)),
+        ("memory",           lambda cmd: memory_fast(handler, cmd)),
+        ("system",           lambda cmd: system_fast(handler, cmd)),
+        ("debug",            lambda cmd: debug_fast(handler, cmd)),
+        ("correction",       lambda cmd: correction_fast(handler, cmd)),
+        ("undo",             lambda cmd: undo_fast(handler, cmd)),
+        ("weather_currency", lambda cmd: weather_currency_fast(handler, cmd)),
+    ]
+```
+
+### `jarvis\intents\fast\correction.py`
+
+```python
+"""Коррекция: «это не то, я сказал логи».
+
+Сохраняет связку (wrong → right) в learning.
+Работает через handler._last_cmd — он запоминается в handle().
+"""
+
+import re
+
+from jarvis import learning
+
+
+def correction_fast(handler, cmd: str) -> str | None:
+    m = re.match(
+        r"^(?:это\s+)?не\s+то\s*,?\s*(?:я\s+сказал[а]?\s+)?(.+)$",
+        cmd,
+    )
+    if not m:
+        return None
+
+    right = m.group(1).strip(" ,.:!?")
+    if not right:
+        return None
+
+    wrong = handler._last_cmd
+    if wrong and wrong != cmd:
+        learning.add_correction(wrong, right)
+        return f"Понял, запомнил. Повторяю: {right}."
+    return "Что было не так?"
+```
+
+### `jarvis\intents\fast\custom.py`
+
+```python
+"""Пользовательские команды: из config.json и из паков.
+
+`load_custom(config)` — собирает список (phrases, action, reply).
+`match_custom(handler, cmd)` — ищет совпадение.
+`load_packs_as_custom(config)` — команды из активных паков.
+"""
+
+import logging
+from difflib import SequenceMatcher
+
+from jarvis import packs
+from jarvis.text_utils import normalize
+
+log = logging.getLogger("jarvis.intents")
+
+
+def load_custom(config) -> list:
+    """Собирает custom-команды из config.json + активных паков.
+
+    Каждый элемент: (phrases: list[str], action: str | list, reply: str).
+    """
+    result = []
+
+    # Из config.json → custom_commands
+    for entry in config.get("custom_commands", []):
+        phrases = [normalize(p) for p in entry.get("phrases", []) if p.strip()]
+        action = entry.get("action", "").strip() or entry.get("steps")
+        if phrases and action:
+            result.append((phrases, action, entry.get("reply", "Выполняю.")))
+
+    # Из активных паков
+    result.extend(load_packs_as_custom(config))
+    return result
+
+
+def load_packs_as_custom(config) -> list:
+    """Только команды из активных паков."""
+    result = []
+    for entry in packs.load_active(config):
+        phrases = [normalize(p) for p in entry.get("phrases", []) if p.strip()]
+        action = entry.get("action", "").strip() or entry.get("steps")
+        if phrases and action:
+            result.append((phrases, action, entry.get("reply", "Выполняю.")))
+    return result
+
+
+def match_custom(handler, cmd: str) -> str | None:
+    """Точное совпадение или нечёткое (>=0.85, обе фразы >=12 символов)."""
+    from jarvis import actions
+    from jarvis.intents.execute import execute_steps
+
+    for phrases, action, reply in handler.custom:
+        for phrase in phrases:
+            if cmd == phrase:
+                log.info("Custom (точно): %r → %r, action=%r", cmd, phrase, action)
+                if isinstance(action, list):
+                    return execute_steps(handler, action) or reply
+                actions.run_spec(actions.spec_from_string(action))
+                return reply
+
+            # Нечёткий матч — только для длинных фраз.
+            # Короткие («вк», «отк») слишком легко путаются.
+            if len(cmd) >= 12 and len(phrase) >= 12:
+                ratio = SequenceMatcher(None, cmd, phrase).ratio()
+                if ratio >= 0.85:
+                    log.info("Custom (нечётко %.2f): %r → %r, action=%r",
+                             ratio, cmd, phrase, action)
+                    if isinstance(action, list):
+                        return execute_steps(handler, action) or reply
+                    actions.run_spec(actions.spec_from_string(action))
+                    return reply
+    return None
+```
+
+### `jarvis\intents\fast\debug.py`
+
+```python
+"""Диагностика: «что ты слышал», «почему не понял»."""
+
+import re
+
+
+def debug_fast(handler, cmd: str) -> str | None:
+    # «что ты слышал»
+    if (re.search(r"(что|чё)\s+ты\s+слышал", cmd)
+            or cmd in {"что ты слышал", "что слышал", "история"}):
+        phrases = []
+        if handler.listener is not None and hasattr(handler.listener, "recent_phrases"):
+            phrases = list(handler.listener.recent_phrases)
+        if not phrases:
+            phrases = list(handler._recent_phrases)
+        if not phrases:
+            return "Пока ничего не слышал."
+        lines = [f"{i+1}. {p}" for i, p in enumerate(phrases[-5:])]
+        return "Последние фразы: " + "; ".join(lines) + "."
+
+    # «почему не понял»
+    if (re.search(r"почему\s+(ты\s+)?не\s+понял", cmd)
+            or cmd in {"почему не понял", "почему не поняла"}):
+        d = handler._last_debug
+        if not d:
+            return "Пока нечего диагностировать."
+        parts = [f"Фраза: «{d.get('cmd', '?')}»"]
+        parts.append(f"Режим: {d.get('mode', '?')}")
+        if d.get("llm"):
+            intent = d.get("intent")
+            if intent:
+                parts.append(f"LLM вернула: {intent.get('action', '?')}")
+            else:
+                parts.append("LLM не разобрала")
+        else:
+            parts.append(f"LLM: {d.get('reason', 'выкл')}")
+        return ". ".join(parts) + "."
+
+    return None
+```
+
+### `jarvis\intents\fast\memory.py`
+
+```python
+"""Управление памятью диалога.
+
+«короткая память» → memory_max = 40, llm_context_messages = 10
+«обычная память»  → 100 / 20
+«долгая память»   → 200 / 40
+"""
+
+import re
+
+from jarvis import memory
+
+
+def memory_fast(handler, cmd: str) -> str | None:
+    if re.search(r"(коротк|быстр)\w*\s+память", cmd):
+        handler.config.update({
+            "memory_max": 40,
+            "llm_context_messages": 10,
+        })
+        return "Память: короткая. 40 сообщений, контекст LLM — 10."
+
+    if re.search(r"(обычн|стандартн|нормальн)\w*\s+память", cmd):
+        handler.config.update({
+            "memory_max": 100,
+            "llm_context_messages": 20,
+        })
+        return "Память: обычная. 100 сообщений, контекст LLM — 20."
+
+    if re.search(r"(долг|глубок)\w*\s+память", cmd):
+        handler.config.update({
+            "memory_max": 200,
+            "llm_context_messages": 40,
+        })
+        return "Память: долгая. 200 сообщений, контекст LLM — 40."
+
+    if (re.search(r"(какая|текущ)\w*\s+память", cmd)
+            or cmd in {"какая память", "текущая память"}):
+        mm = handler.config.get("memory_max", 100)
+        lc = handler.config.get("llm_context_messages", 20)
+        return f"Память: {mm} сообщений, контекст LLM — {lc}."
+
+    return None
+```
+
+### `jarvis\intents\fast\music.py`
+
+```python
+"""Музыка — ДО open_fast.
+
+«включи музыку» не должно уйти в open_app (яндекс музыка).
+Сначала проверяем тут: play / pause / next / prev.
+"""
+
+import re
+
+from jarvis import actions
+
+
+def music_fast(handler, cmd: str) -> str | None:
+    if re.search(r"(включи|врубай|играй|поставь)\s+(музыку|музыка|плейлист)", cmd):
+        actions.media_key("play")
+        return "Включаю музыку."
+
+    if cmd in {"пауза", "плей", "play", "pause"}:
+        actions.media_key("play")
+        return "Готово."
+
+    if re.search(r"^(включи|врубай)\s+(плей|музыку)$", cmd):
+        actions.media_key("play")
+        return "Включаю."
+
+    if re.search(r"(следующ|дальше|переключи|переключ)\w*\s*(трек|песн|музык)?", cmd):
+        if any(w in cmd for w in ("трек", "песн", "музык", "дальше")):
+            actions.media_key("next")
+            return "Переключаю."
+
+    if re.search(r"(предыдущ|назад)\w*\s*(трек|песн|музык)", cmd):
+        actions.media_key("prev")
+        return "Возвращаю."
+
+    if re.search(r"(останови|стоп)\s+(музык|трек|песн)", cmd):
+        actions.media_key("play")
+        return "Останавливаю."
+
+    return None
+```
+
+### `jarvis\intents\fast\open.py`
+
+```python
+"""Открытие приложений / сайтов / папок / профиля — без LLM.
+
+`open_profile_fast` идёт ВЫШЕ `open_fast` в реестре,
+чтобы «открой профиль» не улетело в open_app.
+"""
+
+import logging
+import re
+
+from jarvis import actions, profile
+from jarvis.intents.execute import _do_open, _do_close
+
+log = logging.getLogger("jarvis.intents")
+
+
+def open_fast(handler, cmd: str) -> str | None:
+    """«открой X», «запусти X», «включи X», «врубай X» → open."""
+    m = re.match(r"^(?:открой|запусти|врубай|включи|открывай)\s+(.+)$", cmd)
+    if not m:
+        return None
+    target = m.group(1).strip()
+    if not target:
+        return None
+    # Защита: «открой профиль» — не наше дело (open_profile_fast выше).
+    if "профиль" in target:
+        return None
+    return _do_open(handler, target)
+
+
+def open_profile_fast(handler, cmd: str) -> str | None:
+    """«открой профиль» → profile.json в Notepad++ / VS Code / системе.
+
+    Опционально: «открой профиль в вс код», «открой профиль в блокноте».
+    """
+    if not re.search(r"откр\w*\s+профиль", cmd):
+        return None
+
+    prefer = "auto"
+    if re.search(r"\bв\s+(vs\s*code|вс\s*код|вскод|code)\b", cmd):
+        prefer = "vscode"
+    elif re.search(r"\bв\s+(notepad\+\+|нотпад\s*плюс|нотепад)\b", cmd):
+        prefer = "notepad++"
+    elif re.search(r"\bв\s+(блокнот|notepad)\b", cmd):
+        prefer = "system"
+    elif re.search(r"\bв\s+(системн|обычн)\w*\s+редактор", cmd):
+        prefer = "system"
+
+    prof_path = profile.profile_path()
+    if not prof_path.exists():
+        return f"Профиль не найден: {prof_path.name}"
+
+    ok = actions.open_in_editor(prof_path, prefer=prefer)
+    if ok:
+        editor_name = {
+            "auto": "редакторе",
+            "vscode": "VS Code",
+            "notepad++": "Notepad++",
+            "system": "системном редакторе",
+        }.get(prefer, "редакторе")
+        return f"Открываю профиль в {editor_name}."
+    return "Не удалось открыть профиль."
+```
+
+### `jarvis\intents\fast\packs.py`
+
+```python
+"""Паки команд — обёртка с side-effect.
+
+`packs.handle_pack_command` возвращает (reply, new_active).
+Если active изменился — обновляем handler.active_packs
+и перечитываем custom-команды.
+"""
+
+from jarvis import packs
+
+
+def packs_fast(handler, cmd: str) -> str | None:
+    reply, new_active = packs.handle_pack_command(
+        cmd, handler.active_packs, handler.config
+    )
+    if reply:
+        if new_active != handler.active_packs:
+            handler.active_packs = new_active
+            _reload_packs(handler)
+        return reply
+    return None
+
+
+def _reload_packs(handler) -> None:
+    """Пересобрать handler.custom после смены активных паков."""
+    from jarvis.intents.fast.custom import load_packs_as_custom
+    handler.custom = (list(handler._config_custom_original)
+                      + load_packs_as_custom(handler.config))
+```
+
+### `jarvis\intents\fast\persona.py`
+
+```python
+"""Команды персоны: стиль общения, описание, сброс онбординга."""
+
+import re
+
+from jarvis import persona
+
+
+def persona_fast(handler, cmd: str) -> str | None:
+    # «поменяй стиль на строгий», «говори на ты»
+    if (re.search(r"(поменяй|смени|переключи|поставь|установи)\s+стил", cmd)
+            or re.search(r"(говори|общайся)\s+(на\s+)?(ты|вы)", cmd)):
+        m = re.search(r"(?:на|стиль)\s+([а-яёa-z\- ]+)$", cmd)
+        style_text = m.group(1).strip() if m else cmd
+
+        if "на ты" in cmd or style_text == "ты":
+            style_text = "дружеский"
+        elif "на вы" in cmd or style_text == "вы":
+            style_text = "формальный"
+
+        style = persona.normalize_style(style_text)
+        if style:
+            return persona.set_style(style)
+        return ("Не понял стиль. Доступные: формальный, дружеский, "
+                "саркастичный, короткий.")
+
+    # «какой у тебя стиль», «как ты ко мне обращаешься»
+    if (re.search(r"(какой|какая|текущ)\w*\s+(у\s+тебя\s+)?стил", cmd)
+            or re.search(r"как\s+ты\s+(ко\s+мне\s+)?обращаешься", cmd)):
+        return persona.describe()
+
+    # «как тебя зовут»
+    if re.search(r"(как\s+тебя\s+зовут|как\s+тебя\s+звать|твое\s+имя)", cmd):
+        name = persona.get().get("assistant_name") or "Феникс"
+        return f"Меня зовут {name}."
+
+    # «давай заново познакомимся»
+    if (re.search(r"(давай|давай\s+же)\s+заново\s+познакомимся", cmd)
+            or re.search(r"(сбрось|сбросить|reset)\s+(персон|знакомств|онбординг)", cmd)
+            or cmd in {"заново познакомимся", "сбрось персону", "сбрось знакомство"}):
+        persona.reset_onboarding()
+        return "О, давай! Как тебя зовут?"
+
+    return None
+```
+
+### `jarvis\intents\fast\profile.py`
+
+```python
+"""Профиль: смена, список, факты «запомни: X — Y»."""
+
+import logging
+import re
+
+from jarvis import learning, profile
+
+log = logging.getLogger("jarvis.intents")
+
+
+_NOT_A_CITY = (
+    "открой", "закрой", "найди", "включи", "выключи",
+    "как дела", "кто ты", "спасибо", "привет", "пока",
+    "который час", "какое число", "сделай скриншот",
+    "загугли", "поищи", "напечатай",
+)
+
+# «мой город Казань» / «моя работа программист» / «мое имя Максим»
+# Первое слово после «мой/моя/мое/мои» — ключ, остальное — значение.
+_MY_KEY_MAP = {
+    "город": "город",
+    "работа": "работа",
+    "имя": "имя",
+    "возраст": "возраст",
+    "профессия": "профессия",
+    "день": "день рождения",
+    "день рождения": "день рождения",
+    "любимая игра": "любимая игра",
+    "любимый фильм": "любимый фильм",
+    "любимая музыка": "любимая музыка",
+}
+
+
+def profile_fast(handler, cmd: str) -> str | None:
+    log.info("profile_fast: %r", cmd)
+
+    # «я — Маша», «зови меня X», «переключись на X».
+    # БЕЗ голого «я » — иначе «я хочу спать» создаёт профиль.
+    m = re.match(
+        r"^(?:я\s*[-—]\s*|зови\s+меня\s+|переключись\s+на\s+|я\s+это\s+)"
+        r"([а-яёa-z][а-яёa-z\s\-]{0,40})$",
+        cmd,
+    )
+    if m:
+        name = m.group(1).strip()
+        if name and name not in _NOT_A_CITY:
+            return profile.switch(name)
+
+    # «кто активен», «какой профиль»
+    if (re.search(r"(кто|какой)\s+(сейчас\s+)?(активен|профиль|пользователь)", cmd)
+            or cmd in {"кто активен", "какой профиль", "текущий профиль"}):
+        name = profile.get("name") or profile.current()
+        return f"Сейчас профиль {name}."
+
+    # «список профилей»
+    if (re.search(r"(список|какие|покажи)\s+профил", cmd)
+            or cmd in {"список профилей", "какие профили"}):
+        all_p = profile.list_all()
+        if not all_p:
+            return "Профилей нет."
+        return f"Профили: {', '.join(all_p)}."
+
+    # «запомни: X — Y» → facts
+    m = re.match(r"^(?:запомни|запиши)\s*[,:]?\s*(?:что\s+)?(.+)$", cmd)
+    if m:
+        fact = m.group(1).strip(" ,.:!?")
+        if not fact:
+            return "Что запомнить?"
+
+        key, value = _parse_fact(fact)
+        if not key or not value:
+            return "Что запомнить?"
+
+        ok = learning.add_fact(key, value)
+        if ok:
+            return f"Запомнил: {key} — {value}."
+        return "Не удалось сохранить — проверь профиль (возможно, битый JSON)."
+
+    # «что ты обо мне знаешь»
+    if (re.search(r"(что|чё)\s+ты\s+(обо\s+мне\s+)?знаешь", cmd)
+            or cmd in {"что ты обо мне знаешь", "что ты знаешь"}):
+        return _describe_known(profile)
+
+    # «забудь X»
+    m = re.match(r"^забудь\s+(?:факт\s+)?(.+)$", cmd)
+    if m:
+        key = m.group(1).strip(" ,.:!?").lower()
+        if profile.forget_fact(key):
+            return f"Забыл: {key}."
+        return f"Факта «{key}» не знаю."
+
+    return None
+
+
+def _parse_fact(fact: str) -> tuple[str, str]:
+    """Разбирает факт из строки.
+
+    Варианты:
+        «мой город Казань»       → ("город", "Казань")
+        «город — Казань»         → ("город", "Казань")
+        «город: Казань»          → ("город", "Казань")
+        «работа программист»     → ("работа", "программист")
+        «люблю пиццу»            → ("люблю", "пиццу")  — как есть
+    """
+    # 1. С разделителем: «X — Y», «X: Y», «X = Y»
+    m = re.match(r"^(.+?)\s*[—\-=:]\s*(.+)$", fact)
+    if m:
+        return m.group(1).strip().lower(), m.group(2).strip()
+
+    # 2. «мой/моя/мое/мои X Y» → ключ X, значение Y
+    m = re.match(r"^мо(?:й|я|е|и)\s+(.+)$", fact, flags=re.IGNORECASE)
+    if m:
+        rest = m.group(1).strip()
+        # Первое слово — ключ (нормализуем через карту), остальное — значение.
+        parts = rest.split(maxsplit=1)
+        if len(parts) == 2:
+            key_raw = parts[0].lower()
+            value = parts[1].strip()
+            key = _MY_KEY_MAP.get(key_raw, key_raw)
+            return key, value
+
+    # 3. «X Y» — первое слово ключ (если есть в карте), остальное — значение.
+    parts = fact.split(maxsplit=1)
+    if len(parts) == 2:
+        key_raw = parts[0].lower()
+        if key_raw in _MY_KEY_MAP:
+            return _MY_KEY_MAP[key_raw], parts[1].strip()
+
+    # 4. Fallback — весь факт как ключ, значение «да».
+    return fact.lower(), "да"
+
+
+def _describe_known(profile_module) -> str:
+    facts = profile_module.all_facts()
+    name = profile_module.get("name")
+    city = profile_module.get("default_city")
+
+    parts = []
+    if name:
+        parts.append(f"Тебя зовут {name}")
+    if city:
+        parts.append(f"твой город — {city}")
+    if facts:
+        facts_str = "; ".join(f"{k} — {v}" for k, v in facts.items())
+        parts.append(f"Знаю: {facts_str}")
+    if not parts:
+        return "Пока ничего о тебе не знаю."
+    return ". ".join(parts) + "."
+```
+
+### `jarvis\intents\fast\screenshot.py`
+
+```python
+"""Скриншот: «сделай скриншот», «открой скриншот».
+
+Первая команда сохраняет в ~/Pictures/Screenshots.
+Вторая — открывает последний сделанный.
+"""
+
+import re
+
+from jarvis import actions
+
+
+def screenshot_fast(handler, cmd: str) -> str | None:
+    if not re.search(r"скрин|снимок экрана", cmd):
+        return None
+
+    # «открой скриншот» / «покажи скриншот» — открыть последний.
+    if re.search(r"откр|покаж", cmd):
+        if handler.last_file:
+            actions.open_path(handler.last_file)
+            return "Открываю."
+        return "Пока нечего открывать."
+
+    # Иначе — сделать новый.
+    path = actions.take_screenshot()
+    handler.last_file = path
+    return f"Скриншот сохранён в папку {path.parent.name}."
+```
+
+### `jarvis\intents\fast\small_talk.py`
+
+```python
+"""Мелкий разговор: время, дата, «кто ты», праздники.
+
+Всё остальное (привет, как дела) — уходит в LLM.
+Если LLM недоступна, этот модуль даёт минимальные ответы,
+чтобы test_intents.py проходил без Ollama.
+"""
+
+import datetime
+
+from jarvis import APP_NAME, __version__
+
+
+MONTHS = [
+    "января", "февраля", "марта", "апреля", "мая", "июня",
+    "июля", "августа", "сентября", "октября", "ноября", "декабря",
+]
+
+WEEKDAYS = [
+    "понедельник", "вторник", "среда", "четверг",
+    "пятница", "суббота", "воскресенье",
+]
+
+
+def small_talk(handler, cmd: str) -> str | None:
+    """Только точные команды. Диалог — через LLM."""
+
+    # Праздничные триггеры — до всего остального.
+    from jarvis import celebrations
+    if celebrations.match_celebration(cmd):
+        if handler.jarvis is not None:
+            celebrations.start_celebration(handler.jarvis, handler.gui)
+            return "\u200b"  # zero-width, чтобы handle не шёл в LLM
+        return "Поздравляю! С днём рождения!"
+
+    now = datetime.datetime.now()
+
+    if any(p in cmd for p in ("который час", "сколько времени")):
+        return f"Сейчас {now.hour} {_hours(now.hour)} {now.minute} {_minutes(now.minute)}."
+
+    if any(p in cmd for p in ("какое число", "какая дата", "какое сегодня число")):
+        return (f"Сегодня {now.day} {MONTHS[now.month - 1]} {now.year} года, "
+                f"{WEEKDAYS[now.weekday()]}.")
+
+    if "день недели" in cmd or cmd == "какой сегодня день":
+        return f"Сегодня {WEEKDAYS[now.weekday()]}."
+
+    # «Кто ты» — оставляем здесь, чтобы работало без LLM (test_intents).
+    if any(p in cmd for p in ("кто ты", "ты кто", "представься", "как тебя зовут")):
+        return f"Я {APP_NAME}, локальный голосовой ассистент, версия {__version__}."
+
+    return None
+
+
+def _hours(n: int) -> str:
+    if n % 10 == 1 and n % 100 != 11:
+        return "час"
+    if n % 10 in (2, 3, 4) and n % 100 not in (12, 13, 14):
+        return "часа"
+    return "часов"
+
+
+def _minutes(n: int) -> str:
+    if n % 10 == 1 and n % 100 != 11:
+        return "минута"
+    if n % 10 in (2, 3, 4) and n % 100 not in (12, 13, 14):
+        return "минуты"
+    return "минут"
+```
+
+### `jarvis\intents\fast\system.py`
+
+```python
+"""Системные команды: раскладка, громкость, яркость."""
+
+import re
+
+from jarvis import actions, history
+
+
+def system_fast(handler, cmd: str) -> str | None:
+    reply = _layout(cmd)
+    if reply:
+        return reply
+    reply = _volume(cmd)
+    if reply:
+        return reply
+    reply = _brightness(cmd)
+    if reply:
+        return reply
+    return None
+
+
+# =================================================================
+# Раскладка
+# =================================================================
+
+def _layout(cmd: str) -> str | None:
+    if not re.search(r"раскладк", cmd):
+        return None
+
+    if re.search(r"(переключ|смени|поменяй|следующ)", cmd):
+        ok = actions.switch_layout()
+        if ok:
+            history.push({"action": "switch_layout"})
+        return "Переключаю раскладку." if ok else "Не удалось переключить."
+    if re.search(r"(русск|ru)", cmd):
+        ok = actions.set_layout_ru()
+        return "Русская раскладка." if ok else "Не удалось."
+    if re.search(r"(англ|english|en)", cmd):
+        ok = actions.set_layout_en()
+        return "Английская раскладка." if ok else "Не удалось."
+    if re.search(r"(какая|текущ|что)", cmd):
+        layout = actions.get_layout()
+        if layout == "ru":
+            return "Сейчас русская раскладка."
+        if layout == "en":
+            return "Сейчас английская раскладка."
+        return "Не смог определить раскладку."
+    return None
+
+
+# =================================================================
+# Громкость
+# =================================================================
+
+def _volume(cmd: str) -> str | None:
+    # «громкость 50»
+    m = re.search(r"громкость\s+(?:на\s+)?(\d+)", cmd)
+    if m:
+        pct = int(m.group(1))
+        prev = actions.get_volume()
+        ok = actions.set_volume(pct)
+        if ok:
+            history.push({"action": "set_volume", "prev_value": prev})
+        return f"Громкость: {pct}%." if ok else "Не удалось."
+
+    # «сделай на 10 потише» (№69)
+    m = re.search(
+        r"(?:сделай|поставь|сделай\s+пожалуйста)\s+(?:на\s+)?(\d+)\s+(потише|тише|погромче|громче)",
+        cmd,
+    )
+    if m:
+        delta = int(m.group(1))
+        direction = m.group(2)
+        if "тише" in direction:
+            delta = -delta
+        prev = actions.get_volume()
+        if prev is not None:
+            new_vol = max(0, min(100, prev + delta))
+            ok = actions.set_volume(new_vol)
+            if ok:
+                history.push({"action": "set_volume", "prev_value": prev})
+            return f"Громкость: {new_vol}%." if ok else "Не удалось."
+
+    # «потише» / «погромче» (без числа, ±10)
+    if re.search(r"\b(потише|тише)\b", cmd):
+        prev = actions.get_volume()
+        if prev is not None:
+            new_vol = max(0, prev - 10)
+            ok = actions.set_volume(new_vol)
+            if ok:
+                history.push({"action": "set_volume", "prev_value": prev})
+            return f"Громкость: {new_vol}%." if ok else "Не удалось."
+
+    if re.search(r"\b(погромче|громче)\b", cmd):
+        prev = actions.get_volume()
+        if prev is not None:
+            new_vol = min(100, prev + 10)
+            ok = actions.set_volume(new_vol)
+            if ok:
+                history.push({"action": "set_volume", "prev_value": prev})
+            return f"Громкость: {new_vol}%." if ok else "Не удалось."
+
+    # «какая громкость»
+    if (re.search(r"(какая|текущ|узнай)\s+громкость", cmd)
+            or cmd in {"какая громкость", "текущая громкость"}):
+        vol = actions.get_volume()
+        return f"Громкость: {vol}%." if vol is not None else "Не смог узнать."
+
+    return None
+
+
+# =================================================================
+# Яркость
+# =================================================================
+
+def _brightness(cmd: str) -> str | None:
+    m = re.search(r"яркость\s+(?:на\s+)?(\d+)", cmd)
+    if m:
+        pct = int(m.group(1))
+        prev = actions.get_brightness()
+        ok = actions.set_brightness(pct)
+        if ok:
+            history.push({"action": "set_brightness", "prev_value": prev})
+        return f"Яркость: {pct}%." if ok else "Не удалось."
+
+    if (re.search(r"(какая|текущ|узнай)\s+яркость", cmd)
+            or cmd in {"какая яркость", "текущая яркость"}):
+        br = actions.get_brightness()
+        return f"Яркость: {br}%." if br is not None else "Не смог узнать."
+
+    return None
+```
+
+### `jarvis\intents\fast\tasks.py`
+
+```python
+"""Задачи — обёртка над `tasks`."""
+
+from jarvis import tasks
+
+
+def tasks_fast(handler, cmd: str) -> str | None:
+    return tasks.handle_task_command(cmd)
+```
+
+### `jarvis\intents\fast\timers.py`
+
+```python
+"""Напоминания — обёртка над `timers`."""
+
+from jarvis import timers
+
+
+def timers_fast(handler, cmd: str) -> str | None:
+    return timers.handle_timer_command(cmd)
+```
+
+### `jarvis\intents\fast\undo.py`
+
+```python
+"""Отмена последнего действия («не то», «отмени»)."""
+
+import re
+
+from jarvis import actions, history, modes, voices
+from jarvis.intents.execute import _do_close
+
+
+def undo_fast(handler, cmd: str) -> str | None:
+    if not re.search(r"(не\s+то|отмени|верни\s+как\s+было|откат)", cmd):
+        return None
+
+    item = history.pop()
+    if not item:
+        return "Нечего отменять."
+
+    action = item.get("action")
+
+    if action == "macro":
+        steps = item.get("steps") or []
+        if not steps:
+            return "Нечего отменять."
+        results = []
+        for step in reversed(steps):
+            s_action = step.get("action")
+            s_target = step.get("target")
+            if s_action == "open_app" and s_target:
+                results.append(_do_close(handler, s_target))
+        if results:
+            return "Откатываю макрос: " + "; ".join(results)
+        return "Макрос отменён."
+
+    if action == "open_app":
+        target = item.get("target") or ""
+        if target:
+            return f"Откатываю: {_do_close(handler, target)}"
+
+    if action == "set_mode":
+        prev = item.get("prev_value")
+        if prev:
+            reply = modes.set_mode(prev, handler.config)
+            handler.mode = prev
+            return f"Вернул режим: {reply}"
+
+    if action == "change_voice":
+        prev = item.get("prev_value")
+        if prev:
+            reply = voices.switch(prev, handler.config)
+            return f"Вернул голос: {reply}"
+
+    if action == "set_volume":
+        prev = item.get("prev_value")
+        if prev is not None:
+            actions.set_volume(int(prev))
+            return f"Вернул громкость: {prev}%."
+
+    if action == "set_brightness":
+        prev = item.get("prev_value")
+        if prev is not None:
+            actions.set_brightness(int(prev))
+            return f"Вернул яркость: {prev}%."
+
+    if action == "switch_layout":
+        actions.switch_layout()
+        return "Переключил раскладку обратно."
+
+    return f"Действие «{action}» отменить нельзя."
+```
+
+### `jarvis\intents\fast\voices.py`
+
+```python
+"""Голоса Piper — обёртка над модулем `voices`.
+
+Никакой своей логики. Просто передаём cmd в `voices.handle_voice_command`.
+"""
+
+from jarvis import voices
+
+
+def voices_fast(handler, cmd: str) -> str | None:
+    return voices.handle_voice_command(cmd, handler.config)
+```
+
+### `jarvis\intents\fast\weather.py`
+
+```python
+"""Простые правила для погоды и курса — без LLM.
+
+Если фраза явно про «курс доллара» или «какая погода», не гоняем
+через brain.parse, а сразу отвечаем. Быстрее и надёжнее.
+"""
+
+import re
+import time
+
+from jarvis import profile, weather
+
+
+def weather_currency_fast(handler, cmd: str) -> str | None:
+    # === Курс ===
+    if re.search(r"\bкурс\b|\bвалют", cmd):
+        code_map = {
+            "доллар": "USD", "доллара": "USD", "бакс": "USD", "бакса": "USD",
+            "евро": "EUR",
+            "юан": "CNY", "юаня": "CNY",
+            "фунт": "GBP", "фунта": "GBP",
+            "йен": "JPY", "йены": "JPY",
+            "лир": "TRY", "лиры": "TRY",
+            "тенге": "KZT",
+            "белорусск": "BYN", "бел рубл": "BYN",
+            "гривн": "UAH",
+        }
+        code = ""
+        for word, iso in code_map.items():
+            if word in cmd:
+                code = iso
+                break
+        r = weather.get_currency_rates()
+        return weather.describe_currency(r, code=code)
+
+    # === Погода ===
+    if re.search(r"\bпогод|\bпрогноз", cmd):
+        day = "tomorrow" if "завтра" in cmd else "today"
+
+        m = re.search(r"\bв\s+([а-яёa-z\-]+(?:\s+[а-яёa-z\-]+)?)", cmd)
+        city = m.group(1).strip() if m else ""
+
+        if not city:
+            city = profile.get("default_city")
+        if not city:
+            handler._pending_question = {
+                "type": "city_for_weather",
+                "day": day,
+                "expires_at": time.time() + 30,
+            }
+            return "В каком городе узнать погоду?"
+
+        w = weather.get_weather(city, day=day)
+        if not w:
+            return None
+        return weather.describe_weather(w)
+
+    return None
+```
+
+### `jarvis\intents\handler.py`
+
+```python
+"""IntentHandler — оркестрация.
+
+Единственный класс. Собирает pipeline стадий и реестр быстрых
+обработчиков, ведёт диалог, подписки на config / profile.
+
+Вся бизнес-логика — в `stages/`, `fast/`, `execute.py`.
+"""
+
+import logging
+import time
+from collections import deque
+
+from jarvis import memory, profile
+from jarvis.intents.fast import build_registry, load_custom
+from jarvis.intents.password import migrate_password_if_needed
+from jarvis.intents.stages import build_pipeline
+from jarvis.intents.stages.password import build_ask_password
+from jarvis.reply import Reply
+from jarvis.text_utils import normalize
+
+log = logging.getLogger("jarvis.intents")
+actions_log = logging.getLogger("jarvis.actions")
+
+
+class IntentHandler:
+
+    def __init__(self, config, apps, brain=None, listener=None, gui=None, jarvis=None):
+        self.config = config
+        self.apps = apps
+        self.brain = brain
+        self.listener = listener
+        self.gui = gui
+        self.jarvis = jarvis
+
+        # Индексы — читаются один раз при старте.
+        from jarvis.installed import scan_start_menu
+        from jarvis.steam import scan_steam_games
+        self.installed = scan_start_menu()
+        self.steam_games = scan_steam_games()
+
+        self.music_app = config.get("music_app", "яндекс музыка")
+        self.music_wait = float(config.get("music_wait_sec", 6))
+        self.last_file = None
+        self.last_folder = None
+
+        # Память — из config.
+        self._memory_max = int(config.get("memory_max", 100))
+        self._llm_context = int(config.get("llm_context_messages", 20))
+        self.dialog = deque(maxlen=self._memory_max)
+        for msg in memory.load(limit=self._memory_max):
+            self.dialog.append(msg)
+
+        # Состояние.
+        self.last_was_chat = False
+        self.mode = config.get("mode", "combo")
+        self.active_packs = list(config.get("active_packs", []))
+        self.last_macro = None
+        self._reset_requested = False
+        self._last_reply = ""
+        self._pending_question = None
+        self._pending_password = None
+
+        # Диагностика.
+        self._last_debug: dict = {}
+        self._recent_phrases: deque = deque(maxlen=10)
+        self._last_cmd: str = ""
+
+        # Миграция пароля (plaintext → sha256).
+        migrate_password_if_needed(config)
+
+        # Custom-команды.
+        self.custom = load_custom(config)
+        self._config_custom_original = list(self.custom)
+
+        # Реестр быстрых правил.
+        self._fast_handlers_cache = build_registry(self)
+
+        # Pipeline стадий.
+        self._pipeline = build_pipeline(self)
+
+        # Подписки.
+        config.subscribe(self._on_config_change)
+        profile.subscribe(self._on_profile_switch)
+
+    # =================================================================
+    # Публичный API
+    # =================================================================
+
+    def handle(self, cmd: str) -> Reply:
+        """Возвращает Reply: либо text, либо stream."""
+        self.last_was_chat = False
+
+        cmd = normalize(cmd)
+        actions_log.info("Команда: %r (режим: %s)", cmd, self.mode)
+        self._recent_phrases.append(cmd)
+
+        self._last_cmd = cmd
+
+        result = self._handle_single(cmd)
+
+        user_msg = {"role": "user", "content": cmd}
+        self.dialog.append(user_msg)
+        memory.append(user_msg)
+
+        if result is None:
+            result = "Не понял команду."
+
+        if isinstance(result, str):
+            assistant_msg = {"role": "assistant", "content": result}
+            self.dialog.append(assistant_msg)
+            memory.append(assistant_msg)
+            actions_log.info("Ответ: %r", result[:120])
+            self._last_reply = result
+            return Reply(text=result)
+
+        # result — генератор (chat_stream)
+        return Reply(stream=result)
+
+    def finalize_stream(self, full_text: str) -> None:
+        if not full_text:
+            return
+        assistant_msg = {"role": "assistant", "content": full_text}
+        self.dialog.append(assistant_msg)
+        memory.append(assistant_msg)
+        self._last_reply = full_text
+
+    # =================================================================
+    # Внутренняя оркестрация
+    # =================================================================
+
+    def _handle_single(self, cmd: str):
+        """Пробегает pipeline стадий. Первая не-None — побеждает."""
+        from jarvis.intents.context import Ctx
+
+        ctx = Ctx(cmd=cmd, original_cmd=cmd, handler=self)
+        for stage in self._pipeline:
+            result = stage.handle(ctx)
+            if result is not None:
+                return result
+        return None
+
+    def _chat_stream(self, cmd: str):
+        ctx = list(self.dialog)[-self._llm_context:] if self._llm_context else []
+        return self.brain.chat_stream(cmd, ctx)
+
+    def _ask_password(self, intent: dict) -> str:
+        """Запрашивает пароль для опасного действия."""
+        pending, msg = build_ask_password(intent)
+        self._pending_password = pending
+        return msg
+
+    def _danger_password(self) -> str:
+        return str(self.config.get("danger_password") or "").strip()
+
+    # =================================================================
+    # Подписки
+    # =================================================================
+
+    def _on_config_change(self, key: str, value) -> None:
+        if key == "memory_max":
+            try:
+                new_max = int(value)
+            except (TypeError, ValueError):
+                return
+            if new_max <= 0:
+                return
+            self._memory_max = new_max
+            self.dialog = deque(self.dialog, maxlen=new_max)
+            log.info("IntentHandler: memory_max = %d", new_max)
+        elif key == "llm_context_messages":
+            try:
+                self._llm_context = int(value)
+            except (TypeError, ValueError):
+                return
+            log.info("IntentHandler: llm_context_messages = %d", self._llm_context)
+
+    def _on_profile_switch(self, old_name: str, new_name: str) -> None:
+        """Перечитывает dialog при смене профиля."""
+        if old_name == new_name:
+            return
+        self.dialog.clear()
+        for msg in memory.load(limit=self._memory_max):
+            self.dialog.append(msg)
+        log.info(
+            "Профиль сменился: %s → %s, диалог перечитан (%d сообщений)",
+            old_name, new_name, len(self.dialog),
+        )
+```
+
+### `jarvis\intents\password.py`
+
+```python
+"""Хеширование пароля и действия, требующие пароля.
+
+Пароль хранится как `sha256:<hex>`. Legacy-plaintext поддерживается,
+но мигрируется в sha256 при старте.
+"""
+
+import hashlib
+import logging
+
+log = logging.getLogger("jarvis.intents")
+
+
+_PASSWORD_PREFIX = "sha256:"
+
+
+def hash_password(password: str) -> str:
+    """SHA-256 с префиксом. Префикс отличает хеш от legacy-plaintext."""
+    digest = hashlib.sha256(password.encode("utf-8")).hexdigest()
+    return f"{_PASSWORD_PREFIX}{digest}"
+
+
+def is_hashed(value: str) -> bool:
+    """Уже захеширован?"""
+    return bool(value) and value.startswith(_PASSWORD_PREFIX)
+
+
+def verify_password(candidate: str, stored: str) -> bool:
+    """Сравнивает введённый пароль с сохранённым.
+
+    Если stored ещё legacy (plaintext) — сравнивает напрямую.
+    Миграция происходит при старте через `migrate_password_if_needed`.
+    """
+    if not stored:
+        return False
+    if is_hashed(stored):
+        return hash_password(candidate) == stored
+    return candidate == stored
+
+
+def migrate_password_if_needed(config) -> None:
+    """Если danger_password в plaintext — захешировать (№81)."""
+    raw = str(config.get("danger_password") or "").strip()
+    if not raw or is_hashed(raw):
+        return
+    config.set("danger_password", hash_password(raw))
+    log.info("Пароль миграции: plaintext → sha256")
+
+
+# Действия, требующие пароля (если danger_password задан).
+DANGER_ACTIONS = frozenset({
+    "shutdown_pc", "reboot_pc", "kill_process",
+    "clear_tasks", "cancel_timers", "delete_profile",
+})
+
+
+def is_danger(intent: dict, stored_password: str) -> bool:
+    """Проверяет, опасно ли действие.
+
+    stored_password — уже захешированный (или пустой).
+    """
+    if not stored_password:
+        return False
+    action = intent.get("action")
+    if action in DANGER_ACTIONS:
+        return True
+    if action == "open_app":
+        target = str(intent.get("target") or "").lower()
+        if "shutdown" in target or "выключ" in target or "перезагруз" in target:
+            return True
+    return False
+
+
+# Человеческие названия для озвучки — при запросе пароля.
+ACTION_HUMAN = {
+    "shutdown_pc": "выключение компьютера",
+    "reboot_pc": "перезагрузку",
+    "kill_process": "закрытие процесса",
+    "clear_tasks": "очистку списка задач",
+    "cancel_timers": "отмену напоминаний",
+    "delete_profile": "удаление профиля",
+    "open_app": "это действие",
+}
+```
+
+### `jarvis\intents\sites.py`
+
+```python
+"""Сайты для открытия голосом — ленивая загрузка из packs/sites.json.
+
+Fallback — хардкод (если packs/sites.json нет или битый).
+Кэш — глобальный, инициализируется при первом обращении.
+"""
+
+import json
+import logging
+
+log = logging.getLogger("jarvis.intents")
+
+
+_SITES_FALLBACK = {
+    "ютуб": ("Ютуб", "https://www.youtube.com"),
+    "гугл": ("Гугл", "https://www.google.com"),
+    "яндекс": ("Яндекс", "https://ya.ru"),
+    "гитхаб": ("Гитхаб", "https://github.com"),
+    "вк": ("ВКонтакте", "https://vk.com"),
+    "вконтакте": ("ВКонтакте", "https://vk.com"),
+    "твич": ("Твич", "https://www.twitch.tv"),
+    "кинопоиск": ("Кинопоиск", "https://www.kinopoisk.ru"),
+    "википедия": ("Википедию", "https://ru.wikipedia.org"),
+    "почта": ("Почту", "https://mail.google.com"),
+}
+
+
+def _load_sites() -> dict:
+    """Загружает sites.json из packs/. Fallback — хардкод."""
+    sites = dict(_SITES_FALLBACK)
+    try:
+        from jarvis.packs import PACKS_DIR
+        path = PACKS_DIR / "sites.json"
+        if not path.exists():
+            return sites
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(data, list):
+            return sites
+        for entry in data:
+            action = entry.get("action", "")
+            if not action.startswith(("http://", "https://")):
+                continue
+            for phrase in entry.get("phrases", []):
+                # «открой ютуб» → ключ «ютуб»
+                key = phrase.lower().replace("открой", "").strip()
+                if key and key not in sites:
+                    title = entry.get("reply", key).replace("Открываю ", "").rstrip(".")
+                    sites[key] = (title, action)
+        log.info("SITES загружены из packs/sites.json: %d записей", len(sites))
+    except Exception:
+        log.exception("Не удалось загрузить packs/sites.json — fallback на хардкод")
+    return sites
+
+
+_SITES_CACHE: dict | None = None
+
+
+def get_sites() -> dict:
+    """Ленивая загрузка SITES — при первом обращении, не при импорте."""
+    global _SITES_CACHE
+    if _SITES_CACHE is None:
+        _SITES_CACHE = _load_sites()
+    return _SITES_CACHE
+```
+
+### `jarvis\intents\stages\__init__.py`
+
+```python
+"""Стадии обработки команды. Порядок = приоритет.
+
+Порядок критичен:
+    1. cancel       — «стоп» перехватывает всё
+    2. onboarding   — первый запуск, LLM-диалог
+    3. correction   — «это не то, я сказал …» подменяет cmd
+    4. password     — pending_password ждёт ответа
+    5. memory       — команды памяти (clear, «что обсуждали»)
+    6. pending      — pending_question ждёт уточнения
+    7. clipboard    — 4 команды буфера
+    8. modes        — commands / llm / combo
+    9. compound     — «открой стим и запусти доту»
+    10. fast        — реестр быстрых правил
+    11. llm         — brain.parse / chat_stream
+"""
+
+from jarvis.intents.stages.cancel import CancelStage
+from jarvis.intents.stages.onboarding import OnboardingStage
+from jarvis.intents.stages.correction import CorrectionStage
+from jarvis.intents.stages.password import PasswordStage
+from jarvis.intents.stages.memory import MemoryStage
+from jarvis.intents.stages.pending import PendingStage
+from jarvis.intents.stages.clipboard import ClipboardStage
+from jarvis.intents.stages.modes import ModesStage
+from jarvis.intents.stages.compound import CompoundStage
+from jarvis.intents.stages.fast import FastHandlersStage
+from jarvis.intents.stages.llm import LLMStage
+
+
+def build_pipeline(handler) -> list:
+    """Собирает pipeline стадий. Порядок фиксирован."""
+    return [
+        CancelStage(),
+        OnboardingStage(),
+        CorrectionStage(),
+        PasswordStage(),
+        MemoryStage(),
+        PendingStage(),
+        ClipboardStage(),
+        ModesStage(),
+        CompoundStage(),
+        FastHandlersStage(),
+        LLMStage(),
+    ]
+```
+
+### `jarvis\intents\stages\base.py`
+
+```python
+"""Базовая стадия pipeline."""
+
+from typing import Iterator, Optional
+
+from jarvis.intents.context import Ctx
+
+
+class Stage:
+    """Одна стадия pipeline.
+
+    Возвращает:
+        str              — команда обработана, это ответ
+        Iterator[str]    — стрим (chat_stream)
+        None             — пропустить дальше
+    """
+    name: str = "base"
+
+    def handle(self, ctx: Ctx) -> Optional[object]:
+        raise NotImplementedError
+```
+
+### `jarvis\intents\stages\cancel.py`
+
+```python
+"""«Стоп», «хватит», «отбой» — самый первый этап."""
+
+from jarvis.intents.stages.base import Stage
+from jarvis.intents.verbs import CANCEL
+
+
+class CancelStage(Stage):
+    name = "cancel"
+
+    def handle(self, ctx):
+        if ctx.cmd in CANCEL:
+            h = ctx.handler
+            h._pending_password = None
+            h._pending_question = None
+            h._reset_requested = True
+            return "Жду обращение, сэр."
+        return None
+```
+
+### `jarvis\intents\stages\clipboard.py`
+
+```python
+"""4 команды буфера обмена. Все — до LLM.
+
+Скопировать выделенное, скопировать свой ответ,
+прочитать буфер, очистить буфер.
+"""
+
+import logging
+import re
+import time
+
+from jarvis import actions
+from jarvis.intents.stages.base import Stage
+
+log = logging.getLogger("jarvis.intents")
+
+
+class ClipboardStage(Stage):
+    name = "clipboard"
+
+    def handle(self, ctx):
+        cmd = ctx.cmd
+
+        if (re.search(r"скопируй\s+(выделенное|выделенный|это\s+выделенное)", cmd)
+                or re.search(r"(выдели|выделенное)\s+(и\s+)?скопируй", cmd)
+                or cmd in {"скопируй выделенное", "скопируй это выделенное"}):
+            return self._copy_selection()
+
+        if (re.search(r"скопируй\s+(свой\s+)?(ответ|ответь|последнее|сказанное)", cmd)
+                or cmd in {"скопируй свой ответ", "скопируй ответ", "скопируй что ты сказал"}):
+            return self._copy_last_reply(ctx)
+
+        if (re.search(r"(что|чё)\s+(в\s+)?буфере", cmd)
+                or re.search(r"(покажи|прочитай|что)\s+буфер", cmd)
+                or cmd in {"что скопировано", "что в буфере"}):
+            return self._read_buffer()
+
+        if (re.search(r"(очисти|сотри|удали)\s+буфер", cmd)
+                or cmd in {"очисти буфер", "сотри буфер"}):
+            return self._clear_buffer()
+
+        return None
+
+    def _copy_selection(self) -> str:
+        if not actions.copy_selection():
+            return "Не удалось скопировать."
+        time.sleep(0.15)
+        text = actions.clipboard_read()
+        if text:
+            short = text[:200] + ("..." if len(text) > 200 else "")
+            return f"Скопировал: {short}"
+        return "Скопировал выделенное."
+
+    def _copy_last_reply(self, ctx) -> str:
+        last = ctx.handler._last_reply
+        if not last:
+            return "Нечего копировать."
+        ok = actions.clipboard_write(last)
+        return "Скопировал свой ответ в буфер." if ok else "Не удалось скопировать."
+
+    def _read_buffer(self) -> str:
+        text = actions.clipboard_read()
+        if not text:
+            return "Буфер обмена пуст."
+        return f"В буфере: {text[:400]}"
+
+    def _clear_buffer(self) -> str:
+        ok = actions.clipboard_clear()
+        return "Буфер очищен." if ok else "Не удалось очистить буфер."
+```
+
+### `jarvis\intents\stages\compound.py`
+
+```python
+"""Многослойные команды: «открой стим и запусти доту».
+
+Разбиваем по « и » (с пробелами) или «, ».
+Все части должны начинаться с глагола-команды — иначе это не compound,
+а обычная фраза («добавь в список купить хлеб и молоко»).
+
+Части уходят обратно в `_handle_single` рекурсией.
+"""
+
+import logging
+import re
+
+from jarvis.intents.stages.base import Stage
+from jarvis.intents.verbs import COMMAND_VERBS
+
+log = logging.getLogger("jarvis.intents")
+
+
+class CompoundStage(Stage):
+    name = "compound"
+
+    def handle(self, ctx):
+        parts = self._split(ctx.cmd)
+        if not parts:
+            return None
+
+        replies = []
+        for part in parts:
+            sub = ctx.handler._handle_single(part)
+            if isinstance(sub, str) and sub.strip():
+                replies.append(sub.strip())
+            # Если sub — генератор (chat_stream) — пропускаем.
+
+        if replies:
+            return ". ".join(replies) + "."
+        return None
+
+    def _split(self, cmd: str) -> list[str] | None:
+        """Возвращает список частей или None, если не compound."""
+        parts = re.split(r"\s+и\s+|,\s*", cmd)
+        if len(parts) < 2:
+            return None
+
+        parts = [p.strip() for p in parts if p.strip()]
+        if len(parts) < 2:
+            return None
+
+        for part in parts:
+            first = part.split()[0].lower() if part.split() else ""
+            if first not in COMMAND_VERBS:
+                return None
+
+        return parts
+```
+
+### `jarvis\intents\stages\correction.py`
+
+```python
+"""Применение коррекции «это не то» перед разбором команды.
+
+Ищем в `learning.find_correction`: если для команды сохранена
+коррекция (пользователь раньше сказал «это не то, я сказал логи») —
+подменяем cmd.
+"""
+
+import logging
+
+from jarvis import learning
+from jarvis.intents.stages.base import Stage
+
+log = logging.getLogger("jarvis.intents")
+
+
+class CorrectionStage(Stage):
+    name = "correction"
+
+    def handle(self, ctx):
+        corrected = learning.find_correction(ctx.cmd)
+        if corrected and corrected != ctx.cmd:
+            log.info("Применена коррекция: %r → %r", ctx.cmd, corrected)
+            ctx.cmd = corrected
+        return None
+```
+
+### `jarvis\intents\stages\fast.py`
+
+```python
+"""Вызов реестра быстрых обработчиков.
+
+Реестр собирается один раз в `IntentHandler.__init__` через
+`fast.build_registry(handler)`. Порядок = приоритет.
+
+Исключение в обработчике — логируется, не роняет команду.
+"""
+
+import logging
+
+from jarvis.intents.stages.base import Stage
+
+log = logging.getLogger("jarvis.intents")
+
+
+class FastHandlersStage(Stage):
+    name = "fast"
+
+    def handle(self, ctx):
+        for name, fn in ctx.handler._fast_handlers_cache:
+            try:
+                reply = fn(ctx.cmd)
+            except Exception:
+                log.exception("Обработчик %s упал на %r", name, ctx.cmd)
+                continue
+            if reply:
+                log.debug("Команда %r обработана: %s", ctx.cmd, name)
+                return reply
+        return None
+```
+
+### `jarvis\intents\stages\llm.py`
+
+```python
+"""LLM — последний шанс разобрать команду.
+
+Сюда попадаем, если ни одна стадия выше не справилась.
+
+Проверки перед LLM:
+    - режим commands → отказ
+    - LLM недоступна → отказ
+    - мусорный ввод (одна буква, слишком коротко) → отказ
+
+После LLM:
+    - если intent требует пароля → PasswordStage отработает на след. шаге
+    - если search без «найди» → предупреждение
+    - если answer → chat_stream
+"""
+
+import logging
+
+from jarvis.intents.password import is_danger
+from jarvis.intents.stages.base import Stage
+from jarvis.intents.verbs import SEARCH_VERBS
+
+log = logging.getLogger("jarvis.intents")
+
+
+class LLMStage(Stage):
+    name = "llm"
+
+    def handle(self, ctx):
+        h = ctx.handler
+        cmd = ctx.cmd
+
+        if h.mode == "commands":
+            h._last_debug = {
+                "cmd": cmd, "reason": "режим commands",
+                "mode": h.mode, "llm": False,
+            }
+            return "Я не понял команду. Скажите «режим ИИ» или добавьте фразу в конфиг."
+
+        if h.brain is None or not h.brain.available:
+            h._last_debug = {
+                "cmd": cmd, "reason": "LLM недоступна",
+                "mode": h.mode, "llm": False,
+            }
+            return "LLM недоступна. Скажите «режим команды»."
+
+        # Мусорный ввод (№70): LLM галлюцинирует на «ааа» или «эээ».
+        # Исключения «да», «нет», «ок» — это ответы на pending.
+        clean = cmd.replace(" ", "")
+        if cmd not in {"да", "нет", "ок"}:
+            if len(cmd) < 3 or (clean and len(set(clean)) <= 2):
+                h._last_debug = {
+                    "cmd": cmd, "reason": "мусорный ввод",
+                    "mode": h.mode, "llm": False,
+                }
+                return "Не расслышал, сэр. Повторите, пожалуйста."
+
+        intent = h.brain.parse(cmd)
+        h._last_debug = {
+            "cmd": cmd, "intent": intent,
+            "mode": h.mode, "llm": True,
+        }
+
+        if intent and intent.get("action") not in ("answer", "none"):
+            if is_danger(intent, str(h.config.get("danger_password") or "").strip()):
+                return h._ask_password(intent)
+
+            if (intent.get("action") == "search"
+                    and not any(v in cmd for v in SEARCH_VERBS)):
+                return "Сэр, чтобы поискать, скажите «найди» и запрос. Например: «найди погоду»."
+
+            # Импорт здесь, чтобы не было цикла
+            from jarvis.intents.execute import execute_intent, execute_steps
+
+            if isinstance(intent.get("steps"), list):
+                reply = execute_steps(h, intent["steps"])
+            else:
+                reply = execute_intent(h, intent)
+            if reply:
+                return reply
+
+        if intent and intent.get("action") == "answer":
+            gen = h._chat_stream(cmd)
+            if gen is not None:
+                h.last_was_chat = True
+                return gen
+            if intent.get("reply"):
+                return str(intent["reply"])[:600]
+
+        gen = h._chat_stream(cmd)
+        if gen is not None:
+            h.last_was_chat = True
+            return gen
+        return "Я не понял команду."
+```
+
+### `jarvis\intents\stages\memory.py`
+
+```python
+"""Команды памяти диалога.
+
+`memory.handle_memory_command` возвращает (reply, clear_requested).
+Если clear_requested — очищаем dialog.
+"""
+
+from jarvis import memory
+from jarvis.intents.stages.base import Stage
+
+
+class MemoryStage(Stage):
+    name = "memory"
+
+    def handle(self, ctx):
+        h = ctx.handler
+        reply, clear = memory.handle_memory_command(ctx.cmd, list(h.dialog))
+        if reply:
+            if clear:
+                h.dialog.clear()
+            return reply
+        return None
+```
+
+### `jarvis\intents\stages\modes.py`
+
+```python
+"""Режимы работы: commands / llm / combo.
+
+`modes.handle_mode_command` возвращает (reply, new_mode).
+Если режим изменился — пушим в history для отката.
+"""
+
+from jarvis import history, modes
+from jarvis.intents.stages.base import Stage
+
+
+class ModesStage(Stage):
+    name = "modes"
+
+    def handle(self, ctx):
+        # Быстрый фильтр: если в фразе нет «режим» — не наше дело.
+        if not any(w in ctx.cmd for w in ("режим", "комбо", "комбинирован")):
+            return None
+
+        h = ctx.handler
+        prev_mode = h.mode
+        reply, new_mode = modes.handle_mode_command(ctx.cmd, h.mode, h.config)
+        if reply:
+            if new_mode != prev_mode:
+                history.push({
+                    "action": "set_mode",
+                    "prev_value": prev_mode,
+                })
+            h.mode = new_mode
+            return reply
+        return None
+```
+
+### `jarvis\intents\stages\onboarding.py`
+
+```python
+"""Первый запуск — знакомство через LLM-диалог.
+
+Никаких сценариев `if/elif`. LLM ведёт диалог, мы только
+проверяем: «это команда или свободный текст?».
+
+Если команда — пропускаем (пусть идёт в обычный handle).
+Если LLM недоступна — молча завершаем онбординг.
+"""
+
+import logging
+
+from jarvis.intents.stages.base import Stage
+from jarvis.intents.verbs import COMMAND_VERBS
+
+log = logging.getLogger("jarvis.intents")
+
+
+class OnboardingStage(Stage):
+    name = "onboarding"
+
+    def handle(self, ctx):
+        from jarvis import first_run, persona, profile
+
+        if not first_run.is_first_run():
+            return None
+
+        h = ctx.handler
+
+        # LLM нет — молча завершаем онбординг.
+        if h.brain is None or not h.brain.available:
+            first_run.mark_done()
+            return None
+
+        # Если это команда — не перехватываем.
+        if self._looks_like_command(ctx.cmd):
+            return None
+
+        # Собираем историю диалога.
+        history = list(h.dialog)[-10:]
+
+        # 6+ фраз от юзера — принудительно завершаем.
+        user_msgs = sum(1 for m in h.dialog if m.get("role") == "user")
+        force_done = user_msgs >= 6
+
+        result = h.brain.onboarding_chat(ctx.cmd, history)
+        reply = result.get("reply") or ""
+
+        # Сохраняем что LLM вытащила.
+        name = result.get("name")
+        if name and not profile.get("name"):
+            profile.set("name", name)
+            log.info("Онбординг: name=%r", name)
+
+        style_raw = result.get("style")
+        if style_raw:
+            style = persona.normalize_style(style_raw)
+            if style and persona.get().get("speech_style") == "friendly":
+                persona.set_field("speech_style", style)
+                log.info("Онбординг: style=%r", style)
+
+        if result.get("onboarding_done") or force_done:
+            first_run.mark_done()
+            log.info("Онбординг завершён (LLM=%s, force=%s)",
+                     result.get("onboarding_done"), force_done)
+
+        return reply or None
+
+    def _looks_like_command(self, cmd: str) -> bool:
+        """Быстрая проверка: команда или свободный текст?"""
+        if not cmd:
+            return False
+        first = cmd.split()[0] if cmd.split() else ""
+        return first in COMMAND_VERBS
+```
+
+### `jarvis\intents\stages\password.py`
+
+```python
+"""Ожидание пароля + команда «удали профиль X».
+
+«Удали профиль X» ловится здесь, ДО fast-обработчиков.
+Иначе tasks_fast перехватит «удали X» как удаление задачи.
+"""
+
+import logging
+import re
+import time
+
+from jarvis import profile
+from jarvis.intents.password import ACTION_HUMAN, verify_password
+from jarvis.intents.stages.base import Stage
+from jarvis.intents.verbs import CANCEL
+
+log = logging.getLogger("jarvis.intents")
+
+
+class PasswordStage(Stage):
+    name = "password"
+
+    def handle(self, ctx):
+        h = ctx.handler
+
+        # 1. Проверяем «удали профиль X» — это всегда до fast.
+        reply = self._maybe_delete_profile(ctx)
+        if reply is not None:
+            return reply
+
+        # 2. Если ждём ввода пароля — обрабатываем.
+        if not h._pending_password:
+            return None
+        if time.time() >= h._pending_password.get("expires_at", 0):
+            h._pending_password = None
+            return None
+        return self._handle_answer(ctx)
+
+    # ----------------------------------------------------------------
+
+    def _maybe_delete_profile(self, ctx) -> str | None:
+        """«удали профиль X» → пароль или удаление."""
+        h = ctx.handler
+        m = re.match(r"^удали\s+профиль\s+(\S+)$", ctx.cmd)
+        if not m:
+            return None
+
+        name = m.group(1)
+
+        if h._danger_password():
+            # Пароль задан — спрашиваем.
+            return h._ask_password({"action": "delete_profile", "target": name})
+
+        # Пароля нет — удаляем сразу.
+        if profile.delete(name):
+            return f"Профиль {name} удалён."
+        return f"Профиль {name} не найден или активен."
+
+    # ----------------------------------------------------------------
+
+    def _handle_answer(self, ctx) -> str:
+        h = ctx.handler
+        pending = h._pending_password
+        h._pending_password = None
+
+        if ctx.cmd in CANCEL:
+            return "Жду обращение, сэр."
+
+        # Убираем «пароль», «код», «пин», если сказали.
+        candidate = re.sub(r"^(?:пароль|код|пин)\s*", "", ctx.cmd).strip()
+
+        stored = str(h.config.get("danger_password") or "").strip()
+        if not verify_password(candidate, stored):
+            log.warning("Пароль неверный")
+            return "Пароль неверный. Действие отменено."
+
+        from jarvis.intents.execute import execute_intent, execute_steps
+
+        intent = pending.get("intent") or {}
+        if isinstance(intent.get("steps"), list):
+            result = execute_steps(h, intent["steps"])
+        else:
+            result = execute_intent(h, intent)
+        return result or "Готово."
+
+
+def build_ask_password(intent: dict, expires_sec: int = 30) -> tuple[dict, str]:
+    """Готовит данные для _pending_password и текст запроса."""
+    pending = {
+        "intent": intent,
+        "expires_at": time.time() + expires_sec,
+    }
+    action = intent.get("action")
+    human = ACTION_HUMAN.get(action, "это действие")
+    return pending, f"Для этого нужен пароль ({human}). Назовите пароль."
+```
+
+### `jarvis\intents\stages\pending.py`
+
+```python
+"""Ожидание уточнения (pending_question).
+
+Сейчас единственный тип — `city_for_weather`:
+Феникс спросил город, ждём ответа.
+"""
+
+import logging
+import time
+
+from jarvis import profile, weather
+from jarvis.intents.stages.base import Stage
+
+log = logging.getLogger("jarvis.intents")
+
+
+_NOT_A_CITY = (
+    "открой", "закрой", "найди", "включи", "выключи",
+    "как дела", "кто ты", "спасибо", "привет", "пока",
+    "который час", "какое число", "сделай скриншот",
+    "загугли", "поищи", "напечатай",
+)
+
+
+class PendingStage(Stage):
+    name = "pending"
+
+    def handle(self, ctx):
+        h = ctx.handler
+        if not h._pending_question:
+            return None
+        if time.time() >= h._pending_question.get("expires_at", 0):
+            h._pending_question = None
+            return None
+        return self._handle(ctx)
+
+    def _handle(self, ctx) -> str:
+        h = ctx.handler
+        pending = h._pending_question
+        h._pending_question = None
+
+        if pending.get("type") == "city_for_weather":
+            city = ctx.cmd.strip()
+            words = city.split()
+
+            if not city or len(city) > 60 or len(words) > 3:
+                return "Не расслышал город. Повторите, пожалуйста."
+
+            if any(w in city for w in _NOT_A_CITY):
+                log.info("pending_question: %r не похоже на город — обрабатываю как команду", city)
+                result = h._handle_single(ctx.cmd)
+                return result if isinstance(result, str) else "Не понял команду."
+
+            profile.set("default_city", city)
+            log.info("Запомнил город по умолчанию: %s", city)
+
+            day = pending.get("day", "today")
+            w = weather.get_weather(city, day=day)
+            if w:
+                return f"Запомнил. {weather.describe_weather(w)}"
+            return f"Запомнил город «{city}», но погоду узнать не удалось."
+
+        return "Не понял уточнение."
+```
+
+### `jarvis\intents\verbs.py`
+
+```python
+"""Константы глаголов и слов — единый источник истины.
+
+Раньше `_COMPOUND_VERBS` в `IntentHandler` и глаголы в
+`_looks_like_command` были двумя похожими, но РАЗНЫМИ списками.
+Глагол мог попасть в один и не попасть в другой — рассинхрон.
+
+Теперь всё здесь. Один список — используется и в compound,
+и в онбординге.
+"""
+
+# Глаголы, с которых начинается команда.
+# Используются:
+#   - `stages/compound.py` — проверка, что часть составной команды
+#   - `stages/onboarding.py` — «это команда или свободный текст?»
+COMMAND_VERBS = frozenset({
+    "открой", "открывай", "закрой", "закрывай",
+    "запусти", "врубай", "включи", "выключи",
+    "найди", "поищи", "загугли", "погугли",
+    "поставь", "сделай",
+    "добавь", "запиши", "внеси",
+    "покажи", "убери", "удали", "очисти",
+    "смени", "поменяй", "переключи",
+    "сверни", "разверни", "переключись",
+    "напомни", "запомни",
+    "громче", "тише", "потише", "погромче",
+    "скопируй", "вставь",
+})
+
+
+# Слова-отмены. Если услышали — глушим всё.
+CANCEL = frozenset({
+    "отмена", "стоп", "стой", "хватит",
+    "замолчи", "ничего", "забудь", "отбой",
+})
+
+
+# Глаголы поиска — для проверки «search без «найди»».
+SEARCH_VERBS = ("найди", "поищи", "ищи", "загугли", "погугли", "поиск")
+
+
+# Слова, которые обычно означают браузер.
+BROWSER_WORDS = frozenset({
+    "браузер", "браузере", "браузером",
+    "хром", "хроме", "интернет", "интернете",
+})
+```
+
+### `jarvis\intents.py.bak`
+
+_Бинарный или нетекстовый файл: .bak_
+
+### `jarvis\intents.py.bak2`
+
+_Бинарный или нетекстовый файл: .bak2_
+
+### `jarvis\intents_old.py`
 
 ```python
 """Разбор команды: быстрые правила + LLM."""
@@ -8505,14 +11473,6 @@ def _minutes(n: int) -> str:
         return "минуты"
     return "минут"
 ```
-
-### `jarvis\intents.py.bak`
-
-_Бинарный или нетекстовый файл: .bak_
-
-### `jarvis\intents.py.bak2`
-
-_Бинарный или нетекстовый файл: .bak2_
 
 ### `jarvis\learning.py`
 
