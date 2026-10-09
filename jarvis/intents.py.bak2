@@ -395,10 +395,10 @@ class IntentHandler:
 
     def _handle_single(self, cmd: str) -> str | Iterator[str]:
         # === CANCEL — самый первый (фикс №6) ===
-        # Первый запуск — знакомство через LLM-диалог.
-        onboarding_reply = self._onboarding_chat_step(cmd)
-        if onboarding_reply is not None:
-            return onboarding_reply
+        # Первый запуск — знакомство через задачу.
+        first_run_reply = self._first_run_step(cmd)
+        if first_run_reply is not None:
+            return first_run_reply
 
         if cmd in CANCEL:
             self._pending_password = None
@@ -757,75 +757,6 @@ class IntentHandler:
 
         return None
 
-    def _looks_like_command(self, cmd: str) -> bool:
-        """Быстрая проверка: это команда или свободный текст?"""
-        if not cmd:
-            return False
-        verbs = (
-            "открой", "закрой", "запусти", "включи", "выключи",
-            "найди", "поищи", "загугли", "покажи", "поставь",
-            "сверни", "разверни", "напомни", "добавь",
-            "сделай", "переключи", "смени", "поменяй",
-            "громче", "тише", "потише", "погромче",
-            "скопируй", "вставь", "очисти", "удали",
-        )
-        first = cmd.split()[0] if cmd.split() else ""
-        if first in verbs:
-            return True
-        if any(cmd.startswith(v + " ") for v in verbs):
-            return True
-        return False
-
-     def _onboarding_chat_step(self, cmd: str) -> str | None:
-        """Онбординг через LLM-диалог. Один раз при первом запуске."""
-        from jarvis import first_run, persona, profile
-
-        if not first_run.is_first_run():
-            return None
-
-        # Fallback: LLM нет — просто завершаем онбординг молча.
-        if self.brain is None or not self.brain.available:
-            first_run.mark_done()
-            return None
-
-        # Если это команда — не перехватываем онбордингом.
-        if self._looks_like_command(cmd):
-            return None
-
-        # Собираем историю диалога.
-        history = list(self.dialog)[-10:]
-
-        # Считаем фразы пользователя — если больше 6, принудительно завершаем.
-        user_msgs = sum(1 for m in self.dialog if m.get("role") == "user")
-        force_done = user_msgs >= 6
-
-        result = self.brain.onboarding_chat(cmd, history)
-        reply = result.get("reply") or ""
-
-        # Сохраняем то, что LLM вытащила.
-        name = result.get("name")
-        if name and not profile.get("name"):
-            profile.set("name", name)
-            log.info("Онбординг: name=%r", name)
-
-        style_raw = result.get("style")
-        if style_raw:
-            style = persona.normalize_style(style_raw)
-            if style and persona.get().get("speech_style") == "friendly":
-                persona.set_field("speech_style", style)
-                log.info("Онбординг: style=%r", style)
-
-        # Завершение?
-        if result.get("onboarding_done") or force_done:
-            first_run.mark_done()
-            log.info("Онбординг завершён (LLM=%s, force=%s)",
-                     result.get("onboarding_done"), force_done)
-
-        if not reply:
-            return None
-
-        return reply
-
     def _persona_fast(self, cmd: str) -> str | None:
         """Команды персоны: стиль общения, описание, сброс онбординга."""
         from jarvis import persona
@@ -860,9 +791,10 @@ class IntentHandler:
                 or re.search(r"(сбрось|сбросить|reset)\s+(персон|знакомств|онбординг)", cmd) \
                 or cmd in {"заново познакомимся", "сбрось персону", "сбрось знакомство"}:
             persona.reset_onboarding()
-            return "О, давай! Как тебя зовут?"
+            return "Готов заново познакомиться! Как тебя зовут?"
 
         return None
+
 
     def _memory_fast(self, cmd: str) -> str | None:
         """Голосовые команды для управления памятью."""
@@ -1769,32 +1701,194 @@ class IntentHandler:
         return _FOLDER_TITLES.get(path.name, f"в папке {path.name}")
 
     def _small_talk(self, cmd: str) -> str | None:
-        """Только точные команды. Диалог — через LLM."""
-        # Праздничные триггеры
+        # Праздничные триггеры (единоразово)
         from jarvis import celebrations
         if celebrations.match_celebration(cmd):
             if self.jarvis is not None:
                 celebrations.start_celebration(self.jarvis, self.gui)
+                # Zero-width space — handle() увидит непустую строку,
+                # но TTS её проигнорирует. Вся озвучка идёт в потоке celebration.
                 return "\u200b"
             return "Поздравляю! С днём рождения!"
 
-        # Время/дата — оставляем, потому что LLM это не знает
         now = datetime.datetime.now()
-        if any(p in cmd for p in ("который час", "сколько времени")):
+        if any(p in cmd for p in ("который час", "сколько времени", "время")):
             return f"Сейчас {now.hour} {_hours(now.hour)} {now.minute} {_minutes(now.minute)}."
-        if any(p in cmd for p in ("какое число", "какая дата", "какое сегодня число")):
+        if any(p in cmd for p in ("какое число", "какая дата", "какое сегодня число", "дата")):
             return f"Сегодня {now.day} {MONTHS[now.month - 1]} {now.year} года, {WEEKDAYS[now.weekday()]}."
         if "день недели" in cmd or cmd == "какой сегодня день":
             return f"Сегодня {WEEKDAYS[now.weekday()]}."
-
-        # Всё остальное — уходит в LLM.
+        if any(p in cmd for p in ("как дела", "как ты", "как настроение")):
+            return random.choice([
+                "Все системы функционируют нормально.",
+                "Отлично, сэр. Готов к работе.",
+                "В полном порядке, спасибо.",
+                "Работаю в штатном режиме, сэр. А вы как?",
+                "Не жалуюсь. Процессор холодный, настроение бодрое.",
+                "Всё хорошо, сэр. Чем займёмся?",
+                "Как у ассистента: без сбоев и скуки. Слушаю вас.",
+            ])
+        if any(p in cmd for p in ("кто ты", "ты кто", "представься", "как тебя зовут")):
+            return f"Я {APP_NAME}, локальный голосовой ассистент, версия {__version__}."
+        if any(p in cmd for p in ("что ты умеешь", "помощь", "что умеешь", "команды")):
+            return ("Я умею открывать и закрывать приложения и сайты, делать скриншоты, "
+                    "искать в интернете, печатать текст, управлять окнами, ставить "
+                    "напоминания, вести списки задач, узнавать погоду и курс валют, "
+                    "и отвечать на вопросы.")
+        if any(p in cmd for p in ("спасибо", "благодарю")):
+            return "Всегда пожалуйста."
+        if any(p in cmd for p in ("привет", "здравствуй", "добрый день", "доброе утро", "добрый вечер")):
+            name = profile.get("name")
+            if name:
+                return f"Привет, {name}! Чем могу помочь?"
+            return "Привет! Чем могу помочь?"
+        if any(p in cmd for p in ("пока", "до свидания", "спокойной ночи")):
+            return "До связи."
         return None
+
+    def _first_run_step(self, cmd: str) -> str | None:
+        """Знакомство при первом запуске."""
+        from jarvis import first_run, persona
+
+        if not first_run.is_first_run():
+            return None
+
+        step = persona.get().get("onboarding_step", 0)
+
+        if step == 0:
+            persona.set_field("onboarding_step", 1)
+            return None
+
+        if step == 1:
+            name = self._extract_name(cmd)
+            if not name and self.brain is not None and self.brain.available:
+                parsed = self.brain.parse_onboarding(cmd)
+                name = (parsed.get("name") or "").strip() or None
+
+            if name:
+                profile.set("name", name)
+                persona.set_field("onboarding_step", 2)
+                log.info("First run: имя=%r, предлагаю рассказать о себе", name)
+                return first_run.after_name(name)
+
+            if first_run.is_decline(cmd):
+                persona.set_field("onboarding_step", 4)
+                persona.mark_onboarded()
+                return "Хорошо. Скажи «Феникс» — и я слушаю."
+
+            return "Не расслышал имя. Повтори — или скажи «пропусти»."
+
+        if step == 2:
+            if first_run.is_decline(cmd):
+                persona.set_field("onboarding_step", 4)
+                persona.mark_onboarded()
+                log.info("First run: юзер отказался рассказывать")
+                return first_run.after_story()
+
+            self._parse_onboarding_answer(cmd)
+            persona.set_field("onboarding_step", 4)
+            persona.mark_onboarded()
+            log.info("First run: знакомство завершено")
+            return first_run.after_story()
+
+        return None
+
+    def _extract_name(self, cmd: str) -> str | None:
+        """Извлекает имя из фразы."""
+        cmd = cmd.strip()
+        if not cmd:
+            return None
+
+        patterns = [
+            r"^(?:меня\s+зовут|моё?\s+имя|я\s*[-—]?)\s+(.+)$",
+            r"^зови\s+меня\s+(.+)$",
+            r"^это\s+(.+)$",
+        ]
+        for pat in patterns:
+            m = re.match(pat, cmd, re.IGNORECASE)
+            if m:
+                cmd = m.group(1).strip()
+                break
+
+        cmd = cmd.strip(" .,!?-—")
+        if not cmd or len(cmd) > 40:
+            return None
+        words = cmd.split()
+        if len(words) > 3:
+            return None
+        if cmd.lower() in {
+            "да", "нет", "не знаю", "не помню", "пропусти",
+            "не хочу", "привет", "здравствуй", "хз",
+        }:
+            return None
+        return cmd[:40]
+
+    def _parse_onboarding_answer(self, cmd: str) -> None:
+        """Разбирает ответ на шаг «что о тебе знать»."""
+        cmd = cmd.strip()
+        if not cmd:
+            return
+
+        if self.brain is not None and self.brain.available:
+            parsed = self.brain.parse_onboarding(cmd)
+            if parsed:
+                self._apply_onboarding_parsed(parsed)
+                if parsed.get("city") or parsed.get("age") or parsed.get("facts"):
+                    return
+
+        fact = self._extract_fact(cmd)
+        if fact:
+            learning.add_fact("о пользователе", fact)
+
+    def _apply_onboarding_parsed(self, parsed: dict) -> None:
+        """Применяет результаты LLM-разбора онбординга."""
+        if not isinstance(parsed, dict):
+            return
+
+        city = (parsed.get("city") or "").strip()
+        if city and not profile.get("default_city"):
+            profile.set("default_city", city)
+            log.info("Онбординг: город = %r", city)
+
+        age = parsed.get("age")
+        if isinstance(age, (int, float)) and 0 < age < 130:
+            profile.set("age", int(age))
+            log.info("Онбординг: возраст = %d", int(age))
+
+        style_raw = (parsed.get("style") or "").strip().lower()
+        if style_raw:
+            from jarvis import persona
+            style = persona.normalize_style(style_raw)
+            if style and persona.get().get("speech_style") == "friendly":
+                persona.set_field("speech_style", style)
+
+        facts = parsed.get("facts") or []
+        if isinstance(facts, list):
+            from jarvis import learning
+            for fact in facts[:5]:
+                if isinstance(fact, str) and fact.strip():
+                    learning.add_fact("о пользователе", fact.strip()[:200])
+
+    def _extract_fact(self, cmd: str) -> str | None:
+        """Извлекает факт из ответа."""
+        cmd = cmd.strip()
+        if not cmd:
+            return None
+        cmd = re.sub(r"^(?:запомни[,\s:]*|запиши[,\s:]*|я\s+)", "",
+                     cmd, flags=re.IGNORECASE)
+        cmd = cmd.strip(" .,!?-—")
+        if len(cmd) < 2 or len(cmd) > 200:
+            return None
+        return cmd
+
+
 def _hours(n: int) -> str:
     if n % 10 == 1 and n % 100 != 11:
         return "час"
     if n % 10 in (2, 3, 4) and n % 100 not in (12, 13, 14):
         return "часа"
     return "часов"
+
 
 def _minutes(n: int) -> str:
     if n % 10 == 1 and n % 100 != 11:

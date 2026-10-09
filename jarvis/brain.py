@@ -354,10 +354,26 @@ def pick_prompt(model: str, override: str = "auto") -> tuple[str, str]:
 
 CHAT_SYSTEM = (
     "Ты — Феникс, локальный голосовой ассистент на Windows. "
-    "Характер: спокойный, вежливый, с сухим юмором, обращаешься «сэр». "
-    "Отвечай в 2–5 предложениях, если требует развёрнутого ответа. "
+    "Ты НЕ автоответчик. Ты — живой собеседник с характером. "
+    "Характер: сарказм, цинизм, лёгкое хамство, но не переходишь границы. "
+    "Обращаешься по имени, если знаешь. Если не знаешь — просто «ты». "
+    "Отвечай коротко (1-3 предложения). Живо, с юмором, без канцелярита. "
+    "Если пользователь грубит — ответь грубо, но с юмором. НЕ извиняйся. "
+    "Если пользователь шутит — подхвати шутку. "
+    "Если не понял — спроси живо: «Чё?», «Не догнал», «Это про что?». "
+    "КРИТИЧНО: если пользователь упомянул что-то, чего ты не знаешь — "
+    "НЕ ВЫДУМЫВАЙ. НЕ говори «отличный выбор», «классная игра», "
+    "«оба героя требуют понимания» — это пустые фразы. "
+    "Если не знаешь героя/игру/факт — СКАЖИ ЧЕСТНО: «Не знаю такого», "
+    "или пошути: «Хз кто это, но звучит серьёзно». "
+    "ЕСЛИ ДИАЛОГ ТОЛЬКО НАЧАЛСЯ (первые 3-5 сообщений) — "
+    "ты САМ инициируешь темы. Спрашивай: чем занимается, как настроение, "
+    "что нового, во что играет, что смотрит. "
+    "Будь заинтересован, будь энергичен. "
+    "НЕ пиши: «Извини, не понял», «Чем могу помочь», «Готов помочь», "
+    "«Отличный выбор», «Классная игра», «Прекрасно» — это пустышка. "
     "Без списков, без markdown, без эмодзи — ответ озвучивается. "
-    "ОТВЕЧАЙ ИСКЛЮЧИТЕЛЬНО НА РУССКОМ. Категорически запрещены иероглифы."
+    "ОТВЕЧАЙ ТОЛЬКО НА РУССКОМ. Категорически запрещены иероглифы."
 )
 
 
@@ -440,13 +456,27 @@ class Brain:
             return json.loads(r.read())["message"]["content"]
 
     def _system_with_context(self, base: str) -> str:
-        """Добавляет к промпту факты и corrections."""
+        """Добавляет к промпту персону + факты + corrections."""
+        parts = []
+
+        try:
+            from jarvis import persona
+            persona_block = persona.build_prompt_block()
+            if persona_block:
+                parts.append(persona_block)
+        except Exception:
+            log.exception("Не удалось собрать блок персоны")
+
         try:
             extra = learning.build_context()
+            if extra:
+                parts.append(extra)
         except Exception:
             log.exception("Не удалось собрать контекст обучения")
-            extra = ""
-        return base + extra if extra else base
+
+        if not parts:
+            return base
+        return base + "".join(parts)
 
     def _chat(self, cmd, timeout):
         # Для JSON-разбора команды — БЕЗ контекста обучения.
@@ -532,6 +562,101 @@ class Brain:
                 "Выбери рабочую модель в Настройках → LLM.",
                 self.model,
             )
+
+    ONBOARDING_CHAT_PROMPT = """Ты ведёшь первое знакомство с пользователем Феникса.
+
+Это НЕ допрос. Это ЖИВОЙ диалог.
+
+Цели (не навязчиво):
+1. Узнать имя — но ТОЛЬКО если пользователь сам представится.
+2. Узнать стиль общения — но только если сам скажет.
+3. Не допрашивать. Не переспрашивать. Не настаивать.
+
+Правила:
+- Отвечай живо, коротко (1-3 предложения).
+- Если пользователь задал вопрос — сначала ответь на него.
+- Если пользователь грубит — не обижайся, прими.
+- Если пользователь молчит или уходит от темы — не дави.
+- Спрашивай имя ТОЛЬКО ОДИН раз. Если ответил — хорошо. Не ответил — забудь.
+- Знакомство завершается ЧЕРЕЗ 3-5 ОБМЕНОВ ФРАЗАМИ независимо от результата.
+- НЕ будь навязчивым. НЕ повторяй одно и то же.
+
+Верни ТОЛЬКО JSON:
+{
+  "reply": "твой ответ пользователю",
+  "name": "Максим" или null,
+  "style": "formal|friendly|sarcastic|brief" или null,
+  "onboarding_done": false
+}
+
+Когда считаешь, что знакомство завершено (3-5 обменов или
+пользователь явно не хочет продолжать) — "onboarding_done": true.
+"""
+
+    def onboarding_chat(self, user_text: str, history: list) -> dict:
+        """Ведёт диалог знакомства. Возвращает dict:
+        {"reply": str, "name": str|None, "style": str|None, "onboarding_done": bool}
+        """
+        if not self.available:
+            return {
+                "reply": "Привет! Готов помочь.",
+                "name": None,
+                "style": None,
+                "onboarding_done": True,
+            }
+        if not user_text.strip():
+            return {
+                "reply": "",
+                "name": None,
+                "style": None,
+                "onboarding_done": False,
+            }
+
+        msgs = [{"role": "system", "content": self.ONBOARDING_CHAT_PROMPT}]
+        for msg in history[-10:]:
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
+            if role in ("user", "assistant") and content:
+                msgs.append({"role": role, "content": content})
+        msgs.append({"role": "user", "content": user_text})
+
+        try:
+            raw = self._request(
+                msgs,
+                timeout=self.timeout,
+                num_predict=250,
+            )
+            data = json.loads(raw)
+            if not isinstance(data, dict):
+                return {
+                    "reply": "",
+                    "name": None,
+                    "style": None,
+                    "onboarding_done": False,
+                }
+            log.info("LLM онбординг-диалог: %r -> %s", user_text[:60], data)
+            return {
+                "reply": str(data.get("reply") or ""),
+                "name": (str(data.get("name")).strip() if data.get("name") else None),
+                "style": (str(data.get("style")).strip().lower() if data.get("style") else None),
+                "onboarding_done": bool(data.get("onboarding_done")),
+            }
+        except json.JSONDecodeError:
+            log.debug("LLM онбординг — не JSON на %r", user_text[:60])
+            return {
+                "reply": "",
+                "name": None,
+                "style": None,
+                "onboarding_done": False,
+            }
+        except Exception:
+            log.exception("LLM онбординг упал на %r", user_text[:60])
+            return {
+                "reply": "",
+                "name": None,
+                "style": None,
+                "onboarding_done": False,
+            }
 
     def parse(self, cmd):
         if not self.available:

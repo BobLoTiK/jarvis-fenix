@@ -1,7 +1,7 @@
 # SNAPSHOT проекта «Феникс»
 
 _Автоматически сгенерировано `snapshot.py`. Обновляется при `git push`._
-_Файлов в снимке: 80_
+_Файлов в снимке: 85_
 
 ---
 
@@ -26,18 +26,23 @@ jarvis/
 │   ├── config.py
 │   ├── config_manager.py
 │   ├── files.py
+│   ├── first_run.py
 │   ├── gui.py
 │   ├── history.py
 │   ├── installed.py
 │   ├── intents.py
+│   ├── intents.py.bak
+│   ├── intents.py.bak2
 │   ├── learning.py
 │   ├── main.py
 │   ├── matching.py
 │   ├── memory.py
 │   ├── model.py
 │   ├── modes.py
+│   ├── observer.py
 │   ├── packs.py
 │   ├── paths.py
+│   ├── persona.py
 │   ├── profile.py
 │   ├── recorder.py
 │   ├── reply.py
@@ -1157,6 +1162,7 @@ pause
     "джарвис",
     "jarvis"
   ],
+  "observer_enabled": true,
   "tts_backend": "auto",
   "xtts_ref": "voices/jarvis.wav",
   "tts_voice": "ruslan",
@@ -3673,10 +3679,26 @@ def pick_prompt(model: str, override: str = "auto") -> tuple[str, str]:
 
 CHAT_SYSTEM = (
     "Ты — Феникс, локальный голосовой ассистент на Windows. "
-    "Характер: спокойный, вежливый, с сухим юмором, обращаешься «сэр». "
-    "Отвечай в 2–5 предложениях, если требует развёрнутого ответа. "
+    "Ты НЕ автоответчик. Ты — живой собеседник с характером. "
+    "Характер: сарказм, цинизм, лёгкое хамство, но не переходишь границы. "
+    "Обращаешься по имени, если знаешь. Если не знаешь — просто «ты». "
+    "Отвечай коротко (1-3 предложения). Живо, с юмором, без канцелярита. "
+    "Если пользователь грубит — ответь грубо, но с юмором. НЕ извиняйся. "
+    "Если пользователь шутит — подхвати шутку. "
+    "Если не понял — спроси живо: «Чё?», «Не догнал», «Это про что?». "
+    "КРИТИЧНО: если пользователь упомянул что-то, чего ты не знаешь — "
+    "НЕ ВЫДУМЫВАЙ. НЕ говори «отличный выбор», «классная игра», "
+    "«оба героя требуют понимания» — это пустые фразы. "
+    "Если не знаешь героя/игру/факт — СКАЖИ ЧЕСТНО: «Не знаю такого», "
+    "или пошути: «Хз кто это, но звучит серьёзно». "
+    "ЕСЛИ ДИАЛОГ ТОЛЬКО НАЧАЛСЯ (первые 3-5 сообщений) — "
+    "ты САМ инициируешь темы. Спрашивай: чем занимается, как настроение, "
+    "что нового, во что играет, что смотрит. "
+    "Будь заинтересован, будь энергичен. "
+    "НЕ пиши: «Извини, не понял», «Чем могу помочь», «Готов помочь», "
+    "«Отличный выбор», «Классная игра», «Прекрасно» — это пустышка. "
     "Без списков, без markdown, без эмодзи — ответ озвучивается. "
-    "ОТВЕЧАЙ ИСКЛЮЧИТЕЛЬНО НА РУССКОМ. Категорически запрещены иероглифы."
+    "ОТВЕЧАЙ ТОЛЬКО НА РУССКОМ. Категорически запрещены иероглифы."
 )
 
 
@@ -3759,13 +3781,27 @@ class Brain:
             return json.loads(r.read())["message"]["content"]
 
     def _system_with_context(self, base: str) -> str:
-        """Добавляет к промпту факты и corrections."""
+        """Добавляет к промпту персону + факты + corrections."""
+        parts = []
+
+        try:
+            from jarvis import persona
+            persona_block = persona.build_prompt_block()
+            if persona_block:
+                parts.append(persona_block)
+        except Exception:
+            log.exception("Не удалось собрать блок персоны")
+
         try:
             extra = learning.build_context()
+            if extra:
+                parts.append(extra)
         except Exception:
             log.exception("Не удалось собрать контекст обучения")
-            extra = ""
-        return base + extra if extra else base
+
+        if not parts:
+            return base
+        return base + "".join(parts)
 
     def _chat(self, cmd, timeout):
         # Для JSON-разбора команды — БЕЗ контекста обучения.
@@ -3851,6 +3887,101 @@ class Brain:
                 "Выбери рабочую модель в Настройках → LLM.",
                 self.model,
             )
+
+    ONBOARDING_CHAT_PROMPT = """Ты ведёшь первое знакомство с пользователем Феникса.
+
+Это НЕ допрос. Это ЖИВОЙ диалог.
+
+Цели (не навязчиво):
+1. Узнать имя — но ТОЛЬКО если пользователь сам представится.
+2. Узнать стиль общения — но только если сам скажет.
+3. Не допрашивать. Не переспрашивать. Не настаивать.
+
+Правила:
+- Отвечай живо, коротко (1-3 предложения).
+- Если пользователь задал вопрос — сначала ответь на него.
+- Если пользователь грубит — не обижайся, прими.
+- Если пользователь молчит или уходит от темы — не дави.
+- Спрашивай имя ТОЛЬКО ОДИН раз. Если ответил — хорошо. Не ответил — забудь.
+- Знакомство завершается ЧЕРЕЗ 3-5 ОБМЕНОВ ФРАЗАМИ независимо от результата.
+- НЕ будь навязчивым. НЕ повторяй одно и то же.
+
+Верни ТОЛЬКО JSON:
+{
+  "reply": "твой ответ пользователю",
+  "name": "Максим" или null,
+  "style": "formal|friendly|sarcastic|brief" или null,
+  "onboarding_done": false
+}
+
+Когда считаешь, что знакомство завершено (3-5 обменов или
+пользователь явно не хочет продолжать) — "onboarding_done": true.
+"""
+
+    def onboarding_chat(self, user_text: str, history: list) -> dict:
+        """Ведёт диалог знакомства. Возвращает dict:
+        {"reply": str, "name": str|None, "style": str|None, "onboarding_done": bool}
+        """
+        if not self.available:
+            return {
+                "reply": "Привет! Готов помочь.",
+                "name": None,
+                "style": None,
+                "onboarding_done": True,
+            }
+        if not user_text.strip():
+            return {
+                "reply": "",
+                "name": None,
+                "style": None,
+                "onboarding_done": False,
+            }
+
+        msgs = [{"role": "system", "content": self.ONBOARDING_CHAT_PROMPT}]
+        for msg in history[-10:]:
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
+            if role in ("user", "assistant") and content:
+                msgs.append({"role": role, "content": content})
+        msgs.append({"role": "user", "content": user_text})
+
+        try:
+            raw = self._request(
+                msgs,
+                timeout=self.timeout,
+                num_predict=250,
+            )
+            data = json.loads(raw)
+            if not isinstance(data, dict):
+                return {
+                    "reply": "",
+                    "name": None,
+                    "style": None,
+                    "onboarding_done": False,
+                }
+            log.info("LLM онбординг-диалог: %r -> %s", user_text[:60], data)
+            return {
+                "reply": str(data.get("reply") or ""),
+                "name": (str(data.get("name")).strip() if data.get("name") else None),
+                "style": (str(data.get("style")).strip().lower() if data.get("style") else None),
+                "onboarding_done": bool(data.get("onboarding_done")),
+            }
+        except json.JSONDecodeError:
+            log.debug("LLM онбординг — не JSON на %r", user_text[:60])
+            return {
+                "reply": "",
+                "name": None,
+                "style": None,
+                "onboarding_done": False,
+            }
+        except Exception:
+            log.exception("LLM онбординг упал на %r", user_text[:60])
+            return {
+                "reply": "",
+                "name": None,
+                "style": None,
+                "onboarding_done": False,
+            }
 
     def parse(self, cmd):
         if not self.available:
@@ -4079,6 +4210,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_CONFIG = {
     "wake_words": ["феникс", "финикс", "феникса", "fenix", "phoenix",
                    "джарвис", "jarvis"],
+    "observer_enabled": True,
     "tts_backend": "auto",
     "xtts_ref": "voices/jarvis.wav",
     "tts_voice": "ruslan",
@@ -4531,6 +4663,37 @@ def _plural(n: int, one: str, few: str, many: str) -> str:
     return many
 ```
 
+### `jarvis\first_run.py`
+
+```python
+"""Первый запуск — знакомство через LLM-диалог.
+
+Никаких сценариев. LLM ведёт диалог ненавязчиво.
+Observer работает параллельно и сохраняет факты.
+"""
+
+import logging
+
+from jarvis import persona
+
+log = logging.getLogger("jarvis.first_run")
+
+
+def is_first_run() -> bool:
+    return not persona.is_onboarded()
+
+
+def greeting() -> str:
+    return (
+        "Привет! Я Феникс, локальный голосовой помощник. "
+        "Не хочешь немного поболтать? Расскажи — чем занимаешься, что нового?"
+    )
+
+def mark_done() -> None:
+    persona.mark_onboarded()
+    log.info("First run: знакомство завершено")
+```
+
 ### `jarvis\gui.py`
 
 ```python
@@ -4872,6 +5035,11 @@ class FenixGUI:
                     label="Микрофон",
                 ),
                 ft.NavigationRailDestination(
+                    icon=ft.Icons.FACE_OUTLINED,
+                    selected_icon=ft.Icons.FACE,
+                    label="Персона",
+                ),
+                ft.NavigationRailDestination(
                     icon=ft.Icons.SETTINGS_OUTLINED,
                     selected_icon=ft.Icons.SETTINGS,
                     label="Настройки",
@@ -4883,7 +5051,8 @@ class FenixGUI:
         self._tabs = {
             0: self._build_main_tab(),
             1: self._build_mic_tab(),
-            2: self._build_settings_tab(),
+            2: self._build_persona_tab(),
+            3: self._build_settings_tab(),
         }
 
         self._content_area = ft.Container(
@@ -5255,6 +5424,149 @@ class FenixGUI:
                     self._mic_status_text.color = TEXT_DIM
         except Exception:
             log.exception("_update_mic_level упал")
+
+    def _build_persona_tab(self) -> ft.Control:
+        """Вкладка «Персона» — имя, стиль, черты, backstory."""
+        from jarvis import persona
+
+        p = persona.get()
+
+        name_field = ft.TextField(
+            label="Имя пользователя",
+            value=self.config.get("name", "") or "",
+            width=400,
+            border_color="#30363d",
+            focused_border_color=ACCENT,
+            on_submit=self._on_persona_name,
+        )
+
+        assistant_name_field = ft.TextField(
+            label="Имя ассистента",
+            value=p.get("assistant_name") or "Феникс",
+            width=400,
+            border_color="#30363d",
+            focused_border_color=ACCENT,
+            on_submit=self._on_persona_assistant_name,
+        )
+
+        style_dropdown = ft.Dropdown(
+            label="Стиль общения",
+            value=p.get("speech_style") or "friendly",
+            options=[
+                ft.dropdown.Option("formal", "Формальный (на «вы»)"),
+                ft.dropdown.Option("friendly", "Дружеский (на «ты»)"),
+                ft.dropdown.Option("sarcastic", "Саркастичный"),
+                ft.dropdown.Option("brief", "Краткий"),
+            ],
+            width=400,
+            border_color="#30363d",
+            focused_border_color=ACCENT,
+            on_select=self._on_persona_style,
+        )
+
+        traits_field = ft.TextField(
+            label="Черты (через запятую)",
+            value=", ".join(p.get("traits") or []),
+            width=400,
+            border_color="#30363d",
+            focused_border_color=ACCENT,
+            on_submit=self._on_persona_traits,
+        )
+
+        backstory_field = ft.TextField(
+            label="Контекст (backstory)",
+            value=p.get("backstory") or "",
+            width=400,
+            multiline=True,
+            min_lines=3,
+            max_lines=6,
+            border_color="#30363d",
+            focused_border_color=ACCENT,
+            on_submit=self._on_persona_backstory,
+        )
+
+        reset_btn = ft.Button(
+            content=ft.Row(
+                controls=[
+                    ft.Icon(ft.Icons.REFRESH, color=BG_DARK),
+                    ft.Text("Сбросить онбординг", color=BG_DARK),
+                ],
+                spacing=8,
+                alignment=ft.MainAxisAlignment.CENTER,
+            ),
+            on_click=self._on_persona_reset,
+            style=ft.ButtonStyle(
+                bgcolor=ACCENT,
+                shape=ft.RoundedRectangleBorder(radius=10),
+                padding=ft.Padding(left=20, right=20, top=10, bottom=10),
+            ),
+        )
+
+        def _label(t):
+            return ft.Text(t, size=12, color=TEXT_DIM)
+
+        return ft.Container(
+            content=ft.Column(
+                controls=[
+                    ft.Text("Персона", size=26, weight=ft.FontWeight.BOLD, color=TEXT),
+                    ft.Container(height=20),
+                    _label("Как тебя зовут (пользователь):"),
+                    name_field,
+                    ft.Container(height=12),
+                    _label("Как зовут ассистента:"),
+                    assistant_name_field,
+                    ft.Container(height=12),
+                    _label("Стиль общения:"),
+                    style_dropdown,
+                    ft.Container(height=12),
+                    _label("Черты характера (через запятую):"),
+                    traits_field,
+                    ft.Container(height=12),
+                    _label("Контекст (backstory):"),
+                    backstory_field,
+                    ft.Container(height=20),
+                    reset_btn,
+                ],
+                spacing=6,
+                scroll=ft.ScrollMode.AUTO,
+            ),
+            padding=ft.Padding(left=40, top=40, right=40, bottom=40),
+            expand=True,
+        )
+
+    def _on_persona_name(self, e) -> None:
+        self.config.set("name", e.control.value.strip())
+
+    def _on_persona_assistant_name(self, e) -> None:
+        from jarvis import persona
+        persona.set_field("assistant_name", e.control.value.strip() or "Феникс")
+
+    def _on_persona_style(self, e) -> None:
+        from jarvis import persona
+        persona.set_field("speech_style", e.control.value)
+
+    def _on_persona_traits(self, e) -> None:
+        from jarvis import persona
+        raw = e.control.value.strip()
+        traits = [t.strip() for t in raw.split(",") if t.strip()] if raw else []
+        persona.set_field("traits", traits)
+
+    def _on_persona_backstory(self, e) -> None:
+        from jarvis import persona
+        persona.set_field("backstory", e.control.value.strip())
+
+    def _on_persona_reset(self, e) -> None:
+        from jarvis import persona
+        persona.reset_onboarding()
+        log.info("GUI: онбординг сброшен")
+        try:
+            snack = ft.SnackBar(ft.Text("Онбординг сброшен. Перезапусти Феникса."))
+            self._page.overlay.append(snack)
+            snack.open = True
+            self._page.update()
+        except Exception:
+            log.exception("Не удалось показать SnackBar")
+
 
     def _build_settings_tab(self) -> ft.Control:
         llm_dropdown = ft.Dropdown(
@@ -5736,8 +6048,8 @@ class FenixGUI:
 
     def _open_settings_tab(self) -> None:
         try:
-            self._rail.selected_index = 2
-            self._content_area.content = self._tabs[2]
+            self._rail.selected_index = 3
+            self._content_area.content = self._tabs[3]
             log.info("GUI: открыл вкладку «Настройки»")
         except Exception:
             log.exception("Не удалось открыть вкладку «Настройки»")
@@ -6058,7 +6370,7 @@ def find_installed(index: dict[str, Path], spoken: str,
 ### `jarvis\intents.py`
 
 ```python
-"""Разбор команды: быстрые правила + LLM."""
+﻿"""Разбор команды: быстрые правила + LLM."""
 
 import datetime
 import hashlib
@@ -6312,6 +6624,7 @@ class IntentHandler:
             ("packs", self._packs_handler),
             ("timers", timers.handle_timer_command),
             ("tasks", tasks.handle_task_command),
+            ("persona", self._persona_fast),
             ("profile", self._profile_fast),
             ("memory", self._memory_fast),
             ("system", self._system_fast),
@@ -6454,11 +6767,17 @@ class IntentHandler:
 
     def _handle_single(self, cmd: str) -> str | Iterator[str]:
         # === CANCEL — самый первый (фикс №6) ===
+        # Первый запуск — знакомство через LLM-диалог.
+        onboarding_reply = self._onboarding_chat_step(cmd)
+        if onboarding_reply is not None:
+            return onboarding_reply
+
         if cmd in CANCEL:
             self._pending_password = None
             self._pending_question = None
             self._reset_requested = True
             return "Жду обращение, сэр."
+
 
         # Применяем коррекцию, если есть
         corrected = learning.find_correction(cmd)
@@ -6807,6 +7126,113 @@ class IntentHandler:
             if profile.forget_fact(key):
                 return f"Забыл: {key}."
             return f"Факта «{key}» не знаю."
+
+        return None
+
+    def _looks_like_command(self, cmd: str) -> bool:
+        """Быстрая проверка: это команда или свободный текст?"""
+        if not cmd:
+            return False
+        verbs = (
+            "открой", "закрой", "запусти", "включи", "выключи",
+            "найди", "поищи", "загугли", "покажи", "поставь",
+            "сверни", "разверни", "напомни", "добавь",
+            "сделай", "переключи", "смени", "поменяй",
+            "громче", "тише", "потише", "погромче",
+            "скопируй", "вставь", "очисти", "удали",
+        )
+        first = cmd.split()[0] if cmd.split() else ""
+        if first in verbs:
+            return True
+        if any(cmd.startswith(v + " ") for v in verbs):
+            return True
+        return False
+
+     def _onboarding_chat_step(self, cmd: str) -> str | None:
+        """Онбординг через LLM-диалог. Один раз при первом запуске."""
+        from jarvis import first_run, persona, profile
+
+        if not first_run.is_first_run():
+            return None
+
+        # Fallback: LLM нет — просто завершаем онбординг молча.
+        if self.brain is None or not self.brain.available:
+            first_run.mark_done()
+            return None
+
+        # Если это команда — не перехватываем онбордингом.
+        if self._looks_like_command(cmd):
+            return None
+
+        # Собираем историю диалога.
+        history = list(self.dialog)[-10:]
+
+        # Считаем фразы пользователя — если больше 6, принудительно завершаем.
+        user_msgs = sum(1 for m in self.dialog if m.get("role") == "user")
+        force_done = user_msgs >= 6
+
+        result = self.brain.onboarding_chat(cmd, history)
+        reply = result.get("reply") or ""
+
+        # Сохраняем то, что LLM вытащила.
+        name = result.get("name")
+        if name and not profile.get("name"):
+            profile.set("name", name)
+            log.info("Онбординг: name=%r", name)
+
+        style_raw = result.get("style")
+        if style_raw:
+            style = persona.normalize_style(style_raw)
+            if style and persona.get().get("speech_style") == "friendly":
+                persona.set_field("speech_style", style)
+                log.info("Онбординг: style=%r", style)
+
+        # Завершение?
+        if result.get("onboarding_done") or force_done:
+            first_run.mark_done()
+            log.info("Онбординг завершён (LLM=%s, force=%s)",
+                     result.get("onboarding_done"), force_done)
+
+        if not reply:
+            return None
+
+        return reply
+
+    def _persona_fast(self, cmd: str) -> str | None:
+        """Команды персоны: стиль общения, описание, сброс онбординга."""
+        from jarvis import persona
+
+        if re.search(r"(поменяй|смени|переключи|поставь|установи)\s+стил", cmd) \
+                or re.search(r"(говори|общайся)\s+(на\s+)?(ты|вы)", cmd):
+            m = re.search(r"(?:на|стиль)\s+([а-яёa-z\- ]+)$", cmd)
+            style_text = m.group(1).strip() if m else cmd
+
+            if "на ты" in cmd or style_text == "ты":
+                style_text = "дружеский"
+            elif "на вы" in cmd or style_text == "вы":
+                style_text = "формальный"
+
+            style = persona.normalize_style(style_text)
+            if style:
+                return persona.set_style(style)
+            return (
+                "Не понял стиль. Доступные: формальный, дружеский, "
+                "саркастичный, короткий."
+            )
+
+        if re.search(r"(какой|какая|текущ)\w*\s+(у\s+тебя\s+)?стил", cmd) \
+                or re.search(r"как\s+ты\s+(ко\s+мне\s+)?обращаешься", cmd):
+            return persona.describe()
+
+        if re.search(r"(как\s+тебя\s+зовут|как\s+тебя\s+звать|твое\s+имя)", cmd):
+            name = persona.get().get("assistant_name") or "Феникс"
+            return f"Меня зовут {name}."
+
+        if re.search(r"(давай|давай\s+же)\s+заново\s+познакомимся", cmd) \
+                or re.search(r"(сбрось|сбросить|reset)\s+(персон|знакомств|онбординг)", cmd) \
+                or cmd in {"заново познакомимся", "сбрось персону", "сбрось знакомство"}:
+            persona.reset_onboarding()
+            return "О, давай! Как тебя зовут?"
 
         return None
 
@@ -7715,59 +8141,32 @@ class IntentHandler:
         return _FOLDER_TITLES.get(path.name, f"в папке {path.name}")
 
     def _small_talk(self, cmd: str) -> str | None:
-        # Праздничные триггеры (единоразово)
+        """Только точные команды. Диалог — через LLM."""
+        # Праздничные триггеры
         from jarvis import celebrations
         if celebrations.match_celebration(cmd):
             if self.jarvis is not None:
                 celebrations.start_celebration(self.jarvis, self.gui)
-                # Zero-width space — handle() увидит непустую строку,
-                # но TTS её проигнорирует. Вся озвучка идёт в потоке celebration.
                 return "\u200b"
             return "Поздравляю! С днём рождения!"
 
+        # Время/дата — оставляем, потому что LLM это не знает
         now = datetime.datetime.now()
-        if any(p in cmd for p in ("который час", "сколько времени", "время")):
+        if any(p in cmd for p in ("который час", "сколько времени")):
             return f"Сейчас {now.hour} {_hours(now.hour)} {now.minute} {_minutes(now.minute)}."
-        if any(p in cmd for p in ("какое число", "какая дата", "какое сегодня число", "дата")):
+        if any(p in cmd for p in ("какое число", "какая дата", "какое сегодня число")):
             return f"Сегодня {now.day} {MONTHS[now.month - 1]} {now.year} года, {WEEKDAYS[now.weekday()]}."
         if "день недели" in cmd or cmd == "какой сегодня день":
             return f"Сегодня {WEEKDAYS[now.weekday()]}."
-        if any(p in cmd for p in ("как дела", "как ты", "как настроение")):
-            return random.choice([
-                "Все системы функционируют нормально.",
-                "Отлично, сэр. Готов к работе.",
-                "В полном порядке, спасибо.",
-                "Работаю в штатном режиме, сэр. А вы как?",
-                "Не жалуюсь. Процессор холодный, настроение бодрое.",
-                "Всё хорошо, сэр. Чем займёмся?",
-                "Как у ассистента: без сбоев и скуки. Слушаю вас.",
-            ])
-        if any(p in cmd for p in ("кто ты", "ты кто", "представься", "как тебя зовут")):
-            return f"Я {APP_NAME}, локальный голосовой ассистент, версия {__version__}."
-        if any(p in cmd for p in ("что ты умеешь", "помощь", "что умеешь", "команды")):
-            return ("Я умею открывать и закрывать приложения и сайты, делать скриншоты, "
-                    "искать в интернете, печатать текст, управлять окнами, ставить "
-                    "напоминания, вести списки задач, узнавать погоду и курс валют, "
-                    "и отвечать на вопросы.")
-        if any(p in cmd for p in ("спасибо", "благодарю")):
-            return "Всегда пожалуйста."
-        if any(p in cmd for p in ("привет", "здравствуй", "добрый день", "доброе утро", "добрый вечер")):
-            name = profile.get("name")
-            if name:
-                return f"Привет, {name}! Чем могу помочь?"
-            return "Привет! Чем могу помочь?"
-        if any(p in cmd for p in ("пока", "до свидания", "спокойной ночи")):
-            return "До связи."
+
+        # Всё остальное — уходит в LLM.
         return None
-
-
 def _hours(n: int) -> str:
     if n % 10 == 1 and n % 100 != 11:
         return "час"
     if n % 10 in (2, 3, 4) and n % 100 not in (12, 13, 14):
         return "часа"
     return "часов"
-
 
 def _minutes(n: int) -> str:
     if n % 10 == 1 and n % 100 != 11:
@@ -7776,6 +8175,14 @@ def _minutes(n: int) -> str:
         return "минуты"
     return "минут"
 ```
+
+### `jarvis\intents.py.bak`
+
+_Бинарный или нетекстовый файл: .bak_
+
+### `jarvis\intents.py.bak2`
+
+_Бинарный или нетекстовый файл: .bak2_
 
 ### `jarvis\learning.py`
 
@@ -7977,6 +8384,7 @@ from jarvis.stt import Listener
 from jarvis import timers
 from jarvis.tts import Speaker
 from jarvis.gui import FenixGUI
+from jarvis import profile
 
 log = logging.getLogger("jarvis")
 
@@ -8177,6 +8585,13 @@ class Jarvis:
             self.gui.add_message("user", cmd)
             self.gui.set_state("listening")
 
+        # Observer: запоминаем фразу юзера.
+        if getattr(self, "observer", None) is not None:
+            try:
+                self.observer.observe("user", cmd)
+            except Exception:
+                log.exception("Observer.observe (user) упал")
+
         # Сериализация с GUI: пока GUI не отдаст cmd_lock,
         # голосовой поток ждёт. И наоборот.
         with self.cmd_lock:
@@ -8192,7 +8607,26 @@ class Jarvis:
                 self.speaker.stop()
                 self.speaker.wait_end(timeout=1.0)
 
+            # Observer: запоминаем ответ Феникса.
+            if getattr(self, "observer", None) is not None and not reply.is_stream:
+                try:
+                    self.observer.observe("assistant", reply.text or "")
+                except Exception:
+                    log.exception("Observer.observe (assistant) упал")
+
             barge_happened = self.say(reply)
+
+            # Первый запуск: после первой успешной команды
+            # спросить имя.
+            try:
+                from jarvis import first_run, persona
+                if first_run.is_first_run():
+                    step = persona.get().get("onboarding_step", 0)
+                    if step == 1 and not profile.get("name"):
+                        log.info("First run: спрашиваю имя")
+                        self.say(Reply(text=first_run.after_first_command()))
+            except Exception:
+                log.exception("First run: ошибка вопроса про имя")
 
             if getattr(self.handler, "_reset_requested", False):
                 self._awaiting_until = 0.0
@@ -8394,6 +8828,25 @@ def main() -> None:
     if gui is not None:
         gui.jarvis = jarvis
 
+
+    # Observer — фоновое извлечение фактов из диалога.
+    try:
+        from jarvis import profile as _profile_mod
+        from jarvis import learning as _learning_mod
+        from jarvis.observer import DialogObserver
+        observer = DialogObserver(
+            config=config,
+            brain=brain,
+            profile_module=_profile_mod,
+            learning_module=_learning_mod,
+        )
+        observer.start()
+        jarvis.observer = observer
+        handler.observer = observer
+    except Exception:
+        log.exception("Observer не завёлся")
+        observer = None
+
     # --- Подписки: изменения конфига применяются на лету ---
     def _on_config_change(key: str, value):
         if key == "tts_voice":
@@ -8425,7 +8878,17 @@ def main() -> None:
     worker.start()
     threading.Thread(target=jarvis.mic_watchdog, daemon=True, name="mic-watchdog").start()
 
-    jarvis.say(Reply(text=f"{APP_NAME} запущен и готов к работе."))
+    try:
+        from jarvis import first_run, persona
+        if first_run.is_first_run():
+            log.info("Первый запуск: приветствие через задачу")
+            jarvis.say(Reply(text=first_run.greeting()))
+            persona.set_field("onboarding_step", 0)
+        else:
+            jarvis.say(Reply(text=f"{APP_NAME} запущен и готов к работе."))
+    except Exception:
+        log.exception("Ошибка приветствия")
+        jarvis.say(Reply(text=f"{APP_NAME} запущен и готов к работе."))
 
     # =================================================================
     # ТРЕЙ ВРЕМЕННО ОТКЛЮЧЁН.
@@ -8895,6 +9358,209 @@ def handle_mode_command(cmd: str, current_mode: str, config=None) -> tuple[str |
     return None, current_mode
 ```
 
+### `jarvis\observer.py`
+
+```python
+"""Observer — фоновое наблюдение за диалогом.
+
+Извлекает факты из речи пользователя и ответов Феникса,
+сохраняет в profile / learning.
+
+Работает параллельно основному диалогу. Не блокирует.
+Если LLM недоступна — молчит.
+"""
+
+import json
+import logging
+import threading
+import time
+from collections import deque
+
+log = logging.getLogger("jarvis.observer")
+
+
+EXTRACT_PROMPT = """Ты — анализатор диалога. На вход даётся история сообщений.
+Извлеки ЛЮБЫЕ факты о пользователе, которые упомянуты в диалоге.
+
+Верни ТОЛЬКО JSON:
+{
+  "name": null или "Максим",
+  "city": null или "Нижний Новгород",
+  "age": null или 18,
+  "style": null или "formal|friendly|sarcastic|brief",
+  "facts": {
+    "ключ": "значение"
+  }
+}
+
+Правила:
+- name — имя пользователя («меня зовут Максим», «я Максим»).
+- city — город в ИМЕНИТЕЛЬНОМ падеже («живу в нижнем» → «Нижний Новгород»).
+- age — целое число лет.
+- style — если юзер описал предпочтения общения.
+- facts — объект с фактами: «нравится», «не нравится», «работа», «увлечение», «настроение».
+- Если факт не упомянут — null или {}.
+- НЕ выдумывай. Только то, что явно сказано.
+- Отвечай ТОЛЬКО JSON."""
+
+
+class DialogObserver:
+    """Наблюдатель диалога. Работает в отдельном потоке."""
+
+    def __init__(self, config, brain, profile_module, learning_module,
+                 min_interval: float = 30.0, batch_size: int = 6):
+        self.config = config
+        self.brain = brain
+        self.profile = profile_module
+        self.learning = learning_module
+
+        self.min_interval = min_interval
+        self.batch_size = batch_size
+
+        self._history: deque = deque(maxlen=20)
+        self._last_extract = 0.0
+        self._lock = threading.Lock()
+        self._stop = threading.Event()
+        self._thread: threading.Thread | None = None
+
+        self._enabled = bool(
+            brain is not None
+            and getattr(brain, "available", False)
+            and config.get("observer_enabled", True)
+        )
+        if self._enabled:
+            log.info("Observer: включён (интервал %.0f сек, батч %d)",
+                     min_interval, batch_size)
+        else:
+            log.info("Observer: выключен (LLM недоступна или отключён в конфиге)")
+
+    def start(self) -> None:
+        if not self._enabled:
+            return
+        if self._thread is not None and self._thread.is_alive():
+            return
+        self._stop.clear()
+        self._thread = threading.Thread(
+            target=self._loop, daemon=True, name="observer"
+        )
+        self._thread.start()
+        log.info("Observer: поток запущен")
+
+    def stop(self) -> None:
+        self._stop.set()
+        if self._thread is not None:
+            self._thread.join(timeout=2.0)
+
+    def observe(self, role: str, text: str) -> None:
+        """Добавляет сообщение в буфер."""
+        if not self._enabled or not text:
+            return
+        with self._lock:
+            self._history.append({"role": role, "text": text})
+
+    def _loop(self) -> None:
+        while not self._stop.is_set():
+            self._stop.wait(5.0)
+            if self._stop.is_set():
+                break
+
+            now = time.time()
+            with self._lock:
+                history_len = len(self._history)
+                if history_len < self.batch_size:
+                    continue
+                if now - self._last_extract < self.min_interval:
+                    continue
+                history = list(self._history)
+
+            try:
+                self._extract(history)
+                self._last_extract = time.time()
+            except Exception:
+                log.exception("Observer: ошибка извлечения")
+
+    def _extract(self, history: list) -> None:
+        if not history:
+            return
+
+        lines = []
+        for msg in history[-self.batch_size:]:
+            role = "Пользователь" if msg["role"] == "user" else "Феникс"
+            lines.append(f"{role}: {msg['text']}")
+        dialog = "\n".join(lines)
+
+        log.debug("Observer: извлекаю факты из %d сообщений", len(history))
+
+        try:
+            raw = self.brain._request(
+                [
+                    {"role": "system", "content": EXTRACT_PROMPT},
+                    {"role": "user", "content": dialog},
+                ],
+                timeout=15.0,
+                num_predict=200,
+            )
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            log.debug("Observer: LLM вернула не JSON")
+            return
+        except Exception:
+            log.exception("Observer: LLM не справилась")
+            return
+
+        if not isinstance(data, dict):
+            return
+
+        self._apply(data)
+
+    def _apply(self, data: dict) -> None:
+        applied = []
+
+        name = (data.get("name") or "").strip()
+        if name and not self.profile.get("name"):
+            self.profile.set("name", name[:40])
+            applied.append(f"name={name}")
+
+        city = (data.get("city") or "").strip()
+        if city and not self.profile.get("default_city"):
+            self.profile.set("default_city", city[:60])
+            applied.append(f"city={city}")
+
+        age = data.get("age")
+        if isinstance(age, (int, float)) and 5 < age < 130:
+            if not self.profile.get("age"):
+                self.profile.set("age", int(age))
+                applied.append(f"age={int(age)}")
+
+        style_raw = (data.get("style") or "").strip().lower()
+        if style_raw:
+            try:
+                from jarvis import persona
+                style = persona.normalize_style(style_raw)
+                if style:
+                    current = persona.get().get("speech_style", "friendly")
+                    if current == "friendly":
+                        persona.set_field("speech_style", style)
+                        applied.append(f"style={style}")
+            except Exception:
+                log.exception("Observer: ошибка установки стиля")
+
+        facts = data.get("facts") or {}
+        if isinstance(facts, dict):
+            for key, value in facts.items():
+                if not isinstance(value, str) or not value.strip():
+                    continue
+                key = key.strip().lower()[:40]
+                value = value.strip()[:200]
+                if self.learning.get_fact(key):
+                    continue
+                self.learning.add_fact(key, value)
+                applied.append(f"{key}={value}")
+
+        if applied:
+            log.info("Observer: применил — %s", ", ".join(applied))
+```
+
 ### `jarvis\packs.py`
 
 ```python
@@ -9191,6 +9857,145 @@ def profiles_dir() -> Path:
 def config_path() -> Path:
     """config.json — в USER_DIR."""
     return user_dir() / "config.json"
+```
+
+### `jarvis\persona.py`
+
+```python
+"""Персона ассистента — стиль общения, черты, backstory."""
+
+import logging
+import time
+
+from jarvis import profile
+
+log = logging.getLogger("jarvis.persona")
+
+DEFAULT_PERSONA = {
+    "assistant_name": "Феникс",
+    "speech_style": "friendly",
+    "traits": [],
+    "backstory": "",
+    "onboarding_done": False,
+    "onboarding_at": 0.0,
+    "onboarding_step": 0,
+    "onboarding_attempts": 0,
+}
+
+VALID_STYLES = ("formal", "friendly", "sarcastic", "brief")
+
+STYLE_DESCRIPTIONS = {
+    "formal": "на «вы», официально, без фамильярности",
+    "friendly": "на «ты», тепло и по-дружески",
+    "sarcastic": "с сухим юмором и лёгкой иронией",
+    "brief": "коротко, по делу, минимум слов",
+}
+
+STYLE_ALIASES = {
+    "формальный": "formal", "официальный": "formal", "на вы": "formal", "строгий": "formal",
+    "дружеский": "friendly", "дружелюбный": "friendly", "тёплый": "friendly", "на ты": "friendly",
+    "саркастичный": "sarcastic", "сарказм": "sarcastic", "ироничный": "sarcastic",
+    "короткий": "brief", "краткий": "brief", "по делу": "brief", "лаконичный": "brief",
+}
+
+
+def get() -> dict:
+    raw = profile.get("persona", {}) or {}
+    result = dict(DEFAULT_PERSONA)
+    if isinstance(raw, dict):
+        for k, v in raw.items():
+            if k not in DEFAULT_PERSONA:
+                continue
+            # Не позволяем None затирать дефолт.
+            if v is None:
+                continue
+            result[k] = v
+    return result
+
+
+def set_persona(data: dict) -> bool:
+    current = get()
+    for key in DEFAULT_PERSONA:
+        if key in data:
+            current[key] = data[key]
+    return profile.set("persona", current)
+
+
+def set_field(key: str, value) -> bool:
+    if key not in DEFAULT_PERSONA:
+        log.warning("persona.set_field: неизвестный ключ %r", key)
+        return False
+    current = get()
+    current[key] = value
+    return profile.set("persona", current)
+
+
+def normalize_style(text: str) -> str | None:
+    text_low = text.strip().lower()
+    if text_low in VALID_STYLES:
+        return text_low
+    for alias, style in STYLE_ALIASES.items():
+        if alias in text_low:
+            return style
+    return None
+
+
+def set_style(style: str) -> str:
+    style = normalize_style(style) or "friendly"
+    set_field("speech_style", style)
+    log.info("Persona: стиль → %s", style)
+    return f"Стиль общения: {STYLE_DESCRIPTIONS[style]}."
+
+
+def is_onboarded() -> bool:
+    return bool(get().get("onboarding_done"))
+
+
+def mark_onboarded() -> bool:
+    return set_persona({"onboarding_done": True, "onboarding_at": time.time()})
+
+
+def reset_onboarding() -> bool:
+    return set_persona({"onboarding_done": False, "onboarding_at": 0.0})
+
+
+def build_prompt_block() -> str:
+    p = get()
+    lines = []
+
+    style = p.get("speech_style") or "friendly"
+    style_desc = STYLE_DESCRIPTIONS.get(style)
+    if style_desc:
+        lines.append(f"- Стиль общения: {style_desc}")
+
+    traits = p.get("traits") or []
+    if traits:
+        lines.append(f"- Черты характера: {', '.join(traits)}")
+
+    backstory = (p.get("backstory") or "").strip()
+    if backstory:
+        lines.append(f"- Контекст: {backstory}")
+
+    assistant_name = (p.get("assistant_name") or "Феникс").strip()
+    if assistant_name and assistant_name != "Феникс":
+        lines.append(f"- Тебя зовут {assistant_name}")
+
+    if not lines:
+        return ""
+
+    return "\n\nПерсона ассистента:\n" + "\n".join(lines) + "\n"
+
+
+def describe() -> str:
+    p = get()
+    style = p.get("speech_style") or "friendly"
+    style_desc = STYLE_DESCRIPTIONS.get(style, style)
+    name = p.get("assistant_name") or "Феникс"
+    parts = [f"Меня зовут {name}", f"стиль общения: {style_desc}"]
+    traits = p.get("traits") or []
+    if traits:
+        parts.append(f"черты: {', '.join(traits)}")
+    return ". ".join(parts).capitalize() + "."
 ```
 
 ### `jarvis\profile.py`

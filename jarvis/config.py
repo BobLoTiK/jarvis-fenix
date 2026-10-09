@@ -21,6 +21,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_CONFIG = {
     "wake_words": ["феникс", "финикс", "феникса", "fenix", "phoenix",
                    "джарвис", "jarvis"],
+    "observer_enabled": True,
     "tts_backend": "auto",
     "xtts_ref": "voices/jarvis.wav",
     "tts_voice": "ruslan",

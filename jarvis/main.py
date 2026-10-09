@@ -30,6 +30,7 @@ from jarvis.stt import Listener
 from jarvis import timers
 from jarvis.tts import Speaker
 from jarvis.gui import FenixGUI
+from jarvis import profile
 
 log = logging.getLogger("jarvis")
 
@@ -230,6 +231,13 @@ class Jarvis:
             self.gui.add_message("user", cmd)
             self.gui.set_state("listening")
 
+        # Observer: запоминаем фразу юзера.
+        if getattr(self, "observer", None) is not None:
+            try:
+                self.observer.observe("user", cmd)
+            except Exception:
+                log.exception("Observer.observe (user) упал")
+
         # Сериализация с GUI: пока GUI не отдаст cmd_lock,
         # голосовой поток ждёт. И наоборот.
         with self.cmd_lock:
@@ -245,7 +253,26 @@ class Jarvis:
                 self.speaker.stop()
                 self.speaker.wait_end(timeout=1.0)
 
+            # Observer: запоминаем ответ Феникса.
+            if getattr(self, "observer", None) is not None and not reply.is_stream:
+                try:
+                    self.observer.observe("assistant", reply.text or "")
+                except Exception:
+                    log.exception("Observer.observe (assistant) упал")
+
             barge_happened = self.say(reply)
+
+            # Первый запуск: после первой успешной команды
+            # спросить имя.
+            try:
+                from jarvis import first_run, persona
+                if first_run.is_first_run():
+                    step = persona.get().get("onboarding_step", 0)
+                    if step == 1 and not profile.get("name"):
+                        log.info("First run: спрашиваю имя")
+                        self.say(Reply(text=first_run.after_first_command()))
+            except Exception:
+                log.exception("First run: ошибка вопроса про имя")
 
             if getattr(self.handler, "_reset_requested", False):
                 self._awaiting_until = 0.0
@@ -447,6 +474,25 @@ def main() -> None:
     if gui is not None:
         gui.jarvis = jarvis
 
+
+    # Observer — фоновое извлечение фактов из диалога.
+    try:
+        from jarvis import profile as _profile_mod
+        from jarvis import learning as _learning_mod
+        from jarvis.observer import DialogObserver
+        observer = DialogObserver(
+            config=config,
+            brain=brain,
+            profile_module=_profile_mod,
+            learning_module=_learning_mod,
+        )
+        observer.start()
+        jarvis.observer = observer
+        handler.observer = observer
+    except Exception:
+        log.exception("Observer не завёлся")
+        observer = None
+
     # --- Подписки: изменения конфига применяются на лету ---
     def _on_config_change(key: str, value):
         if key == "tts_voice":
@@ -478,7 +524,17 @@ def main() -> None:
     worker.start()
     threading.Thread(target=jarvis.mic_watchdog, daemon=True, name="mic-watchdog").start()
 
-    jarvis.say(Reply(text=f"{APP_NAME} запущен и готов к работе."))
+    try:
+        from jarvis import first_run, persona
+        if first_run.is_first_run():
+            log.info("Первый запуск: приветствие через задачу")
+            jarvis.say(Reply(text=first_run.greeting()))
+            persona.set_field("onboarding_step", 0)
+        else:
+            jarvis.say(Reply(text=f"{APP_NAME} запущен и готов к работе."))
+    except Exception:
+        log.exception("Ошибка приветствия")
+        jarvis.say(Reply(text=f"{APP_NAME} запущен и готов к работе."))
 
     # =================================================================
     # ТРЕЙ ВРЕМЕННО ОТКЛЮЧЁН.

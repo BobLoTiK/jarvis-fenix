@@ -336,6 +336,11 @@ class FenixGUI:
                     label="Микрофон",
                 ),
                 ft.NavigationRailDestination(
+                    icon=ft.Icons.FACE_OUTLINED,
+                    selected_icon=ft.Icons.FACE,
+                    label="Персона",
+                ),
+                ft.NavigationRailDestination(
                     icon=ft.Icons.SETTINGS_OUTLINED,
                     selected_icon=ft.Icons.SETTINGS,
                     label="Настройки",
@@ -347,7 +352,8 @@ class FenixGUI:
         self._tabs = {
             0: self._build_main_tab(),
             1: self._build_mic_tab(),
-            2: self._build_settings_tab(),
+            2: self._build_persona_tab(),
+            3: self._build_settings_tab(),
         }
 
         self._content_area = ft.Container(
@@ -719,6 +725,149 @@ class FenixGUI:
                     self._mic_status_text.color = TEXT_DIM
         except Exception:
             log.exception("_update_mic_level упал")
+
+    def _build_persona_tab(self) -> ft.Control:
+        """Вкладка «Персона» — имя, стиль, черты, backstory."""
+        from jarvis import persona
+
+        p = persona.get()
+
+        name_field = ft.TextField(
+            label="Имя пользователя",
+            value=self.config.get("name", "") or "",
+            width=400,
+            border_color="#30363d",
+            focused_border_color=ACCENT,
+            on_submit=self._on_persona_name,
+        )
+
+        assistant_name_field = ft.TextField(
+            label="Имя ассистента",
+            value=p.get("assistant_name") or "Феникс",
+            width=400,
+            border_color="#30363d",
+            focused_border_color=ACCENT,
+            on_submit=self._on_persona_assistant_name,
+        )
+
+        style_dropdown = ft.Dropdown(
+            label="Стиль общения",
+            value=p.get("speech_style") or "friendly",
+            options=[
+                ft.dropdown.Option("formal", "Формальный (на «вы»)"),
+                ft.dropdown.Option("friendly", "Дружеский (на «ты»)"),
+                ft.dropdown.Option("sarcastic", "Саркастичный"),
+                ft.dropdown.Option("brief", "Краткий"),
+            ],
+            width=400,
+            border_color="#30363d",
+            focused_border_color=ACCENT,
+            on_select=self._on_persona_style,
+        )
+
+        traits_field = ft.TextField(
+            label="Черты (через запятую)",
+            value=", ".join(p.get("traits") or []),
+            width=400,
+            border_color="#30363d",
+            focused_border_color=ACCENT,
+            on_submit=self._on_persona_traits,
+        )
+
+        backstory_field = ft.TextField(
+            label="Контекст (backstory)",
+            value=p.get("backstory") or "",
+            width=400,
+            multiline=True,
+            min_lines=3,
+            max_lines=6,
+            border_color="#30363d",
+            focused_border_color=ACCENT,
+            on_submit=self._on_persona_backstory,
+        )
+
+        reset_btn = ft.Button(
+            content=ft.Row(
+                controls=[
+                    ft.Icon(ft.Icons.REFRESH, color=BG_DARK),
+                    ft.Text("Сбросить онбординг", color=BG_DARK),
+                ],
+                spacing=8,
+                alignment=ft.MainAxisAlignment.CENTER,
+            ),
+            on_click=self._on_persona_reset,
+            style=ft.ButtonStyle(
+                bgcolor=ACCENT,
+                shape=ft.RoundedRectangleBorder(radius=10),
+                padding=ft.Padding(left=20, right=20, top=10, bottom=10),
+            ),
+        )
+
+        def _label(t):
+            return ft.Text(t, size=12, color=TEXT_DIM)
+
+        return ft.Container(
+            content=ft.Column(
+                controls=[
+                    ft.Text("Персона", size=26, weight=ft.FontWeight.BOLD, color=TEXT),
+                    ft.Container(height=20),
+                    _label("Как тебя зовут (пользователь):"),
+                    name_field,
+                    ft.Container(height=12),
+                    _label("Как зовут ассистента:"),
+                    assistant_name_field,
+                    ft.Container(height=12),
+                    _label("Стиль общения:"),
+                    style_dropdown,
+                    ft.Container(height=12),
+                    _label("Черты характера (через запятую):"),
+                    traits_field,
+                    ft.Container(height=12),
+                    _label("Контекст (backstory):"),
+                    backstory_field,
+                    ft.Container(height=20),
+                    reset_btn,
+                ],
+                spacing=6,
+                scroll=ft.ScrollMode.AUTO,
+            ),
+            padding=ft.Padding(left=40, top=40, right=40, bottom=40),
+            expand=True,
+        )
+
+    def _on_persona_name(self, e) -> None:
+        self.config.set("name", e.control.value.strip())
+
+    def _on_persona_assistant_name(self, e) -> None:
+        from jarvis import persona
+        persona.set_field("assistant_name", e.control.value.strip() or "Феникс")
+
+    def _on_persona_style(self, e) -> None:
+        from jarvis import persona
+        persona.set_field("speech_style", e.control.value)
+
+    def _on_persona_traits(self, e) -> None:
+        from jarvis import persona
+        raw = e.control.value.strip()
+        traits = [t.strip() for t in raw.split(",") if t.strip()] if raw else []
+        persona.set_field("traits", traits)
+
+    def _on_persona_backstory(self, e) -> None:
+        from jarvis import persona
+        persona.set_field("backstory", e.control.value.strip())
+
+    def _on_persona_reset(self, e) -> None:
+        from jarvis import persona
+        persona.reset_onboarding()
+        log.info("GUI: онбординг сброшен")
+        try:
+            snack = ft.SnackBar(ft.Text("Онбординг сброшен. Перезапусти Феникса."))
+            self._page.overlay.append(snack)
+            snack.open = True
+            self._page.update()
+        except Exception:
+            log.exception("Не удалось показать SnackBar")
+
 
     def _build_settings_tab(self) -> ft.Control:
         llm_dropdown = ft.Dropdown(
@@ -1200,8 +1349,8 @@ class FenixGUI:
 
     def _open_settings_tab(self) -> None:
         try:
-            self._rail.selected_index = 2
-            self._content_area.content = self._tabs[2]
+            self._rail.selected_index = 3
+            self._content_area.content = self._tabs[3]
             log.info("GUI: открыл вкладку «Настройки»")
         except Exception:
             log.exception("Не удалось открыть вкладку «Настройки»")
