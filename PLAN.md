@@ -51,12 +51,15 @@
 | 🆕 Дизайн | 1 | 1 | 0 |
 | 🆕 Unicode / пути | 2 | 2 | 0 |
 | 🆕 Автолаунчер | 1 | 1 | 0 |
-| 🆕 Установщик | 1 | 1 | 0 |
+| 🆕 Установщик (v1) | 1 | 1 | 0 |
 | 🆕 Релиз v1.0.0 | 1 | 1 | 0 |
 | 🆕 Поздравление с ДР | 1 | 1 | 0 |
-| 🆕 Аудит Kimi (25 багов) | 25 | 25 | 0 |
-| 🆕 Красивый установщик (Inno UI) | 1 | 0 | 1 |
-| 🆕 Знакомство + Персона | 7 | 0 | 7 |
+| 🆕 Аудит Kimi | 25 | 25 | 0 |
+| 🆕 Красивый установщик (Inno UI) | 1 | 1 | 0 |
+| 🆕 Знакомство через LLM-диалог | 1 | 1 | 0 |
+| 🆕 Персона + стиль общения | 1 | 1 | 0 |
+| 🆕 Observer | 1 | 1 | 0 |
+| 🆕 GUI-вкладка «Персона» | 1 | 1 | 0 |
 | 🆕 Mood | 3 | 0 | 3 |
 | 🆕 UIA (элементы окон) | 6 | 0 | 6 |
 | 🆕 Silero TTS | 3 | 0 | 3 |
@@ -78,7 +81,95 @@
 | 💭 Миграция на PySide6 | 1 | 0 | 1 |
 | 💤 Долгий ящик | 8 | 0 | 8 |
 | 💰 Платные фичи | 6 | 0 | 6 |
-| **ИТОГО** | **~186** | **56** | **~130** |
+| **ИТОГО** | **~193** | **~61** | **~132** |
+
+---
+
+## ✅ СЕССИЯ 09.10.2026 — Inno UI + Персона + Observer + Онбординг
+
+### Inno UI (1)
+
+| № | Задача | Статус |
+|---|---|---|
+| №146 | `WizardStyle=modern`, баннер, иконка | ✅ |
+
+**Реализовано:**
+- `scripts/make_installer_images.py` — генерация BMP из `jarvis/icon.ico`.
+- `installer_banner.bmp` (164×314) + `installer_small.bmp` (55×55).
+- `installer.iss`: `WizardStyle=modern`, `PrivilegesRequired=lowest`, `x64compatible`, `Excludes: "__pycache__,*.pyc"`.
+- `DarkMode=1` — **не поддерживается** в Inno Setup 6.7.3. Тёмная тема — через `WizardStyle=modern` + системную тему Windows.
+
+### Персона (З2–З4, З6)
+
+| № | Задача | Статус |
+|---|---|---|
+| З2 | `jarvis/persona.py` — стиль, черты, backstory | ✅ |
+| З3 | `persona.build_prompt_block()` → system prompt | ✅ |
+| З4 | Команды: «поменяй стиль на строгий» | ✅ |
+| З6 | GUI-вкладка «Персона» | ✅ |
+
+**Стили:** `formal` / `friendly` / `sarcastic` / `brief`.
+
+**Файл `persona.py`:**
+- `DEFAULT_PERSONA` — `assistant_name`, `speech_style`, `traits`, `backstory`, `onboarding_done`, `onboarding_at`, `onboarding_step`.
+- `get()`, `set_persona()`, `set_field()` — работа с полями.
+- `normalize_style()` — «строгий» → `formal`.
+- `build_prompt_block()` — блок для system prompt.
+- `describe()` — человеческое описание для озвучки.
+- `mark_onboarded()`, `reset_onboarding()`.
+
+**В `brain._system_with_context()`:**
+- Собирает персону + факты + corrections.
+- Возвращает `base + persona_block + learning_block`.
+
+### Онбординг через LLM-диалог (З1, З5, З7)
+
+| № | Задача | Статус |
+|---|---|---|
+| З1 | Онбординг через `brain.onboarding_chat()` | ✅ |
+| З5 | `persona.onboarding_done` | ✅ |
+| З7 | Сброс: «давай заново познакомимся» | ✅ |
+
+**Реализовано:**
+- `brain.ONBOARDING_CHAT_PROMPT` — промпт для LLM. Цели: узнать имя/стиль, **не допрашивать**.
+- `brain.onboarding_chat(user_text, history)` → `{reply, name, style, onboarding_done}`.
+- `intents._onboarding_chat_step()` — вызов LLM-диалога. Если `_looks_like_command(cmd)` — пропускает.
+- `intents._looks_like_command()` — быстрая проверка «это команда или свободный текст».
+- `intents._first_run_step()` — **удалён**.
+- `intents._extract_name`, `_looks_like_name`, `_parse_onboarding_answer`, `_apply_onboarding_parsed`, `_extract_fact` — **удалены**.
+- `first_run.py` — упрощён до `greeting()`, `is_first_run()`, `mark_done()`.
+- `brain.parse_onboarding()` — **удалён** (онбординг теперь через `onboarding_chat`).
+
+**Как работает:**
+1. При первом запуске `first_run.greeting()` — «Привет! Я Феникс, локальный голосовой помощник. Не хочешь немного поболтать? Расскажи — чем занимаешься, что нового?»
+2. Каждая фраза юзера (если не команда) идёт в `brain.onboarding_chat()`.
+3. LLM решает: что ответить, что сохранить, когда завершить.
+4. Принудительное завершение: если 6+ фраз от юзера — `mark_done()`.
+
+### Observer
+
+| № | Задача | Статус |
+|---|---|---|
+| — | `jarvis/observer.py` — фоновое извлечение фактов | ✅ |
+
+**Как работает:**
+- `observer.observe("user"/"assistant", text)` — добавляет сообщение в буфер.
+- Раз в 5 сек проверяет: если 6+ сообщений и 30+ сек с прошлого раза → отправляет историю в LLM.
+- LLM возвращает JSON: `{name, city, age, style, facts}`.
+- `_apply()` сохраняет в `profile` / `learning`, если поле пустое.
+- **Не блокирует** основной диалог.
+
+**Конфиг:** `observer_enabled: true`, `min_interval: 30.0`, `batch_size: 6`.
+
+### Фиксы
+
+| Баг | Как закрыт |
+|---|---|
+| `_small_talk` перехватывал всё | Убран для «привет», «как дела». Оставлены: время/дата/«кто ты». |
+| `CHAT_SYSTEM` — кракозябры | Заменён на русский в UTF-8 без BOM. |
+| BOM в `intents.py` | Сохранён UTF-8 без BOM. |
+| `test_intents.py small_talk_who` FAIL | Вернул «кто ты» в `_small_talk` для работы без LLM. |
+| `_onboarding_chat_step` отступы | Поправлены — выровнены с `_looks_like_command`. |
 
 ---
 
@@ -241,7 +332,6 @@
 - №68 — «ютуб и …».
 - №69 — «потише на 10».
 - №70 — мусорный ввод.
-
 ---
 
 ## 🚧 ФАЗА 1 — НАШИ ФИЧИ (+ AIRI-концепции внутри)
@@ -255,57 +345,34 @@
 **Проблема:** pystray требует свой Windows message loop, а главный поток занят Flet'ом.
 **Решение:** отдельный процесс `tray_runner.py` с обменом через файл-сигнал.
 
-### 🆕 Красивый установщик (Inno UI) (1) ⭐ СЛЕДУЮЩИЙ
+### 🆕 Красивый установщик (Inno UI) ✅
 
-| № | Задача | Время |
+| № | Задача | Статус |
 |---|---|---|
-| №146 | Inno Setup: кастомная тёмная тема, WizardImage, лого Феникса | 1–2 ч |
+| №146 | Inno Setup: `WizardStyle=modern`, `WizardImageFile`, лого | ✅ |
 
-**Что делаем:**
+**Реализовано:**
+- `scripts/make_installer_images.py` — генерация BMP из `jarvis/icon.ico`.
+- `installer_banner.bmp` (164×314) — вертикальный баннер.
+- `installer_small.bmp` (55×55) — иконка вверху справа.
+- `installer.iss`: `WizardStyle=modern`, `PrivilegesRequired=lowest`, `x64compatible`, `Excludes: "__pycache__,*.pyc"`.
 
-- `installer.iss` → `WizardStyle=modern`.
-- `WizardImageFile` — баннер с лого Феникса.
-- `WizardSmallImageFile` — маленькая иконка.
-- `DarkMode=1` (Inno Setup 6.3+).
-- Описание в `InfoBeforeFile`.
+### 🆕 Знакомство + Персона + Observer ✅
 
-**Что даёт:** установщик выглядит как у Kimi Desktop — тёмное окно, лого, прогресс-бар.
-
-**AIRI-концепция:** не касается.
-
-### 🆕 Знакомство + Персона (7) ⭐ AIRI-концепция сразу
-
-| № | Задача | Время |
+| № | Задача | Статус |
 |---|---|---|
-| З1 | Онбординг при первом запуске: «Как зовут? Что любишь? Стиль общения?» | 3 ч |
-| З2 | `profile.json` → `persona` (name, traits, speech_style, backstory) | 2 ч |
-| З3 | Динамический system prompt: базовая инструкция + persona + facts | 3 ч |
-| З4 | Команды: «поменяй стиль на строгий», «как ты ко мне обращаешься» | 2 ч |
-| З5 | Onboarding-флаг `onboarding_done` в профиле | 1 ч |
-| З6 | GUI: вкладка «Персона» в настройках | 3 ч |
-| З7 | Сброс персоны: «давай заново познакомимся» | 1 ч |
+| З1 | Онбординг через LLM-диалог | ✅ |
+| З2 | `persona.py` — стиль, черты, backstory | ✅ |
+| З3 | `persona.build_prompt_block()` → system prompt | ✅ |
+| З4 | Команды: «поменяй стиль на строгий» | ✅ |
+| З5 | `persona.onboarding_done` | ✅ |
+| З6 | GUI-вкладка «Персона» | ✅ |
+| З7 | Сброс: «давай заново познакомимся» | ✅ |
+| — | `observer.py` — фоновое извлечение фактов | ✅ |
 
-**Итого:** ~4–5 дней.
+**Стили:** `formal` / `friendly` / `sarcastic` / `brief`.
 
-**AIRI-концепция:** Persona — сразу, потому что Знакомство без персоны — половина фичи.
-
-**Что делаем:**
-
-- В `profile.json`:
-
-~~~json
-{
-  "persona_name": "Феникс",
-  "traits": ["саркастичный", "заботливый"],
-  "speech_style": "неформальный, с шутками",
-  "backstory": "..."
-}
-~~~
-
-- System prompt собирается из: базовая инструкция + persona + facts + memory.
-- Onboarding при первом запуске — голосом и через GUI.
-
-### 🆕 Mood (3) ⭐ AIRI-концепция отдельно
+### 🆕 Mood (3) ⭐ AIRI-концепция ⭐ СЛЕДУЮЩИЙ
 
 | № | Задача | Время |
 |---|---|---|
@@ -751,17 +818,21 @@ Callback → Феникс озвучивает
 
 ## 🎯 ПОРЯДОК РАБОТЫ — ФАЗА 1
 
-### ЭТАП 1.7 — Inno UI (1–2 ч) ⭐ СЛЕДУЮЩИЙ
+### ЭТАП 1.6 — UI/UX ✅ (трей отложен)
 
-№146. **Не касается AIRI.** Делаем как есть.
+№108 — ⏸.
 
-### ЭТАП 1.8 — Знакомство + Персона (4–5 дн) ⭐ AIRI
+### ЭТАП 1.7 — Inno UI ✅
 
-З1–З7. Persona сразу.
+№146. **Сделано.**
 
-### ЭТАП 1.9 — Mood (1–2 дн) ⭐ AIRI
+### ЭТАП 1.8 — Знакомство + Персона + Observer ✅
 
-№152–154. Отдельно, но сразу после Знакомства.
+З1–З7. **Сделано.**
+
+### ЭТАП 1.9 — Mood ⭐ СЛЕДУЮЩИЙ
+
+№152–154. Отдельно, но сразу после Знакомства. **~1–2 дня.**
 
 ### ЭТАП 1.10 — UIA (13–19 ч)
 
@@ -813,10 +884,10 @@ Callback → Феникс озвучивает
 
 | Этап | Прогресс |
 |---|---|
-| **ФАЗА 1 — Наши фичи** | 🚧 30% |
+| **ФАЗА 1 — Наши фичи** | 🚧 45% |
 | Этап 1.6 — UI/UX | ✅ 90% (трей отложен) |
-| Этап 1.7 — Inno UI | ❌ 0% |
-| Этап 1.8 — Знакомство + Персона | ❌ 0% |
+| Этап 1.7 — Inno UI | ✅ 100% |
+| Этап 1.8 — Знакомство + Персона + Observer | ✅ 100% |
 | Этап 1.9 — Mood | ❌ 0% |
 | Этап 1.10 — UIA | ❌ 0% |
 | Этап 1.11 — Silero TTS | ❌ 0% |
@@ -847,6 +918,8 @@ Callback → Феникс озвучивает
 11. **ChromaDB + sentence-transformers** — ~500 МБ. Тоже в `.exe` не влезет.
 12. **PyInstaller ступень 2** — `.exe` ~2.5 ГБ. Может не собраться с первого раза.
 13. **MCP в Hermes** — Qwen 7b/14b слабо тянет tool calling. Нужна 32b+ или облако.
+14. **`CHAT_SYSTEM` и BOM** — правки **только в VS Code**. Терминал портит кодировку.
+15. **Онбординг через LLM** — требует Ollama. Без LLM — fallback: `mark_done()` молча.
 
 ---
 
@@ -862,6 +935,8 @@ Callback → Феникс озвучивает
 8. **AIRI-концепция интегрируется в фичу, только если без неё фича неполная.**
 9. **Hermes — отдельно, не пушить.** `hermes/` в `.gitignore`.
 10. **MCP — только в Hermes, не в Фениксе.**
+11. **Правки — только в VS Code.** Терминал портит кодировку/BOM.
+12. **UTF-8 без BOM.** `files.encoding: utf8`, `files.autoGuessEncoding: false`.
 
 ---
 
