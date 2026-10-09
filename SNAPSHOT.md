@@ -217,8 +217,35 @@ jobs:
 ```markdown
 # 🏗 Архитектура «Феникс»
 
-Документ описывает модули проекта, их роль и связи.
-Помогает быстро вникнуть в проект — человеку или LLM.
+> Документ описывает модули проекта, их роль и связи.
+> Помогает быстро вникнуть в проект — человеку или LLM.
+
+---
+
+## 📑 Содержание
+
+- [🗂 Два корня путей](#-два-корня-путей)
+- [🗺 Карта модулей](#-карта-модулей)
+- [🔄 Поток обработки фразы](#-поток-обработки-фразы)
+- [🎓 Онбординг](#-онбординг-первый-запуск)
+- [👁 Observer](#-observer-фоновое-извлечение-фактов)
+- [🎭 Персона](#-персона)
+- [⚡ Реестр быстрых обработчиков](#-реестр-быстрых-обработчиков)
+- [👤 Универсальный профиль](#-универсальный-профиль-set_profile--get_profile)
+- [🖼 GUI](#-gui-flet-103)
+- [👥 Мультипрофиль](#-мультипрофиль)
+- [⚙️ Поток конфига](#️-поток-конфига)
+- [🌤 Погода и курс](#-погода-и-курс-валют)
+- [📂 Открытие файлов](#-открытие-файлов-в-редакторе)
+- [📦 Пак-команды](#-пак-команды-с-аргументами)
+- [🚀 Лаунчер](#-лаунчер-фениксеxe)
+- [🧩 Ключевые объекты](#-ключевые-объекты)
+- [💾 Файлы данных](#-файлы-данных)
+- [🌐 Внешние зависимости](#-внешние-зависимости)
+- [🧪 Тесты](#-тесты)
+- [🏗 Инфраструктура](#-инфраструктура)
+- [📦 Сборка и установка](#-сборка-и-установка)
+- [⚠️ Что важно помнить](#️-что-важно-помнить-при-доработке)
 
 ---
 
@@ -229,36 +256,38 @@ PROGRAM_DIR — C:\ProgramData\Phoenix\   (ASCII, для Vosk/Whisper)
 USER_DIR    — %APPDATA%\Phoenix\         (личные данные юзера)
 ```
 
-**Почему:** Vosk (C++ на Kaldi) **ломается** на не-ASCII путях
-(`C:\Users\Максим\...`). Поэтому модель Vosk и кэш Whisper — **всегда
-в `PROGRAM_DIR`** (ASCII). Остальное — в `USER_DIR` (кириллица ок).
+> **Почему:** Vosk (C++ на Kaldi) **ломается** на не-ASCII путях
+> (`C:\Users\Максим\...`). Поэтому модель Vosk и кэш Whisper — **всегда
+> в `PROGRAM_DIR`** (ASCII). Остальное — в `USER_DIR` (кириллица ок).
 
-Управляет **`jarvis/paths.py`**:
+**Управляет `jarvis/paths.py`:**
 
-```
-paths.program_dir()               → C:\ProgramData\Phoenix
-paths.user_dir()                  → %APPDATA%\Phoenix
-paths.program_models_dir()        → C:\ProgramData\Phoenix\models
-paths.program_whisper_cache_dir() → C:\ProgramData\Phoenix\whisper-cache
-paths.logs_dir()                  → %APPDATA%\Phoenix\logs
-paths.profiles_dir()              → %APPDATA%\Phoenix\profiles
-paths.config_path()               → %APPDATA%\Phoenix\config.json
-```
+| Метод | Путь |
+|---|---|
+| `paths.program_dir()` | `C:\ProgramData\Phoenix` |
+| `paths.user_dir()` | `%APPDATA%\Phoenix` |
+| `paths.program_models_dir()` | `C:\ProgramData\Phoenix\models` |
+| `paths.program_whisper_cache_dir()` | `C:\ProgramData\Phoenix\whisper-cache` |
+| `paths.logs_dir()` | `%APPDATA%\Phoenix\logs` |
+| `paths.profiles_dir()` | `%APPDATA%\Phoenix\profiles` |
+| `paths.config_path()` | `%APPDATA%\Phoenix\config.json` |
 
-**Fallback для PROGRAM_DIR:**
+### Fallback для `PROGRAM_DIR`
+
 1. `C:\ProgramData\Phoenix`
 2. `C:\Phoenix`
 3. `%TEMP%\Phoenix`
 4. `<рядом с exe>\runtime`
 
-**В `USER_DIR` теперь также живут:**
+### В `USER_DIR` также живут
+
 - `timers.json` — напоминания.
 - `tasks.json` — задачи.
 - `dialog.json` — в `profiles/<user>/`.
 
 ---
 
-## Карта модулей
+## 🗺 Карта модулей
 
 ```
 jarvis/
@@ -266,8 +295,9 @@ jarvis/
 ├── config.py         — Config в памяти + подписки
 ├── config_manager.py — атомарная запись (FileLock per-path)
 ├── paths.py          — PROGRAM_DIR / USER_DIR
-├── brain.py          — Ollama: parse() / chat_stream()
+├── brain.py          — Ollama: parse() / chat_stream() / onboarding_chat()
 ├── intents.py        — IntentHandler: правила + LLM + _fast_handlers()
+│                       + _onboarding_chat_step() + _looks_like_command()
 ├── reply.py          — Reply (text | stream)
 ├── gui.py            — Flet GUI + PALETTES + fireworks
 ├── history.py        — стек отмены
@@ -277,7 +307,10 @@ jarvis/
 ├── voices.py         — смена голоса Piper
 ├── packs.py          — загрузка/выгрузка паков
 ├── profile.py        — profiles/<user>/profile.json + subscribe
+├── persona.py        — персона: стиль, черты, backstory
 ├── memory.py         — profiles/<user>/dialog.json (атомарно)
+├── observer.py       — фоновое извлечение фактов через LLM
+├── first_run.py      — greeting, is_first_run, mark_done
 ├── learning.py       — факты + коррекции
 ├── weather.py        — погода/курс + настраиваемый TTL
 ├── timers.py         — напоминания (USER_DIR, атомарно)
@@ -301,7 +334,7 @@ jarvis/
 
 ---
 
-## Поток обработки фразы
+## 🔄 Поток обработки фразы
 
 ```
 Микрофон
@@ -313,6 +346,7 @@ stt.WhisperTranscriber — уточняет (HF_HOME временно → ASCII)
 main.Jarvis._process → извлекает команду (без wake)
    ↓
 intents.IntentHandler.handle(cmd)   ← normalize(cmd)
+   ├── _onboarding_chat_step (первый запуск, LLM-диалог)
    ├── CANCEL («стой», «хватит», ...)
    ├── Коррекции (learning.find_correction)
    ├── Пароль (pending_password)
@@ -327,8 +361,8 @@ intents.IntentHandler.handle(cmd)   ← normalize(cmd)
    ├── ⚡ РЕЕСТР _fast_handlers()
    │   ├── custom, small_talk, music, open_profile
    │   ├── open, voices, packs, timers, tasks
-   │   └── profile, memory, system, debug, correction,
-   │       undo, weather_currency
+   │   └── persona, profile, memory, system, debug,
+   │       correction, undo, weather_currency
    ├── brain.parse(cmd) → intent → _execute_intent
    └── brain.chat_stream() → генератор
    ↓
@@ -341,21 +375,138 @@ tts.Speaker → Piper / XTTS / WinRT / SAPI
 
 ---
 
-## Реестр быстрых обработчиков
+## 🎓 Онбординг (первый запуск)
+
+> **Не сценарии.** LLM ведёт **живой диалог**.
+
+```
+first_run.greeting() → «Привет! Я Феникс, локальный голосовой помощник.
+                        Не хочешь немного поболтать? Расскажи — чем
+                        занимаешься, что нового?»
+
+Пользователь отвечает
+   ↓
+intents._onboarding_chat_step(cmd)
+   ├── if not first_run.is_first_run() → None
+   ├── if LLM недоступна → first_run.mark_done() → None
+   ├── if self._looks_like_command(cmd) → None (пусть идёт в обычный handle)
+   ├── history = list(self.dialog)[-10:]
+   ├── force_done = user_msgs >= 6
+   ├── result = brain.onboarding_chat(cmd, history)
+   │   → {"reply": str, "name": str|None, "style": str|None, "onboarding_done": bool}
+   ├── profile.set("name", ...) если LLM вернула
+   ├── persona.set_field("speech_style", ...) если LLM вернула
+   └── if onboarding_done or force_done → first_run.mark_done()
+```
+
+**`brain.onboarding_chat()`** — отдельный промпт (`ONBOARDING_CHAT_PROMPT`).
+Цели: узнать имя/стиль, **не допрашивать**, завершить за 3–5 обменов.
+
+**`_looks_like_command(cmd)`** — быстрая проверка: если фраза начинается с
+глагола-команды (`открой`, `закрой`, `найди`, ...), онбординг её **пропускает**.
+
+**`first_run.py`** — минимальный:
+
+| Функция | Что делает |
+|---|---|
+| `is_first_run()` | `not persona.is_onboarded()` |
+| `greeting()` | текст приветствия |
+| `mark_done()` | `persona.mark_onboarded()` |
+
+---
+
+## 👁 Observer (фоновое извлечение фактов)
+
+> **Не спрашивает — слушает.** Раз в 30 сек отправляет **историю диалога** в LLM.
+
+```
+Jarvis._process → observer.observe("user", cmd)
+                → observer.observe("assistant", reply)
+   ↓
+DialogObserver._loop (раз в 5 сек)
+   ├── if len(history) < batch_size (6) → ждём
+   ├── if now - last_extract < min_interval (30) → ждём
+   ├── history = list(self._history)
+   ├── LLM: EXTRACT_PROMPT
+   │   → {"name": ..., "city": ..., "age": ..., "style": ..., "facts": {...}}
+   └── _apply(data)
+       ├── profile.set("name", ...) если пусто
+       ├── profile.set("default_city", ...) если пусто
+       ├── profile.set("age", ...) если пусто
+       ├── persona.set_field("speech_style", ...) если friendly
+       └── learning.add_fact(k, v) для facts
+```
+
+**Ключевое:** observer **не блокирует** диалог. Работает **параллельно**.
+
+**Конфиг:** `observer_enabled: true`, `min_interval: 30.0`, `batch_size: 6`.
+
+---
+
+## 🎭 Персона
+
+**Файл:** `jarvis/persona.py`.
+
+**Хранится в `profile.json` → `persona`:**
+
+```json
+{
+  "assistant_name": "Феникс",
+  "speech_style": "friendly",
+  "traits": [],
+  "backstory": "",
+  "onboarding_done": false,
+  "onboarding_at": 0.0,
+  "onboarding_step": 0
+}
+```
+
+**Стили:** `formal` / `friendly` / `sarcastic` / `brief`.
+
+**API:**
+
+| Метод | Что делает |
+|---|---|
+| `get()` | dict (с дефолтами) |
+| `set_field(key, value)` | bool |
+| `normalize_style(text)` | `"строгий"` → `formal` |
+| `build_prompt_block()` | блок для system prompt |
+| `describe()` | человеческое описание для озвучки |
+| `mark_onboarded()` | отметить завершение |
+| `reset_onboarding()` | сброс |
+| `is_onboarded()` | bool |
+
+**В `brain._system_with_context()`:**
+
+```
+base (CHAT_SYSTEM) + persona.build_prompt_block() + learning.build_context()
+```
+
+**Команды (`_persona_fast`):**
+
+| Фраза | Действие |
+|---|---|
+| «поменяй стиль на строгий» | → `formal` |
+| «какой у тебя стиль» | → `describe()` |
+| «как тебя зовут» | → `assistant_name` |
+| «давай заново познакомимся» | → `reset_onboarding()` |
+
+---
+
+## ⚡ Реестр быстрых обработчиков
 
 `IntentHandler._fast_handlers()` — **список `(имя, функция)`**. Порядок = приоритет.
 
 Каждый: `(cmd: str) -> str | None`. Вернул строку — команда обработана. `None` — идём дальше.
 
-**Правило:** специфичные — **выше** общих. `open_profile` — **выше** `open`.
+> **Правило:** специфичные — **выше** общих. `open_profile` — **выше** `open`.
 
-**Кэш:** список строится **один раз** в `__init__` (`self._fast_handlers_cache`).
-
-**Исключения** в обработчике **логируются**, но **не роняют** команду.
+- **Кэш:** список строится **один раз** в `__init__` (`self._fast_handlers_cache`).
+- **Исключения** в обработчике **логируются**, но **не роняют** команду.
 
 ---
 
-## Универсальный профиль (set_profile / get_profile)
+## 👤 Универсальный профиль (`set_profile` / `get_profile`)
 
 **Раньше:** куча `re.match` под каждую фразу. **Костыли.**
 
@@ -371,7 +522,7 @@ tts.Speaker → Piper / XTTS / WinRT / SAPI
 
 ---
 
-## GUI (Flet 1.0.3)
+## 🖼 GUI (Flet 1.0.3)
 
 ```
 Flet Main Thread
@@ -386,8 +537,8 @@ Jarvis Thread
    └── say(reply) ← cmd_lock
 ```
 
-**Связь:** `queue.Queue()` → `gui._queue`.
-**Важно:** Flet — **в главном потоке** (`gui.run_main()`), Jarvis — **в фоне**.
+> **Связь:** `queue.Queue()` → `gui._queue`.
+> **Важно:** Flet — **в главном потоке** (`gui.run_main()`), Jarvis — **в фоне**.
 
 ### Режим запуска
 
@@ -395,13 +546,15 @@ Jarvis Thread
 "launch_mode": "gui"
 ```
 
-- `"gui"` — окно видимо (по умолчанию).
-- `"tray"` — окно скрыто. **Трей отключён**, `main.py` принудительно `"gui"`.
+| Значение | Что делает |
+|---|---|
+| `"gui"` | окно видимо (по умолчанию) |
+| `"tray"` | окно скрыто. **Трей отключён**, `main.py` принудительно `"gui"` |
 
 ### Трей (отключён)
 
-**Причина:** pystray требует **свой Windows message loop**, а главный поток
-**занят flet'ом**. Позже — отдельный процесс `tray_runner.py`.
+> **Причина:** pystray требует **свой Windows message loop**, а главный поток
+> **занят flet'ом**. Позже — отдельный процесс `tray_runner.py`.
 
 ### Темы GUI
 
@@ -424,7 +577,8 @@ _rebuild_ui_for_theme → сохраняет историю чата
 ### Салют (праздничный)
 
 - `gui.launch_fireworks(duration)` — кладёт в очередь.
-- `_launch_fireworks_async(duration)` — анимация через **Stack + Container** (не Canvas — API капризный).
+- `_launch_fireworks_async(duration)` — анимация через **Stack + Container**
+  (не Canvas — API капризный).
 - `n_bursts` зависит от длительности.
 
 ### Иконка окна
@@ -433,12 +587,12 @@ _rebuild_ui_for_theme → сохраняет историю чата
 
 ---
 
-## Мультипрофиль
+## 👥 Мультипрофиль
 
 ```
 %APPDATA%\Phoenix\profiles\
 ├── <user1>\
-│   ├── profile.json    ← name, default_city, facts, tts_voice
+│   ├── profile.json    ← name, default_city, facts, tts_voice, persona
 │   └── dialog.json
 └── <user2>\
 ```
@@ -450,7 +604,7 @@ _rebuild_ui_for_theme → сохраняет историю чата
 
 ---
 
-## Поток конфига
+## ⚙️ Поток конфига
 
 ```
 %APPDATA%\Phoenix\config.json → Config.__init__ → config_manager.load()
@@ -465,12 +619,15 @@ config.get("key") / config.set("key", value)
 ```
 
 **Подписки:**
-- `Config.subscribe(callback)` — добавить.
-- `Config.unsubscribe(callback)` — удалить.
+
+| Метод | Что делает |
+|---|---|
+| `Config.subscribe(callback)` | добавить |
+| `Config.unsubscribe(callback)` | удалить |
 
 ---
 
-## Погода и курс валют
+## 🌤 Погода и курс валют
 
 ```
 weather.py
@@ -486,7 +643,7 @@ weather.py
 
 ---
 
-## Открытие файлов в редакторе
+## 📂 Открытие файлов в редакторе
 
 ```
 actions.open_in_editor(path, prefer="auto")
@@ -497,13 +654,14 @@ actions.open_in_editor(path, prefer="auto")
 ```
 
 **Активация окна** — `_activate_window_hard(title_part)`:
+
 - `win32gui.EnumWindows`
 - `AttachThreadInput` (обход блокировки `SetForegroundWindow`)
 - `SetForegroundWindow` + `BringWindowToTop`
 
 ---
 
-## Пак-команды с аргументами
+## 📦 Пак-команды с аргументами
 
 ```
 actions.spec_from_string(s)
@@ -517,13 +675,12 @@ actions.spec_from_string(s)
    └── os.path.exists(s) → path
 ```
 
-**`_CMD_VERBS`** — известные системные команды (shutdown, cmd, rundll32, ...).
-
-**Zip Slip защита** — при распаковке Vosk: `resolved.is_relative_to(base)`.
+- **`_CMD_VERBS`** — известные системные команды (`shutdown`, `cmd`, `rundll32`, ...).
+- **Zip Slip защита** — при распаковке Vosk: `resolved.is_relative_to(base)`.
 
 ---
 
-## Лаунчер (Феникс.exe)
+## 🚀 Лаунчер (`Феникс.exe`)
 
 `launcher.py` → `Феникс.exe` (PyInstaller). При запуске:
 
@@ -544,25 +701,28 @@ actions.spec_from_string(s)
 
 ---
 
-## Ключевые объекты
+## 🧩 Ключевые объекты
 
 | Объект | Модуль | Роль |
 |---|---|---|
 | `Config` | `config.py` | Конфиг в памяти + подписки |
 | `IntentHandler` | `intents.py` | Разбор, `_fast_handlers()` |
-| `Brain` | `brain.py` | LLM: `parse()` / `chat_stream()` |
+| `Brain` | `brain.py` | LLM: `parse()` / `chat_stream()` / `onboarding_chat()` |
 | `Speaker` | `tts.py` | Синтез, per-call token |
 | `Listener` | `stt.py` | Vosk, ring buffer |
 | `WhisperTranscriber` | `stt.py` | Расшифровка |
-| `Jarvis` | `main.py` | Связка, wake, cmd_lock |
+| `Jarvis` | `main.py` | Связка, wake, `cmd_lock` |
 | `FenixGUI` | `gui.py` | Flet GUI, fireworks |
 | `Reply` | `reply.py` | `text` \| `stream` |
 | `history` | `history.py` | Стек отмены |
 | `celebrations` | `celebrations.py` | Поздравление с ДР |
+| `persona` | `persona.py` | Персона, стиль, промпт-блок |
+| `DialogObserver` | `observer.py` | Фоновое извлечение фактов |
+| `first_run` | `first_run.py` | greeting, `is_first_run`, `mark_done` |
 
 ---
 
-## Файлы данных
+## 💾 Файлы данных
 
 | Файл | Где |
 |---|---|
@@ -577,7 +737,7 @@ actions.spec_from_string(s)
 
 ---
 
-## Внешние зависимости
+## 🌐 Внешние зависимости
 
 | Сервис | URL | Зачем |
 |---|---|---|
@@ -594,46 +754,86 @@ actions.spec_from_string(s)
 
 ---
 
-## Тесты
+## 🧪 Тесты
 
-- **`test_intents.py`** — 40 сценариев.
-- **`tests/test_config_manager.py`** — параллельная запись.
-- **`tests/test_weather.py`** — погода/курс с моками.
-- **`tests/test_caps.py`** — структура `system_caps.json`.
+| Файл | Что тестирует |
+|---|---|
+| `test_intents.py` | 40 сценариев |
+| `tests/test_config_manager.py` | параллельная запись |
+| `tests/test_weather.py` | погода/курс с моками |
+| `tests/test_caps.py` | структура `system_caps.json` |
 
 ---
 
-## Инфраструктура
+## 🏗 Инфраструктура
 
 ### `.venv311`
+
 **Python 3.11** в отдельном venv — обход падения Vosk на 3.13/3.14.
 
 ### Git
-- **`.gitignore`:** `.venv311/`, `config.json`, `profiles/`, `logs/`, `system_caps.json`, `models/`, `voices/`, `dist/`, `build/`, `timers.json`, `tasks.json`, `*.bak`.
-- **`SNAPSHOT.md`** — генерируется `snapshot.py`.
+
+**`.gitignore`:**
+
+```
+.venv311/     config.json     profiles/     logs/
+system_caps.json     models/     voices/
+dist/     build/     timers.json     tasks.json     *.bak
+```
+
+**`SNAPSHOT.md`** — генерируется `snapshot.py`.
 
 ### `commit.bat`
+
 Активирует `.venv311` → `snapshot.py` → `git add .` → `commit` → `push`.
 
 ---
 
-## Сборка и установка
+## 📦 Сборка и установка
 
 ### `scripts/make_icon.py`
+
 Генерирует `jarvis/icon.ico` (16/24/32/48/64/128/256). Синий круг с «J».
 
+### `scripts/make_installer_images.py`
+
+Генерирует BMP для Inno Setup из `jarvis/icon.ico`:
+
+| Файл | Размер | Назначение |
+|---|---|---|
+| `installer_banner.bmp` | 164×314 | вертикальный баннер |
+| `installer_small.bmp` | 55×55 | маленькая иконка вверху справа |
+
 ### `scripts/build_exe.py`
+
 Собирает `launcher.py` → `dist/Феникс.exe` (~9 МБ) + копия в корень.
 
 ### `installer.iss`
-Inno Setup → `Феникс_Setup.exe` (~11 МБ). Ставит в `C:\ProgramData\Phoenix`. Ярлыки, автозапуск, деинсталлятор.
+
+Inno Setup 6.7 → `Феникс_Setup.exe`. Ставит в `C:\ProgramData\Phoenix`. Ярлыки, автозапуск, деинсталлятор.
+
+**Ключевые директивы:**
+
+| Директива | Значение |
+|---|---|
+| `WizardStyle` | `modern` — современный вид |
+| `WizardImageFile` | `installer_banner.bmp` — баннер |
+| `WizardSmallImageFile` | `installer_small.bmp` — иконка |
+| `PrivilegesRequired` | `lowest` — не требует админа |
+| `ArchitecturesInstallIn64BitMode` | `x64compatible` |
+| `Excludes` | `__pycache__,*.pyc` — мусор не тащится |
+
+> **`DarkMode=1`** — **не поддерживается** в Inno Setup 6.7.3.
 
 ### `create_shortcut.bat`
+
 Создаёт ярлык на рабочем столе для `Феникс.exe`.
 
 ---
 
-## Что важно помнить при доработке
+## ⚠️ Что важно помнить при доработке
+
+### Код
 
 1. **Не читай `config.json` напрямую** — `config.get()`.
 2. **Не пиши в `config.json` напрямую** — `Config.set()` или `config_manager.save()`.
@@ -641,30 +841,38 @@ Inno Setup → `Феникс_Setup.exe` (~11 МБ). Ставит в `C:\ProgramD
 4. **Нормализация (города, валюты, паков) — задача LLM.**
 5. **Логи в `actions.log`** — главный инструмент отладки.
 6. **`test_intents.py`** — первое, что запускаешь после правок.
-7. **GUI Flet — только в главном потоке.** Jarvis — в фоне.
-8. **Связь GUI ↔ Jarvis — через `queue.Queue()`.**
-9. **`normalize(cmd)` в `IntentHandler.handle()`** — единая точка.
-10. **Per-call stop-token в `tts.py`.**
-11. **`PALETTES` в `gui.py`** — две темы.
-12. **`ft.Button`** вместо `ElevatedButton`/`TextButton`.
-13. **`ft.BoxShadow`** — без `blur_style`.
-14. **Личные данные — только в `config.json`, `profiles/`, `system_caps.json`.**
-15. **`weather_cache_ttl_sec`** — настраиваемый TTL.
-16. **Python 3.10–3.12** — только `.venv311`.
-17. **`snapshot.py`** — исключать `.venv311` и `profiles/`.
-18. **Реестр `_fast_handlers()`** — новые правила **туда**.
-19. **`open_profile` — выше `open`.**
-20. **`set_profile` / `get_profile`** — через LLM.
-21. **Активация окон — `win32gui` + `AttachThreadInput`.**
-22. **`paths.py`** — единственное место для путей.
-23. **Модели Vosk/Whisper — ВСЕГДА в `PROGRAM_DIR` (ASCII).**
-24. **`HF_HOME` для Whisper — временно.**
-25. **Vosk API — только из listener-потока.**
-26. **Pack-команды с аргументами — `_looks_like_cmd` + `shlex`.**
-27. **Атомарная запись везде — `mkstemp` + `os.replace`.**
-28. **Zip Slip защита при распаковке.**
-29. **`cmd_lock` в Jarvis — сериализация голос↔GUI.**
-30. **`Local\` мьютекс — без админа.**
+7. **`normalize(cmd)` в `IntentHandler.handle()`** — единая точка.
+8. **Per-call stop-token в `tts.py`.**
+9. **`ft.Button`** вместо `ElevatedButton`/`TextButton`.
+10. **`ft.BoxShadow`** — без `blur_style`.
+11. **Реестр `_fast_handlers()`** — новые правила **туда**.
+12. **`open_profile` — выше `open`.**
+13. **`set_profile` / `get_profile`** — через LLM.
+14. **Активация окон — `win32gui` + `AttachThreadInput`.**
+15. **`paths.py`** — единственное место для путей.
+16. **Модели Vosk/Whisper — ВСЕГДА в `PROGRAM_DIR` (ASCII).**
+17. **`HF_HOME` для Whisper — временно.**
+18. **Vosk API — только из listener-потока.**
+19. **Pack-команды с аргументами — `_looks_like_cmd` + `shlex`.**
+20. **Атомарная запись везде — `mkstemp` + `os.replace`.**
+21. **Zip Slip защита при распаковке.**
+22. **`cmd_lock` в Jarvis — сериализация голос↔GUI.**
+23. **`Local\` мьютекс — без админа.**
+24. **Онбординг — через LLM.** `_onboarding_chat_step()` + `brain.onboarding_chat()`. Никаких `if/elif`-сценариев.
+25. **Observer — фоновое извлечение фактов.** `observer.observe()` не блокирует диалог.
+26. **Персона — в system prompt.** `persona.build_prompt_block()` → `_system_with_context()`.
+27. **Правки только в VS Code.** Терминал портит кодировку и BOM.
+28. **UTF-8 без BOM.** `files.encoding: utf8`, `files.autoGuessEncoding: false`.
+
+### GUI
+
+1. **GUI Flet — только в главном потоке.** Jarvis — в фоне.
+2. **Связь GUI ↔ Jarvis — через `queue.Queue()`.**
+3. **`PALETTES` в `gui.py`** — две темы.
+4. **`weather_cache_ttl_sec`** — настраиваемый TTL.
+5. **Личные данные — только в `config.json`, `profiles/`, `system_caps.json`.**
+6. **Python 3.10–3.12** — только `.venv311`.
+7. **`snapshot.py`** — исключать `.venv311` и `profiles/`.
 ```
 
 ### `CHANGELOG.md`
@@ -673,8 +881,9 @@ Inno Setup → `Феникс_Setup.exe` (~11 МБ). Ставит в `C:\ProgramD
 # Changelog
 
 Все значимые изменения проекта.
-Формат: [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/),
-версии: [Semantic Versioning](https://semver.org/lang/ru/).
+
+Формат: [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/).
+Версии: [Semantic Versioning](https://semver.org/lang/ru/).
 
 > **Attribution:** этот проект — форк
 > [jsays12/jarvis](https://github.com/jsays12/jarvis).
@@ -684,62 +893,176 @@ Inno Setup → `Феникс_Setup.exe` (~11 МБ). Ставит в `C:\ProgramD
 
 ---
 
-## [Unreleased] — 0.4.0
+## 📑 Содержание
 
-### Добавлено (сессия 08.10.2026)
+- [Unreleased — 0.4.0](#-unreleased--040)
+  - [Сессия 09.10.2026](#сессия-09102026)
+  - [Сессия 08.10.2026](#сессия-08102026)
+  - [Сессия 07.10.2026](#сессия-07102026)
+- [0.3.0 — 2026-10-06](#-030--2026-10-06-вечерняя)
+- [0.2.2 — 2026-10-05](#-022--2026-10-05)
+- [0.2.1 и раньше](#-021-и-раньше)
 
-#### Поздравление с ДР (`jarvis/celebrations.py`)
-- Триггеры: «я папа», «я Александр», «я Саша», «я отец», «я батя», «Александр».
-- Двойная цепочка:
+---
+
+## 🚧 [Unreleased] — 0.4.0
+
+### 📅 Сессия 09.10.2026
+
+#### ✨ Добавлено
+
+##### 🎭 Персона — `jarvis/persona.py`
+
+- Стили общения: `formal` / `friendly` / `sarcastic` / `brief`.
+- Поля: `assistant_name`, `speech_style`, `traits`, `backstory`,
+  `onboarding_done`, `onboarding_at`, `onboarding_step`.
+- API: `get()`, `set_persona()`, `set_field()`, `normalize_style()`,
+  `build_prompt_block()`, `describe()`, `mark_onboarded()`,
+  `reset_onboarding()`, `is_onboarded()`.
+- В `brain._system_with_context()`:
+  `base + persona.build_prompt_block() + learning.build_context()`.
+- Команды: «поменяй стиль на строгий», «какой у тебя стиль»,
+  «как тебя зовут», «давай заново познакомимся».
+
+##### 🎓 Онбординг через LLM-диалог
+
+- `brain.ONBOARDING_CHAT_PROMPT` — промпт для ведения знакомства.
+- `brain.onboarding_chat(user_text, history)` →
+  `{reply, name, style, onboarding_done}`.
+- `intents._onboarding_chat_step()` — обёртка. Пропускает команды
+  (`_looks_like_command`).
+- `intents._looks_like_command()` — эвристика «это команда или свободный текст».
+- Принудительное завершение: если 6+ фраз от юзера — `mark_done()`.
+- `first_run.py` — упрощён до `greeting()`, `is_first_run()`, `mark_done()`.
+
+**❌ Удалено:**
+
+- `_first_run_step`
+- `_extract_name`
+- `_looks_like_name`
+- `_parse_onboarding_answer`
+- `_apply_onboarding_parsed`
+- `_extract_fact`
+- `brain.parse_onboarding`
+
+##### 👁 Observer — `jarvis/observer.py`
+
+- `DialogObserver` — фоновое извлечение фактов из диалога.
+- `observe("user"/"assistant", text)` — добавляет в буфер.
+- Раз в 30 сек отправляет историю (6 сообщений) в LLM.
+- LLM возвращает JSON: `{name, city, age, style, facts}`.
+- `_apply()` сохраняет в `profile` / `learning`, если поле пустое.
+- **Не блокирует** диалог. Работает параллельно.
+- Конфиг: `observer_enabled: true`.
+
+##### 🎨 Красивый установщик — Inno UI
+
+- `scripts/make_installer_images.py` — генерация BMP из `jarvis/icon.ico`.
+- `installer_banner.bmp` (164×314) — вертикальный баннер.
+- `installer_small.bmp` (55×55) — маленькая иконка вверху справа.
+
+**`installer.iss`:**
+
+| Директива | Значение |
+|---|---|
+| `WizardStyle` | `modern` — современный вид |
+| `WizardImageFile` | `installer_banner.bmp` |
+| `WizardSmallImageFile` | `installer_small.bmp` |
+| `WizardImageStretch` | `yes` |
+| `WizardImageBackColor` | `$00160E0A` |
+| `PrivilegesRequired` | `lowest` (было `admin` — не нужен) |
+| `ArchitecturesInstallIn64BitMode` | `x64compatible` (было `x64` — deprecated) |
+| `Excludes` | `__pycache__,*.pyc` — мусор не тащится |
+
+> ⚠️ **`DarkMode=1`** — **не поддерживается** в Inno Setup 6.7.3.
+
+##### 🛡 Защита от BOM и кракозябр
+
+- **Ошибка №39** — BOM в `intents.py` (`invalid non-printable character U+FEFF`).
+  **Фикс:** UTF-8 без BOM.
+- **Ошибка №40** — `CHAT_SYSTEM` с `??` от cp1251.
+  **Фикс:** правки только в VS Code.
+- **Правило:** `files.encoding: utf8`, `files.autoGuessEncoding: false`.
+
+#### 🔧 Исправлено
+
+| № | Что было | Фикс |
+|---|---|---|
+| №36 | `_small_talk` перехватывал «привет», «как дела» | Убраны из `_small_talk` — LLM отвечает живо |
+| №38 | `_small_talk` тест FAIL без LLM (`small_talk_who`) | Вернул «кто ты» в `_small_talk` |
+| №41 | `test_intents.py small_talk_who` FAIL в CI | Ответ на «кто ты» без LLM |
+
+---
+
+### 📅 Сессия 08.10.2026
+
+#### ✨ Добавлено
+
+##### 🎉 Поздравление с ДР — `jarvis/celebrations.py`
+
+- **Триггеры:** «я папа», «я Александр», «я Саша», «я отец», «я батя», «Александр».
+- **Двойная цепочка:**
   1. TTS: «Поздравляю! С днём рождения!».
   2. Салют #1 (6 сек) + звук ×2.
   3. TTS: полное авторское поздравление.
   4. Салют #2 (10 сек, больше взрывов) + звук ×3.
 - Анимация через **Stack + Container** (не Canvas — в Flet 1.0.3 API капризный).
 - Звук — `jarvis/sounds/fireworks.wav` или fallback на Beep-и.
-- Zero-width space `\u200b` для пустого Reply (чтобы `handle` не шёл в LLM).
+- Zero-width space `\u200b` для пустого Reply
+  (чтобы `handle` не шёл в LLM).
 
-#### Аудит Kimi — 23 бага
+##### 🔍 Аудит Kimi — 25 багов
 
-**Критичные:**
-- **K1** — pack-команды с аргументами (`shutdown /s /t 10`, `cmd /k ipconfig`, `rundll32.exe ...`) — раньше шли в `os.startfile` → падали. Фикс: `actions._looks_like_cmd()` + `shlex.split` + subprocess.
-- **K2** — `timers.py` / `tasks.py` писали в `BASE_DIR` (папка кода). Фикс: `paths.user_dir()`.
-- **K3** — `memory.append` — не атомарный full-file rewrite. Фикс: `mkstemp` + `os.replace`.
-- **K4** — `config_manager` дефолтный путь — `BASE_DIR/config.json`. Фикс: `paths.config_path()` + FileLock per-path.
-- **K5** — `stt.py` — `HF_HOME` не сбрасывался (Piper качал в whisper-кэш). Фикс: try/finally + восстановление.
-- **K6** — `config.DEFAULT_CONFIG["whisper_model"]` — сломанная `coriollon/...`. Фикс: `deepdml/faster-whisper-large-v3-turbo-ct2`.
-- **K7** — `config.DEFAULT_CONFIG["gui_theme"]` — `"dark-blue"` (невалидная). Фикс: `"Системная"`.
-- **K8** — `_profile_fast` regex — «я хочу спать» создавал профиль. Фикс: тире обязательно (`я\s*[-—]\s*`).
-- **K9** — `main.say()` — падал при `listener=None`. Фикс: guard.
-- **K10** — `gui._run_command` — гонка с голосовым потоком. Фикс: `cmd_lock` в Jarvis.
-- **K11** — `gui._on_mic_test` — `page.update()` из чужого потока. Фикс: результат через очередь.
-- **K12** — `recorder.stop()` — безусловный `unhook_all()`. Фикс: только если шла запись.
-- **K13** — `launcher.py` — мёртвый код после `return`. Фикс: удалён.
-- **K14** — `install.bat` — ссылки на несуществующие `.bat`. Фикс: `start_fenix.bat` / `start_fenix_debug.bat`.
-- **K15** — `tray.py` — пути не через `paths.py`. Фикс: `paths.config_path()`, `paths.logs_dir()`.
-- **K16** — `intents.py open_config/open_log` — пути не через `paths.py`. Фикс: то же.
-- **K17** — `weather.py` — User-Agent `Phoenix/0.2.2`. Фикс: из `__version__`.
-- **K18** — `set_llm_model.py` — путь и неатомарность. Фикс: `paths` + `config_manager`.
-- **K19** — `start_fenix.bat` / `start_fenix_debug.bat` — хардкод `C:\jarvis`. Фикс: `cd /d "%~dp0"`.
-- **K20** — `launcher.py` — Zip Slip при распаковке Vosk. Фикс: `is_relative_to`.
-- **K21** — `launcher.py` — мьютекс `Global\` требует админа. Фикс: `Local\`.
-- **K22** — `tts.py` — падал на невидимом тексте (`\u200b`). Фикс: пропуск невидимых символов.
-- **K23** — `gui.launch_fireworks` — `TypeError` без `duration`. Фикс: принимает параметр.
+**🔴 Критичные:**
 
-### Исправлено (сессия 07.10.2026)
+| ID | Проблема | Фикс |
+|---|---|---|
+| **K1** | Pack-команды с аргументами (`shutdown /s /t 10`, `cmd /k ipconfig`, `rundll32.exe ...`) шли в `os.startfile` → падали | `actions._looks_like_cmd()` + `shlex.split` + subprocess |
+| **K2** | `timers.py` / `tasks.py` писали в `BASE_DIR` (папка кода) | `paths.user_dir()` |
+| **K3** | `memory.append` — не атомарный full-file rewrite | `mkstemp` + `os.replace` |
+| **K4** | `config_manager` дефолтный путь — `BASE_DIR/config.json` | `paths.config_path()` + FileLock per-path |
+| **K5** | `stt.py` — `HF_HOME` не сбрасывался (Piper качал в whisper-кэш) | try/finally + восстановление |
+| **K6** | `config.DEFAULT_CONFIG["whisper_model"]` — сломанная `coriollon/...` | `deepdml/faster-whisper-large-v3-turbo-ct2` |
+| **K7** | `config.DEFAULT_CONFIG["gui_theme"]` — `"dark-blue"` (невалидная) | `"Системная"` |
+| **K8** | `_profile_fast` regex — «я хочу спать» создавал профиль | Тире обязательно (`я\s*[-—]\s*`) |
+| **K9** | `main.say()` — падал при `listener=None` | Guard |
+| **K10** | `gui._run_command` — гонка с голосовым потоком | `cmd_lock` в Jarvis |
+| **K11** | `gui._on_mic_test` — `page.update()` из чужого потока | Результат через очередь |
+| **K12** | `recorder.stop()` — безусловный `unhook_all()` | Только если шла запись |
+| **K13** | `launcher.py` — мёртвый код после `return` | Удалён |
+| **K14** | `install.bat` — ссылки на несуществующие `.bat` | `start_fenix.bat` / `start_fenix_debug.bat` |
+| **K15** | `tray.py` — пути не через `paths.py` | `paths.config_path()`, `paths.logs_dir()` |
+| **K16** | `intents.py open_config/open_log` — пути не через `paths.py` | То же |
+| **K17** | `weather.py` — User-Agent `Phoenix/0.2.2` | Из `__version__` |
+| **K18** | `set_llm_model.py` — путь и неатомарность | `paths` + `config_manager` |
+| **K19** | `start_fenix.bat` / `start_fenix_debug.bat` — хардкод `C:\jarvis` | `cd /d "%~dp0"` |
+| **K20** | `launcher.py` — Zip Slip при распаковке Vosk | `is_relative_to` |
+| **K21** | `launcher.py` — мьютекс `Global\` требует админа | `Local\` |
+| **K22** | `tts.py` — падал на невидимом тексте (`\u200b`) | Пропуск невидимых символов |
+| **K23** | `gui.launch_fireworks` — `TypeError` без `duration` | Принимает параметр |
+| **K24** | `config_manager._get_lock` — tuple без context manager | `_get_locks` + `with t_lock, f_lock` |
+| **K25** | `os.replace` — `PermissionError` от антивируса | `_atomic_replace` с retry |
 
-- **№99** — Vosk падал на `C:\Users\Максим\...` (`Failed to create a model`). Фикс: `jarvis/paths.py` — PROGRAM_DIR / USER_DIR.
-- **№100** — `HF_HOME` глобально ломал Piper (symlinks в degraded mode). Фикс: временная установка.
-- **№103** — `sys.stdout = None` под `pythonw`. Фикс: проверка.
-- **№104** — `wait_end` бросал `RuntimeError`. Фикс: `is_alive()`.
-- **№106** — Дублирование `normalize` / `strip_cjk` / `prepare_text`. Фикс: `jarvis/text_utils.py`.
-- **№107** — `libvosk.dll` ACCESS_VIOLATION (`0xc0000015`). Фикс: убран `flush()` из `say()`.
-- **№22** — падежи погоды.
-- **№23** — LLM видит `name` / `default_city`.
+---
 
-### Добавлено (сессия 07.10.2026)
+### 📅 Сессия 07.10.2026
 
-- **`LICENSE`** (MIT + attribution jsays12).
+#### 🔧 Исправлено
+
+| № | Проблема | Фикс |
+|---|---|---|
+| **№99** | Vosk падал на `C:\Users\Максим\...` (`Failed to create a model`) | `jarvis/paths.py` — PROGRAM_DIR / USER_DIR |
+| **№100** | `HF_HOME` глобально ломал Piper (symlinks в degraded mode) | Временная установка |
+| **№103** | `sys.stdout = None` под `pythonw` | Проверка |
+| **№104** | `wait_end` бросал `RuntimeError` | `is_alive()` |
+| **№106** | Дублирование `normalize` / `strip_cjk` / `prepare_text` | `jarvis/text_utils.py` |
+| **№107** | `libvosk.dll` ACCESS_VIOLATION (`0xc0000015`) | Убран `flush()` из `say()` |
+| **№22** | Падежи погоды | — |
+| **№23** | LLM не видит `name` / `default_city` | — |
+
+#### ✨ Добавлено
+
+- **`LICENSE`** — MIT + attribution `jsays12`.
 - **`scripts/make_icon.py`** — иконка.
 - **`scripts/build_exe.py`** — `.exe`.
 - **`installer.iss`** — установщик.
@@ -749,9 +1072,9 @@ Inno Setup → `Феникс_Setup.exe` (~11 МБ). Ставит в `C:\ProgramD
 
 ---
 
-## [0.3.0] — 2026-10-06 (вечерняя)
+## 🌙 [0.3.0] — 2026-10-06 (вечерняя)
 
-### Добавлено
+### ✨ Добавлено
 
 - **`set_profile` / `get_profile`** — универсальные action'ы для LLM.
 - **`open_profile`** — Notepad++ → VS Code → системный.
@@ -763,38 +1086,40 @@ Inno Setup → `Феникс_Setup.exe` (~11 МБ). Ставит в `C:\ProgramD
 - **`learning.build_context`** — факты + коррекции.
 - **`history.push_macro`**.
 
-### Исправлено
+### 🔧 Исправлено
 
-- **№67** — многослойные команды.
-- **№68** — «ютуб и …».
-- **№69** — «потише на 10».
-- **№70** — мусорный ввод.
-- **№71** — `scripts/__init__.py`.
-- **№72** — `wait_end` → `bool`.
-- **№73** — стрим-пузырь не зависает.
-- **№74** — TTS не накладывается.
-- **№76** — `profile.switch` — один `RLock`.
-- **№80** — Groq в README — «🚧 в планах».
-- **№84** — `launch_mode` + защита.
-- **№88** — `launcher.py` мьютекс.
-- **№89** — `close_browser` все браузеры.
-- **№90** — `pystray.SystemExit`.
-- **№91** — `profiles/` из git.
-- **№92** — `_tabs` не теряют историю.
-- **№93** — `chat_stream` чанк.
-- **№94** — `wake_score`.
-- **№95** — `Config.unsubscribe`.
-- **№96** — `SITES` из packs.
-- **№97** — `build_context` / `_profile_fast`.
-- **№98** — `check_syntax.bat`.
-- **№9** — `weather._CACHE` — лок.
-- **№11** — `Vosk.Reset()` — `flush()`.
-- **№16** — `_debug_fast` — из `listener.recent_phrases`.
-- **№17** — макрос — `push_macro()`.
-- **№18** — мусорные профили.
-- **№38** — `requirements-dev.txt`.
+| № | Что |
+|---|---|
+| №67 | Многослойные команды |
+| №68 | «ютуб и …» |
+| №69 | «потише на 10» |
+| №70 | Мусорный ввод |
+| №71 | `scripts/__init__.py` |
+| №72 | `wait_end` → `bool` |
+| №73 | Стрим-пузырь не зависает |
+| №74 | TTS не накладывается |
+| №76 | `profile.switch` — один `RLock` |
+| №80 | Groq в README — «🚧 в планах» |
+| №84 | `launch_mode` + защита |
+| №88 | `launcher.py` мьютекс |
+| №89 | `close_browser` все браузеры |
+| №90 | `pystray.SystemExit` |
+| №91 | `profiles/` из git |
+| №92 | `_tabs` не теряют историю |
+| №93 | `chat_stream` чанк |
+| №94 | `wake_score` |
+| №95 | `Config.unsubscribe` |
+| №96 | `SITES` из packs |
+| №97 | `build_context` / `_profile_fast` |
+| №98 | `check_syntax.bat` |
+| №9 | `weather._CACHE` — лок |
+| №11 | `Vosk.Reset()` — `flush()` |
+| №16 | `_debug_fast` — из `listener.recent_phrases` |
+| №17 | Макрос — `push_macro()` |
+| №18 | Мусорные профили |
+| №38 | `requirements-dev.txt` |
 
-### Изменено
+### 🔄 Изменено
 
 - `IntentHandler.handle()` → `cmd = normalize(cmd)`.
 - `Jarvis.say()` → принимает `Reply`.
@@ -806,26 +1131,26 @@ Inno Setup → `Феникс_Setup.exe` (~11 МБ). Ставит в `C:\ProgramD
 
 ---
 
-## [0.2.2] — 2026-10-05
+## 🌆 [0.2.2] — 2026-10-05
 
-### Добавлено
+### ✨ Добавлено
 
 - **Этап 0:** `config_manager`, `Config` в памяти, barge-in, CJK-фильтр, few-shot промпт.
 - **Этап 1:** голосовые режимы, паки, макросы, память, голоса Piper.
 - **Этап 2:** streaming TTS, barge-in, логи, буфер обмена, погода и курс.
 - **`test_intents.py`** + **`pytest tests/`**.
 
-### Исправлено
+### 🔧 Исправлено
 
 - `actions.run_spec` — `kind == "cmd"`.
 - `matching.match_score` — короткие слова.
-- `tts.Speaker.stop()` — barge-in через sounddevice.
+- `tts.Speaker.stop()` — barge-in через `sounddevice`.
 - `stt._enable_cuda_dlls` — флаг.
 - `brain.py` — `close_app` в отдельный блок.
 
 ---
 
-## [0.2.1] и раньше
+## 📦 [0.2.1] и раньше
 
 См. коммиты в репозитории до июня 2026 — от оригинала
 [jsays12/jarvis](https://github.com/jsays12/jarvis).
@@ -13544,12 +13869,15 @@ SOFTWARE.
 | 🆕 Дизайн | 1 | 1 | 0 |
 | 🆕 Unicode / пути | 2 | 2 | 0 |
 | 🆕 Автолаунчер | 1 | 1 | 0 |
-| 🆕 Установщик | 1 | 1 | 0 |
+| 🆕 Установщик (v1) | 1 | 1 | 0 |
 | 🆕 Релиз v1.0.0 | 1 | 1 | 0 |
 | 🆕 Поздравление с ДР | 1 | 1 | 0 |
-| 🆕 Аудит Kimi (25 багов) | 25 | 25 | 0 |
-| 🆕 Красивый установщик (Inno UI) | 1 | 0 | 1 |
-| 🆕 Знакомство + Персона | 7 | 0 | 7 |
+| 🆕 Аудит Kimi | 25 | 25 | 0 |
+| 🆕 Красивый установщик (Inno UI) | 1 | 1 | 0 |
+| 🆕 Знакомство через LLM-диалог | 1 | 1 | 0 |
+| 🆕 Персона + стиль общения | 1 | 1 | 0 |
+| 🆕 Observer | 1 | 1 | 0 |
+| 🆕 GUI-вкладка «Персона» | 1 | 1 | 0 |
 | 🆕 Mood | 3 | 0 | 3 |
 | 🆕 UIA (элементы окон) | 6 | 0 | 6 |
 | 🆕 Silero TTS | 3 | 0 | 3 |
@@ -13571,7 +13899,95 @@ SOFTWARE.
 | 💭 Миграция на PySide6 | 1 | 0 | 1 |
 | 💤 Долгий ящик | 8 | 0 | 8 |
 | 💰 Платные фичи | 6 | 0 | 6 |
-| **ИТОГО** | **~186** | **56** | **~130** |
+| **ИТОГО** | **~193** | **~61** | **~132** |
+
+---
+
+## ✅ СЕССИЯ 09.10.2026 — Inno UI + Персона + Observer + Онбординг
+
+### Inno UI (1)
+
+| № | Задача | Статус |
+|---|---|---|
+| №146 | `WizardStyle=modern`, баннер, иконка | ✅ |
+
+**Реализовано:**
+- `scripts/make_installer_images.py` — генерация BMP из `jarvis/icon.ico`.
+- `installer_banner.bmp` (164×314) + `installer_small.bmp` (55×55).
+- `installer.iss`: `WizardStyle=modern`, `PrivilegesRequired=lowest`, `x64compatible`, `Excludes: "__pycache__,*.pyc"`.
+- `DarkMode=1` — **не поддерживается** в Inno Setup 6.7.3. Тёмная тема — через `WizardStyle=modern` + системную тему Windows.
+
+### Персона (З2–З4, З6)
+
+| № | Задача | Статус |
+|---|---|---|
+| З2 | `jarvis/persona.py` — стиль, черты, backstory | ✅ |
+| З3 | `persona.build_prompt_block()` → system prompt | ✅ |
+| З4 | Команды: «поменяй стиль на строгий» | ✅ |
+| З6 | GUI-вкладка «Персона» | ✅ |
+
+**Стили:** `formal` / `friendly` / `sarcastic` / `brief`.
+
+**Файл `persona.py`:**
+- `DEFAULT_PERSONA` — `assistant_name`, `speech_style`, `traits`, `backstory`, `onboarding_done`, `onboarding_at`, `onboarding_step`.
+- `get()`, `set_persona()`, `set_field()` — работа с полями.
+- `normalize_style()` — «строгий» → `formal`.
+- `build_prompt_block()` — блок для system prompt.
+- `describe()` — человеческое описание для озвучки.
+- `mark_onboarded()`, `reset_onboarding()`.
+
+**В `brain._system_with_context()`:**
+- Собирает персону + факты + corrections.
+- Возвращает `base + persona_block + learning_block`.
+
+### Онбординг через LLM-диалог (З1, З5, З7)
+
+| № | Задача | Статус |
+|---|---|---|
+| З1 | Онбординг через `brain.onboarding_chat()` | ✅ |
+| З5 | `persona.onboarding_done` | ✅ |
+| З7 | Сброс: «давай заново познакомимся» | ✅ |
+
+**Реализовано:**
+- `brain.ONBOARDING_CHAT_PROMPT` — промпт для LLM. Цели: узнать имя/стиль, **не допрашивать**.
+- `brain.onboarding_chat(user_text, history)` → `{reply, name, style, onboarding_done}`.
+- `intents._onboarding_chat_step()` — вызов LLM-диалога. Если `_looks_like_command(cmd)` — пропускает.
+- `intents._looks_like_command()` — быстрая проверка «это команда или свободный текст».
+- `intents._first_run_step()` — **удалён**.
+- `intents._extract_name`, `_looks_like_name`, `_parse_onboarding_answer`, `_apply_onboarding_parsed`, `_extract_fact` — **удалены**.
+- `first_run.py` — упрощён до `greeting()`, `is_first_run()`, `mark_done()`.
+- `brain.parse_onboarding()` — **удалён** (онбординг теперь через `onboarding_chat`).
+
+**Как работает:**
+1. При первом запуске `first_run.greeting()` — «Привет! Я Феникс, локальный голосовой помощник. Не хочешь немного поболтать? Расскажи — чем занимаешься, что нового?»
+2. Каждая фраза юзера (если не команда) идёт в `brain.onboarding_chat()`.
+3. LLM решает: что ответить, что сохранить, когда завершить.
+4. Принудительное завершение: если 6+ фраз от юзера — `mark_done()`.
+
+### Observer
+
+| № | Задача | Статус |
+|---|---|---|
+| — | `jarvis/observer.py` — фоновое извлечение фактов | ✅ |
+
+**Как работает:**
+- `observer.observe("user"/"assistant", text)` — добавляет сообщение в буфер.
+- Раз в 5 сек проверяет: если 6+ сообщений и 30+ сек с прошлого раза → отправляет историю в LLM.
+- LLM возвращает JSON: `{name, city, age, style, facts}`.
+- `_apply()` сохраняет в `profile` / `learning`, если поле пустое.
+- **Не блокирует** основной диалог.
+
+**Конфиг:** `observer_enabled: true`, `min_interval: 30.0`, `batch_size: 6`.
+
+### Фиксы
+
+| Баг | Как закрыт |
+|---|---|
+| `_small_talk` перехватывал всё | Убран для «привет», «как дела». Оставлены: время/дата/«кто ты». |
+| `CHAT_SYSTEM` — кракозябры | Заменён на русский в UTF-8 без BOM. |
+| BOM в `intents.py` | Сохранён UTF-8 без BOM. |
+| `test_intents.py small_talk_who` FAIL | Вернул «кто ты» в `_small_talk` для работы без LLM. |
+| `_onboarding_chat_step` отступы | Поправлены — выровнены с `_looks_like_command`. |
 
 ---
 
@@ -13734,7 +14150,6 @@ SOFTWARE.
 - №68 — «ютуб и …».
 - №69 — «потише на 10».
 - №70 — мусорный ввод.
-
 ---
 
 ## 🚧 ФАЗА 1 — НАШИ ФИЧИ (+ AIRI-концепции внутри)
@@ -13748,57 +14163,34 @@ SOFTWARE.
 **Проблема:** pystray требует свой Windows message loop, а главный поток занят Flet'ом.
 **Решение:** отдельный процесс `tray_runner.py` с обменом через файл-сигнал.
 
-### 🆕 Красивый установщик (Inno UI) (1) ⭐ СЛЕДУЮЩИЙ
+### 🆕 Красивый установщик (Inno UI) ✅
 
-| № | Задача | Время |
+| № | Задача | Статус |
 |---|---|---|
-| №146 | Inno Setup: кастомная тёмная тема, WizardImage, лого Феникса | 1–2 ч |
+| №146 | Inno Setup: `WizardStyle=modern`, `WizardImageFile`, лого | ✅ |
 
-**Что делаем:**
+**Реализовано:**
+- `scripts/make_installer_images.py` — генерация BMP из `jarvis/icon.ico`.
+- `installer_banner.bmp` (164×314) — вертикальный баннер.
+- `installer_small.bmp` (55×55) — иконка вверху справа.
+- `installer.iss`: `WizardStyle=modern`, `PrivilegesRequired=lowest`, `x64compatible`, `Excludes: "__pycache__,*.pyc"`.
 
-- `installer.iss` → `WizardStyle=modern`.
-- `WizardImageFile` — баннер с лого Феникса.
-- `WizardSmallImageFile` — маленькая иконка.
-- `DarkMode=1` (Inno Setup 6.3+).
-- Описание в `InfoBeforeFile`.
+### 🆕 Знакомство + Персона + Observer ✅
 
-**Что даёт:** установщик выглядит как у Kimi Desktop — тёмное окно, лого, прогресс-бар.
-
-**AIRI-концепция:** не касается.
-
-### 🆕 Знакомство + Персона (7) ⭐ AIRI-концепция сразу
-
-| № | Задача | Время |
+| № | Задача | Статус |
 |---|---|---|
-| З1 | Онбординг при первом запуске: «Как зовут? Что любишь? Стиль общения?» | 3 ч |
-| З2 | `profile.json` → `persona` (name, traits, speech_style, backstory) | 2 ч |
-| З3 | Динамический system prompt: базовая инструкция + persona + facts | 3 ч |
-| З4 | Команды: «поменяй стиль на строгий», «как ты ко мне обращаешься» | 2 ч |
-| З5 | Onboarding-флаг `onboarding_done` в профиле | 1 ч |
-| З6 | GUI: вкладка «Персона» в настройках | 3 ч |
-| З7 | Сброс персоны: «давай заново познакомимся» | 1 ч |
+| З1 | Онбординг через LLM-диалог | ✅ |
+| З2 | `persona.py` — стиль, черты, backstory | ✅ |
+| З3 | `persona.build_prompt_block()` → system prompt | ✅ |
+| З4 | Команды: «поменяй стиль на строгий» | ✅ |
+| З5 | `persona.onboarding_done` | ✅ |
+| З6 | GUI-вкладка «Персона» | ✅ |
+| З7 | Сброс: «давай заново познакомимся» | ✅ |
+| — | `observer.py` — фоновое извлечение фактов | ✅ |
 
-**Итого:** ~4–5 дней.
+**Стили:** `formal` / `friendly` / `sarcastic` / `brief`.
 
-**AIRI-концепция:** Persona — сразу, потому что Знакомство без персоны — половина фичи.
-
-**Что делаем:**
-
-- В `profile.json`:
-
-~~~json
-{
-  "persona_name": "Феникс",
-  "traits": ["саркастичный", "заботливый"],
-  "speech_style": "неформальный, с шутками",
-  "backstory": "..."
-}
-~~~
-
-- System prompt собирается из: базовая инструкция + persona + facts + memory.
-- Onboarding при первом запуске — голосом и через GUI.
-
-### 🆕 Mood (3) ⭐ AIRI-концепция отдельно
+### 🆕 Mood (3) ⭐ AIRI-концепция ⭐ СЛЕДУЮЩИЙ
 
 | № | Задача | Время |
 |---|---|---|
@@ -14244,17 +14636,21 @@ Callback → Феникс озвучивает
 
 ## 🎯 ПОРЯДОК РАБОТЫ — ФАЗА 1
 
-### ЭТАП 1.7 — Inno UI (1–2 ч) ⭐ СЛЕДУЮЩИЙ
+### ЭТАП 1.6 — UI/UX ✅ (трей отложен)
 
-№146. **Не касается AIRI.** Делаем как есть.
+№108 — ⏸.
 
-### ЭТАП 1.8 — Знакомство + Персона (4–5 дн) ⭐ AIRI
+### ЭТАП 1.7 — Inno UI ✅
 
-З1–З7. Persona сразу.
+№146. **Сделано.**
 
-### ЭТАП 1.9 — Mood (1–2 дн) ⭐ AIRI
+### ЭТАП 1.8 — Знакомство + Персона + Observer ✅
 
-№152–154. Отдельно, но сразу после Знакомства.
+З1–З7. **Сделано.**
+
+### ЭТАП 1.9 — Mood ⭐ СЛЕДУЮЩИЙ
+
+№152–154. Отдельно, но сразу после Знакомства. **~1–2 дня.**
 
 ### ЭТАП 1.10 — UIA (13–19 ч)
 
@@ -14306,10 +14702,10 @@ Callback → Феникс озвучивает
 
 | Этап | Прогресс |
 |---|---|
-| **ФАЗА 1 — Наши фичи** | 🚧 30% |
+| **ФАЗА 1 — Наши фичи** | 🚧 45% |
 | Этап 1.6 — UI/UX | ✅ 90% (трей отложен) |
-| Этап 1.7 — Inno UI | ❌ 0% |
-| Этап 1.8 — Знакомство + Персона | ❌ 0% |
+| Этап 1.7 — Inno UI | ✅ 100% |
+| Этап 1.8 — Знакомство + Персона + Observer | ✅ 100% |
 | Этап 1.9 — Mood | ❌ 0% |
 | Этап 1.10 — UIA | ❌ 0% |
 | Этап 1.11 — Silero TTS | ❌ 0% |
@@ -14340,6 +14736,8 @@ Callback → Феникс озвучивает
 11. **ChromaDB + sentence-transformers** — ~500 МБ. Тоже в `.exe` не влезет.
 12. **PyInstaller ступень 2** — `.exe` ~2.5 ГБ. Может не собраться с первого раза.
 13. **MCP в Hermes** — Qwen 7b/14b слабо тянет tool calling. Нужна 32b+ или облако.
+14. **`CHAT_SYSTEM` и BOM** — правки **только в VS Code**. Терминал портит кодировку.
+15. **Онбординг через LLM** — требует Ollama. Без LLM — fallback: `mark_done()` молча.
 
 ---
 
@@ -14355,6 +14753,8 @@ Callback → Феникс озвучивает
 8. **AIRI-концепция интегрируется в фичу, только если без неё фича неполная.**
 9. **Hermes — отдельно, не пушить.** `hermes/` в `.gitignore`.
 10. **MCP — только в Hermes, не в Фениксе.**
+11. **Правки — только в VS Code.** Терминал портит кодировку/BOM.
+12. **UTF-8 без BOM.** `files.encoding: utf8`, `files.autoGuessEncoding: false`.
 
 ---
 
@@ -14375,238 +14775,65 @@ Callback → Феникс озвучивает
 ### `PROMPT.md`
 
 ```markdown
-# 🤖 ПРОМПТ для LLM — «Феникс»
+# 🗺 ПЛАН РАЗВИТИЯ — «Феникс»
 
-> Самодостаточный промпт. Копируй целиком в новый чат, если текущий переполнен.
-
----
-
-## 🎯 Контекст
-
-**«Феникс»** — локальный голосовой ассистент для Windows.
-Форк `jsays12/jarvis`. Коммиты до июня 2026 — от оригинала, с октября 2026 — мои.
-
-**Стек:**
-- **Python 3.11** (только `.venv311`) — Vosk не работает на 3.13/3.14
-- **Vosk** (wake) + **faster-whisper** (расшифровка)
-- **Piper** / **XTTS** / **WinRT** (TTS)
-- **Ollama** (LLM: qwen2.5, gemma2, llama3.1, mistral)
-- **Flet 1.0.3** (GUI)
-- **PyInstaller** (`Феникс.exe`)
-- **Inno Setup** (установщик)
-- **UIA** (`uiautomation`) — в планах (Этап 1.10)
-- **VLM** (через Ollama) — в планах (Этап 10)
-
-**Репозиторий:** `C:\jarvis`
-**GitHub:** `https://github.com/BobLoTiK/jarvis-fenix`
-**Лицензия:** MIT + attribution jsays12.
-
-**Два корня путей:**
-- `C:\ProgramData\Phoenix\` — **ASCII**, модели (Vosk, Whisper).
-- `%APPDATA%\Phoenix\` — **личные данные** (config, profiles, logs, tasks, timers).
-
-**Почему:** Vosk (C++ Kaldi) **ломается** на не-ASCII путях. См. `jarvis/paths.py`.
+> Локальный голосовой ассистент для Windows.
+> Форк [`jsays12/jarvis`](https://github.com/jsays12/jarvis) → [`BobLoTiK/jarvis-fenix`](https://github.com/BobLoTiK/jarvis-fenix).
+> Лицензия: MIT + attribution.
 
 ---
 
-## 🎭 Как со мной работать
+## 📑 Содержание
 
-**Обращение:** «брат».
-
-**Стиль:** кратко, без воды, с юмором. Русский.
-
-**Формат:**
-- **Команды** — в `bat`-блоках.
-- **Код** — в `python`-блоках, целиком или точечные патчи.
-- **Патч** — с точным маркером: «найди X, замени на Y».
-- **Полные файлы** — в Markdown-блоках с языком.
-- **Плотно.** Не разжёвывать очевидное.
-- **Не переписывать то, что не менялось.**
-- **Порядок файлов в документации:** сначала `PLAN.md`, потом `PROMPT.md`, потом остальные.
-
-**Запрещено:**
-- **Костыли.** Если решение «работает, но грязно» — это не решение.
-- **Хардкод.** Всё через `config.json` и `Config`.
-- **Прямая запись/чтение `config.json`.** Только `Config.set()`/`config.get()`.
-- **Глобальное состояние.** Кроме `Config._GLOBAL`.
-- **Словари синонимов в коде** для городов/валют/паков — задача LLM.
-- **Хардкод путей** — только `jarvis/paths.py`.
-- **Python 3.13/3.14** — Vosk падает.
-- **Коммитить** `.venv311`, `config.json`, `profiles/`, `system_caps.json`, `timers.json`, `tasks.json`, `models/`, `voices/`, `dist/`, `build/`.
-- **Дёргать Vosk API из главного потока.** Vosk **не thread-safe**. Всё, что вызывает `Model`, `KaldiRecognizer`, `Reset()`, `AcceptWaveform()` — **только в listener-потоке**.
-- **`prevent_close` + `on_event`** в Flet 1.0.3 — не работает, ломает крестик.
-- **Ставить `HF_HOME` глобально** — Piper качает в degraded mode. Ставить временно, сбрасывать.
-- **Удалять attribution `jsays12`** из `LICENSE`, `README.md`, `CHANGELOG.md`.
-- **Упоминать личные данные** (имя, город, CPU, GPU, ОС) в публичных файлах.
-
-**Поощряется:**
-- **`Config.subscribe`** для реакции на изменения.
-- **Разделение ответственности.**
-- **Тесты** — `pytest` + `test_intents.py`.
-- **Логи** — `actions.log`.
-- **Реестр `_fast_handlers()`** — новые быстрые правила туда.
+- [🎯 Философия](#-философия)
+- [📊 Статус](#-статус)
+- [🚀 Этапы](#-этапы)
+  - [Этап 1 — Баги](#этап-1--баги-)
+  - [Этап 1.5 — Документация](#этап-15--документация-)
+  - [Этап 1.6 — UI/UX](#этап-16--uiux-)
+  - [Этап 1.7 — Установщик](#этап-17--установщик-)
+  - [Этап 1.8 — Знакомство + Персона + Observer](#этап-18--знакомство--персона--observer-)
+  - [Этап 1.9 — Mood](#этап-19--mood-)
+  - [Этап 1.10 — UIA](#этап-110--uia-)
+  - [Этап 1.11 — Silero TTS](#этап-111--silero-tts-)
+  - [Этап 1.12 — VAD](#этап-112--vad-)
+  - [Этап 2 — Облако](#этап-2--облако-)
+  - [Этап 3 — Управление приложениями](#этап-3--управление-приложениями-)
+  - [Этап 4 — Vector memory](#этап-4--vector-memory-)
+  - [Этап 5 — MCP](#этап-5--mcp-)
+  - [Этап 6 — Telegram + веб](#этап-6--telegram--веб-)
+  - [Этап 7 — Визуализация + Спрайт](#этап-7--визуализация--спрайт-)
+  - [Этап 8 — PyInstaller + CI + VLM + Hermes](#этап-8--pyinstaller--ci--vlm--hermes-)
+- [💤 Долгий ящик](#-долгий-ящик)
+- [📎 Ссылки](#-ссылки)
 
 ---
 
-## 🚨 Ошибки, которые я уже делал (не повторяю)
+## 🎯 Философия
 
-1. **Дробил файл на куски** без указания, куда вставлять. → **Целиком** или **точный маркер**.
-2. **`prevent_close` + `on_event`** в Flet 1.0.3 — крестик ломается. → Не использовать.
-3. **`HF_HOME` глобально** — Piper в degraded mode. → Временно, сбрасывать.
-4. **Забыл `sys.stdout is None`** под `pythonw`. → Всегда проверять.
-5. **`wait_end` на не-стартовавшем потоке** — `RuntimeError`. → Проверка `is_alive()`.
-6. **`subprocess.Popen` для трея** — `main()` зависал. → Не пихать трей через Popen.
-7. **`strip_cjk_chunk` не создал** — `ImportError`. → Проверять экспорт.
-8. **Не исключил `profiles/` из `snapshot.py`** — личные данные. → Исключать.
-9. **`chat_stream` терял чанк** — `append` до проверки токена. → Не забывать.
-10. **Патч без точного маркера.** → Всегда «найди X».
-11. **`text`/`markdown` внутри код-блока** — мешает копипасте.
-12. **Обрезал diff** — ты не видишь изменений.
-13. **Порядок файлов** — сначала `PLAN.md`, потом `PROMPT.md`.
-14. **Не смотрел логи** — гадал. → Сначала лог, потом фикс.
-15. **`flush()` из главного потока** — `libvosk.dll` падал с `0xc0000015`. → Vosk только из listener-потока.
-16. **Zip Slip** при распаковке Vosk — не было проверки пути. → Проверять `is_relative_to`.
-17. **Мьютекс `Global\`** — требует админа. → `Local\`.
-18. **Pack-команды** (`shutdown /s /t 10`) шли в `os.startfile`. → `shlex.split` + subprocess.
-19. **`timers.py`/`tasks.py` писали в `BASE_DIR`.** → `paths.user_dir()`.
-20. **`memory.append` не атомарный.** → `mkstemp` + `os.replace`.
-21. **`config_manager` дефолт — `BASE_DIR`.** → `paths.config_path()`.
-22. **`_profile_fast` regex** — «я хочу спать» создавал профиль. → Тире обязательно.
-23. **`say()` падал при `listener=None`.** → Guard.
-24. **GUI ↔ голос — гонка.** → `cmd_lock` в Jarvis.
-25. **`recorder.stop()`** — `unhook_all()` безусловно. → Только если шла запись.
-26. **`launcher.py`** — мёртвый код после `return`. → Удалять.
-27. **`install.bat`** — ссылки на несуществующие `.bat`. → Проверять.
-28. **`weather.py` UA** — версия устарела. → Из `__version__`.
-29. **`set_llm_model.py`** — путь и неатомарность. → `paths` + `config_manager`.
-30. **`start_fenix.bat`** — хардкод `C:\jarvis`. → `%~dp0`.
-31. **`tts.py`** падал на невидимом тексте (`\u200b`). → Пропускать невидимые.
+**«Феникс»** — приватный голосовой ассистент. Всё локально, без облака по умолчанию.
+Никаких костылей, хардкода и глобального состояния. Только `Config`, только `paths.py`, только VS Code.
+
+**Принципы:**
+
+| Принцип | Правило |
+|---|---|
+| 🔒 Приватность | Личные данные — в `%APPDATA%\Phoenix\` |
+| 🧩 Модульность | Один модуль — одна ответственность |
+| ⚙️ Конфигурируемость | Всё через `config.json` + `Config.set()` |
+| 🧠 LLM-first | Нормализация, разбор, диалог — задача LLM |
+| 🚫 Без костылей | «Работает, но грязно» = не работает |
+| 🧪 Тесты | `pytest` + `test_intents.py` после правок |
+| 📝 Логи | `jarvis.log`, `actions.log`, `errors.log` |
 
 ---
 
-## 🗂 Пути (главное правило)
-
-**Всё, что читает Vosk** — только в `PROGRAM_DIR` (ASCII):
-- `paths.program_models_dir()` → `C:\ProgramData\Phoenix\models\`
-- `paths.program_whisper_cache_dir()` → `C:\ProgramData\Phoenix\whisper-cache\`
-
-**Личные данные** — в `USER_DIR`:
-- `paths.config_path()` → `%APPDATA%\Phoenix\config.json`
-- `paths.logs_dir()` → `%APPDATA%\Phoenix\logs\`
-- `paths.profiles_dir()` → `%APPDATA%\Phoenix\profiles\`
-
-**HF_HOME для Whisper** — временно, сброс после.
-
----
-
-## 🏗 Архитектура (кратко)
-
-### Модули
-
-```
-jarvis/
-├── main.py           — Jarvis, barge-in, cmd_lock
-├── config.py         — Config в памяти + подписки
-├── config_manager.py — атомарная запись (FileLock per-path)
-├── paths.py          — PROGRAM_DIR / USER_DIR
-├── brain.py          — Ollama: parse() / chat_stream()
-├── intents.py        — IntentHandler + _fast_handlers()
-├── reply.py          — Reply (text | stream)
-├── gui.py            — Flet GUI + PALETTES + fireworks
-├── history.py        — стек отмены
-├── stt.py            — Vosk + Whisper + HF_HOME временно
-├── tts.py            — Piper / XTTS / WinRT / SAPI
-├── modes.py          — commands / llm / combo
-├── voices.py         — голоса Piper
-├── packs.py          — паки
-├── profile.py        — profiles/<user>/
-├── memory.py         — dialog.json (атомарно)
-├── learning.py       — факты + коррекции
-├── weather.py        — погода/курс + TTL
-├── timers.py         — напоминания (USER_DIR)
-├── tasks.py          — задачи (USER_DIR)
-├── actions.py        — окна, медиа, _looks_like_cmd
-├── text_utils.py     — normalize, strip_cjk, prepare_text
-├── celebrations.py   — поздравление с ДР
-├── files.py          — папки
-├── apps.py           — каталог приложений
-├── installed.py      — индекс «Пуск»
-├── steam.py          — индекс Steam
-├── matching.py       — нечёткое сравнение
-├── model.py          — загрузка Vosk
-├── recorder.py       — макросы
-├── uia.py            — в планах (Этап 1.10)
-├── vision.py         — в планах (Этап 10)
-├── hermes.py         — в планах (Этап 11)
-├── resources.py      — в планах (Этап 12)
-└── tray.py           — отключён
-```
-
-### Поток обработки
-
-```
-Микрофон → Vosk (wake) → Whisper → Jarvis._process
-   → IntentHandler.handle(cmd)   ← normalize(cmd)
-      → CANCEL / memory / pending / буфер / режимы
-      → custom / small_talk / скриншот / celebrations
-      → _split_compound
-      → ⚡ РЕЕСТР _fast_handlers()
-      → brain.parse → _execute_intent
-      → brain.chat_stream() → генератор
-   → Reply (text | stream)
-   → Jarvis.say(reply) ← cmd_lock
-```
-
-### GUI
-
-```
-Flet главный поток
-   ├── NavigationRail: Главная / Микрофон / Настройки
-   ├── Кеш _tabs
-   ├── page.run_task(_process_queue)
-   └── page.run_task(_mic_level_loop)
-
-Jarvis фоновый поток
-   ├── listener.phrases()
-   └── handler.handle() + say() ← cmd_lock
-```
-
-**Связь:** `queue.Queue()`.
-
-### Реестр обработчиков
-
-**`IntentHandler._fast_handlers()`** — список `(имя, функция)`.
-Порядок = приоритет. `open_profile` выше `open`.
-
----
-
-## 📋 Режимы работы
-
-### 🏠 Local
-- LLM: Qwen через Ollama.
-- STT: Vosk + Whisper small CPU.
-- TTS: Piper medium.
-- Погода: кэш 24 ч.
-
-### 🌐 Hybrid
-- LLM: Qwen 14b/32b.
-- STT: Whisper large-v3-turbo на GPU.
-- TTS: Piper.
-
-### ☁️ Cloud — 🚧 в планах
-Ф1–Ф13.
-
-### 💎 Premium — ⏸
-Ф14–Ф19.
-
----
-
-## 📊 ТЕКУЩИЙ СТАТУС
+## 📊 Статус
 
 ### ✅ Закрыто
 
 | Категория | Всего | ✅ |
-|---|---|---|
+|---|---:|---:|
 | 🔴 Критичные | 8 | 8 |
 | 🟡 Серьёзные | 7 | 7 |
 | 🟢 Мелкие | 8 | 8 |
@@ -14617,125 +14844,269 @@ Jarvis фоновый поток
 | 🆕 Дизайн | 1 | 1 |
 | 🆕 Unicode | 2 | 2 |
 | 🆕 Автолаунчер | 1 | 1 |
-| 🆕 Установщик | 1 | 1 |
+| 🆕 Установщик (v1) | 1 | 1 |
 | 🆕 Релиз v1.0.0 | 1 | 1 |
 | 🆕 Поздравление | 1 | 1 |
-| 🆕 Аудит Kimi | 23 | 23 |
-
-**Ключевое:**
-- №67 — многослойные команды.
-- №99–107 — Unicode, автолаунчер, Vosk-краш.
-- K1–K23 — аудит Kimi (18 багов + 5 мелких).
+| 🆕 Аудит Kimi | 25 | 25 |
+| 🆕 Inno UI | 1 | 1 |
+| 🆕 Знакомство через LLM-диалог | 1 | 1 |
+| 🆕 Персона + стиль | 1 | 1 |
+| 🆕 Observer | 1 | 1 |
 
 ### 🚧 Осталось
 
-- №75, №77 — архитектура.
-- №85 — отмена ⏸.
-- №86 — wake 🧪.
-- №108 — трей ⏸.
-- №146 — Inno UI (1–2 ч).
-- №147–148 — PyInstaller (20–30 ч).
-- №121 — GitHub Actions (4–6 ч).
-- №123 — тест на виртуалке.
-- З1–З7, К1–К12, №109–120, №45–61, Ф1–Ф19.
+| № | Задача | Статус |
+|---|---|---|
+| №75, №77 | Архитектура | 🚧 |
+| №85 | Отмена | ⏸ |
+| №86 | Wake | 🧪 |
+| №108 | Трей | ⏸ |
+| №147–148 | PyInstaller (20–30 ч) | ⏸ |
+| №121 | GitHub Actions (4–6 ч) | ⏸ |
+| №123 | Тест на виртуалке | ⏸ |
 
 ---
 
-## 🎯 ПОРЯДОК РАБОТЫ
+## 🚀 Этапы
 
-1. Этап 1 — Баги — ✅
-2. Этап 1.5 — Документация — 🚧
-3. Этап 1.6 — UI/UX — ✅
-4. **Этап 1.7 — Красивый установщик** — ❌
-5. Этап 1.8 — Знакомство — ❌
-6. Этап 1.9 — Мои команды — ❌
-7. Этап 1.10 — UIA — ❌
-8. Этап 2 — Облако — ❌
-9. Этап 3 — Управление — ❌
-10. Этап 4 — Persistent memory — ❌
-11. Этап 5 — MCP — ❌
-12. Этап 6 — Telegram — ❌
-13. Этап 7 — Визуализация — ❌
-14. Этап 8 — PyInstaller — ⏸
-15. Этап 9 — CI — ❌
-16. Этап 10 — VLM — ⏸
-17. Этап 11 — Hermes — ⏸
-18. Этап 12 — Приоритеты — ⏸
-19. Этап 13 — Очередь — ⏸
-20. Этап 14 — Платное — ⏸
-21. 💤 Долгий ящик
+### Этап 1 — Баги ✅
+
+**Цель:** стабильное ядро без падений и регрессий.
+
+- [x] Все критичные баги (8/8)
+- [x] Все серьёзные баги (7/7)
+- [x] Все мелкие баги (8/8)
+- [x] Аудит Kimi — 25/25
+- [x] Фикс `test_intents.py` — «кто ты» без LLM
+
+**Итог:** ядро стабильно, ассистент запускается и работает.
 
 ---
 
-## 🎯 КЛЮЧЕВЫЕ ПРАВИЛА
+### Этап 1.5 — Документация 🚧
 
-### Код
-1. `Config` — источник истины.
-2. Не плоди `_atomic_write`. `config_manager.save()`.
-3. Не плоди глобальное состояние.
-4. Нормализация — задача LLM.
-5. `test_intents.py` — после правок.
-6. `normalize(cmd)` в `handle()`.
-7. Per-call stop-token в `tts.py`.
-8. `PALETTES` в `gui.py`.
-9. `ft.Button` вместо `ElevatedButton`.
-10. `ft.BoxShadow` без `blur_style`.
-11. Реестр `_fast_handlers()`.
-12. `open_profile` выше `open`.
-13. `set_profile` / `get_profile` через LLM.
-14. Активация окон — `win32gui` + `AttachThreadInput`.
-15. Пути — только `jarvis/paths.py`.
-16. Модели Vosk/Whisper — только `PROGRAM_DIR` (ASCII).
-17. `HF_HOME` для Whisper — временно.
-18. Vosk API — только из listener-потока.
-19. UIA — через `uiautomation`.
-20. Pack-команды с аргументами — через `_looks_like_cmd` + `shlex`.
-21. Атомарная запись везде: `mkstemp` + `os.replace`.
-22. Zip Slip защита при распаковке.
+**Цель:** понятный репозиторий для себя и для форка.
 
-### GUI
-1. Flet — главный поток.
-2. Связь через `queue.Queue()`.
-3. Разделы — `_tabs`.
-4. Тема — `theme_mode` + `PALETTES`.
-5. `launch_mode` — `"gui"` / `"tray"`.
-6. `_rebuild_ui_for_theme` сохраняет историю.
-7. Не использовать `prevent_close` + `on_event`.
+- [x] `PROMPT.md`
+- [x] `PLAN.md`
+- [ ] `ARCHITECTURE.md`
+- [ ] `CHANGELOG.md`
+- [ ] `README.md` — актуализация
+- [ ] `CONTRIBUTING.md`
 
-### Безопасность
-1. Личные данные — только `config.json`, `profiles/`, `system_caps.json`.
-2. Все — в `.gitignore`.
-3. `config.example.json` — только дефолты.
-4. Пароль — SHA-256.
-
-### Окружение
-1. Python 3.10–3.12.
-2. `.venv311` — обязательный.
-3. `snapshot.py` — исключать `.venv311` и `profiles/`.
-
-### Git
-1. `.gitignore` — `.venv311`, `config.json`, `profiles/`, `logs/`, `system_caps.json`, `models/`, `voices/`, `dist/`, `build/`.
-2. `LICENSE` — не удалять attribution.
+**Порядок файлов в документации:** `PLAN.md` → `PROMPT.md` → остальные.
 
 ---
 
-## 🛠 Как чинить баги
+### Этап 1.6 — UI/UX ✅
 
-1. Лог: `%APPDATA%\Phoenix\logs\` — `jarvis.log`, `actions.log`, `errors.log`.
-2. Event Viewer: `eventvwr.msc` → Application/System.
-3. Воспроизвести.
-4. Локализовать.
-5. Фикс без костылей.
-6. Тесты: `check_syntax.py` + `pytest` + `test_intents.py`.
-7. Коммит: `fix: <краткое>`.
+**Цель:** красивый и понятный интерфейс.
+
+- [x] Flet 1.0.3 — `NavigationRail`, `_tabs`
+- [x] `PALETTES` — светлая/тёмная тема
+- [x] `_rebuild_ui_for_theme` — сохраняет историю
+- [x] Fireworks
+- [x] `ft.Button` вместо `ElevatedButton`
+- [x] `ft.BoxShadow` без `blur_style`
+- [x] Кеш разделов
 
 ---
 
-## 📎 БЫСТРЫЕ ССЫЛКИ
+### Этап 1.7 — Установщик ✅
+
+**Цель:** установка в один клик, без прав администратора.
+
+- [x] Inno Setup
+- [x] `WizardStyle=modern`
+- [x] `WizardImageFile`, `WizardSmallImageFile`
+- [x] `PrivilegesRequired=lowest`
+- [x] `start_fenix.bat` — `%~dp0`
+- [x] Автолаунчер
+- [x] `install.bat` — проверка ссылок
+
+---
+
+### Этап 1.8 — Знакомство + Персона + Observer ✅
+
+**Цель:** ассистент знает пользователя и общается в его стиле.
+
+- [x] `first_run.py` — greeting + `is_first_run` + `mark_done`
+- [x] Онбординг через LLM-диалог — `brain.onboarding_chat()`
+- [x] `_onboarding_chat_step()` + `_looks_like_command()`
+- [x] `persona.py` — стили `formal` / `friendly` / `sarcastic` / `brief`
+- [x] `build_prompt_block()` → `_system_with_context()`
+- [x] `observer.py` — фоновое извлечение фактов через LLM
+- [x] `observer.observe("user"/"assistant", text)`
+- [x] Раз в 5 сек, порог 6+ сообщений, 30+ сек с прошлого раза
+- [x] `_small_talk` — только время/дата/«кто ты»
+
+---
+
+### Этап 1.9 — Mood ❌
+
+**Цель:** ассистент понимает эмоциональный контекст и реагирует соответственно.
+
+- [ ] `jarvis/mood.py` — детекция тона (LLM + эвристики)
+- [ ] `Config.subscribe("mood")` — реакция на изменения
+- [ ] Влияние на TTS (скорость, pitch) через Piper
+- [ ] Влияние на persona — стиль ответа
+- [ ] Логирование переходов настроения
+- [ ] Тесты `test_mood.py`
+
+**Приоритет:** 🔥 следующий.
+
+---
+
+### Этап 1.10 — UIA ❌
+
+**Цель:** ассистент видит окна и элементы интерфейса.
+
+- [ ] `jarvis/uia.py` — обёртка над `uiautomation`
+- [ ] Дерево элементов активного окна
+- [ ] Клик по элементу по имени
+- [ ] Ввод текста в поле
+- [ ] Скриншот элемента
+- [ ] Интеграция с `_fast_handlers()`
+- [ ] Тесты
+
+**Зависимости:** `uiautomation`.
+
+---
+
+### Этап 1.11 — Silero TTS ❌
+
+**Цель:** качественный русский голос без облака.
+
+- [ ] Интеграция Silero TTS
+- [ ] Выбор голоса через `Config`
+- [ ] Fallback на Piper
+- [ ] Сравнение latency Piper vs Silero
+- [ ] Тесты
+
+---
+
+### Этап 1.12 — VAD ❌
+
+**Цель:** ассистент не реагирует на тишину и шум.
+
+- [ ] VAD (Silero VAD или webrtcvad)
+- [ ] Отсечение тишины до Whisper
+- [ ] Экономия CPU/GPU
+- [ ] Настройка порога через `Config`
+- [ ] Тесты
+
+---
+
+### Этап 2 — Облако ❌
+
+**Цель:** гибридный режим — локально + облако.
+
+- [ ] Режим `cloud` в `modes.py`
+- [ ] Провайдеры: OpenAI, Anthropic, Google
+- [ ] Роутинг запросов: local → cloud
+- [ ] Ключи через `Config` (зашифрованы)
+- [ ] Fallback local при недоступности
+- [ ] UI для выбора режима
+- [ ] Тесты
+
+---
+
+### Этап 3 — Управление приложениями ❌
+
+**Цель:** ассистент управляет программами, а не только открывает.
+
+- [ ] Закрытие приложений по имени
+- [ ] Переключение между окнами
+- [ ] Управление медиа (play/pause/next)
+- [ ] Громкость системы
+- [ ] `_looks_like_cmd` + `shlex.split`
+- [ ] Тесты
+
+---
+
+### Этап 4 — Vector memory ❌
+
+**Цель:** долговременная память с семантическим поиском.
+
+- [ ] Векторная БД (Chroma / Qdrant / FAISS)
+- [ ] Эмбеддинги через Ollama
+- [ ] Замена `memory.py` на векторную
+- [ ] Семантический поиск фактов
+- [ ] Миграция `dialog.json`
+- [ ] Тесты
+
+---
+
+### Этап 5 — MCP ❌
+
+**Цель:** заготовки под Model Context Protocol.
+
+- [ ] `jarvis/mcp/` — клиент
+- [ ] Реестр инструментов
+- [ ] Регистрация своих tools
+- [ ] Тестовый сервер
+- [ ] Документация
+
+---
+
+### Этап 6 — Telegram + веб ❌
+
+**Цель:** управление ассистентом удалённо.
+
+- [ ] Telegram-бот
+- [ ] Веб-интерфейс (Flet web)
+- [ ] Авторизация
+- [ ] Синхронизация с локальным `Config`
+- [ ] Уведомления
+- [ ] Тесты
+
+---
+
+### Этап 7 — Визуализация + Спрайт ❌
+
+**Цель:** визуальный образ ассистента.
+
+- [ ] Спрайт-анимация в GUI
+- [ ] Реакция на голос (амплитуда)
+- [ ] Реакция на mood
+- [ ] Кастомизация через `Config`
+- [ ] Тесты
+
+---
+
+### Этап 8 — PyInstaller + CI + VLM + Hermes ⏸
+
+**Цель:** релиз, автоматизация, зрение, интеграции.
+
+- [ ] PyInstaller — `Феникс.exe` (20–30 ч)
+- [ ] GitHub Actions — CI (4–6 ч)
+- [ ] Тест на виртуалке
+- [ ] VLM через Ollama — `vision.py`
+- [ ] Hermes — `hermes.py`
+- [ ] Resources — `resources.py`
+
+---
+
+## 💤 Долгий ящик
+
+### Фаза 2
+
+- [ ] Мобильное приложение
+- [ ] Умный дом (MQTT)
+- [ ] Кастомные навыки через плагины
+- [ ] Мультиязычность
+- [ ] Синхронизация между устройствами
+- [ ] Голосовые профили (несколько пользователей)
+
+---
+
+## 📎 Ссылки
 
 | Что | Где |
 |---|---|
-| План | `PLAN.md` |
+| Репозиторий | `C:\jarvis` |
+| GitHub | https://github.com/BobLoTiK/jarvis-fenix |
+| Промпт | `PROMPT.md` |
 | Архитектура | `ARCHITECTURE.md` |
 | Changelog | `CHANGELOG.md` |
 | README | `README.md` |
@@ -14744,7 +15115,6 @@ Jarvis фоновый поток
 | Логи (installed) | `%APPDATA%\Phoenix\logs\` |
 | Модели | `C:\ProgramData\Phoenix\models\` |
 | Конфиг | `%APPDATA%\Phoenix\config.json` |
-| GitHub | `https://github.com/BobLoTiK/jarvis-fenix` |
 
 ---
 
@@ -14754,117 +15124,131 @@ Jarvis фоновый поток
 ### `README.md`
 
 ```markdown
-# Феникс
+# 🦅 Феникс
 
 [![tests](https://github.com/BobLoTiK/jarvis-fenix/actions/workflows/test.yml/badge.svg)](https://github.com/BobLoTiK/jarvis-fenix/actions/workflows/test.yml)
 [![Release](https://img.shields.io/github/v/release/BobLoTiK/jarvis-fenix)](https://github.com/BobLoTiK/jarvis-fenix/releases)
 
-Локальный голосовой ассистент для Windows. Форк проекта
-[jsays12/jarvis](https://github.com/jsays12/jarvis).
+> Локальный голосовой ассистент для Windows. Форк проекта
+> [jsays12/jarvis](https://github.com/jsays12/jarvis).
 
-Офлайн для распознавания и синтеза речи (Vosk + Whisper + Piper).
-Онлайн — только для погоды и курса валют (с кэшем). Опционально —
-Qwen 2.5 через Ollama для свободного диалога и разбора сложных фраз.
-
----
-
-## Содержание
-
-- [Что добавлено в форке](#что-добавлено-в-форке)
-- [Требования](#требования)
-- [Установка](#установка)
-- [Первый запуск](#первый-запуск)
-- [Возможные проблемы](#возможные-проблемы)
-- [GUI (Flet)](#gui-flet)
-- [Режимы работы](#режимы-работы)
-- [Настройка LLM (Ollama)](#настройка-llm-ollama)
-- [Паки команд](#паки-команд)
-- [Мультипрофиль](#мультипрофиль)
-- [Память диалога](#память-диалога)
-- [Отмена действий](#отмена-действий)
-- [Пароль на опасные](#пароль-на-опасные)
-- [Голоса](#голоса)
-- [Barge-in (перебивание)](#barge-in-перебивание)
-- [Микрофон](#микрофон)
-- [Темы GUI](#темы-gui)
-- [Поздравление с ДР](#поздравление-с-др)
-- [Логи](#логи)
-- [Погода и курс валют](#погода-и-курс-валют)
-- [Команды](#команды)
-- [Свои команды](#свои-команды)
-- [Сборка `.exe` и установщик](#сборка-exe-и-установщик)
-- [Автозапуск](#автозапуск)
-- [Инструменты разработчика](#инструменты-разработчика)
-- [CI](#ci)
-- [Что в планах](#что-в-планах)
-- [Технологии](#технологии)
-- [Лицензия](#лицензия)
+**Офлайн** для распознавания и синтеза речи (**Vosk** + **Whisper** + **Piper**).
+**Онлайн** — только для погоды и курса валют (с кэшем).
+**Опционально** — Qwen 2.5 через Ollama для свободного диалога и разбора сложных фраз.
 
 ---
 
-## Что добавлено в форке
+## 📑 Содержание
 
-### Этап 0: рефакторинг
+- [🆕 Что добавлено в форке](#-что-добавлено-в-форке)
+- [💻 Требования](#-требования)
+- [📥 Установка](#-установка)
+- [🚀 Первый запуск](#-первый-запуск)
+- [🎓 Знакомство](#-знакомство-первый-диалог)
+- [🎭 Персона и стиль](#-персона-и-стиль-общения)
+- [👁 Observer](#-observer-фоновое-обучение)
+- [⚠️ Возможные проблемы](#️-возможные-проблемы)
+- [🖼 GUI](#-gui-flet)
+- [⚙️ Режимы работы](#️-режимы-работы)
+- [🧠 Настройка LLM](#-настройка-llm-ollama)
+- [📦 Паки команд](#-паки-команд)
+- [👥 Мультипрофиль](#-мультипрофиль)
+- [💭 Память диалога](#-память-диалога)
+- [↩️ Отмена действий](#️-отмена-действий)
+- [🔒 Пароль на опасные](#-пароль-на-опасные)
+- [🎙 Голоса](#-голоса)
+- [✋ Barge-in](#-barge-in-перебивание)
+- [🎤 Микрофон](#-микрофон)
+- [🎨 Темы GUI](#-темы-gui)
+- [🎉 Поздравление с ДР](#-поздравление-с-др)
+- [📝 Логи](#-логи)
+- [🌤 Погода и курс](#-погода-и-курс-валют)
+- [🗣 Команды](#-команды)
+- [🛠 Свои команды](#-свои-команды)
+- [📦 Сборка `.exe`](#-сборка-exe-и-установщик)
+- [🔄 Автозапуск](#-автозапуск)
+- [🧰 Инструменты разработчика](#-инструменты-разработчика)
+- [🔁 CI](#-ci)
+- [🗺 Что в планах](#-что-в-планах)
+- [🛠 Технологии](#-технологии)
+- [📜 Лицензия](#-лицензия)
+
+---
+
+## 🆕 Что добавлено в форке
+
+### 🧱 Этап 0 — рефакторинг
+
 - Единый `config_manager.py` — `FileLock per-path`, `mkstemp`, `os.replace`.
 - Объект `Config` в памяти — подписки.
 - Калибровка Barge-in.
 - CJK-фильтр.
 - Тесты — `test_intents.py` + `pytest`.
 
-### Этап 1: команды
+### 🗣 Этап 1 — команды
+
 - Голосовые режимы.
 - Паки команд.
 - Запись действий, память диалога, голоса Piper.
 
-### Этап 2: живой диалог
+### 💬 Этап 2 — живой диалог
+
 - Streaming TTS.
 - Barge-in.
 - Логи по категориям.
 - Буфер обмена.
 - Погода/курс + настраиваемый TTL.
 
-### Этап 3: Reply + CI
+### 📨 Этап 3 — Reply + CI
+
 - `jarvis/reply.py`.
 - Быстрые правила без LLM.
 - GitHub Actions.
 
-### Этап 4: системные команды
+### 🖥 Этап 4 — системные команды
+
 - Раскладка RU/EN через `SendInput`.
 - Громкость в % через `pycaw`.
 - Яркость в % через `screen-brightness-control`.
 - Диагностика, отмена, пароль (SHA-256).
 
-### Этап 5: мультипрофиль
+### 👥 Этап 5 — мультипрофиль
+
 - `profiles/<user>/`.
 - `profile.subscribe()`.
 - Универсальные `set_profile` / `get_profile`.
 
-### Этап 6: Flet GUI
+### 🎨 Этап 6 — Flet GUI
+
 - Окно 1100×760, NavigationRail, статус-сфера, чат-пузыри.
 - Темы: Тёмная / Светлая / Системная (на лету).
 - Стриминг в GUI через tee-генератор.
 - Вкладка «Микрофон».
 - Иконка окна.
 
-### Этап 7: реестр + Unicode-пути
+### 🔤 Этап 7 — реестр + Unicode-пути
+
 - `_fast_handlers()`.
 - `open_profile` — Notepad++ → VS Code → системный.
 - `jarvis/paths.py` — PROGRAM_DIR (ASCII) / USER_DIR.
 - Vosk работает даже на кириллице в `%APPDATA%`.
 - `HF_HOME` для Whisper временно.
 
-### Этап 8: автолаунчер и установщик
+### 📦 Этап 8 — автолаунчер и установщик
+
 - `launcher.py` — сам ставит Python/venv/зависимости/Vosk.
 - `Феникс.exe` (PyInstaller).
 - `Феникс_Setup.exe` (Inno Setup) → `C:\ProgramData\Phoenix`.
 - `LICENSE` (MIT + attribution).
 
-### Этап 9: поздравление с ДР
+### 🎉 Этап 9 — поздравление с ДР
+
 - `jarvis/celebrations.py` — триггер «я папа» / «я Александр».
 - Двойная цепочка: короткое поздравление → салют → длинное → финальный салют.
 - Анимация через Stack + Container.
 
-### Этап 10: аудит Kimi (23 бага)
+### 🔍 Этап 10 — аудит Kimi (25 багов)
+
 - Pack-команды с аргументами теперь работают.
 - `timers.py` / `tasks.py` — в USER_DIR.
 - Атомарная запись везде.
@@ -14878,25 +15262,43 @@ Qwen 2.5 через Ollama для свободного диалога и раз�
 - Мьютекс `Local\`.
 - `tts.py` — пропуск невидимого текста.
 
+### 🎭 Этап 11 — Персона, Онбординг, Observer
+
+- `jarvis/persona.py` — стили общения (`formal`, `friendly`, `sarcastic`, `brief`), черты, backstory.
+- Онбординг через **LLM-диалог** (`brain.onboarding_chat()`) — живой, ненавязчивый. Никаких сценариев `if/elif`.
+- `jarvis/observer.py` — **фоновое извлечение фактов** из диалога. Работает параллельно, не блокирует.
+- `jarvis/first_run.py` — минимальный: `greeting()`, `is_first_run()`, `mark_done()`.
+- Команды персоны: «поменяй стиль на строгий», «какой у тебя стиль», «как тебя зовут», «давай заново познакомимся».
+
+### ✨ Этап 12 — красивый установщик (Inno UI)
+
+- `scripts/make_installer_images.py` — генерация BMP из иконки.
+- `installer_banner.bmp` (164×314) + `installer_small.bmp` (55×55).
+- `WizardStyle=modern`, `WizardImageFile`, `WizardSmallImageFile`.
+- `PrivilegesRequired=lowest` — без админа.
+- `Excludes: "__pycache__,*.pyc"` — мусор не тащится.
+
 ---
 
-## Требования
+## 💻 Требования
 
-- Windows 10/11 (x64)
-- **Python 3.10–3.12** (3.11 рекомендуется)
-  - ⚠️ 3.13/3.14 **не поддерживается** — Vosk падает.
-- Микрофон
-- **Microsoft Visual C++ 2015-2022 Redistributable** (обычно есть со Steam/Chrome)
-- Опционально: NVIDIA GPU (Whisper)
-- Опционально: Ollama (LLM)
+| Компонент | Обязательно | Примечание |
+|---|---|---|
+| Windows 10/11 (x64) | ✅ | — |
+| **Python 3.10–3.12** | ✅ | 3.11 рекомендуется. ⚠️ 3.13/3.14 — Vosk падает |
+| Микрофон | ✅ | — |
+| VC++ 2015–2022 Redist | ✅ | Обычно есть со Steam/Chrome |
+| NVIDIA GPU | ❌ | Для Whisper |
+| Ollama | ❌ | Для LLM |
 
-**Проверить VC++ Redist:** Win+R → `appwiz.cpl`. Если нет — [vc_redist.x64.exe](https://aka.ms/vs/17/release/vc_redist.x64.exe).
+**Проверить VC++ Redist:** `Win+R` → `appwiz.cpl`. Если нет — [vc_redist.x64.exe](https://aka.ms/vs/17/release/vc_redist.x64.exe).
 
 ---
 
-## Установка
+## 📥 Установка
 
-### Автоматическая
+### 🤖 Автоматическая
+
 1. Скачай `Феникс_Setup.exe` из релизов.
 2. Запусти.
 3. Запусти ярлык «Феникс». При первом запуске:
@@ -14907,7 +15309,8 @@ Qwen 2.5 через Ollama для свободного диалога и раз�
    - Проверка Ollama.
    - Запуск.
 
-### Ручная (для разработки)
+### 🛠 Ручная (для разработки)
+
 ```bat
 git clone https://github.com/BobLoTiK/jarvis-fenix.git
 cd jarvis-fenix
@@ -14919,50 +15322,117 @@ python -m jarvis
 
 ---
 
-## Первый запуск
+## 🚀 Первый запуск
 
 При первом запуске скачается:
-- Vosk (~45 МБ) → `C:\ProgramData\Phoenix\models\`.
-- Whisper large-v3-turbo (~1.5 ГБ) → `C:\ProgramData\Phoenix\whisper-cache\`.
-- Piper-голос (~60 МБ) → туда же.
+
+| Что | Размер | Куда |
+|---|---|---|
+| Vosk | ~45 МБ | `C:\ProgramData\Phoenix\models\` |
+| Whisper large-v3-turbo | ~1.5 ГБ | `C:\ProgramData\Phoenix\whisper-cache\` |
+| Piper-голос | ~60 МБ | Туда же |
 
 ---
 
-## Возможные проблемы
+## 🎓 Знакомство (первый диалог)
 
-### 1. Python installer не запустился
-UAC, антивирус. → Скачай вручную: [python-3.11.9-amd64.exe](https://www.python.org/downloads/release/python-3119/).
+**Никаких анкет.** Феникс **сам начинает живой диалог**:
 
-### 2. `pip install` упал
-Нет VC++ Redist. → Установи [vc_redist.x64.exe](https://aka.ms/vs/17/release/vc_redist.x64.exe).
+> «Привет! Я Феникс, локальный голосовой помощник. Не хочешь немного поболтать? Расскажи — чем занимаешься, что нового?»
 
-### 3. Whisper не качается
-HF тормозит. → Подожди или `"use_whisper": false` в config.
+**Дальше — LLM ведёт диалог.** Слушает, отвечает, **если удобно** — спросит имя, стиль. **Не допрашивает.** Может завершить за 3–5 обменов или растянуть на 6+ (потом — принудительно).
 
-### 4. Ollama не находит модели
-`echo %OLLAMA_MODELS%`, `ollama list`. Проверь `ollama_url` в config.
+**Хочешь сразу команды** — просто скажи **«Феникс, открой ютуб»**. Онбординг **пропустит команду**, откроет ютуб и **вернётся к знакомству**.
 
-### 5. Vosk падает на кириллице
-Не трогай `paths.py`. Модель **всегда** в `C:\ProgramData\Phoenix\models\`.
+**LLM недоступна** — онбординг **молча завершается**. Никаких ошибок.
 
-### 6. `libvosk.dll` ACCESS_VIOLATION
-Уже починено (убран `flush` из `say`). Если повторится — `eventvwr.msc`.
-
-### 7. Микрофон молчит
-Настройки → Приватность → Микрофон. В GUI: Настройки → Микрофон → «Проверить».
-
-### 8. Голос звучит «механически»
-`voice_rate: 1.15` в config. Через GUI: Настройки → Скорость речи.
-
-### 9. «Ollama не установлена»
-Скачай [OllamaSetup.exe](https://ollama.com/download), `ollama serve`, `ollama pull qwen2.5:7b-instruct`.
-
-### 10. Окно Феникса не открывается
-`%APPDATA%\Phoenix\logs\launcher.log` и `jarvis.log`.
+**Сброс:** «давай заново познакомимся» → `persona.reset_onboarding()`.
 
 ---
 
-## GUI (Flet)
+## 🎭 Персона и стиль общения
+
+**Персона хранится в `profile.json` → `persona`:**
+
+```json
+{
+  "assistant_name": "Феникс",
+  "speech_style": "friendly",
+  "traits": [],
+  "backstory": "",
+  "onboarding_done": true
+}
+```
+
+**Стили:**
+
+| Стиль | Как общается |
+|---|---|
+| `formal` | На «вы», официально |
+| `friendly` | На «ты», тепло (по умолчанию) |
+| `sarcastic` | С сухим юмором |
+| `brief` | Коротко, по делу |
+
+**Команды:**
+
+| Фраза | Что делает |
+|---|---|
+| «поменяй стиль на строгий» | → `formal` |
+| «говори на ты» | → `friendly` |
+| «какой у тебя стиль» | Опишет |
+| «как тебя зовут» | Скажет имя ассистента |
+| «давай заново познакомимся» | Сброс онбординга |
+
+**Как работает:** `brain._system_with_context()` собирает `CHAT_SYSTEM + persona.build_prompt_block() + learning.build_context()`. Стиль **напрямую влияет** на ответы LLM.
+
+---
+
+## 👁 Observer (фоновое обучение)
+
+> **Observer — не спрашивает, а слушает.** Работает **параллельно** с диалогом.
+
+**Что делает:**
+
+1. Каждую фразу юзера/ассистента кладёт в буфер.
+2. Раз в 30 секунд отправляет **историю (6 сообщений)** в LLM.
+3. LLM возвращает JSON: `{name, city, age, style, facts}`.
+4. Если поле пустое — **сохраняет** в `profile` / `learning`.
+
+**Пример:**
+
+- Ты: «Живу в Нижнем, работаю программистом».
+- Через 30 сек: `profile.default_city = "Нижний Новгород"`, `learning.facts["работа"] = "программист"`.
+
+**Что не делает:**
+
+- ❌ **Не спрашивает** напрямую «где ты живёшь».
+- ❌ **Не блокирует** диалог.
+- ❌ **Не перезаписывает** уже известное.
+
+**Настройка:** `"observer_enabled": true` в `config.json`.
+
+---
+
+## ⚠️ Возможные проблемы
+
+| № | Проблема | Решение |
+|---|---|---|
+| 1 | Python installer не запустился | UAC, антивирус → [python-3.11.9-amd64.exe](https://www.python.org/downloads/release/python-3119/) |
+| 2 | `pip install` упал | Нет VC++ Redist → [vc_redist.x64.exe](https://aka.ms/vs/17/release/vc_redist.x64.exe) |
+| 3 | Whisper не качается | HF тормозит → подожди или `"use_whisper": false` |
+| 4 | Ollama не находит модели | `echo %OLLAMA_MODELS%`, `ollama list`, проверь `ollama_url` |
+| 5 | Vosk падает на кириллице | Не трогай `paths.py`. Модель **всегда** в `C:\ProgramData\Phoenix\models\` |
+| 6 | `libvosk.dll` ACCESS_VIOLATION | Уже починено. Если повторится — `eventvwr.msc` |
+| 7 | Микрофон молчит | Настройки → Приватность → Микрофон. GUI: Настройки → Микрофон → «Проверить» |
+| 8 | Голос звучит «механически» | `voice_rate: 1.15` в config |
+| 9 | «Ollama не установлена» | [OllamaSetup.exe](https://ollama.com/download), `ollama serve`, `ollama pull qwen2.5:7b-instruct` |
+| 10 | Окно Феникса не открывается | `%APPDATA%\Phoenix\logs\launcher.log` и `jarvis.log` |
+| 11 | Онбординг не завершается | Проверь `observer_enabled`. Если LLM недоступна — завершится сам |
+| 12 | BOM в файлах / кракозябры | **Правки только в VS Code.** `files.encoding: utf8`, `files.autoGuessEncoding: false` |
+
+---
+
+## 🖼 GUI (Flet)
 
 - NavigationRail: Главная / Микрофон / Настройки.
 - Статус-сфера.
@@ -14973,28 +15443,25 @@ HF тормозит. → Подожди или `"use_whisper": false` в config.
 
 **Режим запуска:** `"launch_mode": "gui"`.
 
-**Отключить GUI:** `"gui_enabled": false`.
-**Отключить трей:** `"tray_enabled": false`.
+| Параметр | Что делает |
+|---|---|
+| `"gui_enabled": false` | Отключить GUI |
+| `"tray_enabled": false` | Отключить трей |
 
 ---
 
-## Режимы работы
+## ⚙️ Режимы работы
 
-### 🏠 Local
-LLM: Qwen, STT: Vosk + Whisper small CPU, TTS: Piper medium.
-
-### 🌐 Hybrid
-LLM: 14b/32b, STT: Whisper на GPU.
-
-### ☁️ Cloud — 🚧 в планах
-Groq, Edge TTS.
-
-### 💎 Premium — ⏸
-GPT-4o, Claude, Fish Audio.
+| Режим | LLM | STT | TTS |
+|---|---|---|---|
+| 🏠 **Local** | Qwen | Vosk + Whisper small CPU | Piper medium |
+| 🌐 **Hybrid** | 14b/32b | Whisper на GPU | Piper |
+| ☁️ **Cloud** 🚧 | Groq | — | Edge TTS |
+| 💎 **Premium** ⏸ | GPT-4o, Claude | — | Fish Audio |
 
 ---
 
-## Настройка LLM (Ollama)
+## 🧠 Настройка LLM (Ollama)
 
 ```json
 "llm_model": "qwen2.5:7b-instruct",
@@ -15015,18 +15482,20 @@ GPT-4o, Claude, Fish Audio.
 
 ---
 
-## Паки команд
+## 📦 Паки команд
 
 Папка `packs/`. Активные — `active_packs`.
 Готовые: `games`, `apps`, `sites`, `work`, `system`.
 
-- «загрузи пак игр»
-- «выгрузи пак игр»
-- «какие паки»
+| Фраза | Что делает |
+|---|---|
+| «загрузи пак игр» | Активировать |
+| «выгрузи пак игр» | Деактивировать |
+| «какие паки» | Список |
 
 ---
 
-## Мультипрофиль
+## 👥 Мультипрофиль
 
 ```
 %APPDATA%\Phoenix\profiles\
@@ -15036,36 +15505,41 @@ GPT-4o, Claude, Fish Audio.
 └── masha/
 ```
 
-Голосом:
-- «я — Маша» — создать/переключиться.
-- «кто активен?».
-- «список профилей».
-- «удали профиль Маша» (с паролем).
-- «меня зовут X» → `set_profile`.
-- «мой город Y» → `set_profile`.
-- «как меня зовут» → `get_profile`.
-- «открой профиль» → Notepad++ / VS Code.
+**Голосом:**
+
+| Фраза | Действие |
+|---|---|
+| «я — Маша» | Создать/переключиться |
+| «кто активен?» | Активный профиль |
+| «список профилей» | Все профили |
+| «удали профиль Маша» | (с паролем) |
+| «меня зовут X» | `set_profile` |
+| «мой город Y» | `set_profile` |
+| «как меня зовут» | `get_profile` |
+| «открой профиль» | Notepad++ / VS Code |
 
 ---
 
-## Память диалога
+## 💭 Память диалога
 
-- «что мы обсуждали».
-- «забудь всё».
-- «короткая память» → 40.
-- «обычная память» → 100.
-- «долгая память» → 200.
+| Фраза | Действие |
+|---|---|
+| «что мы обсуждали» | Последние сообщения |
+| «забудь всё» | Очистить |
+| «короткая память» | → 40 |
+| «обычная память» | → 100 |
+| «долгая память» | → 200 |
 
 ---
 
-## Отмена действий
+## ↩️ Отмена действий
 
 - «не то» / «отмени» / «верни как было».
 - Стек — 5 действий.
 
 ---
 
-## Пароль на опасные
+## 🔒 Пароль на опасные
 
 ```json
 "danger_password": "sha256:..."
@@ -15075,7 +15549,7 @@ GPT-4o, Claude, Fish Audio.
 
 ---
 
-## Голоса
+## 🎙 Голоса
 
 | Голос | Описание |
 |---|---|
@@ -15092,42 +15566,44 @@ GPT-4o, Claude, Fish Audio.
 
 ---
 
-## Barge-in (перебивание)
+## ✋ Barge-in (перебивание)
 
-1. Первые 0.5 сек — слепое окно.
+1. Первые **0.5 сек** — слепое окно.
 2. Порог = `эхо × 1.8`.
-3. Громче порога >100 мс → TTS прерывается.
+3. Громче порога **>100 мс** → TTS прерывается.
 
 **Настройка:** `"barge_enabled": true`.
 
 ---
 
-## Микрофон
+## 🎤 Микрофон
 
 Вкладка «Микрофон»:
+
 - Прогресс-бар уровня.
-- Кнопка «Проверить (3 сек)»: ≥500 ✅, ≥100 ⚠️, <100 ❌.
+- Кнопка «Проверить (3 сек)»: **≥500** ✅, **≥100** ⚠️, **<100** ❌.
 - Выбор устройства.
 
 `mic_watchdog` — одно предупреждение за сессию.
 
 ---
 
-## Темы GUI
+## 🎨 Темы GUI
 
-- Системная (авто через реестр).
-- Тёмная.
-- Светлая.
+- 🌗 Системная (авто через реестр).
+- 🌑 Тёмная.
+- ☀️ Светлая.
 
-Смена — на лету.
+Смена — **на лету**.
 
 ---
 
-## Поздравление с ДР
+## 🎉 Поздравление с ДР
 
 Скажи: «**я папа**» / «**я Александр**» / «**Александр**».
 
 Феникс:
+
 1. «Поздравляю! С днём рождения!» (голос).
 2. Салют #1 (6 сек) + звук ×2.
 3. Полное поздравление (голос).
@@ -15135,7 +15611,7 @@ GPT-4o, Claude, Fish Audio.
 
 ---
 
-## Логи
+## 📝 Логи
 
 `%APPDATA%\Phoenix\logs\`:
 
@@ -15149,10 +15625,12 @@ GPT-4o, Claude, Fish Audio.
 
 ---
 
-## Погода и курс валют
+## 🌤 Погода и курс валют
 
-- **Погода:** `open-meteo.com`.
-- **Курс:** `cbr-xml-daily.ru`.
+| Что | Откуда |
+|---|---|
+| Погода | `open-meteo.com` |
+| Курс | `cbr-xml-daily.ru` |
 
 ```json
 "weather_cache_ttl_sec": 600
@@ -15160,34 +15638,37 @@ GPT-4o, Claude, Fish Audio.
 
 ---
 
-## Команды
+## 🗣 Команды
 
-**Приложения:** «открой стим», «закрой дискорд», «запусти сабнатику».
-**Сайты:** «открой ютуб», «открой хабр».
-**Поиск:** «загугли погоду», «найди на ютубе лофи».
-**Печать:** «напечатай привет мир».
-**Окна:** «сверни все окна», «разверни браузер».
-**Скриншот:** «сделай скриншот».
-**Файлы:** «создай файл список покупок».
-**Музыка:** «включи музыку», «пауза».
-**Громкость/яркость:** «громкость 50», «яркость 30».
-**Раскладка:** «переключи раскладку».
-**Время:** «который час».
-**Разговор:** «как дела», «расскажи шутку».
-**Голос:** «смени голос на Ирину».
-**Буфер:** «что в буфере».
-**Погода:** «какая погода», «курс доллара».
-**Паки:** «загрузи пак игр».
-**Профиль:** «я — Маша», «меня зовут X».
-**Память:** «что мы обсуждали», «забудь всё».
-**Поздравление:** «я папа», «я Александр».
-**Отмена:** «не то», «отмени».
-**Диагностика:** «что ты слышал», «почему не понял».
-**Стоп:** «стой», «хватит», «отбой».
+| Категория | Примеры |
+|---|---|
+| **Приложения** | «открой стим», «закрой дискорд», «запусти сабнатику» |
+| **Сайты** | «открой ютуб», «открой хабр» |
+| **Поиск** | «загугли погоду», «найди на ютубе лофи» |
+| **Печать** | «напечатай привет мир» |
+| **Окна** | «сверни все окна», «разверни браузер» |
+| **Скриншот** | «сделай скриншот» |
+| **Файлы** | «создай файл список покупок» |
+| **Музыка** | «включи музыку», «пауза» |
+| **Громкость/яркость** | «громкость 50», «яркость 30» |
+| **Раскладка** | «переключи раскладку» |
+| **Время** | «который час» |
+| **Разговор** | «как дела», «расскажи шутку» |
+| **Персона** | «поменяй стиль на строгий», «какой у тебя стиль», «давай заново познакомимся» |
+| **Голос** | «смени голос на Ирину» |
+| **Буфер** | «что в буфере» |
+| **Погода** | «какая погода», «курс доллара» |
+| **Паки** | «загрузи пак игр» |
+| **Профиль** | «я — Маша», «меня зовут X» |
+| **Память** | «что мы обсуждали», «забудь всё» |
+| **Поздравление** | «я папа», «я Александр» |
+| **Отмена** | «не то», «отмени» |
+| **Диагностика** | «что ты слышал», «почему не понял» |
+| **Стоп** | «стой», «хватит», «отбой» |
 
 ---
 
-## Свои команды
+## 🛠 Свои команды
 
 ```json
 {
@@ -15203,24 +15684,32 @@ GPT-4o, Claude, Fish Audio.
 
 ---
 
-## Сборка `.exe` и установщик
+## 📦 Сборка `.exe` и установщик
 
 ```bat
 python scripts\make_icon.py
+python scripts\make_installer_images.py
 python scripts\build_exe.py
 REM потом в Inno Setup → Build → Compile
 create_shortcut.bat
 ```
 
+**Что делает `make_installer_images.py`:**
+
+| Файл | Размер | Назначение |
+|---|---|---|
+| `installer_banner.bmp` | 164×314 | Вертикальный баннер установщика |
+| `installer_small.bmp` | 55×55 | Маленькая иконка вверху справа |
+
 ---
 
-## Автозапуск
+## 🔄 Автозапуск
 
-Win+R → `shell:startup` → Enter → скопировать ярлык.
+`Win+R` → `shell:startup` → Enter → скопировать ярлык.
 
 ---
 
-## Инструменты разработчика
+## 🧰 Инструменты разработчика
 
 | Скрипт | Что |
 |---|---|
@@ -15232,6 +15721,7 @@ Win+R → `shell:startup` → Enter → скопировать ярлык.
 | `snapshot.py` | `SNAPSHOT.md` |
 | `commit.bat` | Автокоммит |
 | `scripts/make_icon.py` | Иконка |
+| `scripts/make_installer_images.py` | BMP для Inno Setup |
 | `scripts/build_exe.py` | `.exe` |
 | `scripts/mics.py` | Микрофон |
 | `scripts/wakebench.py` | Бенчмарк |
@@ -15241,6 +15731,7 @@ Win+R → `shell:startup` → Enter → скопировать ярлык.
 | `installer.iss` | Inno Setup |
 
 **Тесты:**
+
 ```bat
 python check_syntax.py
 python -m pytest tests/ -v
@@ -15249,9 +15740,10 @@ python test_intents.py
 
 ---
 
-## CI
+## 🔁 CI
 
-При push:
+**При push:**
+
 1. Синтаксис.
 2. `pytest`.
 3. `test_intents.py`.
@@ -15259,6 +15751,7 @@ python test_intents.py
 **Подробнее** — `CI.md`.
 
 **Локально:**
+
 ```bat
 python test_intents.py                  # без LLM, без сети
 python test_intents.py --llm            # + LLM
@@ -15270,35 +15763,25 @@ python test_intents.py -k weather       # фильтр
 
 ---
 
-## Что в планах
+## 🗺 Что в планах
 
-### 🎯 Этап 1.7 — Красивый установщик (1–2 ч)
-Inno Setup с кастомной тёмной темой и лого.
+| Этап | Что | Оценка |
+|---|---|---|
+| 🎯 **1.9 — Mood** | Эмоции (`neutral`, `happy`, `annoyed`, `excited`, `bored`). Влияет на TTS и GUI | 1–2 дн |
+| 🎯 **1.10 — UIA** | `uiautomation`. «Закрой вкладку YouTube», «нажми OK» | 13–19 ч |
+| 🎯 **1.11 — Silero TTS** | +6 голосов, чище звук, офлайн | 3–5 дн |
+| 🎯 **1.12 — VAD** | Silero VAD ONNX. Работа без wake-слова | 1–2 дн |
+| 🎯 **2 — Облако** | Groq (Llama 3.3 70B, Whisper), Edge TTS | 12 ч |
+| 🎯 **3 — Управление приложениями** | Глубокое управление | 8–10 ч |
+| 🎯 **4 — Vector memory** | ChromaDB + RAG. «Что ты обо мне помнишь» | 2–3 нед |
+| 🎯 **7 — Спрайт** | Спрайт-аватар, синхронизация с `speak_stream()` | 1–1.5 нед |
 
-### 🎯 Этап 1.8 — Знакомство (3.5 ч)
-Persona, onboarding, «поменяй стиль».
+**⏸ Отложено:**
 
-### 🎯 Этап 1.9 — Мои команды (11 ч)
-«Феникс, научись новому», рецепты.
-
-### 🎯 Этап 1.10 — UIA (13–19 ч)
-`uiautomation`. «Закрой вкладку YouTube», «нажми OK», «что написано в блокноте».
-
-### 🎯 Этап 2 — Бесплатное облако (12 ч)
-Groq (Llama 3.3 70B, Whisper), Edge TTS.
-
-### 🎯 Этап 3 — Управление приложениями (8–10 ч)
-Глубокое управление.
-
-### 🎯 Этап 7 — Визуализация (8–9 ч)
-Живая сфера, спектр, кастомные темы.
-
-### ⏸ Отложено
 - Трей (отдельный процесс).
 - Платные фичи (GPT-4o, Claude).
 - MCP + плагины.
 - Telegram + веб.
-- Persistent memory.
 - Wake-слово (openWakeWord).
 - **Сборка в один `.exe`** (PyInstaller) — 20–30 ч.
 - **GitHub Actions авторелизы** — 4–6 ч.
@@ -15308,7 +15791,7 @@ Groq (Llama 3.3 70B, Whisper), Edge TTS.
 
 ---
 
-## Технологии
+## 🛠 Технологии
 
 | Компонент | Решение |
 |---|---|
@@ -15318,6 +15801,9 @@ Groq (Llama 3.3 70B, Whisper), Edge TTS.
 | Streaming TTS | `speak_stream()` + tee |
 | Barge-in | Автокалибровка + per-call token |
 | LLM | Qwen / Gemma / Llama / Mistral через Ollama |
+| Персона | `jarvis/persona.py` + `build_prompt_block()` |
+| Онбординг | LLM-диалог (`brain.onboarding_chat()`) |
+| Observer | `jarvis/observer.py` — фоном |
 | GUI | Flet 1.0.3 + PALETTES (3 темы) |
 | Мультипрофиль | `profiles/<user>/` + subscribe |
 | Универсальный профиль | `set_profile` / `get_profile` через LLM |
@@ -15335,13 +15821,14 @@ Groq (Llama 3.3 70B, Whisper), Edge TTS.
 | Атомарная запись | filelock per-path + os.replace |
 | Пути | `jarvis/paths.py` |
 | Сборка | PyInstaller |
-| Установщик | Inno Setup |
+| Установщик | Inno Setup 6.7 |
+| Установщик — UI | `WizardStyle=modern` + BMP-баннер |
 | CI | GitHub Actions |
 | Сериализация | `cmd_lock` в Jarvis |
 
 ---
 
-## Лицензия
+## 📜 Лицензия
 
 MIT License. См. [LICENSE](LICENSE).
 
