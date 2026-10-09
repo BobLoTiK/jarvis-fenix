@@ -1787,8 +1787,13 @@ class IntentHandler:
         if "день недели" in cmd or cmd == "какой сегодня день":
             return f"Сегодня {WEEKDAYS[now.weekday()]}."
 
+        # «Кто ты» — оставляем, чтобы работало без LLM
+        if any(p in cmd for p in ("кто ты", "ты кто", "представься", "как тебя зовут")):
+            return f"Я {APP_NAME}, локальный голосовой ассистент, версия {__version__}."
+
         # Всё остальное — уходит в LLM.
         return None
+    
 def _hours(n: int) -> str:
     if n % 10 == 1 and n % 100 != 11:
         return "час"
