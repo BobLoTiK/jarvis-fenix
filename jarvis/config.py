@@ -51,6 +51,15 @@ DEFAULT_CONFIG = {
     "vad_threshold": 0.5,
     "vad_adaptive": True,
     "wake_word_required": True,
+
+    # Prosody — эмоции из голоса (RMS + pitch + ZCR).
+    # prosody_priority:
+    #   "prosody"  — эмоция из голоса важнее текста (рекомендую)
+    #   "text"     — только текст (как было)
+    #   "both"     — оба применяются (prosody первым, текст может перебить)
+    "prosody_enabled": True,
+    "prosody_priority": "prosody",
+
     "use_llm": True,
     "llm_model": "qwen2.5:7b-instruct",
     "ollama_url": "http://127.0.0.1:11434",

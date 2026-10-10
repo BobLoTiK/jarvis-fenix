@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=fb7dc0454e5f5ab6` · режим `lean` · файлов `140` · строк `23432` · источник `921 КБ`
+`sha256=2a41775d09ca8627` · режим `lean` · файлов `142` · строк `23751` · источник `933 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -236,7 +236,7 @@ jarvis/
 ├── cmds/
 │   ├── open_terminal.bat  (3 стр)
 │   ├── show_ip.bat  (3 стр)
-├── config.example.json  (66 стр)
+├── config.example.json  (70 стр)
 ├── CONTRIBUTING.md  (341 стр)
 ├── create_shortcut.bat  (51 стр)
 ├── install.bat  (410 стр)
@@ -248,7 +248,7 @@ jarvis/
 │   ├── apps.py  (114 стр)
 │   ├── brain.py  (816 стр)
 │   ├── celebrations.py  (165 стр)
-│   ├── config.py  (234 стр)
+│   ├── config.py  (243 стр)
 │   ├── config_manager.py  (156 стр)
 │   ├── files.py  (102 стр)
 │   ├── first_run.py  (26 стр)
@@ -298,17 +298,18 @@ jarvis/
 │   │   │   ├── pending.py  (62 стр)
 │   │   ├── verbs.py  (45 стр)
 │   ├── learning.py  (160 стр)
-│   ├── main.py  (649 стр)
+│   ├── main.py  (662 стр)
 │   ├── matching.py  (113 стр)
 │   ├── memory.py  (137 стр)
 │   ├── model.py  (102 стр)
 │   ├── modes.py  (51 стр)
-│   ├── mood.py  (335 стр)
+│   ├── mood.py  (377 стр)
 │   ├── observer.py  (198 стр)
 │   ├── packs.py  (117 стр)
 │   ├── paths.py  (182 стр)
 │   ├── persona.py  (132 стр)
 │   ├── profile.py  (451 стр)
+│   ├── prosody.py  (175 стр)
 │   ├── recorder.py  (171 стр)
 │   ├── reply.py  (25 стр)
 │   ├── steam.py  (67 стр)
@@ -370,6 +371,7 @@ jarvis/
 │   ├── test_caps.py  (23 стр)
 │   ├── test_config_manager.py  (47 стр)
 │   ├── test_mood.py  (386 стр)
+│   ├── test_prosody.py  (76 стр)
 │   ├── test_tts.py  (156 стр)
 │   ├── test_uia.py  (247 стр)
 │   ├── test_vad.py  (118 стр)
@@ -994,6 +996,7 @@ jarvis/
   _TIRED = ...
   def detect(cmd: str)
   def apply_from_text(cmd: str)
+  def apply_from_prosody(pcm_int16: bytes, sample_rate: int=16000, config=None)
   def decay(max_age_sec: int=DEFAULT_DECAY_SEC)
   _RATE_MULTIPLIERS = ...
   def effective_rate(base_rate: float)
@@ -1096,6 +1099,18 @@ jarvis/
   def all_facts()
   def forget_fact(key: str)
   def init()
+```
+
+**`jarvis/prosody.py`**
+
+```
+  # Prosody — эмоции из голоса (RMS + pitch + ZCR).
+  _RMS_TIRED_MAX = ...
+  _RMS_LOUD_MIN = ...
+  _PITCH_TIRED_MAX = ...
+  _PITCH_EXCITED_MIN = ...
+  _ZCR_ANNOYED_MIN = ...
+  def analyze_prosody(pcm_int16: bytes, sample_rate: int=16000, min_samples: int=3200)
 ```
 
 **`jarvis/recorder.py`**
@@ -1541,6 +1556,19 @@ jarvis/
   def test_handle_mood_command_none()
 ```
 
+**`tests/test_prosody.py`**
+
+```
+  # Тесты jarvis.prosody — эмоции из голоса (эвристика).
+  def test_prosody_empty()
+  def test_prosody_too_short()
+  def test_prosody_tired_quiet_low_pitch()
+  def test_prosody_excited_loud()
+  def test_prosody_result_keys()
+  def test_prosody_emotion_in_states()
+  def test_prosody_rms_reasonable()
+```
+
 **`tests/test_tts.py`**
 
 ```
@@ -1773,7 +1801,7 @@ jarvis/
 | `jarvis/apps.py` | 114 | code | Каталог известных приложений: как их зовут голосом, как открыть и как  |
 | `jarvis/brain.py` | 816 | code | LLM-фолбэк: локальная нейронка (Ollama) разбирает команду в структурны |
 | `jarvis/celebrations.py` | 165 | code | Праздничные триггеры — поздравление с ДР + двойной салют. |
-| `jarvis/config.py` | 234 | code | Загрузка конфигурации и объект Config в памяти. |
+| `jarvis/config.py` | 243 | code | Загрузка конфигурации и объект Config в памяти. |
 | `jarvis/config_manager.py` | 156 | code | Единый менеджер записи в config.json. |
 | `jarvis/files.py` | 102 | code | Файлы и папки: открыть, посмотреть содержимое, создать. |
 | `jarvis/first_run.py` | 26 | code | Первый запуск — знакомство через LLM-диалог. |
@@ -1820,17 +1848,18 @@ jarvis/
 | `jarvis/intents/stages/pending.py` | 62 | code | Ожидание уточнения (pending_question). |
 | `jarvis/intents/verbs.py` | 45 | code | Константы глаголов и слов — единый источник истины. |
 | `jarvis/learning.py` | 160 | code | Самообучение Феникса: факты и коррекции. |
-| `jarvis/main.py` | 649 | code | Точка входа: связывает распознавание, интенты, синтез речи и GUI. |
+| `jarvis/main.py` | 662 | code | Точка входа: связывает распознавание, интенты, синтез речи и GUI. |
 | `jarvis/matching.py` | 113 | code | Нечёткое сопоставление речи с названиями: транслитерация + difflib. |
 | `jarvis/memory.py` | 137 | code | Память диалога — на профиль. |
 | `jarvis/model.py` | 102 | code | Скачивание и распаковка модели Vosk для русского языка (~45 МБ). |
 | `jarvis/modes.py` | 51 | code | Режимы работы Феникса: commands, llm, combo. |
-| `jarvis/mood.py` | 335 | code | Mood — эмоциональное состояние ассистента. |
+| `jarvis/mood.py` | 377 | code | Mood — эмоциональное состояние ассистента. |
 | `jarvis/observer.py` | 198 | code | Observer — фоновое наблюдение за диалогом. |
 | `jarvis/packs.py` | 117 | code | Загрузка и выгрузка паков команд из папки packs/. |
 | `jarvis/paths.py` | 182 | code | Централизованное определение путей Феникса. |
 | `jarvis/persona.py` | 132 | code | Персона ассистента — стиль общения, черты, backstory. |
 | `jarvis/profile.py` | 451 | code | Профиль пользователя — мультипрофиль. |
+| `jarvis/prosody.py` | 175 | code | Prosody — эмоции из голоса (RMS + pitch + ZCR). |
 | `jarvis/recorder.py` | 171 | code | Запись действий: клавиши, клики, паузы. |
 | `jarvis/reply.py` | 25 | code | Reply — результат IntentHandler.handle(). |
 | `jarvis/steam.py` | 67 | code | Индекс установленных игр Steam: appmanifest -> (название, appid). |
@@ -1865,6 +1894,7 @@ jarvis/
 | `tests/test_caps.py` | 23 | code | Тесты check_caps: структура system_caps.json. |
 | `tests/test_config_manager.py` | 47 | code | Тесты config_manager: параллельная запись не рвёт файл. |
 | `tests/test_mood.py` | 386 | code | Тесты jarvis.mood — состояние, детекция, decay, влияние. |
+| `tests/test_prosody.py` | 76 | code | Тесты jarvis.prosody — эмоции из голоса (эвристика). |
 | `tests/test_tts.py` | 156 | code | Тесты jarvis.tts_engines — движки и фабрика. С моками. |
 | `tests/test_uia.py` | 247 | code | Тесты jarvis.uia — логика обёртки. С моками. |
 | `tests/test_vad.py` | 118 | code | Тесты jarvis.vad — Silero VAD ONNX. |
@@ -4113,6 +4143,15 @@ DEFAULT_CONFIG = {
     "vad_threshold": 0.5,
     "vad_adaptive": True,
     "wake_word_required": True,
+
+    # Prosody — эмоции из голоса (RMS + pitch + ZCR).
+    # prosody_priority:
+    #   "prosody"  — эмоция из голоса важнее текста (рекомендую)
+    #   "text"     — только текст (как было)
+    #   "both"     — оба применяются (prosody первым, текст может перебить)
+    "prosody_enabled": True,
+    "prosody_priority": "prosody",
+
     "use_llm": True,
     "llm_model": "qwen2.5:7b-instruct",
     "ollama_url": "http://127.0.0.1:11434",
@@ -9551,6 +9590,19 @@ class Jarvis:
             self.gui.add_message("user", cmd)
             self.gui.set_state("listening")
 
+        # Prosody: эмоция из тона голоса ДО обработки текста.
+        # Если включена и уверена — ставит mood из audio.
+        if audio and self.config.get("prosody_enabled", True):
+            try:
+                from jarvis import mood as _mood
+                _mood.apply_from_prosody(
+                    audio,
+                    self.config.get("sample_rate", 16000),
+                    config=self.config,
+                )
+            except Exception:
+                log.exception("Prosody: ошибка анализа")
+
         # Observer: запоминаем фразу юзера.
         if getattr(self, "observer", None) is not None:
             try:
@@ -10315,7 +10367,7 @@ def handle_mode_command(cmd: str, current_mode: str, config=None) -> tuple[str |
 ### `jarvis/mood.py`
 
 ```python
-"""Mood — эмоциональное состояние ассистента. ... [26 строк]"""
+"""Mood — эмоциональное состояние ассистента. ... [7 строк]"""
 
 import logging
 import re
@@ -10365,7 +10417,7 @@ def get_state() -> str:
 
 
 def set_mood(state: str, reason: str = "") -> bool:
-    """Устанавливает настроение + оповещает подписчиков. ... [3 строк]"""
+    """Устанавливает настроение + оповещает подписчиков. ... [4 строк]"""
     if state not in STATES:
         log.warning("mood.set_mood: неизвестное состояние %r", state)
         return False
@@ -10451,7 +10503,7 @@ _TIRED = re.compile(
 
 
 def detect(cmd: str) -> str | None:
-    """Быстрая эвристика: какое настроение вызвать? ... [3 строк]"""
+    """Быстрая эвристика: какое настроение вызвать? ... [4 строк]"""
     if not cmd:
         return None
 
@@ -10469,11 +10521,55 @@ def detect(cmd: str) -> str | None:
 
 
 def apply_from_text(cmd: str) -> bool:
-    """Определяет и устанавливает mood. Возвращает True, если изменил."""
+    """Определяет и устанавливает mood из текста команды. ... [5 строк]"""
     detected = detect(cmd)
     if not detected:
         return False
     return set_mood(detected, reason="dialog")
+
+
+def apply_from_prosody(pcm_int16: bytes, sample_rate: int = 16000,
+                       config=None) -> bool:
+    """Определяет mood по просодии (тону голоса). ... [10 строк]"""
+    try:
+        from jarvis.prosody import analyze_prosody
+    except ImportError:
+        log.debug("prosody: модуль не найден — пропускаю")
+        return False
+
+    priority = "prosody"
+    if config is not None:
+        try:
+            priority = str(config.get("prosody_priority", "prosody"))
+        except Exception:
+            priority = "prosody"
+    if priority == "text":
+        return False
+
+    result = analyze_prosody(pcm_int16, sample_rate)
+    if not result:
+        return False
+
+    emotion = result.get("emotion", "neutral")
+    if emotion == "neutral":
+        # Если prosody уверена, что нейтрал, а текст дал эмоцию — оставим текст.
+        return False
+
+    # prosody_priority == "prosody": приоритет за голосом — ставим безусловно.
+    # prosody_priority == "both": обновляем только если текущая эмоция "neutral"
+    # или старая — от prosody (не от текста).
+    current = get()
+    if priority == "both":
+        if current.get("reason") == "dialog":
+            # Текст уже поставил эмоцию — не перебиваем
+            return False
+
+    changed = set_mood(emotion, reason="prosody")
+    if changed:
+        log.info("Mood из просодии: %s (rms=%.0f pitch=%.0f zcr=%.2f)",
+                 emotion, result.get("rms", 0),
+                 result.get("pitch", 0), result.get("zcr", 0))
+    return changed
 
 
 # =================================================================
@@ -11643,6 +11739,147 @@ def init() -> None:
         config_manager.save(data, path=profile_file)
         log.info("Создан профиль по умолчанию: %s", profile_file)
     log.info("Активный профиль: %s (%s)", current(), user_dir.name)
+```
+
+### `jarvis/prosody.py`
+
+```python
+"""Prosody — эмоции из голоса (RMS + pitch + ZCR). ... [25 строк]"""
+
+import logging
+import math
+
+log = logging.getLogger("jarvis.prosody")
+
+
+# --- Пороги (эмпирические, калибруются под нормальный микрофон) ---
+
+# RMS в int16. Тихая речь 100-500, нормальная 1000-3000, крик 5000+.
+_RMS_TIRED_MAX = 200       # ниже — усталость
+_RMS_LOUD_MIN = 2500       # выше — возбуждение
+
+# Pitch (Гц). Мужской голос 80-180, женский 150-300.
+# Низкий pitch → усталость, высокий → возбуждение.
+_PITCH_TIRED_MAX = 95
+_PITCH_EXCITED_MIN = 220
+
+# ZCR (0..1). Высокий → шипящие/резкие звуки → раздражение.
+_ZCR_ANNOYED_MIN = 0.18
+
+
+def _rms(samples) -> float:
+    """RMS (громкость) сырого аудио int16."""
+    if not samples:
+        return 0.0
+    n = len(samples)
+    s = sum(int(x) * int(x) for x in samples)
+    return math.sqrt(s / n)
+
+
+def _zero_crossing_rate(samples) -> float:
+    """ZCR — доля переходов через ноль. Высокий на шумных/шипящих."""
+    if len(samples) < 2:
+        return 0.0
+    crossings = 0
+    prev = samples[0]
+    for x in samples[1:]:
+        if (prev >= 0) != (x >= 0):
+            crossings += 1
+        prev = x
+    return crossings / len(samples)
+
+
+def _estimate_pitch(samples, sample_rate: int) -> float:
+    """Очень грубая оценка pitch через autocorrelation. ... [7 строк]"""
+    if len(samples) < 512:
+        return 0.0
+
+    # Автокорреляция для лагов 40..400 сэмплов (50..400 Гц при 16 кГц)
+    # Считаем на окне 1024 сэмпла.
+    n = min(1024, len(samples))
+    a = samples[:n].astype("float64")
+
+    max_lag = min(400, n // 2)
+    min_lag = 40
+
+    best_lag = 0
+    best_val = 0.0
+    for lag in range(min_lag, max_lag):
+        val = 0.0
+        for i in range(0, n - lag, 4):  # шаг 4 — быстрее
+            val += a[i] * a[i + lag]
+        if val > best_val:
+            best_val = val
+            best_lag = lag
+
+    if best_lag == 0:
+        return 0.0
+    return sample_rate / best_lag
+
+
+def analyze_prosody(pcm_int16: bytes, sample_rate: int = 16000,
+                    min_samples: int = 3200) -> dict | None:
+    """Анализ просодии. ... [7 строк]"""
+    if not pcm_int16:
+        return None
+
+    try:
+        import numpy as np
+    except ImportError:
+        log.warning("prosody: numpy не установлен")
+        return None
+
+    arr = np.frombuffer(pcm_int16, dtype=np.int16)
+    if arr.size < min_samples:
+        return None
+
+    # --- Признаки ---
+    rms = float(np.sqrt(np.mean(arr.astype(np.float32) ** 2)))
+    zcr = float(np.mean(np.abs(np.diff(np.sign(arr))) > 0))
+    pitch = _estimate_pitch(arr, sample_rate)
+
+    # --- Классификация (по приоритету) ---
+    emotion = "neutral"
+    arousal = 0.5  # 0=спокойствие, 1=возбуждение
+    valence = 0.0  # -1=негатив, +1=позитив
+
+    # Усталость: тихо + низкий pitch
+    if rms < _RMS_TIRED_MAX and (pitch == 0 or pitch < _PITCH_TIRED_MAX):
+        emotion = "tired"
+        arousal = 0.15
+        valence = -0.2
+
+    # Раздражение: громко + высокий ZCR (резкие звуки)
+    elif rms > _RMS_LOUD_MIN and zcr > _ZCR_ANNOYED_MIN:
+        emotion = "annoyed"
+        arousal = 0.8
+        valence = -0.6
+
+    # Возбуждение: громко + высокий pitch
+    elif rms > _RMS_LOUD_MIN or pitch > _PITCH_EXCITED_MIN:
+        emotion = "excited"
+        arousal = 0.9
+        valence = 0.7
+
+    # Радость: умеренно громко, без раздражения
+    elif rms > _RMS_TIRED_MAX and zcr < _ZCR_ANNOYED_MIN:
+        # Мягкая эвристика: если pitch в среднем диапазоне — happy
+        if pitch and _PITCH_TIRED_MAX < pitch < _PITCH_EXCITED_MIN:
+            emotion = "happy"
+            arousal = 0.6
+            valence = 0.5
+
+    result = {
+        "emotion": emotion,
+        "arousal": round(arousal, 2),
+        "valence": round(valence, 2),
+        "rms": round(rms, 1),
+        "pitch": round(pitch, 1) if pitch else 0.0,
+        "zcr": round(zcr, 3),
+    }
+    log.debug("prosody: %s (rms=%.0f pitch=%.0f zcr=%.2f)",
+              emotion, rms, pitch, zcr)
+    return result
 ```
 
 ### `jarvis/recorder.py`
@@ -16590,6 +16827,87 @@ def test_handle_mood_command_none():
     assert mood.handle_mood_command("какая погода") is None
 ```
 
+### `tests/test_prosody.py`
+
+```python
+"""Тесты jarvis.prosody — эмоции из голоса (эвристика)."""
+
+import math
+import numpy as np
+import pytest
+
+from jarvis import prosody
+
+
+def _make_sine(freq: float, rms_target: float, duration: float = 0.5,
+               sr: int = 16000) -> bytes:
+    """Генерирует синусоиду заданной частоты и громкости (RMS)."""
+    n = int(sr * duration)
+    t = np.arange(n) / sr
+    sig = np.sin(2 * np.pi * freq * t)
+    # Нормируем под нужный RMS
+    sig = sig / np.sqrt(np.mean(sig ** 2)) * rms_target
+    sig = np.clip(sig, -32768, 32767).astype(np.int16)
+    return sig.tobytes()
+
+
+def test_prosody_empty():
+    """Пустой ввод → None."""
+    assert prosody.analyze_prosody(b"") is None
+
+
+def test_prosody_too_short():
+    """Слишком короткий чанк → None."""
+    short = np.zeros(100, dtype=np.int16).tobytes()
+    assert prosody.analyze_prosody(short) is None
+
+
+def test_prosody_tired_quiet_low_pitch():
+    """Тихо + низкий pitch → tired."""
+    # 80 Гц, RMS ~50 (тихо)
+    pcm = _make_sine(80, 50)
+    result = prosody.analyze_prosody(pcm, 16000)
+    assert result is not None
+    assert result["emotion"] == "tired"
+    assert result["arousal"] < 0.3
+
+
+def test_prosody_excited_loud():
+    """Громко + высокий pitch → excited."""
+    # 300 Гц, RMS ~3000
+    pcm = _make_sine(300, 3000)
+    result = prosody.analyze_prosody(pcm, 16000)
+    assert result is not None
+    assert result["emotion"] in ("excited", "annoyed")
+    assert result["arousal"] > 0.5
+
+
+def test_prosody_result_keys():
+    """Результат содержит все нужные ключи."""
+    pcm = _make_sine(200, 1500)
+    result = prosody.analyze_prosody(pcm, 16000)
+    assert result is not None
+    for key in ("emotion", "arousal", "valence", "rms", "pitch", "zcr"):
+        assert key in result
+
+
+def test_prosody_emotion_in_states():
+    """Emotion — из набора mood.STATES."""
+    from jarvis.mood import STATES
+    pcm = _make_sine(200, 1500)
+    result = prosody.analyze_prosody(pcm, 16000)
+    assert result is not None
+    assert result["emotion"] in STATES
+
+
+def test_prosody_rms_reasonable():
+    """RMS на нормальном сигнале > 0."""
+    pcm = _make_sine(200, 1500)
+    result = prosody.analyze_prosody(pcm, 16000)
+    assert result is not None
+    assert result["rms"] > 0
+```
+
 ### `tests/test_tts.py`
 
 ```python
@@ -19522,6 +19840,10 @@ pause
   "vad_threshold": 0.5,
   "vad_adaptive": true,
   "wake_word_required": true,
+  "prosody_enabled": true,
+  "prosody_priority": "prosody",
+  "prosody_enabled": true,
+  "prosody_priority": "prosody",
   "active_packs": [],
   "timers_file": "timers.json",
   "tasks_file": "tasks.json",
@@ -20667,4 +20989,4 @@ onnxruntime>=1.17
 
 ---
 
-_Итого по категориям — code: 110, data: 16, doc: 9, pack: 5. Режим `lean`._
+_Итого по категориям — code: 112, data: 16, doc: 9, pack: 5. Режим `lean`._

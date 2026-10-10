@@ -1,29 +1,10 @@
 """Mood — эмоциональное состояние ассистента.
 
-Persona = "кто я" (стиль, черты, backstory). Стабильное.
-Mood    = "как я реагирую сейчас" (настроение). Меняется.
+Состояния: neutral, happy, excited, annoyed, bored, tired.
+Хранится в profile.json → "mood": {"state", "since", "reason"}.
 
-Хранится в profile.json → mood:
-    {
-        "state": "happy",
-        "since": 1791626400.0,
-        "reason": "похвала"
-    }
-
-Состояния:
-    neutral  — по умолчанию
-    happy    — похвала, благодарность
-    excited  — радость, восторг
-    annoyed  — грубость в адрес ассистента
-    bored    — долгое молчание
-    tired    — юзер сказал «устал»
-
-Влияние:
-    - TTS: скорость речи (excited +10%, tired -10%).
-    - GUI: цвет статус-сферы.
-    - System prompt: LLM отвечает с учётом настроения.
-
-Подписки: subscribe(callback(old_state, new_state)).
+Подписки: GUI и другие модули могут слушать смену состояния.
+Decay: через N секунд состояние возвращается к neutral.
 """
 
 import logging
@@ -76,7 +57,8 @@ def get_state() -> str:
 def set_mood(state: str, reason: str = "") -> bool:
     """Устанавливает настроение + оповещает подписчиков.
 
-    Если state совпадает с текущим — ничего не делает (кроме reason).
+    Возвращает True, если состояние изменилось (или уже было таким).
+    False — если state невалиден или запись не удалась.
     """
     if state not in STATES:
         log.warning("mood.set_mood: неизвестное состояние %r", state)
@@ -165,7 +147,8 @@ _TIRED = re.compile(
 def detect(cmd: str) -> str | None:
     """Быстрая эвристика: какое настроение вызвать?
 
-    Возвращает state или None (не менять).
+    Возвращает state или None (не нашли триггеров).
+    Порядок важен — грубость выше похвалы.
     """
     if not cmd:
         return None
@@ -184,11 +167,70 @@ def detect(cmd: str) -> str | None:
 
 
 def apply_from_text(cmd: str) -> bool:
-    """Определяет и устанавливает mood. Возвращает True, если изменил."""
+    """Определяет и устанавливает mood из текста команды.
+
+    Возвращает True, если состояние изменилось.
+    Вызывается из IntentHandler.handle() ПОСЛЕ отработки команды —
+    фраза юзера анализируется на эмоциональный окрас.
+    """
     detected = detect(cmd)
     if not detected:
         return False
     return set_mood(detected, reason="dialog")
+
+
+def apply_from_prosody(pcm_int16: bytes, sample_rate: int = 16000,
+                       config=None) -> bool:
+    """Определяет mood по просодии (тону голоса).
+
+    Приоритет задаётся в config["prosody_priority"]:
+        "prosody" — prosody важнее текста, эмоция из голоса не перезапишется
+                    текстовой до следующего set_mood.
+        "both"    — prosody первым, текст может перебить.
+        "text"    — prosody игнорируется (метод не вызывается).
+
+    Возвращает True, если emotion != neutral и было что менять.
+    Вызывается из Jarvis._process ДО обработки текста.
+    """
+    try:
+        from jarvis.prosody import analyze_prosody
+    except ImportError:
+        log.debug("prosody: модуль не найден — пропускаю")
+        return False
+
+    priority = "prosody"
+    if config is not None:
+        try:
+            priority = str(config.get("prosody_priority", "prosody"))
+        except Exception:
+            priority = "prosody"
+    if priority == "text":
+        return False
+
+    result = analyze_prosody(pcm_int16, sample_rate)
+    if not result:
+        return False
+
+    emotion = result.get("emotion", "neutral")
+    if emotion == "neutral":
+        # Если prosody уверена, что нейтрал, а текст дал эмоцию — оставим текст.
+        return False
+
+    # prosody_priority == "prosody": приоритет за голосом — ставим безусловно.
+    # prosody_priority == "both": обновляем только если текущая эмоция "neutral"
+    # или старая — от prosody (не от текста).
+    current = get()
+    if priority == "both":
+        if current.get("reason") == "dialog":
+            # Текст уже поставил эмоцию — не перебиваем
+            return False
+
+    changed = set_mood(emotion, reason="prosody")
+    if changed:
+        log.info("Mood из просодии: %s (rms=%.0f pitch=%.0f zcr=%.2f)",
+                 emotion, result.get("rms", 0),
+                 result.get("pitch", 0), result.get("zcr", 0))
+    return changed
 
 
 # =================================================================
@@ -198,7 +240,7 @@ def apply_from_text(cmd: str) -> bool:
 def decay(max_age_sec: int = DEFAULT_DECAY_SEC) -> bool:
     """Возвращает к neutral, если состояние «старое».
 
-    Вызывается периодически (раз в минуту) из фонового потока.
+    Вызывается раз в минуту из фонового потока main.py.
     """
     m = get()
     if m["state"] == "neutral":

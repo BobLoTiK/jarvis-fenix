@@ -253,6 +253,19 @@ class Jarvis:
             self.gui.add_message("user", cmd)
             self.gui.set_state("listening")
 
+        # Prosody: эмоция из тона голоса ДО обработки текста.
+        # Если включена и уверена — ставит mood из audio.
+        if audio and self.config.get("prosody_enabled", True):
+            try:
+                from jarvis import mood as _mood
+                _mood.apply_from_prosody(
+                    audio,
+                    self.config.get("sample_rate", 16000),
+                    config=self.config,
+                )
+            except Exception:
+                log.exception("Prosody: ошибка анализа")
+
         # Observer: запоминаем фразу юзера.
         if getattr(self, "observer", None) is not None:
             try:
