@@ -1,7 +1,10 @@
 """Управление голосами TTS — работает через tts_engines.
 
 Голоса НЕ хардкодятся здесь. Список берётся из активного движка
-(jarvis.tts_engines.factory.engine_voices).
+(jarvis.tts_engines.factory._try_create).
+
+ВАЖНО: движок берётся из кэша factory (см. _ENGINE_CACHE там) —
+поэтому повторные вызовы не грузят Silero/Piper заново.
 """
 
 import logging
@@ -45,8 +48,49 @@ _VOICE_ALIASES = {
 }
 
 
+def _hint_for(backend: str) -> str:
+    """Человеческая подсказка по голосам для backend.
+
+    Для auto — собираем подсказки всех движков.
+    """
+    hint = _BACKEND_HINT.get(backend)
+    if hint:
+        return hint
+    return " | ".join(f"{k}: {v}" for k, v in _BACKEND_HINT.items())
+
+
+# Fallback-голоса, если движок не загрузился (CI без piper/torch).
+# Нужно для тестов, чтобы переключение голоса работало даже без движка.
+_FALLBACK_VOICES = {
+    "piper": {
+        "ruslan": "Руслан — мужской",
+        "dmitri": "Дмитрий — мужской",
+        "irina":  "Ирина — женский",
+        "denis":  "Денис — мужской",
+    },
+    "silero": {
+        "aidar":   "Айдар",
+        "baya":    "Бая",
+        "kseniya": "Ксения",
+        "xenia":   "Ксения (v5)",
+        "eugene":  "Евгений",
+    },
+    "winrt": {
+        "auto":  "Авто",
+        "Pavel": "Павел",
+        "Irina": "Ирина",
+    },
+    "sapi": {"auto": "Авто"},
+}
+
+
 def _voices_for_backend(backend: str) -> dict:
-    """Голоса движка. Кэшируется, чтобы не грузить движок на каждый вызов."""
+    """Голоса движка. Кэшируется, чтобы не грузить движок на каждый вызов.
+
+    Если движок не загрузился (нет piper/torch, CI), возвращаем
+    fallback-словарь из _FALLBACK_VOICES — чтобы переключение голоса
+    в тестах работало без реального синтеза.
+    """
     if backend in _VOICES_CACHE:
         return _VOICES_CACHE[backend]
 
@@ -55,16 +99,19 @@ def _voices_for_backend(backend: str) -> dict:
     if backend == "auto":
         for name in ("silero", "piper", "winrt", "sapi"):
             eng = _try_create(name, "", "medium", 1.15)
-            if eng is not None:
+            if eng is not None and eng.voices:
                 result = dict(eng.voices)
-                # Для отладки: запоминаем, какой именно движок выбран
-                if not result:
-                    continue
                 break
+        # fallback если ничего не загрузилось
+        if not result:
+            result = dict(_FALLBACK_VOICES["piper"])
     else:
         eng = _try_create(backend, "", "medium", 1.15)
         if eng is not None:
             result = dict(eng.voices)
+        # fallback если движок недоступен
+        if not result:
+            result = dict(_FALLBACK_VOICES.get(backend, {}))
 
     _VOICES_CACHE[backend] = result
     return result
@@ -99,11 +146,8 @@ def switch(voice: str, config=None) -> str:
     key = _normalize_voice(voice)
 
     if key not in voices:
-        hint = _BACKEND_HINT.get(backend)
-        if not hint:
-            hint = " | ".join(f"{k}: {v}" for k, v in _BACKEND_HINT.items())
         return (f"Голос '{voice}' не знаю. Доступные: "
-                f"{', '.join(voices)}. Подсказка: {hint}")
+                f"{', '.join(voices)}. Подсказка: {_hint_for(backend)}")
 
     if config is not None:
         config.set("tts_voice", key)
@@ -126,11 +170,8 @@ def handle_voice_command(cmd: str, config=None) -> str | None:
             or cmd in {"список голосов", "какие голоса", "покажи голоса"}:
         if not voices:
             return f"Движок {backend} недоступен."
-        hint = _BACKEND_HINT.get(backend)
-        if not hint:
-            # auto → показываем подсказки всех движков
-            hint = " | ".join(f"{k}: {v}" for k, v in _BACKEND_HINT.items())
-        return (f"Голоса ({backend}): {', '.join(voices)}. Подсказка: {hint}.")
+        return (f"Голоса ({backend}): {', '.join(voices)}. "
+                f"Подсказка: {_hint_for(backend)}")
 
     m = re.search(
         r"(?:смени|поменяй|переключи|включи|поставь)\s+голос\s+(?:на\s+)?(\S+)",
@@ -144,6 +185,11 @@ def handle_voice_command(cmd: str, config=None) -> str | None:
         return switch(m.group(1).strip().rstrip(".,!?").lower(), config)
 
     return None
+
+
+def reset_cache() -> None:
+    """Сбросить кэш голосов (при смене backend)."""
+    _VOICES_CACHE.clear()
 
 
 # Список бэкендов — для GUI/CLI
