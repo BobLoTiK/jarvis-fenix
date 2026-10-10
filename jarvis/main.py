@@ -56,6 +56,17 @@ class Jarvis:
             self.listener.barge_enabled = self.barge_enabled
         self._barge_just_happened = False
 
+        # Wake-слово обязательно по умолчанию.
+        # Если wake_word_required=False — VAD уже отфильтровал тишину/шум,
+        # и любая распознанная фраза идёт в обработку.
+        self._wake_word_required = bool(
+            config.get("wake_word_required", True)
+        )
+        log.info(
+            "Wake-слово: %s",
+            "обязательно" if self._wake_word_required else "отключено (VAD-режим)"
+        )
+
         # Сериализация обработки команд: голосовой поток и GUI
         # не должны входить в handler.handle + say() одновременно.
         # Иначе два TTS накладываются, а stateful-поля IntentHandler
@@ -303,6 +314,22 @@ class Jarvis:
         return _REJECT
 
     def _extract_command(self, text: str) -> str | None:
+        """Извлекает команду из текста.
+
+        Режимы:
+            wake_word_required=True (default):
+                Ищем wake-слово. Если нашли — берём текст после него.
+                Если фраза в окне диалога — берём как есть.
+                Иначе — None (игнорируем).
+            wake_word_required=False:
+                Wake-слово НЕ нужно. VAD уже отфильтровал тишину/шум,
+                поэтому любой распознанный текст — это речь юзера.
+                Возвращаем как есть.
+        """
+        # Режим без wake: VAD уже отфильтровал, любой текст — команда.
+        if not self._wake_word_required:
+            return text.strip() or None
+
         tokens = text.split()
         for i, tok in enumerate(tokens):
             if self._is_wake(tok):
@@ -452,7 +479,12 @@ def main() -> None:
             brain = None
 
     speaker = Speaker(config)
-    listener = Listener(model_dir, config["sample_rate"], config.get("input_device"))
+    listener = Listener(
+        model_dir,
+        config["sample_rate"],
+        config.get("input_device"),
+        config=config,
+    )
 
     gui = None
     if config.get("gui_enabled", True):
@@ -512,6 +544,21 @@ def main() -> None:
             jarvis.barge_enabled = bool(value)
             if listener is not None:
                 listener.barge_enabled = bool(value)
+        elif key == "wake_word_required":
+            jarvis._wake_word_required = bool(value)
+            log.info("Wake-слово: %s",
+                     "обязательно" if value else "отключено")
+        elif key == "tts_backend":
+            # Смена backend TTS на лету
+            try:
+                speaker.switch_backend(str(value))
+            except Exception:
+                log.exception("Не удалось переключить TTS backend")
+        elif key == "vad_enabled":
+            # VAD включили/выключили — пересоздаём listener-флаг
+            if listener is not None:
+                listener.vad_enabled = bool(value)
+                log.info("VAD: %s", "включён" if value else "выключен")
 
     config.subscribe(_on_config_change)
 

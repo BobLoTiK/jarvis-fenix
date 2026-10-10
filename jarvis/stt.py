@@ -1,6 +1,7 @@
 """Распознавание речи.
 
 Гибрид: Vosk (wake) + Whisper (точная расшифровка).
+VAD: Silero ONNX отсекает тишину/шум ДО Vosk.
 Barge-in: адаптивная калибровка эха и фона при старте.
 Ring buffer: последние 10 фраз (для «что ты слышал»).
 """
@@ -16,6 +17,8 @@ from pathlib import Path
 import numpy as np
 import sounddevice as sd
 from vosk import KaldiRecognizer, Model, SetLogLevel
+
+from jarvis.vad import VAD
 
 log = logging.getLogger("jarvis.stt")
 
@@ -54,11 +57,12 @@ def _enable_cuda_dlls():
 
 
 class Listener:
-    def __init__(self, model_dir, sample_rate=16000, device=None):
+    def __init__(self, model_dir, sample_rate=16000, device=None, config=None):
         SetLogLevel(-1)
         self._model = Model(str(model_dir))
         self._rec = KaldiRecognizer(self._model, sample_rate)
         self._sample_rate = sample_rate
+        self._config = config
         self._device = self.resolve_device(device)
         self.device_name = self._current_device_name()
         self._audio = queue.Queue()
@@ -72,6 +76,43 @@ class Listener:
         self.muted = False
         self.barge_flag = False
         self._block_size = 8000
+
+        # VAD: отсекает тишину/шум ДО Vosk. Работает в listener-потоке.
+        # Один инстанс — не thread-safe, но callback и phrases() в одном потоке.
+        self.vad = None
+        self.vad_enabled = True
+        if config is not None:
+            try:
+                self.vad_enabled = bool(config.get("vad_enabled", True))
+            except Exception:
+                pass
+        if self.vad_enabled:
+            try:
+                threshold = 0.5
+                adaptive = True
+                if config is not None:
+                    try:
+                        threshold = float(config.get("vad_threshold", 0.5))
+                    except Exception:
+                        threshold = 0.5
+                    try:
+                        adaptive = bool(config.get("vad_adaptive", True))
+                    except Exception:
+                        adaptive = True
+                self.vad = VAD(
+                    sample_rate=sample_rate,
+                    threshold=threshold,
+                    adaptive=adaptive,
+                )
+                if not self.vad.is_available():
+                    log.warning("VAD: модель недоступна — работаю без VAD")
+                    self.vad = None
+                else:
+                    log.info("VAD: adaptive=%s, threshold=%.2f",
+                             adaptive, threshold)
+            except Exception:
+                log.exception("VAD: не удалось создать")
+                self.vad = None
 
         # Ring buffer последних фраз (для «что ты слышал»)
         self.recent_phrases: deque = deque(maxlen=10)
@@ -173,8 +214,22 @@ class Listener:
             rms = 0
             self.current_rms = 0
         self._process_barge(rms)
-        if not self.muted:
-            self._audio.put(bytes(indata))
+
+        if self.muted:
+            return
+
+        # VAD: пропускаем чанк в Vosk ТОЛЬКО если в нём есть речь.
+        # Тишина и шум отсекаются — Vosk не крутит AcceptWaveform зря.
+        raw = bytes(indata)
+        if self.vad is not None:
+            try:
+                if not self.vad.is_speech(raw):
+                    # Тишина — не пушим. Barge/peak/current_rms уже обновлены.
+                    return
+            except Exception:
+                log.exception("VAD.is_speech упал — пропускаю чанк как есть")
+
+        self._audio.put(raw)
 
     def flush(self):
         """Сброс аудио-буфера.
@@ -193,6 +248,12 @@ class Listener:
                 break
         self._utt_buf.clear()
         self._utt_len = 0
+        # Сброс VAD state — после barge/wake/flush детекция должна начаться заново.
+        if self.vad is not None:
+            try:
+                self.vad.reset()
+            except Exception:
+                pass
 
     def reset_stats(self):
         """Сбрасывает peak и utterances — для кнопки «Проверить микрофон»."""

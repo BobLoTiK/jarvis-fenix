@@ -43,6 +43,14 @@ DEFAULT_CONFIG = {
     "whisper_device": "auto",
     "mode": "combo",
     "barge_enabled": True,
+
+    # VAD (Silero ONNX, ~1 МБ). Отсекает тишину/шум ДО Vosk.
+    # Wake-слово работает как раньше — VAD только фильтрует вход.
+    # wake_word_required=false — VAD ловит речь, wake не нужен.
+    "vad_enabled": True,
+    "vad_threshold": 0.5,
+    "vad_adaptive": True,
+    "wake_word_required": True,
     "use_llm": True,
     "llm_model": "qwen2.5:7b-instruct",
     "ollama_url": "http://127.0.0.1:11434",

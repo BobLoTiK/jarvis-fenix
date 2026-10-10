@@ -49,3 +49,11 @@ pytest-asyncio>=0.23
 
 # === Опционально: мягкое удаление профиля ===
 send2trash>=1.8
+
+# === Silero TTS ===
+torch>=2.0
+torchaudio>=2.0
+silero>=0.4
+
+# === VAD ===
+onnxruntime>=1.17
