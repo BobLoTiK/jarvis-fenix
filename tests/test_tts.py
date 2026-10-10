@@ -1,9 +1,22 @@
 """Тесты jarvis.tts_engines — движки и фабрика. С моками.
 
 Без реальной загрузки моделей — проверяем контракт и factory.
+
+ВАЖНО: тесты требуют numpy/sounddevice/piper — их нет в CI
+(там только лёгкие зависимости). Пропускаем весь модуль, если
+numpy не установлен.
 """
 
+import importlib.util
+
+import pytest
+
 from unittest.mock import patch, MagicMock
+
+# Пропускаем весь модуль, если нет numpy (значит CI, без TTS).
+if importlib.util.find_spec("numpy") is None:
+    pytest.skip("numpy не установлен — TTS-тесты пропущены",
+                allow_module_level=True)
 
 from jarvis.tts_engines import factory
 

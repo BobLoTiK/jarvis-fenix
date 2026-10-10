@@ -17,7 +17,13 @@ import time
 import wave
 from pathlib import Path
 
-import numpy as np
+# numpy нужен только в рантайме (синтез). Импортируем лениво —
+# чтобы модуль можно было импортировать для проверки контракта
+# (list_engines, интерфейс) без numpy.
+try:
+    import numpy as np
+except ImportError:
+    np = None
 
 log = logging.getLogger("jarvis.tts")
 
@@ -107,6 +113,8 @@ class SileroEngine:
 
     def synthesize(self, text: str, voice: str | None = None,
                    rate: float | None = None) -> bytes:
+        if np is None:
+            raise RuntimeError("numpy не установлен — Silero недоступен")
         if not text.strip():
             return b""
         voice = voice or self.voice
@@ -165,6 +173,8 @@ class SileroEngine:
         return "".join(full_parts).strip()
 
     def _play(self, sentence: str, voice: str, rate: float, token):
+        if np is None:
+            return
         from jarvis.text_utils import prepare_text
 
         text = prepare_text(sentence)
