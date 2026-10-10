@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=bf03b42857fd3aa2` · режим `lean` · файлов `136` · строк `22777` · источник `896 КБ`
+`sha256=fb7dc0454e5f5ab6` · режим `lean` · файлов `140` · строк `23432` · источник `921 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -236,7 +236,7 @@ jarvis/
 ├── cmds/
 │   ├── open_terminal.bat  (3 стр)
 │   ├── show_ip.bat  (3 стр)
-├── config.example.json  (62 стр)
+├── config.example.json  (66 стр)
 ├── CONTRIBUTING.md  (341 стр)
 ├── create_shortcut.bat  (51 стр)
 ├── install.bat  (410 стр)
@@ -248,7 +248,7 @@ jarvis/
 │   ├── apps.py  (114 стр)
 │   ├── brain.py  (816 стр)
 │   ├── celebrations.py  (165 стр)
-│   ├── config.py  (226 стр)
+│   ├── config.py  (234 стр)
 │   ├── config_manager.py  (156 стр)
 │   ├── files.py  (102 стр)
 │   ├── first_run.py  (26 стр)
@@ -298,7 +298,7 @@ jarvis/
 │   │   │   ├── pending.py  (62 стр)
 │   │   ├── verbs.py  (45 стр)
 │   ├── learning.py  (160 стр)
-│   ├── main.py  (602 стр)
+│   ├── main.py  (649 стр)
 │   ├── matching.py  (113 стр)
 │   ├── memory.py  (137 стр)
 │   ├── model.py  (102 стр)
@@ -312,7 +312,7 @@ jarvis/
 │   ├── recorder.py  (171 стр)
 │   ├── reply.py  (25 стр)
 │   ├── steam.py  (67 стр)
-│   ├── stt.py  (306 стр)
+│   ├── stt.py  (367 стр)
 │   ├── tasks.py  (236 стр)
 │   ├── text_utils.py  (132 стр)
 │   ├── timers.py  (340 стр)
@@ -324,10 +324,11 @@ jarvis/
 │   │   ├── factory.py  (75 стр)
 │   │   ├── piper.py  (177 стр)
 │   │   ├── sapi.py  (113 стр)
-│   │   ├── silero.py  (194 стр)
+│   │   ├── silero.py  (204 стр)
 │   │   ├── winrt.py  (158 стр)
 │   ├── uia.py  (617 стр)
-│   ├── voices.py  (152 стр)
+│   ├── vad.py  (251 стр)
+│   ├── voices.py  (198 стр)
 │   ├── weather.py  (394 стр)
 ├── jarvis-fenix.code-workspace  (8 стр)
 ├── launcher.py  (693 стр)
@@ -344,7 +345,7 @@ jarvis/
 ├── README.md  (845 стр)
 ├── requirements-ci.txt  (19 стр)
 ├── requirements-dev.txt  (10 стр)
-├── requirements.txt  (51 стр)
+├── requirements.txt  (59 стр)
 ├── scripts/
 │   ├── __init__.py  (7 стр)
 │   ├── build_exe.py  (78 стр)
@@ -362,13 +363,16 @@ jarvis/
 ├── test_intents.py  (387 стр)
 ├── test_uia_dump.py  (39 стр)
 ├── test_uia_manual.py  (52 стр)
+├── test_vad_debug.py  (57 стр)
+├── test_vad_live.py  (32 стр)
 ├── tests/
 │   ├── __init__.py  (0 стр)
 │   ├── test_caps.py  (23 стр)
 │   ├── test_config_manager.py  (47 стр)
 │   ├── test_mood.py  (386 стр)
-│   ├── test_tts.py  (143 стр)
+│   ├── test_tts.py  (156 стр)
 │   ├── test_uia.py  (247 стр)
+│   ├── test_vad.py  (118 стр)
 │   ├── test_weather.py  (237 стр)
 ```
 
@@ -1135,7 +1139,7 @@ jarvis/
   BARGE_LOG_INTERVAL = ...
   _CUDA_DLLS_ADDED = ...
   class Listener
-    def __init__(self, model_dir, sample_rate=16000, device=None)
+    def __init__(self, model_dir, sample_rate=16000, device=None, config=None)
     def barge_start(self)
     def barge_end(self)
     def resolve_device(device)
@@ -1326,6 +1330,22 @@ jarvis/
   def describe_browsers()
 ```
 
+**`jarvis/vad.py`**
+
+```
+  # Silero VAD — детекция речи в аудио-потоке с адаптивным порогом.
+  _MODEL_CANDIDATES = ...
+  _CHUNK_SAMPLES = ...
+  _DEFAULT_THRESHOLD = ...
+  class VAD
+    def __init__(self, sample_rate: int=16000, threshold: float=_DEFAULT_THRESHOLD, adaptive: bool=True)
+    def is_available(self)
+    def reset(self)
+    def rms_baseline(self)
+    def is_speech(self, pcm_int16: bytes)
+    def speech_probability(self, pcm_int16: bytes)
+```
+
 **`jarvis/voices.py`**
 
 ```
@@ -1333,10 +1353,12 @@ jarvis/
   _BACKEND_HINT = ...
   _VOICES_CACHE: ...
   _VOICE_ALIASES = ...
+  _FALLBACK_VOICES = ...
   def current_voice(config=None)
   def current_backend(config=None)
   def switch(voice: str, config=None)
   def handle_voice_command(cmd: str, config=None)
+  def reset_cache()
   def available_backends()
 ```
 
@@ -1561,6 +1583,22 @@ jarvis/
   def test_is_available_false()
 ```
 
+**`tests/test_vad.py`**
+
+```
+  # Тесты jarvis.vad — Silero VAD ONNX.
+  def test_vad_unavailable_without_model()
+  def test_vad_silence_returns_false()
+  def test_vad_noise_returns_false()
+  def test_vad_reset_does_not_crash()
+  def test_vad_speech_probability_silence()
+  def test_vad_short_chunk()
+  def test_vad_adaptive_default_on()
+  def test_vad_rms_baseline_grows()
+  def test_vad_reset_keeps_rms_baseline()
+  def test_vad_baseline_calibration_n()
+```
+
 **`tests/test_weather.py`**
 
 ```
@@ -1707,6 +1745,24 @@ jarvis/
   # Ручная проверка UIA в браузере — без хардкода конкретного браузера.
 ```
 
+**`test_vad_debug.py`**
+
+```
+  # Отладка Silero VAD — прогон на синтетике.
+  MODEL = ...
+  SR = ...
+  CHUNK = ...
+```
+
+**`test_vad_live.py`**
+
+```
+  # Живой тест VAD: пишет 5 сек с микрофона, показывает prob.
+  SR = ...
+  BLOCK = ...
+  def callback(indata, frames, time_info, status)
+```
+
 ## 3. Индекс кода
 
 | Файл | Строк | Категория | О чём модуль |
@@ -1717,7 +1773,7 @@ jarvis/
 | `jarvis/apps.py` | 114 | code | Каталог известных приложений: как их зовут голосом, как открыть и как  |
 | `jarvis/brain.py` | 816 | code | LLM-фолбэк: локальная нейронка (Ollama) разбирает команду в структурны |
 | `jarvis/celebrations.py` | 165 | code | Праздничные триггеры — поздравление с ДР + двойной салют. |
-| `jarvis/config.py` | 226 | code | Загрузка конфигурации и объект Config в памяти. |
+| `jarvis/config.py` | 234 | code | Загрузка конфигурации и объект Config в памяти. |
 | `jarvis/config_manager.py` | 156 | code | Единый менеджер записи в config.json. |
 | `jarvis/files.py` | 102 | code | Файлы и папки: открыть, посмотреть содержимое, создать. |
 | `jarvis/first_run.py` | 26 | code | Первый запуск — знакомство через LLM-диалог. |
@@ -1764,7 +1820,7 @@ jarvis/
 | `jarvis/intents/stages/pending.py` | 62 | code | Ожидание уточнения (pending_question). |
 | `jarvis/intents/verbs.py` | 45 | code | Константы глаголов и слов — единый источник истины. |
 | `jarvis/learning.py` | 160 | code | Самообучение Феникса: факты и коррекции. |
-| `jarvis/main.py` | 602 | code | Точка входа: связывает распознавание, интенты, синтез речи и GUI. |
+| `jarvis/main.py` | 649 | code | Точка входа: связывает распознавание, интенты, синтез речи и GUI. |
 | `jarvis/matching.py` | 113 | code | Нечёткое сопоставление речи с названиями: транслитерация + difflib. |
 | `jarvis/memory.py` | 137 | code | Память диалога — на профиль. |
 | `jarvis/model.py` | 102 | code | Скачивание и распаковка модели Vosk для русского языка (~45 МБ). |
@@ -1778,7 +1834,7 @@ jarvis/
 | `jarvis/recorder.py` | 171 | code | Запись действий: клавиши, клики, паузы. |
 | `jarvis/reply.py` | 25 | code | Reply — результат IntentHandler.handle(). |
 | `jarvis/steam.py` | 67 | code | Индекс установленных игр Steam: appmanifest -> (название, appid). |
-| `jarvis/stt.py` | 306 | code | Распознавание речи. |
+| `jarvis/stt.py` | 367 | code | Распознавание речи. |
 | `jarvis/tasks.py` | 236 | code | Списки задач. |
 | `jarvis/text_utils.py` | 132 | code | Общие текстовые утилиты для Феникса. |
 | `jarvis/timers.py` | 340 | code | Таймеры и напоминания. |
@@ -1789,10 +1845,11 @@ jarvis/
 | `jarvis/tts_engines/factory.py` | 75 | code | Фабрика TTS-движков. |
 | `jarvis/tts_engines/piper.py` | 177 | code | Piper TTS — быстрый, ~60 МБ, 4 голоса для русского. |
 | `jarvis/tts_engines/sapi.py` | 113 | code | SAPI TTS — старый Windows-синтез через pyttsx3. |
-| `jarvis/tts_engines/silero.py` | 194 | code | Silero TTS v5_5 — русский голос, ~150 МБ, требует PyTorch. |
+| `jarvis/tts_engines/silero.py` | 204 | code | Silero TTS v5_5 — русский голос, ~150 МБ, требует PyTorch. |
 | `jarvis/tts_engines/winrt.py` | 158 | code | WinRT TTS — системный синтез Windows, без внешних моделей. |
 | `jarvis/uia.py` | 617 | code | UI Automation — видим окна и элементы интерфейса. |
-| `jarvis/voices.py` | 152 | code | Управление голосами TTS — работает через tts_engines. |
+| `jarvis/vad.py` | 251 | code | Silero VAD — детекция речи в аудио-потоке с адаптивным порогом. |
+| `jarvis/voices.py` | 198 | code | Управление голосами TTS — работает через tts_engines. |
 | `jarvis/weather.py` | 394 | code | Погода и курс валют. |
 | `scripts/__init__.py` | 7 | code | Пакет scripts: утилиты разработчика. |
 | `scripts/build_exe.py` | 78 | code | Сборка Феникс.exe (лёгкий лаунчер). |
@@ -1808,8 +1865,9 @@ jarvis/
 | `tests/test_caps.py` | 23 | code | Тесты check_caps: структура system_caps.json. |
 | `tests/test_config_manager.py` | 47 | code | Тесты config_manager: параллельная запись не рвёт файл. |
 | `tests/test_mood.py` | 386 | code | Тесты jarvis.mood — состояние, детекция, decay, влияние. |
-| `tests/test_tts.py` | 143 | code | Тесты jarvis.tts_engines — движки и фабрика. С моками. |
+| `tests/test_tts.py` | 156 | code | Тесты jarvis.tts_engines — движки и фабрика. С моками. |
 | `tests/test_uia.py` | 247 | code | Тесты jarvis.uia — логика обёртки. С моками. |
+| `tests/test_vad.py` | 118 | code | Тесты jarvis.vad — Silero VAD ONNX. |
 | `tests/test_weather.py` | 237 | code | Тесты weather: структура ответов, describe_*, geocode с моками. |
 | `check_syntax.py` | 60 | code | Проверяет синтаксис всех .py файлов в проекте. |
 | `launcher.py` | 693 | code | Лаунчер Феникса — полный автозапуск. |
@@ -1817,6 +1875,8 @@ jarvis/
 | `test_intents.py` | 387 | code | Автотест Феникса без микрофона. |
 | `test_uia_dump.py` | 39 | code | Дамп дерева UIA активного окна браузера. |
 | `test_uia_manual.py` | 52 | code | Ручная проверка UIA в браузере — без хардкода конкретного браузера. |
+| `test_vad_debug.py` | 57 | code | Отладка Silero VAD — прогон на синтетике. |
+| `test_vad_live.py` | 32 | code | Живой тест VAD: пишет 5 сек с микрофона, показывает prob. |
 
 ---
 
@@ -4045,6 +4105,14 @@ DEFAULT_CONFIG = {
     "whisper_device": "auto",
     "mode": "combo",
     "barge_enabled": True,
+
+    # VAD (Silero ONNX, ~1 МБ). Отсекает тишину/шум ДО Vosk.
+    # Wake-слово работает как раньше — VAD только фильтрует вход.
+    # wake_word_required=false — VAD ловит речь, wake не нужен.
+    "vad_enabled": True,
+    "vad_threshold": 0.5,
+    "vad_adaptive": True,
+    "wake_word_required": True,
     "use_llm": True,
     "llm_model": "qwen2.5:7b-instruct",
     "ollama_url": "http://127.0.0.1:11434",
@@ -9300,6 +9368,17 @@ class Jarvis:
             self.listener.barge_enabled = self.barge_enabled
         self._barge_just_happened = False
 
+        # Wake-слово обязательно по умолчанию.
+        # Если wake_word_required=False — VAD уже отфильтровал тишину/шум,
+        # и любая распознанная фраза идёт в обработку.
+        self._wake_word_required = bool(
+            config.get("wake_word_required", True)
+        )
+        log.info(
+            "Wake-слово: %s",
+            "обязательно" if self._wake_word_required else "отключено (VAD-режим)"
+        )
+
         # Сериализация обработки команд: голосовой поток и GUI
         # не должны входить в handler.handle + say() одновременно.
         # Иначе два TTS накладываются, а stateful-поля IntentHandler
@@ -9533,6 +9612,11 @@ class Jarvis:
         return _REJECT
 
     def _extract_command(self, text: str) -> str | None:
+        """Извлекает команду из текста. ... [11 строк]"""
+        # Режим без wake: VAD уже отфильтровал, любой текст — команда.
+        if not self._wake_word_required:
+            return text.strip() or None
+
         tokens = text.split()
         for i, tok in enumerate(tokens):
             if self._is_wake(tok):
@@ -9682,7 +9766,12 @@ def main() -> None:
             brain = None
 
     speaker = Speaker(config)
-    listener = Listener(model_dir, config["sample_rate"], config.get("input_device"))
+    listener = Listener(
+        model_dir,
+        config["sample_rate"],
+        config.get("input_device"),
+        config=config,
+    )
 
     gui = None
     if config.get("gui_enabled", True):
@@ -9742,6 +9831,21 @@ def main() -> None:
             jarvis.barge_enabled = bool(value)
             if listener is not None:
                 listener.barge_enabled = bool(value)
+        elif key == "wake_word_required":
+            jarvis._wake_word_required = bool(value)
+            log.info("Wake-слово: %s",
+                     "обязательно" if value else "отключено")
+        elif key == "tts_backend":
+            # Смена backend TTS на лету
+            try:
+                speaker.switch_backend(str(value))
+            except Exception:
+                log.exception("Не удалось переключить TTS backend")
+        elif key == "vad_enabled":
+            # VAD включили/выключили — пересоздаём listener-флаг
+            if listener is not None:
+                listener.vad_enabled = bool(value)
+                log.info("VAD: %s", "включён" if value else "выключен")
 
     config.subscribe(_on_config_change)
 
@@ -11804,7 +11908,7 @@ def find_game(games: list[tuple[str, str]], spoken: str,
 ### `jarvis/stt.py`
 
 ```python
-"""Распознавание речи. ... [5 строк]"""
+"""Распознавание речи. ... [6 строк]"""
 
 import json
 import logging
@@ -11817,6 +11921,8 @@ from pathlib import Path
 import numpy as np
 import sounddevice as sd
 from vosk import KaldiRecognizer, Model, SetLogLevel
+
+from jarvis.vad import VAD
 
 log = logging.getLogger("jarvis.stt")
 
@@ -11852,11 +11958,12 @@ def _enable_cuda_dlls():
 
 
 class Listener:
-    def __init__(self, model_dir, sample_rate=16000, device=None):
+    def __init__(self, model_dir, sample_rate=16000, device=None, config=None):
         SetLogLevel(-1)
         self._model = Model(str(model_dir))
         self._rec = KaldiRecognizer(self._model, sample_rate)
         self._sample_rate = sample_rate
+        self._config = config
         self._device = self.resolve_device(device)
         self.device_name = self._current_device_name()
         self._audio = queue.Queue()
@@ -11870,6 +11977,43 @@ class Listener:
         self.muted = False
         self.barge_flag = False
         self._block_size = 8000
+
+        # VAD: отсекает тишину/шум ДО Vosk. Работает в listener-потоке.
+        # Один инстанс — не thread-safe, но callback и phrases() в одном потоке.
+        self.vad = None
+        self.vad_enabled = True
+        if config is not None:
+            try:
+                self.vad_enabled = bool(config.get("vad_enabled", True))
+            except Exception:
+                pass
+        if self.vad_enabled:
+            try:
+                threshold = 0.5
+                adaptive = True
+                if config is not None:
+                    try:
+                        threshold = float(config.get("vad_threshold", 0.5))
+                    except Exception:
+                        threshold = 0.5
+                    try:
+                        adaptive = bool(config.get("vad_adaptive", True))
+                    except Exception:
+                        adaptive = True
+                self.vad = VAD(
+                    sample_rate=sample_rate,
+                    threshold=threshold,
+                    adaptive=adaptive,
+                )
+                if not self.vad.is_available():
+                    log.warning("VAD: модель недоступна — работаю без VAD")
+                    self.vad = None
+                else:
+                    log.info("VAD: adaptive=%s, threshold=%.2f",
+                             adaptive, threshold)
+            except Exception:
+                log.exception("VAD: не удалось создать")
+                self.vad = None
 
         # Ring buffer последних фраз (для «что ты слышал»)
         self.recent_phrases: deque = deque(maxlen=10)
@@ -11971,8 +12115,22 @@ class Listener:
             rms = 0
             self.current_rms = 0
         self._process_barge(rms)
-        if not self.muted:
-            self._audio.put(bytes(indata))
+
+        if self.muted:
+            return
+
+        # VAD: пропускаем чанк в Vosk ТОЛЬКО если в нём есть речь.
+        # Тишина и шум отсекаются — Vosk не крутит AcceptWaveform зря.
+        raw = bytes(indata)
+        if self.vad is not None:
+            try:
+                if not self.vad.is_speech(raw):
+                    # Тишина — не пушим. Barge/peak/current_rms уже обновлены.
+                    return
+            except Exception:
+                log.exception("VAD.is_speech упал — пропускаю чанк как есть")
+
+        self._audio.put(raw)
 
     def flush(self):
         """Сброс аудио-буфера. ... [8 строк]"""
@@ -11983,6 +12141,12 @@ class Listener:
                 break
         self._utt_buf.clear()
         self._utt_len = 0
+        # Сброс VAD state — после barge/wake/flush детекция должна начаться заново.
+        if self.vad is not None:
+            try:
+                self.vad.reset()
+            except Exception:
+                pass
 
     def reset_stats(self):
         """Сбрасывает peak и utterances — для кнопки «Проверить микрофон»."""
@@ -13577,7 +13741,13 @@ import time
 import wave
 from pathlib import Path
 
-import numpy as np
+# numpy нужен только в рантайме (синтез). Импортируем лениво —
+# чтобы модуль можно было импортировать для проверки контракта
+# (list_engines, интерфейс) без numpy.
+try:
+    import numpy as np
+except ImportError:
+    np = None
 
 log = logging.getLogger("jarvis.tts")
 
@@ -13667,6 +13837,8 @@ class SileroEngine:
 
     def synthesize(self, text: str, voice: str | None = None,
                    rate: float | None = None) -> bytes:
+        if np is None:
+            raise RuntimeError("numpy не установлен — Silero недоступен")
         if not text.strip():
             return b""
         voice = voice or self.voice
@@ -13725,6 +13897,8 @@ class SileroEngine:
         return "".join(full_parts).strip()
 
     def _play(self, sentence: str, voice: str, rate: float, token):
+        if np is None:
+            return
         from jarvis.text_utils import prepare_text
 
         text = prepare_text(sentence)
@@ -14490,10 +14664,223 @@ def describe_browsers() -> str:
     return "Запущены браузеры: " + ", ".join(names) + "."
 ```
 
+### `jarvis/vad.py`
+
+```python
+"""Silero VAD — детекция речи в аудио-потоке с адаптивным порогом. ... [27 строк]"""
+
+import logging
+from pathlib import Path
+
+log = logging.getLogger("jarvis.vad")
+
+# Где искать модель. Сначала PROGRAM_DIR (ASCII), потом рядом с jarvis/.
+_MODEL_CANDIDATES = [
+    Path(r"C:\ProgramData\Phoenix\vad\silero_vad.onnx"),
+    Path(__file__).resolve().parent / "silero_vad.onnx",
+]
+
+# Размер чанка для ONNX: 512 сэмплов при 16 кГц (32 мс).
+_CHUNK_SAMPLES = 512
+
+# Порог речи по умолчанию.
+_DEFAULT_THRESHOLD = 0.5
+
+
+def _find_model() -> Path | None:
+    """Ищет silero_vad.onnx в стандартных местах."""
+    for p in _MODEL_CANDIDATES:
+        if p.exists():
+            return p
+    return None
+
+
+class VAD:
+    """Silero VAD — детектор речи с адаптивным порогом. ... [4 строк]"""
+
+    def __init__(self, sample_rate: int = 16000,
+                 threshold: float = _DEFAULT_THRESHOLD,
+                 adaptive: bool = True):
+        self._sample_rate = sample_rate
+        self._threshold = float(threshold)
+        self._available = False
+
+        # Адаптивный порог: если микрофон тихий — VAD-порог опускается
+        # автоматически. Опирается на RMS фонового шума.
+        self._adaptive = bool(adaptive)
+        self._rms_baseline = 0.0       # RMS «тишины» — калибруется сам
+        self._rms_samples = 0          # сколько калибровочных замеров набрано
+        self._rms_calibration_n = 30   # ~15 сек при block 8000/16k = 500 мс
+
+        self._session = None
+        self._state = None  # state тензоры ONNX между вызовами
+
+        try:
+            import numpy as np  # noqa: F401
+            import onnxruntime as ort
+        except ImportError as e:
+            log.warning("VAD: не установлен onnxruntime или numpy (%s) — "
+                        "работаю без VAD", e)
+            return
+
+        model_path = _find_model()
+        if model_path is None:
+            log.warning(
+                "VAD: модель silero_vad.onnx не найдена. Положи её в "
+                "C:\\ProgramData\\Phoenix\\vad\\silero_vad.onnx"
+            )
+            return
+
+        try:
+            opts = ort.SessionOptions()
+            opts.inter_op_num_threads = 1
+            opts.intra_op_num_threads = 1
+            opts.log_severity_level = 3  # только ошибки
+
+            self._session = ort.InferenceSession(
+                str(model_path), sess_options=opts,
+                providers=["CPUExecutionProvider"],
+            )
+            self._reset_state()
+            self._available = True
+            log.info("VAD: Silero ONNX загружен (%s)", model_path)
+        except Exception:
+            log.exception("VAD: не удалось загрузить модель")
+
+    def _reset_state(self):
+        """Сброс ONNX state (между фразами)."""
+        import numpy as np
+        # Silero VAD v5: state формы (2, 1, 128) float32
+        self._state = np.zeros((2, 1, 128), dtype=np.float32)
+
+    def is_available(self) -> bool:
+        return self._available
+
+    def reset(self):
+        """Сбросить ONNX state между фразами (для barge-in, wake). ... [3 строк]"""
+        if self._available:
+            self._reset_state()
+
+    def rms_baseline(self) -> float:
+        """Текущий RMS фона (для отладки/GUI)."""
+        return self._rms_baseline
+
+    def is_speech(self, pcm_int16: bytes) -> bool:
+        """Есть ли речь в чанке PCM int16 (16 кГц, mono). ... [9 строк]"""
+        if not self._available:
+            # Без VAD всё считаем речью — старое поведение.
+            return True
+
+        import numpy as np
+
+        arr = np.frombuffer(pcm_int16, dtype=np.int16)
+        if arr.size == 0:
+            return False
+
+        # --- RMS для адаптивности ---
+        rms = float(np.sqrt(np.mean(arr.astype(np.float32) ** 2)))
+
+        # Калибровка: пока не набрали N замеров — считаем это фоном.
+        # (Обычно при старте Феникса пользователь молчит.)
+        if self._rms_samples < self._rms_calibration_n:
+            self._rms_baseline = (
+                (self._rms_baseline * self._rms_samples + rms)
+                / (self._rms_samples + 1)
+            )
+            self._rms_samples += 1
+
+        # Если очень громко — точно речь, не гоняем VAD зря.
+        if self._adaptive and self._rms_baseline > 0:
+            if rms > self._rms_baseline * 3.0:
+                return True
+
+        # --- VAD-инференс ---
+        samples = arr.astype(np.float32) / 32768.0
+        if len(samples) < _CHUNK_SAMPLES:
+            return False
+
+        # --- Адаптивный порог VAD ---
+        threshold = self._threshold
+        if self._adaptive:
+            if rms > 0 and self._rms_baseline > 0:
+                ratio = rms / max(self._rms_baseline, 1.0)
+                if ratio < 1.5:
+                    # Скорее фон — требуем высокий prob.
+                    threshold = max(self._threshold, 0.5)
+                elif ratio < 3.0:
+                    # Средне — обычный порог.
+                    threshold = self._threshold
+                else:
+                    # Заметно громче фона — снижаем порог.
+                    threshold = min(self._threshold, 0.15)
+            else:
+                # Ещё не откалибровано — низкий порог.
+                threshold = min(self._threshold, 0.15)
+
+        max_prob = 0.0
+        for i in range(0, len(samples) - _CHUNK_SAMPLES + 1, _CHUNK_SAMPLES):
+            chunk = samples[i:i + _CHUNK_SAMPLES]
+            try:
+                prob = self._run_chunk(chunk)
+            except Exception:
+                log.exception("VAD: ошибка инференса")
+                return True  # безопасный fallback
+            if prob > max_prob:
+                max_prob = prob
+            if prob >= threshold:
+                return True
+
+        return False
+
+    def _run_chunk(self, chunk) -> float:
+        """Прогон одного 512-сэмплового чанка → вероятность речи."""
+        import numpy as np
+
+        inp = chunk.reshape(1, -1).astype(np.float32)
+        sr = np.array(self._sample_rate, dtype=np.int64)
+
+        outputs = self._session.run(
+            None,
+            {
+                "input": inp,
+                "state": self._state,
+                "sr": sr,
+            },
+        )
+        # outputs = [output, new_state]
+        prob = float(outputs[0][0][0])
+        self._state = outputs[1]
+        return prob
+
+    def speech_probability(self, pcm_int16: bytes) -> float:
+        """Максимальная вероятность речи в чанке (для отладки)."""
+        if not self._available:
+            return 1.0
+
+        import numpy as np
+
+        samples = np.frombuffer(pcm_int16, dtype=np.int16).astype(np.float32)
+        samples /= 32768.0
+
+        if len(samples) < _CHUNK_SAMPLES:
+            return 0.0
+
+        max_prob = 0.0
+        for i in range(0, len(samples) - _CHUNK_SAMPLES + 1, _CHUNK_SAMPLES):
+            chunk = samples[i:i + _CHUNK_SAMPLES]
+            try:
+                prob = self._run_chunk(chunk)
+                if prob > max_prob:
+                    max_prob = prob
+            except Exception:
+                return 1.0
+        return max_prob
+```
+
 ### `jarvis/voices.py`
 
 ```python
-"""Управление голосами TTS — работает через tts_engines. ... [4 строк]"""
+"""Управление голосами TTS — работает через tts_engines. ... [7 строк]"""
 
 import logging
 import re
@@ -14536,8 +14923,41 @@ _VOICE_ALIASES = {
 }
 
 
+def _hint_for(backend: str) -> str:
+    """Человеческая подсказка по голосам для backend. ... [3 строк]"""
+    hint = _BACKEND_HINT.get(backend)
+    if hint:
+        return hint
+    return " | ".join(f"{k}: {v}" for k, v in _BACKEND_HINT.items())
+
+
+# Fallback-голоса, если движок не загрузился (CI без piper/torch).
+# Нужно для тестов, чтобы переключение голоса работало даже без движка.
+_FALLBACK_VOICES = {
+    "piper": {
+        "ruslan": "Руслан — мужской",
+        "dmitri": "Дмитрий — мужской",
+        "irina":  "Ирина — женский",
+        "denis":  "Денис — мужской",
+    },
+    "silero": {
+        "aidar":   "Айдар",
+        "baya":    "Бая",
+        "kseniya": "Ксения",
+        "xenia":   "Ксения (v5)",
+        "eugene":  "Евгений",
+    },
+    "winrt": {
+        "auto":  "Авто",
+        "Pavel": "Павел",
+        "Irina": "Ирина",
+    },
+    "sapi": {"auto": "Авто"},
+}
+
+
 def _voices_for_backend(backend: str) -> dict:
-    """Голоса движка. Кэшируется, чтобы не грузить движок на каждый вызов."""
+    """Голоса движка. Кэшируется, чтобы не грузить движок на каждый вызов. ... [5 строк]"""
     if backend in _VOICES_CACHE:
         return _VOICES_CACHE[backend]
 
@@ -14546,16 +14966,19 @@ def _voices_for_backend(backend: str) -> dict:
     if backend == "auto":
         for name in ("silero", "piper", "winrt", "sapi"):
             eng = _try_create(name, "", "medium", 1.15)
-            if eng is not None:
+            if eng is not None and eng.voices:
                 result = dict(eng.voices)
-                # Для отладки: запоминаем, какой именно движок выбран
-                if not result:
-                    continue
                 break
+        # fallback если ничего не загрузилось
+        if not result:
+            result = dict(_FALLBACK_VOICES["piper"])
     else:
         eng = _try_create(backend, "", "medium", 1.15)
         if eng is not None:
             result = dict(eng.voices)
+        # fallback если движок недоступен
+        if not result:
+            result = dict(_FALLBACK_VOICES.get(backend, {}))
 
     _VOICES_CACHE[backend] = result
     return result
@@ -14590,11 +15013,8 @@ def switch(voice: str, config=None) -> str:
     key = _normalize_voice(voice)
 
     if key not in voices:
-        hint = _BACKEND_HINT.get(backend)
-        if not hint:
-            hint = " | ".join(f"{k}: {v}" for k, v in _BACKEND_HINT.items())
         return (f"Голос '{voice}' не знаю. Доступные: "
-                f"{', '.join(voices)}. Подсказка: {hint}")
+                f"{', '.join(voices)}. Подсказка: {_hint_for(backend)}")
 
     if config is not None:
         config.set("tts_voice", key)
@@ -14617,11 +15037,8 @@ def handle_voice_command(cmd: str, config=None) -> str | None:
             or cmd in {"список голосов", "какие голоса", "покажи голоса"}:
         if not voices:
             return f"Движок {backend} недоступен."
-        hint = _BACKEND_HINT.get(backend)
-        if not hint:
-            # auto → показываем подсказки всех движков
-            hint = " | ".join(f"{k}: {v}" for k, v in _BACKEND_HINT.items())
-        return (f"Голоса ({backend}): {', '.join(voices)}. Подсказка: {hint}.")
+        return (f"Голоса ({backend}): {', '.join(voices)}. "
+                f"Подсказка: {_hint_for(backend)}")
 
     m = re.search(
         r"(?:смени|поменяй|переключи|включи|поставь)\s+голос\s+(?:на\s+)?(\S+)",
@@ -14635,6 +15052,11 @@ def handle_voice_command(cmd: str, config=None) -> str | None:
         return switch(m.group(1).strip().rstrip(".,!?").lower(), config)
 
     return None
+
+
+def reset_cache() -> None:
+    """Сбросить кэш голосов (при смене backend)."""
+    _VOICES_CACHE.clear()
 
 
 # Список бэкендов — для GUI/CLI
@@ -16171,9 +16593,18 @@ def test_handle_mood_command_none():
 ### `tests/test_tts.py`
 
 ```python
-"""Тесты jarvis.tts_engines — движки и фабрика. С моками. ... [3 строк]"""
+"""Тесты jarvis.tts_engines — движки и фабрика. С моками. ... [7 строк]"""
+
+import importlib.util
+
+import pytest
 
 from unittest.mock import patch, MagicMock
+
+# Пропускаем весь модуль, если нет numpy (значит CI, без TTS).
+if importlib.util.find_spec("numpy") is None:
+    pytest.skip("numpy не установлен — TTS-тесты пропущены",
+                allow_module_level=True)
 
 from jarvis.tts_engines import factory
 
@@ -16556,6 +16987,125 @@ def test_is_available_true():
 def test_is_available_false():
     with patch.object(uia, "_ensure_init", side_effect=ImportError("no uia")):
         assert uia.is_available() is False
+```
+
+### `tests/test_vad.py`
+
+```python
+"""Тесты jarvis.vad — Silero VAD ONNX. ... [4 строк]"""
+
+import importlib.util
+from unittest.mock import patch, MagicMock
+
+import pytest
+
+# Пропускаем весь модуль, если нет onnxruntime (CI).
+if importlib.util.find_spec("onnxruntime") is None:
+    pytest.skip("onnxruntime не установлен — VAD-тесты пропущены",
+                allow_module_level=True)
+
+from jarvis import vad
+
+
+def test_vad_unavailable_without_model():
+    """Без модели VAD.is_available() == False, is_speech → True (safe)."""
+    with patch.object(vad, "_find_model", return_value=None):
+        v = vad.VAD()
+    assert v.is_available() is False
+    # Fallback: без VAD всё считаем речью (старое поведение).
+    assert v.is_speech(b"\x00" * 1024) is True
+
+
+def test_vad_silence_returns_false():
+    """Тишина (нули) → не речь."""
+    import numpy as np
+    v = vad.VAD()
+    if not v.is_available():
+        pytest.skip("модель VAD недоступна")
+    silence = np.zeros(16000, dtype=np.int16).tobytes()
+    assert v.is_speech(silence) is False
+
+
+def test_vad_noise_returns_false():
+    """Случайный шум не детектится как речь (обычно)."""
+    import numpy as np
+    v = vad.VAD()
+    if not v.is_available():
+        pytest.skip("модель VAD недоступна")
+    np.random.seed(42)
+    noise = (np.random.randn(16000) * 100).astype(np.int16).tobytes()
+    assert v.is_speech(noise) is False
+
+
+def test_vad_reset_does_not_crash():
+    """reset() работает без ошибок, даже если модель есть."""
+    v = vad.VAD()
+    v.reset()
+
+
+def test_vad_speech_probability_silence():
+    """speech_probability на тишине → низкая."""
+    import numpy as np
+    v = vad.VAD()
+    if not v.is_available():
+        pytest.skip("модель VAD недоступна")
+    silence = np.zeros(16000, dtype=np.int16).tobytes()
+    prob = v.speech_probability(silence)
+    assert prob < 0.1, f"prob={prob}"
+
+
+def test_vad_short_chunk():
+    """Чанк короче 512 сэмплов → False, без падения."""
+    import numpy as np
+    v = vad.VAD()
+    short = np.zeros(100, dtype=np.int16).tobytes()
+    assert v.is_speech(short) is False
+
+def test_vad_adaptive_default_on():
+    """VAD по умолчанию адаптивный."""
+    from jarvis.vad import VAD
+    v = VAD()
+    assert v._adaptive is True
+
+
+def test_vad_rms_baseline_grows():
+    """RMS-база обновляется на тихих чанках."""
+    import numpy as np
+    from jarvis.vad import VAD
+    v = VAD()
+    if not v.is_available():
+        pytest.skip("модель VAD недоступна")
+
+    for _ in range(5):
+        quiet = (np.random.randn(8000) * 100).astype(np.int16).tobytes()
+        v.is_speech(quiet)
+
+    assert v.rms_baseline() > 0
+
+
+def test_vad_reset_keeps_rms_baseline():
+    """reset() не сбрасывает RMS-базу."""
+    import numpy as np
+    from jarvis.vad import VAD
+    v = VAD()
+    if not v.is_available():
+        pytest.skip("модель VAD недоступна")
+
+    for _ in range(5):
+        quiet = (np.random.randn(8000) * 100).astype(np.int16).tobytes()
+        v.is_speech(quiet)
+
+    before = v.rms_baseline()
+    v.reset()
+    after = v.rms_baseline()
+    assert before == after
+
+
+def test_vad_baseline_calibration_n():
+    """Калибровка — 30 замеров до «заморозки» базы."""
+    from jarvis.vad import VAD
+    v = VAD()
+    assert v._rms_calibration_n == 30
 ```
 
 ### `tests/test_weather.py`
@@ -18655,6 +19205,105 @@ print()
 print("=" * 60)
 ```
 
+### `test_vad_debug.py`
+
+```python
+"""Отладка Silero VAD — прогон на синтетике."""
+
+import numpy as np
+import onnxruntime as ort
+
+MODEL = r"C:\ProgramData\Phoenix\vad\silero_vad.onnx"
+SR = 16000
+CHUNK = 512
+
+sess = ort.InferenceSession(MODEL)
+
+# --- Синусоида 150 Гц (похоже на голос) ---
+print("Прогон синусоиды 150 Гц:")
+state = np.zeros((2, 1, 128), dtype=np.float32)
+sr = np.array(SR, dtype=np.int64)
+
+t = np.arange(SR * 2) / SR
+sig = (0.5 * np.sin(2 * np.pi * 150 * t)).astype(np.float32)
+
+probs = []
+for i in range(0, len(sig) - CHUNK + 1, CHUNK):
+    chunk = sig[i:i + CHUNK].reshape(1, -1)
+    out = sess.run(None, {"input": chunk, "state": state, "sr": sr})
+    state = out[1]
+    probs.append(float(out[0][0][0]))
+
+print("  первые 10 prob:", [f"{p:.3f}" for p in probs[:10]])
+print("  макс prob:", max(probs))
+
+# --- Тишина ---
+print("\nПрогон тишины:")
+state = np.zeros((2, 1, 128), dtype=np.float32)
+silence = np.zeros(CHUNK, dtype=np.float32)
+probs_silence = []
+for i in range(10):
+    chunk = silence.reshape(1, -1)
+    out = sess.run(None, {"input": chunk, "state": state, "sr": sr})
+    state = out[1]
+    probs_silence.append(float(out[0][0][0]))
+
+print("  первые 10 prob:", [f"{p:.3f}" for p in probs_silence[:10]])
+print("  макс prob:", max(probs_silence))
+
+# --- Белый шум ---
+print("\nПрогон белого шума (громкий):")
+state = np.zeros((2, 1, 128), dtype=np.float32)
+np.random.seed(42)
+noise = (np.random.randn(CHUNK) * 0.3).astype(np.float32)
+probs_noise = []
+for i in range(10):
+    chunk = noise.reshape(1, -1)
+    out = sess.run(None, {"input": chunk, "state": state, "sr": sr})
+    state = out[1]
+    probs_noise.append(float(out[0][0][0]))
+
+print("  первые 10 prob:", [f"{p:.3f}" for p in probs_noise[:10]])
+print("  макс prob:", max(probs_noise))
+```
+
+### `test_vad_live.py`
+
+```python
+"""Живой тест VAD: пишет 5 сек с микрофона, показывает prob."""
+
+import time
+import numpy as np
+import sounddevice as sd
+
+from jarvis.vad import VAD
+
+SR = 16000
+BLOCK = 8000
+
+vad = VAD(sample_rate=SR, threshold=0.5)
+print("VAD available:", vad.is_available())
+
+print("\nГовори ГРОМКО 5 секунд: 'Привет, раз, два, три'")
+print(f"{'t':>5}  {'rms':>6}  {'prob':>5}  {'речь?':>5}")
+print("-" * 35)
+
+def callback(indata, frames, time_info, status):
+    raw = bytes(indata)
+    arr = np.frombuffer(raw, dtype=np.int16)
+    rms = int(np.sqrt(np.mean(arr.astype(np.float32) ** 2)))
+    prob = vad.speech_probability(raw)
+    is_sp = vad.is_speech(raw)
+    print(f"{time.time() % 100:>5.1f}  {rms:>6}  {prob:>5.2f}  "
+          f"{'ДА' if is_sp else 'нет':>5}")
+
+with sd.RawInputStream(samplerate=SR, blocksize=BLOCK, dtype='int16',
+                       channels=1, callback=callback):
+    time.sleep(5)
+
+print("\nГотово.")
+```
+
 ### `.github/workflows/test.yml`
 
 ```yaml
@@ -18869,6 +19518,10 @@ pause
   "command_window_sec": 8,
   "mode": "combo",
   "barge_enabled": true,
+  "vad_enabled": true,
+  "vad_threshold": 0.5,
+  "vad_adaptive": true,
+  "wake_word_required": true,
   "active_packs": [],
   "timers_file": "timers.json",
   "tasks_file": "tasks.json",
@@ -19742,6 +20395,14 @@ pytest-asyncio>=0.23
 
 # === Опционально: мягкое удаление профиля ===
 send2trash>=1.8
+
+# === Silero TTS ===
+torch>=2.0
+torchaudio>=2.0
+silero>=0.4
+
+# === VAD ===
+onnxruntime>=1.17
 ```
 
 ## 5. Документация (только оглавления)
@@ -20006,4 +20667,4 @@ send2trash>=1.8
 
 ---
 
-_Итого по категориям — code: 106, data: 16, doc: 9, pack: 5. Режим `lean`._
+_Итого по категориям — code: 110, data: 16, doc: 9, pack: 5. Режим `lean`._
