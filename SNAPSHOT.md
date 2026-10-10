@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=ebf358e072c793c3` · режим `lean` · файлов `128` · строк `21734` · источник `856 КБ`
+`sha256=bf03b42857fd3aa2` · режим `lean` · файлов `136` · строк `22777` · источник `896 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -228,7 +228,7 @@ jarvis/
 │   │   ├── README.md  (37 стр)
 │   │   ├── test.yml  (58 стр)
 ├── ARCHITECTURE.md  (885 стр)
-├── CHANGELOG.md  (422 стр)
+├── CHANGELOG.md  (438 стр)
 ├── check_all.bat  (88 стр)
 ├── check_syntax.bat  (7 стр)
 ├── check_syntax.py  (60 стр)
@@ -246,9 +246,9 @@ jarvis/
 │   ├── __main__.py  (4 стр)
 │   ├── actions.py  (1155 стр)
 │   ├── apps.py  (114 стр)
-│   ├── brain.py  (795 стр)
+│   ├── brain.py  (816 стр)
 │   ├── celebrations.py  (165 стр)
-│   ├── config.py  (224 стр)
+│   ├── config.py  (226 стр)
 │   ├── config_manager.py  (156 стр)
 │   ├── files.py  (102 стр)
 │   ├── first_run.py  (26 стр)
@@ -278,7 +278,7 @@ jarvis/
 │   │   │   ├── uia.py  (100 стр)
 │   │   │   ├── undo.py  (67 стр)
 │   │   │   ├── voices.py  (10 стр)
-│   │   │   ├── weather.py  (68 стр)
+│   │   │   ├── weather.py  (113 стр)
 │   │   ├── handler.py  (197 стр)
 │   │   ├── password.py  (86 стр)
 │   │   ├── sites.py  (62 стр)
@@ -317,10 +317,18 @@ jarvis/
 │   ├── text_utils.py  (132 стр)
 │   ├── timers.py  (340 стр)
 │   ├── tray.py  (96 стр)
-│   ├── tts.py  (466 стр)
+│   ├── tts.py  (312 стр)
+│   ├── tts_engines/
+│   │   ├── __init__.py  (12 стр)
+│   │   ├── base.py  (62 стр)
+│   │   ├── factory.py  (75 стр)
+│   │   ├── piper.py  (177 стр)
+│   │   ├── sapi.py  (113 стр)
+│   │   ├── silero.py  (194 стр)
+│   │   ├── winrt.py  (158 стр)
 │   ├── uia.py  (617 стр)
-│   ├── voices.py  (69 стр)
-│   ├── weather.py  (305 стр)
+│   ├── voices.py  (152 стр)
+│   ├── weather.py  (394 стр)
 ├── jarvis-fenix.code-workspace  (8 стр)
 ├── launcher.py  (693 стр)
 ├── LICENSE  (25 стр)
@@ -351,7 +359,7 @@ jarvis/
 ├── snapshot.py  (698 стр)
 ├── start_fenix.bat  (6 стр)
 ├── start_fenix_debug.bat  (15 стр)
-├── test_intents.py  (380 стр)
+├── test_intents.py  (387 стр)
 ├── test_uia_dump.py  (39 стр)
 ├── test_uia_manual.py  (52 стр)
 ├── tests/
@@ -359,6 +367,7 @@ jarvis/
 │   ├── test_caps.py  (23 стр)
 │   ├── test_config_manager.py  (47 стр)
 │   ├── test_mood.py  (386 стр)
+│   ├── test_tts.py  (143 стр)
 │   ├── test_uia.py  (247 стр)
 │   ├── test_weather.py  (237 стр)
 ```
@@ -738,6 +747,7 @@ jarvis/
 ```
   # Простые правила для погоды и курса — без LLM.
   def weather_currency_fast(handler, cmd: str)
+  _CITY_NOISE = ...
 ```
 
 **`jarvis/intents/handler.py`**
@@ -1187,20 +1197,108 @@ jarvis/
 **`jarvis/tts.py`**
 
 ```
-  # Синтез речи.
-  PIPER_REPO = ...
-  BASE_DIR = ...
-  _SENTENCE_END = ...
+  # Синтез речи — фасад над tts_engines.
   class Speaker
     def __init__(self, config)
+    def switch_backend(self, backend: str)
     def set_voice(self, voice: str)
     def set_rate(self, rate: float)
     def speak(self, text: str)
     def play_async(self, text: str)
+    def speak_stream(self, text_iter: Iterator[str], timeout: float=30.0)
     def stop(self)
     def is_playing(self)
     def wait_end(self, timeout: float=30.0)
-    def speak_stream(self, text_iter, timeout: float=30.0)
+  def available_backends()
+  def engine_voices(backend: str)
+```
+
+**`jarvis/tts_engines/__init__.py`**
+
+```
+  # TTS-движки Феникса — абстракция над Piper, Silero, WinRT, SAPI.
+```
+
+**`jarvis/tts_engines/base.py`**
+
+```
+  # Базовый класс TTS-движка.
+  class BaseEngine(ABC)
+    def is_available(self)
+    def synthesize(self, text: str, voice: str, rate: float)
+    def speak_stream(self, text_iter: Iterator[str], voice: str, rate: float, token)
+    def set_voice(self, voice: str)
+    def set_rate(self, rate: float)
+    def stop(self)
+```
+
+**`jarvis/tts_engines/factory.py`**
+
+```
+  # Фабрика TTS-движков.
+  def get_engine(backend: str, voice: str, quality: str='medium', rate: float=1.15)
+  _ENGINE_CACHE: ...
+  def list_engines()
+```
+
+**`jarvis/tts_engines/piper.py`**
+
+```
+  # Piper TTS — быстрый, ~60 МБ, 4 голоса для русского.
+  PIPER_REPO = ...
+  _SENTENCE_END = ...
+  class PiperEngine
+    def __init__(self, voice: str='ruslan', quality: str='medium', rate: float=1.15)
+    def is_available(self)
+    def set_voice(self, voice: str)
+    def set_rate(self, rate: float)
+    def synthesize(self, text: str, voice: str | None=None, rate: float | None=None)
+    def speak_stream(self, text_iter, voice: str, rate: float, token)
+```
+
+**`jarvis/tts_engines/sapi.py`**
+
+```
+  # SAPI TTS — старый Windows-синтез через pyttsx3.
+  _SENTENCE_END = ...
+  class SAPIEngine
+    def __init__(self, voice: str='auto', quality: str='medium', rate: float=1.15)
+    def is_available(self)
+    def set_voice(self, voice: str)
+    def set_rate(self, rate: float)
+    def synthesize(self, text: str, voice: str | None=None, rate: float | None=None)
+    def speak_stream(self, text_iter, voice: str, rate: float, token)
+    def stop(self)
+```
+
+**`jarvis/tts_engines/silero.py`**
+
+```
+  # Silero TTS v5_5 — русский голос, ~150 МБ, требует PyTorch.
+  _SAMPLE_RATE = ...
+  _VERSION = ...
+  _SENTENCE_END = ...
+  class SileroEngine
+    def __init__(self, voice: str='aidar', quality: str='medium', rate: float=1.15)
+    def is_available(self)
+    def set_voice(self, voice: str)
+    def set_rate(self, rate: float)
+    def synthesize(self, text: str, voice: str | None=None, rate: float | None=None)
+    def speak_stream(self, text_iter, voice: str, rate: float, token)
+```
+
+**`jarvis/tts_engines/winrt.py`**
+
+```
+  # WinRT TTS — системный синтез Windows, без внешних моделей.
+  _SENTENCE_END = ...
+  class WinRTEngine
+    def __init__(self, voice: str='Pavel', quality: str='medium', rate: float=1.15)
+    def is_available(self)
+    def set_voice(self, voice: str)
+    def set_rate(self, rate: float)
+    def synthesize(self, text: str, voice: str | None=None, rate: float | None=None)
+    def speak_stream(self, text_iter, voice: str, rate: float, token)
 ```
 
 **`jarvis/uia.py`**
@@ -1231,18 +1329,23 @@ jarvis/
 **`jarvis/voices.py`**
 
 ```
-  # Управление голосами Piper: ruslan, dmitri, irina, denis.
-  PIPER_VOICES = ...
-  ALIASES = ...
+  # Управление голосами TTS — работает через tts_engines.
+  _BACKEND_HINT = ...
+  _VOICES_CACHE: ...
+  _VOICE_ALIASES = ...
   def current_voice(config=None)
+  def current_backend(config=None)
   def switch(voice: str, config=None)
   def handle_voice_command(cmd: str, config=None)
+  def available_backends()
 ```
 
 **`jarvis/weather.py`**
 
 ```
   # Погода и курс валют.
+  _CITY_PADEGES = ...
+  def normalize_city(name: str)
   _CACHE: ...
   _CACHE_LOCK = ...
   _DEFAULT_TTL = ...
@@ -1414,6 +1517,25 @@ jarvis/
   def test_handle_mood_command_cheer_up()
   def test_handle_mood_command_calm_down()
   def test_handle_mood_command_none()
+```
+
+**`tests/test_tts.py`**
+
+```
+  # Тесты jarvis.tts_engines — движки и фабрика. С моками.
+  def test_list_engines_empty()
+  def test_get_engine_auto_picks_first()
+  def test_get_engine_auto_none_available()
+  def test_get_engine_by_name()
+  def test_base_engine_abstract()
+  def test_piper_engine_interface()
+  def test_piper_voice_not_in_dict()
+  def test_silero_engine_interface()
+  def test_winrt_engine_interface()
+  def test_sapi_engine_interface()
+  def test_voices_for_backend_unknown()
+  def test_voices_for_backend_ok()
+  def test_switch_voice_not_found()
 ```
 
 **`tests/test_uia.py`**
@@ -1593,9 +1715,9 @@ jarvis/
 | `jarvis/__main__.py` | 4 | code |  |
 | `jarvis/actions.py` | 1155 | code | Действия: запуск приложений, открытие сайтов, скриншоты, медиа, печать |
 | `jarvis/apps.py` | 114 | code | Каталог известных приложений: как их зовут голосом, как открыть и как  |
-| `jarvis/brain.py` | 795 | code | LLM-фолбэк: локальная нейронка (Ollama) разбирает команду в структурны |
+| `jarvis/brain.py` | 816 | code | LLM-фолбэк: локальная нейронка (Ollama) разбирает команду в структурны |
 | `jarvis/celebrations.py` | 165 | code | Праздничные триггеры — поздравление с ДР + двойной салют. |
-| `jarvis/config.py` | 224 | code | Загрузка конфигурации и объект Config в памяти. |
+| `jarvis/config.py` | 226 | code | Загрузка конфигурации и объект Config в памяти. |
 | `jarvis/config_manager.py` | 156 | code | Единый менеджер записи в config.json. |
 | `jarvis/files.py` | 102 | code | Файлы и папки: открыть, посмотреть содержимое, создать. |
 | `jarvis/first_run.py` | 26 | code | Первый запуск — знакомство через LLM-диалог. |
@@ -1623,7 +1745,7 @@ jarvis/
 | `jarvis/intents/fast/uia.py` | 100 | code | UIA-команды голосом: «прочитай окно», «закрой вкладку ютуб», «какой са |
 | `jarvis/intents/fast/undo.py` | 67 | code | Отмена последнего действия («не то», «отмени»). |
 | `jarvis/intents/fast/voices.py` | 10 | code | Голоса Piper — обёртка над модулем `voices`. |
-| `jarvis/intents/fast/weather.py` | 68 | code | Простые правила для погоды и курса — без LLM. |
+| `jarvis/intents/fast/weather.py` | 113 | code | Простые правила для погоды и курса — без LLM. |
 | `jarvis/intents/handler.py` | 197 | code | IntentHandler — оркестрация. |
 | `jarvis/intents/password.py` | 86 | code | Хеширование пароля и действия, требующие пароля. |
 | `jarvis/intents/sites.py` | 62 | code | Сайты для открытия голосом — ленивая загрузка из packs/sites.json. |
@@ -1661,10 +1783,17 @@ jarvis/
 | `jarvis/text_utils.py` | 132 | code | Общие текстовые утилиты для Феникса. |
 | `jarvis/timers.py` | 340 | code | Таймеры и напоминания. |
 | `jarvis/tray.py` | 96 | code | Иконка в системном трее (pystray). |
-| `jarvis/tts.py` | 466 | code | Синтез речи. |
+| `jarvis/tts.py` | 312 | code | Синтез речи — фасад над tts_engines. |
+| `jarvis/tts_engines/__init__.py` | 12 | code | TTS-движки Феникса — абстракция над Piper, Silero, WinRT, SAPI. |
+| `jarvis/tts_engines/base.py` | 62 | code | Базовый класс TTS-движка. |
+| `jarvis/tts_engines/factory.py` | 75 | code | Фабрика TTS-движков. |
+| `jarvis/tts_engines/piper.py` | 177 | code | Piper TTS — быстрый, ~60 МБ, 4 голоса для русского. |
+| `jarvis/tts_engines/sapi.py` | 113 | code | SAPI TTS — старый Windows-синтез через pyttsx3. |
+| `jarvis/tts_engines/silero.py` | 194 | code | Silero TTS v5_5 — русский голос, ~150 МБ, требует PyTorch. |
+| `jarvis/tts_engines/winrt.py` | 158 | code | WinRT TTS — системный синтез Windows, без внешних моделей. |
 | `jarvis/uia.py` | 617 | code | UI Automation — видим окна и элементы интерфейса. |
-| `jarvis/voices.py` | 69 | code | Управление голосами Piper: ruslan, dmitri, irina, denis. |
-| `jarvis/weather.py` | 305 | code | Погода и курс валют. |
+| `jarvis/voices.py` | 152 | code | Управление голосами TTS — работает через tts_engines. |
+| `jarvis/weather.py` | 394 | code | Погода и курс валют. |
 | `scripts/__init__.py` | 7 | code | Пакет scripts: утилиты разработчика. |
 | `scripts/build_exe.py` | 78 | code | Сборка Феникс.exe (лёгкий лаунчер). |
 | `scripts/check_caps.py` | 174 | code | Проверка возможностей системы — запускается из install.bat. |
@@ -1679,12 +1808,13 @@ jarvis/
 | `tests/test_caps.py` | 23 | code | Тесты check_caps: структура system_caps.json. |
 | `tests/test_config_manager.py` | 47 | code | Тесты config_manager: параллельная запись не рвёт файл. |
 | `tests/test_mood.py` | 386 | code | Тесты jarvis.mood — состояние, детекция, decay, влияние. |
+| `tests/test_tts.py` | 143 | code | Тесты jarvis.tts_engines — движки и фабрика. С моками. |
 | `tests/test_uia.py` | 247 | code | Тесты jarvis.uia — логика обёртки. С моками. |
 | `tests/test_weather.py` | 237 | code | Тесты weather: структура ответов, describe_*, geocode с моками. |
 | `check_syntax.py` | 60 | code | Проверяет синтаксис всех .py файлов в проекте. |
 | `launcher.py` | 693 | code | Лаунчер Феникса — полный автозапуск. |
 | `snapshot.py` | 698 | code | Собирает снимок проекта в один SNAPSHOT.md. |
-| `test_intents.py` | 380 | code | Автотест Феникса без микрофона. |
+| `test_intents.py` | 387 | code | Автотест Феникса без микрофона. |
 | `test_uia_dump.py` | 39 | code | Дамп дерева UIA активного окна браузера. |
 | `test_uia_manual.py` | 52 | code | Ручная проверка UIA в браузере — без хардкода конкретного браузера. |
 
@@ -3021,6 +3151,11 @@ none
 «Открой», «запусти», «врубай» → ВСЕГДА open_app (или open_site/open_folder).
 Не путай.
 
+=== ГОРОД В ПОГОДЕ ===
+Если пользователь НАЗВАЛ город (в любой форме — «в москве», «в нижнем новгороде»,
+«в питере»), ты ОБЯЗАН использовать ИМЕННО ЭТОТ город в ИМЕНИТЕЛЬНОМ падеже.
+НИКОГДА не подставляй default_city из профиля, если город назван.
+
 === ПРИМЕРЫ ===
 открой стим -> {"action":"open_app","target":"стим"}
 закрой стим -> {"action":"close_app","target":"стим"}
@@ -3089,6 +3224,8 @@ none
 какая погода -> {"action":"get_weather","day":"today"}
 какая погода в москве -> {"action":"get_weather","target":"Москва","day":"today"}
 погода в питере на завтра -> {"action":"get_weather","target":"Санкт-Петербург","day":"tomorrow"}
+погода в нижнем новгороде -> {"action":"get_weather","target":"Нижний Новгород","day":"today"}
+погода в казани -> {"action":"get_weather","target":"Казань","day":"today"}
 курс доллара -> {"action":"get_currency","target":"USD"}
 курс евро -> {"action":"get_currency","target":"EUR"}
 курс валют -> {"action":"get_currency"}
@@ -3186,6 +3323,9 @@ none
 открой ютуб -> open_site target ютуб
 открой профиль -> open_profile
 какая погода в москве -> get_weather target Москва
+погода в нижнем новгороде -> get_weather target=Нижний Новгород
+погода в питере на завтра -> get_weather target=Санкт-Петербург day=tomorrow
+погода в казани -> get_weather target=Казань
 курс доллара -> get_currency target USD
 громкость 50 -> set_volume percent 50
 смени голос на ирину -> change_voice voice irina
@@ -3205,6 +3345,8 @@ none
 Не используй search без «найди», «поищи», «загугли».
 По умолчанию — answer.
 set_profile — только для «меня зовут X» и «мой город X». НЕ для «верни яндекс» / «открой ютуб».
+Если город назван явно («в москве», «в нижнем новгороде») — используй ИМЕННО его
+в именительном падеже, НЕ default_city.
 
 === ДИАЛОГ ===
 Ты — Феникс. Спокойный, вежливый, с сухим юмором, «сэр».
@@ -3268,6 +3410,15 @@ uia_click_button (target), uia_active_window, uia_menu (target).
 === ДИАЛОГ ===
 Ты — Феникс. Спокойный, вежливый, с сухим юмором, «сэр».
 2–5 предложений. Без markdown. Только русский.
+
+=== ПОГОДА: ПАДЕЖИ ===
+Пользователь может назвать город в любом падеже:
+    «в москве»                → «Москва»
+    «в нижнем новгороде»      → «Нижний Новгород»
+    «в питере»                → «Санкт-Петербург»
+    «в казани»                → «Казань»
+Всегда нормализуй в ИМЕНИТЕЛЬНЫЙ падеж.
+Если город назван — используй ЕГО, не default_city.
 
 === ПРАВО НА ОШИБКУ ===
 Если не уверен — не выдумывай, отвечай {"action":"none"} или {"action":"answer","reply":"..."}.
@@ -3873,8 +4024,10 @@ DEFAULT_CONFIG = {
     "wake_words": ["феникс", "финикс", "феникса", "fenix", "phoenix",
                    "джарвис", "jarvis"],
     "observer_enabled": True,
+    # TTS backend: "auto" | "piper" | "silero" | "winrt" | "sapi"
+    # auto — Silero → Piper → WinRT → SAPI (первый доступный).
+    # ВАЖНО: при смене backend голос тоже надо менять — они не пересекаются.
     "tts_backend": "auto",
-    "xtts_ref": "voices/jarvis.wav",
     "tts_voice": "ruslan",
     "tts_voice_quality": "medium",
     "voice_rate": 1.15,
@@ -7860,12 +8013,15 @@ def voices_fast(handler, cmd: str) -> str | None:
 ### `jarvis/intents/fast/weather.py`
 
 ```python
-"""Простые правила для погоды и курса — без LLM. ... [4 строк]"""
+"""Простые правила для погоды и курса — без LLM. ... [12 строк]"""
 
+import logging
 import re
 import time
 
 from jarvis import profile, weather
+
+log = logging.getLogger("jarvis.intents")
 
 
 def weather_currency_fast(handler, cmd: str) -> str | None:
@@ -7894,12 +8050,35 @@ def weather_currency_fast(handler, cmd: str) -> str | None:
     if re.search(r"\bпогод|\bпрогноз", cmd):
         day = "tomorrow" if "завтра" in cmd else "today"
 
+        # Явно названный город? («в москве», «в нижнем новгороде»)
+        # Захватываем максимум 2 слова, но отсекаем предлоги/мусор:
+        # «в питере на завтра» → «питере» (не «питере на»).
         m = re.search(r"\bв\s+([а-яёa-z\-]+(?:\s+[а-яёa-z\-]+)?)", cmd)
-        city = m.group(1).strip() if m else ""
-        named = bool(city)
+        explicit_city = m.group(1).strip() if m else ""
 
-        if not city:
-            city = profile.get("default_city")
+        # Отсекаем служебные слова, если затесались.
+        if explicit_city:
+            explicit_city = _strip_city_noise(explicit_city)
+
+        if explicit_city:
+            # Гибрид, шаг 1: пробуем нормализовать падеж словарём.
+            normalized = weather.normalize_city(explicit_city)
+            w = weather.get_weather(normalized, day=day)
+
+            if not w:
+                # Гибрид, шаг 2: пусть LLM нормализует. Возвращаем None,
+                # LLMStage подхватит фразу и вызовет get_weather с
+                # правильным target.
+                log.debug(
+                    "weather_fast: город %r не найден, отдаю LLM",
+                    explicit_city,
+                )
+                return None
+
+            return weather.describe_weather(w)
+
+        # Город не назван — берём default_city из профиля.
+        city = profile.get("default_city")
         if not city:
             handler._pending_question = {
                 "type": "city_for_weather",
@@ -7910,20 +8089,26 @@ def weather_currency_fast(handler, cmd: str) -> str | None:
 
         w = weather.get_weather(city, day=day)
         if not w:
-            # Город назван, но геокодер не знает — почти всегда это падеж
-            # («в питере»). По архитектуре нормализация городов — задача LLM,
-            # поэтому если она есть, отдаём фразу ей: она вернёт
-            # target=«Санкт-Петербург», и ответ будет про тот город.
-            # Без LLM — честно говорим, что город не узнали, и НИКОГДА не
-            # подставляем город по умолчанию: раньше «погода в питере»
-            # уверенно отвечала про Казань.
-            if getattr(handler, "brain", None) is not None:
-                return None
-            return (f"Не узнал город «{city}». Скажи его в именительном "
-                    f"падеже — например, «Санкт-Петербург».")
+            return None
         return weather.describe_weather(w)
 
     return None
+
+# Служебные слова, которые regex может захватить вместе с городом.
+_CITY_NOISE = (
+    " на", " завтра", " сегодня", " сейчас", " пожалуйста",
+    " погода", " прогноз",
+)
+
+
+def _strip_city_noise(raw: str) -> str:
+    """Убирает служебные слова, случайно захваченные regex. ... [5 строк]"""
+    text = " " + raw.lower()
+    for noise in _CITY_NOISE:
+        idx = text.find(noise)
+        if idx > 0:
+            text = text[:idx]
+    return text.strip()
 ```
 
 ### `jarvis/intents/handler.py`
@@ -12658,9 +12843,731 @@ def build_tray(jarvis) -> pystray.Icon:
 ### `jarvis/tts.py`
 
 ```python
-"""Синтез речи. ... [17 строк]"""
+"""Синтез речи — фасад над tts_engines. ... [18 строк]"""
 
-import asyncio
+import logging
+import threading
+import time
+from typing import Iterator
+
+from jarvis.tts_engines import get_engine, list_engines
+
+log = logging.getLogger("jarvis.tts")
+
+
+class Speaker:
+    def __init__(self, config):
+        self._config = config
+        cfg = config if hasattr(config, "get") else {}
+
+        self.voice = cfg.get("tts_voice", "ruslan")
+        self.rate = float(cfg.get("voice_rate", 1.15))
+        self.quality = cfg.get("tts_voice_quality", "medium")
+        self._backend = cfg.get("tts_backend", "auto")
+
+        self._engine = None
+        self._engine_name = "none"
+
+        # Глобальное состояние воспроизведения
+        self._play_thread = None
+        self._playing = False
+        self._play_lock = threading.Lock()
+
+        # Per-call stop-token
+        self._current_token = threading.Event()
+        self._token_lock = threading.Lock()
+
+        # Грузим движок
+        self._init_engine()
+
+    # ------------------------------------------------------------------
+    # Инициализация
+    # ------------------------------------------------------------------
+
+    def _init_engine(self):
+        log.info("TTS: выбираю движок (backend=%s)", self._backend)
+        engine = get_engine(self._backend, self.voice, self.quality,
+                            self.rate)
+        if engine is None:
+            log.error("TTS: ни один движок не доступен")
+            return
+        self._engine = engine
+        self._engine_name = engine.name
+        log.info("TTS: движок %s, голос %s, скорость %.2f",
+                 self._engine_name, self.voice, self.rate)
+
+    def switch_backend(self, backend: str) -> bool:
+        """Переключить движок на лету."""
+        if backend == self._backend and self._engine is not None:
+            return True
+
+        # Сброс кэша голосов — при смене backend голоса другие.
+        try:
+            from jarvis import voices as _voices
+            _voices._VOICES_CACHE.clear()
+        except Exception:
+            pass
+
+        old = self._engine_name
+        self._backend = backend
+        self.stop()
+        self.wait_end(timeout=2.0)
+        engine = get_engine(backend, self.voice, self.quality, self.rate)
+        if engine is None:
+            log.warning("TTS: не удалось переключиться на %s", backend)
+            self._backend = old
+            return False
+        self._engine = engine
+        self._engine_name = engine.name
+        log.info("TTS: движок переключён %s → %s", old, self._engine_name)
+        return True
+
+    # ------------------------------------------------------------------
+    # Сеттеры (для Config.subscribe)
+    # ------------------------------------------------------------------
+
+    def set_voice(self, voice: str) -> None:
+        if voice == self.voice:
+            return
+        log.info("TTS: голос %s → %s", self.voice, voice)
+        self.voice = voice
+        if self._engine is not None:
+            try:
+                self._engine.set_voice(voice)
+            except Exception:
+                log.exception("TTS: не удалось сменить голос на %s", voice)
+
+    def set_rate(self, rate: float) -> None:
+        self.rate = float(rate)
+        if self._engine is not None:
+            try:
+                self._engine.set_rate(self.rate)
+            except Exception:
+                log.exception("TTS: не удалось сменить скорость")
+
+    # ------------------------------------------------------------------
+    # Stop-token
+    # ------------------------------------------------------------------
+
+    def _new_token(self) -> threading.Event:
+        with self._token_lock:
+            self._current_token = threading.Event()
+            return self._current_token
+
+    def _current_stop(self) -> threading.Event:
+        with self._token_lock:
+            return self._current_token
+
+    # ------------------------------------------------------------------
+    # Публичный API
+    # ------------------------------------------------------------------
+
+    def speak(self, text: str) -> None:
+        """Синхронная озвучка (для тестов)."""
+        if not text or self._engine is None:
+            return
+        token = self._new_token()
+        try:
+            if hasattr(self._engine, "synthesize"):
+                self._engine.synthesize(text, self.voice, self.rate)
+            # Для SAPI (без synthesize) — через стриминг с одним куском
+            if self._engine_name == "sapi":
+                list(self._engine.speak_stream(iter([text]),
+                                               self.voice, self.rate, token))
+        except Exception:
+            log.exception("TTS: ошибка в speak()")
+
+    def play_async(self, text: str) -> None:
+        """Асинхронная озвучка одного текста."""
+        if not text or self._engine is None:
+            return
+
+        self.stop()
+        finished = self.wait_end(timeout=2.0)
+        if not finished:
+            log.warning(
+                "TTS: старый поток не завершился за 2 сек — пропускаю новый "
+                "(иначе наложение)"
+            )
+            return
+
+        token = self._new_token()
+        with self._play_lock:
+            self._playing = True
+
+        def _run():
+            try:
+                # SAPI играет сам, у него нет synthesize
+                if self._engine_name == "sapi":
+                    list(self._engine.speak_stream(
+                        iter([text]), self.voice, self.rate, token
+                    ))
+                else:
+                    wav = self._engine.synthesize(text, self.voice, self.rate)
+                    if wav and not token.is_set():
+                        self._play_wav(wav, token)
+            except Exception:
+                log.exception("TTS: ошибка в play_async")
+            finally:
+                with self._play_lock:
+                    self._playing = False
+
+        self._play_thread = threading.Thread(target=_run, daemon=True,
+                                             name="tts-play")
+        self._play_thread.start()
+
+    def speak_stream(self, text_iter: Iterator[str],
+                     timeout: float = 30.0) -> str:
+        """Стриминг: озвучивает по предложениям. ... [3 строк]"""
+        if self._engine is None:
+            # Просто вычитываем генератор, чтобы ничего не зависло
+            return "".join(text_iter)
+
+        self.stop()
+        self.wait_end(timeout=1.0)
+
+        token = self._new_token()
+        with self._play_lock:
+            self._playing = True
+
+        try:
+            return self._engine.speak_stream(
+                text_iter, self.voice, self.rate, token
+            )
+        except Exception:
+            log.exception("TTS: ошибка в speak_stream")
+            return ""
+        finally:
+            with self._play_lock:
+                self._playing = False
+
+    def stop(self) -> None:
+        """Взводит текущий токен. Старые — не трогает."""
+        with self._token_lock:
+            token = self._current_token
+        if not token.is_set():
+            log.info("TTS: прерывание")
+        token.set()
+        if self._engine is not None:
+            try:
+                self._engine.stop()
+            except Exception:
+                pass
+
+    def is_playing(self) -> bool:
+        with self._play_lock:
+            return (self._playing and self._play_thread is not None
+                    and self._play_thread.is_alive())
+
+    def wait_end(self, timeout: float = 30.0) -> bool:
+        """Ждёт завершения текущего TTS-потока. True — успел."""
+        with self._play_lock:
+            thread = self._play_thread
+        if thread is None:
+            return True
+        if not thread.is_alive():
+            with self._play_lock:
+                self._playing = False
+            return True
+        thread.join(timeout=timeout)
+        finished = not thread.is_alive()
+        if finished:
+            with self._play_lock:
+                self._playing = False
+        else:
+            log.warning("TTS: поток не завершился за %.1f сек", timeout)
+        return finished
+
+    # ------------------------------------------------------------------
+    # Воспроизведение WAV (для engine.synthesize())
+    # ------------------------------------------------------------------
+
+    def _play_wav(self, wav_bytes: bytes, token: threading.Event) -> None:
+        """Играет WAV-байты через sounddevice с проверкой токена."""
+        import io
+        import wave
+
+        import numpy as np
+
+        try:
+            import sounddevice as sd
+        except ImportError:
+            log.warning("TTS: sounddevice недоступен, играю через winsound")
+            import winsound
+            winsound.PlaySound(wav_bytes, winsound.SND_MEMORY)
+            return
+
+        with wave.open(io.BytesIO(wav_bytes)) as wf:
+            rate = wf.getframerate()
+            channels = wf.getnchannels()
+            width = wf.getsampwidth()
+            frames = wf.readframes(wf.getnframes())
+
+        dtype = {1: "int8", 2: "int16", 4: "int32"}.get(width, "int16")
+        audio = np.frombuffer(frames, dtype=dtype)
+        if channels > 1:
+            audio = audio.reshape(-1, channels)
+
+        chunk = int(rate * 0.05)
+        try:
+            with sd.OutputStream(samplerate=rate, channels=channels,
+                                 dtype=dtype) as stream:
+                for i in range(0, len(audio), chunk):
+                    if token.is_set():
+                        log.info("TTS: воспроизведение прервано")
+                        break
+                    stream.write(audio[i:i + chunk])
+        except Exception:
+            log.exception("TTS: sounddevice упал, fallback winsound")
+            import winsound
+            winsound.PlaySound(wav_bytes, winsound.SND_MEMORY)
+
+
+# Список доступных движков — для GUI/CLI
+def available_backends() -> list[str]:
+    return list_engines()
+
+
+def engine_voices(backend: str) -> dict:
+    """Голоса конкретного движка. Для валидации в config."""
+    eng = get_engine(backend, "", "medium", 1.15)
+    if eng is None:
+        return {}
+    return dict(eng.voices)
+```
+
+### `jarvis/tts_engines/__init__.py`
+
+```python
+"""TTS-движки Феникса — абстракция над Piper, Silero, WinRT, SAPI. ... [6 строк]"""
+
+from jarvis.tts_engines.base import BaseEngine
+from jarvis.tts_engines.factory import get_engine, list_engines
+
+__all__ = ["BaseEngine", "get_engine", "list_engines"]
+```
+
+### `jarvis/tts_engines/base.py`
+
+```python
+"""Базовый класс TTS-движка. ... [4 строк]"""
+
+from abc import ABC, abstractmethod
+from typing import Iterator
+
+
+class BaseEngine(ABC):
+    """Один TTS-движок."""
+
+    #: Имя движка (для логов и config: "piper", "silero", ...)
+    name: str = "base"
+
+    #: Доступные голоса {key: human_description}
+    voices: dict = {}
+
+    #: Качество по умолчанию ("medium" / "high")
+    default_quality: str = "medium"
+
+    #: Скорость по умолчанию
+    default_rate: float = 1.15
+
+    @abstractmethod
+    def is_available(self) -> bool:
+        """Движок готов к работе?"""
+        ...
+
+    @abstractmethod
+    def synthesize(self, text: str, voice: str, rate: float) -> bytes:
+        """Синтез текста → WAV-байты (PCM 16-bit). ... [6 строк]"""
+        ...
+
+    @abstractmethod
+    def speak_stream(self, text_iter: Iterator[str], voice: str,
+                     rate: float, token) -> str:
+        """Стриминг: озвучивает по мере поступления текста. ... [4 строк]"""
+        ...
+
+    def set_voice(self, voice: str) -> None:
+        """Сменить голос (переопределяется, если движок поддерживает)."""
+        pass
+
+    def set_rate(self, rate: float) -> None:
+        """Сменить скорость речи."""
+        pass
+
+    def stop(self) -> None:
+        """Прервать текущее воспроизведение (опционально)."""
+        pass
+```
+
+### `jarvis/tts_engines/factory.py`
+
+```python
+"""Фабрика TTS-движков. ... [3 строк]"""
+
+import logging
+
+log = logging.getLogger("jarvis.tts")
+
+
+def get_engine(backend: str, voice: str, quality: str = "medium",
+               rate: float = 1.15):
+    """Возвращает engine по имени. ... [4 строк]"""
+    if backend == "auto":
+        for name in ("silero", "piper", "winrt", "sapi"):
+            engine = _try_create(name, voice, quality, rate)
+            if engine is not None:
+                log.info("TTS auto: выбран движок %s", name)
+                return engine
+        log.error("TTS auto: ни один движок не доступен")
+        return None
+
+    return _try_create(backend, voice, quality, rate)
+
+
+# Кэш созданных движков: (name, voice) → engine.
+# Не создаём каждый раз — Silero грузит модель, Piper тянет HF.
+_ENGINE_CACHE: dict[tuple[str, str], object] = {}
+
+
+def _try_create(name: str, voice: str, quality: str, rate: float):
+    """Создаёт движок или возвращает из кэша. ... [4 строк]"""
+    key = (name, voice or "")
+    if key in _ENGINE_CACHE:
+        return _ENGINE_CACHE[key]
+
+    engine = None
+    try:
+        if name == "silero":
+            from jarvis.tts_engines.silero import SileroEngine
+            engine = SileroEngine(voice or "aidar", quality, rate)
+        elif name == "piper":
+            from jarvis.tts_engines.piper import PiperEngine
+            engine = PiperEngine(voice or "ruslan", quality, rate)
+        elif name == "winrt":
+            from jarvis.tts_engines.winrt import WinRTEngine
+            engine = WinRTEngine(voice or "Pavel", quality, rate)
+        elif name == "sapi":
+            from jarvis.tts_engines.sapi import SAPIEngine
+            engine = SAPIEngine(voice or "auto", quality, rate)
+    except ImportError as e:
+        log.debug("TTS: движок %s не установлен (%s)", name, e)
+    except Exception:
+        log.exception("TTS: движок %s упал при инициализации", name)
+
+    if engine is not None:
+        _ENGINE_CACHE[key] = engine
+    return engine
+
+
+def list_engines() -> list[str]:
+    """Список доступных движков (по факту импорта)."""
+    available = []
+    for name in ("silero", "piper", "winrt", "sapi"):
+        if _try_create(name, "", "medium", 1.15) is not None:
+            available.append(name)
+    return available
+```
+
+### `jarvis/tts_engines/piper.py`
+
+```python
+"""Piper TTS — быстрый, ~60 МБ, 4 голоса для русского. ... [3 строк]"""
+
+import io
+import logging
+import re
+import wave
+from pathlib import Path
+
+log = logging.getLogger("jarvis.tts")
+
+PIPER_REPO = "rhasspy/piper-voices"
+
+_SENTENCE_END = re.compile(r"[.!?…]+\s+")
+
+
+class PiperEngine:
+    name = "piper"
+
+    voices = {
+        "ruslan": "Руслан — мужской, спокойный",
+        "dmitri": "Дмитрий — мужской, ниже",
+        "irina":  "Ирина — женский",
+        "denis":  "Денис — мужской, дикторский",
+    }
+
+    default_quality = "medium"
+    default_rate = 1.15
+
+    def __init__(self, voice: str = "ruslan", quality: str = "medium",
+                 rate: float = 1.15):
+        from piper import PiperVoice, SynthesisConfig  # noqa: F401
+
+        if voice not in self.voices:
+            if voice:
+                log.warning("Piper: голос %r не знаю, беру ruslan", voice)
+            voice = "ruslan"
+
+        self.voice = voice
+        self.quality = quality if quality in ("medium", "high") else "medium"
+        self.rate = float(rate)
+        self._piper = None
+        self._piper_cfg = None
+        self._load_model()
+
+    def _load_model(self):
+        from huggingface_hub import hf_hub_download
+        from piper import PiperVoice, SynthesisConfig
+
+        rel = (f"ru/ru_RU/{self.voice}/{self.quality}/"
+               f"ru_RU-{self.voice}-{self.quality}.onnx")
+
+        try:
+            onnx = hf_hub_download(PIPER_REPO, rel)
+            hf_hub_download(PIPER_REPO, rel + ".json")
+        except Exception:
+            log.warning("Piper: голос %s/%s не найден, откат на medium",
+                        self.voice, self.quality)
+            self.quality = "medium"
+            rel = f"ru/ru_RU/{self.voice}/medium/ru_RU-{self.voice}-medium.onnx"
+            onnx = hf_hub_download(PIPER_REPO, rel)
+            hf_hub_download(PIPER_REPO, rel + ".json")
+
+        self._piper = PiperVoice.load(onnx)
+        self._piper_cfg = SynthesisConfig(
+            length_scale=round(1.0 / self.rate, 2)
+        )
+        log.info("Piper: голос %s/%s, скорость %.2f",
+                 self.voice, self.quality, self.rate)
+
+    def is_available(self) -> bool:
+        return self._piper is not None
+
+    def set_voice(self, voice: str):
+        if voice == self.voice or voice not in self.voices:
+            return
+        self.voice = voice
+        try:
+            self._load_model()
+        except Exception:
+            log.exception("Piper: не удалось переключить голос на %s", voice)
+
+    def set_rate(self, rate: float):
+        from piper import SynthesisConfig
+        self.rate = float(rate)
+        if self._piper_cfg is not None:
+            self._piper_cfg = SynthesisConfig(
+                length_scale=round(1.0 / self.rate, 2)
+            )
+
+    def synthesize(self, text: str, voice: str | None = None,
+                   rate: float | None = None) -> bytes:
+        """Piper → WAV-байты."""
+        if not text.strip():
+            return b""
+
+        cfg = self._piper_cfg
+        if rate is not None and rate != self.rate:
+            try:
+                from piper import SynthesisConfig
+                cfg = SynthesisConfig(length_scale=round(1.0 / rate, 2))
+            except Exception:
+                cfg = self._piper_cfg
+
+        buf = io.BytesIO()
+        with wave.open(buf, "wb") as wf:
+            self._piper.synthesize_wav(text, wf, cfg)
+        return buf.getvalue()
+
+    def speak_stream(self, text_iter, voice: str, rate: float,
+                     token) -> str:
+        """Стриминг Piper через sounddevice."""
+        from jarvis.text_utils import prepare_text
+        import numpy as np
+
+        buffer = ""
+        full_parts = []
+
+        def _flush(force: bool = False):
+            nonlocal buffer
+            while True:
+                m = _SENTENCE_END.search(buffer)
+                if not m:
+                    break
+                sent = buffer[:m.end()].strip()
+                buffer = buffer[m.end():]
+                if sent and not token.is_set():
+                    self._play(sent, token)
+            if force and buffer.strip() and not token.is_set():
+                self._play(buffer.strip(), token)
+                buffer = ""
+
+        for chunk in text_iter:
+            if chunk:
+                full_parts.append(chunk)
+                buffer += chunk
+            if token.is_set():
+                break
+            _flush()
+        if not token.is_set():
+            _flush(force=True)
+        return "".join(full_parts).strip()
+
+    def _play(self, sentence: str, token):
+        from jarvis.text_utils import prepare_text
+        import numpy as np
+
+        text = prepare_text(sentence)
+        if not text.strip().strip("\u200b\u200c\u200d\ufeff\u00ad"):
+            return
+        wav = self.synthesize(text)
+        if not wav or token.is_set():
+            return
+        try:
+            import sounddevice as sd
+            with wave.open(io.BytesIO(wav)) as wf:
+                rate_hz = wf.getframerate()
+                channels = wf.getnchannels()
+                width = wf.getsampwidth()
+                frames = wf.readframes(wf.getnframes())
+
+            dtype = {1: "int8", 2: "int16", 4: "int32"}.get(width, "int16")
+            audio = np.frombuffer(frames, dtype=dtype)
+            if channels > 1:
+                audio = audio.reshape(-1, channels)
+
+            chunk = int(rate_hz * 0.05)
+            with sd.OutputStream(samplerate=rate_hz, channels=channels,
+                                 dtype=dtype) as stream:
+                for i in range(0, len(audio), chunk):
+                    if token.is_set():
+                        break
+                    stream.write(audio[i:i + chunk])
+        except Exception:
+            log.exception("Piper: ошибка воспроизведения")
+```
+
+### `jarvis/tts_engines/sapi.py`
+
+```python
+"""SAPI TTS — старый Windows-синтез через pyttsx3. ... [3 строк]"""
+
+import logging
+import re
+
+log = logging.getLogger("jarvis.tts")
+
+_SENTENCE_END = re.compile(r"[.!?…]+\s+")
+
+
+class SAPIEngine:
+    name = "sapi"
+
+    voices = {
+        "auto":   "Авто (системный SAPI)",
+        "Pavel":  "Павел",
+        "Irina":  "Ирина",
+    }
+
+    default_quality = "medium"
+    default_rate = 1.15
+
+    def __init__(self, voice: str = "auto", quality: str = "medium",
+                 rate: float = 1.15):
+        import pyttsx3
+        self._engine = pyttsx3.init()
+        self.voice = voice if voice in self.voices else "auto"
+        self.quality = quality
+        self.rate = float(rate)
+        self._pick_voice()
+
+    def _pick_voice(self):
+        try:
+            for v in self._engine.getProperty("voices"):
+                ident = f"{v.id} {v.name}".lower()
+                hint = self.voice.lower() if self.voice != "auto" else "ru"
+                if hint in ident or "ru" in ident or "irina" in ident:
+                    self._engine.setProperty("voice", v.id)
+                    log.info("SAPI: голос %s", v.name)
+                    break
+        except Exception:
+            log.exception("SAPI: не удалось выбрать голос")
+
+    def is_available(self) -> bool:
+        return self._engine is not None
+
+    def set_voice(self, voice: str):
+        if voice in self.voices:
+            self.voice = voice
+            self._pick_voice()
+
+    def set_rate(self, rate: float):
+        self.rate = float(rate)
+
+    def synthesize(self, text: str, voice: str | None = None,
+                   rate: float | None = None) -> bytes:
+        """SAPI играет напрямую — байты не возвращаем."""
+        raise NotImplementedError("SAPI не поддерживает synthesize()")
+
+    def speak_stream(self, text_iter, voice: str, rate: float,
+                     token) -> str:
+        """SAPI воспроизводит напрямую, без WAV-обёртки."""
+        from jarvis.text_utils import prepare_text
+
+        buffer = ""
+        full_parts = []
+
+        def _flush(force: bool = False):
+            nonlocal buffer
+            while True:
+                m = _SENTENCE_END.search(buffer)
+                if not m:
+                    break
+                sent = buffer[:m.end()].strip()
+                buffer = buffer[m.end():]
+                if sent and not token.is_set():
+                    self._say(sent, rate)
+            if force and buffer.strip() and not token.is_set():
+                self._say(buffer.strip(), rate)
+                buffer = ""
+
+        for chunk in text_iter:
+            if chunk:
+                full_parts.append(chunk)
+                buffer += chunk
+            if token.is_set():
+                break
+            _flush()
+        if not token.is_set():
+            _flush(force=True)
+        return "".join(full_parts).strip()
+
+    def _say(self, sentence: str, rate: float):
+        from jarvis.text_utils import prepare_text
+
+        text = prepare_text(sentence)
+        if not text.strip().strip("\u200b\u200c\u200d\ufeff\u00ad"):
+            return
+        try:
+            self._engine.setProperty("rate", int((rate - 1.0) * 100))
+            self._engine.say(text)
+            self._engine.runAndWait()
+        except Exception:
+            log.exception("SAPI: ошибка озвучки")
+
+    def stop(self):
+        try:
+            self._engine.stop()
+        except Exception:
+            pass
+```
+
+### `jarvis/tts_engines/silero.py`
+
+```python
+"""Silero TTS v5_5 — русский голос, ~150 МБ, требует PyTorch. ... [8 строк]"""
+
 import io
 import logging
 import os
@@ -12672,420 +13579,338 @@ from pathlib import Path
 
 import numpy as np
 
-from jarvis.text_utils import prepare_text
-
 log = logging.getLogger("jarvis.tts")
 
-PIPER_REPO = "rhasspy/piper-voices"
-BASE_DIR = Path(__file__).resolve().parent.parent
 
+def _setup_torch_home() -> None:
+    """Переносит кэш torch в ASCII-путь. ДО import torch."""
+    if os.environ.get("TORCH_HOME"):
+        return
+    try:
+        from jarvis import paths as _paths
+        torch_home = _paths.program_dir() / "torch"
+        torch_home.mkdir(parents=True, exist_ok=True)
+        os.environ["TORCH_HOME"] = str(torch_home)
+        log.info("TORCH_HOME=%s", torch_home)
+    except Exception:
+        log.exception("Не удалось установить TORCH_HOME — silero может упасть")
+
+
+_setup_torch_home()
+
+
+_SAMPLE_RATE = 48000
+_VERSION = "v5_5_ru"
 _SENTENCE_END = re.compile(r"[.!?…]+\s+")
 
 
-class Speaker:
-    def __init__(self, config):
-        self._config = config
-        cfg = config if hasattr(config, "get") else {}
-        self.rate = float(cfg.get("voice_rate", 1.15))
-        self.voice = cfg.get("tts_voice", "ruslan")
-        self._voice_hint = cfg.get("voice", "Pavel")
-        self._mode = None
-        self._engine = None
-        self._piper = None
-        self._piper_cfg = None
-        self._piper_quality = "medium"
+class SileroEngine:
+    name = "silero"
 
-        # Глобальное состояние воспроизведения
-        self._play_thread = None
-        self._playing = False
-        self._play_lock = threading.Lock()
+    voices = {
+        "aidar":   "Айдар — мужской",
+        "baya":    "Бая — женский",
+        "kseniya": "Ксения — женский",
+        "xenia":   "Ксения (v5) — женский",
+        "eugene":  "Евгений — мужской",
+    }
 
-        # Per-call stop-token
-        self._current_token: threading.Event = threading.Event()
-        self._token_lock = threading.Lock()
+    default_quality = "medium"
+    default_rate = 1.15
 
-        backend = cfg.get("tts_backend", "auto")
-        ref = BASE_DIR / cfg.get("xtts_ref", "voices/jarvis.wav")
-        if backend in ("auto", "xtts"):
-            if ref.exists():
-                try:
-                    self._init_xtts(ref)
-                except Exception:
-                    log.exception("XTTS не завёлся, переключаюсь на piper")
-            elif backend == "xtts":
-                log.warning("Референс голоса не найден: %s", ref)
-        if self._mode is None and backend in ("auto", "xtts", "piper"):
-            try:
-                self._init_piper(self.voice)
-            except Exception:
-                log.exception("Piper не завёлся, переключаюсь на WinRT")
-        if self._mode is None:
-            try:
-                from winrt.windows.media.speechsynthesis import SpeechSynthesizer  # noqa: F401
-                self._mode = "winrt"
-                log.info("TTS: WinRT, голос %r, скорость %.2f", self._voice_hint, self.rate)
-            except Exception:
-                log.exception("WinRT недоступен, переключаюсь на SAPI")
-                self._init_sapi()
-
-    # --- сеттеры для Config.subscribe ------------------------------------
-
-    def set_voice(self, voice: str) -> None:
-        if voice == self.voice:
-            return
-        log.info("Голос изменился: %s → %s", self.voice, voice)
-        self.voice = voice
-        if self._mode == "piper":
-            try:
-                self._init_piper(voice)
-            except Exception:
-                log.exception("Не удалось переключить Piper на %s", voice)
-
-    def set_rate(self, rate: float) -> None:
-        self.rate = float(rate)
-        if self._piper_cfg is not None:
-            try:
-                from piper import SynthesisConfig
-                self._piper_cfg = SynthesisConfig(length_scale=round(1.0 / self.rate, 2))
-            except Exception:
-                pass
-
-    # --- per-call stop-token ---------------------------------------------
-
-    def _new_token(self) -> threading.Event:
-        """Создаёт новый stop-token и делает его текущим. ... [4 строк]"""
-        with self._token_lock:
-            self._current_token = threading.Event()
-            return self._current_token
-
-    def _current_stop(self) -> threading.Event:
-        with self._token_lock:
-            return self._current_token
-
-    # --- воспроизведение через sounddevice (для barge-in) ----------------
-
-    def _play_wav(self, wav_bytes: bytes, token: threading.Event) -> None:
-        """Играет WAV-байты чанками, проверяя per-call token."""
-        try:
-            import sounddevice as sd
-        except ImportError:
-            log.warning(
-                "sounddevice недоступен — играю через winsound. "
-                "Barge-in НЕ БУДЕТ РАБОТАТЬ. Установи: pip install sounddevice"
-            )
-            import winsound
-            winsound.PlaySound(wav_bytes, winsound.SND_MEMORY)
-            return
-
-        with wave.open(io.BytesIO(wav_bytes)) as wf:
-            rate = wf.getframerate()
-            channels = wf.getnchannels()
-            width = wf.getsampwidth()
-
-        dtype = {1: "int8", 2: "int16", 4: "int32"}.get(width)
-        if dtype is None:
-            log.warning("Неподдерживаемая ширина сэмпла: %d", width)
-            return
-
-        with wave.open(io.BytesIO(wav_bytes)) as wf:
-            frames = wf.readframes(wf.getnframes())
-        audio = np.frombuffer(frames, dtype=dtype)
-        if channels > 1:
-            audio = audio.reshape(-1, channels)
-
-        chunk = int(rate * 0.05)
-        try:
-            with sd.OutputStream(samplerate=rate, channels=channels, dtype=dtype) as stream:
-                for i in range(0, len(audio), chunk):
-                    if token.is_set():
-                        log.info("TTS: воспроизведение прервано (token)")
-                        break
-                    stream.write(audio[i:i + chunk])
-        except Exception:
-            log.exception("sounddevice.OutputStream не завёлся — падаю на winsound")
-            import winsound
-            winsound.PlaySound(wav_bytes, winsound.SND_MEMORY)
-
-    # --- xtts / piper / sapi / winrt --------------------------------------
-
-    def _init_xtts(self, ref: Path) -> None:
-        os.environ.setdefault("COQUI_TOS_AGREED", "1")
+    def __init__(self, voice: str = "aidar", quality: str = "medium",
+                 rate: float = 1.15):
         import torch
-        from TTS.api import TTS as CoquiTTS
+        self._torch = torch
+        torch.set_num_threads(4)
 
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        log.info("Загрузка XTTS-v2 на %s...", device)
-        self._xtts = CoquiTTS("tts_models/multilingual/multi-dataset/xtts_v2").to(device)
-        self._xtts_ref = str(ref)
-        self._mode = "xtts"
-        log.info("TTS: XTTS-v2, клон голоса из %s", ref.name)
+        if voice not in self.voices:
+            # Не спамим — voice="" это служебный вызов из factory.
+            if voice:
+                log.warning("Silero: голос %r не знаю, беру aidar", voice)
+            voice = "aidar"
 
-    def _speak_xtts(self, text: str, token: threading.Event) -> None:
-        if token.is_set():
-            return
-        samples = self._xtts.tts(text=text, speaker_wav=self._xtts_ref,
-                                 language="ru", speed=self.rate)
-        if token.is_set():
-            return
-        pcm = (np.clip(np.asarray(samples), -1, 1) * 32767).astype(np.int16)
+        self.voice = voice
+        self.quality = quality
+        self.rate = float(rate)
+
+        self._model = None
+        self._device = torch.device("cpu")
+        self._lock = threading.RLock()
+        self._load_model()
+
+    def _load_model(self):
+        with self._lock:
+            if self._model is not None:
+                return
+            log.info("Silero: загружаю %s (первый раз ~30 сек)...", _VERSION)
+            t0 = time.time()
+            model, _ = self._torch.hub.load(
+                repo_or_dir="snakers4/silero-models",
+                model="silero_tts",
+                language="ru",
+                speaker=_VERSION,
+            )
+            model.to(self._device)
+            self._model = model
+            log.info("Silero: модель готова за %.1f сек", time.time() - t0)
+
+    def is_available(self) -> bool:
+        return self._model is not None
+
+    def set_voice(self, voice: str):
+        if voice in self.voices:
+            self.voice = voice
+
+    def set_rate(self, rate: float):
+        self.rate = float(rate)
+
+    def synthesize(self, text: str, voice: str | None = None,
+                   rate: float | None = None) -> bytes:
+        if not text.strip():
+            return b""
+        voice = voice or self.voice
+        rate = rate if rate is not None else self.rate
+        if voice not in self.voices:
+            voice = "aidar"
+
+        with self._lock:
+            self._load_model()
+            audio = self._model.apply_tts(
+                text=text,
+                speaker=voice,
+                sample_rate=_SAMPLE_RATE,
+            )
+
+        samples = (audio.numpy() * 32767).astype(np.int16)
         buf = io.BytesIO()
         with wave.open(buf, "wb") as wf:
             wf.setnchannels(1)
             wf.setsampwidth(2)
-            wf.setframerate(24000)
-            wf.writeframes(pcm.tobytes())
-        self._play_wav(buf.getvalue(), token)
+            wf.setframerate(_SAMPLE_RATE)
+            wf.writeframes(samples.tobytes())
+        return buf.getvalue()
 
-    def _init_piper(self, voice: str) -> None:
-        from huggingface_hub import hf_hub_download
-        from piper import PiperVoice, SynthesisConfig
-
-        cfg = self._config if hasattr(self, "_config") else {}
-        quality = "medium"
-        if hasattr(cfg, "get"):
-            quality = cfg.get("tts_voice_quality", "medium")
-        if quality not in ("medium", "high"):
-            quality = "medium"
-
-        rel = f"ru/ru_RU/{voice}/{quality}/ru_RU-{voice}-{quality}.onnx"
-
-        try:
-            onnx = hf_hub_download(PIPER_REPO, rel)
-            hf_hub_download(PIPER_REPO, rel + ".json")
-            log.info("TTS: piper, голос %s/%s", voice, quality)
-        except Exception:
-            log.warning("Голос %s/%s не найден, откат на medium", voice, quality)
-            quality = "medium"
-            rel = f"ru/ru_RU/{voice}/medium/ru_RU-{voice}-medium.onnx"
-            onnx = hf_hub_download(PIPER_REPO, rel)
-            hf_hub_download(PIPER_REPO, rel + ".json")
-
-        self._piper = PiperVoice.load(onnx)
-        self._piper_cfg = SynthesisConfig(length_scale=round(1.0 / self.rate, 2))
-        self._mode = "piper"
-        self._piper_quality = quality
-        log.info("TTS: piper, голос %s/%s, скорость %.2f", voice, quality, self.rate)
-
-    def _speak_piper(self, text: str, token: threading.Event) -> None:
-        if token.is_set():
-            return
-
-        # Mood влияет на скорость речи.
-        # excited → +10%, tired → -10%.
-        cfg = self._piper_cfg
-        try:
-            from jarvis import mood
-            eff_rate = mood.effective_rate(self.rate)
-            from piper import SynthesisConfig
-            cfg = SynthesisConfig(length_scale=round(1.0 / eff_rate, 2))
-        except Exception:
-            log.exception("mood.effective_rate упал — использую базовую скорость")
-            cfg = self._piper_cfg
-
-        buf = io.BytesIO()
-        with wave.open(buf, "wb") as wf:
-            self._piper.synthesize_wav(text, wf, cfg)
-        if token.is_set():
-            return
-        self._play_wav(buf.getvalue(), token)
-
-    def _init_sapi(self) -> None:
-        import pyttsx3
-        self._engine = pyttsx3.init()
-        for v in self._engine.getProperty("voices"):
-            ident = f"{v.id} {v.name}".lower()
-            if self._voice_hint.lower() in ident or "ru" in ident or "irina" in ident:
-                self._engine.setProperty("voice", v.id)
-                log.info("TTS: SAPI, голос %s", v.name)
-                break
-        self._mode = "sapi"
-
-    async def _synthesize(self, text: str) -> bytes:
-        from winrt.windows.media.speechsynthesis import SpeechSynthesizer
-        from winrt.windows.storage.streams import DataReader
-
-        synth = SpeechSynthesizer()
-        voices = list(SpeechSynthesizer.all_voices)
-        voice = next(
-            (v for v in voices if self._voice_hint.lower() in v.display_name.lower()),
-            None,
-        ) or next((v for v in voices if v.language.lower().startswith("ru")), None)
-        if voice is not None:
-            synth.voice = voice
-        try:
-            from jarvis import mood
-            eff = mood.effective_rate(self.rate)
-        except Exception:
-            eff = self.rate
-        try:
-            synth.options.speaking_rate = eff
-        except Exception:
-            pass
-        stream = await synth.synthesize_text_to_stream_async(text)
-        reader = DataReader(stream.get_input_stream_at(0))
-        await reader.load_async(stream.size)
-        return bytes(reader.read_buffer(stream.size))
-
-    def _speak_one(self, text: str, token: threading.Event) -> None:
-        text = prepare_text(text)
-        if not text or token.is_set():
-            return
-        # Пропускаем, если в тексте только невидимые символы
-        # (zero-width space, BOM, soft hyphen). Иначе Piper падает
-        # с wave.Error('# channels not specified').
-        if not text.strip().strip("\u200b\u200c\u200d\ufeff\u00ad"):
-            log.debug("TTS: пропускаю невидимый текст %r", text)
-            return
-        log.info("Говорю: %s", text)
-        try:
-            if self._mode == "xtts":
-                self._speak_xtts(text, token)
-            elif self._mode == "piper":
-                self._speak_piper(text, token)
-            elif self._mode == "winrt":
-                wav = asyncio.run(self._synthesize(text))
-                if token.is_set():
-                    return
-                self._play_wav(wav, token)
-            else:
-                if token.is_set():
-                    return
-                # Mood влияет на скорость SAPI.
-                try:
-                    from jarvis import mood
-                    self._engine.setProperty(
-                        "rate", int((mood.effective_rate(self.rate) - 1.0) * 100)
-                    )
-                except Exception:
-                    log.exception("Не удалось применить mood к SAPI rate")
-                self._engine.say(text)
-                self._engine.runAndWait()
-        except Exception:
-            log.exception("Ошибка синтеза речи")
-
-    def speak(self, text: str) -> None:
-        """Синхронная озвучка (для тестов)."""
-        if not text:
-            return
-        token = self._new_token()
-        self._speak_one(text, token)
-
-    def play_async(self, text: str) -> None:
-        """Асинхронная озвучка одного текста. ... [4 строк]"""
-        self.stop()
-
-        # Ждём завершения старого потока. Если не успел — не запускаем новый.
-        finished = self.wait_end(timeout=2.0)
-        if not finished:
-            log.warning(
-                "TTS: старый поток не завершился за 2 сек — пропускаю новый вызов "
-                "(иначе наложение)"
-            )
-            return
-
-        token = self._new_token()
-
-        with self._play_lock:
-            self._playing = True
-
-        def _run():
-            try:
-                self._speak_one(text, token)
-            finally:
-                with self._play_lock:
-                    self._playing = False
-
-        self._play_thread = threading.Thread(target=_run, daemon=True, name="tts-play")
-        self._play_thread.start()
-
-    def stop(self) -> None:
-        """Взводит ТЕКУЩИЙ токен. Старые токены не трогает."""
-        with self._token_lock:
-            token = self._current_token
-        if not token.is_set():
-            log.info("TTS: прерывание (stop)")
-        token.set()
-
-    def is_playing(self) -> bool:
-        with self._play_lock:
-            return self._playing and self._play_thread is not None and self._play_thread.is_alive()
-
-    def wait_end(self, timeout: float = 30.0) -> bool:
-        """Ждёт завершения текущего TTS-потока. ... [9 строк]"""
-        with self._play_lock:
-            thread = self._play_thread
-        if thread is None:
-            return True
-
-        # Защита от join() на незапущенном/уже завершённом потоке.
-        if not thread.is_alive():
-            with self._play_lock:
-                self._playing = False
-            return True
-
-        thread.join(timeout=timeout)
-        finished = not thread.is_alive()
-        if finished:
-            with self._play_lock:
-                self._playing = False
-        else:
-            log.warning("TTS: поток не завершился за %.1f сек (timeout)", timeout)
-        return finished
-
-    def speak_stream(self, text_iter, timeout: float = 30.0) -> str:
-        """Streaming TTS. Разбивает текст по предложениям и озвучивает по мере поступления. ... [4 строк]"""
-        self.stop()
-        self.wait_end(timeout=1.0)
-
-        token = self._new_token()
-
-        with self._play_lock:
-            self._playing = True
+    def speak_stream(self, text_iter, voice: str, rate: float,
+                     token) -> str:
+        """Стриминг Silero через sounddevice."""
+        from jarvis.text_utils import prepare_text
 
         buffer = ""
-        full_text_parts = []
-        pending = []
+        full_parts = []
 
-        def _flush_sentences(force: bool = False):
+        def _flush(force: bool = False):
             nonlocal buffer
             while True:
                 m = _SENTENCE_END.search(buffer)
                 if not m:
                     break
-                sentence = buffer[:m.end()].strip()
+                sent = buffer[:m.end()].strip()
                 buffer = buffer[m.end():]
-                if sentence:
-                    pending.append(sentence)
-            if force and buffer.strip():
-                pending.append(buffer.strip())
+                if sent and not token.is_set():
+                    self._play(sent, voice, rate, token)
+            if force and buffer.strip() and not token.is_set():
+                self._play(buffer.strip(), voice, rate, token)
                 buffer = ""
 
-        try:
-            for chunk in text_iter:
-                # №93: append ДО проверки токена — иначе при barge-in
-                # последний чанк теряется.
-                if chunk:
-                    full_text_parts.append(chunk)
-                    buffer += chunk
-                if token.is_set():
-                    log.info("TTS: стриминг прерван")
-                    break
-                _flush_sentences()
-                while pending and not token.is_set():
-                    sentence = pending.pop(0)
-                    self._speak_one(sentence, token)
-            if not token.is_set():
-                _flush_sentences(force=True)
-                while pending and not token.is_set():
-                    sentence = pending.pop(0)
-                    self._speak_one(sentence, token)
-        except Exception:
-            log.exception("Ошибка в speak_stream")
-        finally:
-            with self._play_lock:
-                self._playing = False
+        for chunk in text_iter:
+            if chunk:
+                full_parts.append(chunk)
+                buffer += chunk
+            if token.is_set():
+                break
+            _flush()
+        if not token.is_set():
+            _flush(force=True)
+        return "".join(full_parts).strip()
 
-        return "".join(full_text_parts).strip()
+    def _play(self, sentence: str, voice: str, rate: float, token):
+        from jarvis.text_utils import prepare_text
+
+        text = prepare_text(sentence)
+        if not text.strip().strip("\u200b\u200c\u200d\ufeff\u00ad"):
+            return
+        if token.is_set():
+            return
+
+        wav = self.synthesize(text, voice, rate)
+        if not wav or token.is_set():
+            return
+
+        try:
+            import sounddevice as sd
+            with wave.open(io.BytesIO(wav)) as wf:
+                rate_hz = wf.getframerate()
+                frames = wf.readframes(wf.getnframes())
+            audio = np.frombuffer(frames, dtype=np.int16)
+            chunk = int(rate_hz * 0.05)
+            with sd.OutputStream(samplerate=rate_hz, channels=1,
+                                 dtype="int16") as stream:
+                for i in range(0, len(audio), chunk):
+                    if token.is_set():
+                        break
+                    stream.write(audio[i:i + chunk])
+        except Exception:
+            log.exception("Silero: ошибка воспроизведения")
+```
+
+### `jarvis/tts_engines/winrt.py`
+
+```python
+"""WinRT TTS — системный синтез Windows, без внешних моделей. ... [4 строк]"""
+
+import asyncio
+import io
+import logging
+import re
+import wave
+
+log = logging.getLogger("jarvis.tts")
+
+_SENTENCE_END = re.compile(r"[.!?…]+\s+")
+
+
+class WinRTEngine:
+    name = "winrt"
+
+    voices = {
+        "Pavel":  "Павел — мужской (системный)",
+        "Irina":  "Ирина — женский (системный)",
+        "auto":   "Авто (системный по языку)",
+    }
+
+    default_quality = "medium"
+    default_rate = 1.15
+
+    def __init__(self, voice: str = "Pavel", quality: str = "medium",
+                 rate: float = 1.15):
+        from winrt.windows.media.speechsynthesis import SpeechSynthesizer  # noqa
+
+        if voice not in self.voices:
+            voice = "auto"
+
+        self.voice = voice
+        self.quality = quality
+        self.rate = float(rate)
+
+    def is_available(self) -> bool:
+        try:
+            from winrt.windows.media.speechsynthesis import SpeechSynthesizer
+            return bool(SpeechSynthesizer.all_voices)
+        except Exception:
+            return False
+
+    def set_voice(self, voice: str):
+        if voice in self.voices:
+            self.voice = voice
+
+    def set_rate(self, rate: float):
+        self.rate = float(rate)
+
+    async def _synthesize_async(self, text: str) -> bytes:
+        from winrt.windows.media.speechsynthesis import SpeechSynthesizer
+        from winrt.windows.storage.streams import DataReader
+
+        synth = SpeechSynthesizer()
+        voices = list(SpeechSynthesizer.all_voices)
+
+        if self.voice != "auto":
+            hint = self.voice.lower()
+            voice = next(
+                (v for v in voices if hint in v.display_name.lower()),
+                None,
+            )
+        else:
+            voice = next(
+                (v for v in voices if v.language.lower().startswith("ru")),
+                None,
+            )
+
+        if voice is not None:
+            synth.voice = voice
+        try:
+            synth.options.speaking_rate = self.rate
+        except Exception:
+            pass
+
+        stream = await synth.synthesize_text_to_stream_async(text)
+        reader = DataReader(stream.get_input_stream_at(0))
+        await reader.load_async(stream.size)
+        return bytes(reader.read_buffer(stream.size))
+
+    def synthesize(self, text: str, voice: str | None = None,
+                   rate: float | None = None) -> bytes:
+        if not text.strip():
+            return b""
+        if voice:
+            self.set_voice(voice)
+        if rate is not None:
+            self.set_rate(rate)
+        return asyncio.run(self._synthesize_async(text))
+
+    def speak_stream(self, text_iter, voice: str, rate: float,
+                     token) -> str:
+        """WinRT стриминг (наивный — по предложениям)."""
+        from jarvis.text_utils import prepare_text
+
+        buffer = ""
+        full_parts = []
+
+        def _flush(force: bool = False):
+            nonlocal buffer
+            while True:
+                m = _SENTENCE_END.search(buffer)
+                if not m:
+                    break
+                sent = buffer[:m.end()].strip()
+                buffer = buffer[m.end():]
+                if sent and not token.is_set():
+                    self._play(sent, voice, rate, token)
+            if force and buffer.strip() and not token.is_set():
+                self._play(buffer.strip(), voice, rate, token)
+                buffer = ""
+
+        for chunk in text_iter:
+            if chunk:
+                full_parts.append(chunk)
+                buffer += chunk
+            if token.is_set():
+                break
+            _flush()
+        if not token.is_set():
+            _flush(force=True)
+        return "".join(full_parts).strip()
+
+    def _play(self, sentence: str, voice: str, rate: float, token):
+        from jarvis.text_utils import prepare_text
+        import numpy as np
+
+        text = prepare_text(sentence)
+        if not text.strip().strip("\u200b\u200c\u200d\ufeff\u00ad"):
+            return
+        wav = self.synthesize(text, voice, rate)
+        if not wav or token.is_set():
+            return
+        try:
+            import sounddevice as sd
+            with wave.open(io.BytesIO(wav)) as wf:
+                rate_hz = wf.getframerate()
+                channels = wf.getnchannels()
+                width = wf.getsampwidth()
+                frames = wf.readframes(wf.getnframes())
+            dtype = {1: "int8", 2: "int16", 4: "int32"}.get(width, "int16")
+            audio = np.frombuffer(frames, dtype=dtype)
+            if channels > 1:
+                audio = audio.reshape(-1, channels)
+            chunk = int(rate_hz * 0.05)
+            with sd.OutputStream(samplerate=rate_hz, channels=channels,
+                                 dtype=dtype) as stream:
+                for i in range(0, len(audio), chunk):
+                    if token.is_set():
+                        break
+                    stream.write(audio[i:i + chunk])
+        except Exception:
+            log.exception("WinRT: ошибка воспроизведения")
 ```
 
 ### `jarvis/uia.py`
@@ -13668,30 +14493,77 @@ def describe_browsers() -> str:
 ### `jarvis/voices.py`
 
 ```python
-"""Управление голосами Piper: ruslan, dmitri, irina, denis."""
+"""Управление голосами TTS — работает через tts_engines. ... [4 строк]"""
 
 import logging
 import re
 
 from jarvis import config_manager
+from jarvis.tts_engines.factory import _try_create
+
 
 log = logging.getLogger("jarvis.voices")
 
-PIPER_VOICES = {
-    "ruslan": "Руслан — мужской, спокойный",
-    "dmitri": "Дмитрий — мужской, ниже и медленнее",
-    "irina":  "Ирина — женский",
-    "denis":  "Денис — мужской, дикторский",
+
+# Подсказки для каждой модели (для озвучки)
+_BACKEND_HINT = {
+    "piper":  "Piper: ruslan, dmitri, irina, denis",
+    "silero": "Silero: aidar, baya, kseniya, xenia, eugene",
+    "winrt":  "WinRT: Pavel, Irina",
+    "sapi":   "SAPI: зависит от системы",
 }
 
-ALIASES = {
+
+# Кэш голосов по backend. Движки НЕ создаём каждый раз — это долго
+# (Silero каждый раз грузит модель, Piper тянет HF).
+_VOICES_CACHE: dict[str, dict] = {}
+
+# Алиасы русских имён → канонические ключи.
+# Для Piper и Silero они совпадают с ключами движка.
+_VOICE_ALIASES = {
+    # Piper
     "руслан": "ruslan", "руслана": "ruslan",
     "дмитрий": "dmitri", "дмитрия": "dmitri",
     "дима": "dmitri", "диму": "dmitri",
-    "ирина": "irina", "ирину": "irina",
+    "ирина": "irina", "ирину": "irina", "ире": "irina",
     "ира": "irina", "иру": "irina",
     "денис": "denis", "дениса": "denis",
+    # Silero
+    "айдар": "aidar", "айдара": "aidar",
+    "бая": "baya", "баю": "baya",
+    "ксения": "kseniya", "ксению": "kseniya",
+    "евгений": "eugene", "евгения": "eugene",
 }
+
+
+def _voices_for_backend(backend: str) -> dict:
+    """Голоса движка. Кэшируется, чтобы не грузить движок на каждый вызов."""
+    if backend in _VOICES_CACHE:
+        return _VOICES_CACHE[backend]
+
+    result: dict = {}
+
+    if backend == "auto":
+        for name in ("silero", "piper", "winrt", "sapi"):
+            eng = _try_create(name, "", "medium", 1.15)
+            if eng is not None:
+                result = dict(eng.voices)
+                # Для отладки: запоминаем, какой именно движок выбран
+                if not result:
+                    continue
+                break
+    else:
+        eng = _try_create(backend, "", "medium", 1.15)
+        if eng is not None:
+            result = dict(eng.voices)
+
+    _VOICES_CACHE[backend] = result
+    return result
+
+
+def _normalize_voice(name: str) -> str:
+    """Русское имя → канонический ключ. Без изменений, если не в алиасах."""
+    return _VOICE_ALIASES.get(name.lower(), name.lower())
 
 
 def current_voice(config=None) -> str:
@@ -13700,43 +14572,75 @@ def current_voice(config=None) -> str:
     return config_manager.load().get("tts_voice", "ruslan")
 
 
-def switch(voice: str, config=None) -> str:
-    if voice not in PIPER_VOICES:
-        return f"Голос '{voice}' не знаю. Доступны: {', '.join(PIPER_VOICES)}."
+def current_backend(config=None) -> str:
     if config is not None:
-        config.set("tts_voice", voice)
+        return config.get("tts_backend", "auto")
+    return config_manager.load().get("tts_backend", "auto")
+
+
+def switch(voice: str, config=None) -> str:
+    """Сменить голос текущего backend."""
+    backend = current_backend(config)
+    voices = _voices_for_backend(backend)
+
+    if not voices:
+        return f"Движок {backend} недоступен, голоса неизвестны."
+
+    # Алиасы: «ирину» → «irina», «руслан» → «ruslan»
+    key = _normalize_voice(voice)
+
+    if key not in voices:
+        hint = _BACKEND_HINT.get(backend)
+        if not hint:
+            hint = " | ".join(f"{k}: {v}" for k, v in _BACKEND_HINT.items())
+        return (f"Голос '{voice}' не знаю. Доступные: "
+                f"{', '.join(voices)}. Подсказка: {hint}")
+
+    if config is not None:
+        config.set("tts_voice", key)
     else:
-        config_manager.update("tts_voice", voice)
-    log.info("Голос переключён на %s", voice)
-    return f"Голос переключён на {voice.capitalize()}."
+        config_manager.update("tts_voice", key)
+    log.info("Голос переключён на %s (backend=%s)", key, backend)
+    return f"Голос переключён на {key.capitalize()}."
 
 
 def handle_voice_command(cmd: str, config=None) -> str | None:
+    backend = current_backend(config)
+    voices = _voices_for_backend(backend)
+
     if re.search(r"(какой|текущий|что\s+за)\s+голос", cmd) \
             or cmd in {"какой голос", "текущий голос"}:
-        return f"Сейчас голос: {current_voice(config).capitalize()}."
+        cur = current_voice(config)
+        return f"Сейчас голос: {cur.capitalize()} (движок {backend})."
 
     if re.search(r"(список|какие|покажи|доступные)\s+голос", cmd) \
             or cmd in {"список голосов", "какие голоса", "покажи голоса"}:
-        return f"Доступные голоса: {', '.join(PIPER_VOICES.keys())}."
+        if not voices:
+            return f"Движок {backend} недоступен."
+        hint = _BACKEND_HINT.get(backend)
+        if not hint:
+            # auto → показываем подсказки всех движков
+            hint = " | ".join(f"{k}: {v}" for k, v in _BACKEND_HINT.items())
+        return (f"Голоса ({backend}): {', '.join(voices)}. Подсказка: {hint}.")
 
-    m = re.search(r"(?:смени|поменяй|переключи|включи|поставь)\s+голос\s+(?:на\s+)?(\S+)", cmd)
+    m = re.search(
+        r"(?:смени|поменяй|переключи|включи|поставь)\s+голос\s+(?:на\s+)?(\S+)",
+        cmd,
+    )
     if m:
-        name = m.group(1).strip().rstrip(".,!?").lower()
-        key = ALIASES.get(name, name)
-        if key in PIPER_VOICES:
-            return switch(key, config)
-        return f"Голос '{name}' не знаю. Доступны: {', '.join(PIPER_VOICES)}."
+        return switch(m.group(1).strip().rstrip(".,!?").lower(), config)
 
     m = re.match(r"^голос\s+(\S+)$", cmd)
     if m:
-        name = m.group(1).strip().rstrip(".,!?").lower()
-        key = ALIASES.get(name, name)
-        if key in PIPER_VOICES:
-            return switch(key, config)
-        return f"Голос '{name}' не знаю."
+        return switch(m.group(1).strip().rstrip(".,!?").lower(), config)
 
     return None
+
+
+# Список бэкендов — для GUI/CLI
+def available_backends() -> list[str]:
+    from jarvis.tts import available_backends as _ab
+    return _ab()
 ```
 
 ### `jarvis/weather.py`
@@ -13755,6 +14659,86 @@ from typing import Optional
 from jarvis import __version__
 
 log = logging.getLogger("jarvis.weather")
+
+
+# =================================================================
+# Словарь нормализации падежей для топ-городов.
+#
+# Задача LLM — нормализовать любые падежи. Это — страховка для
+# случаев без LLM (CI, слабая модель, офлайн).
+# Здесь только города-миллионники и те, что часто спрашивают.
+# =================================================================
+
+_CITY_PADEGES = {
+    # предложный / дательный / родительный / винительный → именительный
+    "москве": "Москва", "москву": "Москва", "москвы": "Москва",
+    "питере": "Санкт-Петербург", "питер": "Санкт-Петербург",
+    "петербурге": "Санкт-Петербург", "петербург": "Санкт-Петербург",
+    "ленинграде": "Санкт-Петербург",
+    "новгороде": "Нижний Новгород", "новгород": "Нижний Новгород",
+    "нижнем новгороде": "Нижний Новгород",
+    "нижнем": "Нижний Новгород",
+    "казани": "Казань", "казань": "Казань",
+    "екатеринбурге": "Екатеринбург", "екатеринбург": "Екатеринбург",
+    "новосибирске": "Новосибирск", "новосибирск": "Новосибирск",
+    "самаре": "Самара", "самару": "Самара", "самары": "Самара",
+    "омске": "Омск", "омск": "Омск",
+    "челябинске": "Челябинск", "челябинск": "Челябинск",
+    "ростове": "Ростов-на-Дону", "ростов": "Ростов-на-Дону",
+    "ростове-на-дону": "Ростов-на-Дону",
+    "уфе": "Уфа", "уфу": "Уфа", "уфы": "Уфа",
+    "красноярске": "Красноярск", "красноярск": "Красноярск",
+    "воронеже": "Воронеж", "воронеж": "Воронеж",
+    "перми": "Пермь", "пермь": "Пермь",
+    "волгограде": "Волгоград", "волгоград": "Волгоград",
+    "краснодаре": "Краснодар", "краснодар": "Краснодар",
+    "саратове": "Саратов", "саратов": "Саратов",
+    "тюмени": "Тюмень", "тюмень": "Тюмень",
+    "тольятти": "Тольятти",
+    "ижевске": "Ижевск", "ижевск": "Ижевск",
+    "барнауле": "Барнаул", "барнаул": "Барнаул",
+    "ульяновске": "Ульяновск", "ульяновск": "Ульяновск",
+    "иркутске": "Иркутск", "иркутск": "Иркутск",
+    "хабаровске": "Хабаровск", "хабаровск": "Хабаровск",
+    "ярославле": "Ярославль", "ярославль": "Ярославль",
+    "владивостоке": "Владивосток", "владивосток": "Владивосток",
+    "махачкале": "Махачкала", "махачкала": "Махачкала",
+    "томске": "Томск", "томск": "Томск",
+    "оренбурге": "Оренбург", "оренбург": "Оренбург",
+    "кемерове": "Кемерово", "кемерово": "Кемерово",
+    "новокузнецке": "Новокузнецк", "новокузнецк": "Новокузнецк",
+    "рязани": "Рязань", "рязань": "Рязань",
+    "астрахани": "Астрахань", "астрахань": "Астрахань",
+    "пензе": "Пенза", "пенза": "Пенза",
+    "липецке": "Липецк", "липецк": "Липецк",
+    "кирове": "Киров", "киров": "Киров",
+    "чебоксарах": "Чебоксары", "чебоксары": "Чебоксары",
+    "туле": "Тула", "тула": "Тула",
+    "калининграде": "Калининград", "калининград": "Калининград",
+    "сочи": "Сочи",
+    "севастополе": "Севастополь", "севастополь": "Севастополь",
+    "симферополе": "Симферополь", "симферополь": "Симферополь",
+    "минске": "Минск", "минск": "Минск",
+    "києві": "Киев", "киеве": "Киев", "киев": "Киев", "києве": "Киев",
+    "алматы": "Алматы", "астане": "Астана", "астана": "Астана",
+    "нур-султане": "Астана",
+    "ташкенте": "Ташкент", "ташкент": "Ташкент",
+    "бишкеке": "Бишкек", "бишкек": "Бишкек",
+    "баку": "Баку", "тбилиси": "Тбилиси", "ереване": "Ереван", "ереван": "Ереван",
+}
+
+
+def normalize_city(name: str) -> str:
+    """Нормализует падеж города, если он в словаре. ... [9 строк]"""
+    if not name:
+        return name
+    key = name.strip().lower()
+    # Убираем ведущий предлог, если остался.
+    for prep in ("в ", "во ", "на "):
+        if key.startswith(prep):
+            key = key[len(prep):]
+            break
+    return _CITY_PADEGES.get(key, name)
 
 # Кэш: {(тип, ключ): (timestamp, data)}
 _CACHE: dict = {}
@@ -15182,6 +16166,151 @@ def test_handle_mood_command_none():
     """Не наша команда → None."""
     assert mood.handle_mood_command("открой стим") is None
     assert mood.handle_mood_command("какая погода") is None
+```
+
+### `tests/test_tts.py`
+
+```python
+"""Тесты jarvis.tts_engines — движки и фабрика. С моками. ... [3 строк]"""
+
+from unittest.mock import patch, MagicMock
+
+from jarvis.tts_engines import factory
+
+
+# =================================================================
+# Factory
+# =================================================================
+
+def test_list_engines_empty():
+    """Если ни один движок не импортируется — пустой список."""
+    with patch.object(factory, "_try_create", return_value=None):
+        assert factory.list_engines() == []
+
+
+def test_get_engine_auto_picks_first():
+    """auto → первый доступный из приоритета."""
+    fake = MagicMock()
+    fake.name = "silero"
+
+    def _fake_create(name, voice, quality, rate):
+        if name == "silero":
+            return fake
+        return None
+
+    with patch.object(factory, "_try_create", side_effect=_fake_create):
+        engine = factory.get_engine("auto", "aidar", "medium", 1.15)
+    assert engine is fake
+
+
+def test_get_engine_auto_none_available():
+    """auto → None, если все движки недоступны."""
+    with patch.object(factory, "_try_create", return_value=None):
+        assert factory.get_engine("auto", "aidar", "medium", 1.15) is None
+
+
+def test_get_engine_by_name():
+    """Явное имя → _try_create с этим именем."""
+    fake = MagicMock()
+    with patch.object(factory, "_try_create", return_value=fake) as mock:
+        engine = factory.get_engine("piper", "ruslan", "medium", 1.15)
+    assert engine is fake
+    mock.assert_called_once_with("piper", "ruslan", "medium", 1.15)
+
+
+# =================================================================
+# BaseEngine контракт
+# =================================================================
+
+def test_base_engine_abstract():
+    """BaseEngine нельзя создать напрямую."""
+    from jarvis.tts_engines.base import BaseEngine
+    import pytest
+    with pytest.raises(TypeError):
+        BaseEngine()
+
+
+# =================================================================
+# Piper — только интерфейс, без загрузки
+# =================================================================
+
+def test_piper_engine_interface():
+    """PiperEngine имеет нужные атрибуты."""
+    from jarvis.tts_engines.piper import PiperEngine
+    assert PiperEngine.name == "piper"
+    assert "ruslan" in PiperEngine.voices
+    assert "irina" in PiperEngine.voices
+
+
+def test_piper_voice_not_in_dict():
+    """Если голос не из списка — fallback на ruslan (без загрузки)."""
+    # Не создаём реально, чтобы не тянуть hf_hub_download.
+    from jarvis.tts_engines.piper import PiperEngine
+    assert "fake_voice" not in PiperEngine.voices
+
+
+# =================================================================
+# Silero — интерфейс
+# =================================================================
+
+def test_silero_engine_interface():
+    from jarvis.tts_engines.silero import SileroEngine
+    assert SileroEngine.name == "silero"
+    assert "aidar" in SileroEngine.voices
+    assert "eugene" in SileroEngine.voices
+
+
+# =================================================================
+# WinRT — интерфейс
+# =================================================================
+
+def test_winrt_engine_interface():
+    from jarvis.tts_engines.winrt import WinRTEngine
+    assert WinRTEngine.name == "winrt"
+    assert "auto" in WinRTEngine.voices
+
+
+# =================================================================
+# SAPI — интерфейс
+# =================================================================
+
+def test_sapi_engine_interface():
+    from jarvis.tts_engines.sapi import SAPIEngine
+    assert SAPIEngine.name == "sapi"
+    assert "auto" in SAPIEngine.voices
+
+
+# =================================================================
+# voices.py — под backend
+# =================================================================
+
+def test_voices_for_backend_unknown():
+    """Неизвестный backend — пустой dict."""
+    from jarvis import voices
+    with patch("jarvis.voices._try_create", return_value=None):
+        assert voices._voices_for_backend("unknown") == {}
+
+
+def test_voices_for_backend_ok():
+    """Известный backend — голоса из движка."""
+    from jarvis import voices
+    fake_engine = MagicMock()
+    fake_engine.voices = {"aidar": "Айдар", "baya": "Бая"}
+    with patch("jarvis.voices._try_create", return_value=fake_engine):
+        result = voices._voices_for_backend("silero")
+    assert result == {"aidar": "Айдар", "baya": "Бая"}
+
+
+def test_switch_voice_not_found():
+    """switch с неизвестным голосом → сообщение с подсказкой."""
+    from jarvis import voices
+    fake_engine = MagicMock()
+    fake_engine.voices = {"aidar": "Айдар"}
+    with patch("jarvis.voices._try_create", return_value=fake_engine), \
+         patch("jarvis.voices.current_backend", return_value="silero"):
+        reply = voices.switch("fake_voice")
+    assert "не знаю" in reply.lower()
+    assert "aidar" in reply
 ```
 
 ### `tests/test_uia.py`
@@ -17250,6 +18379,13 @@ def build_handler(use_llm=False, reset_profile=True):
     log.info("Загрузка конфига...")
     config = load_config(BASE_DIR)
 
+    # В тестах — только Piper. Silero требует torch, грузит модель 2-3 сек,
+    # а голоса у него другие (aidar/baya/...). Тесты ожидают Piper-голоса
+    # (ruslan, irina, dmitri, denis).
+    if config.get("tts_backend", "auto") != "piper":
+        log.info("Тесты: tts_backend принудительно → piper")
+        config._data["tts_backend"] = "piper"
+
     if reset_profile:
         from jarvis import profile
         if profile.forget("default_city"):
@@ -18659,7 +19795,7 @@ send2trash>=1.8
     - `scripts/make_installer_images.py`
     - `scripts/build_exe.py`
 
-#### `CHANGELOG.md` — 38 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 39 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
   - 📑 Содержание
@@ -18675,6 +19811,7 @@ send2trash>=1.8
       - ✨ Добавлено
         - 📋 PROJECT.md — источник правды
         - 🧰 snapshot.py — переписан
+      - 🐛 Погода — падежи городов
       - 🔧 Исправлено (аудит 10.10.2026)
     - 📅 Сессия 09.10.2026
       - ✨ Добавлено
@@ -18869,4 +20006,4 @@ send2trash>=1.8
 
 ---
 
-_Итого по категориям — code: 98, data: 16, doc: 9, pack: 5. Режим `lean`._
+_Итого по категориям — code: 106, data: 16, doc: 9, pack: 5. Режим `lean`._

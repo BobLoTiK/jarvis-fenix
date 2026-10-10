@@ -1,0 +1,143 @@
+"""Тесты jarvis.tts_engines — движки и фабрика. С моками.
+
+Без реальной загрузки моделей — проверяем контракт и factory.
+"""
+
+from unittest.mock import patch, MagicMock
+
+from jarvis.tts_engines import factory
+
+
+# =================================================================
+# Factory
+# =================================================================
+
+def test_list_engines_empty():
+    """Если ни один движок не импортируется — пустой список."""
+    with patch.object(factory, "_try_create", return_value=None):
+        assert factory.list_engines() == []
+
+
+def test_get_engine_auto_picks_first():
+    """auto → первый доступный из приоритета."""
+    fake = MagicMock()
+    fake.name = "silero"
+
+    def _fake_create(name, voice, quality, rate):
+        if name == "silero":
+            return fake
+        return None
+
+    with patch.object(factory, "_try_create", side_effect=_fake_create):
+        engine = factory.get_engine("auto", "aidar", "medium", 1.15)
+    assert engine is fake
+
+
+def test_get_engine_auto_none_available():
+    """auto → None, если все движки недоступны."""
+    with patch.object(factory, "_try_create", return_value=None):
+        assert factory.get_engine("auto", "aidar", "medium", 1.15) is None
+
+
+def test_get_engine_by_name():
+    """Явное имя → _try_create с этим именем."""
+    fake = MagicMock()
+    with patch.object(factory, "_try_create", return_value=fake) as mock:
+        engine = factory.get_engine("piper", "ruslan", "medium", 1.15)
+    assert engine is fake
+    mock.assert_called_once_with("piper", "ruslan", "medium", 1.15)
+
+
+# =================================================================
+# BaseEngine контракт
+# =================================================================
+
+def test_base_engine_abstract():
+    """BaseEngine нельзя создать напрямую."""
+    from jarvis.tts_engines.base import BaseEngine
+    import pytest
+    with pytest.raises(TypeError):
+        BaseEngine()
+
+
+# =================================================================
+# Piper — только интерфейс, без загрузки
+# =================================================================
+
+def test_piper_engine_interface():
+    """PiperEngine имеет нужные атрибуты."""
+    from jarvis.tts_engines.piper import PiperEngine
+    assert PiperEngine.name == "piper"
+    assert "ruslan" in PiperEngine.voices
+    assert "irina" in PiperEngine.voices
+
+
+def test_piper_voice_not_in_dict():
+    """Если голос не из списка — fallback на ruslan (без загрузки)."""
+    # Не создаём реально, чтобы не тянуть hf_hub_download.
+    from jarvis.tts_engines.piper import PiperEngine
+    assert "fake_voice" not in PiperEngine.voices
+
+
+# =================================================================
+# Silero — интерфейс
+# =================================================================
+
+def test_silero_engine_interface():
+    from jarvis.tts_engines.silero import SileroEngine
+    assert SileroEngine.name == "silero"
+    assert "aidar" in SileroEngine.voices
+    assert "eugene" in SileroEngine.voices
+
+
+# =================================================================
+# WinRT — интерфейс
+# =================================================================
+
+def test_winrt_engine_interface():
+    from jarvis.tts_engines.winrt import WinRTEngine
+    assert WinRTEngine.name == "winrt"
+    assert "auto" in WinRTEngine.voices
+
+
+# =================================================================
+# SAPI — интерфейс
+# =================================================================
+
+def test_sapi_engine_interface():
+    from jarvis.tts_engines.sapi import SAPIEngine
+    assert SAPIEngine.name == "sapi"
+    assert "auto" in SAPIEngine.voices
+
+
+# =================================================================
+# voices.py — под backend
+# =================================================================
+
+def test_voices_for_backend_unknown():
+    """Неизвестный backend — пустой dict."""
+    from jarvis import voices
+    with patch("jarvis.voices._try_create", return_value=None):
+        assert voices._voices_for_backend("unknown") == {}
+
+
+def test_voices_for_backend_ok():
+    """Известный backend — голоса из движка."""
+    from jarvis import voices
+    fake_engine = MagicMock()
+    fake_engine.voices = {"aidar": "Айдар", "baya": "Бая"}
+    with patch("jarvis.voices._try_create", return_value=fake_engine):
+        result = voices._voices_for_backend("silero")
+    assert result == {"aidar": "Айдар", "baya": "Бая"}
+
+
+def test_switch_voice_not_found():
+    """switch с неизвестным голосом → сообщение с подсказкой."""
+    from jarvis import voices
+    fake_engine = MagicMock()
+    fake_engine.voices = {"aidar": "Айдар"}
+    with patch("jarvis.voices._try_create", return_value=fake_engine), \
+         patch("jarvis.voices.current_backend", return_value="silero"):
+        reply = voices.switch("fake_voice")
+    assert "не знаю" in reply.lower()
+    assert "aidar" in reply

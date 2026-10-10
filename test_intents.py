@@ -201,6 +201,13 @@ def build_handler(use_llm=False, reset_profile=True):
     log.info("Загрузка конфига...")
     config = load_config(BASE_DIR)
 
+    # В тестах — только Piper. Silero требует torch, грузит модель 2-3 сек,
+    # а голоса у него другие (aidar/baya/...). Тесты ожидают Piper-голоса
+    # (ruslan, irina, dmitri, denis).
+    if config.get("tts_backend", "auto") != "piper":
+        log.info("Тесты: tts_backend принудительно → piper")
+        config._data["tts_backend"] = "piper"
+
     if reset_profile:
         from jarvis import profile
         if profile.forget("default_city"):

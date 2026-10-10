@@ -22,8 +22,10 @@ DEFAULT_CONFIG = {
     "wake_words": ["феникс", "финикс", "феникса", "fenix", "phoenix",
                    "джарвис", "jarvis"],
     "observer_enabled": True,
+    # TTS backend: "auto" | "piper" | "silero" | "winrt" | "sapi"
+    # auto — Silero → Piper → WinRT → SAPI (первый доступный).
+    # ВАЖНО: при смене backend голос тоже надо менять — они не пересекаются.
     "tts_backend": "auto",
-    "xtts_ref": "voices/jarvis.wav",
     "tts_voice": "ruslan",
     "tts_voice_quality": "medium",
     "voice_rate": 1.15,
