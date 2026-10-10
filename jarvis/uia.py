@@ -273,7 +273,6 @@ def list_browsers() -> list[tuple[str, str]]:
 
 def _find_window_by_process(process_names: set[str], timeout: float = 2.0):
     """Ищет видимое окно, чей PID принадлежит процессу из process_names."""
-    uia = _ensure_init()
     try:
         import psutil
     except ImportError:
@@ -290,6 +289,9 @@ def _find_window_by_process(process_names: set[str], timeout: float = 2.0):
 
     if not pids:
         return None
+
+    # UIA нужен ТОЛЬКО когда есть процессы — иначе не инициализируем.
+    uia = _ensure_init()
 
     with _lock:
         deadline = time.time() + timeout
@@ -318,19 +320,24 @@ def find_browser_window():
     Порядок: сначала активное окно (если это браузер) → потом по процессам.
     """
     # 1. Активное окно — а вдруг это уже браузер?
-    active = get_active_window()
-    if active is not None:
-        try:
-            active_pid = active.ProcessId
-            import psutil
+    #    Оборачиваем в try: UIA может не работать, а процессы — видны.
+    try:
+        active = get_active_window()
+        if active is not None:
             try:
-                pname = psutil.Process(active_pid).name().lower()
-                if pname in _BROWSER_PROCESSES:
-                    return active
+                active_pid = active.ProcessId
+                import psutil
+                try:
+                    pname = psutil.Process(active_pid).name().lower()
+                    if pname in _BROWSER_PROCESSES:
+                        return active
+                except Exception:
+                    pass
             except Exception:
                 pass
-        except Exception:
-            pass
+    except Exception:
+        # UIA не работает — не страшно, идём к процессам.
+        pass
 
     # 2. Ищем по процессам.
     return _find_window_by_process(set(_BROWSER_PROCESSES.keys()))
@@ -347,10 +354,12 @@ def read_browser_url() -> str:
     На Chromium-браузерах адресная строка — EditControl с именем
     «Адресная строка и строка поиска» или пустым.
     """
-    uia = _ensure_init()
+    # Сначала окно — если браузера нет, UIA не нужен.
     w = _get_browser_window()
     if w is None:
         return ""
+
+    uia = _ensure_init()
 
     with _lock:
         # Ищем EditControl внутри окна.
@@ -410,10 +419,12 @@ def read_browser_tabs() -> list[str]:
         - Ищем ToolBarControl с именем 'Вкладки'.
         - Внутри него — TabItemControl с именами.
     """
-    uia = _ensure_init()
+    # Сначала окно — если браузера нет, UIA не нужен.
     w = _get_browser_window()
     if w is None:
         return []
+
+    uia = _ensure_init()
 
     tabs: list[str] = []
     with _lock:
