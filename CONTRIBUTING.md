@@ -30,6 +30,9 @@ test_intents.py     — интент-тесты (без микрофона)
 check_syntax.py     — синтаксис всех .py
 snapshot.py         — сборка SNAPSHOT.md
 
+PROJECT.md          — ИСТОЧНИК ПРАВДЫ: инварианты, правила,
+                      история ошибок, контракт проверки
+
 packs/              — JSON-паки команд
 scripts/            — утилиты (make_icon, build_exe, mics, ...)
 .github/workflows/  — CI
@@ -57,6 +60,10 @@ scripts/            — утилиты (make_icon, build_exe, mics, ...)
 18. **Атомарная запись везде — `mkstemp` + `os.replace`.**
 19. **Zip Slip защита при распаковке.**
 20. **`cmd_lock` в Jarvis — сериализация GUI↔голос.**
+21. **`_say_lock` в Jarvis** — `say()` зовут ещё таймеры, `mic_watchdog`
+    и `celebrations`. Без него они режут текущую речь через `speaker.stop()`.
+22. **`PROJECT.md` — источник правды.** Поменялось поведение, инвариант
+    или добавилась грабля — правь **его**, а не пять доков сразу.
 
 ## 🔒 Правила безопасности
 

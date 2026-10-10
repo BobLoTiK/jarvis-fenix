@@ -190,6 +190,23 @@ class FenixGUI:
         log.info("GUI: mood %s → %s", old_state, new_state)
         self._queue.put(("mood", new_state))
 
+    def _on_profile_switch(self, old_name: str, new_name: str) -> None:
+        """Профиль сменился — пересобираем UI через очередь.
+
+        Без этого метода profile.subscribe(self._on_profile_switch)
+        в __init__ падал с AttributeError на каждом старте: GUI
+        оставался неподписанным, и вкладка «Персона» после «я — Маша»
+        показывала данные прошлого профиля до перезапуска.
+
+        Через очередь, а не напрямую: profile.switch() зовёт колбэк
+        из чужого потока, а Flet-контролы трогать можно только
+        из главного.
+        """
+        if old_name == new_name:
+            return
+        log.info("GUI: профиль %s → %s, пересборка UI", old_name, new_name)
+        self._queue.put(("rebuild_ui", None))
+
     # ---------------------------------------------------------------
     # Публичный API
     # ---------------------------------------------------------------
@@ -1397,8 +1414,14 @@ class FenixGUI:
     def _on_nav_change(self, e) -> None:
         idx = e.control.selected_index
         log.info("Навигация: %d", idx)
-        if idx in self._tabs:
-            self._content_area.content = self._tabs[idx]
+        # Через get, а не [idx]: если _tabs и destinations рельса
+        # разъехались, раньше здесь летел KeyError и вкладка
+        # молча не переключалась.
+        tab = self._tabs.get(idx)
+        if tab is not None:
+            self._content_area.content = tab
+        else:
+            log.warning("Навигация: вкладки %d нет в _tabs — игнорирую", idx)
         try:
             self._page.update()
         except Exception:
@@ -1493,7 +1516,8 @@ class FenixGUI:
         self._tabs = {
             0: self._build_main_tab(),
             1: self._build_mic_tab(),
-            2: self._build_settings_tab(),
+            2: self._build_persona_tab(),
+            3: self._build_settings_tab(),
         }
 
         if saved_history and self._history_list is not None:

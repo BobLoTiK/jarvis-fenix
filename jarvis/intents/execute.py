@@ -141,11 +141,18 @@ def _do_open_file(handler, intent, target, query):
 
 
 def _do_open_site(handler, intent, target, query):
-    site = target or query
+    # Берём СЫРОЙ target из intent, а не нормализованный: normalize()
+    # вырезает пунктуацию, и «habr.com» превращается в «habr com».
+    # Раньше из-за этого ответ озвучивался как «Открываю habr com»,
+    # а неизвестные домены уходили в guess_site и открывались
+    # как gismeteoru.ru.
+    raw = str(intent.get("target") or "").strip()
+    site = raw or query
     if not site:
         return None
-    if "." in (intent.get("target") or ""):
-        actions.open_url("https://" + str(intent["target"]).strip().lower())
+    if "." in raw:
+        url = actions.normalize_url(raw)
+        actions.open_url(url)
         return f"Открываю {site}."
     return _open_site(site)
 
@@ -170,7 +177,10 @@ def _do_screenshot(handler, intent, target, query):
 def _do_open_folder(handler, intent, target, query):
     if not target:
         return None
-    folder = files.resolve_folder(target, explicit=True)
+    # explicit только со словом «папка» — как в _do_open. Иначе
+    # «открой музыку» открывала папку Music вместо плеера, хотя
+    # комментарий в files.py прямо требует обратного.
+    folder = files.resolve_folder(target, explicit="папк" in target)
     if folder:
         handler.last_folder = folder
         files.open_folder(folder)
@@ -179,7 +189,7 @@ def _do_open_folder(handler, intent, target, query):
 
 
 def _do_list_folder(handler, intent, target, query):
-    folder = (files.resolve_folder(target, explicit=True)
+    folder = (files.resolve_folder(target, explicit="папк" in target)
               if target else handler.last_folder)
     if folder:
         handler.last_folder = folder
@@ -195,7 +205,7 @@ def _do_create_file(handler, intent, target, query):
         if folder is None:
             return f"Папку «{folder_name}» не нашёл. Куда создать файл?"
     if folder is None:
-        folder = Path.home() / "Desktop"
+        folder = _paths.user_home() / "Desktop"
     path = files.create_file(folder, target or "новый файл")
     handler.last_file = path
     title = _FOLDER_TITLES.get(folder.name, f"в папке {folder.name}")

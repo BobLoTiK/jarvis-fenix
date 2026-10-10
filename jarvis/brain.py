@@ -101,6 +101,11 @@ none
 «Открой», «запусти», «врубай» → ВСЕГДА open_app (или open_site/open_folder).
 Не путай.
 
+=== ГОРОД В ПОГОДЕ ===
+Если пользователь НАЗВАЛ город (в любой форме — «в москве», «в нижнем новгороде»,
+«в питере»), ты ОБЯЗАН использовать ИМЕННО ЭТОТ город в ИМЕНИТЕЛЬНОМ падеже.
+НИКОГДА не подставляй default_city из профиля, если город назван.
+
 === ПРИМЕРЫ ===
 открой стим -> {"action":"open_app","target":"стим"}
 закрой стим -> {"action":"close_app","target":"стим"}
@@ -169,6 +174,8 @@ none
 какая погода -> {"action":"get_weather","day":"today"}
 какая погода в москве -> {"action":"get_weather","target":"Москва","day":"today"}
 погода в питере на завтра -> {"action":"get_weather","target":"Санкт-Петербург","day":"tomorrow"}
+погода в нижнем новгороде -> {"action":"get_weather","target":"Нижний Новгород","day":"today"}
+погода в казани -> {"action":"get_weather","target":"Казань","day":"today"}
 курс доллара -> {"action":"get_currency","target":"USD"}
 курс евро -> {"action":"get_currency","target":"EUR"}
 курс валют -> {"action":"get_currency"}
@@ -266,6 +273,9 @@ none
 открой ютуб -> open_site target ютуб
 открой профиль -> open_profile
 какая погода в москве -> get_weather target Москва
+погода в нижнем новгороде -> get_weather target=Нижний Новгород
+погода в питере на завтра -> get_weather target=Санкт-Петербург day=tomorrow
+погода в казани -> get_weather target=Казань
 курс доллара -> get_currency target USD
 громкость 50 -> set_volume percent 50
 смени голос на ирину -> change_voice voice irina
@@ -285,6 +295,8 @@ none
 Не используй search без «найди», «поищи», «загугли».
 По умолчанию — answer.
 set_profile — только для «меня зовут X» и «мой город X». НЕ для «верни яндекс» / «открой ютуб».
+Если город назван явно («в москве», «в нижнем новгороде») — используй ИМЕННО его
+в именительном падеже, НЕ default_city.
 
 === ДИАЛОГ ===
 Ты — Феникс. Спокойный, вежливый, с сухим юмором, «сэр».
@@ -348,6 +360,15 @@ uia_click_button (target), uia_active_window, uia_menu (target).
 === ДИАЛОГ ===
 Ты — Феникс. Спокойный, вежливый, с сухим юмором, «сэр».
 2–5 предложений. Без markdown. Только русский.
+
+=== ПОГОДА: ПАДЕЖИ ===
+Пользователь может назвать город в любом падеже:
+    «в москве»                → «Москва»
+    «в нижнем новгороде»      → «Нижний Новгород»
+    «в питере»                → «Санкт-Петербург»
+    «в казани»                → «Казань»
+Всегда нормализуй в ИМЕНИТЕЛЬНЫЙ падеж.
+Если город назван — используй ЕГО, не default_city.
 
 === ПРАВО НА ОШИБКУ ===
 Если не уверен — не выдумывай, отвечай {"action":"none"} или {"action":"answer","reply":"..."}.
@@ -431,6 +452,15 @@ class Brain:
         self.temperature = float(temperature)
         self._prompt_level_override = prompt_level
         self._config = config
+
+        # Конфиг главнее аргумента: main.py передаёт дефолт 20.0,
+        # и без этой строки llm_timeout из config.json игнорировался.
+        if config is not None:
+            try:
+                self.timeout = float(config.get("llm_timeout", self.timeout))
+            except (TypeError, ValueError):
+                pass
+            log.info("LLM: таймаут %.1f с", self.timeout)
 
         self.prompt_level, self.system_prompt = pick_prompt(model, prompt_level)
         log.info("Промпт: %s (для %s)", self.prompt_level, model)
@@ -765,9 +795,13 @@ ACTIONS = {
     "switch_layout", "set_layout_ru", "set_layout_en", "get_layout",
     "set_volume", "get_volume",
     "set_brightness", "get_brightness",
-    "debug_why_not_understood", "debug_what_heard",
     "delete_profile",
     "set_profile", "get_profile",
+    # Буфер обмена: обработчики давно есть в _DISPATCH, но в ACTIONS
+    # не были — brain.parse() их молча отфильтровывал, и LLM не могла
+    # их вызвать. ClipboardStage регулярками по-прежнему первый.
+    "clipboard_read", "copy_selection",
+    "clipboard_copy_last", "clipboard_clear",
     "open_profile",
     # === UIA ===
     "uia_read_window",       # прочитать текст активного окна

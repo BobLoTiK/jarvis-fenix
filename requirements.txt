@@ -19,7 +19,6 @@ winrt-Windows.Storage.Streams>=3.2
 
 # === Утилиты ===
 filelock>=3.13
-num2words>=0.5.14
 psutil>=5.9
 pyperclip>=1.8
 Pillow>=10

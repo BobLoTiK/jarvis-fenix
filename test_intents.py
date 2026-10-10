@@ -164,10 +164,17 @@ class Result:
         self.reply_text = reply_text
         self.expected = expected
         self.elapsed = elapsed
-        self.passed = self._check()
+        # error инициализируем ДО _check(): иначе тест с исключением
+        # не отличить от обычного, а _check() читает self.error.
         self.error = None
+        self.passed = self._check()
 
     def _check(self):
+        # Тест с исключением не может быть «пройден», даже если ожиданий нет.
+        # Иначе small_talk_how с expected=[] молча съедал TypeError
+        # из finalize_stream и харнес рапортовал зелёный.
+        if self.error is not None:
+            return False
         if not self.reply_text:
             return False
         if not self.expected:
@@ -251,7 +258,7 @@ def run_one(handler, speaker, name, cmd, expected, hooks=None):
         reply = handler.handle(cmd)
         if reply.is_stream:
             reply_text = "".join(reply.stream)
-            handler.finalize_stream(cmd, reply_text)
+            handler.finalize_stream(reply_text)
         else:
             reply_text = reply.text
     except Exception as e:

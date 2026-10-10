@@ -5,6 +5,8 @@ import re
 import subprocess
 from pathlib import Path
 
+from jarvis import paths as _paths
+
 log = logging.getLogger("jarvis.files")
 
 # Основа слова -> папка пользователя. У «музыки» и «видео» намеренно нет
@@ -32,7 +34,7 @@ def resolve_folder(spoken: str, explicit: bool = False) -> Path | None:
     for word in spoken.split():
         for stem, sub in stems.items():
             if word.startswith(stem):
-                path = Path.home() / sub
+                path = _paths.user_home() / sub
                 if path.exists():
                     return path
     return None

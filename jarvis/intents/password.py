@@ -5,6 +5,7 @@
 """
 
 import hashlib
+import hmac
 import logging
 
 log = logging.getLogger("jarvis.intents")
@@ -33,8 +34,11 @@ def verify_password(candidate: str, stored: str) -> bool:
     if not stored:
         return False
     if is_hashed(stored):
-        return hash_password(candidate) == stored
-    return candidate == stored
+        # compare_digest — постоянное по времени сравнение.
+        # Обычный == утекает длиной совпавшего префикса.
+        return hmac.compare_digest(hash_password(candidate), stored)
+    # Legacy plaintext — мигрируется в sha256 при старте.
+    return hmac.compare_digest(candidate, stored)
 
 
 def migrate_password_if_needed(config) -> None:

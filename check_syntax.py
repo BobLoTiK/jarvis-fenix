@@ -15,7 +15,9 @@ BASE = Path(__file__).resolve().parent
 TARGETS = [
     BASE / "jarvis",
     BASE / "scripts",
-    BASE,  # корень: launcher.py, check_syntax.py
+    BASE / "tests",   # раньше тесты не проверялись: синтаксис-ошибка
+                      # в tests/ проходила этот шаг CI незамеченной
+    BASE,             # корень: launcher.py, check_syntax.py, snapshot.py
 ]
 
 # Исключения

@@ -30,7 +30,6 @@ from jarvis.stt import Listener
 from jarvis import timers
 from jarvis.tts import Speaker
 from jarvis.gui import FenixGUI
-from jarvis import profile
 
 log = logging.getLogger("jarvis")
 
@@ -63,6 +62,13 @@ class Jarvis:
         # (pending_password, pending_question) портятся.
         self.cmd_lock = threading.Lock()
 
+        # Отдельный лок для say(). cmd_lock сериализует только handle(),
+        # а say() зовут ещё таймеры (timers._fire), mic_watchdog и
+        # celebrations — раньше они входили без лока, и speaker.stop()
+        # обрывал текущую фразу (или сам таймер молча съедался
+        # по wait_end-таймауту). RLock — на случай вложенного вызова.
+        self._say_lock = threading.RLock()
+
     def say(self, reply: Reply) -> bool:
         """Озвучивает Reply. Возвращает True, если сработал barge-in."""
         if reply is None:
@@ -70,6 +76,11 @@ class Jarvis:
         if not reply.is_stream and not reply.text:
             return False
 
+        with self._say_lock:
+            return self._say_locked(reply)
+
+    def _say_locked(self, reply: Reply) -> bool:
+        """Тело say() — вызывать ТОЛЬКО через say(), под _say_lock."""
         if self.gui is not None:
             self.gui.set_state("speaking")
 
@@ -261,18 +272,6 @@ class Jarvis:
                     log.exception("Observer.observe (assistant) упал")
 
             barge_happened = self.say(reply)
-
-            # Первый запуск: после первой успешной команды
-            # спросить имя.
-            try:
-                from jarvis import first_run, persona
-                if first_run.is_first_run():
-                    step = persona.get().get("onboarding_step", 0)
-                    if step == 1 and not profile.get("name"):
-                        log.info("First run: спрашиваю имя")
-                        self.say(Reply(text=first_run.after_first_command()))
-            except Exception:
-                log.exception("First run: ошибка вопроса про имя")
 
             if getattr(self.handler, "_reset_requested", False):
                 self._awaiting_until = 0.0
@@ -548,11 +547,10 @@ def main() -> None:
                      name="mood-decay").start()
 
     try:
-        from jarvis import first_run, persona
+        from jarvis import first_run
         if first_run.is_first_run():
             log.info("Первый запуск: приветствие через задачу")
             jarvis.say(Reply(text=first_run.greeting()))
-            persona.set_field("onboarding_step", 0)
         else:
             jarvis.say(Reply(text=f"{APP_NAME} запущен и готов к работе."))
     except Exception:

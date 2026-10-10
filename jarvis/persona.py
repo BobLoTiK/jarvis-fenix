@@ -14,8 +14,6 @@ DEFAULT_PERSONA = {
     "backstory": "",
     "onboarding_done": False,
     "onboarding_at": 0.0,
-    "onboarding_step": 0,
-    "onboarding_attempts": 0,
 }
 
 VALID_STYLES = ("formal", "friendly", "sarcastic", "brief")

@@ -21,6 +21,7 @@
 Запись — через config_manager (единый FileLock, атомарная замена).
 """
 
+import copy
 import getpass
 import json
 import logging
@@ -49,6 +50,11 @@ _lock = threading.RLock()
 
 _current: str | None = None
 _listeners: list = []
+
+# Кэш содержимого profile.json, ключ — путь файла.
+# Профиль на процесс один (мьютекс в launcher.py), поэтому
+# инвалидация нужна только при своей записи и при switch().
+_cache: dict[Path, dict] = {}
 
 
 # ---------------------------------------------------------------
@@ -215,6 +221,11 @@ def switch(name: str) -> str:
 
         _current = safe
 
+        # Профиль другой — кэш прошлого больше не действителен.
+        # Сбрасываем под тем же локом, что и _current, чтобы
+        # подписчики не прочитали кэш старого профиля.
+        _cache_invalidate()
+
         # human — читаем имя из нового профиля
         human = safe
         try:
@@ -270,6 +281,7 @@ def delete(name: str) -> bool:
             )
             shutil.rmtree(path)
             log.info("Профиль удалён: %s", safe)
+        _cache_invalidate(path / "profile.json")
         return True
     except Exception:
         log.exception("Не удалось удалить профиль %s", safe)
@@ -281,18 +293,64 @@ def delete(name: str) -> bool:
 # ---------------------------------------------------------------
 
 def _safe_load() -> dict:
+    """Читает profile.json ЧЕРЕЗ КЭШ В ПАМЯТИ.
+
+    Раньше каждый profile.get() лез на диск. Из-за этого
+    mood.effective_rate() — а его зовут на каждом синтезируемом
+    предложении — и persona/mood/learning.build_prompt_block(),
+    три чтения на каждый LLM-вызов, долбили файл в %APPDATA%.
+
+    Отдаём КОПИЮ: часть вызывающих мутирует результат на месте
+    (learning.add_fact правит facts[key] ещё до profile.set),
+    и без копии они бы тихо правили кэш.
+    """
     path = profile_path()
+
+    with _lock:
+        cached = _cache.get(path)
+    if cached is not None:
+        return copy.deepcopy(cached)
+
     if not path.exists():
         return {}
-    raw = path.read_text(encoding="utf-8")
+
+    try:
+        raw = path.read_text(encoding="utf-8")
+    except OSError:
+        log.exception("Не удалось прочитать %s", path)
+        return {}
+
     if not raw.strip():
         return {}
+
     try:
         data = json.loads(raw)
-        return data if isinstance(data, dict) else {}
     except json.JSONDecodeError:
         log.error("Профиль %s битый — НЕ перезаписываю. Почини вручную.", path)
         raise
+
+    if not isinstance(data, dict):
+        log.warning("%s — не словарь, игнорирую", path)
+        return {}
+
+    with _lock:
+        _cache[path] = data
+    return copy.deepcopy(data)
+
+
+def _cache_store(path: Path, data: dict) -> None:
+    """Кладёт данные в кэш после успешной записи на диск."""
+    with _lock:
+        _cache[path] = data
+
+
+def _cache_invalidate(path: Path | None = None) -> None:
+    """Сбрасывает кэш. Без пути — весь (при switch / init / delete)."""
+    with _lock:
+        if path is None:
+            _cache.clear()
+        else:
+            _cache.pop(path, None)
 
 
 def get(key: str, default=None):
@@ -310,8 +368,10 @@ def set(key: str, value) -> bool:
             return False
         data[key] = value
         data.setdefault("created_at", time.time())
-        ok = config_manager.save(data, path=profile_path())
+        path = profile_path()
+        ok = config_manager.save(data, path=path)
         if ok:
+            _cache_store(path, data)
             log.info("Профиль %s: %s = %r", current(), key, value)
         else:
             log.error("Профиль %s: не удалось сохранить %s", current(), key)
@@ -334,8 +394,10 @@ def forget(key: str) -> bool:
         if key not in data:
             return False
         del data[key]
-        ok = config_manager.save(data, path=profile_path())
+        path = profile_path()
+        ok = config_manager.save(data, path=path)
         if ok:
+            _cache_store(path, data)
             log.info("Профиль %s: удалено %s", current(), key)
         return ok
 
@@ -377,6 +439,7 @@ def init() -> None:
     _ensure_dir(PROFILES_DIR)
     with _lock:
         _current = _windows_user()
+    _cache_invalidate()
     _migrate_old()
 
     user_dir = profile_dir()

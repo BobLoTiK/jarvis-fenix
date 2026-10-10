@@ -116,6 +116,59 @@
 
 ---
 
+## 📅 Сессия 10.10.2026
+
+#### ✨ Добавлено
+
+##### 📋 PROJECT.md — источник правды
+
+- **`PROJECT.md`** (~200 строк) — курируемый файл, заменяющий дубли в
+  `README` / `ARCHITECTURE` / `PROMPT` / `CONTRIBUTING` / `PLAN`.
+- `snapshot.py` печатает его **первым разделом**, а остальные `.md`
+  в lean-режиме не печатает вовсе (только оглавления).
+
+##### 🧰 snapshot.py — переписан
+
+- Слои: `0 PROJECT.md` → `1 карта` → `2 смысл из кода` → `3 индекс` → `4 код`.
+- **Смысл из кода** через `ast`: сигнатуры, `UPPER_CASE`-константы,
+  фактический порядок `build_pipeline()` и `build_registry()`, точки входа.
+- **fence по содержимому**: раньше файл с внутренними ``` заворачивался в
+  ```` ```markdown ````, внешний fence закрывался раньше времени, и половина
+  дампа рендерилась как код.
+- **Детерминированный вывод**: `sha256` в шапке вместо timestamp. Файл
+  больше не «грязный» в git, когда ничего не менялось.
+- **Guard на секреты**: `password|token|api_key|secret` с непустым
+  значением редактируется в `***`.
+- Режимы: lean (по умолчанию), `--full`, `--signatures` (~40 КБ),
+  `--include-docs`, `--budget-kb N`, `--check`, `--out`.
+- `EXCLUDE_FILES` почищен от мусора (`ft.Control`, `None`, `python`, `str`).
+
+#### 🔧 Исправлено (аудит 10.10.2026)
+
+| Что | Где |
+|---|---|
+| `finalize_stream(cmd, text)` — арность не сходилась, `--llm` падал с `TypeError` | `test_intents.py` |
+| Тест с `expected=[]` проходил при исключении — дыра в харнесе | `test_intents.py` `Result._check` |
+| `_on_profile_switch` не существовал → GUI не был подписан на профиль | `gui.py` |
+| Пересборка UI теряла вкладку «Персона»: `_tabs` из 3 вместо 4 | `gui.py` `_rebuild_ui_for_theme` |
+| `_tabs[idx]` → `KeyError`, вкладка молча не переключалась | `gui.py` `_on_nav_change` |
+| Мёртвый код + вызов отсутствующей `first_run.after_first_command()` | `main.py` |
+| `packs/work.json` — хардкод `C:\jarvis`, неверные пути, перебивал `paths.py` | `packs/work.json` |
+| `normalize()` съедал точки: домены открывались как `gismeteoru.ru` | `actions.guess_site`, `execute._do_open_site`, `actions.normalize_url` |
+| `say()` звался из таймеров/watchdog/celebrations без лока → резал речь | `main.py` `_say_lock` |
+| Профиль читался с диска на каждый `get()`, включая `mood.effective_rate()` на каждом предложении | `profile.py` кэш в памяти |
+| `Path.home()` вопреки правилу проекта | `paths.user_home()` + 4 файла |
+| Две карты папок с разным поведением, мёртвый `_USER_FOLDERS` | `actions.py`, `files.py` |
+| `llm_timeout` захардкожен 20 с — на 14b молча падал в «не понял» | `config.py`, `brain.py` |
+| `verify_password` — не constant-time | `hmac.compare_digest` |
+| `ACTIONS` ↔ `_DISPATCH` рассинхрон: мёртвые `debug_*`, недостижимые `clipboard_*` | `brain.py` |
+| `num2words` — мёртвая зависимость | оба `requirements` |
+| `check_syntax.py` не проверял `tests/` | `check_syntax.py` |
+| Дрейф `command_window_sec` (9 vs 8) | `config.example.json` |
+| `PLAN.md` врал «Mood ❌ 0%, UIA ❌ 0%»; `ARCHITECTURE.md` перечислял несуществующие модули | доки |
+
+---
+
 ### 📅 Сессия 09.10.2026
 
 #### ✨ Добавлено

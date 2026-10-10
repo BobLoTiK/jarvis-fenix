@@ -122,6 +122,17 @@ _PROGRAM_DIR: Path | None = None
 _USER_DIR: Path | None = None
 
 
+def user_home() -> Path:
+    """Домашняя папка пользователя.
+
+    Единственная точка проекта, где разрешён Path.home() — правило
+    CONTRIBUTING: путей в коде нет, всё через paths.py.
+    Пользовательские папки могут быть на кириллице, и это ок:
+    Vosk читает только модели из PROGRAM_DIR, а их сюда не тащим.
+    """
+    return Path.home()
+
+
 def program_dir() -> Path:
     """ASCII-путь для кода и моделей."""
     global _PROGRAM_DIR

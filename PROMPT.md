@@ -415,6 +415,12 @@ Jarvis._process → mood.apply_from_text(cmd)
 32. **`_COMPOUND_VERBS` = `COMMAND_VERBS`** из `intents/verbs.py`.
 33. **Скриншот — в `fast/screenshot.py`**, не в pipeline.
 34. **`delete_profile` — в `PasswordStage`**, до `fast`.
+35. **Профиль читается через `profile._cache`** — не добавляй чтений
+    `profile.json` в горячие пути (`effective_rate` зовётся на каждом
+    синтезируемом предложении).
+36. **`normalize()` режет пунктуацию** — для доменов бери сырой
+    `intent["target"]`, иначе `habr.com` станет `habr com`.
+37. **Сначала `PROJECT.md`** — там инварианты и вся история ошибок.
 
 ### GUI
 

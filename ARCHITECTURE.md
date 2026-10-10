@@ -158,9 +158,8 @@ jarvis/
 ├── model.py          — загрузка Vosk (всегда в ASCII-путь)
 ├── recorder.py       — запись макросов
 ├── tray.py           — трей (временно отключён)
-├── vision.py         — VLM-зрение (в планах, Этап 8)
-├── hermes.py         — мост к Hermes (в планах, Этап 8)
-└── resources.py      — приоритеты и очередь (в планах, Этап 8)
+└── (vision.py / hermes.py / resources.py — НЕ существуют,
+                     это планы на Этап 8, файлов в репозитории нет)
 ~~~~
 
 ---
@@ -712,7 +711,8 @@ actions.spec_from_string(s)
 | `mood` | `mood.py` | Эмоциональное состояние |
 | `uia` | `uia.py` | UI Automation |
 | `DialogObserver` | `observer.py` | Фоновое извлечение фактов |
-| `first_run` | `first_run.py` | greeting, `is_first_run`, `mark_done` |
+| `first_run` | `jarvis/first_run.py` | greeting, `is_first_run`, `mark_done` |
+| `PROJECT.md` | `PROJECT.md` (корень) | источник правды: инварианты, правила, история ошибок |
 
 ---
 

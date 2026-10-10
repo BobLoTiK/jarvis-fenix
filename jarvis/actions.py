@@ -11,6 +11,8 @@ import time
 import urllib.parse
 from pathlib import Path
 
+from jarvis import paths as _paths
+
 log = logging.getLogger("jarvis.actions")
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -421,10 +423,32 @@ def spoken_domain(name: str):
 
 
 def guess_site(name: str):
+    """Отгадывает домен по ОДНОМУ слову: «ок» → https://ok.ru.
+
+    Многословные имена не трогаем: раньше slug склеивал «gismeteo ru»
+    в gismeteoru.ru, и Феникс открывал мусор вместо сайта.
+    Теперь честно возвращаем None, и вызывающий говорит
+    «сайт не нашёл, скажите „найди“».
+    """
+    if not name or len(name.split()) > 1:
+        return None
     slug = re.sub(r"[^a-z0-9]", "", name.lower())
     if not slug:
         return None
     return f"https://{slug}.ru"
+
+
+def normalize_url(raw: str) -> str:
+    """Приводит сырой домен из intent к валидному URL.
+
+    raw приходит ДО normalize(), поэтому точки на месте.
+    «Habr.com» → «https://habr.com».
+    """
+    text = raw.strip().lower().rstrip("/")
+    text = re.sub(r"\s+", "", text)
+    if text.startswith(("http://", "https://")):
+        return text
+    return "https://" + text
 
 
 # --- скриншоты -------------------------------------------------------------
@@ -432,7 +456,7 @@ def guess_site(name: str):
 def take_screenshot():
     try:
         from PIL import ImageGrab
-        folder = Path.home() / "Pictures" / "Screenshots"
+        folder = _paths.user_home() / "Pictures" / "Screenshots"
         folder.mkdir(parents=True, exist_ok=True)
         path = folder / f"screenshot_{time.strftime('%Y-%m-%d_%H-%M-%S')}.png"
         img = ImageGrab.grab()
@@ -1087,29 +1111,6 @@ def switch_window(back: bool = False) -> bool:
     except Exception:
         log.exception("switch_window не удался")
         return False
-
-
-# --- папки пользователя ----------------------------------------------------
-
-_USER_FOLDERS = {
-    "загрузки": Path.home() / "Downloads",
-    "скачанное": Path.home() / "Downloads",
-    "документы": Path.home() / "Documents",
-    "рабочий стол": Path.home() / "Desktop",
-    "изображения": Path.home() / "Pictures",
-    "картинки": Path.home() / "Pictures",
-    "музыка": Path.home() / "Music",
-    "видео": Path.home() / "Videos",
-    "скриншоты": Path.home() / "Pictures" / "Screenshots",
-}
-
-
-def resolve_user_folder(name: str):
-    name = name.lower().strip()
-    for key, path in _USER_FOLDERS.items():
-        if key in name:
-            return path
-    return None
 
 
 # --- буфер обмена -----------------------------------------------------------
