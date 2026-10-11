@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=da3c030b7aeac2ae` · режим `lean` · файлов `143` · строк `24336` · источник `960 КБ`
+`sha256=17c84a6da26c4b52` · режим `lean` · файлов `143` · строк `24348` · источник `961 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -344,7 +344,7 @@ jarvis/
 ├── PROJECT.md  (205 стр)
 ├── PROMPT.md  (488 стр)
 ├── README.md  (845 стр)
-├── requirements-ci.txt  (19 стр)
+├── requirements-ci.txt  (24 стр)
 ├── requirements-dev.txt  (10 стр)
 ├── requirements.txt  (59 стр)
 ├── scripts/
@@ -372,7 +372,7 @@ jarvis/
 │   ├── test_config_manager.py  (47 стр)
 │   ├── test_mood.py  (386 стр)
 │   ├── test_persona.py  (155 стр)
-│   ├── test_prosody.py  (76 стр)
+│   ├── test_prosody.py  (83 стр)
 │   ├── test_tts.py  (156 стр)
 │   ├── test_uia.py  (247 стр)
 │   ├── test_vad.py  (118 стр)
@@ -1921,7 +1921,7 @@ jarvis/
 | `tests/test_config_manager.py` | 47 | code | Тесты config_manager: параллельная запись не рвёт файл. |
 | `tests/test_mood.py` | 386 | code | Тесты jarvis.mood — состояние, детекция, decay, влияние. |
 | `tests/test_persona.py` | 155 | code | Тесты jarvis.persona — стиль, tone, prompt-блок. |
-| `tests/test_prosody.py` | 76 | code | Тесты jarvis.prosody — эмоции из голоса (эвристика). |
+| `tests/test_prosody.py` | 83 | code | Тесты jarvis.prosody — эмоции из голоса (эвристика). |
 | `tests/test_tts.py` | 156 | code | Тесты jarvis.tts_engines — движки и фабрика. С моками. |
 | `tests/test_uia.py` | 247 | code | Тесты jarvis.uia — логика обёртки. С моками. |
 | `tests/test_vad.py` | 118 | code | Тесты jarvis.vad — Silero VAD ONNX. |
@@ -17144,11 +17144,18 @@ def test_describe():
 ```python
 """Тесты jarvis.prosody — эмоции из голоса (эвристика)."""
 
-import math
-import numpy as np
+import importlib.util
+
 import pytest
 
-from jarvis import prosody
+# Пропускаем весь модуль, если нет numpy (CI без численных зависимостей).
+if importlib.util.find_spec("numpy") is None:
+    pytest.skip("numpy не установлен — prosody-тесты пропущены",
+                allow_module_level=True)
+
+import numpy as np  # noqa: E402
+
+from jarvis import prosody  # noqa: E402
 
 
 def _make_sine(freq: float, rms_target: float, duration: float = 0.5,
@@ -20954,6 +20961,11 @@ filelock>=3.13
 psutil>=5.9
 pyperclip>=1.8
 Pillow>=10
+
+# --- Численные ---
+# numpy нужен для prosody.py (RMS/pitch/ZCR) и vad.py (Silero ONNX).
+# На CI он обязателен — без него тесты prosody просто не соберутся.
+numpy>=1.26
 
 # --- Тесты ---
 pytest>=8.0

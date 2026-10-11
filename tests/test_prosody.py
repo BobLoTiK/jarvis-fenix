@@ -1,10 +1,17 @@
 """Тесты jarvis.prosody — эмоции из голоса (эвристика)."""
 
-import math
-import numpy as np
+import importlib.util
+
 import pytest
 
-from jarvis import prosody
+# Пропускаем весь модуль, если нет numpy (CI без численных зависимостей).
+if importlib.util.find_spec("numpy") is None:
+    pytest.skip("numpy не установлен — prosody-тесты пропущены",
+                allow_module_level=True)
+
+import numpy as np  # noqa: E402
+
+from jarvis import prosody  # noqa: E402
 
 
 def _make_sine(freq: float, rms_target: float, duration: float = 0.5,
