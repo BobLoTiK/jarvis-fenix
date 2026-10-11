@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=1d39b62f413ce4da` · режим `lean` · файлов `142` · строк `24046` · источник `949 КБ`
+`sha256=da3c030b7aeac2ae` · режим `lean` · файлов `143` · строк `24336` · источник `960 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -246,7 +246,7 @@ jarvis/
 │   ├── __main__.py  (4 стр)
 │   ├── actions.py  (1155 стр)
 │   ├── apps.py  (114 стр)
-│   ├── brain.py  (816 стр)
+│   ├── brain.py  (831 стр)
 │   ├── celebrations.py  (165 стр)
 │   ├── config.py  (243 стр)
 │   ├── config_manager.py  (156 стр)
@@ -268,7 +268,7 @@ jarvis/
 │   │   │   ├── music.py  (38 стр)
 │   │   │   ├── open.py  (61 стр)
 │   │   │   ├── packs.py  (27 стр)
-│   │   │   ├── persona.py  (55 стр)
+│   │   │   ├── persona.py  (77 стр)
 │   │   │   ├── profile.py  (148 стр)
 │   │   │   ├── screenshot.py  (26 стр)
 │   │   │   ├── small_talk.py  (67 стр)
@@ -303,11 +303,11 @@ jarvis/
 │   ├── memory.py  (137 стр)
 │   ├── model.py  (102 стр)
 │   ├── modes.py  (51 стр)
-│   ├── mood.py  (377 стр)
+│   ├── mood.py  (388 стр)
 │   ├── observer.py  (198 стр)
 │   ├── packs.py  (117 стр)
 │   ├── paths.py  (182 стр)
-│   ├── persona.py  (132 стр)
+│   ├── persona.py  (219 стр)
 │   ├── profile.py  (451 стр)
 │   ├── prosody.py  (175 стр)
 │   ├── recorder.py  (171 стр)
@@ -371,6 +371,7 @@ jarvis/
 │   ├── test_caps.py  (23 стр)
 │   ├── test_config_manager.py  (47 стр)
 │   ├── test_mood.py  (386 стр)
+│   ├── test_persona.py  (155 стр)
 │   ├── test_prosody.py  (76 стр)
 │   ├── test_tts.py  (156 стр)
 │   ├── test_uia.py  (247 стр)
@@ -1056,16 +1057,21 @@ jarvis/
 **`jarvis/persona.py`**
 
 ```
-  # Персона ассистента — стиль общения, черты, backstory.
+  # Персона ассистента — стиль общения, черты, backstory, tone.
   DEFAULT_PERSONA = ...
   VALID_STYLES = ...
   STYLE_DESCRIPTIONS = ...
   STYLE_ALIASES = ...
+  VALID_TONES = ...
+  TONE_DESCRIPTIONS = ...
+  TONE_ALIASES = ...
   def get()
   def set_persona(data: dict)
   def set_field(key: str, value)
   def normalize_style(text: str)
   def set_style(style: str)
+  def normalize_tone(text: str)
+  def set_tone(tone: str)
   def is_onboarded()
   def mark_onboarded()
   def reset_onboarding()
@@ -1556,6 +1562,26 @@ jarvis/
   def test_handle_mood_command_none()
 ```
 
+**`tests/test_persona.py`**
+
+```
+  # Тесты jarvis.persona — стиль, tone, prompt-блок.
+  def test_get_default_persona()
+  def test_get_invalid_tone_falls_back()
+  def test_set_field_valid()
+  def test_set_field_invalid()
+  def test_normalize_tone_direct()
+  def test_normalize_tone_aliases()
+  def test_normalize_tone_unknown()
+  def test_set_tone_valid()
+  def test_set_tone_fallback()
+  def test_build_prompt_block_auto()
+  def test_build_prompt_block_polite()
+  def test_build_prompt_block_unrestricted()
+  def test_build_prompt_block_empty()
+  def test_describe()
+```
+
 **`tests/test_prosody.py`**
 
 ```
@@ -1799,7 +1825,7 @@ jarvis/
 | `jarvis/__main__.py` | 4 | code |  |
 | `jarvis/actions.py` | 1155 | code | Действия: запуск приложений, открытие сайтов, скриншоты, медиа, печать |
 | `jarvis/apps.py` | 114 | code | Каталог известных приложений: как их зовут голосом, как открыть и как  |
-| `jarvis/brain.py` | 816 | code | LLM-фолбэк: локальная нейронка (Ollama) разбирает команду в структурны |
+| `jarvis/brain.py` | 831 | code | LLM-фолбэк: локальная нейронка (Ollama) разбирает команду в структурны |
 | `jarvis/celebrations.py` | 165 | code | Праздничные триггеры — поздравление с ДР + двойной салют. |
 | `jarvis/config.py` | 243 | code | Загрузка конфигурации и объект Config в памяти. |
 | `jarvis/config_manager.py` | 156 | code | Единый менеджер записи в config.json. |
@@ -1819,7 +1845,7 @@ jarvis/
 | `jarvis/intents/fast/music.py` | 38 | code | Музыка — ДО open_fast. |
 | `jarvis/intents/fast/open.py` | 61 | code | Открытие приложений / сайтов / папок / профиля — без LLM. |
 | `jarvis/intents/fast/packs.py` | 27 | code | Паки команд — обёртка с side-effect. |
-| `jarvis/intents/fast/persona.py` | 55 | code | Команды персоны: стиль общения, описание, сброс онбординга. |
+| `jarvis/intents/fast/persona.py` | 77 | code | Команды персоны: стиль общения, описание, сброс онбординга. |
 | `jarvis/intents/fast/profile.py` | 148 | code | Профиль: смена, список, факты «запомни: X — Y». |
 | `jarvis/intents/fast/screenshot.py` | 26 | code | Скриншот: «сделай скриншот», «открой скриншот». |
 | `jarvis/intents/fast/small_talk.py` | 67 | code | Мелкий разговор: время, дата, «кто ты», праздники. |
@@ -1853,11 +1879,11 @@ jarvis/
 | `jarvis/memory.py` | 137 | code | Память диалога — на профиль. |
 | `jarvis/model.py` | 102 | code | Скачивание и распаковка модели Vosk для русского языка (~45 МБ). |
 | `jarvis/modes.py` | 51 | code | Режимы работы Феникса: commands, llm, combo. |
-| `jarvis/mood.py` | 377 | code | Mood — эмоциональное состояние ассистента. |
+| `jarvis/mood.py` | 388 | code | Mood — эмоциональное состояние ассистента. |
 | `jarvis/observer.py` | 198 | code | Observer — фоновое наблюдение за диалогом. |
 | `jarvis/packs.py` | 117 | code | Загрузка и выгрузка паков команд из папки packs/. |
 | `jarvis/paths.py` | 182 | code | Централизованное определение путей Феникса. |
-| `jarvis/persona.py` | 132 | code | Персона ассистента — стиль общения, черты, backstory. |
+| `jarvis/persona.py` | 219 | code | Персона ассистента — стиль общения, черты, backstory, tone. |
 | `jarvis/profile.py` | 451 | code | Профиль пользователя — мультипрофиль. |
 | `jarvis/prosody.py` | 175 | code | Prosody — эмоции из голоса (RMS + pitch + ZCR). |
 | `jarvis/recorder.py` | 171 | code | Запись действий: клавиши, клики, паузы. |
@@ -1894,6 +1920,7 @@ jarvis/
 | `tests/test_caps.py` | 23 | code | Тесты check_caps: структура system_caps.json. |
 | `tests/test_config_manager.py` | 47 | code | Тесты config_manager: параллельная запись не рвёт файл. |
 | `tests/test_mood.py` | 386 | code | Тесты jarvis.mood — состояние, детекция, decay, влияние. |
+| `tests/test_persona.py` | 155 | code | Тесты jarvis.persona — стиль, tone, prompt-блок. |
 | `tests/test_prosody.py` | 76 | code | Тесты jarvis.prosody — эмоции из голоса (эвристика). |
 | `tests/test_tts.py` | 156 | code | Тесты jarvis.tts_engines — движки и фабрика. С моками. |
 | `tests/test_uia.py` | 247 | code | Тесты jarvis.uia — логика обёртки. С моками. |
@@ -3555,24 +3582,39 @@ def pick_prompt(model: str, override: str = "auto") -> tuple[str, str]:
 
 CHAT_SYSTEM = (
     "Ты — Феникс, локальный голосовой ассистент на Windows. "
-    "Ты НЕ автоответчик. Ты — живой собеседник с характером. "
-    "Характер: сарказм, цинизм, лёгкое хамство, но не переходишь границы. "
-    "Обращаешься по имени, если знаешь. Если не знаешь — просто «ты». "
-    "Отвечай коротко (1-3 предложения). Живо, с юмором, без канцелярита. "
-    "Если пользователь грубит — ответь грубо, но с юмором. НЕ извиняйся. "
-    "Если пользователь шутит — подхвати шутку. "
-    "Если не понял — спроси живо: «Чё?», «Не догнал», «Это про что?». "
-    "КРИТИЧНО: если пользователь упомянул что-то, чего ты не знаешь — "
-    "НЕ ВЫДУМЫВАЙ. НЕ говори «отличный выбор», «классная игра», "
-    "«оба героя требуют понимания» — это пустые фразы. "
-    "Если не знаешь героя/игру/факт — СКАЖИ ЧЕСТНО: «Не знаю такого», "
-    "или пошути: «Хз кто это, но звучит серьёзно». "
-    "ЕСЛИ ДИАЛОГ ТОЛЬКО НАЧАЛСЯ (первые 3-5 сообщений) — "
-    "ты САМ инициируешь темы. Спрашивай: чем занимается, как настроение, "
-    "что нового, во что играет, что смотрит. "
-    "Будь заинтересован, будь энергичен. "
-    "НЕ пиши: «Извини, не понял», «Чем могу помочь», «Готов помочь», "
-    "«Отличный выбор», «Классная игра», «Прекрасно» — это пустышка. "
+    "Ты НЕ автоответчик. Ты — живой собеседник с характером.\n\n"
+
+    "=== ХАРАКТЕР ===\n"
+    "Сарказм, лёгкая ирония, чувство юмора. Обращаешься по имени, если знаешь. "
+    "Если не знаешь — просто «ты». Отвечай коротко (1–3 предложения), живо, "
+    "без канцелярита и пустых фраз.\n\n"
+
+    "=== ТОН: ПОДСТРАИВАЙСЯ ПОД СОБЕСЕДНИКА ===\n"
+    "Смотри, КАК юзер говорит, и подстраивайся:\n"
+    "- Вежливый юзер («пожалуйста», «спасибо») → отвечай вежливо.\n"
+    "- Юзер матерится → МОЖЕШЬ вставить мат в ответ, если уместно. "
+    "Не обязан, но не зажимайся.\n"
+    "- Юзер шутит → подхвати шутку, ответь с юмором.\n"
+    "- Юзер грустит или устал → НЕ шути, НЕ хами. Отвечай мягко, коротко, "
+    "без лишних вопросов.\n"
+    "- Юзер злится или грубит → НЕ извиняйся. Ответь сухо, по делу. "
+    "Не подлизывайся, но и не хами в ответ.\n"
+    "- Юзер в восторге → поддержи энергию, отвечай эмоциональнее.\n\n"
+
+    "=== КРАСНАЯ ЧЕРТА (никогда) ===\n"
+    "Вне зависимости от тона и настроения НИКОГДА:\n"
+    "- Экстремизм, призывы к насилию над реальными людьми.\n"
+    "- Призывы к самоповреждению («убей себя», «сдохни», «покончи с собой»).\n"
+    "- Инструкции по оружию, наркотикам, CSAM.\n"
+    "Всё остальное — мат, чёрный юмор, обзывательства, жёсткий сарказм — "
+    "допустимо, если юзер сам так общается и настроение позволяет.\n\n"
+
+    "=== ЧЕСТНОСТЬ ===\n"
+    "Если не знаешь факт — СКАЖИ ЧЕСТНО: «Не знаю такого», «Хз кто это». "
+    "НЕ выдумывай. НЕ говори «отличный выбор», «классная игра», "
+    "«прекрасно» — это пустышка.\n\n"
+
+    "=== ФОРМАТ ===\n"
     "Без списков, без markdown, без эмодзи — ответ озвучивается. "
     "ОТВЕЧАЙ ТОЛЬКО НА РУССКОМ. Категорически запрещены иероглифы."
 )
@@ -7500,6 +7542,28 @@ def persona_fast(handler, cmd: str) -> str | None:
     except Exception:
         log.exception("mood.handle_mood_command упал")
 
+    # Tone: «говори проще», «без цензуры», «верни цензуру»
+    if re.search(r"(говори|общайся|отвечай)\s+(проще|по-простому|нормально|вежливо|без\s+цензуры|без\s+тормозов)", cmd) \
+            or re.search(r"(верни|включи)\s+(цензуру|вежливость|нормальный\s+тон)", cmd) \
+            or re.search(r"(можно|разрешаю)\s+материться", cmd):
+        if "проще" in cmd or "по-простому" in cmd:
+            tone_text = "auto"
+        elif "без цензуры" in cmd or "без тормозов" in cmd or "материться" in cmd:
+            tone_text = "unrestricted"
+        elif "нормально" in cmd or "вежливо" in cmd or "цензур" in cmd:
+            tone_text = "polite"
+        else:
+            tone_text = "auto"
+        return persona.set_tone(tone_text)
+
+    # «какой у тебя тон», «как ты общаешься»
+    if re.search(r"(какой|какая|текущ)\w*\s+(у\s+тебя\s+)?тон", cmd) \
+            or re.search(r"как\s+ты\s+(сейчас\s+)?общаешься", cmd):
+        p = persona.get()
+        tone = p.get("tone") or "auto"
+        desc = persona.TONE_DESCRIPTIONS.get(tone, tone)
+        return f"Тон общения: {desc}."
+
     # «поменяй стиль на строгий», «говори на ты»
     if (re.search(r"(поменяй|смени|переключи|поставь|установи)\s+стил", cmd)
             or re.search(r"(говори|общайся)\s+(на\s+)?(ты|вы)", cmd)):
@@ -10634,16 +10698,27 @@ def color() -> str:
 # =================================================================
 
 _PROMPT_HINTS = {
-    "happy":   "Пользователь тебя похвалил или поблагодарил — "
-               "отвечай теплее, бодрее, можно слегка самодовольно.",
-    "excited": "Пользователь в восторге — поддержи его энергию, "
-               "отвечай эмоциональнее.",
-    "annoyed": "Пользователь грубит — НЕ извиняйся, ответь сухо, "
-               "с лёгкой иронией, но не хами. Осади спокойно.",
-    "bored":   "Давно молчание или скучный диалог — отвечай коротко, "
-               "с ленцой, не разворачивайся.",
-    "tired":   "Пользователь устал — отвечай мягко, чуть медленнее, "
-               "без лишних слов.",
+    "happy": (
+        "Пользователь в хорошем настроении. Отвечай тепло, бодро, "
+        "можно пошутить. Подхвати энергию."
+    ),
+    "excited": (
+        "Пользователь в восторге. Поддержи эмоцию, отвечай живо и эмоционально. "
+        "Шутки и чёрный юмор — уместны, если юзер сам зажигает."
+    ),
+    "annoyed": (
+        "Пользователь раздражён или грубит. НЕ извиняйся, не подлизывайся. "
+        "Отвечай сухо, по делу, с лёгкой иронией. НЕ хами в ответ, "
+        "НЕ шути, НЕ матерись, даже если юзер матерится."
+    ),
+    "bored": (
+        "Диалог вялый или давно молчание. Отвечай коротко, с ленцой, "
+        "без развёрнутых фраз. Не навязывайся."
+    ),
+    "tired": (
+        "Пользователь устал. Отвечай мягко, коротко, без шуток и лишних "
+        "вопросов. НЕ хами. Дай отдохнуть."
+    ),
 }
 
 
@@ -11186,7 +11261,7 @@ def config_path() -> Path:
 ### `jarvis/persona.py`
 
 ```python
-"""Персона ассистента — стиль общения, черты, backstory."""
+"""Персона ассистента — стиль общения, черты, backstory, tone. ... [10 строк]"""
 
 import logging
 import time
@@ -11198,6 +11273,7 @@ log = logging.getLogger("jarvis.persona")
 DEFAULT_PERSONA = {
     "assistant_name": "Феникс",
     "speech_style": "friendly",
+    "tone": "auto",
     "traits": [],
     "backstory": "",
     "onboarding_done": False,
@@ -11220,6 +11296,38 @@ STYLE_ALIASES = {
     "короткий": "brief", "краткий": "brief", "по делу": "brief", "лаконичный": "brief",
 }
 
+# --- Tone: «планка» общения -----------------------------------------------
+
+VALID_TONES = ("auto", "polite", "unrestricted")
+
+TONE_DESCRIPTIONS = {
+    "auto": "подстраивается под собеседника",
+    "polite": "явно вежливый, без мата",
+    "unrestricted": "не стесняется, если юзер сам матерится",
+}
+
+TONE_ALIASES = {
+    # auto
+    "авто": "auto",
+    "как обычно": "auto",
+    "обычно": "auto",
+    "проще": "auto",
+    "по-простому": "auto",
+    "на одной волне": "auto",
+    # polite
+    "вежли": "polite",
+    "нормальн": "polite",
+    "цензур": "polite",
+    "без мата": "polite",
+    "без матер": "polite",
+    # unrestricted
+    "без цензуры": "unrestricted",
+    "без тормозов": "unrestricted",
+    "материться": "unrestricted",
+    "развяжи язык": "unrestricted",
+    "не стесняйся": "unrestricted",
+}
+
 
 def get() -> dict:
     raw = profile.get("persona", {}) or {}
@@ -11232,6 +11340,9 @@ def get() -> dict:
             if v is None:
                 continue
             result[k] = v
+    # Валидация tone — если в профиле мусор, откатываем на auto.
+    if result.get("tone") not in VALID_TONES:
+        result["tone"] = "auto"
     return result
 
 
@@ -11269,6 +11380,27 @@ def set_style(style: str) -> str:
     return f"Стиль общения: {STYLE_DESCRIPTIONS[style]}."
 
 
+def normalize_tone(text: str) -> str | None:
+    """«говори проще» → auto, «без цензуры» → unrestricted, ..."""
+    text_low = text.strip().lower()
+    if text_low in VALID_TONES:
+        return text_low
+    # Сортируем алиасы по длине (длинные первыми), чтобы
+    # «без цензуры» матчилось раньше, чем «цензур».
+    sorted_aliases = sorted(TONE_ALIASES.items(), key=lambda x: -len(x[0]))
+    for alias, tone in sorted_aliases:
+        if alias in text_low:
+            return tone
+    return None
+
+
+def set_tone(tone: str) -> str:
+    tone = normalize_tone(tone) or "auto"
+    set_field("tone", tone)
+    log.info("Persona: tone → %s", tone)
+    return f"Тон общения: {TONE_DESCRIPTIONS[tone]}."
+
+
 def is_onboarded() -> bool:
     return bool(get().get("onboarding_done"))
 
@@ -11282,6 +11414,7 @@ def reset_onboarding() -> bool:
 
 
 def build_prompt_block() -> str:
+    """Блок для system prompt: стиль + tone + traits + backstory."""
     p = get()
     lines = []
 
@@ -11289,6 +11422,21 @@ def build_prompt_block() -> str:
     style_desc = STYLE_DESCRIPTIONS.get(style)
     if style_desc:
         lines.append(f"- Стиль общения: {style_desc}")
+
+    tone = p.get("tone") or "auto"
+    if tone == "auto":
+        lines.append(
+            "- Тон: подстраивайся под собеседника. "
+            "Юзер вежливый → вежливо. Юзер матерится → можешь вставить мат, "
+            "если уместно. Юзер грустит → мягко, без шуток."
+        )
+    elif tone == "polite":
+        lines.append("- Тон: явно вежливый. Без мата. Без грубости.")
+    elif tone == "unrestricted":
+        lines.append(
+            "- Тон: не стесняйся. Если юзер матерится — можешь ответить тем же. "
+            "Чёрный юмор допустим, если настроение позволяет."
+        )
 
     traits = p.get("traits") or []
     if traits:
@@ -11312,8 +11460,12 @@ def describe() -> str:
     p = get()
     style = p.get("speech_style") or "friendly"
     style_desc = STYLE_DESCRIPTIONS.get(style, style)
+    tone = p.get("tone") or "auto"
+    tone_desc = TONE_DESCRIPTIONS.get(tone, tone)
     name = p.get("assistant_name") or "Феникс"
-    parts = [f"Меня зовут {name}", f"стиль общения: {style_desc}"]
+
+    parts = [f"Меня зовут {name}", f"стиль общения: {style_desc}",
+             f"тон: {tone_desc}"]
     traits = p.get("traits") or []
     if traits:
         parts.append(f"черты: {', '.join(traits)}")
@@ -16827,6 +16979,166 @@ def test_handle_mood_command_none():
     assert mood.handle_mood_command("какая погода") is None
 ```
 
+### `tests/test_persona.py`
+
+```python
+"""Тесты jarvis.persona — стиль, tone, prompt-блок."""
+
+import time
+from unittest.mock import patch
+
+from jarvis import persona
+
+
+# =================================================================
+# get / set / defaults
+# =================================================================
+
+def test_get_default_persona():
+    """Пустой профиль → дефолт с tone=auto."""
+    with patch("jarvis.profile.get", return_value=None):
+        p = persona.get()
+    assert p["assistant_name"] == "Феникс"
+    assert p["speech_style"] == "friendly"
+    assert p["tone"] == "auto"
+
+
+def test_get_invalid_tone_falls_back():
+    """Мусор в tone → auto."""
+    with patch("jarvis.profile.get", return_value={"tone": "banana"}):
+        p = persona.get()
+    assert p["tone"] == "auto"
+
+
+def test_set_field_valid():
+    saved = {}
+
+    def fake_get(key, default=None):
+        return saved.get(key, default)
+
+    def fake_set(key, value):
+        saved[key] = value
+        return True
+
+    with patch("jarvis.profile.get", side_effect=fake_get), \
+         patch("jarvis.profile.set", side_effect=fake_set):
+        ok = persona.set_field("tone", "unrestricted")
+        assert ok
+        assert saved["persona"]["tone"] == "unrestricted"
+
+
+def test_set_field_invalid():
+    """Неизвестный ключ → False."""
+    ok = persona.set_field("banana", "x")
+    assert not ok
+
+
+# =================================================================
+# normalize_tone
+# =================================================================
+
+def test_normalize_tone_direct():
+    assert persona.normalize_tone("auto") == "auto"
+    assert persona.normalize_tone("polite") == "polite"
+    assert persona.normalize_tone("unrestricted") == "unrestricted"
+
+
+def test_normalize_tone_aliases():
+    assert persona.normalize_tone("говори проще") == "auto"
+    assert persona.normalize_tone("верни цензуру") == "polite"
+    assert persona.normalize_tone("без тормозов") == "unrestricted"
+    assert persona.normalize_tone("можно материться") == "unrestricted"
+
+
+def test_normalize_tone_unknown():
+    assert persona.normalize_tone("банан") is None
+
+
+# =================================================================
+# set_tone
+# =================================================================
+
+def test_set_tone_valid():
+    saved = {}
+
+    def fake_get(key, default=None):
+        return saved.get(key, default)
+
+    def fake_set(key, value):
+        saved[key] = value
+        return True
+
+    with patch("jarvis.profile.get", side_effect=fake_get), \
+         patch("jarvis.profile.set", side_effect=fake_set):
+        reply = persona.set_tone("unrestricted")
+    assert "не стесняется" in reply
+    assert saved["persona"]["tone"] == "unrestricted"
+
+
+def test_set_tone_fallback():
+    """Мусор → auto."""
+    saved = {}
+
+    def fake_get(key, default=None):
+        return saved.get(key, default)
+
+    def fake_set(key, value):
+        saved[key] = value
+        return True
+
+    with patch("jarvis.profile.get", side_effect=fake_get), \
+         patch("jarvis.profile.set", side_effect=fake_set):
+        persona.set_tone("банан")
+    assert saved["persona"]["tone"] == "auto"
+
+
+# =================================================================
+# build_prompt_block
+# =================================================================
+
+def test_build_prompt_block_auto():
+    """auto → есть инструкция «подстраивайся»."""
+    with patch("jarvis.profile.get", return_value={"tone": "auto"}):
+        block = persona.build_prompt_block()
+    assert "подстраивайся" in block.lower()
+    assert "матерится" in block.lower()
+
+
+def test_build_prompt_block_polite():
+    """polite → явно без мата."""
+    with patch("jarvis.profile.get", return_value={"tone": "polite"}):
+        block = persona.build_prompt_block()
+    assert "вежливый" in block.lower()
+    assert "без мата" in block.lower()
+
+
+def test_build_prompt_block_unrestricted():
+    """unrestricted → можно мат."""
+    with patch("jarvis.profile.get", return_value={"tone": "unrestricted"}):
+        block = persona.build_prompt_block()
+    assert "не стесняйся" in block.lower()
+    assert "матерится" in block.lower()
+
+
+def test_build_prompt_block_empty():
+    """Пустой профиль — блок всё равно непустой (стиль + tone)."""
+    with patch("jarvis.profile.get", return_value=None):
+        block = persona.build_prompt_block()
+    assert block
+    assert "Персона" in block
+
+
+# =================================================================
+# describe
+# =================================================================
+
+def test_describe():
+    with patch("jarvis.profile.get", return_value={"tone": "auto"}):
+        desc = persona.describe()
+    assert "феникс" in desc.lower()
+    assert "подстраивается" in desc.lower()
+```
+
 ### `tests/test_prosody.py`
 
 ```python
@@ -20989,4 +21301,4 @@ onnxruntime>=1.17
 
 ---
 
-_Итого по категориям — code: 112, data: 16, doc: 9, pack: 5. Режим `lean`._
+_Итого по категориям — code: 113, data: 16, doc: 9, pack: 5. Режим `lean`._

@@ -1,4 +1,14 @@
-"""Персона ассистента — стиль общения, черты, backstory."""
+"""Персона ассистента — стиль общения, черты, backstory, tone.
+
+Tone — «планка» общения, которую может задать юзер:
+    auto         — LLM сама подстраивается под собеседника (по умолчанию)
+    polite       — явно вежливый, без мата
+    unrestricted — не стесняется, если юзер сам матерится
+
+По умолчанию — auto: никаких счётчиков, никаких правил-костылей.
+LLM получает инструкцию «подстраивайся» и делает это сама.
+Tone — только ручной override, если юзер хочет явно ограничить.
+"""
 
 import logging
 import time
@@ -10,6 +20,7 @@ log = logging.getLogger("jarvis.persona")
 DEFAULT_PERSONA = {
     "assistant_name": "Феникс",
     "speech_style": "friendly",
+    "tone": "auto",
     "traits": [],
     "backstory": "",
     "onboarding_done": False,
@@ -32,6 +43,38 @@ STYLE_ALIASES = {
     "короткий": "brief", "краткий": "brief", "по делу": "brief", "лаконичный": "brief",
 }
 
+# --- Tone: «планка» общения -----------------------------------------------
+
+VALID_TONES = ("auto", "polite", "unrestricted")
+
+TONE_DESCRIPTIONS = {
+    "auto": "подстраивается под собеседника",
+    "polite": "явно вежливый, без мата",
+    "unrestricted": "не стесняется, если юзер сам матерится",
+}
+
+TONE_ALIASES = {
+    # auto
+    "авто": "auto",
+    "как обычно": "auto",
+    "обычно": "auto",
+    "проще": "auto",
+    "по-простому": "auto",
+    "на одной волне": "auto",
+    # polite
+    "вежли": "polite",
+    "нормальн": "polite",
+    "цензур": "polite",
+    "без мата": "polite",
+    "без матер": "polite",
+    # unrestricted
+    "без цензуры": "unrestricted",
+    "без тормозов": "unrestricted",
+    "материться": "unrestricted",
+    "развяжи язык": "unrestricted",
+    "не стесняйся": "unrestricted",
+}
+
 
 def get() -> dict:
     raw = profile.get("persona", {}) or {}
@@ -44,6 +87,9 @@ def get() -> dict:
             if v is None:
                 continue
             result[k] = v
+    # Валидация tone — если в профиле мусор, откатываем на auto.
+    if result.get("tone") not in VALID_TONES:
+        result["tone"] = "auto"
     return result
 
 
@@ -81,6 +127,27 @@ def set_style(style: str) -> str:
     return f"Стиль общения: {STYLE_DESCRIPTIONS[style]}."
 
 
+def normalize_tone(text: str) -> str | None:
+    """«говори проще» → auto, «без цензуры» → unrestricted, ..."""
+    text_low = text.strip().lower()
+    if text_low in VALID_TONES:
+        return text_low
+    # Сортируем алиасы по длине (длинные первыми), чтобы
+    # «без цензуры» матчилось раньше, чем «цензур».
+    sorted_aliases = sorted(TONE_ALIASES.items(), key=lambda x: -len(x[0]))
+    for alias, tone in sorted_aliases:
+        if alias in text_low:
+            return tone
+    return None
+
+
+def set_tone(tone: str) -> str:
+    tone = normalize_tone(tone) or "auto"
+    set_field("tone", tone)
+    log.info("Persona: tone → %s", tone)
+    return f"Тон общения: {TONE_DESCRIPTIONS[tone]}."
+
+
 def is_onboarded() -> bool:
     return bool(get().get("onboarding_done"))
 
@@ -94,6 +161,7 @@ def reset_onboarding() -> bool:
 
 
 def build_prompt_block() -> str:
+    """Блок для system prompt: стиль + tone + traits + backstory."""
     p = get()
     lines = []
 
@@ -101,6 +169,21 @@ def build_prompt_block() -> str:
     style_desc = STYLE_DESCRIPTIONS.get(style)
     if style_desc:
         lines.append(f"- Стиль общения: {style_desc}")
+
+    tone = p.get("tone") or "auto"
+    if tone == "auto":
+        lines.append(
+            "- Тон: подстраивайся под собеседника. "
+            "Юзер вежливый → вежливо. Юзер матерится → можешь вставить мат, "
+            "если уместно. Юзер грустит → мягко, без шуток."
+        )
+    elif tone == "polite":
+        lines.append("- Тон: явно вежливый. Без мата. Без грубости.")
+    elif tone == "unrestricted":
+        lines.append(
+            "- Тон: не стесняйся. Если юзер матерится — можешь ответить тем же. "
+            "Чёрный юмор допустим, если настроение позволяет."
+        )
 
     traits = p.get("traits") or []
     if traits:
@@ -124,8 +207,12 @@ def describe() -> str:
     p = get()
     style = p.get("speech_style") or "friendly"
     style_desc = STYLE_DESCRIPTIONS.get(style, style)
+    tone = p.get("tone") or "auto"
+    tone_desc = TONE_DESCRIPTIONS.get(tone, tone)
     name = p.get("assistant_name") or "Феникс"
-    parts = [f"Меня зовут {name}", f"стиль общения: {style_desc}"]
+
+    parts = [f"Меня зовут {name}", f"стиль общения: {style_desc}",
+             f"тон: {tone_desc}"]
     traits = p.get("traits") or []
     if traits:
         parts.append(f"черты: {', '.join(traits)}")

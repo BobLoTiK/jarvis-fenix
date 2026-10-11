@@ -18,6 +18,28 @@ def persona_fast(handler, cmd: str) -> str | None:
     except Exception:
         log.exception("mood.handle_mood_command упал")
 
+    # Tone: «говори проще», «без цензуры», «верни цензуру»
+    if re.search(r"(говори|общайся|отвечай)\s+(проще|по-простому|нормально|вежливо|без\s+цензуры|без\s+тормозов)", cmd) \
+            or re.search(r"(верни|включи)\s+(цензуру|вежливость|нормальный\s+тон)", cmd) \
+            or re.search(r"(можно|разрешаю)\s+материться", cmd):
+        if "проще" in cmd or "по-простому" in cmd:
+            tone_text = "auto"
+        elif "без цензуры" in cmd or "без тормозов" in cmd or "материться" in cmd:
+            tone_text = "unrestricted"
+        elif "нормально" in cmd or "вежливо" in cmd or "цензур" in cmd:
+            tone_text = "polite"
+        else:
+            tone_text = "auto"
+        return persona.set_tone(tone_text)
+
+    # «какой у тебя тон», «как ты общаешься»
+    if re.search(r"(какой|какая|текущ)\w*\s+(у\s+тебя\s+)?тон", cmd) \
+            or re.search(r"как\s+ты\s+(сейчас\s+)?общаешься", cmd):
+        p = persona.get()
+        tone = p.get("tone") or "auto"
+        desc = persona.TONE_DESCRIPTIONS.get(tone, tone)
+        return f"Тон общения: {desc}."
+
     # «поменяй стиль на строгий», «говори на ты»
     if (re.search(r"(поменяй|смени|переключи|поставь|установи)\s+стил", cmd)
             or re.search(r"(говори|общайся)\s+(на\s+)?(ты|вы)", cmd)):
