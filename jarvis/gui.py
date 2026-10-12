@@ -27,6 +27,8 @@ from pathlib import Path
 
 import flet as ft
 
+from jarvis.vad import DEFAULT_HANGOVER_MS
+
 log = logging.getLogger("jarvis.gui")
 
 PALETTES = {
@@ -125,7 +127,7 @@ LLM_MODELS = [
     "gemma2:2b", "gemma2:9b", "llama3.1:8b", "mistral:7b",
 ]
 
-TTS_BACKENDS = ["auto", "piper", "xtts", "winrt", "sapi"]
+TTS_BACKENDS = ["auto", "piper", "silero", "winrt", "sapi"]
 
 
 class FenixGUI:
@@ -166,6 +168,9 @@ class FenixGUI:
         self._mic_peak_text = None
         self._mic_utt_text = None
         self._mic_test_result = None
+        self._mic_device_text = None
+        self._vad_threshold_label = None
+        self._vad_hangover_label = None
 
         self._page = None
 
@@ -329,6 +334,10 @@ class FenixGUI:
             page.window.left = x
             page.window.top = y
 
+        # Позиция окна запоминается: gui_x / gui_y раньше только читались,
+        # а сохранять их было некому — окно всегда открывалось по умолчанию.
+        page.window.on_event = self._on_window_event
+
         # launch_mode=tray — окно скрыто
         if self.start_hidden:
             page.window.visible = False
@@ -359,6 +368,11 @@ class FenixGUI:
                     label="Микрофон",
                 ),
                 ft.NavigationRailDestination(
+                    icon=ft.Icons.GRAPHIC_EQ_OUTLINED,
+                    selected_icon=ft.Icons.GRAPHIC_EQ,
+                    label="Аудио",
+                ),
+                ft.NavigationRailDestination(
                     icon=ft.Icons.FACE_OUTLINED,
                     selected_icon=ft.Icons.FACE,
                     label="Персона",
@@ -375,8 +389,9 @@ class FenixGUI:
         self._tabs = {
             0: self._build_main_tab(),
             1: self._build_mic_tab(),
-            2: self._build_persona_tab(),
-            3: self._build_settings_tab(),
+            2: self._build_audio_tab(),
+            3: self._build_persona_tab(),
+            4: self._build_settings_tab(),
         }
 
         self._content_area = ft.Container(
@@ -417,13 +432,16 @@ class FenixGUI:
         self._status_sub = ft.Text(
             "Жду «Феникс»", size=13, color=TEXT_DIM,
         )
+        self._mood_text = ft.Text(
+            "", size=12, color=TEXT_DIM, italic=True,
+        )
 
         status_bar = ft.Container(
             content=ft.Row(
                 controls=[
                     self._status_circle,
                     ft.Column(
-                        controls=[self._status_text, self._status_sub],
+                        controls=[self._status_text, self._status_sub, self._mood_text],
                         spacing=2,
                         alignment=ft.MainAxisAlignment.CENTER,
                     ),
@@ -487,20 +505,22 @@ class FenixGUI:
                 _label("Голос:"),
                 ft.Dropdown(
                     value=self.config.get("tts_voice", "ruslan"),
-                    options=[
-                        ft.dropdown.Option("ruslan"),
-                        ft.dropdown.Option("dmitri"),
-                        ft.dropdown.Option("irina"),
-                        ft.dropdown.Option("denis"),
-                    ],
+                    options=self._get_voice_options(),
                     width=160,
                     border_color="#30363d",
                     focused_border_color=ACCENT,
                     text_size=13,
                     on_select=self._on_voice_change,
                 ),
+                ft.IconButton(
+                    icon=ft.Icons.REFRESH,
+                    icon_color=TEXT_DIM,
+                    icon_size=18,
+                    tooltip="Обновить список голосов",
+                    on_click=self._on_refresh_voices,
+                ),
             ],
-            spacing=10,
+            spacing=5,
         )
 
         mm = self.config.get("memory_max", 100)
@@ -610,14 +630,22 @@ class FenixGUI:
         self._mic_status_text = ft.Text("Статус: ожидание проверки", size=13, color=TEXT_DIM)
         self._mic_peak_text = ft.Text("Пик за сессию: 0", size=13, color=TEXT_DIM)
         self._mic_utt_text = ft.Text("Распознано фраз: 0", size=13, color=TEXT_DIM)
+        self._mic_emotion_text = ft.Text(
+            "Эмоция: —", size=13, color=TEXT_DIM,
+        )
         self._mic_test_result = ft.Text("", size=13, color=TEXT_DIM)
+        # «Текущее устройство» — вынесено в поле, чтобы текст обновлялся
+        # сразу после смены микрофона, а не только при пересборке вкладки.
+        self._mic_device_text = ft.Text(
+            f"Текущее устройство: {name}", size=14, color=TEXT,
+        )
 
         return ft.Container(
             content=ft.Column(
                 controls=[
                     ft.Text("Микрофон", size=26, weight=ft.FontWeight.BOLD, color=TEXT),
                     ft.Container(height=25),
-                    ft.Text(f"Текущее устройство: {name}", size=14, color=TEXT),
+                    self._mic_device_text,
                     ft.Container(height=20),
                     ft.Container(
                         content=ft.Column(
@@ -627,6 +655,7 @@ class FenixGUI:
                                 ft.Container(height=8),
                                 self._mic_peak_text,
                                 self._mic_utt_text,
+                                self._mic_emotion_text,
                                 self._mic_status_text,
                                 self._mic_test_result,
                             ],
@@ -676,11 +705,26 @@ class FenixGUI:
         )
 
     def _on_mic_change(self, e) -> None:
+        """Смена микрофона применяется на лету (без перезапуска).
+
+        Раньше здесь только писался config, а в лог шло «перезапусти
+        Феникса». Теперь подписчик в main.py зовёт
+        listener.set_input_device(), а поток слушателя переоткрывает
+        RawInputStream на новом устройстве.
+        """
         value = e.control.value
         if value == "по умолчанию":
             value = None
         self.config.set("input_device", value)
-        log.info("Микрофон сохранён: %r (перезапусти Феникса)", value)
+        if getattr(self, "_mic_device_text", None) is not None:
+            listener = self.jarvis.listener if self.jarvis is not None else None
+            shown = listener.device_name if listener is not None else (
+                value or "по умолчанию")
+            self._mic_device_text.value = f"Текущее устройство: {shown}"
+        self._show_status(
+            "Микрофон переключён. Скажите «Феникс» — проверю, что слышу."
+        )
+        log.info("GUI: input_device → %r (применяю на лету)", value)
 
     def _on_mic_test(self, e) -> None:
         """Кнопка «Проверить микрофон».
@@ -746,8 +790,174 @@ class FenixGUI:
                 else:
                     self._mic_status_text.value = "Статус: Ожидание звука"
                     self._mic_status_text.color = TEXT_DIM
+
+            if getattr(self, "_mic_emotion_text", None):
+                if listener.peak > 2500:
+                    emo = "excited / annoyed"
+                elif listener.peak > 200:
+                    emo = "neutral / happy"
+                else:
+                    emo = "tired / тишина"
+                self._mic_emotion_text.value = f"Эмоция: ~{emo}"
         except Exception:
             log.exception("_update_mic_level упал")
+
+    def _build_audio_tab(self) -> ft.Control:
+        """Вкладка «Аудио» — VAD + Prosody."""
+        from jarvis import persona  # для общего стиля label
+
+        # === Prosody ===
+        prosody_enabled = ft.Checkbox(
+            label="Эмоции из голоса (Prosody)",
+            value=bool(self.config.get("prosody_enabled", True)),
+            on_change=self._on_prosody_enabled,
+        )
+
+        prosody_priority = ft.Dropdown(
+            label="Приоритет эмоций",
+            value=self.config.get("prosody_priority", "prosody"),
+            options=[
+                ft.dropdown.Option("prosody", "Голос важнее текста"),
+                ft.dropdown.Option("text", "Текст важнее голоса"),
+                ft.dropdown.Option("both", "Оба (голос первым)"),
+            ],
+            width=400,
+            border_color="#30363d",
+            focused_border_color=ACCENT,
+            on_select=self._on_prosody_priority,
+        )
+
+        prosody_hint = ft.Text(
+            "Prosody определяет эмоцию из громкости, высоты и «шумности» "
+            "голоса (RMS + pitch + ZCR). Точность ~60–70%.",
+            size=11,
+            color=TEXT_DIM,
+        )
+
+        # === VAD ===
+        vad_enabled = ft.Checkbox(
+            label="VAD (Silero) — фильтр тишины до распознавания",
+            value=bool(self.config.get("vad_enabled", True)),
+            on_change=self._on_vad_enabled,
+        )
+
+        vad_adaptive = ft.Checkbox(
+            label="Адаптивный порог (подстраивается под микрофон)",
+            value=bool(self.config.get("vad_adaptive", True)),
+            on_change=self._on_vad_adaptive,
+        )
+
+        self._vad_threshold_label = ft.Text(
+            f"Порог VAD: {self.config.get('vad_threshold', 0.5):.2f}",
+            size=13,
+            color=TEXT,
+        )
+
+        self._vad_threshold_slider = ft.Slider(
+            min=0.1,
+            max=0.9,
+            divisions=16,
+            value=float(self.config.get("vad_threshold", 0.5)),
+            label="{value:.2f}",
+            active_color=ACCENT,
+            on_change=self._on_vad_threshold_change,
+            on_change_end=self._on_vad_threshold_end,
+        )
+
+        vad_hint = ft.Text(
+            "VAD отсекает тишину и шум — Vosk не получает пустые чанки. "
+            "Порог 0.3 — ловит тихую речь, 0.7 — только громкую.",
+            size=11,
+            color=TEXT_DIM,
+        )
+
+        # «Хвост» тишины. Без него VAD вырезает всю тишину, Vosk не видит
+        # паузу (`AcceptWaveform` -> False) и не отдаёт финальный текст:
+        # Феникс отвечает поздно или не отвечает вовсе. См. jarvis/vad.py.
+        self._vad_hangover_label = ft.Text(
+            f"Хвост тишины для Vosk: "
+            f"{int(self.config.get('vad_hangover_ms', DEFAULT_HANGOVER_MS))} мс",
+            size=13,
+            color=TEXT,
+        )
+
+        self._vad_hangover_slider = ft.Slider(
+            min=0,
+            max=3000,
+            divisions=12,
+            value=float(self.config.get("vad_hangover_ms", DEFAULT_HANGOVER_MS)),
+            label="{value:.0f}",
+            active_color=ACCENT,
+            on_change=self._on_vad_hangover_change,
+            on_change_end=self._on_vad_hangover_end,
+        )
+
+        hangover_hint = ft.Text(
+            "1500 мс — как без VAD. Меньше — ответ раньше, но Vosk может "
+            "не успеть закрыть фразу. Применяется сразу.",
+            size=11,
+            color=TEXT_DIM,
+        )
+
+        # === Распознавание ===
+        barge_enabled = ft.Checkbox(
+            label="Прерывать Феникса голосом (barge-in)",
+            value=bool(self.config.get("barge_enabled", True)),
+            on_change=self._on_barge_enabled,
+        )
+
+        wake_required = ft.Checkbox(
+            label="Ждать wake-слово «Феникс» (выкл — любая речь = команда)",
+            value=bool(self.config.get("wake_word_required", True)),
+            on_change=self._on_wake_required,
+        )
+
+        def _section(title):
+            return ft.Text(title, size=16, weight=ft.FontWeight.BOLD, color=ACCENT)
+
+        def _label(text):
+            return ft.Text(text, size=12, color=TEXT_DIM)
+
+        return ft.Container(
+            content=ft.Column(
+                controls=[
+                    ft.Text("Аудио", size=26, weight=ft.FontWeight.BOLD, color=TEXT),
+                    ft.Container(height=20),
+
+                    _section("Эмоции из голоса (Prosody)"),
+                    prosody_enabled,
+                    prosody_hint,
+                    ft.Container(height=10),
+                    _label("Как определять эмоцию:"),
+                    prosody_priority,
+                    ft.Container(height=25),
+
+                    _section("VAD — фильтр тишины"),
+                    vad_enabled,
+                    vad_adaptive,
+                    ft.Container(height=8),
+                    self._vad_threshold_label,
+                    self._vad_threshold_slider,
+                    vad_hint,
+                    ft.Container(height=8),
+                    self._vad_hangover_label,
+                    self._vad_hangover_slider,
+                    hangover_hint,
+                    ft.Container(height=25),
+
+                    _section("Распознавание"),
+                    barge_enabled,
+                    wake_required,
+                    ft.Container(height=8),
+                    _label("Всё на этой вкладке применяется сразу, "
+                           "перезапуск не нужен."),
+                ],
+                spacing=8,
+                scroll=ft.ScrollMode.AUTO,
+            ),
+            padding=ft.Padding(left=40, top=40, right=40, bottom=40),
+            expand=True,
+        )
 
     def _build_persona_tab(self) -> ft.Control:
         """Вкладка «Персона» — имя, стиль, черты, backstory."""
@@ -786,6 +996,27 @@ class FenixGUI:
             border_color="#30363d",
             focused_border_color=ACCENT,
             on_select=self._on_persona_style,
+        )
+
+        tone_dropdown = ft.Dropdown(
+            label="Тон общения",
+            value=p.get("tone") or "auto",
+            options=[
+                ft.dropdown.Option("auto", "Авто (подстраивается)"),
+                ft.dropdown.Option("polite", "Вежливый (без мата)"),
+                ft.dropdown.Option("unrestricted", "Без цензуры (если юзер сам)"),
+            ],
+            width=400,
+            border_color="#30363d",
+            focused_border_color=ACCENT,
+            on_select=self._on_persona_tone,
+        )
+
+        tone_hint = ft.Text(
+            "Авто — Феникс сам подстраивается под ваш стиль. "
+            "Вежливый — всегда без мата. Без цензуры — можно вставить, если вы сами.",
+            size=11,
+            color=TEXT_DIM,
         )
 
         traits_field = ft.TextField(
@@ -843,6 +1074,10 @@ class FenixGUI:
                     _label("Стиль общения:"),
                     style_dropdown,
                     ft.Container(height=12),
+                    _label("Тон общения:"),
+                    tone_dropdown,
+                    tone_hint,
+                    ft.Container(height=12),
                     _label("Черты характера (через запятую):"),
                     traits_field,
                     ft.Container(height=12),
@@ -869,6 +1104,14 @@ class FenixGUI:
         from jarvis import persona
         persona.set_field("speech_style", e.control.value)
 
+    def _on_persona_tone(self, e) -> None:
+        from jarvis import persona
+        tone = e.control.value
+        if tone not in persona.VALID_TONES:
+            tone = "auto"
+        persona.set_field("tone", tone)
+        log.info("GUI: persona.tone → %s", tone)
+
     def _on_persona_traits(self, e) -> None:
         from jarvis import persona
         raw = e.control.value.strip()
@@ -891,6 +1134,57 @@ class FenixGUI:
         except Exception:
             log.exception("Не удалось показать SnackBar")
 
+    def _on_prosody_enabled(self, e) -> None:
+        value = bool(e.control.value)
+        self.config.set("prosody_enabled", value)
+        log.info("GUI: prosody_enabled → %s", value)
+
+    def _on_prosody_priority(self, e) -> None:
+        value = e.control.value
+        if value not in ("prosody", "text", "both"):
+            value = "prosody"
+        self.config.set("prosody_priority", value)
+        log.info("GUI: prosody_priority → %s", value)
+
+    def _on_vad_enabled(self, e) -> None:
+        value = bool(e.control.value)
+        self.config.set("vad_enabled", value)
+        log.info("GUI: vad_enabled → %s", value)
+
+    def _on_vad_adaptive(self, e) -> None:
+        value = bool(e.control.value)
+        self.config.set("vad_adaptive", value)
+        log.info("GUI: vad_adaptive → %s", value)
+
+    def _on_vad_threshold_change(self, e) -> None:
+        value = float(e.control.value)
+        if hasattr(self, "_vad_threshold_label") and self._vad_threshold_label:
+            self._vad_threshold_label.value = f"Порог VAD: {value:.2f}"
+
+    def _on_vad_threshold_end(self, e) -> None:
+        value = round(float(e.control.value), 2)
+        self.config.set("vad_threshold", value)
+        log.info("GUI: vad_threshold → %.2f (применяю на лету)", value)
+
+    def _on_vad_hangover_change(self, e) -> None:
+        value = float(e.control.value)
+        if getattr(self, "_vad_hangover_label", None):
+            self._vad_hangover_label.value = f"Хвост тишины для Vosk: {int(value)} мс"
+
+    def _on_vad_hangover_end(self, e) -> None:
+        value = int(round(float(e.control.value)))
+        self.config.set("vad_hangover_ms", value)
+        log.info("GUI: vad_hangover_ms → %d (применяю на лету)", value)
+
+    def _on_barge_enabled(self, e) -> None:
+        value = bool(e.control.value)
+        self.config.set("barge_enabled", value)
+        log.info("GUI: barge_enabled → %s", value)
+
+    def _on_wake_required(self, e) -> None:
+        value = bool(e.control.value)
+        self.config.set("wake_word_required", value)
+        log.info("GUI: wake_word_required → %s", value)
 
     def _build_settings_tab(self) -> ft.Control:
         llm_dropdown = ft.Dropdown(
@@ -1256,7 +1550,17 @@ class FenixGUI:
                 self._status_circle.shadow = ft.BoxShadow(
                     blur_radius=32, color=color, spread_radius=3,
                 )
-            log.info("GUI: статус-сфера перекрашена под mood=%s", mood_state)
+            _MOOD_LABELS = {
+                "neutral": "",
+                "happy":   "Настроение: хорошее",
+                "excited": "Настроение: восторженное",
+                "annoyed": "Настроение: раздражённое",
+                "bored":   "Настроение: скучающее",
+                "tired":   "Настроение: уставшее",
+            }
+            if getattr(self, "_mood_text", None):
+                self._mood_text.value = _MOOD_LABELS.get(mood_state, "")
+            log.info("GUI: статус-сфера → mood=%s", mood_state)
         except Exception:
             log.exception("_apply_mood_color упал")
 
@@ -1390,8 +1694,8 @@ class FenixGUI:
 
     def _open_settings_tab(self) -> None:
         try:
-            self._rail.selected_index = 3
-            self._content_area.content = self._tabs[3]
+            self._rail.selected_index = 4
+            self._content_area.content = self._tabs[4]
             log.info("GUI: открыл вкладку «Настройки»")
         except Exception:
             log.exception("Не удалось открыть вкладку «Настройки»")
@@ -1406,6 +1710,27 @@ class FenixGUI:
                 log.info("GUI: окно показано")
         except Exception:
             log.exception("Не удалось показать окно")
+
+    def _on_window_event(self, e) -> None:
+        """Сохраняет позицию окна (gui_x / gui_y) после перетаскивания.
+
+        Именно MOVED, а не MOVE: MOVED приходит один раз, когда
+        перетаскивание закончилось, поэтому config.json не переписывается
+        на каждый пиксель. Ошибки глушим — позиция окна не критична.
+        """
+        try:
+            if e.type != ft.WindowEventType.MOVED:
+                return
+            if self._page is None:
+                return
+            left = self._page.window.left
+            top = self._page.window.top
+            if left is None or top is None:
+                return
+            self.config.update({"gui_x": int(left), "gui_y": int(top)})
+            log.info("GUI: позиция окна сохранена (%s, %s)", left, top)
+        except Exception:
+            log.exception("Не удалось сохранить позицию окна")
 
     # ---------------------------------------------------------------
     # Действия
@@ -1436,6 +1761,67 @@ class FenixGUI:
     def _on_voice_change(self, e) -> None:
         self.config.set("tts_voice", e.control.value)
 
+    def _get_voice_options(self) -> list:
+        """Список голосов под текущий tts_backend."""
+        try:
+            from jarvis import voices as _voices
+            backend = self.config.get("tts_backend", "auto")
+            voice_dict = _voices._voices_for_backend(backend)
+            if not voice_dict:
+                return [
+                    ft.dropdown.Option("ruslan"),
+                    ft.dropdown.Option("dmitri"),
+                    ft.dropdown.Option("irina"),
+                    ft.dropdown.Option("denis"),
+                ]
+            return [
+                ft.dropdown.Option(k, v.split("—")[0].strip() if "—" in v else k)
+                for k, v in voice_dict.items()
+            ]
+        except Exception:
+            log.exception("Не удалось получить список голосов")
+            return [ft.dropdown.Option("ruslan")]
+
+    def _on_refresh_voices(self, e) -> None:
+        """Обновить список голосов после смены backend."""
+        try:
+            from jarvis import voices as _voices
+            _voices.reset_cache()
+            current_idx = self._rail.selected_index if self._rail else 0
+            saved_history = list(self._history_list.controls) if self._history_list else []
+            self._tabs = {
+                0: self._build_main_tab(),
+                1: self._build_mic_tab(),
+                2: self._build_audio_tab(),
+                3: self._build_persona_tab(),
+                4: self._build_settings_tab(),
+            }
+            if saved_history and self._history_list:
+                self._history_list.controls = saved_history
+            if self._content_area:
+                self._content_area.content = self._tabs.get(current_idx, self._tabs[0])
+            if self._page:
+                self._page.update()
+            log.info("GUI: список голосов обновлён")
+        except Exception:
+            log.exception("Не удалось обновить голоса")
+
+    def _show_status(self, text: str) -> None:
+        """Показать уведомление в GUI (SnackBar). Безопасен из главного потока."""
+        try:
+            if self._page is None:
+                return
+            snack = ft.SnackBar(
+                content=ft.Text(text, size=13, color="#e6edf3"),
+                bgcolor="#161b22",
+                duration=10000,
+            )
+            self._page.overlay.append(snack)
+            snack.open = True
+            self._page.update()
+        except Exception:
+            log.exception("_show_status упал")
+
     def _on_memory_change(self, e) -> None:
         mem = e.control.value
         preset = {"short": (40, 10), "normal": (100, 20), "long": (200, 40)}.get(mem, (100, 20))
@@ -1451,7 +1837,51 @@ class FenixGUI:
         self.config.set("ollama_url", e.control.value)
 
     def _on_tts_change(self, e) -> None:
-        self.config.set("tts_backend", e.control.value)
+        backend = e.control.value
+        self.config.set("tts_backend", backend)
+        try:
+            from jarvis import voices as _voices
+            _voices.reset_cache()
+        except Exception:
+            pass
+        log.info("GUI: tts_backend → %s, обновляю голоса", backend)
+
+        # Показываем уведомление — что происходит
+        if backend == "silero":
+            self._show_status(
+                "Silero: загрузка модели (~150 МБ + torch.hub). "
+                "Первый раз — 1–3 минуты. В консоли видно прогресс."
+            )
+        elif backend == "auto":
+            self._show_status(
+                "auto: выбираю движок по приоритету silero → piper → winrt → sapi. "
+                "Если silero не установлен — уйдёт на piper."
+            )
+        elif backend == "piper":
+            self._show_status("Piper: голоса ruslan/dmitri/irina/denis, ~60 МБ.")
+        elif backend == "winrt":
+            self._show_status("WinRT: системные голоса Windows (Pavel, Irina).")
+        elif backend == "sapi":
+            self._show_status("SAPI: старые системные голоса Windows.")
+
+        try:
+            current_idx = self._rail.selected_index if self._rail else 0
+            saved_history = list(self._history_list.controls) if self._history_list else []
+            self._tabs = {
+                0: self._build_main_tab(),
+                1: self._build_mic_tab(),
+                2: self._build_audio_tab(),
+                3: self._build_persona_tab(),
+                4: self._build_settings_tab(),
+            }
+            if saved_history and self._history_list:
+                self._history_list.controls = saved_history
+            if self._content_area:
+                self._content_area.content = self._tabs.get(current_idx, self._tabs[0])
+            if self._page:
+                self._page.update()
+        except Exception:
+            log.exception("Не удалось пересобрать вкладки")
 
     def _on_voice_quality_change(self, e) -> None:
         quality = e.control.value
@@ -1463,12 +1893,10 @@ class FenixGUI:
         if self.jarvis is not None and self.jarvis.speaker is not None:
             voice = self.config.get("tts_voice", "ruslan")
             try:
-                self.jarvis.speaker._init_piper(voice)
-                actual = getattr(self.jarvis.speaker, "_piper_quality", quality)
-                if actual != quality:
-                    log.warning("Piper: %s/%s не найден, использован %s/%s",
-                                voice, quality, voice, actual)
-                log.info("Piper переключён на %s/%s", voice, actual)
+                # Пересоздаём движок с новым качеством через switch_backend
+                backend = self.config.get("tts_backend", "auto")
+                self.jarvis.speaker.switch_backend(backend)
+                log.info("TTS переключён на %s/%s/%s", backend, voice, quality)
             except Exception:
                 log.exception("Не удалось переключить качество голоса")
 
@@ -1516,8 +1944,9 @@ class FenixGUI:
         self._tabs = {
             0: self._build_main_tab(),
             1: self._build_mic_tab(),
-            2: self._build_persona_tab(),
-            3: self._build_settings_tab(),
+            2: self._build_audio_tab(),
+            3: self._build_persona_tab(),
+            4: self._build_settings_tab(),
         }
 
         if saved_history and self._history_list is not None:
@@ -1573,6 +2002,9 @@ class FenixGUI:
                     if not reply.is_stream:
                         self.add_message("assistant", reply.text or "")
                     self.jarvis.say(reply)
+                # Раньше статус оставался «Слушаю» навсегда: команда
+                # из текстового поля завершалась, а индикатор — нет.
+                self.set_state("idle")
             except Exception:
                 log.exception("Ошибка команды %r", cmd)
                 self.set_state("error")

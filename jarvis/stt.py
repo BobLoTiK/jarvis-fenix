@@ -1,7 +1,9 @@
 """Распознавание речи.
 
 Гибрид: Vosk (wake) + Whisper (точная расшифровка).
-VAD: Silero ONNX отсекает тишину/шум ДО Vosk.
+VAD: Silero ONNX отсекает тишину/шум ДО Vosk. После речи в Vosk уходит
+ещё «хвост» тишины (vad_hangover_ms) — Vosk завершает фразу по тишине,
+без хвоста он не отдал бы финальный текст.
 Barge-in: адаптивная калибровка эха и фона при старте.
 Ring buffer: последние 10 фраз (для «что ты слышал»).
 """
@@ -10,6 +12,7 @@ import json
 import logging
 import os
 import queue
+import threading
 import time
 from collections import deque
 from pathlib import Path
@@ -18,7 +21,7 @@ import numpy as np
 import sounddevice as sd
 from vosk import KaldiRecognizer, Model, SetLogLevel
 
-from jarvis.vad import VAD
+from jarvis.vad import DEFAULT_HANGOVER_MS, SpeechHangover, VAD
 
 log = logging.getLogger("jarvis.stt")
 
@@ -76,11 +79,20 @@ class Listener:
         self.muted = False
         self.barge_flag = False
         self._block_size = 8000
+        # Флаг «микрофон сменили на лету»: phrases() увидит его и
+        # переоткроет RawInputStream на новом устройстве (см. set_input_device).
+        self._device_reload = False
 
-        # VAD: отсекает тишину/шум ДО Vosk. Работает в listener-потоке.
-        # Один инстанс — не thread-safe, но callback и phrases() в одном потоке.
+        # VAD: отсекает тишину/шум ДО Vosk. is_speech зовётся из
+        # аудио-callback (PortAudio-поток), а не из listener-потока.
+        # При этом ONNX-state защищён локом внутри VAD (callback vs reset).
         self.vad = None
         self.vad_enabled = True
+        # «Хвост» после речи: Vosk завершает фразу по тишине
+        # (AcceptWaveform -> True). Без хвоста VAD выкидывает всю тишину,
+        # Vosk не видит паузу и не отдаёт финальный текст — ответ приходит
+        # поздно или не приходит вовсе. См. vad.SpeechHangover.
+        self._vad_gate = None
         if config is not None:
             try:
                 self.vad_enabled = bool(config.get("vad_enabled", True))
@@ -104,15 +116,25 @@ class Listener:
                     threshold=threshold,
                     adaptive=adaptive,
                 )
+                # Debug VAD включается через config["vad_debug"]
+                if config is not None:
+                    try:
+                        self.vad._debug = bool(config.get("vad_debug", False))
+                    except Exception:
+                        pass
                 if not self.vad.is_available():
                     log.warning("VAD: модель недоступна — работаю без VAD")
                     self.vad = None
                 else:
-                    log.info("VAD: adaptive=%s, threshold=%.2f",
-                             adaptive, threshold)
+                    self._vad_gate = SpeechHangover(self._hangover_blocks())
+                    log.info(
+                        "VAD: adaptive=%s, threshold=%.2f, хвост=%d блоков",
+                        adaptive, threshold, self._vad_gate.max_blocks,
+                    )
             except Exception:
                 log.exception("VAD: не удалось создать")
                 self.vad = None
+                self._vad_gate = None
 
         # Ring buffer последних фраз (для «что ты слышал»)
         self.recent_phrases: deque = deque(maxlen=10)
@@ -202,6 +224,17 @@ class Listener:
         except Exception:
             return "по умолчанию"
 
+    def _hangover_blocks(self) -> int:
+        """Сколько блоков тишины после речи отдавать в Vosk (см. vad.SpeechHangover)."""
+        ms = DEFAULT_HANGOVER_MS
+        if self._config is not None:
+            try:
+                ms = int(self._config.get("vad_hangover_ms", DEFAULT_HANGOVER_MS))
+            except Exception:
+                ms = DEFAULT_HANGOVER_MS
+        block_ms = self._block_size * 1000.0 / max(1, self._sample_rate)
+        return SpeechHangover.blocks_for_ms(ms, block_ms)
+
     def _callback(self, indata, frames, time_info, status):
         if status:
             log.warning("Аудиопоток: %s", status)
@@ -220,16 +253,36 @@ class Listener:
 
         # VAD: пропускаем чанк в Vosk ТОЛЬКО если в нём есть речь.
         # Тишина и шум отсекаются — Vosk не крутит AcceptWaveform зря.
+        # ВАЖНО: после речи отдаём ещё «хвост» тишины (vad_hangover_ms),
+        # иначе Vosk не увидит паузу и не отдаст финальную фразу.
         raw = bytes(indata)
         if self.vad is not None:
             try:
-                if not self.vad.is_speech(raw):
-                    # Тишина — не пушим. Barge/peak/current_rms уже обновлены.
-                    return
+                speech = self.vad.is_speech(raw)
             except Exception:
                 log.exception("VAD.is_speech упал — пропускаю чанк как есть")
+                speech = True
+            if self._vad_gate is not None and not self._vad_gate.feed(speech):
+                # Тишина дольше «хвоста» — в Vosk не пушим.
+                # Barge/peak/current_rms уже обновлены.
+                return
 
         self._audio.put(raw)
+
+    def _drain_audio(self) -> None:
+        """Чистит очередь аудио и накопленный буфер текущей фразы.
+
+        Отдельный метод, потому что нужен минимум в двух местах:
+        flush() (barge-in / wake / сброс) и переоткрытие потока при
+        смене микрофона на лету (set_input_device).
+        """
+        while not self._audio.empty():
+            try:
+                self._audio.get_nowait()
+            except queue.Empty:
+                break
+        self._utt_buf.clear()
+        self._utt_len = 0
 
     def flush(self):
         """Сброс аудио-буфера.
@@ -241,19 +294,109 @@ class Listener:
         Vosk-контекст сбрасывает сам listener в phrases() через Reset(),
         когда накапливается слишком много тишины.
         """
-        while not self._audio.empty():
-            try:
-                self._audio.get_nowait()
-            except queue.Empty:
-                break
-        self._utt_buf.clear()
-        self._utt_len = 0
+        self._drain_audio()
         # Сброс VAD state — после barge/wake/flush детекция должна начаться заново.
         if self.vad is not None:
             try:
                 self.vad.reset()
             except Exception:
                 pass
+        # «Хвост» тоже сбрасываем — иначе после flush в Vosk утечёт
+        # тишина из прошлой фразы.
+        if self._vad_gate is not None:
+            self._vad_gate.reset()
+
+    def set_vad_enabled(self, enabled: bool) -> None:
+        """Включить/выключить VAD на лету. Пересоздаёт инстанс."""
+        self.vad_enabled = bool(enabled)
+
+        if not self.vad_enabled:
+            self.vad = None
+            self._vad_gate = None
+            log.info("VAD: выключен (динамически)")
+            return
+
+        # Включаем — пересоздаём VAD
+        if self.vad is not None:
+            log.info("VAD: уже включён")
+            return
+
+        try:
+            threshold = 0.5
+            adaptive = True
+            if self._config is not None:
+                try:
+                    threshold = float(self._config.get("vad_threshold", 0.5))
+                except Exception:
+                    threshold = 0.5
+                try:
+                    adaptive = bool(self._config.get("vad_adaptive", True))
+                except Exception:
+                    adaptive = True
+
+            from jarvis.vad import SpeechHangover, VAD
+            self.vad = VAD(
+                sample_rate=self._sample_rate,
+                threshold=threshold,
+                adaptive=adaptive,
+            )
+            if self._config is not None:
+                try:
+                    self.vad._debug = bool(self._config.get("vad_debug", False))
+                except Exception:
+                    pass
+            if not self.vad.is_available():
+                log.warning("VAD: модель недоступна — работаю без VAD")
+                self.vad = None
+                self._vad_gate = None
+            else:
+                self._vad_gate = SpeechHangover(self._hangover_blocks())
+                log.info("VAD: включён (динамически), adaptive=%s, threshold=%.2f, "
+                         "хвост=%d блоков", adaptive, threshold,
+                         self._vad_gate.max_blocks)
+        except Exception:
+            log.exception("VAD: не удалось создать динамически")
+            self.vad = None
+            self._vad_gate = None
+
+    def reload_vad(self) -> None:
+        """Перечитывает настройки VAD из config и пересоздаёт инстанс.
+
+        Порог, адаптивность и «хвост» (vad_threshold / vad_adaptive /
+        vad_hangover_ms) читаются ТОЛЬКО при создании VAD. Без этого
+        метода слайдер «Порог VAD» в GUI двигался, но детекция
+        продолжала работать со старым порогом до перезапуска.
+
+        VAD выключен — ничего не делаем (включится по set_vad_enabled).
+        """
+        if not self.vad_enabled:
+            log.info("VAD: reload пропущен — VAD выключен")
+            return
+
+        # Обнуляем, иначе set_vad_enabled(True) выйдет по «уже включён».
+        self.vad = None
+        self._vad_gate = None
+        self.set_vad_enabled(True)
+
+    def set_input_device(self, device) -> None:
+        """Меняет микрофон на лету.
+
+        Сам переоткрыть поток отсюда нельзя: RawInputStream живёт в
+        phrases() (поток слушателя), и закрывать его из другого потока —
+        гарантированный PortAudio-креш. Поэтому только помечаем
+        `_device_reload`, а phrases() сам переоткроет поток.
+        """
+        new_device = self.resolve_device(device)
+        if new_device == self._device:
+            log.info("Микрофон не изменился (index=%s) — поток не трогаю",
+                     new_device)
+            return
+
+        self._device = new_device
+        self.device_name = self._current_device_name()
+        self._device_reload = True
+        log.info("Микрофон переключён на %r (index=%s) — переоткрываю поток",
+                 self.device_name, new_device)
 
     def reset_stats(self):
         """Сбрасывает peak и utterances — для кнопки «Проверить микрофон»."""
@@ -263,38 +406,132 @@ class Listener:
 
     def phrases(self, stop_event):
         max_buf = self._sample_rate * 2 * 30
-        with sd.RawInputStream(
-            samplerate=self._sample_rate,
-            blocksize=self._block_size,
-            dtype="int16",
-            channels=1,
-            device=self._device,
-            callback=self._callback,
-        ):
-            log.info("Микрофон открыт, слушаю...")
-            while not stop_event.is_set():
+        # Внешний while — смена микрофона на лету. set_input_device()
+        # ставит _device_reload; здесь мы выходим из `with` (PortAudio
+        # закрывает поток в своём же потоке — так безопасно) и
+        # открываем новый уже на другом устройстве.
+        while not stop_event.is_set():
+            self._device_reload = False
+            with sd.RawInputStream(
+                samplerate=self._sample_rate,
+                blocksize=self._block_size,
+                dtype="int16",
+                channels=1,
+                device=self._device,
+                callback=self._callback,
+            ):
+                log.info("Микрофон открыт (%s), слушаю...", self.device_name)
+                while not stop_event.is_set() and not self._device_reload:
+                    try:
+                        data = self._audio.get(timeout=0.2)
+                    except queue.Empty:
+                        continue
+                    self._utt_buf.append(data)
+                    self._utt_len += len(data)
+                    while self._utt_len > max_buf and len(self._utt_buf) > 1:
+                        self._utt_len -= len(self._utt_buf.pop(0))
+                    if self._rec.AcceptWaveform(data):
+                        text = json.loads(self._rec.Result()).get("text", "").strip()
+                        audio = b"".join(self._utt_buf)
+                        self._utt_buf.clear()
+                        self._utt_len = 0
+                        if text:
+                            self.utterances += 1
+                            self.recent_phrases.append(text)
+                            log.info("Распознано (vosk): %s", text)
+                            yield text, audio
+
+            if self._device_reload and not stop_event.is_set():
+                # Мы в потоке слушателя, поэтому Vosk дёргаем отсюда же:
+                # фраза с прошлого микрофона не должна склеиться с новой.
+                self._drain_audio()
                 try:
-                    data = self._audio.get(timeout=0.2)
-                except queue.Empty:
-                    continue
-                self._utt_buf.append(data)
-                self._utt_len += len(data)
-                while self._utt_len > max_buf and len(self._utt_buf) > 1:
-                    self._utt_len -= len(self._utt_buf.pop(0))
-                if self._rec.AcceptWaveform(data):
-                    text = json.loads(self._rec.Result()).get("text", "").strip()
-                    audio = b"".join(self._utt_buf)
-                    self._utt_buf.clear()
-                    self._utt_len = 0
-                    if text:
-                        self.utterances += 1
-                        self.recent_phrases.append(text)
-                        log.info("Распознано (vosk): %s", text)
-                        yield text, audio
+                    self._rec.Reset()
+                except Exception:
+                    log.exception("Vosk: Reset при смене микрофона упал")
+                if self.vad is not None:
+                    try:
+                        self.vad.reset()
+                    except Exception:
+                        pass
+                if self._vad_gate is not None:
+                    self._vad_gate.reset()
+                log.info("Микрофон переоткрываю: %s", self.device_name)
 
 
 class WhisperTranscriber:
-    def __init__(self, model_name="auto", device="auto"):
+    """faster-whisper с ленивой (фоновой) загрузкой модели.
+
+    Раньше модель грузилась прямо в __init__ и блокировала старт
+    Феникса: large-v3-turbo — ~5 с на GPU и десятки секунд на CPU,
+    и всё это время окно GUI ещё не показывалось. При lazy=True
+    загрузка идёт в фоновом потоке (preload_async), а первый
+    transcribe() просто дожидается её окончания.
+    """
+
+    def __init__(self, model_name="auto", device="auto", lazy=False):
+        self._model = None
+        self._load_error: Exception | None = None
+        self._loading = False
+        self._load_lock = threading.Lock()
+        self._loaded = threading.Event()
+        self._model_name = model_name
+        self._device = device
+
+        if lazy:
+            self.preload_async()
+        else:
+            self._load()
+            self._loaded.set()
+
+    # --- ленивая загрузка -------------------------------------------------
+
+    def is_ready(self) -> bool:
+        """Модель уже загружена?"""
+        return self._model is not None
+
+    def wait_ready(self, timeout: float | None = None) -> bool:
+        """Ждёт окончания загрузки. True — модель готова."""
+        return self._loaded.wait(timeout)
+
+    def preload_async(self) -> None:
+        """Грузит модель в фоновом потоке (не блокирует старт)."""
+        with self._load_lock:
+            if self._model is not None or self._loading:
+                return
+            self._loading = True
+        threading.Thread(target=self._background_load, daemon=True,
+                         name="whisper-load").start()
+
+    def _background_load(self) -> None:
+        try:
+            self._load()
+        except Exception as e:
+            self._load_error = e
+            log.exception("Whisper: фоновая загрузка не удалась")
+        finally:
+            with self._load_lock:
+                self._loading = False
+            self._loaded.set()
+
+    def _ensure_loaded(self) -> None:
+        """Гарантирует загруженную модель: ждёт фон, иначе грузит сам."""
+        if self._model is not None:
+            return
+        if self._loading:
+            self._loaded.wait()
+        if self._model is None:
+            self._load()
+            self._loaded.set()
+
+    def _load(self) -> None:
+        """Загрузка модели. Работает и из фонового потока, и синхронно."""
+        if self._model is not None:
+            return
+
+        model_name = self._model_name
+        device = self._device
+
         # HF_HOME нужен ТОЛЬКО для Whisper: ctranslate2 ломается
         # на не-ASCII путях. Но Piper тоже использует huggingface_hub —
         # и если HF_HOME стоит, Piper качает модель в наш ASCII-кэш
@@ -351,6 +588,7 @@ class WhisperTranscriber:
                 os.environ["HUGGINGFACE_HUB_CACHE"] = _old_hf_cache
 
     def transcribe(self, pcm, sample_rate=16000):
+        self._ensure_loaded()
         audio = np.frombuffer(pcm, dtype=np.int16).astype(np.float32) / 32768.0
         if sample_rate != 16000 and len(audio) > 1:
             n = int(len(audio) * 16000 / sample_rate)

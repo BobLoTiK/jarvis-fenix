@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=17c84a6da26c4b52` · режим `lean` · файлов `143` · строк `24348` · источник `961 КБ`
+`sha256=0401cbbb09fae620` · режим `lean` · файлов `151` · строк `26700` · источник `1058 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -228,7 +228,7 @@ jarvis/
 │   │   ├── README.md  (37 стр)
 │   │   ├── test.yml  (58 стр)
 ├── ARCHITECTURE.md  (885 стр)
-├── CHANGELOG.md  (438 стр)
+├── CHANGELOG.md  (567 стр)
 ├── check_all.bat  (88 стр)
 ├── check_syntax.bat  (7 стр)
 ├── check_syntax.py  (60 стр)
@@ -248,11 +248,11 @@ jarvis/
 │   ├── apps.py  (114 стр)
 │   ├── brain.py  (831 стр)
 │   ├── celebrations.py  (165 стр)
-│   ├── config.py  (243 стр)
+│   ├── config.py  (248 стр)
 │   ├── config_manager.py  (156 стр)
 │   ├── files.py  (102 стр)
 │   ├── first_run.py  (26 стр)
-│   ├── gui.py  (1580 стр)
+│   ├── gui.py  (2012 стр)
 │   ├── history.py  (75 стр)
 │   ├── installed.py  (51 стр)
 │   ├── intents/
@@ -298,7 +298,7 @@ jarvis/
 │   │   │   ├── pending.py  (62 стр)
 │   │   ├── verbs.py  (45 стр)
 │   ├── learning.py  (160 стр)
-│   ├── main.py  (662 стр)
+│   ├── main.py  (705 стр)
 │   ├── matching.py  (113 стр)
 │   ├── memory.py  (137 стр)
 │   ├── model.py  (102 стр)
@@ -313,22 +313,22 @@ jarvis/
 │   ├── recorder.py  (171 стр)
 │   ├── reply.py  (25 стр)
 │   ├── steam.py  (67 стр)
-│   ├── stt.py  (367 стр)
+│   ├── stt.py  (605 стр)
 │   ├── tasks.py  (236 стр)
 │   ├── text_utils.py  (132 стр)
 │   ├── timers.py  (340 стр)
 │   ├── tray.py  (96 стр)
-│   ├── tts.py  (312 стр)
+│   ├── tts.py  (368 стр)
 │   ├── tts_engines/
 │   │   ├── __init__.py  (12 стр)
 │   │   ├── base.py  (62 стр)
-│   │   ├── factory.py  (75 стр)
-│   │   ├── piper.py  (177 стр)
+│   │   ├── factory.py  (159 стр)
+│   │   ├── piper.py  (214 стр)
 │   │   ├── sapi.py  (113 стр)
-│   │   ├── silero.py  (204 стр)
+│   │   ├── silero.py  (218 стр)
 │   │   ├── winrt.py  (158 стр)
 │   ├── uia.py  (617 стр)
-│   ├── vad.py  (251 стр)
+│   ├── vad.py  (420 стр)
 │   ├── voices.py  (198 стр)
 │   ├── weather.py  (394 стр)
 ├── jarvis-fenix.code-workspace  (8 стр)
@@ -340,10 +340,11 @@ jarvis/
 │   ├── sites.json  (22 стр)
 │   ├── system.json  (17 стр)
 │   ├── work.json  (11 стр)
-├── PLAN.md  (1258 стр)
+├── PLAN.md  (864 стр)
 ├── PROJECT.md  (205 стр)
 ├── PROMPT.md  (488 стр)
-├── README.md  (845 стр)
+├── pytest.ini  (15 стр)
+├── README.md  (847 стр)
 ├── requirements-ci.txt  (24 стр)
 ├── requirements-dev.txt  (10 стр)
 ├── requirements.txt  (59 стр)
@@ -356,6 +357,8 @@ jarvis/
 │   ├── mics.py  (52 стр)
 │   ├── selftest.py  (49 стр)
 │   ├── set_llm_model.py  (52 стр)
+│   ├── startup_probe.py  (196 стр)
+│   ├── vadbench.py  (168 стр)
 │   ├── voicedemo.py  (41 стр)
 │   ├── wakebench.py  (88 стр)
 ├── snapshot.py  (698 стр)
@@ -370,12 +373,17 @@ jarvis/
 │   ├── __init__.py  (0 стр)
 │   ├── test_caps.py  (23 стр)
 │   ├── test_config_manager.py  (47 стр)
+│   ├── test_engine_probe.py  (89 стр)
+│   ├── test_gui_wiring.py  (331 стр)
+│   ├── test_main_wiring.py  (158 стр)
 │   ├── test_mood.py  (386 стр)
 │   ├── test_persona.py  (155 стр)
 │   ├── test_prosody.py  (83 стр)
+│   ├── test_speech_gate.py  (86 стр)
+│   ├── test_stt.py  (320 стр)
 │   ├── test_tts.py  (156 стр)
 │   ├── test_uia.py  (247 стр)
-│   ├── test_vad.py  (118 стр)
+│   ├── test_vad.py  (292 стр)
 │   ├── test_weather.py  (237 стр)
 ```
 
@@ -933,6 +941,7 @@ jarvis/
     def mic_watchdog(self)
     def run_loop(self)
   def setup_logging()
+  def make_config_listener(jarvis, config, listener, speaker, handler)
   def main()
 ```
 
@@ -1165,10 +1174,16 @@ jarvis/
     def barge_end(self)
     def resolve_device(device)
     def flush(self)
+    def set_vad_enabled(self, enabled: bool)
+    def reload_vad(self)
+    def set_input_device(self, device)
     def reset_stats(self)
     def phrases(self, stop_event)
   class WhisperTranscriber
-    def __init__(self, model_name='auto', device='auto')
+    def __init__(self, model_name='auto', device='auto', lazy=False)
+    def is_ready(self)
+    def wait_ready(self, timeout: float | None=None)
+    def preload_async(self)
     def transcribe(self, pcm, sample_rate=16000)
 ```
 
@@ -1224,7 +1239,7 @@ jarvis/
 ```
   # Синтез речи — фасад над tts_engines.
   class Speaker
-    def __init__(self, config)
+    def __init__(self, config, lazy: bool=False)
     def switch_backend(self, backend: str)
     def set_voice(self, voice: str)
     def set_rate(self, rate: float)
@@ -1261,6 +1276,12 @@ jarvis/
 
 ```
   # Фабрика TTS-движков.
+  _ENGINE_IMPORTS = ...
+  _ENGINE_REQUIRES = ...
+  class _EngineProbe
+    def __init__(self, name: str, cls)
+    def is_available(self)
+  _PROBE_CACHE: ...
   def get_engine(backend: str, voice: str, quality: str='medium', rate: float=1.15)
   _ENGINE_CACHE: ...
   def list_engines()
@@ -1355,9 +1376,19 @@ jarvis/
 
 ```
   # Silero VAD — детекция речи в аудио-потоке с адаптивным порогом.
-  _MODEL_CANDIDATES = ...
   _CHUNK_SAMPLES = ...
+  _CONTEXT_SAMPLES = ...
   _DEFAULT_THRESHOLD = ...
+  _HARD_SILENCE_RMS = ...
+  _TARGET_PEAK = ...
+  _MAX_GAIN = ...
+  _NEAR_NOISE_SNR = ...
+  _CLEAR_SNR = ...
+  _SNR_STEP = ...
+  _MIN_THRESHOLD = ...
+  _MAX_THRESHOLD = ...
+  _DEAD_MIC_RMS = ...
+  DEFAULT_HANGOVER_MS = ...
   class VAD
     def __init__(self, sample_rate: int=16000, threshold: float=_DEFAULT_THRESHOLD, adaptive: bool=True)
     def is_available(self)
@@ -1365,6 +1396,12 @@ jarvis/
     def rms_baseline(self)
     def is_speech(self, pcm_int16: bytes)
     def speech_probability(self, pcm_int16: bytes)
+  class SpeechHangover
+    def __init__(self, blocks: int=3)
+    def max_blocks(self)
+    def feed(self, is_speech: bool)
+    def reset(self)
+    def blocks_for_ms(ms: float, block_ms: float)
 ```
 
 **`jarvis/voices.py`**
@@ -1488,6 +1525,28 @@ jarvis/
   def main()
 ```
 
+**`scripts/startup_probe.py`**
+
+```
+  # Замер старта Феникса по этапам — что именно тормозит запуск.
+  BASE = ...
+  RESULTS: ...
+  def measure(label: str, func, note: str='')
+  def print_table()
+  def main()
+```
+
+**`scripts/vadbench.py`**
+
+```
+  # Бенчмарк VAD: сколько latency он добавляет к ответу (Vosk-endpoint).
+  BASE = ...
+  BLOCK = ...
+  SR = ...
+  NOISE_RMS = ...
+  def main()
+```
+
 **`scripts/voicedemo.py`**
 
 ```
@@ -1525,6 +1584,89 @@ jarvis/
   def test_atomic_write_valid_json(tmp_path)
   def test_load_nonexistent(tmp_path)
   def test_load_broken(tmp_path)
+```
+
+**`tests/test_engine_probe.py`**
+
+```
+  # Заглушка движка TTS (factory._probe_engine).
+  def test_probe_has_voices()
+  def test_probe_is_not_real_engine()
+  def test_probe_unknown_backend_is_none()
+  def test_probe_none_without_dependency(monkeypatch)
+  def test_probe_dependency_check_is_used(monkeypatch)
+  def test_probe_result_is_cached(monkeypatch)
+  def test_real_voice_does_not_use_probe(monkeypatch)
+  def test_list_engines_matches_probes()
+```
+
+**`tests/test_gui_wiring.py`**
+
+```
+  # GUI → config: каждый элемент окна реально отсылает изменение.
+  def ev(value)
+  def test_all_tabs_build(gui)
+  def cfg(tmp_path)
+  def gui(cfg)
+  def stub_tabs(monkeypatch)
+  def test_mode_radio_sends_mode(gui, cfg)
+  def test_mode_radio_updates_running_handler(gui, cfg)
+  def test_voice_dropdown_sends_tts_voice(gui, cfg)
+  def test_memory_radio_long_preset(gui, cfg)
+  def test_memory_radio_short_preset(gui, cfg)
+  def test_send_button_runs_trimmed_command(gui, monkeypatch)
+  def test_send_button_ignores_empty_input(gui, monkeypatch)
+  def test_audio_tab_has_hangover_slider(gui)
+  def test_prosody_enabled_sends_flag(gui, cfg)
+  def test_prosody_priority_sends_value(gui, cfg)
+  def test_prosody_priority_rejects_unknown(gui, cfg)
+  def test_vad_enabled_checkbox(gui, cfg)
+  def test_vad_adaptive_checkbox(gui, cfg)
+  def test_vad_threshold_slider_end(gui, cfg)
+  def test_vad_hangover_slider_end(gui, cfg)
+  def test_vad_hangover_slider_zero(gui, cfg)
+  def test_barge_checkbox(gui, cfg)
+  def test_wake_word_checkbox(gui, cfg)
+  def test_mic_select_sends_input_device(gui, cfg)
+  def test_mic_select_default_is_none(gui, cfg)
+  def test_mic_toggle_pauses_and_resumes(gui)
+  def test_mic_toggle_without_jarvis_is_noop(gui)
+  def test_llm_model_dropdown(gui, cfg)
+  def test_ollama_url_field(gui, cfg)
+  def test_tts_backend_sends_and_rebuilds_tabs(gui, cfg, stub_tabs)
+  def test_voice_quality_sends_and_switches_engine(gui, cfg)
+  def test_voice_quality_rejects_unknown(gui, cfg)
+  def test_rate_slider(gui, cfg)
+  def test_theme_dropdown(gui, cfg)
+  def test_theme_dropdown_rejects_unknown(gui, cfg)
+  def test_persona_name_goes_to_config(gui, cfg)
+  def test_persona_fields_go_to_persona_module(gui, monkeypatch)
+  def test_persona_tone_rejects_unknown(gui, monkeypatch)
+  def test_persona_assistant_name_empty_uses_default(gui, monkeypatch)
+```
+
+**`tests/test_main_wiring.py`**
+
+```
+  # config → живое ядро: подписчик make_config_listener.
+  class Spy
+    def __init__(self, name='spy')
+    def called(self, method)
+  class FakeJarvis
+    def __init__(self)
+  def wiring()
+  def test_vad_threshold_reloads_vad(wiring)
+  def test_vad_adaptive_reloads_vad(wiring)
+  def test_vad_hangover_reloads_vad(wiring)
+  def test_vad_enabled_toggles_vad(wiring)
+  def test_input_device_switches_microphone(wiring)
+  def test_wake_word_required_flag(wiring)
+  def test_barge_enabled_both_sides(wiring)
+  def test_tts_backend_switches_speaker(wiring)
+  def test_tts_voice_and_rate(wiring)
+  def test_mode_goes_to_handler(wiring)
+  def test_unknown_key_is_ignored(wiring)
+  def test_missing_listener_is_safe(wiring)
 ```
 
 **`tests/test_mood.py`**
@@ -1595,6 +1737,68 @@ jarvis/
   def test_prosody_rms_reasonable()
 ```
 
+**`tests/test_speech_gate.py`**
+
+```
+  # Тесты jarvis.vad.SpeechHangover — «хвост» тишины после речи.
+  def test_blocks_for_ms_rounds()
+  def test_blocks_for_ms_zero_block()
+  def test_blocks_for_ms_negative_ms()
+  def test_default_hangover_is_1500ms()
+  def test_speech_block_always_passed()
+  def test_silence_before_speech_is_dropped()
+  def test_hangover_passes_exactly_n_silence_blocks()
+  def test_hangover_refreshed_by_new_speech()
+  def test_zero_blocks_behaves_like_plain_gate()
+  def test_negative_blocks_clamped_to_zero()
+  def test_reset_clears_hangover()
+  def test_max_blocks_property()
+```
+
+**`tests/test_stt.py`**
+
+```
+  # stt.Listener: живое применение настроек (то, что раньше не работало).
+  class FakeRec
+    def __init__(self)
+    def AcceptWaveform(self, data)
+    def Result(self)
+    def FinalResult(self)
+    def Reset(self)
+  class FakeVAD
+    def __init__(self, sample_rate=16000, threshold=0.5, adaptive=True)
+    def is_available(self)
+    def is_speech(self, pcm)
+    def reset(self)
+  class FakeGate
+    def __init__(self, blocks=3)
+    def blocks_for_ms(ms, block_ms)
+    def feed(self, is_speech)
+    def reset(self)
+  class FakeStream
+    def __init__(self, **kwargs)
+  class Cfg(dict)
+    def get(self, key, default=None)
+  def cfg()
+  def devices(monkeypatch)
+  def listener(monkeypatch, cfg, devices)
+  def test_listener_starts_with_vad(listener)
+  def test_reload_vad_applies_new_threshold(listener, cfg)
+  def test_reload_vad_applies_adaptive(listener, cfg)
+  def test_reload_vad_rebuilds_hangover(listener, cfg)
+  def test_hangover_blocks_from_config(listener, cfg)
+  def test_reload_vad_skipped_when_disabled(listener, cfg)
+  def test_vad_disabled_in_config(monkeypatch)
+  def test_set_input_device_finds_index_by_name(listener)
+  def test_set_input_device_same_device_is_noop(listener)
+  def test_set_input_device_unknown_falls_back(listener)
+  def test_set_input_device_back_to_default(listener)
+  def test_drain_audio_clears_queue_and_buffer(listener)
+  def test_flush_clears_queue(listener)
+  def test_phrases_reopens_stream_on_device_change(monkeypatch, listener)
+  def test_phrases_keeps_stream_without_device_change(monkeypatch, listener)
+```
+
 **`tests/test_tts.py`**
 
 ```
@@ -1644,13 +1848,26 @@ jarvis/
   def test_vad_unavailable_without_model()
   def test_vad_silence_returns_false()
   def test_vad_noise_returns_false()
+  def test_vad_voiced_signal_is_speech()
+  def test_vad_quiet_voiced_signal_is_speech()
   def test_vad_reset_does_not_crash()
   def test_vad_speech_probability_silence()
   def test_vad_short_chunk()
+  def test_vad_normalization_amplifies_quiet_signal()
   def test_vad_adaptive_default_on()
+  def test_vad_threshold_low_on_high_snr()
+  def test_vad_threshold_high_near_noise()
+  def test_vad_threshold_base_between()
+  def test_vad_threshold_disabled_when_not_adaptive()
+  def test_vad_threshold_default_without_baseline()
   def test_vad_rms_baseline_grows()
   def test_vad_reset_keeps_rms_baseline()
   def test_vad_baseline_calibration_n()
+  def test_vad_dead_microphone_auto_off()
+  def test_vad_dead_mic_warned_logged(caplog)
+  def test_vad_debug_flag_default_off()
+  def test_vad_debug_logs_when_enabled(caplog)
+  def test_vad_debug_from_config()
 ```
 
 **`tests/test_weather.py`**
@@ -1827,11 +2044,11 @@ jarvis/
 | `jarvis/apps.py` | 114 | code | Каталог известных приложений: как их зовут голосом, как открыть и как  |
 | `jarvis/brain.py` | 831 | code | LLM-фолбэк: локальная нейронка (Ollama) разбирает команду в структурны |
 | `jarvis/celebrations.py` | 165 | code | Праздничные триггеры — поздравление с ДР + двойной салют. |
-| `jarvis/config.py` | 243 | code | Загрузка конфигурации и объект Config в памяти. |
+| `jarvis/config.py` | 248 | code | Загрузка конфигурации и объект Config в памяти. |
 | `jarvis/config_manager.py` | 156 | code | Единый менеджер записи в config.json. |
 | `jarvis/files.py` | 102 | code | Файлы и папки: открыть, посмотреть содержимое, создать. |
 | `jarvis/first_run.py` | 26 | code | Первый запуск — знакомство через LLM-диалог. |
-| `jarvis/gui.py` | 1580 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
+| `jarvis/gui.py` | 2012 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
 | `jarvis/history.py` | 75 | code | История последних действий для отмены («стоп, не то»). |
 | `jarvis/installed.py` | 51 | code | Индекс установленных программ по ярлыкам меню «Пуск». |
 | `jarvis/intents/__init__.py` | 10 | code | Разбор команд Феникса — пакет. |
@@ -1874,7 +2091,7 @@ jarvis/
 | `jarvis/intents/stages/pending.py` | 62 | code | Ожидание уточнения (pending_question). |
 | `jarvis/intents/verbs.py` | 45 | code | Константы глаголов и слов — единый источник истины. |
 | `jarvis/learning.py` | 160 | code | Самообучение Феникса: факты и коррекции. |
-| `jarvis/main.py` | 662 | code | Точка входа: связывает распознавание, интенты, синтез речи и GUI. |
+| `jarvis/main.py` | 705 | code | Точка входа: связывает распознавание, интенты, синтез речи и GUI. |
 | `jarvis/matching.py` | 113 | code | Нечёткое сопоставление речи с названиями: транслитерация + difflib. |
 | `jarvis/memory.py` | 137 | code | Память диалога — на профиль. |
 | `jarvis/model.py` | 102 | code | Скачивание и распаковка модели Vosk для русского языка (~45 МБ). |
@@ -1889,21 +2106,21 @@ jarvis/
 | `jarvis/recorder.py` | 171 | code | Запись действий: клавиши, клики, паузы. |
 | `jarvis/reply.py` | 25 | code | Reply — результат IntentHandler.handle(). |
 | `jarvis/steam.py` | 67 | code | Индекс установленных игр Steam: appmanifest -> (название, appid). |
-| `jarvis/stt.py` | 367 | code | Распознавание речи. |
+| `jarvis/stt.py` | 605 | code | Распознавание речи. |
 | `jarvis/tasks.py` | 236 | code | Списки задач. |
 | `jarvis/text_utils.py` | 132 | code | Общие текстовые утилиты для Феникса. |
 | `jarvis/timers.py` | 340 | code | Таймеры и напоминания. |
 | `jarvis/tray.py` | 96 | code | Иконка в системном трее (pystray). |
-| `jarvis/tts.py` | 312 | code | Синтез речи — фасад над tts_engines. |
+| `jarvis/tts.py` | 368 | code | Синтез речи — фасад над tts_engines. |
 | `jarvis/tts_engines/__init__.py` | 12 | code | TTS-движки Феникса — абстракция над Piper, Silero, WinRT, SAPI. |
 | `jarvis/tts_engines/base.py` | 62 | code | Базовый класс TTS-движка. |
-| `jarvis/tts_engines/factory.py` | 75 | code | Фабрика TTS-движков. |
-| `jarvis/tts_engines/piper.py` | 177 | code | Piper TTS — быстрый, ~60 МБ, 4 голоса для русского. |
+| `jarvis/tts_engines/factory.py` | 159 | code | Фабрика TTS-движков. |
+| `jarvis/tts_engines/piper.py` | 214 | code | Piper TTS — быстрый, ~60 МБ, 4 голоса для русского. |
 | `jarvis/tts_engines/sapi.py` | 113 | code | SAPI TTS — старый Windows-синтез через pyttsx3. |
-| `jarvis/tts_engines/silero.py` | 204 | code | Silero TTS v5_5 — русский голос, ~150 МБ, требует PyTorch. |
+| `jarvis/tts_engines/silero.py` | 218 | code | Silero TTS v5_5 — русский голос, ~150 МБ, требует PyTorch. |
 | `jarvis/tts_engines/winrt.py` | 158 | code | WinRT TTS — системный синтез Windows, без внешних моделей. |
 | `jarvis/uia.py` | 617 | code | UI Automation — видим окна и элементы интерфейса. |
-| `jarvis/vad.py` | 251 | code | Silero VAD — детекция речи в аудио-потоке с адаптивным порогом. |
+| `jarvis/vad.py` | 420 | code | Silero VAD — детекция речи в аудио-потоке с адаптивным порогом. |
 | `jarvis/voices.py` | 198 | code | Управление голосами TTS — работает через tts_engines. |
 | `jarvis/weather.py` | 394 | code | Погода и курс валют. |
 | `scripts/__init__.py` | 7 | code | Пакет scripts: утилиты разработчика. |
@@ -1914,17 +2131,24 @@ jarvis/
 | `scripts/mics.py` | 52 | code | Подбор микрофона: показывает устройства ввода и уровень сигнала. |
 | `scripts/selftest.py` | 49 | code | Самопроверка без микрофона: TTS -> Vosk -> разбор команды. |
 | `scripts/set_llm_model.py` | 52 | code | Устанавливает llm_model в config.json. |
+| `scripts/startup_probe.py` | 196 | code | Замер старта Феникса по этапам — что именно тормозит запуск. |
+| `scripts/vadbench.py` | 168 | code | Бенчмарк VAD: сколько latency он добавляет к ответу (Vosk-endpoint). |
 | `scripts/voicedemo.py` | 41 | code | Прослушка голосов: проигрывает одну фразу всеми доступными голосами. |
 | `scripts/wakebench.py` | 88 | code | Бенчмарк кандидатов в wake-слово: TTS (Pavel) -> Vosk-small -> что усл |
 | `tests/__init__.py` | 0 | code |  |
 | `tests/test_caps.py` | 23 | code | Тесты check_caps: структура system_caps.json. |
 | `tests/test_config_manager.py` | 47 | code | Тесты config_manager: параллельная запись не рвёт файл. |
+| `tests/test_engine_probe.py` | 89 | code | Заглушка движка TTS (factory._probe_engine). |
+| `tests/test_gui_wiring.py` | 331 | code | GUI → config: каждый элемент окна реально отсылает изменение. |
+| `tests/test_main_wiring.py` | 158 | code | config → живое ядро: подписчик make_config_listener. |
 | `tests/test_mood.py` | 386 | code | Тесты jarvis.mood — состояние, детекция, decay, влияние. |
 | `tests/test_persona.py` | 155 | code | Тесты jarvis.persona — стиль, tone, prompt-блок. |
 | `tests/test_prosody.py` | 83 | code | Тесты jarvis.prosody — эмоции из голоса (эвристика). |
+| `tests/test_speech_gate.py` | 86 | code | Тесты jarvis.vad.SpeechHangover — «хвост» тишины после речи. |
+| `tests/test_stt.py` | 320 | code | stt.Listener: живое применение настроек (то, что раньше не работало). |
 | `tests/test_tts.py` | 156 | code | Тесты jarvis.tts_engines — движки и фабрика. С моками. |
 | `tests/test_uia.py` | 247 | code | Тесты jarvis.uia — логика обёртки. С моками. |
-| `tests/test_vad.py` | 118 | code | Тесты jarvis.vad — Silero VAD ONNX. |
+| `tests/test_vad.py` | 292 | code | Тесты jarvis.vad — Silero VAD ONNX. |
 | `tests/test_weather.py` | 237 | code | Тесты weather: структура ответов, describe_*, geocode с моками. |
 | `check_syntax.py` | 60 | code | Проверяет синтаксис всех .py файлов в проекте. |
 | `launcher.py` | 693 | code | Лаунчер Феникса — полный автозапуск. |
@@ -4184,6 +4408,11 @@ DEFAULT_CONFIG = {
     "vad_enabled": True,
     "vad_threshold": 0.5,
     "vad_adaptive": True,
+    "vad_debug": False,  # True → логировать каждый чанк VAD (для отладки)
+    # «Хвост» тишины после речи, мс. Vosk завершает фразу по тишине:
+    # если VAD вырежет её всю, Vosk не отдаст финальный текст и Феникс
+    # ответит поздно или не ответит вовсе. 1500 мс = как без VAD.
+    "vad_hangover_ms": 1500,
     "wake_word_required": True,
 
     # Prosody — эмоции из голоса (RMS + pitch + ZCR).
@@ -4657,6 +4886,8 @@ from pathlib import Path
 
 import flet as ft
 
+from jarvis.vad import DEFAULT_HANGOVER_MS
+
 log = logging.getLogger("jarvis.gui")
 
 PALETTES = {
@@ -4755,7 +4986,7 @@ LLM_MODELS = [
     "gemma2:2b", "gemma2:9b", "llama3.1:8b", "mistral:7b",
 ]
 
-TTS_BACKENDS = ["auto", "piper", "xtts", "winrt", "sapi"]
+TTS_BACKENDS = ["auto", "piper", "silero", "winrt", "sapi"]
 
 
 class FenixGUI:
@@ -4796,6 +5027,9 @@ class FenixGUI:
         self._mic_peak_text = None
         self._mic_utt_text = None
         self._mic_test_result = None
+        self._mic_device_text = None
+        self._vad_threshold_label = None
+        self._vad_hangover_label = None
 
         self._page = None
 
@@ -4944,6 +5178,10 @@ class FenixGUI:
             page.window.left = x
             page.window.top = y
 
+        # Позиция окна запоминается: gui_x / gui_y раньше только читались,
+        # а сохранять их было некому — окно всегда открывалось по умолчанию.
+        page.window.on_event = self._on_window_event
+
         # launch_mode=tray — окно скрыто
         if self.start_hidden:
             page.window.visible = False
@@ -4974,6 +5212,11 @@ class FenixGUI:
                     label="Микрофон",
                 ),
                 ft.NavigationRailDestination(
+                    icon=ft.Icons.GRAPHIC_EQ_OUTLINED,
+                    selected_icon=ft.Icons.GRAPHIC_EQ,
+                    label="Аудио",
+                ),
+                ft.NavigationRailDestination(
                     icon=ft.Icons.FACE_OUTLINED,
                     selected_icon=ft.Icons.FACE,
                     label="Персона",
@@ -4990,8 +5233,9 @@ class FenixGUI:
         self._tabs = {
             0: self._build_main_tab(),
             1: self._build_mic_tab(),
-            2: self._build_persona_tab(),
-            3: self._build_settings_tab(),
+            2: self._build_audio_tab(),
+            3: self._build_persona_tab(),
+            4: self._build_settings_tab(),
         }
 
         self._content_area = ft.Container(
@@ -5032,13 +5276,16 @@ class FenixGUI:
         self._status_sub = ft.Text(
             "Жду «Феникс»", size=13, color=TEXT_DIM,
         )
+        self._mood_text = ft.Text(
+            "", size=12, color=TEXT_DIM, italic=True,
+        )
 
         status_bar = ft.Container(
             content=ft.Row(
                 controls=[
                     self._status_circle,
                     ft.Column(
-                        controls=[self._status_text, self._status_sub],
+                        controls=[self._status_text, self._status_sub, self._mood_text],
                         spacing=2,
                         alignment=ft.MainAxisAlignment.CENTER,
                     ),
@@ -5102,20 +5349,22 @@ class FenixGUI:
                 _label("Голос:"),
                 ft.Dropdown(
                     value=self.config.get("tts_voice", "ruslan"),
-                    options=[
-                        ft.dropdown.Option("ruslan"),
-                        ft.dropdown.Option("dmitri"),
-                        ft.dropdown.Option("irina"),
-                        ft.dropdown.Option("denis"),
-                    ],
+                    options=self._get_voice_options(),
                     width=160,
                     border_color="#30363d",
                     focused_border_color=ACCENT,
                     text_size=13,
                     on_select=self._on_voice_change,
                 ),
+                ft.IconButton(
+                    icon=ft.Icons.REFRESH,
+                    icon_color=TEXT_DIM,
+                    icon_size=18,
+                    tooltip="Обновить список голосов",
+                    on_click=self._on_refresh_voices,
+                ),
             ],
-            spacing=10,
+            spacing=5,
         )
 
         mm = self.config.get("memory_max", 100)
@@ -5225,14 +5474,22 @@ class FenixGUI:
         self._mic_status_text = ft.Text("Статус: ожидание проверки", size=13, color=TEXT_DIM)
         self._mic_peak_text = ft.Text("Пик за сессию: 0", size=13, color=TEXT_DIM)
         self._mic_utt_text = ft.Text("Распознано фраз: 0", size=13, color=TEXT_DIM)
+        self._mic_emotion_text = ft.Text(
+            "Эмоция: —", size=13, color=TEXT_DIM,
+        )
         self._mic_test_result = ft.Text("", size=13, color=TEXT_DIM)
+        # «Текущее устройство» — вынесено в поле, чтобы текст обновлялся
+        # сразу после смены микрофона, а не только при пересборке вкладки.
+        self._mic_device_text = ft.Text(
+            f"Текущее устройство: {name}", size=14, color=TEXT,
+        )
 
         return ft.Container(
             content=ft.Column(
                 controls=[
                     ft.Text("Микрофон", size=26, weight=ft.FontWeight.BOLD, color=TEXT),
                     ft.Container(height=25),
-                    ft.Text(f"Текущее устройство: {name}", size=14, color=TEXT),
+                    self._mic_device_text,
                     ft.Container(height=20),
                     ft.Container(
                         content=ft.Column(
@@ -5242,6 +5499,7 @@ class FenixGUI:
                                 ft.Container(height=8),
                                 self._mic_peak_text,
                                 self._mic_utt_text,
+                                self._mic_emotion_text,
                                 self._mic_status_text,
                                 self._mic_test_result,
                             ],
@@ -5291,11 +5549,20 @@ class FenixGUI:
         )
 
     def _on_mic_change(self, e) -> None:
+        """Смена микрофона применяется на лету (без перезапуска). ... [6 строк]"""
         value = e.control.value
         if value == "по умолчанию":
             value = None
         self.config.set("input_device", value)
-        log.info("Микрофон сохранён: %r (перезапусти Феникса)", value)
+        if getattr(self, "_mic_device_text", None) is not None:
+            listener = self.jarvis.listener if self.jarvis is not None else None
+            shown = listener.device_name if listener is not None else (
+                value or "по умолчанию")
+            self._mic_device_text.value = f"Текущее устройство: {shown}"
+        self._show_status(
+            "Микрофон переключён. Скажите «Феникс» — проверю, что слышу."
+        )
+        log.info("GUI: input_device → %r (применяю на лету)", value)
 
     def _on_mic_test(self, e) -> None:
         """Кнопка «Проверить микрофон». ... [5 строк]"""
@@ -5356,8 +5623,174 @@ class FenixGUI:
                 else:
                     self._mic_status_text.value = "Статус: Ожидание звука"
                     self._mic_status_text.color = TEXT_DIM
+
+            if getattr(self, "_mic_emotion_text", None):
+                if listener.peak > 2500:
+                    emo = "excited / annoyed"
+                elif listener.peak > 200:
+                    emo = "neutral / happy"
+                else:
+                    emo = "tired / тишина"
+                self._mic_emotion_text.value = f"Эмоция: ~{emo}"
         except Exception:
             log.exception("_update_mic_level упал")
+
+    def _build_audio_tab(self) -> ft.Control:
+        """Вкладка «Аудио» — VAD + Prosody."""
+        from jarvis import persona  # для общего стиля label
+
+        # === Prosody ===
+        prosody_enabled = ft.Checkbox(
+            label="Эмоции из голоса (Prosody)",
+            value=bool(self.config.get("prosody_enabled", True)),
+            on_change=self._on_prosody_enabled,
+        )
+
+        prosody_priority = ft.Dropdown(
+            label="Приоритет эмоций",
+            value=self.config.get("prosody_priority", "prosody"),
+            options=[
+                ft.dropdown.Option("prosody", "Голос важнее текста"),
+                ft.dropdown.Option("text", "Текст важнее голоса"),
+                ft.dropdown.Option("both", "Оба (голос первым)"),
+            ],
+            width=400,
+            border_color="#30363d",
+            focused_border_color=ACCENT,
+            on_select=self._on_prosody_priority,
+        )
+
+        prosody_hint = ft.Text(
+            "Prosody определяет эмоцию из громкости, высоты и «шумности» "
+            "голоса (RMS + pitch + ZCR). Точность ~60–70%.",
+            size=11,
+            color=TEXT_DIM,
+        )
+
+        # === VAD ===
+        vad_enabled = ft.Checkbox(
+            label="VAD (Silero) — фильтр тишины до распознавания",
+            value=bool(self.config.get("vad_enabled", True)),
+            on_change=self._on_vad_enabled,
+        )
+
+        vad_adaptive = ft.Checkbox(
+            label="Адаптивный порог (подстраивается под микрофон)",
+            value=bool(self.config.get("vad_adaptive", True)),
+            on_change=self._on_vad_adaptive,
+        )
+
+        self._vad_threshold_label = ft.Text(
+            f"Порог VAD: {self.config.get('vad_threshold', 0.5):.2f}",
+            size=13,
+            color=TEXT,
+        )
+
+        self._vad_threshold_slider = ft.Slider(
+            min=0.1,
+            max=0.9,
+            divisions=16,
+            value=float(self.config.get("vad_threshold", 0.5)),
+            label="{value:.2f}",
+            active_color=ACCENT,
+            on_change=self._on_vad_threshold_change,
+            on_change_end=self._on_vad_threshold_end,
+        )
+
+        vad_hint = ft.Text(
+            "VAD отсекает тишину и шум — Vosk не получает пустые чанки. "
+            "Порог 0.3 — ловит тихую речь, 0.7 — только громкую.",
+            size=11,
+            color=TEXT_DIM,
+        )
+
+        # «Хвост» тишины. Без него VAD вырезает всю тишину, Vosk не видит
+        # паузу (`AcceptWaveform` -> False) и не отдаёт финальный текст:
+        # Феникс отвечает поздно или не отвечает вовсе. См. jarvis/vad.py.
+        self._vad_hangover_label = ft.Text(
+            f"Хвост тишины для Vosk: "
+            f"{int(self.config.get('vad_hangover_ms', DEFAULT_HANGOVER_MS))} мс",
+            size=13,
+            color=TEXT,
+        )
+
+        self._vad_hangover_slider = ft.Slider(
+            min=0,
+            max=3000,
+            divisions=12,
+            value=float(self.config.get("vad_hangover_ms", DEFAULT_HANGOVER_MS)),
+            label="{value:.0f}",
+            active_color=ACCENT,
+            on_change=self._on_vad_hangover_change,
+            on_change_end=self._on_vad_hangover_end,
+        )
+
+        hangover_hint = ft.Text(
+            "1500 мс — как без VAD. Меньше — ответ раньше, но Vosk может "
+            "не успеть закрыть фразу. Применяется сразу.",
+            size=11,
+            color=TEXT_DIM,
+        )
+
+        # === Распознавание ===
+        barge_enabled = ft.Checkbox(
+            label="Прерывать Феникса голосом (barge-in)",
+            value=bool(self.config.get("barge_enabled", True)),
+            on_change=self._on_barge_enabled,
+        )
+
+        wake_required = ft.Checkbox(
+            label="Ждать wake-слово «Феникс» (выкл — любая речь = команда)",
+            value=bool(self.config.get("wake_word_required", True)),
+            on_change=self._on_wake_required,
+        )
+
+        def _section(title):
+            return ft.Text(title, size=16, weight=ft.FontWeight.BOLD, color=ACCENT)
+
+        def _label(text):
+            return ft.Text(text, size=12, color=TEXT_DIM)
+
+        return ft.Container(
+            content=ft.Column(
+                controls=[
+                    ft.Text("Аудио", size=26, weight=ft.FontWeight.BOLD, color=TEXT),
+                    ft.Container(height=20),
+
+                    _section("Эмоции из голоса (Prosody)"),
+                    prosody_enabled,
+                    prosody_hint,
+                    ft.Container(height=10),
+                    _label("Как определять эмоцию:"),
+                    prosody_priority,
+                    ft.Container(height=25),
+
+                    _section("VAD — фильтр тишины"),
+                    vad_enabled,
+                    vad_adaptive,
+                    ft.Container(height=8),
+                    self._vad_threshold_label,
+                    self._vad_threshold_slider,
+                    vad_hint,
+                    ft.Container(height=8),
+                    self._vad_hangover_label,
+                    self._vad_hangover_slider,
+                    hangover_hint,
+                    ft.Container(height=25),
+
+                    _section("Распознавание"),
+                    barge_enabled,
+                    wake_required,
+                    ft.Container(height=8),
+                    _label("Всё на этой вкладке применяется сразу, "
+                           "перезапуск не нужен."),
+                ],
+                spacing=8,
+                scroll=ft.ScrollMode.AUTO,
+            ),
+            padding=ft.Padding(left=40, top=40, right=40, bottom=40),
+            expand=True,
+        )
 
     def _build_persona_tab(self) -> ft.Control:
         """Вкладка «Персона» — имя, стиль, черты, backstory."""
@@ -5396,6 +5829,27 @@ class FenixGUI:
             border_color="#30363d",
             focused_border_color=ACCENT,
             on_select=self._on_persona_style,
+        )
+
+        tone_dropdown = ft.Dropdown(
+            label="Тон общения",
+            value=p.get("tone") or "auto",
+            options=[
+                ft.dropdown.Option("auto", "Авто (подстраивается)"),
+                ft.dropdown.Option("polite", "Вежливый (без мата)"),
+                ft.dropdown.Option("unrestricted", "Без цензуры (если юзер сам)"),
+            ],
+            width=400,
+            border_color="#30363d",
+            focused_border_color=ACCENT,
+            on_select=self._on_persona_tone,
+        )
+
+        tone_hint = ft.Text(
+            "Авто — Феникс сам подстраивается под ваш стиль. "
+            "Вежливый — всегда без мата. Без цензуры — можно вставить, если вы сами.",
+            size=11,
+            color=TEXT_DIM,
         )
 
         traits_field = ft.TextField(
@@ -5453,6 +5907,10 @@ class FenixGUI:
                     _label("Стиль общения:"),
                     style_dropdown,
                     ft.Container(height=12),
+                    _label("Тон общения:"),
+                    tone_dropdown,
+                    tone_hint,
+                    ft.Container(height=12),
                     _label("Черты характера (через запятую):"),
                     traits_field,
                     ft.Container(height=12),
@@ -5479,6 +5937,14 @@ class FenixGUI:
         from jarvis import persona
         persona.set_field("speech_style", e.control.value)
 
+    def _on_persona_tone(self, e) -> None:
+        from jarvis import persona
+        tone = e.control.value
+        if tone not in persona.VALID_TONES:
+            tone = "auto"
+        persona.set_field("tone", tone)
+        log.info("GUI: persona.tone → %s", tone)
+
     def _on_persona_traits(self, e) -> None:
         from jarvis import persona
         raw = e.control.value.strip()
@@ -5501,6 +5967,57 @@ class FenixGUI:
         except Exception:
             log.exception("Не удалось показать SnackBar")
 
+    def _on_prosody_enabled(self, e) -> None:
+        value = bool(e.control.value)
+        self.config.set("prosody_enabled", value)
+        log.info("GUI: prosody_enabled → %s", value)
+
+    def _on_prosody_priority(self, e) -> None:
+        value = e.control.value
+        if value not in ("prosody", "text", "both"):
+            value = "prosody"
+        self.config.set("prosody_priority", value)
+        log.info("GUI: prosody_priority → %s", value)
+
+    def _on_vad_enabled(self, e) -> None:
+        value = bool(e.control.value)
+        self.config.set("vad_enabled", value)
+        log.info("GUI: vad_enabled → %s", value)
+
+    def _on_vad_adaptive(self, e) -> None:
+        value = bool(e.control.value)
+        self.config.set("vad_adaptive", value)
+        log.info("GUI: vad_adaptive → %s", value)
+
+    def _on_vad_threshold_change(self, e) -> None:
+        value = float(e.control.value)
+        if hasattr(self, "_vad_threshold_label") and self._vad_threshold_label:
+            self._vad_threshold_label.value = f"Порог VAD: {value:.2f}"
+
+    def _on_vad_threshold_end(self, e) -> None:
+        value = round(float(e.control.value), 2)
+        self.config.set("vad_threshold", value)
+        log.info("GUI: vad_threshold → %.2f (применяю на лету)", value)
+
+    def _on_vad_hangover_change(self, e) -> None:
+        value = float(e.control.value)
+        if getattr(self, "_vad_hangover_label", None):
+            self._vad_hangover_label.value = f"Хвост тишины для Vosk: {int(value)} мс"
+
+    def _on_vad_hangover_end(self, e) -> None:
+        value = int(round(float(e.control.value)))
+        self.config.set("vad_hangover_ms", value)
+        log.info("GUI: vad_hangover_ms → %d (применяю на лету)", value)
+
+    def _on_barge_enabled(self, e) -> None:
+        value = bool(e.control.value)
+        self.config.set("barge_enabled", value)
+        log.info("GUI: barge_enabled → %s", value)
+
+    def _on_wake_required(self, e) -> None:
+        value = bool(e.control.value)
+        self.config.set("wake_word_required", value)
+        log.info("GUI: wake_word_required → %s", value)
 
     def _build_settings_tab(self) -> ft.Control:
         llm_dropdown = ft.Dropdown(
@@ -5856,7 +6373,17 @@ class FenixGUI:
                 self._status_circle.shadow = ft.BoxShadow(
                     blur_radius=32, color=color, spread_radius=3,
                 )
-            log.info("GUI: статус-сфера перекрашена под mood=%s", mood_state)
+            _MOOD_LABELS = {
+                "neutral": "",
+                "happy":   "Настроение: хорошее",
+                "excited": "Настроение: восторженное",
+                "annoyed": "Настроение: раздражённое",
+                "bored":   "Настроение: скучающее",
+                "tired":   "Настроение: уставшее",
+            }
+            if getattr(self, "_mood_text", None):
+                self._mood_text.value = _MOOD_LABELS.get(mood_state, "")
+            log.info("GUI: статус-сфера → mood=%s", mood_state)
         except Exception:
             log.exception("_apply_mood_color упал")
 
@@ -5990,8 +6517,8 @@ class FenixGUI:
 
     def _open_settings_tab(self) -> None:
         try:
-            self._rail.selected_index = 3
-            self._content_area.content = self._tabs[3]
+            self._rail.selected_index = 4
+            self._content_area.content = self._tabs[4]
             log.info("GUI: открыл вкладку «Настройки»")
         except Exception:
             log.exception("Не удалось открыть вкладку «Настройки»")
@@ -6006,6 +6533,22 @@ class FenixGUI:
                 log.info("GUI: окно показано")
         except Exception:
             log.exception("Не удалось показать окно")
+
+    def _on_window_event(self, e) -> None:
+        """Сохраняет позицию окна (gui_x / gui_y) после перетаскивания. ... [5 строк]"""
+        try:
+            if e.type != ft.WindowEventType.MOVED:
+                return
+            if self._page is None:
+                return
+            left = self._page.window.left
+            top = self._page.window.top
+            if left is None or top is None:
+                return
+            self.config.update({"gui_x": int(left), "gui_y": int(top)})
+            log.info("GUI: позиция окна сохранена (%s, %s)", left, top)
+        except Exception:
+            log.exception("Не удалось сохранить позицию окна")
 
     # ---------------------------------------------------------------
     # Действия
@@ -6036,6 +6579,67 @@ class FenixGUI:
     def _on_voice_change(self, e) -> None:
         self.config.set("tts_voice", e.control.value)
 
+    def _get_voice_options(self) -> list:
+        """Список голосов под текущий tts_backend."""
+        try:
+            from jarvis import voices as _voices
+            backend = self.config.get("tts_backend", "auto")
+            voice_dict = _voices._voices_for_backend(backend)
+            if not voice_dict:
+                return [
+                    ft.dropdown.Option("ruslan"),
+                    ft.dropdown.Option("dmitri"),
+                    ft.dropdown.Option("irina"),
+                    ft.dropdown.Option("denis"),
+                ]
+            return [
+                ft.dropdown.Option(k, v.split("—")[0].strip() if "—" in v else k)
+                for k, v in voice_dict.items()
+            ]
+        except Exception:
+            log.exception("Не удалось получить список голосов")
+            return [ft.dropdown.Option("ruslan")]
+
+    def _on_refresh_voices(self, e) -> None:
+        """Обновить список голосов после смены backend."""
+        try:
+            from jarvis import voices as _voices
+            _voices.reset_cache()
+            current_idx = self._rail.selected_index if self._rail else 0
+            saved_history = list(self._history_list.controls) if self._history_list else []
+            self._tabs = {
+                0: self._build_main_tab(),
+                1: self._build_mic_tab(),
+                2: self._build_audio_tab(),
+                3: self._build_persona_tab(),
+                4: self._build_settings_tab(),
+            }
+            if saved_history and self._history_list:
+                self._history_list.controls = saved_history
+            if self._content_area:
+                self._content_area.content = self._tabs.get(current_idx, self._tabs[0])
+            if self._page:
+                self._page.update()
+            log.info("GUI: список голосов обновлён")
+        except Exception:
+            log.exception("Не удалось обновить голоса")
+
+    def _show_status(self, text: str) -> None:
+        """Показать уведомление в GUI (SnackBar). Безопасен из главного потока."""
+        try:
+            if self._page is None:
+                return
+            snack = ft.SnackBar(
+                content=ft.Text(text, size=13, color="#e6edf3"),
+                bgcolor="#161b22",
+                duration=10000,
+            )
+            self._page.overlay.append(snack)
+            snack.open = True
+            self._page.update()
+        except Exception:
+            log.exception("_show_status упал")
+
     def _on_memory_change(self, e) -> None:
         mem = e.control.value
         preset = {"short": (40, 10), "normal": (100, 20), "long": (200, 40)}.get(mem, (100, 20))
@@ -6051,7 +6655,51 @@ class FenixGUI:
         self.config.set("ollama_url", e.control.value)
 
     def _on_tts_change(self, e) -> None:
-        self.config.set("tts_backend", e.control.value)
+        backend = e.control.value
+        self.config.set("tts_backend", backend)
+        try:
+            from jarvis import voices as _voices
+            _voices.reset_cache()
+        except Exception:
+            pass
+        log.info("GUI: tts_backend → %s, обновляю голоса", backend)
+
+        # Показываем уведомление — что происходит
+        if backend == "silero":
+            self._show_status(
+                "Silero: загрузка модели (~150 МБ + torch.hub). "
+                "Первый раз — 1–3 минуты. В консоли видно прогресс."
+            )
+        elif backend == "auto":
+            self._show_status(
+                "auto: выбираю движок по приоритету silero → piper → winrt → sapi. "
+                "Если silero не установлен — уйдёт на piper."
+            )
+        elif backend == "piper":
+            self._show_status("Piper: голоса ruslan/dmitri/irina/denis, ~60 МБ.")
+        elif backend == "winrt":
+            self._show_status("WinRT: системные голоса Windows (Pavel, Irina).")
+        elif backend == "sapi":
+            self._show_status("SAPI: старые системные голоса Windows.")
+
+        try:
+            current_idx = self._rail.selected_index if self._rail else 0
+            saved_history = list(self._history_list.controls) if self._history_list else []
+            self._tabs = {
+                0: self._build_main_tab(),
+                1: self._build_mic_tab(),
+                2: self._build_audio_tab(),
+                3: self._build_persona_tab(),
+                4: self._build_settings_tab(),
+            }
+            if saved_history and self._history_list:
+                self._history_list.controls = saved_history
+            if self._content_area:
+                self._content_area.content = self._tabs.get(current_idx, self._tabs[0])
+            if self._page:
+                self._page.update()
+        except Exception:
+            log.exception("Не удалось пересобрать вкладки")
 
     def _on_voice_quality_change(self, e) -> None:
         quality = e.control.value
@@ -6063,12 +6711,10 @@ class FenixGUI:
         if self.jarvis is not None and self.jarvis.speaker is not None:
             voice = self.config.get("tts_voice", "ruslan")
             try:
-                self.jarvis.speaker._init_piper(voice)
-                actual = getattr(self.jarvis.speaker, "_piper_quality", quality)
-                if actual != quality:
-                    log.warning("Piper: %s/%s не найден, использован %s/%s",
-                                voice, quality, voice, actual)
-                log.info("Piper переключён на %s/%s", voice, actual)
+                # Пересоздаём движок с новым качеством через switch_backend
+                backend = self.config.get("tts_backend", "auto")
+                self.jarvis.speaker.switch_backend(backend)
+                log.info("TTS переключён на %s/%s/%s", backend, voice, quality)
             except Exception:
                 log.exception("Не удалось переключить качество голоса")
 
@@ -6110,8 +6756,9 @@ class FenixGUI:
         self._tabs = {
             0: self._build_main_tab(),
             1: self._build_mic_tab(),
-            2: self._build_persona_tab(),
-            3: self._build_settings_tab(),
+            2: self._build_audio_tab(),
+            3: self._build_persona_tab(),
+            4: self._build_settings_tab(),
         }
 
         if saved_history and self._history_list is not None:
@@ -6162,6 +6809,9 @@ class FenixGUI:
                     if not reply.is_stream:
                         self.add_message("assistant", reply.text or "")
                     self.jarvis.say(reply)
+                # Раньше статус оставался «Слушаю» навсегда: команда
+                # из текстового поля завершалась, а индикатор — нет.
+                self.set_state("idle")
             except Exception:
                 log.exception("Ошибка команды %r", cmd)
                 self.set_state("error")
@@ -9826,6 +10476,46 @@ def setup_logging() -> None:
     sys.excepthook = _sys_excepthook
 
 
+def make_config_listener(jarvis, config, listener, speaker, handler):
+    """Собирает подписчик config → живые компоненты (для Config.subscribe). ... [9 строк]"""
+    def _on_config_change(key: str, value):
+        if key == "tts_voice":
+            speaker.set_voice(value)
+        elif key == "voice_rate":
+            speaker.set_rate(value)
+        elif key == "mode":
+            handler.mode = value
+        elif key == "barge_enabled":
+            jarvis.barge_enabled = bool(value)
+            if listener is not None:
+                listener.barge_enabled = bool(value)
+        elif key == "wake_word_required":
+            jarvis._wake_word_required = bool(value)
+            log.info("Wake-слово: %s",
+                     "обязательно" if value else "отключено")
+        elif key == "tts_backend":
+            # Смена backend TTS на лету
+            try:
+                speaker.switch_backend(str(value))
+            except Exception:
+                log.exception("Не удалось переключить TTS backend")
+        elif key == "vad_enabled":
+            if listener is not None:
+                listener.set_vad_enabled(bool(value))
+        elif key in ("vad_threshold", "vad_adaptive", "vad_hangover_ms"):
+            # Порог / адаптивность / «хвост» читаются ТОЛЬКО при создании
+            # VAD — без пересоздания слайдеры в GUI ни на что не влияли.
+            if listener is not None:
+                listener.reload_vad()
+        elif key == "input_device":
+            # Смена микрофона на лету: listener сам переоткроет
+            # RawInputStream на новом устройстве (без перезапуска).
+            if listener is not None:
+                listener.set_input_device(value)
+
+    return _on_config_change
+
+
 def main() -> None:
     setup_logging()
     log.info("%s v%s запускается", APP_NAME, __version__)
@@ -9861,10 +10551,15 @@ def main() -> None:
     if config.get("use_whisper", True):
         try:
             from jarvis.stt import WhisperTranscriber
+            # lazy=True: large-v3-turbo грузится в фоне (~5 с на GPU,
+            # десятки секунд на CPU). Раньше старт Феникса ждал эту
+            # загрузку и окно GUI появлялось поздно.
             whisper = WhisperTranscriber(
                 config.get("whisper_model", "auto"),
                 config.get("whisper_device", "auto"),
+                lazy=True,
             )
+            whisper.preload_async()
         except Exception:
             log.exception("Whisper не завёлся, работаю только на Vosk")
 
@@ -9881,7 +10576,9 @@ def main() -> None:
         if not brain.available:
             brain = None
 
-    speaker = Speaker(config)
+    # Speaker с lazy=True: движок (PiperVoice.load ~2.3 с, Silero — до
+    # минуты) грузится в фоне, окно Феникса появляется сразу.
+    speaker = Speaker(config, lazy=True)
     listener = Listener(
         model_dir,
         config["sample_rate"],
@@ -9936,34 +10633,8 @@ def main() -> None:
         observer = None
 
     # --- Подписки: изменения конфига применяются на лету ---
-    def _on_config_change(key: str, value):
-        if key == "tts_voice":
-            speaker.set_voice(value)
-        elif key == "voice_rate":
-            speaker.set_rate(value)
-        elif key == "mode":
-            handler.mode = value
-        elif key == "barge_enabled":
-            jarvis.barge_enabled = bool(value)
-            if listener is not None:
-                listener.barge_enabled = bool(value)
-        elif key == "wake_word_required":
-            jarvis._wake_word_required = bool(value)
-            log.info("Wake-слово: %s",
-                     "обязательно" if value else "отключено")
-        elif key == "tts_backend":
-            # Смена backend TTS на лету
-            try:
-                speaker.switch_backend(str(value))
-            except Exception:
-                log.exception("Не удалось переключить TTS backend")
-        elif key == "vad_enabled":
-            # VAD включили/выключили — пересоздаём listener-флаг
-            if listener is not None:
-                listener.vad_enabled = bool(value)
-                log.info("VAD: %s", "включён" if value else "выключен")
-
-    config.subscribe(_on_config_change)
+    config.subscribe(make_config_listener(jarvis, config, listener,
+                                          speaker, handler))
 
     def _on_timer_fire(timer: dict):
         text = timer.get("text") or "время вышло"
@@ -9996,16 +10667,23 @@ def main() -> None:
     threading.Thread(target=_mood_decay_loop, daemon=True,
                      name="mood-decay").start()
 
-    try:
-        from jarvis import first_run
-        if first_run.is_first_run():
-            log.info("Первый запуск: приветствие через задачу")
-            jarvis.say(Reply(text=first_run.greeting()))
-        else:
-            jarvis.say(Reply(text=f"{APP_NAME} запущен и готов к работе."))
-    except Exception:
-        log.exception("Ошибка приветствия")
-        jarvis.say(Reply(text=f"{APP_NAME} запущен и готов к работе."))
+    def _greet() -> None:
+        """Приветствие в фоне. ... [6 строк]"""
+        try:
+            from jarvis import first_run
+            if first_run.is_first_run():
+                log.info("Первый запуск: приветствие через задачу")
+                jarvis.say(Reply(text=first_run.greeting()))
+            else:
+                jarvis.say(Reply(text=f"{APP_NAME} запущен и готов к работе."))
+        except Exception:
+            log.exception("Ошибка приветствия")
+            try:
+                jarvis.say(Reply(text=f"{APP_NAME} запущен и готов к работе."))
+            except Exception:
+                log.exception("Повторное приветствие тоже упало")
+
+    threading.Thread(target=_greet, daemon=True, name="greeting").start()
 
     # =================================================================
     # ТРЕЙ ВРЕМЕННО ОТКЛЮЧЁН.
@@ -12297,12 +12975,13 @@ def find_game(games: list[tuple[str, str]], spoken: str,
 ### `jarvis/stt.py`
 
 ```python
-"""Распознавание речи. ... [6 строк]"""
+"""Распознавание речи. ... [8 строк]"""
 
 import json
 import logging
 import os
 import queue
+import threading
 import time
 from collections import deque
 from pathlib import Path
@@ -12311,7 +12990,7 @@ import numpy as np
 import sounddevice as sd
 from vosk import KaldiRecognizer, Model, SetLogLevel
 
-from jarvis.vad import VAD
+from jarvis.vad import DEFAULT_HANGOVER_MS, SpeechHangover, VAD
 
 log = logging.getLogger("jarvis.stt")
 
@@ -12366,11 +13045,20 @@ class Listener:
         self.muted = False
         self.barge_flag = False
         self._block_size = 8000
+        # Флаг «микрофон сменили на лету»: phrases() увидит его и
+        # переоткроет RawInputStream на новом устройстве (см. set_input_device).
+        self._device_reload = False
 
-        # VAD: отсекает тишину/шум ДО Vosk. Работает в listener-потоке.
-        # Один инстанс — не thread-safe, но callback и phrases() в одном потоке.
+        # VAD: отсекает тишину/шум ДО Vosk. is_speech зовётся из
+        # аудио-callback (PortAudio-поток), а не из listener-потока.
+        # При этом ONNX-state защищён локом внутри VAD (callback vs reset).
         self.vad = None
         self.vad_enabled = True
+        # «Хвост» после речи: Vosk завершает фразу по тишине
+        # (AcceptWaveform -> True). Без хвоста VAD выкидывает всю тишину,
+        # Vosk не видит паузу и не отдаёт финальный текст — ответ приходит
+        # поздно или не приходит вовсе. См. vad.SpeechHangover.
+        self._vad_gate = None
         if config is not None:
             try:
                 self.vad_enabled = bool(config.get("vad_enabled", True))
@@ -12394,15 +13082,25 @@ class Listener:
                     threshold=threshold,
                     adaptive=adaptive,
                 )
+                # Debug VAD включается через config["vad_debug"]
+                if config is not None:
+                    try:
+                        self.vad._debug = bool(config.get("vad_debug", False))
+                    except Exception:
+                        pass
                 if not self.vad.is_available():
                     log.warning("VAD: модель недоступна — работаю без VAD")
                     self.vad = None
                 else:
-                    log.info("VAD: adaptive=%s, threshold=%.2f",
-                             adaptive, threshold)
+                    self._vad_gate = SpeechHangover(self._hangover_blocks())
+                    log.info(
+                        "VAD: adaptive=%s, threshold=%.2f, хвост=%d блоков",
+                        adaptive, threshold, self._vad_gate.max_blocks,
+                    )
             except Exception:
                 log.exception("VAD: не удалось создать")
                 self.vad = None
+                self._vad_gate = None
 
         # Ring buffer последних фраз (для «что ты слышал»)
         self.recent_phrases: deque = deque(maxlen=10)
@@ -12492,6 +13190,17 @@ class Listener:
         except Exception:
             return "по умолчанию"
 
+    def _hangover_blocks(self) -> int:
+        """Сколько блоков тишины после речи отдавать в Vosk (см. vad.SpeechHangover)."""
+        ms = DEFAULT_HANGOVER_MS
+        if self._config is not None:
+            try:
+                ms = int(self._config.get("vad_hangover_ms", DEFAULT_HANGOVER_MS))
+            except Exception:
+                ms = DEFAULT_HANGOVER_MS
+        block_ms = self._block_size * 1000.0 / max(1, self._sample_rate)
+        return SpeechHangover.blocks_for_ms(ms, block_ms)
+
     def _callback(self, indata, frames, time_info, status):
         if status:
             log.warning("Аудиопоток: %s", status)
@@ -12510,19 +13219,24 @@ class Listener:
 
         # VAD: пропускаем чанк в Vosk ТОЛЬКО если в нём есть речь.
         # Тишина и шум отсекаются — Vosk не крутит AcceptWaveform зря.
+        # ВАЖНО: после речи отдаём ещё «хвост» тишины (vad_hangover_ms),
+        # иначе Vosk не увидит паузу и не отдаст финальную фразу.
         raw = bytes(indata)
         if self.vad is not None:
             try:
-                if not self.vad.is_speech(raw):
-                    # Тишина — не пушим. Barge/peak/current_rms уже обновлены.
-                    return
+                speech = self.vad.is_speech(raw)
             except Exception:
                 log.exception("VAD.is_speech упал — пропускаю чанк как есть")
+                speech = True
+            if self._vad_gate is not None and not self._vad_gate.feed(speech):
+                # Тишина дольше «хвоста» — в Vosk не пушим.
+                # Barge/peak/current_rms уже обновлены.
+                return
 
         self._audio.put(raw)
 
-    def flush(self):
-        """Сброс аудио-буфера. ... [8 строк]"""
+    def _drain_audio(self) -> None:
+        """Чистит очередь аудио и накопленный буфер текущей фразы. ... [5 строк]"""
         while not self._audio.empty():
             try:
                 self._audio.get_nowait()
@@ -12530,12 +13244,98 @@ class Listener:
                 break
         self._utt_buf.clear()
         self._utt_len = 0
+
+    def flush(self):
+        """Сброс аудио-буфера. ... [8 строк]"""
+        self._drain_audio()
         # Сброс VAD state — после barge/wake/flush детекция должна начаться заново.
         if self.vad is not None:
             try:
                 self.vad.reset()
             except Exception:
                 pass
+        # «Хвост» тоже сбрасываем — иначе после flush в Vosk утечёт
+        # тишина из прошлой фразы.
+        if self._vad_gate is not None:
+            self._vad_gate.reset()
+
+    def set_vad_enabled(self, enabled: bool) -> None:
+        """Включить/выключить VAD на лету. Пересоздаёт инстанс."""
+        self.vad_enabled = bool(enabled)
+
+        if not self.vad_enabled:
+            self.vad = None
+            self._vad_gate = None
+            log.info("VAD: выключен (динамически)")
+            return
+
+        # Включаем — пересоздаём VAD
+        if self.vad is not None:
+            log.info("VAD: уже включён")
+            return
+
+        try:
+            threshold = 0.5
+            adaptive = True
+            if self._config is not None:
+                try:
+                    threshold = float(self._config.get("vad_threshold", 0.5))
+                except Exception:
+                    threshold = 0.5
+                try:
+                    adaptive = bool(self._config.get("vad_adaptive", True))
+                except Exception:
+                    adaptive = True
+
+            from jarvis.vad import SpeechHangover, VAD
+            self.vad = VAD(
+                sample_rate=self._sample_rate,
+                threshold=threshold,
+                adaptive=adaptive,
+            )
+            if self._config is not None:
+                try:
+                    self.vad._debug = bool(self._config.get("vad_debug", False))
+                except Exception:
+                    pass
+            if not self.vad.is_available():
+                log.warning("VAD: модель недоступна — работаю без VAD")
+                self.vad = None
+                self._vad_gate = None
+            else:
+                self._vad_gate = SpeechHangover(self._hangover_blocks())
+                log.info("VAD: включён (динамически), adaptive=%s, threshold=%.2f, "
+                         "хвост=%d блоков", adaptive, threshold,
+                         self._vad_gate.max_blocks)
+        except Exception:
+            log.exception("VAD: не удалось создать динамически")
+            self.vad = None
+            self._vad_gate = None
+
+    def reload_vad(self) -> None:
+        """Перечитывает настройки VAD из config и пересоздаёт инстанс. ... [8 строк]"""
+        if not self.vad_enabled:
+            log.info("VAD: reload пропущен — VAD выключен")
+            return
+
+        # Обнуляем, иначе set_vad_enabled(True) выйдет по «уже включён».
+        self.vad = None
+        self._vad_gate = None
+        self.set_vad_enabled(True)
+
+    def set_input_device(self, device) -> None:
+        """Меняет микрофон на лету. ... [6 строк]"""
+        new_device = self.resolve_device(device)
+        if new_device == self._device:
+            log.info("Микрофон не изменился (index=%s) — поток не трогаю",
+                     new_device)
+            return
+
+        self._device = new_device
+        self.device_name = self._current_device_name()
+        self._device_reload = True
+        log.info("Микрофон переключён на %r (index=%s) — переоткрываю поток",
+                 self.device_name, new_device)
 
     def reset_stats(self):
         """Сбрасывает peak и utterances — для кнопки «Проверить микрофон»."""
@@ -12545,38 +13345,125 @@ class Listener:
 
     def phrases(self, stop_event):
         max_buf = self._sample_rate * 2 * 30
-        with sd.RawInputStream(
-            samplerate=self._sample_rate,
-            blocksize=self._block_size,
-            dtype="int16",
-            channels=1,
-            device=self._device,
-            callback=self._callback,
-        ):
-            log.info("Микрофон открыт, слушаю...")
-            while not stop_event.is_set():
+        # Внешний while — смена микрофона на лету. set_input_device()
+        # ставит _device_reload; здесь мы выходим из `with` (PortAudio
+        # закрывает поток в своём же потоке — так безопасно) и
+        # открываем новый уже на другом устройстве.
+        while not stop_event.is_set():
+            self._device_reload = False
+            with sd.RawInputStream(
+                samplerate=self._sample_rate,
+                blocksize=self._block_size,
+                dtype="int16",
+                channels=1,
+                device=self._device,
+                callback=self._callback,
+            ):
+                log.info("Микрофон открыт (%s), слушаю...", self.device_name)
+                while not stop_event.is_set() and not self._device_reload:
+                    try:
+                        data = self._audio.get(timeout=0.2)
+                    except queue.Empty:
+                        continue
+                    self._utt_buf.append(data)
+                    self._utt_len += len(data)
+                    while self._utt_len > max_buf and len(self._utt_buf) > 1:
+                        self._utt_len -= len(self._utt_buf.pop(0))
+                    if self._rec.AcceptWaveform(data):
+                        text = json.loads(self._rec.Result()).get("text", "").strip()
+                        audio = b"".join(self._utt_buf)
+                        self._utt_buf.clear()
+                        self._utt_len = 0
+                        if text:
+                            self.utterances += 1
+                            self.recent_phrases.append(text)
+                            log.info("Распознано (vosk): %s", text)
+                            yield text, audio
+
+            if self._device_reload and not stop_event.is_set():
+                # Мы в потоке слушателя, поэтому Vosk дёргаем отсюда же:
+                # фраза с прошлого микрофона не должна склеиться с новой.
+                self._drain_audio()
                 try:
-                    data = self._audio.get(timeout=0.2)
-                except queue.Empty:
-                    continue
-                self._utt_buf.append(data)
-                self._utt_len += len(data)
-                while self._utt_len > max_buf and len(self._utt_buf) > 1:
-                    self._utt_len -= len(self._utt_buf.pop(0))
-                if self._rec.AcceptWaveform(data):
-                    text = json.loads(self._rec.Result()).get("text", "").strip()
-                    audio = b"".join(self._utt_buf)
-                    self._utt_buf.clear()
-                    self._utt_len = 0
-                    if text:
-                        self.utterances += 1
-                        self.recent_phrases.append(text)
-                        log.info("Распознано (vosk): %s", text)
-                        yield text, audio
+                    self._rec.Reset()
+                except Exception:
+                    log.exception("Vosk: Reset при смене микрофона упал")
+                if self.vad is not None:
+                    try:
+                        self.vad.reset()
+                    except Exception:
+                        pass
+                if self._vad_gate is not None:
+                    self._vad_gate.reset()
+                log.info("Микрофон переоткрываю: %s", self.device_name)
 
 
 class WhisperTranscriber:
-    def __init__(self, model_name="auto", device="auto"):
+    """faster-whisper с ленивой (фоновой) загрузкой модели. ... [7 строк]"""
+
+    def __init__(self, model_name="auto", device="auto", lazy=False):
+        self._model = None
+        self._load_error: Exception | None = None
+        self._loading = False
+        self._load_lock = threading.Lock()
+        self._loaded = threading.Event()
+        self._model_name = model_name
+        self._device = device
+
+        if lazy:
+            self.preload_async()
+        else:
+            self._load()
+            self._loaded.set()
+
+    # --- ленивая загрузка -------------------------------------------------
+
+    def is_ready(self) -> bool:
+        """Модель уже загружена?"""
+        return self._model is not None
+
+    def wait_ready(self, timeout: float | None = None) -> bool:
+        """Ждёт окончания загрузки. True — модель готова."""
+        return self._loaded.wait(timeout)
+
+    def preload_async(self) -> None:
+        """Грузит модель в фоновом потоке (не блокирует старт)."""
+        with self._load_lock:
+            if self._model is not None or self._loading:
+                return
+            self._loading = True
+        threading.Thread(target=self._background_load, daemon=True,
+                         name="whisper-load").start()
+
+    def _background_load(self) -> None:
+        try:
+            self._load()
+        except Exception as e:
+            self._load_error = e
+            log.exception("Whisper: фоновая загрузка не удалась")
+        finally:
+            with self._load_lock:
+                self._loading = False
+            self._loaded.set()
+
+    def _ensure_loaded(self) -> None:
+        """Гарантирует загруженную модель: ждёт фон, иначе грузит сам."""
+        if self._model is not None:
+            return
+        if self._loading:
+            self._loaded.wait()
+        if self._model is None:
+            self._load()
+            self._loaded.set()
+
+    def _load(self) -> None:
+        """Загрузка модели. Работает и из фонового потока, и синхронно."""
+        if self._model is not None:
+            return
+
+        model_name = self._model_name
+        device = self._device
+
         # HF_HOME нужен ТОЛЬКО для Whisper: ctranslate2 ломается
         # на не-ASCII путях. Но Piper тоже использует huggingface_hub —
         # и если HF_HOME стоит, Piper качает модель в наш ASCII-кэш
@@ -12633,6 +13520,7 @@ class WhisperTranscriber:
                 os.environ["HUGGINGFACE_HUB_CACHE"] = _old_hf_cache
 
     def transcribe(self, pcm, sample_rate=16000):
+        self._ensure_loaded()
         audio = np.frombuffer(pcm, dtype=np.int16).astype(np.float32) / 32768.0
         if sample_rate != 16000 and len(audio) > 1:
             n = int(len(audio) * 16000 / sample_rate)
@@ -13409,17 +14297,21 @@ log = logging.getLogger("jarvis.tts")
 
 
 class Speaker:
-    def __init__(self, config):
+    def __init__(self, config, lazy: bool = False):
         self._config = config
         cfg = config if hasattr(config, "get") else {}
 
-        self.voice = cfg.get("tts_voice", "ruslan")
+        self.voice = cfg.get("tts_voice") or "ruslan"
         self.rate = float(cfg.get("voice_rate", 1.15))
         self.quality = cfg.get("tts_voice_quality", "medium")
         self._backend = cfg.get("tts_backend", "auto")
 
         self._engine = None
         self._engine_name = "none"
+        # Инициализация движка — под локом: ленивая загрузка в фоне и
+        # switch_backend из GUI не должны создавать движок одновременно.
+        self._init_lock = threading.RLock()
+        self._engine_ready = threading.Event()
 
         # Глобальное состояние воспроизведения
         self._play_thread = None
@@ -13431,14 +14323,55 @@ class Speaker:
         self._token_lock = threading.Lock()
 
         # Грузим движок
-        self._init_engine()
+        if lazy:
+            # lazy=True: движок грузится в фоне. PiperVoice.load — ~2.3 с,
+            # Silero — до минуты, и раньше эти секунды «висело» окно.
+            log.info("TTS: движок грузится в фоне (окно появится раньше)")
+            threading.Thread(target=self._init_engine_bg, daemon=True,
+                             name="tts-init").start()
+        else:
+            self._init_engine()
+            self._engine_ready.set()
 
     # ------------------------------------------------------------------
     # Инициализация
     # ------------------------------------------------------------------
 
+    def _init_engine_bg(self) -> None:
+        """Фоновая инициализация движка (lazy=True)."""
+        try:
+            self._init_engine()
+        except Exception:
+            log.exception("TTS: фоновая инициализация движка упала")
+        finally:
+            self._engine_ready.set()
+
+    def _ensure_engine(self, timeout: float | None = 60.0) -> bool:
+        """Дожидается движка. True — движок есть. ... [4 строк]"""
+        if self._engine is not None:
+            return True
+        if not self._engine_ready.is_set():
+            self._engine_ready.wait(timeout)
+        if self._engine is None and not self._engine_ready.is_set():
+            # Фон не уложился в timeout — пробуем синхронно.
+            log.warning("TTS: движок не готов за %.0f с — гружу синхронно",
+                        timeout or 0)
+            self._init_engine()
+            self._engine_ready.set()
+        return self._engine is not None
+
     def _init_engine(self):
+        with self._init_lock:
+            if self._engine is not None:
+                return
+            self._init_engine_locked()
+
+    def _init_engine_locked(self):
         log.info("TTS: выбираю движок (backend=%s)", self._backend)
+        if self._backend == "silero":
+            log.info("TTS: Silero — первая загрузка может занять 1–3 минуты")
+        elif self._backend == "auto":
+            log.info("TTS: auto — пробую silero → piper → winrt → sapi")
         engine = get_engine(self._backend, self.voice, self.quality,
                             self.rate)
         if engine is None:
@@ -13470,8 +14403,11 @@ class Speaker:
             log.warning("TTS: не удалось переключиться на %s", backend)
             self._backend = old
             return False
-        self._engine = engine
-        self._engine_name = engine.name
+        with self._init_lock:
+            self._engine = engine
+            self._engine_name = engine.name
+        # Если шла ленивая загрузка — считаем её завершённой.
+        self._engine_ready.set()
         log.info("TTS: движок переключён %s → %s", old, self._engine_name)
         return True
 
@@ -13517,7 +14453,9 @@ class Speaker:
 
     def speak(self, text: str) -> None:
         """Синхронная озвучка (для тестов)."""
-        if not text or self._engine is None:
+        if not text:
+            return
+        if not self._ensure_engine():
             return
         token = self._new_token()
         try:
@@ -13532,7 +14470,9 @@ class Speaker:
 
     def play_async(self, text: str) -> None:
         """Асинхронная озвучка одного текста."""
-        if not text or self._engine is None:
+        if not text:
+            return
+        if not self._ensure_engine():
             return
 
         self.stop()
@@ -13572,7 +14512,7 @@ class Speaker:
     def speak_stream(self, text_iter: Iterator[str],
                      timeout: float = 30.0) -> str:
         """Стриминг: озвучивает по предложениям. ... [3 строк]"""
-        if self._engine is None:
+        if not self._ensure_engine():
             # Просто вычитываем генератор, чтобы ничего не зависло
             return "".join(text_iter)
 
@@ -13758,14 +14698,81 @@ class BaseEngine(ABC):
 ```python
 """Фабрика TTS-движков. ... [3 строк]"""
 
+import importlib
+import importlib.util
 import logging
 
 log = logging.getLogger("jarvis.tts")
 
+# Модуль и класс каждого движка — для «заглушки» без создания движка.
+_ENGINE_IMPORTS = {
+    "silero": ("jarvis.tts_engines.silero", "SileroEngine"),
+    "piper":  ("jarvis.tts_engines.piper", "PiperEngine"),
+    "winrt":  ("jarvis.tts_engines.winrt", "WinRTEngine"),
+    "sapi":   ("jarvis.tts_engines.sapi", "SAPIEngine"),
+}
+
+# Пакет, без которого движок не работает (проверка дешёвая, без импорта).
+_ENGINE_REQUIRES = {
+    "silero": "torch",
+    "piper":  "piper",
+    "winrt":  "winrt.windows.media.speechsynthesis",
+    "sapi":   "pyttsx3",
+}
+
+
+class _EngineProbe:
+    """Заглушка движка — только для служебных вызовов (voice=""). ... [10 строк]"""
+
+    def __init__(self, name: str, cls) -> None:
+        self.name = name
+        self.voices = dict(getattr(cls, "voices", {}) or {})
+        self.default_quality = getattr(cls, "default_quality", "medium")
+        self.default_rate = getattr(cls, "default_rate", 1.15)
+
+    def is_available(self) -> bool:
+        return bool(self.voices)
+
+    def __repr__(self) -> str:
+        return f"<_EngineProbe {self.name} voices={len(self.voices)}>"
+
+
+# Кэш заглушек: (name) → _EngineProbe | None.
+_PROBE_CACHE: dict[str, object] = {}
+
+
+def _dependency_present(module_name: str) -> bool:
+    """Есть ли пакет, нужный движку (без реального импорта)."""
+    try:
+        return importlib.util.find_spec(module_name) is not None
+    except (ImportError, ValueError, AttributeError):
+        return False
+
+
+def _probe_engine(name: str):
+    """Заглушка движка по имени. None — модуля/зависимости нет."""
+    if name in _PROBE_CACHE:
+        return _PROBE_CACHE[name]
+
+    probe = None
+    entry = _ENGINE_IMPORTS.get(name)
+    if entry is not None:
+        module_name, class_name = entry
+        requires = _ENGINE_REQUIRES.get(name)
+        if requires is None or _dependency_present(requires):
+            try:
+                module = importlib.import_module(module_name)
+                probe = _EngineProbe(name, getattr(module, class_name))
+            except Exception as e:
+                log.debug("TTS: движок %s не импортируется (%s)", name, e)
+
+    _PROBE_CACHE[name] = probe
+    return probe
+
 
 def get_engine(backend: str, voice: str, quality: str = "medium",
                rate: float = 1.15):
-    """Возвращает engine по имени. ... [4 строк]"""
+    """Возвращает engine по имени. ... [7 строк]"""
     if backend == "auto":
         for name in ("silero", "piper", "winrt", "sapi"):
             engine = _try_create(name, voice, quality, rate)
@@ -13784,7 +14791,10 @@ _ENGINE_CACHE: dict[tuple[str, str], object] = {}
 
 
 def _try_create(name: str, voice: str, quality: str, rate: float):
-    """Создаёт движок или возвращает из кэша. ... [4 строк]"""
+    """Создаёт движок или возвращает из кэша. ... [5 строк]"""
+    if voice == "":
+        return _probe_engine(name)
+
     key = (name, voice or "")
     if key in _ENGINE_CACHE:
         return _ENGINE_CACHE[key]
@@ -13870,22 +14880,20 @@ class PiperEngine:
         self._load_model()
 
     def _load_model(self):
-        from huggingface_hub import hf_hub_download
         from piper import PiperVoice, SynthesisConfig
 
         rel = (f"ru/ru_RU/{self.voice}/{self.quality}/"
                f"ru_RU-{self.voice}-{self.quality}.onnx")
 
-        try:
-            onnx = hf_hub_download(PIPER_REPO, rel)
-            hf_hub_download(PIPER_REPO, rel + ".json")
-        except Exception:
+        onnx = self._resolve_model(rel)
+        if onnx is None:
             log.warning("Piper: голос %s/%s не найден, откат на medium",
                         self.voice, self.quality)
             self.quality = "medium"
             rel = f"ru/ru_RU/{self.voice}/medium/ru_RU-{self.voice}-medium.onnx"
-            onnx = hf_hub_download(PIPER_REPO, rel)
-            hf_hub_download(PIPER_REPO, rel + ".json")
+            onnx = self._resolve_model(rel)
+        if onnx is None:
+            raise RuntimeError(f"Piper: модель {rel} недоступна")
 
         self._piper = PiperVoice.load(onnx)
         self._piper_cfg = SynthesisConfig(
@@ -13893,6 +14901,36 @@ class PiperEngine:
         )
         log.info("Piper: голос %s/%s, скорость %.2f",
                  self.voice, self.quality, self.rate)
+
+    @staticmethod
+    def _resolve_model(rel: str) -> str | None:
+        """Путь к модели: сначала локальный кэш, потом сеть. ... [9 строк]"""
+        try:
+            from huggingface_hub import try_to_load_from_cache
+
+            cached = try_to_load_from_cache(PIPER_REPO, rel)
+            if isinstance(cached, str):
+                cfg_cached = try_to_load_from_cache(PIPER_REPO, rel + ".json")
+                if isinstance(cfg_cached, str):
+                    log.info("Piper: модель %s взята из кэша", rel)
+                    return cached
+            elif cached is not None:
+                # HF уже знает, что файла нет (маркер .no_exist) — в сеть
+                # не идём, сразу откатываемся на medium.
+                log.debug("Piper: %s помечен как отсутствующий в кэше HF", rel)
+                return None
+        except Exception:
+            log.debug("Piper: локальный кэш HF недоступен — пробую сеть")
+
+        try:
+            from huggingface_hub import hf_hub_download
+
+            path = hf_hub_download(PIPER_REPO, rel)
+            hf_hub_download(PIPER_REPO, rel + ".json")
+            return path
+        except Exception as e:
+            log.debug("Piper: %s не скачался (%s)", rel, e)
+            return None
 
     def is_available(self) -> bool:
         return self._piper is not None
@@ -14202,17 +15240,31 @@ class SileroEngine:
         with self._lock:
             if self._model is not None:
                 return
-            log.info("Silero: загружаю %s (первый раз ~30 сек)...", _VERSION)
+
+            log.info("=" * 60)
+            log.info("Silero TTS: старт загрузки")
+            log.info("Silero TTS: torch.hub клонирует snakers4/silero-models")
+            log.info("Silero TTS: первая загрузка — 1–3 минуты, ~150 МБ")
+            log.info("Silero TTS: последующие запуски — из кэша, ~5 сек")
+            log.info("Silero TTS: скачивание можно наблюдать в C:\\ProgramData\\Phoenix\\torch")
+            log.info("=" * 60)
+
             t0 = time.time()
-            model, _ = self._torch.hub.load(
-                repo_or_dir="snakers4/silero-models",
-                model="silero_tts",
-                language="ru",
-                speaker=_VERSION,
-            )
+            try:
+                model, _ = self._torch.hub.load(
+                    repo_or_dir="snakers4/silero-models",
+                    model="silero_tts",
+                    language="ru",
+                    speaker=_VERSION,
+                )
+            except Exception:
+                log.exception("Silero TTS: torch.hub не справился")
+                raise
+
+            log.info("Silero TTS: модель скачана, переносим на %s", self._device)
             model.to(self._device)
             self._model = model
-            log.info("Silero: модель готова за %.1f сек", time.time() - t0)
+            log.info("Silero TTS: готово за %.1f сек", time.time() - t0)
 
     def is_available(self) -> bool:
         return self._model is not None
@@ -15056,31 +16108,68 @@ def describe_browsers() -> str:
 ### `jarvis/vad.py`
 
 ```python
-"""Silero VAD — детекция речи в аудио-потоке с адаптивным порогом. ... [27 строк]"""
+"""Silero VAD — детекция речи в аудио-потоке с адаптивным порогом. ... [51 строк]"""
 
 import logging
+import threading
 from pathlib import Path
 
 log = logging.getLogger("jarvis.vad")
 
-# Где искать модель. Сначала PROGRAM_DIR (ASCII), потом рядом с jarvis/.
-_MODEL_CANDIDATES = [
-    Path(r"C:\ProgramData\Phoenix\vad\silero_vad.onnx"),
-    Path(__file__).resolve().parent / "silero_vad.onnx",
-]
-
 # Размер чанка для ONNX: 512 сэмплов при 16 кГц (32 мс).
 _CHUNK_SAMPLES = 512
 
-# Порог речи по умолчанию.
+# Silero v5 требует подавать 512 новых сэмплов + 64 контекстных
+# (последние 64 сэмпла предыдущего чанка). Без контекста модель «проседает»
+# на непрерывной речи — особенно тихой. См. OnnxWrapper в silero-vad.
+_CONTEXT_SAMPLES = 64
+
+# Порог речи по умолчанию (макс. вероятность Silero на чанк).
 _DEFAULT_THRESHOLD = 0.5
+
+# Цифровая тишина: ниже этого RMS модель не гоняем (экономия CPU).
+_HARD_SILENCE_RMS = 3.0
+
+# Нормализация: тянем пик к _TARGET_PEAK, не сильнее _MAX_GAIN.
+_TARGET_PEAK = 3000.0
+_MAX_GAIN = 20.0
+
+# SNR-границы адаптивного порога.
+_NEAR_NOISE_SNR = 2.0    # rms <= фон*2   -> сигнал «в шуме», строже
+_CLEAR_SNR = 6.0         # rms >= фон*6   -> сигнал явно выше фона
+_SNR_STEP = 0.2          # шаг сдвига порога
+_MIN_THRESHOLD = 0.30    # нижняя граница адаптивного порога
+_MAX_THRESHOLD = 0.80    # верхняя граница адаптивного порога
+
+# «Мёртвый» микрофон: фон ниже — сигнала нет вовсе.
+_DEAD_MIC_RMS = 1.0
+
+# «Хвост» после речи (мс). Vosk завершает фразу по ТИШИНЕ
+# (KaldiRecognizer.AcceptWaveform -> True). Если VAD выкинет всю тишину,
+# Vosk не увидит паузу, не отдаст финальный текст — и Феникс ответит
+# поздно или не ответит вовсе. Поэтому после речи пропускаем в Vosk ещё
+# столько тишины. 1500 мс = столько же, сколько видит Vosk без VAD.
+DEFAULT_HANGOVER_MS = 1500
 
 
 def _find_model() -> Path | None:
-    """Ищет silero_vad.onnx в стандартных местах."""
-    for p in _MODEL_CANDIDATES:
-        if p.exists():
-            return p
+    """Ищет silero_vad.onnx: PROGRAM_DIR/vad -> рядом с пакетом -> fallback."""
+    candidates = []
+    try:
+        from jarvis import paths
+        candidates.append(paths.program_dir() / "vad" / "silero_vad.onnx")
+    except Exception:
+        log.debug("VAD: paths недоступен, ищу модель рядом с пакетом",
+                  exc_info=True)
+    candidates.append(Path(__file__).resolve().parent / "silero_vad.onnx")
+    # Исторический путь установщика — как последний шанс.
+    candidates.append(Path(r"C:\ProgramData\Phoenix\vad\silero_vad.onnx"))
+    for path in candidates:
+        try:
+            if path.exists():
+                return path
+        except OSError:
+            continue
     return None
 
 
@@ -15094,29 +16183,33 @@ class VAD:
         self._threshold = float(threshold)
         self._available = False
 
-        # Адаптивный порог: если микрофон тихий — VAD-порог опускается
-        # автоматически. Опирается на RMS фонового шума.
+        # Адаптивный порог.
         self._adaptive = bool(adaptive)
-        self._rms_baseline = 0.0       # RMS «тишины» — калибруется сам
-        self._rms_samples = 0          # сколько калибровочных замеров набрано
-        self._rms_calibration_n = 30   # ~15 сек при block 8000/16k = 500 мс
+        self._rms_baseline = 0.0        # RMS фона (обучается)
+        self._rms_samples = 0           # сколько калибровочных замеров набрано
+        self._rms_calibration_n = 30    # ~15 сек при block 8000/16k = 500 мс
+        self._quiet_warned = False      # уже предупредили про мёртвый микрофон
+        self._auto_off = False          # VAD сам себя отключил
+        self._debug = False             # True -> логировать каждый чанк
 
         self._session = None
-        self._state = None  # state тензоры ONNX между вызовами
+        self._state = None
+        self._context = None
+        self._lock = threading.Lock()   # ONNX-state: callback vs reset()
 
         try:
             import numpy as np  # noqa: F401
             import onnxruntime as ort
         except ImportError as e:
-            log.warning("VAD: не установлен onnxruntime или numpy (%s) — "
-                        "работаю без VAD", e)
+            log.warning("VAD: нет onnxruntime/numpy (%s) — работаю без VAD", e)
             return
 
         model_path = _find_model()
         if model_path is None:
             log.warning(
-                "VAD: модель silero_vad.onnx не найдена. Положи её в "
-                "C:\\ProgramData\\Phoenix\\vad\\silero_vad.onnx"
+                "VAD: модель silero_vad.onnx не найдена — работаю без VAD. "
+                "Положи её в %s (или выключи vad_enabled).",
+                Path(r"C:\ProgramData\Phoenix\vad\silero_vad.onnx"),
             )
             return
 
@@ -15136,28 +16229,111 @@ class VAD:
         except Exception:
             log.exception("VAD: не удалось загрузить модель")
 
+    # --- служебное -------------------------------------------------------
+
     def _reset_state(self):
-        """Сброс ONNX state (между фразами)."""
+        """Сброс ONNX state и контекста. ... [3 строк]"""
         import numpy as np
-        # Silero VAD v5: state формы (2, 1, 128) float32
-        self._state = np.zeros((2, 1, 128), dtype=np.float32)
+        with self._lock:
+            self._state = np.zeros((2, 1, 128), dtype=np.float32)
+            self._context = np.zeros((1, _CONTEXT_SAMPLES), dtype=np.float32)
 
     def is_available(self) -> bool:
         return self._available
 
     def reset(self):
-        """Сбросить ONNX state между фразами (для barge-in, wake). ... [3 строк]"""
+        """Сбросить ONNX-state между фразами (для barge-in, wake). ... [4 строк]"""
         if self._available:
             self._reset_state()
 
     def rms_baseline(self) -> float:
-        """Текущий RMS фона (для отладки/GUI)."""
+        """Текущая оценка RMS фона (для отладки/GUI)."""
         return self._rms_baseline
 
+    # --- адаптация -------------------------------------------------------
+
+    def _update_noise_floor(self, rms: float) -> None:
+        """Обновляет оценку фона: вниз быстро, вверх медленно. ... [4 строк]"""
+        if self._rms_samples < self._rms_calibration_n:
+            self._rms_samples += 1
+
+        if self._rms_baseline <= 0.0:
+            # Первый замер — стартовая оценка фона.
+            self._rms_baseline = rms
+        elif rms < self._rms_baseline:
+            self._rms_baseline += 0.30 * (rms - self._rms_baseline)
+        elif self._rms_samples < self._rms_calibration_n:
+            self._rms_baseline += 0.05 * (rms - self._rms_baseline)
+        else:
+            self._rms_baseline += 0.02 * (rms - self._rms_baseline)
+
+        if self._debug:
+            log.info("VAD: ФОН (rms=%.0f baseline=%.0f n=%d/%d)",
+                     rms, self._rms_baseline,
+                     self._rms_samples, self._rms_calibration_n)
+
+    def _compute_threshold(self, rms: float) -> float:
+        """Адаптивный порог по SNR. Без фона/адаптива — базовый threshold."""
+        thr = self._threshold
+        if not self._adaptive or self._rms_baseline <= 0.0 or rms <= 0.0:
+            return thr
+        snr = rms / self._rms_baseline
+        if snr <= _NEAR_NOISE_SNR:
+            thr = min(_MAX_THRESHOLD, thr + _SNR_STEP)
+        elif snr >= _CLEAR_SNR:
+            thr = max(_MIN_THRESHOLD, thr - _SNR_STEP)
+        return thr
+
+    # --- инференс --------------------------------------------------------
+
+    def _normalize(self, arr):
+        """Тянет пик к _TARGET_PEAK (не сильнее _MAX_GAIN) -> float32 [-1, 1]."""
+        import numpy as np
+        peak = float(np.abs(arr).max())
+        if peak > 0 and peak < _TARGET_PEAK:
+            gain = min(_TARGET_PEAK / peak, _MAX_GAIN)
+            if gain > 1.0:
+                arr = (arr.astype(np.float32) * gain).clip(
+                    -32768, 32767).astype(np.int16)
+        return arr.astype(np.float32) / 32768.0
+
+    def _run_chunk(self, chunk) -> float:
+        """Прогон одного 512-сэмплового чанка -> вероятность речи. ... [5 строк]"""
+        import numpy as np
+
+        seg = chunk.reshape(1, -1).astype(np.float32)
+        sr = np.array(self._sample_rate, dtype=np.int64)
+
+        with self._lock:
+            inp = np.concatenate([self._context, seg], axis=1)
+            outputs = self._session.run(
+                None,
+                {"input": inp, "state": self._state, "sr": sr},
+            )
+            # outputs = [output, new_state]
+            prob = float(outputs[0][0][0])
+            self._state = outputs[1]
+            self._context = seg[:, -_CONTEXT_SAMPLES:]
+        return prob
+
+    def _max_prob(self, samples) -> float:
+        """Макс. вероятность речи по всем чанкам сигнала."""
+        if len(samples) < _CHUNK_SAMPLES:
+            return 0.0
+        max_prob = 0.0
+        for i in range(0, len(samples) - _CHUNK_SAMPLES + 1, _CHUNK_SAMPLES):
+            prob = self._run_chunk(samples[i:i + _CHUNK_SAMPLES])
+            if prob > max_prob:
+                max_prob = prob
+        return max_prob
+
+    # --- публичный API ---------------------------------------------------
+
     def is_speech(self, pcm_int16: bytes) -> bool:
-        """Есть ли речь в чанке PCM int16 (16 кГц, mono). ... [9 строк]"""
+        """Есть ли речь в чанке PCM int16 (16 кГц, mono). ... [4 строк]"""
         if not self._available:
-            # Без VAD всё считаем речью — старое поведение.
+            return True
+        if self._auto_off:
             return True
 
         import numpy as np
@@ -15166,104 +16342,99 @@ class VAD:
         if arr.size == 0:
             return False
 
-        # --- RMS для адаптивности ---
+        # 1. RMS по оригиналу — до усиления (для адаптации фона/SNR).
         rms = float(np.sqrt(np.mean(arr.astype(np.float32) ** 2)))
 
-        # Калибровка: пока не набрали N замеров — считаем это фоном.
-        # (Обычно при старте Феникса пользователь молчит.)
-        if self._rms_samples < self._rms_calibration_n:
-            self._rms_baseline = (
-                (self._rms_baseline * self._rms_samples + rms)
-                / (self._rms_samples + 1)
-            )
-            self._rms_samples += 1
+        # 2. Оценка фона + проверка «мёртвого» микрофона.
+        self._update_noise_floor(rms)
+        if (self._rms_samples >= self._rms_calibration_n
+                and self._rms_baseline < _DEAD_MIC_RMS):
+            if not self._quiet_warned:
+                log.warning(
+                    "VAD: микрофон не даёт сигнала (RMS фона=%.1f < %.1f). "
+                    "VAD отключается сам — пропускаю всё. Проверьте микрофон "
+                    "(Windows → Звук) или выключите vad_enabled.",
+                    self._rms_baseline, _DEAD_MIC_RMS,
+                )
+                self._quiet_warned = True
+            self._auto_off = True
+            return True
 
-        # Если очень громко — точно речь, не гоняем VAD зря.
-        if self._adaptive and self._rms_baseline > 0:
-            if rms > self._rms_baseline * 3.0:
-                return True
-
-        # --- VAD-инференс ---
-        samples = arr.astype(np.float32) / 32768.0
-        if len(samples) < _CHUNK_SAMPLES:
+        # 3. Цифровая тишина — модель не гоняем.
+        if rms < _HARD_SILENCE_RMS:
+            if self._debug:
+                log.info("VAD: ТИШИНА-АБС (rms=%.1f < %.1f)",
+                         rms, _HARD_SILENCE_RMS)
             return False
 
-        # --- Адаптивный порог VAD ---
-        threshold = self._threshold
-        if self._adaptive:
-            if rms > 0 and self._rms_baseline > 0:
-                ratio = rms / max(self._rms_baseline, 1.0)
-                if ratio < 1.5:
-                    # Скорее фон — требуем высокий prob.
-                    threshold = max(self._threshold, 0.5)
-                elif ratio < 3.0:
-                    # Средне — обычный порог.
-                    threshold = self._threshold
-                else:
-                    # Заметно громче фона — снижаем порог.
-                    threshold = min(self._threshold, 0.15)
-            else:
-                # Ещё не откалибровано — низкий порог.
-                threshold = min(self._threshold, 0.15)
+        # 4. Нормализация + инференс.
+        samples = self._normalize(arr)
+        try:
+            max_prob = self._max_prob(samples)
+        except Exception:
+            log.exception("VAD: ошибка инференса — пропускаю чанк как речь")
+            return True
 
-        max_prob = 0.0
-        for i in range(0, len(samples) - _CHUNK_SAMPLES + 1, _CHUNK_SAMPLES):
-            chunk = samples[i:i + _CHUNK_SAMPLES]
-            try:
-                prob = self._run_chunk(chunk)
-            except Exception:
-                log.exception("VAD: ошибка инференса")
-                return True  # безопасный fallback
-            if prob > max_prob:
-                max_prob = prob
-            if prob >= threshold:
-                return True
+        # 5. Адаптивный порог + решение.
+        threshold = self._compute_threshold(rms)
+        speech = max_prob >= threshold
 
-        return False
-
-    def _run_chunk(self, chunk) -> float:
-        """Прогон одного 512-сэмплового чанка → вероятность речи."""
-        import numpy as np
-
-        inp = chunk.reshape(1, -1).astype(np.float32)
-        sr = np.array(self._sample_rate, dtype=np.int64)
-
-        outputs = self._session.run(
-            None,
-            {
-                "input": inp,
-                "state": self._state,
-                "sr": sr,
-            },
-        )
-        # outputs = [output, new_state]
-        prob = float(outputs[0][0][0])
-        self._state = outputs[1]
-        return prob
+        if self._debug:
+            snr = rms / self._rms_baseline if self._rms_baseline > 0 else 0.0
+            log.info(
+                "VAD: %s (rms=%.0f snr=%.2f prob=%.3f thr=%.2f)",
+                "РЕЧЬ" if speech else "ТИШИНА",
+                rms, snr, max_prob, threshold,
+            )
+        return speech
 
     def speech_probability(self, pcm_int16: bytes) -> float:
-        """Максимальная вероятность речи в чанке (для отладки)."""
-        if not self._available:
+        """Максимальная вероятность речи в чанке (для отладки). ... [4 строк]"""
+        if not self._available or self._auto_off:
             return 1.0
 
         import numpy as np
 
-        samples = np.frombuffer(pcm_int16, dtype=np.int16).astype(np.float32)
-        samples /= 32768.0
-
-        if len(samples) < _CHUNK_SAMPLES:
+        arr = np.frombuffer(pcm_int16, dtype=np.int16)
+        if arr.size == 0:
             return 0.0
 
-        max_prob = 0.0
-        for i in range(0, len(samples) - _CHUNK_SAMPLES + 1, _CHUNK_SAMPLES):
-            chunk = samples[i:i + _CHUNK_SAMPLES]
-            try:
-                prob = self._run_chunk(chunk)
-                if prob > max_prob:
-                    max_prob = prob
-            except Exception:
-                return 1.0
-        return max_prob
+        samples = self._normalize(arr)
+        try:
+            return self._max_prob(samples)
+        except Exception:
+            return 1.0
+
+
+class SpeechHangover:
+    """Решает, отдавать ли блок в распознаватель, с «хвостом» после речи. ... [14 строк]"""
+
+    def __init__(self, blocks: int = 3):
+        self._max_blocks = max(0, int(blocks))
+        self._left = 0
+
+    @property
+    def max_blocks(self) -> int:
+        return self._max_blocks
+
+    def feed(self, is_speech: bool) -> bool:
+        if is_speech:
+            self._left = self._max_blocks
+            return True
+        if self._left > 0:
+            self._left -= 1
+            return True
+        return False
+
+    def reset(self) -> None:
+        self._left = 0
+
+    @staticmethod
+    def blocks_for_ms(ms: float, block_ms: float) -> int:
+        """Сколько блоков «хвоста» соответствует ms миллисекунд."""
+        if block_ms <= 0:
+            return 0
+        return int(round(max(0.0, float(ms)) / block_ms))
 ```
 
 ### `jarvis/voices.py`
@@ -16376,6 +17547,343 @@ if __name__ == "__main__":
     sys.exit(main())
 ```
 
+### `scripts/startup_probe.py`
+
+```python
+"""Замер старта Феникса по этапам — что именно тормозит запуск. ... [20 строк]"""
+
+import argparse
+import sys
+import time
+from pathlib import Path
+
+BASE = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(BASE))
+
+# Русский текст в консоли Windows (cp1251/cp866) — иначе UnicodeEncodeError.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
+RESULTS: list[tuple[str, float, str]] = []
+
+
+def measure(label: str, func, note: str = ""):
+    """Замеряет один этап. Ошибку не роняем — пишем в таблицу."""
+    t0 = time.perf_counter()
+    try:
+        value = func()
+    except Exception as exc:  # noqa: BLE001 — скрипт диагностический
+        RESULTS.append((label, time.perf_counter() - t0,
+                        f"ОШИБКА {type(exc).__name__}: {exc}"))
+        return None
+    RESULTS.append((label, time.perf_counter() - t0, note or "ok"))
+    return value
+
+
+def print_table() -> float:
+    width = max(len(label) for label, _, _ in RESULTS)
+    print()
+    print(f"{'этап':<{width}}  {'сек':>7}  статус")
+    print("-" * (width + 34))
+    for label, secs, status in RESULTS:
+        print(f"{label:<{width}}  {secs:>7.2f}  {status}")
+    print("-" * (width + 34))
+    total = sum(secs for _, secs, _ in RESULTS)
+    print(f"{'ИТОГО (сумма этапов)':<{width}}  {total:>7.2f}")
+    return total
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Замер старта Феникса")
+    parser.add_argument("--no-whisper", action="store_true",
+                        help="не создавать WhisperTranscriber")
+    parser.add_argument("--no-tts", action="store_true",
+                        help="не создавать Speaker")
+    parser.add_argument("--no-mic", action="store_true",
+                        help="не создавать Listener (Vosk)")
+    parser.add_argument("--with-brain", action="store_true",
+                        help="создать Brain (пинг Ollama)")
+    parser.add_argument("--bg-wait", type=float, default=60.0,
+                        help="сколько ждать фоновую загрузку моделей, сек")
+    args = parser.parse_args()
+
+    # 1. Импорт главного модуля: тянет flet, vosk, sounddevice, gui.
+    measure("import jarvis.main (flet/vosk/gui)",
+            lambda: __import__("jarvis.main", fromlist=["main"]))
+
+    from jarvis import APP_NAME, __version__
+    from jarvis.actions import get_brightness
+    from jarvis.apps import build_apps
+    from jarvis.config import load_config
+    from jarvis.intents import IntentHandler
+    from jarvis.model import ensure_model
+    from jarvis.stt import Listener
+    from jarvis.tts import Speaker
+
+    config = measure("load_config", lambda: load_config(BASE))
+    if config is None:
+        print_table()
+        return 1
+
+    print(f"{APP_NAME} v{__version__}: tts_backend="
+          f"{config.get('tts_backend')!r}, use_whisper={config.get('use_whisper')}, "
+          f"vad_enabled={config.get('vad_enabled')}")
+
+    profile_mod = __import__("jarvis.profile", fromlist=["init"])
+    measure("profile.init()", profile_mod.init)
+    weather = __import__("jarvis.weather", fromlist=["set_config"])
+    measure("weather.set_config()", lambda: weather.set_config(config))
+
+    local_models = BASE / "models"
+    if not local_models.exists():
+        local_models = None
+    model_dir = measure("ensure_model (Vosk-модель)",
+                        lambda: ensure_model(local_models))
+
+    whisper = None
+    if not args.no_whisper and config.get("use_whisper", True):
+        from jarvis.stt import WhisperTranscriber
+
+        def _create_whisper():
+            nonlocal whisper
+            whisper = WhisperTranscriber(
+                config.get("whisper_model", "auto"),
+                config.get("whisper_device", "auto"),
+                lazy=True,
+            )
+            whisper.preload_async()
+            return whisper
+
+        measure("Whisper: создание (lazy=True)", _create_whisper)
+        if whisper is not None:
+            measure(
+                "Whisper: фоновая загрузка (фон)",
+                lambda: whisper.wait_ready(args.bg_wait),
+                note="фон — показ окна НЕ ждёт",
+            )
+
+    brain = None
+    if args.with_brain and config.get("use_llm", True):
+        from jarvis.brain import Brain
+
+        def _create_brain():
+            nonlocal brain
+            brain = Brain(
+                config.get("llm_model", "qwen2.5:7b-instruct"),
+                config.get("ollama_url", "http://127.0.0.1:11434"),
+                prompt_level=config.get("prompt_level", "auto"),
+                temperature=config.get("llm_temperature", 0.7),
+                config=config,
+            )
+            return brain
+
+        measure("Brain (Ollama ping)", _create_brain)
+
+    speaker = None
+    if not args.no_tts:
+        def _create_speaker():
+            nonlocal speaker
+            speaker = Speaker(config, lazy=True)
+            return speaker
+
+        measure("Speaker: создание (lazy=True)", _create_speaker)
+        if speaker is not None:
+            measure(
+                "Speaker: фоновая загрузка движка (фон)",
+                lambda: speaker._ensure_engine(args.bg_wait),
+                note="фон — показ окна НЕ ждёт",
+            )
+
+    listener = None
+    if not args.no_mic and model_dir is not None:
+        def _create_listener():
+            nonlocal listener
+            listener = Listener(
+                model_dir,
+                config["sample_rate"],
+                config.get("input_device"),
+                config=config,
+            )
+            return listener
+
+        measure("Listener (Vosk + VAD)", _create_listener)
+
+    measure("actions.get_brightness() (прогрев WMI)", get_brightness)
+
+    def _create_handler():
+        return IntentHandler(config, build_apps(config), brain,
+                             listener=listener, gui=None)
+
+    measure("IntentHandler + build_apps", _create_handler)
+
+    print_table()
+    print()
+    print("Подсказка: строки «фон» в блокировку старта не входят — "
+          "окно Flet показывается сразу, модель догружается параллельно.")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+```
+
+### `scripts/vadbench.py`
+
+```python
+"""Бенчмарк VAD: сколько latency он добавляет к ответу (Vosk-endpoint). ... [17 строк]"""
+
+import argparse
+import json
+import os
+import sys
+import tempfile
+import wave
+from pathlib import Path
+
+BASE = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(BASE))
+
+BLOCK = 8000        # блок аудио в бою: 8000 сэмплов @16 кГц = 500 мс
+SR = 16000
+NOISE_RMS = 40      # «тихая комната» после речи
+
+
+def _synth_sapi(text: str, path: str) -> str:
+    """Синтез русской речи через SAPI (comtypes). Возвращает имя голоса."""
+    import comtypes.client
+
+    voice = comtypes.client.CreateObject("SAPI.SpVoice")
+    picked = "по умолчанию"
+    try:
+        for v in voice.GetVoices():
+            lang = v.GetAttribute("Language")
+            if lang and int(lang, 16) == 0x419:  # 0x419 = ru-RU
+                voice.Voice = v
+                picked = v.GetDescription()
+                break
+    except Exception:
+        pass
+
+    stream = comtypes.client.CreateObject("SAPI.SpFileStream")
+    stream.Open(path, 3)  # SSFMCreateForWrite
+    voice.AudioOutputStream = stream
+    voice.Rate = 0
+    voice.Speak(text)
+    stream.Close()
+    return picked
+
+
+def _load_wav_16k(path: str):
+    """WAV -> mono int16 @16 кГц (numpy)."""
+    import numpy as np
+
+    w = wave.open(path, "rb")
+    sr, n, ch = w.getframerate(), w.getnframes(), w.getnchannels()
+    data = np.frombuffer(w.readframes(n), dtype=np.int16)
+    w.close()
+    if ch > 1:
+        data = data.reshape(-1, ch).mean(axis=1).astype(np.int16)
+    if sr != SR:
+        idx = np.linspace(0, len(data) - 1, int(len(data) * SR / sr))
+        data = np.interp(idx, np.arange(len(data)),
+                         data.astype(np.float32)).astype(np.int16)
+    return data
+
+
+def _find_vosk_model() -> Path:
+    from jarvis import paths
+    from jarvis.model import MODEL_NAME
+
+    for cand in (paths.program_models_dir() / MODEL_NAME,
+                 BASE / "models" / MODEL_NAME):
+        if cand.exists():
+            return cand
+    raise SystemExit("Не нашёл vosk-модель. Запустите jarvis (jarvis/model.py скачает).")
+
+
+def _build_stream(speech):
+    """[шум 2 с][речь][шум 3 с] — как реальная сессия."""
+    import numpy as np
+
+    rng = np.random.default_rng(0)
+    pre = rng.normal(0, NOISE_RMS, SR * 2).astype(np.int16)
+    post = rng.normal(0, NOISE_RMS, SR * 3).astype(np.int16)
+    return np.concatenate([pre, speech, post]), len(pre)
+
+
+def _run(model, blocks, vad, hangover_blocks, label):
+    """Гоняет блоки в Vosk и печатает, когда пришла финальная фраза."""
+    from vosk import KaldiRecognizer
+
+    from jarvis.vad import SpeechHangover
+
+    rec = KaldiRecognizer(model, SR)
+    gate = SpeechHangover(hangover_blocks) if vad is not None else None
+    fed = 0
+    for i, block in enumerate(blocks):
+        raw = block.tobytes()
+        if vad is not None:
+            if not gate.feed(vad.is_speech(raw)):
+                continue
+        fed += 1
+        if rec.AcceptWaveform(raw):
+            text = json.loads(rec.Result()).get("text", "")
+            print("%-14s endpoint на %4.1f с (в Vosk ушло %2d/%d блоков)  %r"
+                  % (label, (i + 1) * 0.5, fed, len(blocks), text))
+            return
+    print("%-14s ФРАЗА НЕ ОТДАНА за весь поток (в Vosk ушло %2d/%d блоков) — "
+          "ответа не будет!" % (label, fed, len(blocks)))
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description="Бенчмарк latency VAD + Vosk.")
+    ap.add_argument("text", nargs="*", default=None,
+                    help="фраза для синтеза (по умолчанию «Феникс, включи музыку»)")
+    ap.add_argument("--wav", help="готовый WAV вместо синтеза")
+    ap.add_argument("--hangover-ms", type=int, default=None,
+                    help="хвост тишины в мс (по умолчанию из jarvis.vad)")
+    args = ap.parse_args()
+
+    from vosk import Model, SetLogLevel
+
+    from jarvis.vad import DEFAULT_HANGOVER_MS, SpeechHangover, VAD
+
+    SetLogLevel(-1)
+
+    phrase = " ".join(args.text) if args.text else "Феникс, включи музыку"
+    if args.wav:
+        wav_path = args.wav
+        print("Речь из файла:", wav_path)
+    else:
+        wav_path = os.path.join(tempfile.gettempdir(), "vadbench_speech.wav")
+        print("Голос SAPI:", _synth_sapi(phrase, wav_path))
+    print("Фраза: %r" % phrase)
+
+    speech = _load_wav_16k(wav_path)
+    stream, pre_len = _build_stream(speech)
+    blocks = [stream[i:i + BLOCK] for i in range(0, len(stream) - BLOCK + 1, BLOCK)]
+    speech_end = (pre_len + len(speech)) / BLOCK
+
+    hangover_ms = args.hangover_ms if args.hangover_ms is not None else DEFAULT_HANGOVER_MS
+    block_ms = BLOCK * 1000.0 / SR
+    hangover_blocks = SpeechHangover.blocks_for_ms(hangover_ms, block_ms)
+
+    print("Поток: %.1f с, %d блоков по %.0f мс, речь кончается на блоке %.1f"
+          % (len(stream) / SR, len(blocks), block_ms, speech_end))
+    print("Хвост: %d мс = %d блока(ов)\n" % (hangover_ms, hangover_blocks))
+
+    model = Model(str(_find_vosk_model()))
+    _run(model, blocks, None, 0, "VAD OFF")
+    _run(model, blocks, VAD(), 0, "VAD ON h=0")
+    _run(model, blocks, VAD(), hangover_blocks, "VAD ON h=%d" % hangover_blocks)
+    print("\nЖдём: VAD ON h=N не хуже VAD OFF более чем на один блок.")
+
+
+if __name__ == "__main__":
+    main()
+```
+
 ### `scripts/voicedemo.py`
 
 ```python
@@ -16586,6 +18094,553 @@ def test_load_broken(tmp_path):
     bad = tmp_path / "bad.json"
     bad.write_text("{это не json", encoding="utf-8")
     assert config_manager.load(path=bad) == {}
+```
+
+### `tests/test_engine_probe.py`
+
+```python
+"""Заглушка движка TTS (factory._probe_engine). ... [9 строк]"""
+
+import pytest
+
+from jarvis.tts_engines import factory
+
+
+@pytest.fixture(autouse=True)
+def _fresh_probe_cache(monkeypatch):
+    """Свой кэш заглушек на каждый тест — чтобы не было протечек."""
+    monkeypatch.setattr(factory, "_PROBE_CACHE", {})
+
+
+def test_probe_has_voices():
+    probe = factory._try_create("piper", "", "medium", 1.15)
+    assert probe is not None
+    assert "ruslan" in probe.voices
+    assert "irina" in probe.voices
+
+
+def test_probe_is_not_real_engine():
+    from jarvis.tts_engines.piper import PiperEngine
+
+    probe = factory._try_create("piper", "", "medium", 1.15)
+    assert not isinstance(probe, PiperEngine)
+
+
+def test_probe_unknown_backend_is_none():
+    assert factory._try_create("не_движок", "", "medium", 1.15) is None
+
+
+def test_probe_none_without_dependency(monkeypatch):
+    monkeypatch.setattr(factory, "_dependency_present", lambda name: False)
+    assert factory._probe_engine("piper") is None
+
+
+def test_probe_dependency_check_is_used(monkeypatch):
+    """Заглушка не появляется, если нужного пакета нет."""
+    seen = []
+
+    def _fake_present(name):
+        seen.append(name)
+        return False
+
+    monkeypatch.setattr(factory, "_dependency_present", _fake_present)
+    factory._probe_engine("silero")
+    assert seen == ["torch"]
+
+
+def test_probe_result_is_cached(monkeypatch):
+    calls = []
+    real_import = factory.importlib.import_module
+
+    def _counting_import(name):
+        calls.append(name)
+        return real_import(name)
+
+    monkeypatch.setattr(factory.importlib, "import_module", _counting_import)
+    factory._probe_engine("piper")
+    factory._probe_engine("piper")
+    assert calls.count("jarvis.tts_engines.piper") == 1
+
+
+def test_real_voice_does_not_use_probe(monkeypatch):
+    """С непустым голосом заглушка не подставляется — нужен реальный синтез."""
+    probes = []
+    monkeypatch.setattr(factory, "_probe_engine",
+                        lambda name: probes.append(name) or None)
+    monkeypatch.setattr(factory, "_ENGINE_CACHE", {})
+
+    factory._try_create("не_движок", "ruslan", "medium", 1.15)
+
+    assert probes == []
+
+
+def test_list_engines_matches_probes():
+    engines = factory.list_engines()
+    expected = [name for name in ("silero", "piper", "winrt", "sapi")
+                if factory._probe_engine(name) is not None]
+    assert engines == expected
+```
+
+### `tests/test_gui_wiring.py`
+
+```python
+"""GUI → config: каждый элемент окна реально отсылает изменение. ... [10 строк]"""
+
+import importlib.util
+from types import SimpleNamespace
+
+import pytest
+
+if importlib.util.find_spec("flet") is None:
+    pytest.skip("flet не установлен — тесты GUI пропущены",
+                allow_module_level=True)
+
+import flet as ft  # noqa: E402
+
+from jarvis import gui as gui_mod  # noqa: E402
+from jarvis import mood as mood_mod  # noqa: E402
+from jarvis import persona as persona_mod  # noqa: E402
+from jarvis import profile as profile_mod  # noqa: E402
+from jarvis.config import Config  # noqa: E402
+
+
+def ev(value):
+    """Фейковое событие Flet: e.control.value."""
+    return SimpleNamespace(control=SimpleNamespace(value=value))
+
+
+def test_all_tabs_build(gui):
+    """Smoke: все пять вкладок собираются без ошибок. ... [4 строк]"""
+    for name in ("_build_main_tab", "_build_mic_tab", "_build_audio_tab",
+                 "_build_persona_tab", "_build_settings_tab"):
+        control = getattr(gui, name)()
+        assert control is not None, f"{name} вернул None"
+
+
+@pytest.fixture()
+def cfg(tmp_path):
+    """Изолированный config.json — реальные настройки не трогаем."""
+    return Config(tmp_path / "config.json")
+
+
+@pytest.fixture()
+def gui(cfg):
+    """FenixGUI без Flet-страницы и без Jarvis."""
+    window = gui_mod.FenixGUI(None, cfg)
+    yield window
+    # GUI подписывается на profile/mood — отписываемся, чтобы подписки
+    # не копились между тестами.
+    profile_mod.unsubscribe(window._on_profile_switch)
+    mood_mod.unsubscribe(window._on_mood_change)
+    gui_mod._apply_palette("dark")
+
+
+@pytest.fixture()
+def stub_tabs(monkeypatch):
+    """Заглушки построителей вкладок. ... [5 строк]"""
+    built = []
+    for name in ("_build_main_tab", "_build_mic_tab", "_build_audio_tab",
+                 "_build_persona_tab", "_build_settings_tab"):
+        monkeypatch.setattr(
+            gui_mod.FenixGUI, name,
+            lambda self, _name=name: built.append(_name) or ft.Text("stub"),
+        )
+    return built
+
+
+# =================================================================
+# Главная вкладка
+# =================================================================
+
+def test_mode_radio_sends_mode(gui, cfg):
+    gui._on_mode_change(ev("llm"))
+    assert cfg["mode"] == "llm"
+
+
+def test_mode_radio_updates_running_handler(gui, cfg):
+    handler = SimpleNamespace(mode="combo")
+    gui.jarvis = SimpleNamespace(handler=handler)
+    gui._on_mode_change(ev("commands"))
+    assert handler.mode == "commands"
+
+
+def test_voice_dropdown_sends_tts_voice(gui, cfg):
+    gui._on_voice_change(ev("irina"))
+    assert cfg["tts_voice"] == "irina"
+
+
+def test_memory_radio_long_preset(gui, cfg):
+    gui._on_memory_change(ev("long"))
+    assert cfg["memory_max"] == 200
+    assert cfg["llm_context_messages"] == 40
+
+
+def test_memory_radio_short_preset(gui, cfg):
+    gui._on_memory_change(ev("short"))
+    assert cfg["memory_max"] == 40
+    assert cfg["llm_context_messages"] == 10
+
+
+def test_send_button_runs_trimmed_command(gui, monkeypatch):
+    """Кнопка «отправить» отдаёт текст в ядро (и чистит поле)."""
+    commands = []
+    monkeypatch.setattr(gui, "_run_command", lambda cmd: commands.append(cmd))
+    gui._input_field = SimpleNamespace(value="  феникс, время  ")
+
+    gui._on_send(None)
+
+    assert commands == ["феникс, время"]
+    assert gui._input_field.value == ""
+
+
+def test_send_button_ignores_empty_input(gui, monkeypatch):
+    commands = []
+    monkeypatch.setattr(gui, "_run_command", lambda cmd: commands.append(cmd))
+    gui._input_field = SimpleNamespace(value="   ")
+
+    gui._on_send(None)
+
+    assert commands == []
+
+
+# =================================================================
+# Вкладка «Аудио» — VAD + Prosody + распознавание
+# =================================================================
+
+def test_audio_tab_has_hangover_slider(gui):
+    """Ползунок «хвоста» VAD реально есть во вкладке."""
+    gui._build_audio_tab()
+    assert gui._vad_hangover_slider.max == 3000
+    assert "Хвост" in gui._vad_hangover_label.value
+
+
+def test_prosody_enabled_sends_flag(gui, cfg):
+    gui._on_prosody_enabled(ev(False))
+    assert cfg["prosody_enabled"] is False
+
+
+def test_prosody_priority_sends_value(gui, cfg):
+    gui._on_prosody_priority(ev("text"))
+    assert cfg["prosody_priority"] == "text"
+
+
+def test_prosody_priority_rejects_unknown(gui, cfg):
+    gui._on_prosody_priority(ev("мусор"))
+    assert cfg["prosody_priority"] == "prosody"
+
+
+def test_vad_enabled_checkbox(gui, cfg):
+    gui._on_vad_enabled(ev(False))
+    assert cfg["vad_enabled"] is False
+
+
+def test_vad_adaptive_checkbox(gui, cfg):
+    gui._on_vad_adaptive(ev(False))
+    assert cfg["vad_adaptive"] is False
+
+
+def test_vad_threshold_slider_end(gui, cfg):
+    gui._on_vad_threshold_end(ev(0.23))
+    assert cfg["vad_threshold"] == 0.23
+
+
+def test_vad_hangover_slider_end(gui, cfg):
+    gui._on_vad_hangover_end(ev(750.6))
+    assert cfg["vad_hangover_ms"] == 751
+
+
+def test_vad_hangover_slider_zero(gui, cfg):
+    gui._on_vad_hangover_end(ev(0))
+    assert cfg["vad_hangover_ms"] == 0
+
+
+def test_barge_checkbox(gui, cfg):
+    gui._on_barge_enabled(ev(False))
+    assert cfg["barge_enabled"] is False
+
+
+def test_wake_word_checkbox(gui, cfg):
+    gui._on_wake_required(ev(False))
+    assert cfg["wake_word_required"] is False
+
+
+# =================================================================
+# Вкладка «Микрофон»
+# =================================================================
+
+def test_mic_select_sends_input_device(gui, cfg):
+    gui._on_mic_change(ev("USB Headset"))
+    assert cfg["input_device"] == "USB Headset"
+
+
+def test_mic_select_default_is_none(gui, cfg):
+    gui._on_mic_change(ev("по умолчанию"))
+    assert cfg["input_device"] is None
+
+
+def test_mic_toggle_pauses_and_resumes(gui):
+    gui.jarvis = SimpleNamespace(listening_enabled=True)
+    gui._mic_btn = ft.IconButton(icon=ft.Icons.MIC, icon_color=gui_mod.ACCENT)
+
+    gui._on_mic_toggle(None)
+    assert gui.jarvis.listening_enabled is False
+    assert gui._mic_btn.icon == ft.Icons.MIC_OFF
+
+    gui._on_mic_toggle(None)
+    assert gui.jarvis.listening_enabled is True
+
+
+def test_mic_toggle_without_jarvis_is_noop(gui):
+    gui.jarvis = None
+    gui._on_mic_toggle(None)  # не должно падать
+
+
+# =================================================================
+# Вкладка «Настройки»
+# =================================================================
+
+def test_llm_model_dropdown(gui, cfg):
+    gui._on_llm_change(ev("gemma2:9b"))
+    assert cfg["llm_model"] == "gemma2:9b"
+
+
+def test_ollama_url_field(gui, cfg):
+    gui._on_ollama_change(ev("http://127.0.0.1:12345"))
+    assert cfg["ollama_url"] == "http://127.0.0.1:12345"
+
+
+def test_tts_backend_sends_and_rebuilds_tabs(gui, cfg, stub_tabs):
+    gui._on_tts_change(ev("sapi"))
+    assert cfg["tts_backend"] == "sapi"
+    assert "_build_main_tab" in stub_tabs, "вкладки не пересобраны"
+
+
+def test_voice_quality_sends_and_switches_engine(gui, cfg):
+    switched = []
+    gui.jarvis = SimpleNamespace(speaker=SimpleNamespace(
+        switch_backend=lambda backend: switched.append(backend) or True,
+    ))
+
+    gui._on_voice_quality_change(ev("high"))
+
+    assert cfg["tts_voice_quality"] == "high"
+    assert switched == [cfg["tts_backend"]]
+
+
+def test_voice_quality_rejects_unknown(gui, cfg):
+    gui._on_voice_quality_change(ev("ультра"))
+    assert cfg["tts_voice_quality"] == "medium"
+
+
+def test_rate_slider(gui, cfg):
+    gui._on_rate_change(ev(1.34))
+    assert cfg["voice_rate"] == 1.34
+
+
+def test_theme_dropdown(gui, cfg):
+    gui._on_theme_change(ev("Светлая"))
+    assert cfg["gui_theme"] == "Светлая"
+
+
+def test_theme_dropdown_rejects_unknown(gui, cfg):
+    gui._on_theme_change(ev("радужная"))
+    assert cfg["gui_theme"] == "Системная"
+
+
+# =================================================================
+# Вкладка «Персона»
+# =================================================================
+
+def test_persona_name_goes_to_config(gui, cfg):
+    gui._on_persona_name(ev("Маша"))
+    assert cfg["name"] == "Маша"
+
+
+def test_persona_fields_go_to_persona_module(gui, monkeypatch):
+    saved = {}
+    monkeypatch.setattr(
+        persona_mod, "set_field",
+        lambda field, value: saved.__setitem__(field, value),
+    )
+
+    gui._on_persona_assistant_name(ev("Джарвис"))
+    gui._on_persona_style(ev("кратко"))
+    gui._on_persona_traits(ev("добрый, умный"))
+    gui._on_persona_backstory(ev("живу в ноутбуке"))
+
+    assert saved["assistant_name"] == "Джарвис"
+    assert saved["speech_style"] == "кратко"
+    assert saved["traits"] == ["добрый", "умный"]
+    assert saved["backstory"] == "живу в ноутбуке"
+
+
+def test_persona_tone_rejects_unknown(gui, monkeypatch):
+    saved = {}
+    monkeypatch.setattr(
+        persona_mod, "set_field",
+        lambda field, value: saved.__setitem__(field, value),
+    )
+
+    gui._on_persona_tone(ev("злой"))
+
+    assert saved["tone"] == "auto"
+
+
+def test_persona_assistant_name_empty_uses_default(gui, monkeypatch):
+    saved = {}
+    monkeypatch.setattr(
+        persona_mod, "set_field",
+        lambda field, value: saved.__setitem__(field, value),
+    )
+
+    gui._on_persona_assistant_name(ev("   "))
+
+    assert saved["assistant_name"] == "Феникс"
+```
+
+### `tests/test_main_wiring.py`
+
+```python
+"""config → живое ядро: подписчик make_config_listener. ... [18 строк]"""
+
+import importlib.util
+
+import pytest
+
+missing = [m for m in ("vosk", "sounddevice", "flet")
+           if importlib.util.find_spec(m) is None]
+if missing:
+    pytest.skip(f"нет {', '.join(missing)} — тест пропущен",
+                allow_module_level=True)
+
+from jarvis.main import make_config_listener  # noqa: E402
+
+
+class Spy:
+    """Заглушка компонента: помнит, какие методы и с чем вызывали."""
+
+    def __init__(self, name="spy"):
+        self.name = name
+        self.calls = []
+
+    def __getattr__(self, item):
+        def _rec(*args, **kwargs):
+            self.calls.append((item, args))
+            return None
+
+        return _rec
+
+    def called(self, method):
+        return [args for name, args in self.calls if name == method]
+
+
+class FakeJarvis:
+    def __init__(self):
+        self.barge_enabled = True
+        self._wake_word_required = True
+
+
+@pytest.fixture()
+def wiring():
+    """Собирает подписчик + заглушки и отдаёт их одним кортежем."""
+    jarvis = FakeJarvis()
+    listener = Spy("listener")
+    speaker = Spy("speaker")
+    handler = Spy("handler")
+    callback = make_config_listener(jarvis, None, listener, speaker, handler)
+    return jarvis, listener, speaker, handler, callback
+
+
+# =================================================================
+# VAD — живое применение
+# =================================================================
+
+def test_vad_threshold_reloads_vad(wiring):
+    _, listener, _, _, callback = wiring
+    callback("vad_threshold", 0.2)
+    assert listener.called("reload_vad") == [()]
+
+
+def test_vad_adaptive_reloads_vad(wiring):
+    _, listener, _, _, callback = wiring
+    callback("vad_adaptive", False)
+    assert listener.called("reload_vad") == [()]
+
+
+def test_vad_hangover_reloads_vad(wiring):
+    _, listener, _, _, callback = wiring
+    callback("vad_hangover_ms", 500)
+    assert listener.called("reload_vad") == [()]
+
+
+def test_vad_enabled_toggles_vad(wiring):
+    _, listener, _, _, callback = wiring
+    callback("vad_enabled", False)
+    assert listener.called("set_vad_enabled") == [(False,)]
+
+
+def test_input_device_switches_microphone(wiring):
+    _, listener, _, _, callback = wiring
+    callback("input_device", "USB Headset")
+    assert listener.called("set_input_device") == [("USB Headset",)]
+
+
+# =================================================================
+# Остальные ключи
+# =================================================================
+
+def test_wake_word_required_flag(wiring):
+    jarvis, _, _, _, callback = wiring
+    callback("wake_word_required", False)
+    assert jarvis._wake_word_required is False
+
+
+def test_barge_enabled_both_sides(wiring):
+    jarvis, listener, _, _, callback = wiring
+    callback("barge_enabled", False)
+    assert jarvis.barge_enabled is False
+    assert listener.barge_enabled is False
+
+
+def test_tts_backend_switches_speaker(wiring):
+    _, _, speaker, _, callback = wiring
+    callback("tts_backend", "piper")
+    assert speaker.called("switch_backend") == [("piper",)]
+
+
+def test_tts_voice_and_rate(wiring):
+    _, _, speaker, _, callback = wiring
+    callback("tts_voice", "irina")
+    callback("voice_rate", 1.5)
+    assert speaker.called("set_voice") == [("irina",)]
+    assert speaker.called("set_rate") == [(1.5,)]
+
+
+def test_mode_goes_to_handler(wiring):
+    _, _, _, handler, callback = wiring
+    callback("mode", "llm")
+    assert handler.mode == "llm"
+
+
+def test_unknown_key_is_ignored(wiring):
+    _, listener, speaker, _, callback = wiring
+    callback("совсем_не_тот_ключ", 1)
+    assert listener.calls == []
+    assert speaker.calls == []
+
+
+def test_missing_listener_is_safe(wiring):
+    """listener=None (GUI без микрофона) — подписчик не падает."""
+    jarvis, _, speaker, handler, _ = wiring
+    callback = make_config_listener(jarvis, None, None, speaker, handler)
+
+    callback("vad_enabled", False)
+    callback("vad_threshold", 0.3)
+    callback("vad_hangover_ms", 1000)
+    callback("input_device", "нет такого")
+    callback("barge_enabled", False)
+
+    assert jarvis.barge_enabled is False
 ```
 
 ### `tests/test_mood.py`
@@ -17227,6 +19282,403 @@ def test_prosody_rms_reasonable():
     assert result["rms"] > 0
 ```
 
+### `tests/test_speech_gate.py`
+
+```python
+"""Тесты jarvis.vad.SpeechHangover — «хвост» тишины после речи. ... [8 строк]"""
+
+from jarvis.vad import DEFAULT_HANGOVER_MS, SpeechHangover
+
+
+def test_blocks_for_ms_rounds():
+    """1500 мс при блоке 500 мс → 3 блока."""
+    assert SpeechHangover.blocks_for_ms(1500, 500) == 3
+
+
+def test_blocks_for_ms_zero_block():
+    """Нулевой/отрицательный блок не делим на ноль."""
+    assert SpeechHangover.blocks_for_ms(1500, 0) == 0
+    assert SpeechHangover.blocks_for_ms(1500, -5) == 0
+
+
+def test_blocks_for_ms_negative_ms():
+    """Отрицательный хвост — это «без хвоста»."""
+    assert SpeechHangover.blocks_for_ms(-100, 500) == 0
+
+
+def test_default_hangover_is_1500ms():
+    assert DEFAULT_HANGOVER_MS == 1500
+
+
+def test_speech_block_always_passed():
+    """Речевой блок отдаётся в Vosk всегда."""
+    gate = SpeechHangover(blocks=3)
+    assert gate.feed(True) is True
+
+
+def test_silence_before_speech_is_dropped():
+    """До речи тишина не гоняется в Vosk (экономия CPU)."""
+    gate = SpeechHangover(blocks=3)
+    for _ in range(10):
+        assert gate.feed(False) is False
+
+
+def test_hangover_passes_exactly_n_silence_blocks():
+    """После речи проходит ровно N блоков тишины, дальше — стоп."""
+    gate = SpeechHangover(blocks=3)
+    assert gate.feed(True) is True
+
+    assert [gate.feed(False) for _ in range(5)] == [True, True, True,
+                                                    False, False]
+
+
+def test_hangover_refreshed_by_new_speech():
+    """Каждый речевой блок продлевает хвост заново."""
+    gate = SpeechHangover(blocks=2)
+    gate.feed(True)
+    assert gate.feed(False) is True
+    assert gate.feed(True) is True          # хвост продлён
+    assert [gate.feed(False) for _ in range(3)] == [True, True, False]
+
+
+def test_zero_blocks_behaves_like_plain_gate():
+    """blocks=0 — чистый гейт без хвоста (старое поведение)."""
+    gate = SpeechHangover(blocks=0)
+    assert gate.feed(True) is True
+    assert gate.feed(False) is False
+
+
+def test_negative_blocks_clamped_to_zero():
+    assert SpeechHangover(blocks=-3).max_blocks == 0
+
+
+def test_reset_clears_hangover():
+    """reset() (flush/barge) обнуляет хвост — тишина не утечёт в Vosk."""
+    gate = SpeechHangover(blocks=3)
+    gate.feed(True)
+    assert gate.feed(False) is True
+    gate.reset()
+    assert gate.feed(False) is False
+
+
+def test_max_blocks_property():
+    assert SpeechHangover(blocks=4).max_blocks == 4
+```
+
+### `tests/test_stt.py`
+
+```python
+"""stt.Listener: живое применение настроек (то, что раньше не работало). ... [11 строк]"""
+
+import importlib.util
+import queue
+import time
+from threading import Event, Thread
+
+import pytest
+
+missing = [m for m in ("sounddevice", "vosk", "numpy")
+           if importlib.util.find_spec(m) is None]
+if missing:
+    pytest.skip(f"нет {', '.join(missing)} — тесты stt пропущены",
+                allow_module_level=True)
+
+from jarvis import stt  # noqa: E402
+from jarvis import vad as vad_mod  # noqa: E402
+
+
+class FakeRec:
+    """Заглушка KaldiRecognizer (Vosk): фраз не отдаёт."""
+
+    def __init__(self):
+        self.reset_calls = 0
+        self.accepted = 0
+
+    def AcceptWaveform(self, data):
+        self.accepted += 1
+        return False
+
+    def Result(self):
+        return '{"text": ""}'
+
+    def FinalResult(self):
+        return '{"text": ""}'
+
+    def Reset(self):
+        self.reset_calls += 1
+
+
+class FakeVAD:
+    """Заглушка Silero VAD: помнит параметры и счётчик reset()."""
+
+    def __init__(self, sample_rate=16000, threshold=0.5, adaptive=True):
+        self.sample_rate = sample_rate
+        self.threshold = threshold
+        self.adaptive = adaptive
+        self._debug = False
+        self.resets = 0
+
+    def is_available(self):
+        return True
+
+    def is_speech(self, pcm):
+        return True
+
+    def reset(self):
+        self.resets += 1
+
+
+class FakeGate:
+    """Заглушка SpeechHangover: считает блоки как настоящая."""
+
+    def __init__(self, blocks=3):
+        self.max_blocks = max(0, int(blocks))
+
+    @staticmethod
+    def blocks_for_ms(ms, block_ms):
+        if block_ms <= 0:
+            return 0
+        return int(round(max(0.0, float(ms)) / block_ms))
+
+    def feed(self, is_speech):
+        return bool(is_speech)
+
+    def reset(self):
+        pass
+
+
+class FakeStream:
+    """Заглушка sd.RawInputStream: пишет, на каком устройстве открылись."""
+
+    opened: list = []
+
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
+        FakeStream.opened.append(kwargs.get("device"))
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+class Cfg(dict):
+    """Мини-Config: обработчикам нужен только get()."""
+
+    def get(self, key, default=None):
+        return dict.get(self, key, default)
+
+
+def _query_devices(index=None):
+    devices = [
+        {"name": "Микрофон (Realtek)", "max_input_channels": 2},
+        {"name": "USB Headset", "max_input_channels": 1},
+        {"name": "Динамики", "max_input_channels": 0},
+    ]
+    if isinstance(index, int):
+        return devices[index]
+    return devices
+
+
+@pytest.fixture()
+def cfg():
+    return Cfg(vad_enabled=True, vad_threshold=0.5, vad_adaptive=True,
+               vad_hangover_ms=1500)
+
+
+@pytest.fixture()
+def devices(monkeypatch):
+    monkeypatch.setattr(stt.sd, "query_devices", _query_devices)
+    monkeypatch.setattr(stt.sd, "default",
+                        type("D", (), {"device": (0, 1)})())
+
+
+@pytest.fixture()
+def listener(monkeypatch, cfg, devices):
+    monkeypatch.setattr(stt, "Model", lambda path: object())
+    monkeypatch.setattr(stt, "KaldiRecognizer", lambda model, sr: FakeRec())
+    # stt.py импортирует VAD/SpeechHangover к себе на уровень модуля —
+    # их надо подменить там же (в set_vad_enabled импорт локальный).
+    monkeypatch.setattr(stt, "VAD", FakeVAD)
+    monkeypatch.setattr(stt, "SpeechHangover", FakeGate)
+    monkeypatch.setattr(vad_mod, "VAD", FakeVAD)
+    monkeypatch.setattr(vad_mod, "SpeechHangover", FakeGate)
+    monkeypatch.setattr(FakeStream, "opened", [])
+    return stt.Listener("C:/fake-model", 16000, None, config=cfg)
+
+
+# =================================================================
+# reload_vad
+# =================================================================
+
+def test_listener_starts_with_vad(listener):
+    assert isinstance(listener.vad, FakeVAD)
+    assert isinstance(listener._vad_gate, FakeGate)
+
+
+def test_reload_vad_applies_new_threshold(listener, cfg):
+    """Порог, сдвинутый в GUI, должен дойти до работающего VAD."""
+    cfg["vad_threshold"] = 0.2
+    listener.reload_vad()
+    assert listener.vad.threshold == 0.2
+
+
+def test_reload_vad_applies_adaptive(listener, cfg):
+    cfg["vad_adaptive"] = False
+    listener.reload_vad()
+    assert listener.vad.adaptive is False
+
+
+def test_reload_vad_rebuilds_hangover(listener, cfg):
+    """«Хвост» 500 мс при блоке 500 мс = 1 блок."""
+    cfg["vad_hangover_ms"] = 500
+    listener.reload_vad()
+    assert listener._vad_gate.max_blocks == 1
+
+
+def test_hangover_blocks_from_config(listener, cfg):
+    """1500 мс при блоке 500 мс = 3 блока (как в config по умолчанию)."""
+    assert listener._vad_gate.max_blocks == 3
+
+
+def test_reload_vad_skipped_when_disabled(listener, cfg):
+    """VAD выключен — reload его не включает обратно."""
+    listener.vad = None
+    listener._vad_gate = None
+    listener.vad_enabled = False
+    listener.reload_vad()
+    assert listener.vad is None
+
+
+def test_vad_disabled_in_config(monkeypatch):
+    """vad_enabled=false — VAD не создаётся вовсе."""
+    monkeypatch.setattr(stt, "Model", lambda path: object())
+    monkeypatch.setattr(stt, "KaldiRecognizer", lambda model, sr: FakeRec())
+    monkeypatch.setattr(stt, "VAD", FakeVAD)
+    monkeypatch.setattr(stt, "SpeechHangover", FakeGate)
+
+    listener = stt.Listener("C:/fake-model", 16000, None,
+                            config=Cfg(vad_enabled=False))
+
+    assert listener.vad is None
+    assert listener._vad_gate is None
+
+
+# =================================================================
+# set_input_device + _drain_audio
+# =================================================================
+
+def test_set_input_device_finds_index_by_name(listener):
+    listener.set_input_device("usb")
+    assert listener._device == 1
+    assert listener._device_reload is True
+    assert "USB Headset" in listener.device_name
+
+
+def test_set_input_device_same_device_is_noop(listener):
+    """Тот же микрофон — поток не трогаем (лишний рестарт не нужен)."""
+    listener._device = 1
+    listener.set_input_device("usb")
+    assert listener._device_reload is False
+
+
+def test_set_input_device_unknown_falls_back(listener):
+    listener._device = 1
+    listener.set_input_device("нет такого микрофона")
+    assert listener._device is None
+    assert listener._device_reload is True
+
+
+def test_set_input_device_back_to_default(listener):
+    listener._device = 1
+    listener.set_input_device(None)
+    assert listener._device is None
+    assert listener._device_reload is True
+
+
+def test_drain_audio_clears_queue_and_buffer(listener):
+    listener._audio.put(b"chunk")
+    listener._utt_buf.append(b"chunk")
+    listener._utt_len = 5
+
+    listener._drain_audio()
+
+    assert listener._audio.empty()
+    assert listener._utt_buf == []
+    assert listener._utt_len == 0
+
+
+def test_flush_clears_queue(listener):
+    listener._audio.put(b"chunk")
+    listener._utt_buf.append(b"chunk")
+    listener._utt_len = 5
+
+    listener.flush()
+
+    assert listener._audio.empty()
+    assert listener._utt_buf == []
+
+
+# =================================================================
+# phrases(): переоткрытие потока при смене микрофона
+# =================================================================
+
+def test_phrases_reopens_stream_on_device_change(monkeypatch, listener):
+    """Смена микрофона на лету: поток закрывается и открывается заново."""
+    monkeypatch.setattr(stt.sd, "RawInputStream", FakeStream)
+    stop = Event()
+
+    def _consume():
+        for _ in listener.phrases(stop):
+            break
+
+    thread = Thread(target=_consume, daemon=True, name="test-listener")
+    thread.start()
+
+    # Ждём, пока поток откроется на «по умолчанию».
+    for _ in range(100):
+        if FakeStream.opened:
+            break
+        time.sleep(0.01)
+    assert FakeStream.opened == [None], "поток не открылся"
+
+    listener.set_input_device("usb")
+
+    for _ in range(200):
+        if len(FakeStream.opened) >= 2:
+            break
+        time.sleep(0.01)
+
+    stop.set()
+    thread.join(timeout=3.0)
+
+    assert FakeStream.opened == [None, 1], "поток не переоткрылся"
+    assert listener._rec.reset_calls >= 1, "Vosk не сброшен при смене микрофона"
+
+
+def test_phrases_keeps_stream_without_device_change(monkeypatch, listener):
+    """Без смены микрофона поток открывается ровно один раз."""
+    monkeypatch.setattr(stt.sd, "RawInputStream", FakeStream)
+    stop = Event()
+
+    def _consume():
+        for _ in listener.phrases(stop):
+            break
+
+    thread = Thread(target=_consume, daemon=True, name="test-listener")
+    thread.start()
+    for _ in range(100):
+        if FakeStream.opened:
+            break
+        time.sleep(0.01)
+    time.sleep(0.2)
+    stop.set()
+    thread.join(timeout=3.0)
+
+    assert FakeStream.opened == [None]
+```
+
 ### `tests/test_tts.py`
 
 ```python
@@ -17629,10 +20081,12 @@ def test_is_available_false():
 ### `tests/test_vad.py`
 
 ```python
-"""Тесты jarvis.vad — Silero VAD ONNX. ... [4 строк]"""
+"""Тесты jarvis.vad — Silero VAD ONNX. ... [13 строк]"""
 
 import importlib.util
-from unittest.mock import patch, MagicMock
+import logging
+
+from unittest.mock import patch
 
 import pytest
 
@@ -17644,6 +20098,20 @@ if importlib.util.find_spec("onnxruntime") is None:
 from jarvis import vad
 
 
+def _voiced(amp: int = 3000, n: int = 8000, sr: int = 16000):
+    """Синтетический «голос»: гармоники 120/240/360 Гц (Silero видит речь)."""
+    import numpy as np
+    t = np.arange(n) / sr
+    x = amp * (0.6 * np.sin(2 * np.pi * 120 * t)
+               + 0.3 * np.sin(2 * np.pi * 240 * t)
+               + 0.1 * np.sin(2 * np.pi * 360 * t))
+    return x.astype(np.int16)
+
+
+# =================================================================
+# Fallback без модели
+# =================================================================
+
 def test_vad_unavailable_without_model():
     """Без модели VAD.is_available() == False, is_speech → True (safe)."""
     with patch.object(vad, "_find_model", return_value=None):
@@ -17652,6 +20120,10 @@ def test_vad_unavailable_without_model():
     # Fallback: без VAD всё считаем речью (старое поведение).
     assert v.is_speech(b"\x00" * 1024) is True
 
+
+# =================================================================
+# Реальная модель (skip, если недоступна)
+# =================================================================
 
 def test_vad_silence_returns_false():
     """Тишина (нули) → не речь."""
@@ -17664,7 +20136,7 @@ def test_vad_silence_returns_false():
 
 
 def test_vad_noise_returns_false():
-    """Случайный шум не детектится как речь (обычно)."""
+    """Случайный шум не детектится как речь."""
     import numpy as np
     v = vad.VAD()
     if not v.is_available():
@@ -17672,6 +20144,22 @@ def test_vad_noise_returns_false():
     np.random.seed(42)
     noise = (np.random.randn(16000) * 100).astype(np.int16).tobytes()
     assert v.is_speech(noise) is False
+
+
+def test_vad_voiced_signal_is_speech():
+    """Синтетический голос → речь."""
+    v = vad.VAD()
+    if not v.is_available():
+        pytest.skip("модель VAD недоступна")
+    assert v.is_speech(_voiced(amp=3000).tobytes()) is True
+
+
+def test_vad_quiet_voiced_signal_is_speech():
+    """Нормализация позволяет ловить тихую речь (rms ~38)."""
+    v = vad.VAD()
+    if not v.is_available():
+        pytest.skip("модель VAD недоступна")
+    assert v.is_speech(_voiced(amp=80).tobytes()) is True
 
 
 def test_vad_reset_does_not_crash():
@@ -17698,51 +20186,179 @@ def test_vad_short_chunk():
     short = np.zeros(100, dtype=np.int16).tobytes()
     assert v.is_speech(short) is False
 
+
+# =================================================================
+# Нормализация
+# =================================================================
+
+def test_vad_normalization_amplifies_quiet_signal():
+    """Тихий сигнал (пик 150) усиливается к целевой амплитуде."""
+    import numpy as np
+    v = vad.VAD()
+    arr = (np.sin(np.linspace(0, 100, 8000)) * 150).astype(np.int16)
+    out = v._normalize(arr)
+    assert out.dtype == np.float32
+    assert float(np.abs(out).max()) > 150 / 32768.0
+
+
+# =================================================================
+# Адаптивный порог (без модели — чистая логика)
+# =================================================================
+
 def test_vad_adaptive_default_on():
     """VAD по умолчанию адаптивный."""
-    from jarvis.vad import VAD
-    v = VAD()
+    v = vad.VAD()
     assert v._adaptive is True
 
 
+def test_vad_threshold_low_on_high_snr():
+    """Сигнал явно выше фона (snr >= 6) → порог опускается до 0.30."""
+    v = vad.VAD()
+    v._rms_baseline = 100.0
+    assert v._compute_threshold(1000.0) == pytest.approx(0.30)
+
+
+def test_vad_threshold_high_near_noise():
+    """Сигнал у уровня фона (snr <= 2) → порог поднимается до 0.70."""
+    v = vad.VAD()
+    v._rms_baseline = 100.0
+    assert v._compute_threshold(150.0) == pytest.approx(0.70)
+
+
+def test_vad_threshold_base_between():
+    """Средний SNR → базовый порог без сдвига."""
+    v = vad.VAD()
+    v._rms_baseline = 100.0
+    assert v._compute_threshold(300.0) == pytest.approx(0.50)
+
+
+def test_vad_threshold_disabled_when_not_adaptive():
+    """adaptive=False → порог всегда базовый."""
+    v = vad.VAD(adaptive=False)
+    v._rms_baseline = 100.0
+    assert v._compute_threshold(1000.0) == pytest.approx(0.50)
+
+
+def test_vad_threshold_default_without_baseline():
+    """Фон ещё не измерен → базовый порог."""
+    v = vad.VAD()
+    assert v._compute_threshold(1000.0) == pytest.approx(0.50)
+
+
+# =================================================================
+# Обучение фона
+# =================================================================
+
 def test_vad_rms_baseline_grows():
-    """RMS-база обновляется на тихих чанках."""
+    """RMS-база обновляется на чанках."""
     import numpy as np
-    from jarvis.vad import VAD
-    v = VAD()
+    v = vad.VAD()
     if not v.is_available():
         pytest.skip("модель VAD недоступна")
-
     for _ in range(5):
         quiet = (np.random.randn(8000) * 100).astype(np.int16).tobytes()
         v.is_speech(quiet)
-
     assert v.rms_baseline() > 0
 
 
 def test_vad_reset_keeps_rms_baseline():
     """reset() не сбрасывает RMS-базу."""
     import numpy as np
-    from jarvis.vad import VAD
-    v = VAD()
+    v = vad.VAD()
     if not v.is_available():
         pytest.skip("модель VAD недоступна")
-
     for _ in range(5):
         quiet = (np.random.randn(8000) * 100).astype(np.int16).tobytes()
         v.is_speech(quiet)
-
     before = v.rms_baseline()
     v.reset()
-    after = v.rms_baseline()
-    assert before == after
+    assert v.rms_baseline() == before
 
 
 def test_vad_baseline_calibration_n():
     """Калибровка — 30 замеров до «заморозки» базы."""
-    from jarvis.vad import VAD
-    v = VAD()
+    v = vad.VAD()
     assert v._rms_calibration_n == 30
+
+
+# =================================================================
+# «Мёртвый» микрофон (цифровая тишина)
+# =================================================================
+
+def test_vad_dead_microphone_auto_off():
+    """Если фон ~0 (нет сигнала) — VAD сам себя отключает."""
+    import numpy as np
+    v = vad.VAD()
+    if not v.is_available():
+        pytest.skip("модель VAD недоступна")
+
+    zeros = np.zeros(8000, dtype=np.int16).tobytes()
+    for _ in range(35):
+        v.is_speech(zeros)
+
+    assert v._auto_off is True, "VAD не отключился на мёртвом микрофоне"
+    # И теперь всё пропускает.
+    assert v.is_speech(zeros) is True
+
+
+def test_vad_dead_mic_warned_logged(caplog):
+    """Auto-off пишет warning в лог."""
+    import numpy as np
+    v = vad.VAD()
+    if not v.is_available():
+        pytest.skip("модель VAD недоступна")
+
+    zeros = np.zeros(8000, dtype=np.int16).tobytes()
+    with caplog.at_level(logging.WARNING, logger="jarvis.vad"):
+        for _ in range(35):
+            v.is_speech(zeros)
+
+    assert any("не даёт сигнала" in rec.message for rec in caplog.records), \
+        "warning о мёртвом микрофоне не записан"
+
+
+# =================================================================
+# Debug-логи
+# =================================================================
+
+def test_vad_debug_flag_default_off():
+    """Debug по умолчанию выключен."""
+    v = vad.VAD()
+    assert v._debug is False
+
+
+def test_vad_debug_logs_when_enabled(caplog):
+    """При _debug=True пишется лог про РЕЧЬ или ТИШИНУ."""
+    import numpy as np
+    v = vad.VAD()
+    if not v.is_available():
+        pytest.skip("модель VAD недоступна")
+
+    v._debug = True
+    v._auto_off = False
+    # baseline принудительно ненулевой (калибровка завершена)
+    v._rms_baseline = 100
+    v._rms_samples = 30
+
+    with caplog.at_level(logging.INFO, logger="jarvis.vad"):
+        signal = (np.random.randn(8000) * 1000).astype(np.int16).tobytes()
+        v.is_speech(signal)
+
+    assert any(
+        ("РЕЧЬ" in rec.message or "ТИШИНА" in rec.message)
+        for rec in caplog.records
+    ), "debug-лог VAD не записан"
+
+
+# =================================================================
+# Настройки конфига
+# =================================================================
+
+def test_vad_debug_from_config():
+    """VAD поддерживает флаг _debug (ставится из config в stt.py)."""
+    v = vad.VAD()
+    v._debug = True
+    assert v._debug is True
 ```
 
 ### `tests/test_weather.py`
@@ -20158,9 +22774,9 @@ pause
   "vad_enabled": true,
   "vad_threshold": 0.5,
   "vad_adaptive": true,
+  "vad_debug": false,
+  "vad_hangover_ms": 1500,
   "wake_word_required": true,
-  "prosody_enabled": true,
-  "prosody_priority": "prosody",
   "prosody_enabled": true,
   "prosody_priority": "prosody",
   "active_packs": [],
@@ -20943,6 +23559,26 @@ SOFTWARE.
 
 _Нетекстовый файл: .code-workspace_
 
+### `pytest.ini`
+
+```
+[pytest]
+; Настройки pytest для Феникса.
+;
+; testpaths=tests — тесты живут ТОЛЬКО в tests/.
+;
+; Зачем это нужно: в корне лежат test_intents.py, test_vad_debug.py,
+; test_vad_live.py, test_uia_dump.py, test_uia_manual.py — это не тесты,
+; а ручные скрипты. Из них test_vad_live.py открывает микрофон на 5 секунд,
+; test_vad_debug.py поднимает ONNX-модель, test_uia_dump.py дёргает UI
+; Automation. Из-за них `pytest` из корня мигал микрофоном и подвешивался.
+;
+; CI запускает явно `python -m pytest tests/ -q` (см. .github/workflows),
+; поэтому эта настройка влияет только на локальный `pytest` без аргументов.
+testpaths = tests
+python_files = test_*.py
+```
+
 ### `requirements-ci.txt`
 
 ```
@@ -21102,11 +23738,17 @@ onnxruntime>=1.17
     - `scripts/make_installer_images.py`
     - `scripts/build_exe.py`
 
-#### `CHANGELOG.md` — 39 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 45 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
   - 📑 Содержание
   - 🚧 [Unreleased] — 0.4.0
+    - 📅 Сессия 12.10.2026
+      - 🐛 Исправлено
+        - 🔊 VAD (Silero) — починен и сделан адаптивным
+        - ⏱ VAD тормозил ответ — Vosk не видел тишину
+        - 🖥 GUI — что не доходило до ядра
+        - ⚡ Запуск: ~7.3 с → ~1.3 с до появления окна
     - 📅 Сессия 10.10.2026
       - ✨ Добавлено
         - 🧹 Технический долг (ТД)
@@ -21138,11 +23780,6 @@ onnxruntime>=1.17
   - 🌙 [0.3.0] — 2026-10-06 (вечерняя)
     - ✨ Добавлено
     - 🔧 Исправлено
-    - 🔄 Изменено
-  - 🌆 [0.2.2] — 2026-10-05
-    - ✨ Добавлено
-    - 🔧 Исправлено
-  - 📦 [0.2.1] и раньше
 
 #### `CI.md` — 13 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -21195,48 +23832,48 @@ onnxruntime>=1.17
   - 🤝 Как задавать вопросы
   - 🎯 Философия
 
-#### `PLAN.md` — 84 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `PLAN.md` — 76 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - 📋 План развития «Феникс»
   - 🎯 ФИЛОСОФИЯ ПРОЕКТА
   - 📊 СВОДКА
-  - ✅ СЕССИЯ 11.10.2026 — Prosody (эмоции из голоса)
-    - Prosody (1)
+  - ✅ СДЕЛАНО — СВОДКА
+    - Prosody (11.10.2026)
+    - Tone (11.10.2026)
+    - VAD (10.10.2026)
+    - Prosody фиксы (10.10.2026)
+    - Mood + UIA + Персона + Observer (09.10.2026)
+    - Аудит Kimi + релиз (08.10.2026)
+    - Релиз v1.0.0 (07.10.2026)
+    - Ранее (06.10.2026 и раньше)
+  - 🚧 ФАЗА 1 — НАШИ ФИЧИ
+    - 🆕 UI/UX
+    - 🆕 Silero TTS
     - 🆕 Prosody ML — эмоции из голоса, второй этап
       - Идея A: расширенные акустические признаки (эвристика++)
       - Идея B: ML-фолбэк через audeering/wav2vec2 (гибрид)
       - Идея C: калибровка порогов под юзера
-      - Идея D: просодия → не только mood, но и персона
-      - Идея E: эмоциональные триггеры для действий
-      - Идея F: логирование эмоций для аналитики
-      - Порядок работ (рекомендованный)
-      - Что НЕ делать (антипаттерны)
-  - ✅ СЕССИЯ 09.10.2026 — Inno UI + Персона + Observer + Онбординг
-    - Inno UI (1)
-    - Персона (З2–З4, З6)
-    - Онбординг через LLM-диалог (З1, З5, З7)
-    - Observer
-    - Фиксы
-  - ✅ СЕССИЯ 08.10.2026 — Поздравление + Аудит Kimi
-    - Поздравление с ДР (1)
-    - Аудит Kimi — 25 багов
-  - ✅ СЕССИЯ 07.10.2026 — Релиз v1.0.0
-    - Релиз и инфраструктура (4)
-    - Unicode / пути (2)
-    - Автолаунчер + установщик (2)
-    - UI/UX (3 из 4)
-    - Мелкие фиксы (3)
-    - `text_utils.py` (1)
-    - Критичный баг Vosk (1)
-  - ✅ ПРЕДЫДУЩИЕ СЕССИИ
-    - СЕССИЯ 06.10.2026 (вечерняя)
-  - 🚧 ФАЗА 1 — НАШИ ФИЧИ (+ AIRI-концепции внутри)
-    - 🆕 UI/UX (1)
-    - 🆕 Красивый установщик (Inno UI) ✅
-    - 🆕 Знакомство + Персона + Observer ✅
-    - 🆕 Mood (3) ⭐ AIRI-концепция ✅
-    - 🆕 Prosody — эмоции из голоса ✅
-    - 🆕 UIA — элементы окон (6) ✅
+      - Идея D: просодия → персона
+      - Идея E: триггеры для опасных команд
+      - Идея F: логирование эмоций
+      - Порядок работ
+      - Антипаттерны
+    - 🆕 Многошаговые сценарии (6)
+    - 🆕 Мои команды и сценарии (12)
+    - 🆕 Бесплатные фичи (13)
+    - 🆕 Управление приложениями (6)
+    - 🆕 Persistent + Vector memory (RAG) (3) ⭐ AIRI-концепция
+    - 🆕 MCP + плагины — ЗАГОТОВКИ (2)
+    - 🆕 Telegram + веб (2)
+    - 🆕 Визуализация + Спрайт (4) ⭐ AIRI-концепция
+    - 🆕 Сборка в `.exe` (2)
+    - 🆕 CI/релизы (1)
+    - 🆕 Тесты (1)
+    - 🆕 VLM-зрение (4) ⭐ AIRI-концепция
+    - 🆕 Мост Феникс → Hermes (3)
+    - 🆕 Приоритеты и очередь (4)
+  - 🧠 УЛУЧШЕНИЕ МОЗГОВ
+    - 🎯 Неделя 1 — быстрые выигрыши
 
 #### `PROMPT.md` — 27 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -21313,4 +23950,4 @@ onnxruntime>=1.17
 
 ---
 
-_Итого по категориям — code: 113, data: 16, doc: 9, pack: 5. Режим `lean`._
+_Итого по категориям — code: 120, data: 17, doc: 9, pack: 5. Режим `lean`._

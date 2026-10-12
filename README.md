@@ -730,7 +730,9 @@ create_shortcut.bat
 | `scripts/make_installer_images.py` | BMP для Inno Setup |
 | `scripts/build_exe.py` | `.exe` |
 | `scripts/mics.py` | Микрофон |
-| `scripts/wakebench.py` | Бенчмарк |
+| `scripts/wakebench.py` | Бенчмарк wake-слова |
+| `scripts/vadbench.py` | Бенчмарк задержки VAD |
+| `scripts/startup_probe.py` | Замер времени старта |
 | `scripts/voicedemo.py` | Голоса |
 | `scripts/check_caps.py` | Возможности системы |
 | `create_shortcut.bat` | Ярлык |

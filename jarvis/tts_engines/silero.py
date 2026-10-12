@@ -89,17 +89,31 @@ class SileroEngine:
         with self._lock:
             if self._model is not None:
                 return
-            log.info("Silero: загружаю %s (первый раз ~30 сек)...", _VERSION)
+
+            log.info("=" * 60)
+            log.info("Silero TTS: старт загрузки")
+            log.info("Silero TTS: torch.hub клонирует snakers4/silero-models")
+            log.info("Silero TTS: первая загрузка — 1–3 минуты, ~150 МБ")
+            log.info("Silero TTS: последующие запуски — из кэша, ~5 сек")
+            log.info("Silero TTS: скачивание можно наблюдать в C:\\ProgramData\\Phoenix\\torch")
+            log.info("=" * 60)
+
             t0 = time.time()
-            model, _ = self._torch.hub.load(
-                repo_or_dir="snakers4/silero-models",
-                model="silero_tts",
-                language="ru",
-                speaker=_VERSION,
-            )
+            try:
+                model, _ = self._torch.hub.load(
+                    repo_or_dir="snakers4/silero-models",
+                    model="silero_tts",
+                    language="ru",
+                    speaker=_VERSION,
+                )
+            except Exception:
+                log.exception("Silero TTS: torch.hub не справился")
+                raise
+
+            log.info("Silero TTS: модель скачана, переносим на %s", self._device)
             model.to(self._device)
             self._model = model
-            log.info("Silero: модель готова за %.1f сек", time.time() - t0)
+            log.info("Silero TTS: готово за %.1f сек", time.time() - t0)
 
     def is_available(self) -> bool:
         return self._model is not None

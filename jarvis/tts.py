@@ -29,17 +29,21 @@ log = logging.getLogger("jarvis.tts")
 
 
 class Speaker:
-    def __init__(self, config):
+    def __init__(self, config, lazy: bool = False):
         self._config = config
         cfg = config if hasattr(config, "get") else {}
 
-        self.voice = cfg.get("tts_voice", "ruslan")
+        self.voice = cfg.get("tts_voice") or "ruslan"
         self.rate = float(cfg.get("voice_rate", 1.15))
         self.quality = cfg.get("tts_voice_quality", "medium")
         self._backend = cfg.get("tts_backend", "auto")
 
         self._engine = None
         self._engine_name = "none"
+        # Инициализация движка — под локом: ленивая загрузка в фоне и
+        # switch_backend из GUI не должны создавать движок одновременно.
+        self._init_lock = threading.RLock()
+        self._engine_ready = threading.Event()
 
         # Глобальное состояние воспроизведения
         self._play_thread = None
@@ -51,14 +55,59 @@ class Speaker:
         self._token_lock = threading.Lock()
 
         # Грузим движок
-        self._init_engine()
+        if lazy:
+            # lazy=True: движок грузится в фоне. PiperVoice.load — ~2.3 с,
+            # Silero — до минуты, и раньше эти секунды «висело» окно.
+            log.info("TTS: движок грузится в фоне (окно появится раньше)")
+            threading.Thread(target=self._init_engine_bg, daemon=True,
+                             name="tts-init").start()
+        else:
+            self._init_engine()
+            self._engine_ready.set()
 
     # ------------------------------------------------------------------
     # Инициализация
     # ------------------------------------------------------------------
 
+    def _init_engine_bg(self) -> None:
+        """Фоновая инициализация движка (lazy=True)."""
+        try:
+            self._init_engine()
+        except Exception:
+            log.exception("TTS: фоновая инициализация движка упала")
+        finally:
+            self._engine_ready.set()
+
+    def _ensure_engine(self, timeout: float | None = 60.0) -> bool:
+        """Дожидается движка. True — движок есть.
+
+        Нужно из-за lazy=True: первый say() может прийти, пока движок
+        ещё грузится (приветствие стартует параллельно с GUI).
+        """
+        if self._engine is not None:
+            return True
+        if not self._engine_ready.is_set():
+            self._engine_ready.wait(timeout)
+        if self._engine is None and not self._engine_ready.is_set():
+            # Фон не уложился в timeout — пробуем синхронно.
+            log.warning("TTS: движок не готов за %.0f с — гружу синхронно",
+                        timeout or 0)
+            self._init_engine()
+            self._engine_ready.set()
+        return self._engine is not None
+
     def _init_engine(self):
+        with self._init_lock:
+            if self._engine is not None:
+                return
+            self._init_engine_locked()
+
+    def _init_engine_locked(self):
         log.info("TTS: выбираю движок (backend=%s)", self._backend)
+        if self._backend == "silero":
+            log.info("TTS: Silero — первая загрузка может занять 1–3 минуты")
+        elif self._backend == "auto":
+            log.info("TTS: auto — пробую silero → piper → winrt → sapi")
         engine = get_engine(self._backend, self.voice, self.quality,
                             self.rate)
         if engine is None:
@@ -90,8 +139,11 @@ class Speaker:
             log.warning("TTS: не удалось переключиться на %s", backend)
             self._backend = old
             return False
-        self._engine = engine
-        self._engine_name = engine.name
+        with self._init_lock:
+            self._engine = engine
+            self._engine_name = engine.name
+        # Если шла ленивая загрузка — считаем её завершённой.
+        self._engine_ready.set()
         log.info("TTS: движок переключён %s → %s", old, self._engine_name)
         return True
 
@@ -137,7 +189,9 @@ class Speaker:
 
     def speak(self, text: str) -> None:
         """Синхронная озвучка (для тестов)."""
-        if not text or self._engine is None:
+        if not text:
+            return
+        if not self._ensure_engine():
             return
         token = self._new_token()
         try:
@@ -152,7 +206,9 @@ class Speaker:
 
     def play_async(self, text: str) -> None:
         """Асинхронная озвучка одного текста."""
-        if not text or self._engine is None:
+        if not text:
+            return
+        if not self._ensure_engine():
             return
 
         self.stop()
@@ -195,7 +251,7 @@ class Speaker:
 
         Возвращает полный озвученный текст.
         """
-        if self._engine is None:
+        if not self._ensure_engine():
             # Просто вычитываем генератор, чтобы ничего не зависло
             return "".join(text_iter)
 

@@ -46,22 +46,20 @@ class PiperEngine:
         self._load_model()
 
     def _load_model(self):
-        from huggingface_hub import hf_hub_download
         from piper import PiperVoice, SynthesisConfig
 
         rel = (f"ru/ru_RU/{self.voice}/{self.quality}/"
                f"ru_RU-{self.voice}-{self.quality}.onnx")
 
-        try:
-            onnx = hf_hub_download(PIPER_REPO, rel)
-            hf_hub_download(PIPER_REPO, rel + ".json")
-        except Exception:
+        onnx = self._resolve_model(rel)
+        if onnx is None:
             log.warning("Piper: голос %s/%s не найден, откат на medium",
                         self.voice, self.quality)
             self.quality = "medium"
             rel = f"ru/ru_RU/{self.voice}/medium/ru_RU-{self.voice}-medium.onnx"
-            onnx = hf_hub_download(PIPER_REPO, rel)
-            hf_hub_download(PIPER_REPO, rel + ".json")
+            onnx = self._resolve_model(rel)
+        if onnx is None:
+            raise RuntimeError(f"Piper: модель {rel} недоступна")
 
         self._piper = PiperVoice.load(onnx)
         self._piper_cfg = SynthesisConfig(
@@ -69,6 +67,45 @@ class PiperEngine:
         )
         log.info("Piper: голос %s/%s, скорость %.2f",
                  self.voice, self.quality, self.rate)
+
+    @staticmethod
+    def _resolve_model(rel: str) -> str | None:
+        """Путь к модели: сначала локальный кэш, потом сеть.
+
+        Зачем: try_to_load_from_cache отвечает мгновенно и БЕЗ сети
+        (0.000 с), а hf_hub_download лезет на HF Hub даже за уже
+        скачанным файлом (0.16 с на файл, 0.36 с на отсутствующий).
+        Из-за этого каждый запуск Феникса ждал сеть, а
+        «ruslan/high» (которого нет) ещё и каждый раз искался заново.
+
+        Возвращает путь к .onnx или None, если модели нет.
+        """
+        try:
+            from huggingface_hub import try_to_load_from_cache
+
+            cached = try_to_load_from_cache(PIPER_REPO, rel)
+            if isinstance(cached, str):
+                cfg_cached = try_to_load_from_cache(PIPER_REPO, rel + ".json")
+                if isinstance(cfg_cached, str):
+                    log.info("Piper: модель %s взята из кэша", rel)
+                    return cached
+            elif cached is not None:
+                # HF уже знает, что файла нет (маркер .no_exist) — в сеть
+                # не идём, сразу откатываемся на medium.
+                log.debug("Piper: %s помечен как отсутствующий в кэше HF", rel)
+                return None
+        except Exception:
+            log.debug("Piper: локальный кэш HF недоступен — пробую сеть")
+
+        try:
+            from huggingface_hub import hf_hub_download
+
+            path = hf_hub_download(PIPER_REPO, rel)
+            hf_hub_download(PIPER_REPO, rel + ".json")
+            return path
+        except Exception as e:
+            log.debug("Piper: %s не скачался (%s)", rel, e)
+            return None
 
     def is_available(self) -> bool:
         return self._piper is not None

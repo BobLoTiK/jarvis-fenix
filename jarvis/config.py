@@ -50,6 +50,11 @@ DEFAULT_CONFIG = {
     "vad_enabled": True,
     "vad_threshold": 0.5,
     "vad_adaptive": True,
+    "vad_debug": False,  # True → логировать каждый чанк VAD (для отладки)
+    # «Хвост» тишины после речи, мс. Vosk завершает фразу по тишине:
+    # если VAD вырежет её всю, Vosk не отдаст финальный текст и Феникс
+    # ответит поздно или не ответит вовсе. 1500 мс = как без VAD.
+    "vad_hangover_ms": 1500,
     "wake_word_required": True,
 
     # Prosody — эмоции из голоса (RMS + pitch + ZCR).

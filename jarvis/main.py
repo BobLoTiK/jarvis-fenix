@@ -436,6 +436,55 @@ def setup_logging() -> None:
     sys.excepthook = _sys_excepthook
 
 
+def make_config_listener(jarvis, config, listener, speaker, handler):
+    """Собирает подписчик config → живые компоненты (для Config.subscribe).
+
+    Почему отдельной функцией: раньше это жило внутри main() и
+    проверялось только руками. Из-за этого часть настроек из GUI
+    «терялась» — например, ползунок порога VAD писал config.json,
+    но работающий VAD о нём не узнавал (порог читается только при
+    создании VAD), а смена микрофона требовала перезапуска.
+
+    Возвращает callback(key, value).
+    """
+    def _on_config_change(key: str, value):
+        if key == "tts_voice":
+            speaker.set_voice(value)
+        elif key == "voice_rate":
+            speaker.set_rate(value)
+        elif key == "mode":
+            handler.mode = value
+        elif key == "barge_enabled":
+            jarvis.barge_enabled = bool(value)
+            if listener is not None:
+                listener.barge_enabled = bool(value)
+        elif key == "wake_word_required":
+            jarvis._wake_word_required = bool(value)
+            log.info("Wake-слово: %s",
+                     "обязательно" if value else "отключено")
+        elif key == "tts_backend":
+            # Смена backend TTS на лету
+            try:
+                speaker.switch_backend(str(value))
+            except Exception:
+                log.exception("Не удалось переключить TTS backend")
+        elif key == "vad_enabled":
+            if listener is not None:
+                listener.set_vad_enabled(bool(value))
+        elif key in ("vad_threshold", "vad_adaptive", "vad_hangover_ms"):
+            # Порог / адаптивность / «хвост» читаются ТОЛЬКО при создании
+            # VAD — без пересоздания слайдеры в GUI ни на что не влияли.
+            if listener is not None:
+                listener.reload_vad()
+        elif key == "input_device":
+            # Смена микрофона на лету: listener сам переоткроет
+            # RawInputStream на новом устройстве (без перезапуска).
+            if listener is not None:
+                listener.set_input_device(value)
+
+    return _on_config_change
+
+
 def main() -> None:
     setup_logging()
     log.info("%s v%s запускается", APP_NAME, __version__)
@@ -471,10 +520,15 @@ def main() -> None:
     if config.get("use_whisper", True):
         try:
             from jarvis.stt import WhisperTranscriber
+            # lazy=True: large-v3-turbo грузится в фоне (~5 с на GPU,
+            # десятки секунд на CPU). Раньше старт Феникса ждал эту
+            # загрузку и окно GUI появлялось поздно.
             whisper = WhisperTranscriber(
                 config.get("whisper_model", "auto"),
                 config.get("whisper_device", "auto"),
+                lazy=True,
             )
+            whisper.preload_async()
         except Exception:
             log.exception("Whisper не завёлся, работаю только на Vosk")
 
@@ -491,7 +545,9 @@ def main() -> None:
         if not brain.available:
             brain = None
 
-    speaker = Speaker(config)
+    # Speaker с lazy=True: движок (PiperVoice.load ~2.3 с, Silero — до
+    # минуты) грузится в фоне, окно Феникса появляется сразу.
+    speaker = Speaker(config, lazy=True)
     listener = Listener(
         model_dir,
         config["sample_rate"],
@@ -546,34 +602,8 @@ def main() -> None:
         observer = None
 
     # --- Подписки: изменения конфига применяются на лету ---
-    def _on_config_change(key: str, value):
-        if key == "tts_voice":
-            speaker.set_voice(value)
-        elif key == "voice_rate":
-            speaker.set_rate(value)
-        elif key == "mode":
-            handler.mode = value
-        elif key == "barge_enabled":
-            jarvis.barge_enabled = bool(value)
-            if listener is not None:
-                listener.barge_enabled = bool(value)
-        elif key == "wake_word_required":
-            jarvis._wake_word_required = bool(value)
-            log.info("Wake-слово: %s",
-                     "обязательно" if value else "отключено")
-        elif key == "tts_backend":
-            # Смена backend TTS на лету
-            try:
-                speaker.switch_backend(str(value))
-            except Exception:
-                log.exception("Не удалось переключить TTS backend")
-        elif key == "vad_enabled":
-            # VAD включили/выключили — пересоздаём listener-флаг
-            if listener is not None:
-                listener.vad_enabled = bool(value)
-                log.info("VAD: %s", "включён" if value else "выключен")
-
-    config.subscribe(_on_config_change)
+    config.subscribe(make_config_listener(jarvis, config, listener,
+                                          speaker, handler))
 
     def _on_timer_fire(timer: dict):
         text = timer.get("text") or "время вышло"
@@ -606,16 +636,29 @@ def main() -> None:
     threading.Thread(target=_mood_decay_loop, daemon=True,
                      name="mood-decay").start()
 
-    try:
-        from jarvis import first_run
-        if first_run.is_first_run():
-            log.info("Первый запуск: приветствие через задачу")
-            jarvis.say(Reply(text=first_run.greeting()))
-        else:
-            jarvis.say(Reply(text=f"{APP_NAME} запущен и готов к работе."))
-    except Exception:
-        log.exception("Ошибка приветствия")
-        jarvis.say(Reply(text=f"{APP_NAME} запущен и готов к работе."))
+    def _greet() -> None:
+        """Приветствие в фоне.
+
+        Раньше jarvis.say() вызывался прямо здесь, в главном потоке:
+        TTS (с загрузкой движка) + ожидание конца фразы держали старт,
+        и окно Flet появлялось только после приветствия. Теперь
+        приветствие идёт параллельно с показом окна.
+        """
+        try:
+            from jarvis import first_run
+            if first_run.is_first_run():
+                log.info("Первый запуск: приветствие через задачу")
+                jarvis.say(Reply(text=first_run.greeting()))
+            else:
+                jarvis.say(Reply(text=f"{APP_NAME} запущен и готов к работе."))
+        except Exception:
+            log.exception("Ошибка приветствия")
+            try:
+                jarvis.say(Reply(text=f"{APP_NAME} запущен и готов к работе."))
+            except Exception:
+                log.exception("Повторное приветствие тоже упало")
+
+    threading.Thread(target=_greet, daemon=True, name="greeting").start()
 
     # =================================================================
     # ТРЕЙ ВРЕМЕННО ОТКЛЮЧЁН.
