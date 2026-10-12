@@ -7,7 +7,6 @@
 """
 
 import logging
-import time
 from collections import deque
 
 from jarvis import memory, profile

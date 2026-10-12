@@ -20,7 +20,6 @@ threading.Event. stop() взводит ТОЛЬКО текущий — стар�
 
 import logging
 import threading
-import time
 from typing import Iterator
 
 from jarvis.tts_engines import get_engine, list_engines

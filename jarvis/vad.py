@@ -37,11 +37,17 @@ Debug:
 (если wake_word_required=True). VAD только фильтрует вход.
 
 API:
-    VAD(sample_rate=16000, threshold=0.5, adaptive=True)
+    VAD(sample_rate=16000, threshold=0.5, adaptive=True, auto_download=True)
     .is_speech(pcm_int16)      — детекция речи в чанке (bool)
     .speech_probability(pcm)   — макс prob для отладки (float)
     .rms_baseline()            — текущий RMS фона (для отладки/GUI)
     .reset()                   — сброс ONNX-state между фразами
+    .is_available()            — модель загружена
+    .is_model_pending()        — модель ещё качается (пропускаем всё как есть)
+
+    download_model()/ensure_model_async() — модель silero_vad.onnx не лежит
+    в репозитории и её не ставит установщик, поэтому Феникс качает её сам
+    (2.3 МБ, официальный Silero) в фоне в PROGRAM_DIR/vad.
 
     SpeechHangover(blocks=3)
     .feed(is_speech) -> bool   — отдавать ли блок в Vosk (хвост после речи)
@@ -92,26 +98,126 @@ _DEAD_MIC_RMS = 1.0
 # столько тишины. 1500 мс = столько же, сколько видит Vosk без VAD.
 DEFAULT_HANGOVER_MS = 1500
 
+# --- Модель Silero VAD ----------------------------------------------------
+#
+# silero_vad.onnx НЕ лежит в репозитории (*.onnx в .gitignore) и его не
+# ставит установщик. На чистой установке VAD молча выключался («работаю
+# без VAD»), и юзер узнавал об этом только из лога. Теперь модель
+# качается сама — 2.3 МБ из официального репозитория Silero и в ФОНЕ,
+# чтобы старт Феникса не ждал сеть. Как только файл появился, VAD
+# включается на лету (см. VAD._on_model_ready). Нет интернета —
+# работаем без VAD, как раньше, но с понятным предупреждением.
+MODEL_FILENAME = "silero_vad.onnx"
+MODEL_URL = (
+    "https://raw.githubusercontent.com/snakers4/silero-vad/master/"
+    "src/silero_vad/data/silero_vad.onnx"
+)
+MODEL_MIN_BYTES = 1_000_000     # sanity-check: обрезанный файл не подсовываем
+DOWNLOAD_TIMEOUT = 30.0         # сек на соединение/чтение
+
+# Один поток скачивания на процесс: Listener пересоздаёт VAD при каждом
+# reload_vad() — без этого флага мы бы слали запрос на каждый чих.
+_download_lock = threading.Lock()
+_download_thread: threading.Thread | None = None
+_download_started = False
+
+
+def model_dirs() -> list[Path]:
+    """Папки для поиска/скачивания silero_vad.onnx (первая — куда качаем)."""
+    dirs: list[Path] = []
+    try:
+        from jarvis import paths
+        dirs.append(paths.program_dir() / "vad")
+    except Exception:
+        log.debug("VAD: paths недоступен, беру папку пакета", exc_info=True)
+    dirs.append(Path(__file__).resolve().parent)
+    # Исторический путь установщика — как последний шанс.
+    dirs.append(Path(r"C:\ProgramData\Phoenix\vad"))
+    return dirs
+
 
 def _find_model() -> Path | None:
     """Ищет silero_vad.onnx: PROGRAM_DIR/vad -> рядом с пакетом -> fallback."""
-    candidates = []
-    try:
-        from jarvis import paths
-        candidates.append(paths.program_dir() / "vad" / "silero_vad.onnx")
-    except Exception:
-        log.debug("VAD: paths недоступен, ищу модель рядом с пакетом",
-                  exc_info=True)
-    candidates.append(Path(__file__).resolve().parent / "silero_vad.onnx")
-    # Исторический путь установщика — как последний шанс.
-    candidates.append(Path(r"C:\ProgramData\Phoenix\vad\silero_vad.onnx"))
-    for path in candidates:
+    for directory in model_dirs():
+        path = directory / MODEL_FILENAME
         try:
             if path.exists():
                 return path
         except OSError:
             continue
     return None
+
+
+def download_model(dest: Path | None = None,
+                   timeout: float = DOWNLOAD_TIMEOUT) -> Path | None:
+    """Скачивает silero_vad.onnx. None — не получилось (нет сети и т.п.).
+
+    Качаем в `.part` и только потом переименовываем: оборванное
+    скачивание не оставит битый файл, который потом «нашёлся» бы поиском.
+    """
+    import shutil
+    import urllib.request
+
+    if dest is None:
+        dest = model_dirs()[0] / MODEL_FILENAME
+    dest = Path(dest)
+    tmp = dest.with_name(dest.name + ".part")
+
+    try:
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        log.info("VAD: качаю модель Silero (~2.3 МБ): %s", MODEL_URL)
+        request = urllib.request.Request(
+            MODEL_URL, headers={"User-Agent": "Phoenix"})
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            with open(tmp, "wb") as fh:
+                shutil.copyfileobj(response, fh, 64 * 1024)
+
+        size = tmp.stat().st_size
+        if size < MODEL_MIN_BYTES:
+            raise OSError("файл слишком маленький: %d байт" % size)
+        tmp.replace(dest)
+        log.info("VAD: модель скачана (%d КБ) -> %s", size // 1024, dest)
+        return dest
+    except Exception as e:
+        log.warning(
+            "VAD: не удалось скачать модель (%s) — работаю без VAD. "
+            "Можно положить файл вручную: %s", e, dest)
+        try:
+            tmp.unlink()
+        except OSError:
+            pass
+        return None
+
+
+def ensure_model_async(callback=None) -> threading.Thread | None:
+    """Запускает скачивание модели в фоне (не более одного раза за процесс).
+
+    callback(path) зовётся из потока скачивания, если всё получилось.
+    None — скачивание уже запускалось (или идёт) и второй раз не нужно.
+    """
+    global _download_thread, _download_started
+
+    with _download_lock:
+        if _download_started:
+            return _download_thread
+        _download_started = True
+        _download_thread = threading.Thread(
+            target=_download_worker, args=(callback,),
+            daemon=True, name="vad-download")
+
+    log.info("VAD: модель не найдена — качаю в фоне, включится на лету")
+    _download_thread.start()
+    return _download_thread
+
+
+def _download_worker(callback) -> None:
+    path = download_model()
+    if path is None or callback is None:
+        return
+    try:
+        callback(path)
+    except Exception:
+        log.exception("VAD: обработчик после скачивания упал")
 
 
 class VAD:
@@ -123,7 +229,8 @@ class VAD:
 
     def __init__(self, sample_rate: int = 16000,
                  threshold: float = _DEFAULT_THRESHOLD,
-                 adaptive: bool = True):
+                 adaptive: bool = True,
+                 auto_download: bool = True):
         self._sample_rate = sample_rate
         self._threshold = float(threshold)
         self._available = False
@@ -141,6 +248,10 @@ class VAD:
         self._state = None
         self._context = None
         self._lock = threading.Lock()   # ONNX-state: callback vs reset()
+        self._ort = None
+        # Модель качается в фоне: VAD пока «пустой», но живой — как только
+        # файл появится, _on_model_ready включит его без перезапуска.
+        self._model_pending = False
 
         try:
             import numpy as np  # noqa: F401
@@ -148,31 +259,67 @@ class VAD:
         except ImportError as e:
             log.warning("VAD: нет onnxruntime/numpy (%s) — работаю без VAD", e)
             return
+        self._ort = ort
 
         model_path = _find_model()
-        if model_path is None:
-            log.warning(
-                "VAD: модель silero_vad.onnx не найдена — работаю без VAD. "
-                "Положи её в %s (или выключи vad_enabled).",
-                Path(r"C:\ProgramData\Phoenix\vad\silero_vad.onnx"),
-            )
+        if model_path is not None:
+            self._load_session(model_path)
             return
 
+        dest = model_dirs()[0] / MODEL_FILENAME
+        if not auto_download:
+            log.warning(
+                "VAD: модель silero_vad.onnx не найдена — работаю без VAD. "
+                "Положи её в %s (или выключи vad_enabled).", dest)
+            return
+
+        self._model_pending = True
+        log.info("VAD: модель не найдена, качаю в фоне (%s)", dest)
+        if ensure_model_async(self._on_model_ready) is None:
+            # Качать уже пробовали и, судя по всему, не вышло — не ждём чуда.
+            self._model_pending = False
+
+    # --- модель -----------------------------------------------------------
+
+    def _load_session(self, model_path: Path) -> bool:
+        """Грузит ONNX-сессию модели. True — VAD готов к работе.
+
+        Отдельный метод (а не код в __init__), потому что модель может
+        появиться позже: её скачал фоновый поток (см. _on_model_ready).
+        """
+        if self._ort is None:
+            return False
         try:
-            opts = ort.SessionOptions()
+            opts = self._ort.SessionOptions()
             opts.inter_op_num_threads = 1
             opts.intra_op_num_threads = 1
             opts.log_severity_level = 3  # только ошибки
 
-            self._session = ort.InferenceSession(
+            session = self._ort.InferenceSession(
                 str(model_path), sess_options=opts,
                 providers=["CPUExecutionProvider"],
             )
-            self._reset_state()
-            self._available = True
-            log.info("VAD: Silero ONNX загружен (%s)", model_path)
         except Exception:
             log.exception("VAD: не удалось загрузить модель")
+            return False
+
+        self._session = session
+        self._reset_state()
+        self._available = True
+        self._model_pending = False
+        log.info("VAD: Silero ONNX загружен (%s)", model_path)
+        return True
+
+    def _on_model_ready(self, model_path: Path) -> None:
+        """Модель докачалась в фоне — включаем VAD без перезапуска."""
+        if self._available:
+            return
+        log.info("VAD: модель докачана — включаю на лету")
+        self._load_session(model_path)
+
+    def is_model_pending(self) -> bool:
+        """Модель ещё качается: VAD существует, но пока пропускает всё."""
+        return self._model_pending
 
     # --- служебное -------------------------------------------------------
 

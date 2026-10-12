@@ -12,15 +12,19 @@
 ```
 jarvis/             — пакет
   reply.py          — тип Reply (text | stream)
-  intents.py        — разбор команд, быстрые правила + LLM
+  intents/          — пакет: handler, context, verbs, password, sites,
+                      execute + stages/ (11 стадий) + fast/ (19 правил)
   main.py           — точка входа, Jarvis, barge-in, cmd_lock
   brain.py          — Ollama: parse() и chat_stream()
   config.py         — Config в памяти + подписки
   config_manager.py — атомарная запись (FileLock per-path)
   paths.py          — PROGRAM_DIR / USER_DIR
   text_utils.py     — normalize, strip_cjk, prepare_text
-  tts.py            — Piper / XTTS / WinRT / SAPI + per-call token
+  tts.py            — фасад над tts_engines + per-call token
+  tts_engines/      — BaseEngine + Silero / Piper / WinRT / SAPI
   stt.py            — Vosk + Whisper + ring buffer
+  vad.py            — Silero VAD ONNX + SpeechHangover
+  prosody.py        — эмоции из голоса (RMS + pitch + ZCR)
   gui.py            — Flet GUI + PALETTES + fireworks
   celebrations.py   — поздравление с ДР
   ...
@@ -45,7 +49,7 @@ scripts/            — утилиты (make_icon, build_exe, mics, ...)
 3. **Не плоди глобальное состояние** — кроме `Config._GLOBAL`.
 4. **Нормализация (города, валюты, паков) — задача LLM.**
 5. **Логи в `actions.log`** — главный инструмент отладки.
-6. **`test_intents.py`** — первое, что запускаешь после правки `intents.py`, `brain.py`, `actions.py`.
+6. **`test_intents.py`** — первое, что запускаешь после правки `intents/`, `brain.py`, `actions.py`.
 7. **`normalize(cmd)` в `IntentHandler.handle()`** — единая точка.
 8. **Per-call stop-token в `tts.py`.**
 9. **`PALETTES` в `gui.py`** — две палитры, `_detect_system_theme()` для системной.
@@ -197,16 +201,25 @@ print("custom matched")
 
 ### 1. Быстрое правило (без LLM)
 
-**Добавь функцию** `_my_handler(self, cmd) -> str | None` в `IntentHandler`.
-
-**Зарегистрируй в `_fast_handlers_cache`** в `__init__`:
+**Добавь функцию** `my_handler(handler, cmd) -> str | None` в модуль
+`jarvis/intents/fast/<name>.py`:
 
 ```python
-self._fast_handlers_cache = [
-    ...
-    ("my_handler", self._my_handler),
-    ...
-]
+def my_handler(handler, cmd: str) -> str | None:
+    if "моя команда" not in cmd:
+        return None
+    return "Готово."
+```
+
+**Зарегистрируй** её в реестре — `jarvis/intents/fast/__init__.py` →
+`build_registry()`:
+
+```python
+def build_registry(handler) -> list:
+    return [
+        ...,
+        ("my_handler", lambda cmd: my_handler(handler, cmd)),
+    ]
 ```
 
 **Порядок важен.** Специфичные — выше общих.
@@ -224,12 +237,18 @@ ACTIONS = {
 
 В `SYSTEM_SMALL` / `SYSTEM_MEDIUM` / `SYSTEM_LARGE` — добавь описание и пример.
 
-В `IntentHandler._execute_intent` — обработай:
+В `jarvis/intents/execute.py` — добавь обработчик `_do_*` и зарегистрируй его
+в `_DISPATCH` (в конце файла):
 
 ```python
-if action == "my_new_action":
+def _do_my_new_action(handler, intent, target, query):
     ...
     return "Готово."
+
+_DISPATCH = {
+    ...,
+    "my_new_action": _do_my_new_action,
+}
 ```
 
 ## 📦 Как добавить новый пак
@@ -266,18 +285,26 @@ if action == "my_new_action":
 
 ## 📦 Как добавить новый TTS-голос
 
-1. В `jarvis/voices.py` → `PIPER_VOICES`:
+Голоса задаются в **классе движка** (`jarvis/tts_engines/`). Например Piper —
+`jarvis/tts_engines/piper.py` → `PiperEngine.voices`:
 
 ```python
-PIPER_VOICES = {
-    ...,
-    "my_voice": "Мой голос — описание",
-}
+class PiperEngine:
+    voices = {
+        ...,
+        "my_voice": "Мой голос — описание",
+    }
 ```
 
-2. Скачай модели с HuggingFace: `rhasspy/piper-voices` → `ru/ru_RU/my_voice/medium/`.
+Для Silero (`tts_engines/silero.py`) и WinRT (`tts_engines/winrt.py`) — так же,
+в `voices` соответствующего класса.
 
-3. **Проверь:** «смени голос на мой голос» → должен переключиться.
+2. Скачай модель с HuggingFace: `rhasspy/piper-voices` → `ru/ru_RU/my_voice/medium/`
+   (для Silero голоса уже внутри `snakers4/silero-models`).
+
+3. (Опционально) алиас русского имени — `jarvis/voices.py` → `_VOICE_ALIASES`.
+
+4. **Проверь:** «смени голос на мой голос» → должен переключиться.
 
 ## 🚨 Если что-то сломалось
 

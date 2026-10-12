@@ -1,26 +1,36 @@
 """Иконка в системном трее (pystray).
 
-ВРЕМЕННО ОТКЛЮЧЕН — см. main.py.
-Проблема: pystray требует свой Windows message loop, а главный поток
-занят Flet'ом (ft.run блокирует).
-Правильное решение — отдельный процесс tray_runner.py (в планах).
+pystray требует свой Windows message loop, а главный поток занят
+Flet'ом (ft.run блокирует). Решение: иконка поднимается ДО ft.run()
+в daemon-потоке (см. start_tray), и только потом Flet забирает главный
+поток. Если pystray/PIL нет или иконка не появилась — Феникс просто
+работает без трея (в логе предупреждение), а не падает.
 
-Пока этот модуль лежит без дела, но пути здесь уже правильные —
-чтобы при включении трея не было сюрпризов.
+Модуль импортируется ЛЕНИВО (только при tray_enabled=true): pystray и
+PIL тянут заметный импорт, а старт Феникса и так на диете.
 """
 
 import logging
 import os
+import threading
+import time
 
-import pystray
-from PIL import Image, ImageDraw
-
-from jarvis import APP_NAME, __version__, actions
+from jarvis import __version__, APP_NAME
 
 log = logging.getLogger("jarvis.tray")
 
+# Имя иконки для WinAPI (в трее не видно, но должно быть уникальным).
+ICON_NAME = "jarvis"
 
-def _make_icon_image() -> Image.Image:
+# Пункты меню дёргают GUI так же, как кнопки окна: gui.show_window() и
+# gui.open_settings_tab() лишь кладут задачу в очередь GUI (см.
+# FenixGUI._process_queue). Значит, поток трея не трогает Flet напрямую.
+
+
+def _make_icon_image():
+    """Иконка трея: кольцо + стилизованная «J» (рисуется через PIL)."""
+    from PIL import Image, ImageDraw
+
     img = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
     d.ellipse((2, 2, 62, 62), fill=(18, 32, 58, 255), outline=(86, 156, 255, 255), width=3)
@@ -30,54 +40,75 @@ def _make_icon_image() -> Image.Image:
     return img
 
 
-def build_tray(jarvis) -> pystray.Icon:
+def build_menu(jarvis):
+    """Меню трея (отдельно от иконки — так его проще тестировать)."""
+    import pystray
+
     def on_toggle(icon, item):
         jarvis.listening_enabled = not jarvis.listening_enabled
-        log.info("Прослушивание: %s", jarvis.listening_enabled)
+        log.info("Трей: прослушивание → %s", jarvis.listening_enabled)
 
     def on_screenshot(icon, item):
+        from jarvis import actions
         actions.take_screenshot()
 
     def on_show_window(icon, item):
         """Показать окно GUI (для launch_mode=tray)."""
-        if getattr(jarvis, "gui", None) is not None:
-            jarvis.gui.show_window()
+        gui = getattr(jarvis, "gui", None)
+        if gui is not None:
+            gui.show_window()
         else:
-            log.warning("GUI не запущен — окно показать нельзя")
+            log.warning("Трей: GUI не запущен — окно показать нечем")
 
     def on_open_settings(icon, item):
-        """Открыть GUI и переключиться на вкладку «Настройки»."""
-        if getattr(jarvis, "gui", None) is not None:
-            jarvis.gui.show_window()
-            jarvis.gui.open_settings_tab()
+        """Открыть GUI на вкладке «Настройки»."""
+        gui = getattr(jarvis, "gui", None)
+        if gui is not None:
+            gui.show_window()
+            gui.open_settings_tab()
         else:
-            log.warning("GUI не запущен — настройки открыть нельзя")
+            log.warning("Трей: GUI не запущен — настройки открыть нечем")
 
     def on_config(icon, item):
-        """Открыть config.json из USER_DIR (%APPDATA%\\Phoenix).
-
-        Раньше было jarvis.base_dir/"config.json" — неверно, потому что
-        config теперь живёт в USER_DIR, а не рядом с кодом.
-        """
-        from jarvis import paths as _paths
+        """Открыть config.json из USER_DIR (%APPDATA%\\Phoenix)."""
+        from jarvis import paths
         try:
-            os.startfile(str(_paths.config_path()))
+            os.startfile(str(paths.config_path()))
         except Exception:
-            log.exception("Не удалось открыть config.json")
+            log.exception("Трей: не удалось открыть config.json")
 
     def on_log(icon, item):
         """Открыть jarvis.log из USER_DIR."""
-        from jarvis import paths as _paths
+        from jarvis import paths
         try:
-            os.startfile(str(_paths.logs_dir() / "jarvis.log"))
+            os.startfile(str(paths.logs_dir() / "jarvis.log"))
         except Exception:
-            log.exception("Не удалось открыть jarvis.log")
+            log.exception("Трей: не удалось открыть jarvis.log")
 
     def on_exit(icon, item):
-        jarvis.shutdown()
-        icon.stop()
+        """Выход целиком: микрофон стоп + закрытие окна + снятие иконки.
 
-    menu = pystray.Menu(
+        Раньше здесь был только jarvis.shutdown(), а окно Flet оставалось
+        жить — процесс не завершался, и помогала лишь «Смерть» через
+        диспетчер задач.
+        """
+        log.info("Трей: выход")
+        try:
+            jarvis.shutdown()
+        except Exception:
+            log.exception("Трей: shutdown упал")
+        gui = getattr(jarvis, "gui", None)
+        if gui is not None:
+            try:
+                gui.quit()
+            except Exception:
+                log.exception("Трей: не удалось закрыть окно GUI")
+        try:
+            icon.stop()
+        except Exception:
+            log.exception("Трей: не удалось снять иконку")
+
+    return pystray.Menu(
         pystray.MenuItem(f"{APP_NAME} v{__version__}", None, enabled=False),
         pystray.Menu.SEPARATOR,
         # default=True — двойной клик по иконке открывает окно
@@ -93,4 +124,53 @@ def build_tray(jarvis) -> pystray.Icon:
         pystray.Menu.SEPARATOR,
         pystray.MenuItem("Выход", on_exit),
     )
-    return pystray.Icon("jarvis", _make_icon_image(), f"{APP_NAME} v{__version__}", menu)
+
+
+def build_icon(jarvis):
+    """Создаёт pystray.Icon (message loop не запускает)."""
+    import pystray
+
+    return pystray.Icon(
+        ICON_NAME,
+        _make_icon_image(),
+        f"{APP_NAME} v{__version__}",
+        build_menu(jarvis),
+    )
+
+
+def start_tray(jarvis, check_after: float = 3.0):
+    """Поднимает иконку в фоне. Возвращает Icon или None (трея не будет).
+
+    Вызывать ДО ft.run(): pystray создаёт собственный message loop, и если
+    запускать его после того, как главный поток ушёл в Flet, иконка
+    может не появиться вовсе.
+    """
+    try:
+        icon = build_icon(jarvis)
+    except Exception:
+        log.exception("Трей: pystray/PIL недоступны — работаю без трея")
+        return None
+
+    def _run_icon():
+        try:
+            icon.run()
+        except Exception:
+            log.exception("Трей: message loop упал — работаю без трея")
+
+    thread = threading.Thread(target=_run_icon, daemon=True, name="tray")
+    thread.start()
+
+    def _check_visible():
+        """Убеждаемся, что иконка реально появилась (иначе трей молча мёртв)."""
+        deadline = time.time() + max(0.0, check_after)
+        while time.time() < deadline:
+            if getattr(icon, "visible", False):
+                log.info("Трей: иконка в системном трее (поток %s)", thread.name)
+                return
+            time.sleep(0.2)
+        log.warning("Трей: иконка не появилась за %.1f с — "
+                    "проверьте pystray/Pillow", check_after)
+
+    threading.Thread(target=_check_visible, daemon=True,
+                     name="tray-check").start()
+    return icon

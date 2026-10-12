@@ -15,7 +15,7 @@
 
 - **Python 3.11** (только `.venv311`) — Vosk не работает на 3.13/3.14.
 - **Vosk** (wake) + **faster-whisper** (расшифровка).
-- **Piper** / **XTTS** / **WinRT** (TTS).
+- **Silero** / **Piper** / **WinRT** / **SAPI** (TTS, движки в `tts_engines/`).
 - **Ollama** (LLM: qwen2.5, gemma2, llama3.1, mistral).
 - **Flet 1.0.3** (GUI).
 - **PyInstaller** (`Феникс.exe`).
@@ -183,7 +183,7 @@ jarvis/
 │   │   ├── correction.py, password.py, memory.py
 │   │   ├── pending.py, clipboard.py, modes.py
 │   │   └── compound.py, fast.py, llm.py
-│   └── fast/         — 17 быстрых обработчиков
+│   └── fast/         — 19 быстрых обработчиков
 │       ├── custom.py, small_talk.py, music.py, screenshot.py
 │       ├── uia.py, open.py, voices.py, packs.py
 │       ├── timers.py, tasks.py, persona.py, profile.py
@@ -193,13 +193,16 @@ jarvis/
 ├── gui.py            — Flet GUI + PALETTES + fireworks
 ├── history.py        — стек отмены
 ├── stt.py            — Vosk + Whisper, HF_HOME временно
-├── tts.py            — Piper / XTTS / WinRT / SAPI, per-call token
+├── vad.py            — Silero VAD ONNX + SpeechHangover
+├── tts.py            — фасад над tts_engines, per-call token
+├── tts_engines/      — BaseEngine + Silero / Piper / WinRT / SAPI
 ├── modes.py          — commands / llm / combo
-├── voices.py         — смена голоса Piper
+├── voices.py         — смена голоса активного движка
 ├── packs.py          — загрузка/выгрузка паков
 ├── profile.py        — profiles/<user>/profile.json + subscribe
 ├── persona.py        — стиль, черты, backstory
 ├── mood.py           — состояние (neutral/happy/...)
+├── prosody.py        — эмоции из голоса (RMS + pitch + ZCR)
 ├── uia.py            — окна, вкладки, кнопки (20+ браузеров)
 ├── memory.py         — dialog.json (атомарно)
 ├── observer.py       — фоновое извлечение фактов
@@ -271,14 +274,14 @@ Jarvis._process → mood.apply_from_text(cmd)
 
 - LLM: Qwen через Ollama.
 - STT: Vosk + Whisper small CPU.
-- TTS: Piper medium.
+- TTS: Silero / Piper (auto).
 - Погода: кэш 24 ч.
 
 ### 🌐 Hybrid
 
 - LLM: Qwen 14b/32b.
 - STT: Whisper large-v3-turbo на GPU.
-- TTS: Piper.
+- TTS: Silero / Piper.
 
 ### ☁️ Cloud — 🚧 в планах
 
@@ -318,6 +321,9 @@ Jarvis._process → mood.apply_from_text(cmd)
 | 🆕 Техдолг (.bak, system_caps, send2trash) | 5 | 5 |
 | 🆕 Mood | 3 | 3 |
 | 🆕 UIA | 6 | 6 |
+| 🆕 Silero TTS | 3 | 3 |
+| 🆕 VAD (Silero) | 2 | 2 |
+| 🆕 Prosody (эвристика) | 1 | 1 |
 
 **Ключевое за последние сессии:**
 
@@ -336,9 +342,6 @@ Jarvis._process → mood.apply_from_text(cmd)
 - №147–148 — PyInstaller (20–30 ч).
 - №121 — GitHub Actions (4–6 ч).
 - №123 — тест на виртуалке.
-- Этап 1.11 — Silero TTS. **Следующий.**
-- Этап 1.12 — VAD.
-- Этап 1.13.5 — Prosody (эмоции из голоса).
 - Этап 1.13.6 — Non-verbal (смех, вздохи).
 - Этап 2 — Облако.
 - Этап 3 — Управление приложениями.
@@ -359,9 +362,9 @@ Jarvis._process → mood.apply_from_text(cmd)
 5. Этап 1.8 — Знакомство + Персона + Observer — ✅
 6. Этап 1.9 — Mood — ✅
 7. Этап 1.10 — UIA — ✅
-8. **Этап 1.11 — Silero TTS — ❌ следующий**
-9. Этап 1.12 — VAD — ❌
-10. Этап 1.13.5 — Prosody — ❌ (в планах, будущее)
+8. Этап 1.11 — Silero TTS — ✅
+9. Этап 1.12 — VAD — ✅
+10. Этап 1.13.5 — Prosody — ✅ (эвристика)
 11. Этап 1.13.6 — Non-verbal — ❌ (в планах, будущее)
 12. Этап 2 — Облако — ❌
 13. Этап 3 — Управление приложениями — ❌

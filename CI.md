@@ -49,7 +49,8 @@ GitHub запускает их сам.
 
 Отдельный файл — **только то, что нужно для CI**:
 
-- `filelock`, `num2words`, `psutil`, `pyperclip`, `Pillow`
+- `filelock`, `psutil`, `pyperclip`, `Pillow`
+- `numpy` (нужен `prosody.py` и `vad.py`)
 - `pytest`, `pytest-asyncio`
 
 **Чего нет:**

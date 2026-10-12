@@ -52,21 +52,37 @@ class FakeRec:
 class FakeVAD:
     """Заглушка Silero VAD: помнит параметры и счётчик reset()."""
 
-    def __init__(self, sample_rate=16000, threshold=0.5, adaptive=True):
+    def __init__(self, sample_rate=16000, threshold=0.5, adaptive=True,
+                 auto_download=True):
         self.sample_rate = sample_rate
         self.threshold = threshold
         self.adaptive = adaptive
+        self.auto_download = auto_download
         self._debug = False
         self.resets = 0
 
     def is_available(self):
         return True
 
+    def is_model_pending(self):
+        return False
+
     def is_speech(self, pcm):
         return True
 
     def reset(self):
         self.resets += 1
+
+
+class FakeVADPending(FakeVAD):
+    """VAD, который ещё качает модель: живой, но фильтровать нечем."""
+
+    def is_available(self):
+        return False
+
+    def is_model_pending(self):
+        return True
+
 
 
 class FakeGate:
@@ -158,6 +174,105 @@ def test_listener_starts_with_vad(listener):
     assert isinstance(listener._vad_gate, FakeGate)
 
 
+def test_block_size_is_128ms(listener):
+    """Блок аудио — 2048 сэмплов (128 мс) вместо старых 8000 (500 мс).
+
+    Это и была «ступенька» задержки: с блоком 500 мс VAD не мог
+    отреагировать быстрее, и «хвост» тишины округлялся до 500 мс.
+    2048 кратно 512 — Silero считает ровно 4 чанка, без остатка.
+    """
+    assert listener._block_size == 2048
+    assert listener._block_ms == 128
+    assert listener._block_size % vad_mod._CHUNK_SAMPLES == 0
+
+
+def test_block_size_follows_sample_rate(monkeypatch, cfg, devices):
+    """Другой sample_rate — блок пересчитывается, а не остаётся 8000."""
+    monkeypatch.setattr(stt, "Model", lambda path: object())
+    monkeypatch.setattr(stt, "KaldiRecognizer", lambda model, sr: FakeRec())
+    monkeypatch.setattr(stt, "VAD", FakeVAD)
+    monkeypatch.setattr(stt, "SpeechHangover", FakeGate)
+
+    listener = stt.Listener("C:/fake-model", 8000, None, config=cfg)
+
+    assert listener._block_size == 1024   # 8000 Гц * 128 мс
+    assert listener._block_ms == 128
+
+
+def test_vad_kept_while_model_downloads(monkeypatch, cfg, devices):
+    """Модель качается в фоне — VAD не выбрасываем: он включится сам.
+
+    Раньше объект VAD уничтожался («модель недоступна»), и докачанная
+    модель уже никому не была нужна — VAD работал только после
+    перезапуска Феникса.
+    """
+    monkeypatch.setattr(stt, "Model", lambda path: object())
+    monkeypatch.setattr(stt, "KaldiRecognizer", lambda model, sr: FakeRec())
+    monkeypatch.setattr(stt, "VAD", FakeVADPending)
+    monkeypatch.setattr(stt, "SpeechHangover", FakeGate)
+
+    listener = stt.Listener("C:/fake-model", 16000, None, config=cfg)
+
+    assert isinstance(listener.vad, FakeVADPending)
+    assert isinstance(listener._vad_gate, FakeGate)
+
+
+def test_vad_dropped_when_model_absent(monkeypatch, cfg, devices):
+    """Модели нет и не качается — работаем без VAD (как раньше)."""
+
+    class FakeVADMissing(FakeVAD):
+        def is_available(self):
+            return False
+
+    monkeypatch.setattr(stt, "Model", lambda path: object())
+    monkeypatch.setattr(stt, "KaldiRecognizer", lambda model, sr: FakeRec())
+    monkeypatch.setattr(stt, "VAD", FakeVADMissing)
+    monkeypatch.setattr(stt, "SpeechHangover", FakeGate)
+
+    listener = stt.Listener("C:/fake-model", 16000, None, config=cfg)
+
+    assert listener.vad is None
+
+
+def test_auto_download_flag_reaches_vad(monkeypatch, devices):
+    """vad_auto_download=false из config доходит до VAD (иначе лез бы в сеть)."""
+    captured = {}
+
+    class CaptureVAD(FakeVAD):
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+            super().__init__()
+
+    monkeypatch.setattr(stt, "Model", lambda path: object())
+    monkeypatch.setattr(stt, "KaldiRecognizer", lambda model, sr: FakeRec())
+    monkeypatch.setattr(stt, "VAD", CaptureVAD)
+    monkeypatch.setattr(stt, "SpeechHangover", FakeGate)
+
+    stt.Listener("C:/fake-model", 16000, None,
+                 config=Cfg(vad_enabled=True, vad_auto_download=False))
+
+    assert captured["auto_download"] is False
+
+
+def test_auto_download_defaults_to_true(monkeypatch, devices):
+    """Без ключа в config модель качается (иначе VAD молча мёртв)."""
+    captured = {}
+
+    class CaptureVAD(FakeVAD):
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+            super().__init__()
+
+    monkeypatch.setattr(stt, "Model", lambda path: object())
+    monkeypatch.setattr(stt, "KaldiRecognizer", lambda model, sr: FakeRec())
+    monkeypatch.setattr(stt, "VAD", CaptureVAD)
+    monkeypatch.setattr(stt, "SpeechHangover", FakeGate)
+
+    stt.Listener("C:/fake-model", 16000, None, config=Cfg(vad_enabled=True))
+
+    assert captured["auto_download"] is True
+
+
 def test_reload_vad_applies_new_threshold(listener, cfg):
     """Порог, сдвинутый в GUI, должен дойти до работающего VAD."""
     cfg["vad_threshold"] = 0.2
@@ -172,15 +287,15 @@ def test_reload_vad_applies_adaptive(listener, cfg):
 
 
 def test_reload_vad_rebuilds_hangover(listener, cfg):
-    """«Хвост» 500 мс при блоке 500 мс = 1 блок."""
+    """«Хвост» 500 мс при блоке 128 мс = 4 блока."""
     cfg["vad_hangover_ms"] = 500
     listener.reload_vad()
-    assert listener._vad_gate.max_blocks == 1
+    assert listener._vad_gate.max_blocks == 4
 
 
 def test_hangover_blocks_from_config(listener, cfg):
-    """1500 мс при блоке 500 мс = 3 блока (как в config по умолчанию)."""
-    assert listener._vad_gate.max_blocks == 3
+    """1500 мс при блоке 128 мс = 12 блоков (как в config по умолчанию)."""
+    assert listener._vad_gate.max_blocks == 12
 
 
 def test_reload_vad_skipped_when_disabled(listener, cfg):

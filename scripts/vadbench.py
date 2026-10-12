@@ -28,9 +28,23 @@ from pathlib import Path
 BASE = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE))
 
-BLOCK = 8000        # блок аудио в бою: 8000 сэмплов @16 кГц = 500 мс
 SR = 16000
 NOISE_RMS = 40      # «тихая комната» после речи
+
+
+def _block_samples(sr: int = SR) -> int:
+    """Размер блока аудио как в бою (Listener._block_size).
+
+    Раньше здесь были захардкоженные 8000 (500 мс) — и бенчмарк мерил не
+    то, что происходит в Фениксе, когда в stt.py блок сменили на 128 мс
+    (главная ступенька задержки ответа). Теперь размер берётся оттуда же,
+    откуда его берёт Listener.
+    """
+    from jarvis.stt import DEFAULT_BLOCK_MS, MIN_BLOCK_SAMPLES
+
+    return max(MIN_BLOCK_SAMPLES,
+               int(round(sr * DEFAULT_BLOCK_MS / 1000.0)))
+
 
 
 def _synth_sapi(text: str, path: str) -> str:
@@ -96,7 +110,7 @@ def _build_stream(speech):
     return np.concatenate([pre, speech, post]), len(pre)
 
 
-def _run(model, blocks, vad, hangover_blocks, label):
+def _run(model, blocks, vad, hangover_blocks, label, block_ms):
     """Гоняет блоки в Vosk и печатает, когда пришла финальная фраза."""
     from vosk import KaldiRecognizer
 
@@ -114,7 +128,7 @@ def _run(model, blocks, vad, hangover_blocks, label):
         if rec.AcceptWaveform(raw):
             text = json.loads(rec.Result()).get("text", "")
             print("%-14s endpoint на %4.1f с (в Vosk ушло %2d/%d блоков)  %r"
-                  % (label, (i + 1) * 0.5, fed, len(blocks), text))
+                  % (label, (i + 1) * block_ms / 1000.0, fed, len(blocks), text))
             return
     print("%-14s ФРАЗА НЕ ОТДАНА за весь поток (в Vosk ушло %2d/%d блоков) — "
           "ответа не будет!" % (label, fed, len(blocks)))
@@ -146,11 +160,13 @@ def main() -> None:
 
     speech = _load_wav_16k(wav_path)
     stream, pre_len = _build_stream(speech)
-    blocks = [stream[i:i + BLOCK] for i in range(0, len(stream) - BLOCK + 1, BLOCK)]
-    speech_end = (pre_len + len(speech)) / BLOCK
+    block_samples = _block_samples()
+    blocks = [stream[i:i + block_samples]
+              for i in range(0, len(stream) - block_samples + 1, block_samples)]
+    speech_end = (pre_len + len(speech)) / block_samples
 
     hangover_ms = args.hangover_ms if args.hangover_ms is not None else DEFAULT_HANGOVER_MS
-    block_ms = BLOCK * 1000.0 / SR
+    block_ms = block_samples * 1000.0 / SR
     hangover_blocks = SpeechHangover.blocks_for_ms(hangover_ms, block_ms)
 
     print("Поток: %.1f с, %d блоков по %.0f мс, речь кончается на блоке %.1f"
@@ -158,9 +174,10 @@ def main() -> None:
     print("Хвост: %d мс = %d блока(ов)\n" % (hangover_ms, hangover_blocks))
 
     model = Model(str(_find_vosk_model()))
-    _run(model, blocks, None, 0, "VAD OFF")
-    _run(model, blocks, VAD(), 0, "VAD ON h=0")
-    _run(model, blocks, VAD(), hangover_blocks, "VAD ON h=%d" % hangover_blocks)
+    _run(model, blocks, None, 0, "VAD OFF", block_ms)
+    _run(model, blocks, VAD(), 0, "VAD ON h=0", block_ms)
+    _run(model, blocks, VAD(), hangover_blocks,
+         "VAD ON h=%d" % hangover_blocks, block_ms)
     print("\nЖдём: VAD ON h=N не хуже VAD OFF более чем на один блок.")
 
 

@@ -67,7 +67,7 @@ set_mode (mode: commands|llm|combo)
 load_pack (name: games|apps|sites|work|system)
 unload_pack (name)
 list_packs
-change_voice (voice: ruslan|dmitri|irina|denis)
+change_voice (voice: ruslan|dmitri|irina|denis|aidar|baya|kseniya|xenia|eugene)
 list_voices
 set_timer (text; seconds ИЛИ time)
 list_timers
@@ -251,7 +251,7 @@ minimize_all / minimize_window / maximize_window / activate_window
 minimize_active / maximize_active / switch_window
 set_mode (mode: commands|llm|combo)
 load_pack / unload_pack / list_packs (name: games|apps|sites|work|system)
-change_voice / list_voices (voice: ruslan|dmitri|irina|denis)
+change_voice / list_voices (voice: ruslan|dmitri|irina|denis|aidar|baya|kseniya|xenia|eugene)
 set_timer (text; seconds|time) / list_timers / cancel_timers
 add_task (text) / list_tasks / done_task (task) / remove_task (task) / clear_tasks
 open_config / open_log / open_profile

@@ -1,6 +1,6 @@
 """Базовая стадия pipeline."""
 
-from typing import Iterator, Optional
+from typing import Optional
 
 from jarvis.intents.context import Ctx
 

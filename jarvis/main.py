@@ -436,7 +436,8 @@ def setup_logging() -> None:
     sys.excepthook = _sys_excepthook
 
 
-def make_config_listener(jarvis, config, listener, speaker, handler):
+def make_config_listener(jarvis, config, listener, speaker, handler,
+                        apply_tray=None):
     """Собирает подписчик config → живые компоненты (для Config.subscribe).
 
     Почему отдельной функцией: раньше это жило внутри main() и
@@ -444,6 +445,9 @@ def make_config_listener(jarvis, config, listener, speaker, handler):
     «терялась» — например, ползунок порога VAD писал config.json,
     но работающий VAD о нём не узнавал (порог читается только при
     создании VAD), а смена микрофона требовала перезапуска.
+
+    apply_tray(enabled) — необязательный обработчик ключа tray_enabled
+    (иконку нельзя поднять из тестов: нужен pystray и живой рабочий стол).
 
     Возвращает callback(key, value).
     """
@@ -454,6 +458,9 @@ def make_config_listener(jarvis, config, listener, speaker, handler):
             speaker.set_rate(value)
         elif key == "mode":
             handler.mode = value
+        elif key == "tray_enabled":
+            if apply_tray is not None:
+                apply_tray(bool(value))
         elif key == "barge_enabled":
             jarvis.barge_enabled = bool(value)
             if listener is not None:
@@ -471,9 +478,11 @@ def make_config_listener(jarvis, config, listener, speaker, handler):
         elif key == "vad_enabled":
             if listener is not None:
                 listener.set_vad_enabled(bool(value))
-        elif key in ("vad_threshold", "vad_adaptive", "vad_hangover_ms"):
-            # Порог / адаптивность / «хвост» читаются ТОЛЬКО при создании
-            # VAD — без пересоздания слайдеры в GUI ни на что не влияли.
+        elif key in ("vad_threshold", "vad_adaptive", "vad_hangover_ms",
+                     "vad_auto_download"):
+            # Порог / адаптивность / «хвост» / авто-скачивание модели
+            # читаются ТОЛЬКО при создании VAD — без пересоздания
+            # слайдеры и чекбокс в GUI ни на что не влияли.
             if listener is not None:
                 listener.reload_vad()
         elif key == "input_device":
@@ -601,9 +610,40 @@ def main() -> None:
         log.exception("Observer не завёлся")
         observer = None
 
+    # =================================================================
+    # Трей (pystray).
+    #
+    # Состояние держим в словаре: иконку можно поднять/снять на лету
+    # (ключ tray_enabled). Иконка поднимается ДО ft.run() — pystray
+    # держит собственный Windows message loop, а главный поток вот-вот
+    # заберёт Flet. Ошибки трея НИКОГДА не роняют Феникса: нет
+    # pystray/PIL — значит просто нет трея.
+    # =================================================================
+    tray_holder = {"icon": None}
+
+    def _apply_tray(enabled: bool) -> None:
+        """Включает/выключает иконку трея и режим «крестик сворачивает»."""
+        if enabled and tray_holder["icon"] is None:
+            try:
+                from jarvis.tray import start_tray
+                tray_holder["icon"] = start_tray(jarvis)
+            except Exception:
+                log.exception("Трей: запуск упал — работаю без трея")
+        elif not enabled and tray_holder["icon"] is not None:
+            try:
+                tray_holder["icon"].stop()
+            except Exception:
+                log.debug("Трей: иконка уже снята", exc_info=True)
+            tray_holder["icon"] = None
+
+        if gui is not None:
+            # Трей есть -> крестик прячет окно, нет -> окно закрывается.
+            gui.set_tray_active(tray_holder["icon"] is not None)
+
     # --- Подписки: изменения конфига применяются на лету ---
     config.subscribe(make_config_listener(jarvis, config, listener,
-                                          speaker, handler))
+                                          speaker, handler,
+                                          apply_tray=_apply_tray))
 
     def _on_timer_fire(timer: dict):
         text = timer.get("text") or "время вышло"
@@ -660,27 +700,18 @@ def main() -> None:
 
     threading.Thread(target=_greet, daemon=True, name="greeting").start()
 
-    # =================================================================
-    # ТРЕЙ ВРЕМЕННО ОТКЛЮЧЁН.
-    #
-    # Причина: pystray требует свой Windows message loop, а главный поток
-    # занят flet'ом (ft.run блокирует). Попытка запустить pystray в фоне
-    # приводит к зависанию GUI.
-    # =================================================================
-    if config.get("tray_enabled", False):
-        log.warning(
-            "tray_enabled=true, но трей временно отключён (в разработке). "
-            "Феникс работает без трея. Выход — Ctrl+C или диспетчер задач."
-        )
+    # Иконка трея поднимается ЗДЕСЬ — до ft.run (см. _apply_tray выше).
+    _apply_tray(bool(config.get("tray_enabled", False)))
 
     # === Режим запуска (№84) ===
     launch_mode = str(config.get("launch_mode", "gui") or "gui").lower()
     if launch_mode not in ("gui", "tray"):
         launch_mode = "gui"
 
-    if launch_mode == "tray":
+    # launch_mode=tray без иконки — окно осталось бы скрытым навсегда.
+    if launch_mode == "tray" and tray_holder["icon"] is None:
         log.warning(
-            "launch_mode=tray, но трей отключён — переключаюсь на gui"
+            "launch_mode=tray, но трей не поднялся — переключаюсь на gui"
         )
         launch_mode = "gui"
 
@@ -696,6 +727,12 @@ def main() -> None:
     else:
         log.info("GUI выключен — жду завершения")
         jarvis.stop_event.wait()
+
+    if tray_holder["icon"] is not None:
+        try:
+            tray_holder["icon"].stop()
+        except Exception:
+            log.debug("Трей: иконка уже снята", exc_info=True)
 
     jarvis.shutdown()
     log.info("Завершение работы")

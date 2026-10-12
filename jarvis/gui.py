@@ -18,7 +18,6 @@ launch_mode=tray:
 
 import asyncio
 import logging
-import os
 import queue
 import threading
 import time
@@ -143,6 +142,10 @@ class FenixGUI:
         # launch_mode=tray — окно скрыто при старте
         self.start_hidden = False
 
+        # Трей: если иконка поднялась (jarvis.tray.start_tray), закрытие
+        # окна крестиком сворачивает Феникса в трей, а не убивает процесс.
+        self.tray_active = False
+
         # Состояние
         self._state = "idle"
         self._stream_bubble = None
@@ -244,9 +247,45 @@ class FenixGUI:
         """Показать окно (для launch_mode=tray)."""
         self._queue.put(("show_window", None))
 
+    def set_tray_active(self, active: bool) -> None:
+        """Включает/выключает режим «закрытие окна сворачивает в трей».
+
+        Зовётся из main.py, когда иконку подняли или сняли (в т.ч. на
+        лету по чекбоксу «Иконка в трее»). prevent_close ставим заранее:
+        в обработчике CLOSE флаг уже опаздывает.
+        """
+        self.tray_active = bool(active)
+        try:
+            if self._page is not None:
+                self._page.window.prevent_close = self.tray_active
+                self._page.update()
+            log.info(
+                "GUI: трей %s — закрытие окна %s",
+                "включён" if self.tray_active else "выключен",
+                "свернёт Феникса" if self.tray_active else "закроет его",
+            )
+        except Exception:
+            log.exception("GUI: не удалось применить режим трея")
+
     def open_settings_tab(self) -> None:
         """Открыть GUI на вкладке «Настройки»."""
         self._queue.put(("open_settings_tab", None))
+
+    def quit(self) -> None:
+        """Закрывает Феникса целиком — для пункта «Выход» в трее.
+
+        stop() останавливает только очередь GUI: окно Flet остаётся
+        жить, а вместе с ним и процесс (ft.run не возвращается). Чтобы
+        выход реально работал, снимаем prevent_close и закрываем окно.
+        """
+        self._queue.put(("stop", None))
+        try:
+            if self._page is not None:
+                self._page.window.prevent_close = False
+                self._page.window.close()
+                log.info("GUI: окно закрыто (выход)")
+        except Exception:
+            log.exception("GUI: не удалось закрыть окно")
 
     def add_message(self, role: str, text: str) -> None:
         self._queue.put(("message", (role, text)))
@@ -337,6 +376,13 @@ class FenixGUI:
         # Позиция окна запоминается: gui_x / gui_y раньше только читались,
         # а сохранять их было некому — окно всегда открывалось по умолчанию.
         page.window.on_event = self._on_window_event
+
+        # Трей к этому моменту уже поднят (main.py выставляет tray_active
+        # ДО ft.run): если он есть, закрывать окно нельзя — Феникс умер бы
+        # вместе с ним. prevent_close применяем ЗАРАНЕЕ, в обработчике
+        # CLOSE флаг уже опаздывает.
+        if self.tray_active:
+            self.set_tray_active(True)
 
         # launch_mode=tray — окно скрыто
         if self.start_hidden:
@@ -847,6 +893,21 @@ class FenixGUI:
             on_change=self._on_vad_adaptive,
         )
 
+        # Модель silero_vad.onnx в комплект не входит (в репозитории её
+        # нет) — Феникс качает её сам. Флаг нужен для машин без сети.
+        vad_auto_download = ft.Checkbox(
+            label="Скачивать модель VAD (2.3 МБ), если её ещё нет",
+            value=bool(self.config.get("vad_auto_download", True)),
+            on_change=self._on_vad_auto_download,
+        )
+
+        auto_download_hint = ft.Text(
+            "Модель silero_vad.onnx качается фоном при первом запуске и "
+            "включается без перезапуска. Без неё VAD молча не работает.",
+            size=11,
+            color=TEXT_DIM,
+        )
+
         self._vad_threshold_label = ft.Text(
             f"Порог VAD: {self.config.get('vad_threshold', 0.5):.2f}",
             size=13,
@@ -935,6 +996,8 @@ class FenixGUI:
                     _section("VAD — фильтр тишины"),
                     vad_enabled,
                     vad_adaptive,
+                    vad_auto_download,
+                    auto_download_hint,
                     ft.Container(height=8),
                     self._vad_threshold_label,
                     self._vad_threshold_slider,
@@ -1156,6 +1219,26 @@ class FenixGUI:
         self.config.set("vad_adaptive", value)
         log.info("GUI: vad_adaptive → %s", value)
 
+    def _on_vad_auto_download(self, e) -> None:
+        """Вкл/выкл авто-скачивание модели VAD (применяется на лету)."""
+        value = bool(e.control.value)
+        self.config.set("vad_auto_download", value)
+        log.info("GUI: vad_auto_download → %s (применяю на лету)", value)
+
+    def _on_tray_enabled(self, e) -> None:
+        """Вкл/выкл иконку в трее (применяется на лету, см. main._apply_tray)."""
+        value = bool(e.control.value)
+        self.config.set("tray_enabled", value)
+        log.info("GUI: tray_enabled → %s (применяю на лету)", value)
+
+    def _on_launch_mode(self, e) -> None:
+        """Режим запуска (gui/tray) — применится при следующем старте."""
+        value = e.control.value
+        if value not in ("gui", "tray"):
+            value = "gui"
+        self.config.set("launch_mode", value)
+        log.info("GUI: launch_mode → %s (применится после перезапуска)", value)
+
     def _on_vad_threshold_change(self, e) -> None:
         value = float(e.control.value)
         if hasattr(self, "_vad_threshold_label") and self._vad_threshold_label:
@@ -1232,6 +1315,32 @@ class FenixGUI:
             on_select=self._on_theme_change,
         )
 
+        # Трей: ключи были в config, но контролов не было вообще —
+        # включить иконку можно было только правкой config.json.
+        tray_checkbox = ft.Checkbox(
+            label="Иконка в трее (закрытие окна сворачивает Феникса)",
+            value=bool(self.config.get("tray_enabled", True)),
+            on_change=self._on_tray_enabled,
+        )
+
+        launch_dropdown = ft.Dropdown(
+            value=str(self.config.get("launch_mode", "gui") or "gui"),
+            options=[
+                ft.dropdown.Option("gui", "Обычный — окно при старте"),
+                ft.dropdown.Option("tray", "Только трей — окно скрыто"),
+            ],
+            width=300,
+            border_color="#30363d",
+            focused_border_color=ACCENT,
+            on_select=self._on_launch_mode,
+        )
+
+        launch_hint = ft.Text(
+            "Режим запуска применяется при следующем запуске Феникса.",
+            size=11,
+            color=TEXT_DIM,
+        )
+
         def _section(title):
             return ft.Text(title, size=16, weight=ft.FontWeight.BOLD, color=ACCENT)
 
@@ -1263,6 +1372,13 @@ class FenixGUI:
                     _section("Внешний вид"),
                     _label("Тема:"),
                     theme_dropdown,
+                    ft.Container(height=25),
+                    _section("Приложение"),
+                    tray_checkbox,
+                    ft.Container(height=8),
+                    _label("Режим запуска:"),
+                    launch_dropdown,
+                    launch_hint,
                 ],
                 spacing=6,
                 scroll=ft.ScrollMode.AUTO,
@@ -1712,13 +1828,16 @@ class FenixGUI:
             log.exception("Не удалось показать окно")
 
     def _on_window_event(self, e) -> None:
-        """Сохраняет позицию окна (gui_x / gui_y) после перетаскивания.
+        """События окна: позиция (MOVED) и «закрыть в трей» (CLOSE).
 
-        Именно MOVED, а не MOVE: MOVED приходит один раз, когда
-        перетаскивание закончилось, поэтому config.json не переписывается
-        на каждый пиксель. Ошибки глушим — позиция окна не критична.
+        MOVED, а не MOVE: MOVED приходит один раз, когда перетаскивание
+        закончилось, поэтому config.json не переписывается на каждый
+        пиксель. Ошибки глушим — позиция окна не критична.
         """
         try:
+            if e.type == ft.WindowEventType.CLOSE:
+                self._on_window_close(e)
+                return
             if e.type != ft.WindowEventType.MOVED:
                 return
             if self._page is None:
@@ -1730,7 +1849,26 @@ class FenixGUI:
             self.config.update({"gui_x": int(left), "gui_y": int(top)})
             log.info("GUI: позиция окна сохранена (%s, %s)", left, top)
         except Exception:
-            log.exception("Не удалось сохранить позицию окна")
+            log.exception("Не удалось обработать событие окна")
+
+    def _on_window_close(self, e) -> None:
+        """Крестик в заголовке: с треем — свернуть туда, без трея — выйти.
+
+        Сворачивание, а не выход: иконка в трее уже есть, и голосовой
+        ассистент должен продолжать слушать (иначе зачем трей).
+        """
+        if not self.tray_active:
+            log.info("GUI: трея нет — окно закрывается штатно (выход)")
+            return
+        try:
+            page = getattr(e, "page", None) or self._page
+            page.window.prevent_close = True
+            page.window.visible = False
+            page.update()
+            log.info("GUI: окно свёрнуто в трей (Феникс продолжает слушать)")
+        except Exception:
+            log.exception("Не удалось свернуть окно в трей")
+
 
     # ---------------------------------------------------------------
     # Действия

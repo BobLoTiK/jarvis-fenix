@@ -45,6 +45,8 @@ _VOICE_ALIASES = {
     "бая": "baya", "баю": "baya",
     "ксения": "kseniya", "ксению": "kseniya",
     "евгений": "eugene", "евгения": "eugene",
+    # WinRT / SAPI (системные голоса Windows, ключи с заглавной)
+    "павел": "pavel", "павла": "pavel",
 }
 
 
@@ -122,6 +124,22 @@ def _normalize_voice(name: str) -> str:
     return _VOICE_ALIASES.get(name.lower(), name.lower())
 
 
+def _match_voice(key: str, voices: dict) -> str | None:
+    """Ищет ключ голоса в словаре движка без учёта регистра.
+
+    Ключи движков неоднородны: piper/silero — строчные («irina»),
+    winrt/sapi — с заглавной («Pavel»). Возвращает ключ ровно таким,
+    как он записан в движке, либо None, если голоса нет.
+    """
+    if key in voices:
+        return key
+    low = key.lower()
+    for name in voices:
+        if name.lower() == low:
+            return name
+    return None
+
+
 def current_voice(config=None) -> str:
     if config is not None:
         return config.get("tts_voice", "ruslan")
@@ -145,10 +163,14 @@ def switch(voice: str, config=None) -> str:
     # Алиасы: «ирину» → «irina», «руслан» → «ruslan»
     key = _normalize_voice(voice)
 
-    if key not in voices:
+    # Регистронезависимый матчинг: у winrt/sapi ключи с заглавной
+    # («Pavel», «Irina»), а алиасы приводят имя к нижнему регистру.
+    matched = _match_voice(key, voices)
+    if matched is None:
         return (f"Голос '{voice}' не знаю. Доступные: "
                 f"{', '.join(voices)}. Подсказка: {_hint_for(backend)}")
 
+    key = matched
     if config is not None:
         config.set("tts_voice", key)
     else:

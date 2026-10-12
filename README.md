@@ -6,7 +6,8 @@
 > Локальный голосовой ассистент для Windows. Форк проекта
 > [jsays12/jarvis](https://github.com/jsays12/jarvis).
 
-**Офлайн** для распознавания и синтеза речи (**Vosk** + **Whisper** + **Piper**).
+**Офлайн** для распознавания и синтеза речи (**Vosk** + **Whisper**;
+TTS: **Silero** / **Piper** / WinRT / SAPI).
 **Онлайн** — только для погоды и курса валют (с кэшем).
 **Опционально** — Qwen 2.5 через Ollama для свободного диалога и разбора сложных фраз.
 
@@ -34,6 +35,9 @@
     - [💗 Этап 14 — Mood](#-этап-14--mood)
     - [🖥 Этап 15 — UIA](#-этап-15--uia)
     - [🎉 Этап 16 — Праздничные триггеры в config](#-этап-16--праздничные-триггеры-в-config)
+    - [🔊 Этап 17 — Silero TTS](#-этап-17--silero-tts)
+    - [🎙 Этап 18 — VAD](#-этап-18--vad)
+    - [🗣 Этап 19 — Prosody](#-этап-19--prosody)
   - [💻 Требования](#-требования)
   - [📥 Установка](#-установка)
     - [🤖 Автоматическая](#-автоматическая)
@@ -202,6 +206,28 @@
 - **`celebration_enabled: false`** по умолчанию — не срабатывает без настройки.
 - Триггеры и текст — в `config.json`.
 
+### 🔊 Этап 17 — Silero TTS
+
+- **`jarvis/tts_engines/`** — абстракция `BaseEngine` + фабрика `get_engine()`.
+- Движки: **Silero** (`aidar`, `baya`, `kseniya`, `xenia`, `eugene`),
+  **Piper** (`ruslan`, `dmitri`, `irina`, `denis`), **WinRT** (`Pavel`, `Irina`), **SAPI**.
+- `"tts_backend"`: `auto` (Silero → Piper → WinRT → SAPI) либо явный движок.
+- `tts.py` — фасад над движками, per-call stop-token.
+- `TORCH_HOME` для Silero — в ASCII-путь (`PROGRAM_DIR/torch`).
+
+### 🎙 Этап 18 — VAD
+
+- **`jarvis/vad.py`** — Silero VAD ONNX (~2.3 МБ), адаптивный порог по SNR, нормализация.
+- Модель качается сама (`vad_auto_download`), `SpeechHangover` — «хвост» тишины для Vosk.
+- `wake_word_required: false` — работа без wake-слова.
+- `Listener.reload_vad()` — применение настроек из GUI на лету.
+
+### 🗣 Этап 19 — Prosody
+
+- **`jarvis/prosody.py`** — эмоции из голоса (RMS + pitch + ZCR), эвристика без ML.
+- `prosody_priority`: `prosody` / `text` / `both`.
+- Влияет на Mood через `mood.apply_from_prosody()`; вызывается в `main._process`.
+
 ---
 
 ## 💻 Требования
@@ -255,6 +281,7 @@ python -m jarvis
 | Vosk | ~45 МБ | `C:\ProgramData\Phoenix\models\` |
 | Whisper large-v3-turbo | ~1.5 ГБ | `C:\ProgramData\Phoenix\whisper-cache\` |
 | Piper-голос | ~60 МБ | Туда же |
+| Silero-модель | ~150 МБ | `C:\ProgramData\Phoenix\torch\` (при `tts_backend: auto`/`silero`) |
 
 ---
 
@@ -434,12 +461,15 @@ python -m jarvis
 - Микрофон: уровень, тест, выбор устройства.
 - Персона: имя пользователя, имя ассистента, стиль, черты, backstory, сброс онбординга.
 
-**Режим запуска:** `"launch_mode": "gui"`.
+**Режим запуска:** `"launch_mode": "gui"` — окно при старте, `"tray"` —
+только трей (окно скрыто). Выбирается во вкладке «Настройки», применяется
+после перезапуска.
 
 | Параметр | Что делает |
 |---|---|
 | `"gui_enabled": false` | Отключить GUI |
-| `"tray_enabled": false` | Отключить трей |
+| `"tray_enabled": false` | Отключить трей (чекбокс «Иконка в трее» во вкладке «Настройки», применяется на лету) |
+| `"vad_auto_download": false` | Не качать модель Silero VAD (2.3 МБ) — для машин без сети |
 
 ---
 
@@ -447,8 +477,8 @@ python -m jarvis
 
 | Режим | LLM | STT | TTS |
 |---|---|---|---|
-| 🏠 **Local** | Qwen | Vosk + Whisper small CPU | Piper medium |
-| 🌐 **Hybrid** | 14b/32b | Whisper на GPU | Piper |
+| 🏠 **Local** | Qwen | Vosk + Whisper small CPU | Silero / Piper (auto) |
+| 🌐 **Hybrid** | 14b/32b | Whisper на GPU | Silero / Piper |
 | ☁️ **Cloud** 🚧 | Groq | — | Edge TTS |
 | 💎 **Premium** ⏸ | GPT-4o, Claude | — | Fish Audio |
 
@@ -544,18 +574,19 @@ python -m jarvis
 
 ## 🎙 Голоса
 
-| Голос | Описание |
+Движок выбирается через `"tts_backend"` (`auto` → Silero → Piper → WinRT → SAPI).
+
+| Движок | Голоса |
 |---|---|
-| `ruslan` | Мужской, спокойный |
-| `dmitri` | Мужской, ниже |
-| `irina` | Женский |
-| `denis` | Мужской, дикторский |
+| Silero | `aidar`, `baya`, `kseniya`, `xenia`, `eugene` |
+| Piper | `ruslan`, `dmitri`, `irina`, `denis` |
+| WinRT | `Pavel`, `Irina` |
+| SAPI | зависит от системы |
 
-- «смени голос на Ирину».
-- Смена на лету.
-- Через GUI.
+- «смени голос на Ирину» / «какой голос» / «какие голоса».
+- Смена на лету и через GUI (вкладка «Настройки»).
 
-**Качество:** `medium` (по умолчанию) / `high`.
+**Качество:** `medium` (по умолчанию) / `high`. Подробнее — `voices/README.md`.
 
 ---
 
@@ -723,7 +754,7 @@ create_shortcut.bat
 | `start_fenix.bat` | Без консоли |
 | `start_fenix_debug.bat` | С логами |
 | `check_syntax.py` | Синтаксис |
-| `test_intents.py` | 32 сценария |
+| `test_intents.py` | 32 сценария без LLM/сети (всего 39) |
 | `snapshot.py` | `SNAPSHOT.md` |
 | `commit.bat` | Автокоммит |
 | `scripts/make_icon.py` | Иконка |
@@ -731,7 +762,7 @@ create_shortcut.bat
 | `scripts/build_exe.py` | `.exe` |
 | `scripts/mics.py` | Микрофон |
 | `scripts/wakebench.py` | Бенчмарк wake-слова |
-| `scripts/vadbench.py` | Бенчмарк задержки VAD |
+| `scripts/vadbench.py` | Бенчмарк задержки VAD (блок 128 мс — как в бою) |
 | `scripts/startup_probe.py` | Замер времени старта |
 | `scripts/voicedemo.py` | Голоса |
 | `scripts/check_caps.py` | Возможности системы |
@@ -775,9 +806,6 @@ python test_intents.py -k weather       # фильтр
 
 | Этап | Что | Оценка |
 |---|---|---|
-| 🎯 **1.11 — Silero TTS** | +6 голосов, чище звук, офлайн | 3–5 дн |
-| 🎯 **1.12 — VAD** | Silero VAD ONNX. Работа без wake-слова | 1–2 дн |
-| 🎯 **1.13.5 — Prosody** | Эмоции из голоса (RMS + ZCR + pitch, потом ML) | 3–5 дн |
 | 🎯 **1.13.6 — Non-verbal** | Смех, вздохи, кашель (audio classification) | 2–4 дн |
 | 🎯 **2 — Облако** | Groq (Llama 3.3 70B, Whisper), Edge TTS | 12 ч |
 | 🎯 **3 — Управление приложениями** | Глубокое управление | 8–10 ч |
@@ -786,7 +814,8 @@ python test_intents.py -k weather       # фильтр
 
 **⏸ Отложено:**
 
-- Трей (отдельный процесс).
+- Трей отдельным процессом (сейчас иконка живёт в daemon-потоке и с Flet
+  не конфликтует).
 - Платные фичи (GPT-4o, Claude).
 - MCP + плагины.
 - Telegram + веб.
@@ -805,9 +834,11 @@ python test_intents.py -k weather       # фильтр
 |---|---|
 | Wake-слово | Vosk |
 | Расшифровка | faster-whisper |
-| Синтез речи | Piper TTS |
+| Синтез речи | Silero / Piper / WinRT / SAPI (`auto`, `tts_engines/`) |
 | Streaming TTS | `speak_stream()` + tee |
 | Barge-in | Автокалибровка + per-call token |
+| VAD | `jarvis/vad.py` — Silero VAD ONNX + `SpeechHangover` |
+| Prosody | `jarvis/prosody.py` — RMS + pitch + ZCR |
 | LLM | Qwen / Gemma / Llama / Mistral через Ollama |
 | Персона | `jarvis/persona.py` + `build_prompt_block()` |
 | Mood | `jarvis/mood.py` — 6 состояний |
@@ -821,7 +852,7 @@ python test_intents.py -k weather       # фильтр
 | Отмена | `jarvis/history.py` |
 | Пароль | SHA-256 |
 | Микрофон | sounddevice + прогресс-бар |
-| Трей | pystray (отключён) |
+| Трей | pystray (иконка + меню, поднимается до `ft.run`) |
 | Печать/окна | pyautogui + pygetwindow |
 | Активация окон | win32gui + AttachThreadInput |
 | Погода | open-meteo.com |

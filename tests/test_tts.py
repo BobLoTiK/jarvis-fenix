@@ -154,3 +154,90 @@ def test_switch_voice_not_found():
         reply = voices.switch("fake_voice")
     assert "не знаю" in reply.lower()
     assert "aidar" in reply
+
+
+# =================================================================
+# voices.switch — регистронезависимость ключей (winrt/sapi)
+# =================================================================
+
+def _winrt_config(initial=None):
+    """Fake config с backend=winrt для тестов switch."""
+    state = {"tts_backend": "winrt", "tts_voice": "auto"}
+    if initial:
+        state.update(initial)
+    cfg = MagicMock()
+    cfg.get.side_effect = lambda k, d=None: state.get(k, d)
+    cfg.set.side_effect = lambda k, v: state.__setitem__(k, v)
+    return cfg, state
+
+
+def test_switch_voice_case_insensitive_winrt():
+    """Ключи winrt — с заглавной («Pavel»), а команда приходит строчными."""
+    from jarvis import voices
+    fake_engine = MagicMock()
+    fake_engine.voices = {"auto": "Авто", "Pavel": "Павел", "Irina": "Ирина"}
+    cfg, state = _winrt_config()
+
+    with patch("jarvis.voices._try_create", return_value=fake_engine), \
+         patch("jarvis.voices._VOICES_CACHE", {}):
+        reply = voices.switch("pavel", cfg)
+
+    assert "Pavel" in reply
+    assert state["tts_voice"] == "Pavel"
+
+
+@pytest.mark.parametrize("said,expected", [
+    ("irina", "Irina"),
+    ("ирину", "Irina"),   # алиас «ирину» → irina → Irina
+    ("павел", "Pavel"),   # алиас «павел» → pavel → Pavel
+])
+def test_switch_voice_aliases_winrt(said, expected):
+    """Русские алиасы и любой регистр находят системный голос winrt."""
+    from jarvis import voices
+    fake_engine = MagicMock()
+    fake_engine.voices = {"auto": "Авто", "Pavel": "Павел", "Irina": "Ирина"}
+    cfg, state = _winrt_config()
+
+    with patch("jarvis.voices._try_create", return_value=fake_engine), \
+         patch("jarvis.voices._VOICES_CACHE", {}):
+        reply = voices.switch(said, cfg)
+
+    assert state.get("tts_voice") == expected, reply
+
+
+# =================================================================
+# execute._do_change_voice — LLM-путь (не должен падать)
+# =================================================================
+
+def test_do_change_voice_without_voice_key():
+    """Пустой voice не роняет обработчик, а просит назвать голос."""
+    from jarvis.intents.execute import _do_change_voice
+    handler = MagicMock()
+    handler.config = MagicMock()
+    handler.config.get.return_value = "ruslan"
+
+    reply = _do_change_voice(handler, {}, None, None)
+
+    assert "голос" in reply.lower()
+
+
+def test_do_change_voice_switch_and_history():
+    """Голос меняется и попадает в историю (регрессия на PIPER_VOICES)."""
+    from jarvis import voices  # noqa: F401  (патчим через jarvis.voices)
+    from jarvis.intents import execute
+
+    fake_engine = MagicMock()
+    fake_engine.voices = {"auto": "Авто", "Pavel": "Павел", "Irina": "Ирина"}
+    cfg, state = _winrt_config()
+    handler = MagicMock()
+    handler.config = cfg
+
+    with patch("jarvis.voices._try_create", return_value=fake_engine), \
+         patch("jarvis.voices._VOICES_CACHE", {}), \
+         patch("jarvis.intents.execute.history") as hist:
+        reply = execute._do_change_voice(handler, {"voice": "павел"},
+                                         None, None)
+
+    assert "Pavel" in reply
+    assert state["tts_voice"] == "Pavel"
+    hist.push.assert_called_once()

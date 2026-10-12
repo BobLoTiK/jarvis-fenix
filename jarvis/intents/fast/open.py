@@ -8,7 +8,7 @@ import logging
 import re
 
 from jarvis import actions, profile
-from jarvis.intents.execute import _do_open, _do_close
+from jarvis.intents.execute import _do_open
 
 log = logging.getLogger("jarvis.intents")
 

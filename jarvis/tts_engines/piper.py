@@ -7,7 +7,6 @@ import io
 import logging
 import re
 import wave
-from pathlib import Path
 
 log = logging.getLogger("jarvis.tts")
 
@@ -149,9 +148,6 @@ class PiperEngine:
     def speak_stream(self, text_iter, voice: str, rate: float,
                      token) -> str:
         """Стриминг Piper через sounddevice."""
-        from jarvis.text_utils import prepare_text
-        import numpy as np
-
         buffer = ""
         full_parts = []
 

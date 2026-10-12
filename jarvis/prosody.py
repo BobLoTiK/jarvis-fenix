@@ -26,7 +26,6 @@ ML-модель (audeering/wav2vec2) — отдельный этап.
 """
 
 import logging
-import math
 
 log = logging.getLogger("jarvis.prosody")
 
@@ -44,28 +43,6 @@ _PITCH_EXCITED_MIN = 220
 
 # ZCR (0..1). Высокий → шипящие/резкие звуки → раздражение.
 _ZCR_ANNOYED_MIN = 0.18
-
-
-def _rms(samples) -> float:
-    """RMS (громкость) сырого аудио int16."""
-    if not samples:
-        return 0.0
-    n = len(samples)
-    s = sum(int(x) * int(x) for x in samples)
-    return math.sqrt(s / n)
-
-
-def _zero_crossing_rate(samples) -> float:
-    """ZCR — доля переходов через ноль. Высокий на шумных/шипящих."""
-    if len(samples) < 2:
-        return 0.0
-    crossings = 0
-    prev = samples[0]
-    for x in samples[1:]:
-        if (prev >= 0) != (x >= 0):
-            crossings += 1
-        prev = x
-    return crossings / len(samples)
 
 
 def _estimate_pitch(samples, sample_rate: int) -> float:

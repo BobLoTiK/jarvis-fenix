@@ -28,6 +28,18 @@ if importlib.util.find_spec("onnxruntime") is None:
 from jarvis import vad
 
 
+@pytest.fixture(autouse=True)
+def _no_vad_download(monkeypatch):
+    """Запрещаем тестам качать модель Silero.
+
+    VAD() без модели сам уходит качать silero_vad.onnx (2.3 МБ) в фоне.
+    В тестах это лишнее: прогон лезет в сеть и пишет в PROGRAM_DIR/vad
+    (оставался огрызок .part, который потом подменял рабочую модель).
+    Тесты без модели должны пропускаться, а не качать её.
+    """
+    monkeypatch.setattr(vad, "ensure_model_async", lambda cb=None: None)
+
+
 def _voiced(amp: int = 3000, n: int = 8000, sr: int = 16000):
     """Синтетический «голос»: гармоники 120/240/360 Гц (Silero видит речь)."""
     import numpy as np
@@ -43,10 +55,15 @@ def _voiced(amp: int = 3000, n: int = 8000, sr: int = 16000):
 # =================================================================
 
 def test_vad_unavailable_without_model():
-    """Без модели VAD.is_available() == False, is_speech → True (safe)."""
+    """Без модели VAD.is_available() == False, is_speech → True (safe).
+
+    auto_download=False: иначе VAD ушёл бы качать модель в фоне прямо в
+    тесте (сеть). Что бывает при авто-скачивании — в test_vad_model.py.
+    """
     with patch.object(vad, "_find_model", return_value=None):
-        v = vad.VAD()
+        v = vad.VAD(auto_download=False)
     assert v.is_available() is False
+    assert v.is_model_pending() is False
     # Fallback: без VAD всё считаем речью (старое поведение).
     assert v.is_speech(b"\x00" * 1024) is True
 
@@ -77,8 +94,15 @@ def test_vad_noise_returns_false():
 
 
 def test_vad_voiced_signal_is_speech():
-    """Синтетический голос → речь."""
-    v = vad.VAD()
+    """Синтетический голос → речь (порог 0.3, без адаптива).
+
+    Порог задаём явно: официальная silero_vad.onnx (2.3 МБ — Феникс
+    качает её сам) на синтетических гармониках даёт prob ≈ 0.41: это
+    заметно выше шума (≈0.02), но ниже дефолтного порога 0.5. Тест
+    проверяет конвейер (нормализация → ONNX → порог), а не конкретную
+    версию модели.
+    """
+    v = vad.VAD(threshold=0.3, adaptive=False, auto_download=False)
     if not v.is_available():
         pytest.skip("модель VAD недоступна")
     assert v.is_speech(_voiced(amp=3000).tobytes()) is True
@@ -86,15 +110,30 @@ def test_vad_voiced_signal_is_speech():
 
 def test_vad_quiet_voiced_signal_is_speech():
     """Нормализация позволяет ловить тихую речь (rms ~38)."""
-    v = vad.VAD()
+    v = vad.VAD(threshold=0.3, adaptive=False, auto_download=False)
     if not v.is_available():
         pytest.skip("модель VAD недоступна")
     assert v.is_speech(_voiced(amp=80).tobytes()) is True
 
 
+def test_vad_voiced_signal_is_above_noise():
+    """Голос «речевее» шума и тишины — инвариант к версии модели."""
+    import numpy as np
+    v = vad.VAD(auto_download=False)
+    if not v.is_available():
+        pytest.skip("модель VAD недоступна")
+    np.random.seed(42)
+    noise = (np.random.randn(8000) * 100).astype(np.int16).tobytes()
+    silence = np.zeros(8000, dtype=np.int16).tobytes()
+    assert (v.speech_probability(_voiced(amp=3000).tobytes())
+            > v.speech_probability(noise))
+    assert (v.speech_probability(_voiced(amp=80).tobytes())
+            > v.speech_probability(silence))
+
+
 def test_vad_reset_does_not_crash():
     """reset() работает без ошибок, даже если модель есть."""
-    v = vad.VAD()
+    v = vad.VAD(auto_download=False)
     v.reset()
 
 
@@ -112,7 +151,9 @@ def test_vad_speech_probability_silence():
 def test_vad_short_chunk():
     """Чанк короче 512 сэмплов → False, без падения."""
     import numpy as np
-    v = vad.VAD()
+    v = vad.VAD(auto_download=False)
+    if not v.is_available():
+        pytest.skip("модель VAD недоступна")
     short = np.zeros(100, dtype=np.int16).tobytes()
     assert v.is_speech(short) is False
 

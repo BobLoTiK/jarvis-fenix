@@ -122,7 +122,7 @@ jarvis/
 │   │   ├── compound.py   — «открой стим и запусти доту»
 │   │   ├── fast.py       — вызов реестра
 │   │   └── llm.py        — brain.parse + chat_stream
-│   └── fast/         — 17 быстрых обработчиков
+│   └── fast/         — 19 быстрых обработчиков (реестр)
 │       ├── custom.py, small_talk.py, music.py, screenshot.py
 │       ├── uia.py, open.py, voices.py, packs.py
 │       ├── timers.py, tasks.py, persona.py, profile.py
@@ -132,13 +132,16 @@ jarvis/
 ├── gui.py            — Flet GUI + PALETTES + fireworks
 ├── history.py        — стек отмены
 ├── stt.py            — Vosk (wake) + Whisper, HF_HOME временно
-├── tts.py            — Piper / XTTS / WinRT / SAPI, per-call token
+├── vad.py            — Silero VAD ONNX + SpeechHangover
+├── tts.py            — фасад над tts_engines, per-call token
+├── tts_engines/      — BaseEngine + Silero / Piper / WinRT / SAPI
 ├── modes.py          — commands / llm / combo
-├── voices.py         — смена голоса Piper
+├── voices.py         — смена голоса активного движка
 ├── packs.py          — загрузка/выгрузка паков
 ├── profile.py        — profiles/<user>/profile.json + subscribe
 ├── persona.py        — персона: стиль, черты, backstory
 ├── mood.py           — эмоциональное состояние (neutral/happy/...)
+├── prosody.py        — эмоции из голоса (RMS + pitch + ZCR)
 ├── uia.py            — окна, вкладки, кнопки (20+ браузеров)
 ├── memory.py         — profiles/<user>/dialog.json (атомарно)
 ├── observer.py       — фоновое извлечение фактов через LLM
@@ -194,7 +197,7 @@ main.Jarvis.say(reply) ← cmd_lock
    ├── если text → speaker.play_async()
    └── если stream → speaker.speak_stream() + tee → gui.add_stream_chunk()
    ↓
-tts.Speaker → Piper / XTTS / WinRT / SAPI
+tts.Speaker → tts_engines: Silero / Piper / WinRT / SAPI
 ~~~~
 
 **Плюс:** в `handle` **до** pipeline идёт `mood.apply_from_text(cmd)` —
@@ -709,6 +712,8 @@ actions.spec_from_string(s)
 | `celebrations` | `celebrations.py` | Поздравление с ДР (из config) |
 | `persona` | `persona.py` | Персона, стиль, промпт-блок |
 | `mood` | `mood.py` | Эмоциональное состояние |
+| `prosody` | `prosody.py` | Эмоции из голоса (RMS + pitch + ZCR) |
+| `VAD` | `vad.py` | Silero VAD ONNX + `SpeechHangover` |
 | `uia` | `uia.py` | UI Automation |
 | `DialogObserver` | `observer.py` | Фоновое извлечение фактов |
 | `first_run` | `jarvis/first_run.py` | greeting, `is_first_run`, `mark_done` |
@@ -740,6 +745,8 @@ actions.spec_from_string(s)
 | open-meteo.com | `api.open-meteo.com` | Погода |
 | cbr-xml-daily.ru | `www.cbr-xml-daily.ru` | Курс ЦБ |
 | HuggingFace | `rhasspy/piper-voices` | Голоса Piper |
+| torch.hub (GitHub) | `snakers4/silero-models` | Silero TTS (v5_5) |
+| GitHub | `snakers4/silero-vad` | Silero VAD ONNX |
 | HuggingFace | `deepdml/faster-whisper-large-v3-turbo-ct2` | Whisper |
 | alphacephei.com | `vosk-model-small-ru-0.22` | Vosk |
 | python.org | `python-3.11.9-amd64.exe` | Установщик Python |
@@ -752,12 +759,14 @@ actions.spec_from_string(s)
 
 | Файл | Что тестирует |
 |---|---|
-| `test_intents.py` | 32 сценария (без LLM, без сети) |
+| `test_intents.py` | 32 сценария без LLM/сети (всего 39) |
 | `tests/test_config_manager.py` | параллельная запись |
 | `tests/test_weather.py` | погода/курс с моками |
 | `tests/test_caps.py` | структура `system_caps.json` |
 | `tests/test_mood.py` | Mood: состояние, детекция, decay, влияние (29 тестов) |
 | `tests/test_uia.py` | UIA: логика обёртки с моками (17 тестов) |
+
+Полный набор — `tests/` (16 файлов, **254 теста**); интент-скрипт — `test_intents.py` (**32** без LLM/сети, всего **39**).
 
 **CI:** `.github/workflows/test.yml` — `check_syntax.py` + `pytest tests/` + `test_intents.py`.
 

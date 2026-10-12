@@ -36,6 +36,16 @@ WHISPER_PROMPT = (
 ECHO_WINDOW_SEC = 0.5
 BARGE_LOG_INTERVAL = 0.5
 
+# Блок аудио из RawInputStream: 2048 сэмплов @16 кГц = 128 мс.
+# Раньше было 8000 (500 мс), и это была главная «ступенька» задержки:
+# VAD не мог отреагировать быстрее 500 мс, а датчик «хвоста» тишины
+# (vad_hangover_ms) округлялся до 500 мс. Замер scripts/vadbench.py:
+# с 500 мс VAD добавлял к ответу целый блок, с 128 мс — ~100 мс.
+# 2048 кратно 512: Silero считает ровно 4 чанка, без остатка на полу
+# (раньше из 8000 сэмплов 320 молча не доходили до модели).
+DEFAULT_BLOCK_MS = 128
+MIN_BLOCK_SAMPLES = 512
+
 # Флаг, чтобы не добавлять пути CUDA в PATH повторно при каждом импорте stt.
 _CUDA_DLLS_ADDED = False
 
@@ -78,7 +88,14 @@ class Listener:
         self.barge_enabled = True
         self.muted = False
         self.barge_flag = False
-        self._block_size = 8000
+        # Блок аудио 128 мс (см. DEFAULT_BLOCK_MS) вместо старых 500 мс.
+        self._block_size = max(
+            MIN_BLOCK_SAMPLES,
+            int(round(sample_rate * DEFAULT_BLOCK_MS / 1000.0)),
+        )
+        self._block_ms = max(
+            1, int(round(self._block_size * 1000.0 / max(1, sample_rate)))
+        )
         # Флаг «микрофон сменили на лету»: phrases() увидит его и
         # переоткроет RawInputStream на новом устройстве (см. set_input_device).
         self._device_reload = False
@@ -115,6 +132,7 @@ class Listener:
                     sample_rate=sample_rate,
                     threshold=threshold,
                     adaptive=adaptive,
+                    auto_download=self._vad_auto_download(),
                 )
                 # Debug VAD включается через config["vad_debug"]
                 if config is not None:
@@ -122,15 +140,22 @@ class Listener:
                         self.vad._debug = bool(config.get("vad_debug", False))
                     except Exception:
                         pass
-                if not self.vad.is_available():
+                if not self.vad.is_available() and not self.vad.is_model_pending():
                     log.warning("VAD: модель недоступна — работаю без VAD")
                     self.vad = None
                 else:
                     self._vad_gate = SpeechHangover(self._hangover_blocks())
-                    log.info(
-                        "VAD: adaptive=%s, threshold=%.2f, хвост=%d блоков",
-                        adaptive, threshold, self._vad_gate.max_blocks,
-                    )
+                    if self.vad.is_model_pending():
+                        # Модель качается в фоне (vad.py): сам объект уже
+                        # живой и до появления файла просто пропускает всё.
+                        log.info(
+                            "VAD: модель качается в фоне — фильтр включится "
+                            "сам (хвост=%d блоков)", self._vad_gate.max_blocks)
+                    else:
+                        log.info(
+                            "VAD: adaptive=%s, threshold=%.2f, хвост=%d блоков",
+                            adaptive, threshold, self._vad_gate.max_blocks,
+                        )
             except Exception:
                 log.exception("VAD: не удалось создать")
                 self.vad = None
@@ -192,7 +217,7 @@ class Listener:
             self._barge_threshold = max(150, int(self._echo_baseline * 1.8))
 
         if rms > self._barge_threshold:
-            self._barge_speech_ms += int(self._block_size / 16)
+            self._barge_speech_ms += self._block_ms
             if self._barge_speech_ms >= 150:
                 self.barge_flag = True
         else:
@@ -234,6 +259,20 @@ class Listener:
                 ms = DEFAULT_HANGOVER_MS
         block_ms = self._block_size * 1000.0 / max(1, self._sample_rate)
         return SpeechHangover.blocks_for_ms(ms, block_ms)
+
+    def _vad_auto_download(self) -> bool:
+        """Качать ли модель VAD, если её нет на диске (vad_auto_download).
+
+        На чистой установке silero_vad.onnx отсутствует (в репозитории его
+        нет), и VAD молча выключался. Теперь Феникс качает модель сам —
+        флагом это можно запретить (например, на машине без интернета).
+        """
+        if self._config is None:
+            return True
+        try:
+            return bool(self._config.get("vad_auto_download", True))
+        except Exception:
+            return True
 
     def _callback(self, indata, frames, time_info, status):
         if status:
@@ -339,21 +378,28 @@ class Listener:
                 sample_rate=self._sample_rate,
                 threshold=threshold,
                 adaptive=adaptive,
+                auto_download=self._vad_auto_download(),
             )
             if self._config is not None:
                 try:
                     self.vad._debug = bool(self._config.get("vad_debug", False))
                 except Exception:
                     pass
-            if not self.vad.is_available():
+            if not self.vad.is_available() and not self.vad.is_model_pending():
                 log.warning("VAD: модель недоступна — работаю без VAD")
                 self.vad = None
                 self._vad_gate = None
             else:
                 self._vad_gate = SpeechHangover(self._hangover_blocks())
-                log.info("VAD: включён (динамически), adaptive=%s, threshold=%.2f, "
-                         "хвост=%d блоков", adaptive, threshold,
-                         self._vad_gate.max_blocks)
+                if self.vad.is_model_pending():
+                    log.info("VAD: включён (динамически), модель качается "
+                             "в фоне — фильтр включится сам (хвост=%d блоков)",
+                             self._vad_gate.max_blocks)
+                else:
+                    log.info(
+                        "VAD: включён (динамически), adaptive=%s, "
+                        "threshold=%.2f, хвост=%d блоков", adaptive, threshold,
+                        self._vad_gate.max_blocks)
         except Exception:
             log.exception("VAD: не удалось создать динамически")
             self.vad = None

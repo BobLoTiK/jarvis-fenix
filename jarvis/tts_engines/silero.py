@@ -15,7 +15,6 @@ import re
 import threading
 import time
 import wave
-from pathlib import Path
 
 # numpy нужен только в рантайме (синтез). Импортируем лениво —
 # чтобы модуль можно было импортировать для проверки контракта
@@ -156,8 +155,6 @@ class SileroEngine:
     def speak_stream(self, text_iter, voice: str, rate: float,
                      token) -> str:
         """Стриминг Silero через sounddevice."""
-        from jarvis.text_utils import prepare_text
-
         buffer = ""
         full_parts = []
 

@@ -29,7 +29,6 @@ DEFAULT_CONFIG = {
     "tts_voice": "ruslan",
     "tts_voice_quality": "medium",
     "voice_rate": 1.15,
-    "voice": "Pavel",
     "sample_rate": 16000,
     "input_device": None,
     "mic_check_sec": 20,
@@ -44,13 +43,17 @@ DEFAULT_CONFIG = {
     "mode": "combo",
     "barge_enabled": True,
 
-    # VAD (Silero ONNX, ~1 МБ). Отсекает тишину/шум ДО Vosk.
+    # VAD (Silero ONNX, ~2.3 МБ). Отсекает тишину/шум ДО Vosk.
     # Wake-слово работает как раньше — VAD только фильтрует вход.
     # wake_word_required=false — VAD ловит речь, wake не нужен.
     "vad_enabled": True,
     "vad_threshold": 0.5,
     "vad_adaptive": True,
     "vad_debug": False,  # True → логировать каждый чанк VAD (для отладки)
+    # Модель silero_vad.onnx в репозиторий не входит, поэтому Феникс
+    # качает её сам (фоном, в PROGRAM_DIR/vad) — иначе VAD молча
+    # выключался бы на чистой установке.
+    "vad_auto_download": True,
     # «Хвост» тишины после речи, мс. Vosk завершает фразу по тишине:
     # если VAD вырежет её всю, Vosk не отдаст финальный текст и Феникс
     # ответит поздно или не ответит вовсе. 1500 мс = как без VAD.

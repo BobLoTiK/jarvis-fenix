@@ -24,9 +24,8 @@
 import datetime
 import logging
 import time
-from pathlib import Path
 
-from jarvis import APP_NAME, actions, files, history, uia
+from jarvis import actions, files, history, uia
 from jarvis import modes, packs, profile, tasks, timers, voices, weather
 from jarvis import paths as _paths
 from jarvis.text_utils import normalize
@@ -427,9 +426,16 @@ def _do_list_packs(handler, intent, target, query):
 
 def _do_change_voice(handler, intent, target, query):
     prev = voices.current_voice(handler.config)
-    voice = str(intent.get("voice") or "").strip().lower()
+    voice = str(intent.get("voice") or "").strip()
+    if not voice:
+        return ("Не расслышал, какой голос включить. "
+                "Скажите, например: «смени голос на ирину».")
+
     reply = voices.switch(voice, handler.config)
-    if voice in voices.PIPER_VOICES and voice != prev:
+
+    # В историю — только если голос реально сменился, иначе
+    # «верни как было» откатит к тому же самому голосу.
+    if voices.current_voice(handler.config) != prev:
         history.push({"action": "change_voice", "prev_value": prev})
     return reply
 

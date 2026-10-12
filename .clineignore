@@ -1,0 +1,34 @@
+# Виртуальные окружения
+.venv311/
+venv/
+env/
+
+# Кеши и сгенерированные файлы
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Логи и модели
+logs/
+models/
+whisper-cache/
+voices/
+
+# Личные данные
+profiles/
+config.json
+timers.json
+tasks.json
+
+# Бинарники и архивы
+*.exe
+*.dll
+*.zip
+*.7z
+*.onnx
+*.wav
+
+# Большие текстовые файлы, которые не нужны для кодинга
+SNAPSHOT.md

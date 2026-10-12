@@ -329,3 +329,204 @@ def test_persona_assistant_name_empty_uses_default(gui, monkeypatch):
     gui._on_persona_assistant_name(ev("   "))
 
     assert saved["assistant_name"] == "Феникс"
+
+
+# =================================================================
+# Вкладка «Аудио» — авто-скачивание модели VAD
+# =================================================================
+
+def _find_checkbox(control, needle):
+    """Ищет ft.Checkbox с needle в label по дереву контролов."""
+    stack = [control]
+    while stack:
+        ctrl = stack.pop()
+        if isinstance(ctrl, ft.Checkbox):
+            label = getattr(ctrl, "label", "") or ""
+            if needle in label:
+                return ctrl
+        content = getattr(ctrl, "content", None)
+        if content is not None:
+            stack.append(content)
+        for child in getattr(ctrl, "controls", None) or []:
+            stack.append(child)
+    return None
+
+
+def test_audio_tab_has_vad_auto_download_checkbox(gui):
+    """Чекбокс «качать модель VAD» реально есть во вкладке.
+
+    Модель silero_vad.onnx в репозиторий не входит — без этого
+    чекбокса на машине без сети VAD выключался бы молча.
+    """
+    tab = gui._build_audio_tab()
+    box = _find_checkbox(tab, "Скачивать модель VAD")
+
+    assert box is not None, "во вкладке нет чекбокса авто-скачивания модели"
+    assert box.value is True
+
+
+def test_vad_auto_download_sends_flag(gui, cfg):
+    """Чекбокс пишет ключ в config — дальше его ведёт подписчик Config."""
+    gui._on_vad_auto_download(ev(False))
+    assert cfg["vad_auto_download"] is False
+
+    gui._on_vad_auto_download(ev(True))
+    assert cfg["vad_auto_download"] is True
+
+
+# =================================================================
+# Окно: позиция + «закрыть в трей»
+# =================================================================
+
+class FakeWindow:
+    """Заглушка page.window: помним то, что Flet реально меняет."""
+
+    def __init__(self, left=10, top=20):
+        self.left = left
+        self.top = top
+        self.visible = True
+        self.minimized = False
+        self.prevent_close = False
+        self.closed = False
+        self.on_event = None
+
+    def close(self):
+        self.closed = True
+
+
+class FakePage:
+    """Заглушка ft.Page для событий окна."""
+
+    def __init__(self, left=10, top=20):
+        self.window = FakeWindow(left, top)
+        self.updates = 0
+
+    def update(self):
+        self.updates += 1
+
+
+def win_event(kind, page=None):
+    """Фейковое событие окна Flet."""
+    return SimpleNamespace(type=kind, page=page)
+
+
+def test_window_moved_saves_position(gui, cfg):
+    """Позиция окна сохраняется (gui_x/gui_y), как было и раньше."""
+    gui._page = FakePage(left=100, top=200)
+
+    gui._on_window_event(win_event(ft.WindowEventType.MOVED))
+
+    assert cfg["gui_x"] == 100
+    assert cfg["gui_y"] == 200
+
+
+def test_window_close_hides_to_tray(gui):
+    """Крестик при живом трее прячет окно, а не убивает Феникса."""
+    page = FakePage()
+    gui._page = page
+    gui.tray_active = True
+
+    gui._on_window_event(win_event(ft.WindowEventType.CLOSE, page))
+
+    assert page.window.prevent_close is True
+    assert page.window.visible is False
+    assert page.updates == 1
+
+
+def test_window_close_without_tray_exits(gui):
+    """Без трея крестик закрывает окно штатно (Flet завершит сессию)."""
+    page = FakePage()
+    gui._page = page
+    gui.tray_active = False
+
+    gui._on_window_event(win_event(ft.WindowEventType.CLOSE, page))
+
+    assert page.window.prevent_close is False
+    assert page.window.visible is True
+
+
+def test_quit_closes_window(gui):
+    """«Выход» из трея закрывает окно — иначе процесс остаётся жить."""
+    page = FakePage()
+    gui._page = page
+    page.window.prevent_close = True
+
+    gui.quit()
+
+    assert page.window.prevent_close is False
+    assert page.window.closed is True
+
+
+def test_quit_without_page_is_safe(gui):
+    """GUI ещё не поднялся — quit() не падает."""
+    gui._page = None
+
+    gui.quit()
+
+
+def test_set_tray_active_toggles_prevent_close(gui):
+    """Трей включили на лету — окно больше не закрывается крестиком."""
+    page = FakePage()
+    gui._page = page
+
+    gui.set_tray_active(True)
+    assert gui.tray_active is True
+    assert page.window.prevent_close is True
+
+    gui.set_tray_active(False)
+    assert gui.tray_active is False
+    assert page.window.prevent_close is False
+
+
+def test_set_tray_active_without_page_is_safe(gui):
+    """Страница Flet ещё не создана — флаг всё равно выставляется."""
+    gui._page = None
+
+    gui.set_tray_active(True)
+
+    assert gui.tray_active is True
+
+
+def test_show_window_makes_window_visible(gui):
+    """Пункт трея «Открыть окно» реально возвращает окно на экран."""
+    page = FakePage()
+    gui._page = page
+    page.window.visible = False
+    page.window.minimized = True
+
+    gui._show_window_now()
+
+    assert page.window.visible is True
+    assert page.window.minimized is False
+    assert page.updates == 1
+
+
+# =================================================================
+# Вкладка «Настройки» — трей и режим запуска
+# =================================================================
+
+def test_settings_tab_has_tray_controls(gui):
+    """tray_enabled раньше правился только в config.json — теперь в GUI."""
+    tab = gui._build_settings_tab()
+    box = _find_checkbox(tab, "Иконка в трее")
+
+    assert box is not None, "во вкладке «Настройки» нет чекбокса трея"
+    assert box.value is True
+
+
+def test_tray_enabled_sends_flag(gui, cfg):
+    gui._on_tray_enabled(ev(False))
+    assert cfg["tray_enabled"] is False
+
+    gui._on_tray_enabled(ev(True))
+    assert cfg["tray_enabled"] is True
+
+
+def test_launch_mode_sends_value(gui, cfg):
+    gui._on_launch_mode(ev("tray"))
+    assert cfg["launch_mode"] == "tray"
+
+
+def test_launch_mode_rejects_unknown(gui, cfg):
+    gui._on_launch_mode(ev("неведома зверушка"))
+    assert cfg["launch_mode"] == "gui"

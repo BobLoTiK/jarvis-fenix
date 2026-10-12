@@ -30,7 +30,7 @@ MIT + attribution (не удалять).
 | Python | **3.11.9**, только `.venv311` |
 | Wake-слово | Vosk `vosk-model-small-ru-0.22` (~45 МБ) |
 | Уточнение | faster-whisper `large-v3-turbo-ct2` (CUDA, иначе CPU+`small`) |
-| Синтез | Piper `medium` → XTTS / WinRT / SAPI (fallback) |
+| Синтез | `auto`: Silero → Piper → WinRT → SAPI (движки в `tts_engines/`) |
 | Мозг | Ollama `qwen2.5` (в наличии 1.5b / 7b / 14b) |
 | GUI | Flet 1.0.x, **главный поток** |
 | Окна | `uiautomation` (20+ браузеров по PID) |
@@ -181,8 +181,8 @@ debug → correction → undo → weather_currency`
 
 ```bat
 python check_syntax.py            :: синтаксис всех .py, включая tests/
-python -m pytest tests\ -q        :: 69 тестов
-python test_intents.py            :: 32 сценария, без LLM и сети
+python -m pytest tests\ -q        :: 254 теста
+python test_intents.py            :: 32 сценария без LLM/сети (всего 39)
 python test_intents.py --llm --network   :: + LLM (3-8 мин) и погода/курс
 ```
 
@@ -196,10 +196,10 @@ python test_intents.py --llm --network   :: + LLM (3-8 мин) и погода/�
 
 ## 9. Что дальше
 
-По `PLAN.md`: Silero TTS (+6 голосов) → VAD без wake-слова → Prosody →
-Vector memory (ChromaDB + RAG) → спрайт-аватар → PyInstaller в один `.exe`.
+По `PLAN.md`: Vector memory (ChromaDB + RAG) → спрайт-аватар →
+PyInstaller в один `.exe` → облако (Groq / Edge TTS).
 
 ---
 
-_Последняя правка: 10.10.2026, после аудита на ошибки, гонки и хардкод._
+_Последняя правка: 12.10.2026, синхронизация с кодом (Silero TTS, VAD, Prosody, счётчики тестов)._
 

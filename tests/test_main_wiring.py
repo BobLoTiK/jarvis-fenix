@@ -88,10 +88,39 @@ def test_vad_hangover_reloads_vad(wiring):
     assert listener.called("reload_vad") == [()]
 
 
+def test_vad_auto_download_reloads_vad(wiring):
+    """Чекбокс «качать модель VAD» пересоздаёт VAD (модель читается там)."""
+    _, listener, _, _, callback = wiring
+    callback("vad_auto_download", False)
+    assert listener.called("reload_vad") == [()]
+
+
 def test_vad_enabled_toggles_vad(wiring):
     _, listener, _, _, callback = wiring
     callback("vad_enabled", False)
     assert listener.called("set_vad_enabled") == [(False,)]
+
+
+# =================================================================
+# Трей (иконку поднимает/снимает main._apply_tray)
+# =================================================================
+
+def test_tray_enabled_calls_apply_tray():
+    """Чекбокс «Иконка в трее» дёргает подъём/снятие иконки."""
+    calls = []
+    callback = make_config_listener(FakeJarvis(), None, Spy(), Spy(), Spy(),
+                                    apply_tray=calls.append)
+
+    callback("tray_enabled", True)
+    callback("tray_enabled", False)
+
+    assert calls == [True, False]
+
+
+def test_tray_enabled_without_handler_is_safe(wiring):
+    """Без apply_tray ключ просто игнорируется (тесты, headless-режим)."""
+    *_, callback = wiring
+    callback("tray_enabled", True)
 
 
 def test_input_device_switches_microphone(wiring):

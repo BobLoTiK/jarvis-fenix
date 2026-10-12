@@ -7,8 +7,6 @@
 
 import re
 
-from jarvis import memory
-
 
 def memory_fast(handler, cmd: str) -> str | None:
     if re.search(r"(коротк|быстр)\w*\s+память", cmd):
