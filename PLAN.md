@@ -53,7 +53,7 @@
 | 🆕 Persistent + Vector memory | 3 | 0 | 3 |
 | 🆕 Сборка `.exe` (ступени 1–2) | 2 | 0 | 2 |
 | 🆕 Инсталлятор Inno + сборка | 1 | 1 | 0 |
-| 🆕 CI/релизы (локально ✅) | 1 | 0 | 1 |
+| 🆕 CI/релизы | 1 | 1 | 0 |
 | 🆕 Многошаговые сценарии | 6 | 0 | 6 |
 | 🆕 Мои команды | 12 | 0 | 12 |
 | 🆕 Бесплатные фичи | 13 | 0 | 13 |
@@ -67,7 +67,7 @@
 | 💭 Миграция PySide6 | 1 | 0 | 1 |
 | 💤 Долгий ящик | 8 | 0 | 8 |
 | 💰 Платные | 6 | 0 | 6 |
-| **ИТОГО** | **~195** | **~82** | **~113** |
+| **ИТОГО** | **~195** | **~83** | **~112** |
 
 ---
 
@@ -84,6 +84,23 @@
   `system_caps.json` → `Феникс.exe` → `ISCC.exe`; флаг `--run` сразу запускает установщик.
 - Проверено живой установкой (`/VERYSILENT` в отдельную папку): 85/85 `.py`
   на месте, 0 `__pycache__`, импорт пакета из установки работает, деинсталляция чистая.
+
+### CI-релизы (13.10.2026)
+
+- `.github/workflows/release.yml` — пуш тега `v*` собирает на windows-latest
+  `Феникс.exe` + `Феникс_Setup.exe` и создаёт GitHub Release
+  (`gh release create --generate-notes`) с двумя вложениями; артефакты
+  запуска доступны всегда, вручную (Actions → build-release) — сборка без релиза.
+- Зависимости в CI — только `PyInstaller` + `Pillow`: `Феникс.exe` это
+  `launcher.py` (чистая stdlib), тяжёлые пакеты он ставит сам при первом запуске.
+- Inno Setup 6 — `choco install innosetup -y`; версия из тега уходит в
+  `ISCC /DMyAppVersion` (`installer.iss` обёрнут в `#ifndef MyAppVersion`),
+  локально то же через `build_setup.py --version X`.
+- `system_caps.json` в CI не генерируется: нет `pycaw`/`screen-brightness-control`
+  → шаг мягко пропускается (файл необязателен, в `installer.iss` с
+  `skipifsourcedoesntexist`).
+- 8 тестов (`tests/test_build_setup.py`): парсинг `--version`, `caps_available`,
+  контракт «дефолт в `installer.iss` = `jarvis.__version__`».
 
 ### Prosody (11.10.2026)
 
@@ -363,12 +380,12 @@ TTSEngine (абстракция)
 
 ### 🆕 CI/релизы (1)
 
-**Статус:** 🚧 локальная сборка готова (`scripts/build_setup.py`); в CI осталось:
-workflow + тихая установка Inno Setup (`winget install JRSoftware.InnoSetup`).
+**Статус:** ✅ сделано 13.10.2026 — `.github/workflows/release.yml`: тег `v*`
+→ сборка `.exe` + установщика → GitHub Release; ручной запуск → артефакты.
 
 | № | Задача | Время |
 |---|---|---|
-| №121 | GitHub Actions: автосборка `.exe` + установщик + релиз по тегу | 4–6 ч |
+| №121 ✅ | GitHub Actions: автосборка `.exe` + установщик + релиз по тегу | 4–6 ч |
 
 ### 🆕 Тесты (1)
 
@@ -820,6 +837,7 @@ C:\jarvis\
 | 1.10 UIA | ✅ 100% |
 | 1.13 Tone | ✅ 100% |
 | 1.13.5 Инсталлятор + сборка | ✅ 100% (13.10.2026) |
+| CI-релизы (release.yml) | ✅ 100% (13.10.2026) |
 | 1.11 Silero TTS | ✅ 100% |
 | 1.12 VAD | ✅ 100% |
 | 2 Облако | ❌ 0% |
@@ -828,7 +846,7 @@ C:\jarvis\
 | 5 MCP заготовки | ❌ 0% |
 | 6 Telegram | ❌ 0% |
 | 7 Спрайт | ❌ 0% |
-| 8 PyInstaller+VLM+Hermes | 🚧 25% (инсталлятор ✅, сборка одной командой) |
+| 8 PyInstaller+VLM+Hermes | 🚧 35% (инсталлятор ✅, сборка + CI-релиз ✅) |
 | 9 Улучшение мозгов | ❌ 0% |
 | **ФАЗА 2** | 💤 0% |
 

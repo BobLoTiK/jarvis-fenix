@@ -75,6 +75,29 @@
   0 `__pycache__`/`.pyc`, импорт пакета из установки работает, тихая
   деинсталляция удаляет всё подчистую.
 
+#### 🚀 CI — авторелиз по тегу (`release.yml`)
+
+- Новый workflow `.github/workflows/release.yml`: пуш тега `v*` собирает на
+  windows-latest `Феникс.exe` + `Феникс_Setup.exe` и создаёт GitHub Release
+  (`gh release create --generate-notes`) с двумя вложениями. Любой запуск
+  кладёт файлы в артефакты; ручной (Actions → build-release → Run workflow)
+  собирает без релиза.
+- **Версия из тега.** `v1.0.2` → `build_setup.py --version 1.0.2` →
+  `ISCC /DMyAppVersion=1.0.2` → `ProductVersion` установщика. Проверено
+  локально: с флагом — `1.0.2`, без флага — дефолт `1.0.0`.
+- `installer.iss` — `MyAppVersion` обёрнут в `#ifndef`, дефолт остаётся
+  `1.0.0` (= `jarvis.__version__`).
+- `scripts/build_setup.py` — флаг `--version X` / `--version=X`; шаг
+  `system_caps.json` мягко пропускается, если нет `pycaw` /
+  `screen-brightness-control` (на CI-раннере их нет).
+- В CI ставятся только `PyInstaller` + `Pillow`: `Феникс.exe` — это
+  `launcher.py` на чистой stdlib, зависимости проекта он ставит сам при первом
+  запуске (экономия ~2 ГБ и минут на раннере).
+- Inno Setup 6 — `choco install innosetup --no-progress -y`; `ISCC.exe`
+  появляется в `PATH` (плюс запасной поиск в стандартных папках).
+- 8 тестов: `tests/test_build_setup.py` (парсинг версии, `caps_available`,
+  контракт «дефолт `installer.iss` = `jarvis.__version__`»).
+
 #### 📝 Документация
 
 - `CI.md` — раздел про релизы: локальная сборка уже автоматизирована
@@ -84,6 +107,12 @@
 - `PROJECT.md` — стек сборки, контракт проверки (260 тестов, 32/32 интентов),
   раздел «что дальше» сведён с порядком работ из `PLAN.md`.
 - `SNAPSHOT.md` перегенерирован; `check_syntax.py` — 123 файла OK.
+- `CI.md` — раздел «Авторелиз — release.yml»: шаги, версия из тега, как выпустить
+  релиз (`git tag` + `git push origin`), таблица «если упало».
+- `README.md` — бейдж `build-release`, `--version` в примерах сборки, абзац об
+  авторелизе, строка «Авторелиз» в таблице технологий.
+- `.github/workflows/README.md` — описание `release.yml`; `PLAN.md` — №121 ✅,
+  новая сводка «CI-релизы (13.10.2026)», счётчики (~195 / ~83 / ~112).
 
 ### 📅 Сессия 12.10.2026
 

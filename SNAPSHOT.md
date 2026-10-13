@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=3aefc57c75af5b8a` · режим `lean` · файлов `155` · строк `28597` · источник `1147 КБ`
+`sha256=422b47802843a2c3` · режим `lean` · файлов `157` · строк `28956` · источник `1166 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -47,7 +47,8 @@ MIT + attribution (не удалять).
 | Мозг | Ollama `qwen2.5` (в наличии 1.5b / 7b / 14b) |
 | GUI | Flet 1.0.x, **главный поток** |
 | Окна | `uiautomation` (20+ браузеров по PID) |
-| Сборка | PyInstaller → `Феникс.exe`; Inno Setup → установщик (одна команда: `python scripts\build_setup.py`) |
+| Сборка | PyInstaller → `Феникс.exe`; Inno Setup → установщик (одной командой: `python scripts\build_setup.py`) |
+| Авторелиз | Тег `v*` → GitHub Actions собирает и публикует `Феникс_Setup.exe` (`.github/workflows/release.yml`) |
 
 **Python 3.13/3.14 не использовать** — `libvosk.dll` падает с access violation.
 
@@ -194,7 +195,7 @@ debug → correction → undo → weather_currency`
 
 ```bat
 python check_syntax.py            :: синтаксис всех .py, включая tests/
-python -m pytest tests\ -q        :: 260 тестов
+python -m pytest tests\ -q        :: 268 тестов
 python test_intents.py            :: 32 сценария без LLM/сети (ИТОГ: 32 / 32)
 python test_intents.py --llm --network   :: + LLM (3-8 мин) и погода/курс
 ```
@@ -214,12 +215,13 @@ python test_intents.py --llm --network   :: + LLM (3-8 мин) и погода/�
 спрайт-аватар → PyInstaller/CI + VLM + Hermes → улучшение мозгов.
 
 Сборка уже автоматизирована: `python scripts\build_setup.py` даёт `Феникс.exe` +
-`dist\Феникс_Setup.exe`. В CI (№121) осталось обернуть это в workflow.
+`dist\Феникс_Setup.exe`. Авторелиз тоже готов (№121 ✅): пуш тега `v*` собирает
+и публикует установщик (`.github/workflows/release.yml`, подробности — `CI.md`).
 
 ---
 
 _Последняя правка: 13.10.2026, синхронизация с кодом и планом (инсталлятор +
-`build_setup.py`, счётчики тестов: 260 pytest / 32 test_intents)._
+`build_setup.py`, CI-авторелиз по тегу; счётчики: 268 pytest / 32 test_intents)._
 `````
 
 ---
@@ -231,14 +233,15 @@ jarvis/
 ├── .clineignore  (34 стр)
 ├── .github/
 │   ├── workflows/
-│   │   ├── README.md  (37 стр)
+│   │   ├── README.md  (59 стр)
+│   │   ├── release.yml  (114 стр)
 │   │   ├── test.yml  (58 стр)
 ├── ARCHITECTURE.md  (894 стр)
-├── CHANGELOG.md  (706 стр)
+├── CHANGELOG.md  (735 стр)
 ├── check_all.bat  (88 стр)
 ├── check_syntax.bat  (7 стр)
 ├── check_syntax.py  (60 стр)
-├── CI.md  (137 стр)
+├── CI.md  (188 стр)
 ├── cmds/
 │   ├── open_terminal.bat  (3 стр)
 │   ├── show_ip.bat  (3 стр)
@@ -246,7 +249,7 @@ jarvis/
 ├── CONTRIBUTING.md  (368 стр)
 ├── create_shortcut.bat  (51 стр)
 ├── install.bat  (410 стр)
-├── installer.iss  (112 стр)
+├── installer.iss  (117 стр)
 ├── jarvis/
 │   ├── __init__.py  (8 стр)
 │   ├── __main__.py  (4 стр)
@@ -346,18 +349,18 @@ jarvis/
 │   ├── sites.json  (22 стр)
 │   ├── system.json  (17 стр)
 │   ├── work.json  (11 стр)
-├── PLAN.md  (888 стр)
-├── PROJECT.md  (210 стр)
+├── PLAN.md  (906 стр)
+├── PROJECT.md  (212 стр)
 ├── PROMPT.md  (491 стр)
 ├── pytest.ini  (15 стр)
-├── README.md  (908 стр)
+├── README.md  (923 стр)
 ├── requirements-ci.txt  (24 стр)
 ├── requirements-dev.txt  (10 стр)
 ├── requirements.txt  (59 стр)
 ├── scripts/
 │   ├── __init__.py  (7 стр)
 │   ├── build_exe.py  (78 стр)
-│   ├── build_setup.py  (161 стр)
+│   ├── build_setup.py  (208 стр)
 │   ├── check_caps.py  (174 стр)
 │   ├── make_icon.py  (80 стр)
 │   ├── make_installer_images.py  (121 стр)
@@ -378,6 +381,7 @@ jarvis/
 ├── test_vad_live.py  (32 стр)
 ├── tests/
 │   ├── __init__.py  (0 стр)
+│   ├── test_build_setup.py  (56 стр)
 │   ├── test_caps.py  (23 стр)
 │   ├── test_config_manager.py  (47 стр)
 │   ├── test_engine_probe.py  (100 стр)
@@ -1498,6 +1502,8 @@ jarvis/
   def run(cmd: list[str])
   def include_script(name: str)
   def find_iscc()
+  def parse_version(argv: list[str])
+  def caps_available()
   def main()
 ```
 
@@ -1609,6 +1615,20 @@ jarvis/
   TEMPLATES = ...
   def recognize(model: Model, wav_bytes: bytes)
   def main()
+```
+
+**`tests/test_build_setup.py`**
+
+```
+  # Тесты scripts.build_setup — версия установщика и мягкий пропуск шага caps.
+  def test_parse_version_space()
+  def test_parse_version_equals()
+  def test_parse_version_strips_spaces()
+  def test_parse_version_absent()
+  def test_parse_version_without_value()
+  def test_caps_available_with_modules(monkeypatch)
+  def test_caps_available_without_modules(monkeypatch)
+  def test_installer_version_is_overridable_and_matches_package()
 ```
 
 **`tests/test_caps.py`**
@@ -2255,7 +2275,7 @@ jarvis/
 | `jarvis/weather.py` | 394 | code | Погода и курс валют. |
 | `scripts/__init__.py` | 7 | code | Пакет scripts: утилиты разработчика. |
 | `scripts/build_exe.py` | 78 | code | Сборка Феникс.exe (лёгкий лаунчер). |
-| `scripts/build_setup.py` | 161 | code | Полная сборка Феникса: Феникс.exe + Феникс_Setup.exe — одной командой. |
+| `scripts/build_setup.py` | 208 | code | Полная сборка Феникса: Феникс.exe + Феникс_Setup.exe — одной командой. |
 | `scripts/check_caps.py` | 174 | code | Проверка возможностей системы — запускается из install.bat. |
 | `scripts/make_icon.py` | 80 | code | Генерация иконки Феникса (jarvis/icon.ico). |
 | `scripts/make_installer_images.py` | 121 | code | Генерация картинок для Inno Setup установщика Феникса. |
@@ -2267,6 +2287,7 @@ jarvis/
 | `scripts/voicedemo.py` | 41 | code | Прослушка голосов: проигрывает одну фразу всеми доступными голосами. |
 | `scripts/wakebench.py` | 88 | code | Бенчмарк кандидатов в wake-слово: TTS (Pavel) -> Vosk-small -> что усл |
 | `tests/__init__.py` | 0 | code |  |
+| `tests/test_build_setup.py` | 56 | code | Тесты scripts.build_setup — версия установщика и мягкий пропуск шага c |
 | `tests/test_caps.py` | 23 | code | Тесты check_caps: структура system_caps.json. |
 | `tests/test_config_manager.py` | 47 | code | Тесты config_manager: параллельная запись не рвёт файл. |
 | `tests/test_engine_probe.py` | 100 | code | Заглушка движка TTS (factory._probe_engine). |
@@ -17578,7 +17599,7 @@ if __name__ == "__main__":
 ### `scripts/build_setup.py`
 
 ```python
-"""Полная сборка Феникса: Феникс.exe + Феникс_Setup.exe — одной командой. ... [20 строк]"""
+"""Полная сборка Феникса: Феникс.exe + Феникс_Setup.exe — одной командой. ... [27 строк]"""
 
 import shutil
 import subprocess
@@ -17651,9 +17672,33 @@ def find_iscc() -> str:
     sys.exit(1)
 
 
+def parse_version(argv: list[str]) -> str | None:
+    """Версия из `--version X` / `--version=X` (уходит в ISCC как /DMyAppVersion)."""
+    for i, arg in enumerate(argv):
+        if arg == "--version" and i + 1 < len(argv):
+            return argv[i + 1].strip()
+        if arg.startswith("--version="):
+            return arg.split("=", 1)[1].strip()
+    return None
+
+
+def caps_available() -> bool:
+    """Есть ли модули, нужные scripts/check_caps.py (pycaw + sbc). ... [5 строк]"""
+    import importlib.util
+
+    return all(
+        importlib.util.find_spec(name)
+        for name in ("pycaw", "screen_brightness_control")
+    )
+
+
 def main() -> int:
+    version = parse_version(sys.argv)
+
     print("Феникс — сборка установщика")
     print(f"Корень проекта: {BASE}")
+    if version:
+        print(f"Версия (--version): {version}")
 
     if not ISS.exists():
         print(f"ОШИБКА: не найден {ISS}")
@@ -17674,6 +17719,10 @@ def main() -> int:
     step(3, "Возможности системы (system_caps.json)")
     if CAPS.exists():
         print(f"OK: уже есть ({CAPS})")
+    elif not caps_available():
+        print("ПРОПУСК: нет pycaw / screen-brightness-control (обычно это CI).")
+        print("Файл необязателен: в installer.iss он с skipifsourcedoesntexist,")
+        print("а код без него считает громкость/яркость недоступными.")
     else:
         print("Нет файла — генерирую...")
         try:
@@ -17693,7 +17742,12 @@ def main() -> int:
     step(5, "Компиляция установщика (Inno Setup)")
     iscc = find_iscc()
     print(f"ISCC: {iscc}")
-    run([iscc, str(ISS)])
+    cmd: list[str] = [iscc]
+    if version:
+        print(f"Версия установщика: {version} (/DMyAppVersion)")
+        cmd.append(f"/DMyAppVersion={version}")
+    cmd.append(str(ISS))
+    run(cmd)
 
     if not SETUP_EXE.exists():
         print(f"ОШИБКА: ISCC не создал {SETUP_EXE}")
@@ -17705,6 +17759,8 @@ def main() -> int:
     print("=" * 60)
     print(f"Установщик: {SETUP_EXE}")
     print(f"Размер:     {SETUP_EXE.stat().st_size / 1024 / 1024:.1f} МБ")
+    if version:
+        print(f"Версия:     {version}")
     print()
     print("Запусти его — Феникс встанет в C:\\ProgramData\\Phoenix.")
     print("Первый запуск ярлыка скачает зависимости и Vosk-модель.")
@@ -18697,6 +18753,62 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+```
+
+### `tests/test_build_setup.py`
+
+```python
+"""Тесты scripts.build_setup — версия установщика и мягкий пропуск шага caps. ... [5 строк]"""
+
+import importlib.util
+
+from scripts import build_setup
+
+
+def test_parse_version_space():
+    """`--version 1.0.2` → 1.0.2."""
+    assert build_setup.parse_version(["--version", "1.0.2"]) == "1.0.2"
+
+
+def test_parse_version_equals():
+    """`--version=1.0.2` → 1.0.2."""
+    assert build_setup.parse_version(["--version=1.0.2"]) == "1.0.2"
+
+
+def test_parse_version_strips_spaces():
+    """Пробелы вокруг версии обрезаются."""
+    assert build_setup.parse_version(["--version", "  1.0.2  "]) == "1.0.2"
+
+
+def test_parse_version_absent():
+    """Без --version → None (версия берётся из installer.iss)."""
+    assert build_setup.parse_version(["build_setup.py", "--run"]) is None
+
+
+def test_parse_version_without_value():
+    """`--version` последним аргументом → None, не IndexError."""
+    assert build_setup.parse_version(["--version"]) is None
+
+
+def test_caps_available_with_modules(monkeypatch):
+    """pycaw и screen_brightness_control есть (локальная сборка) → True."""
+    monkeypatch.setattr(importlib.util, "find_spec", lambda name: object())
+    assert build_setup.caps_available() is True
+
+
+def test_caps_available_without_modules(monkeypatch):
+    """Модулей нет (CI-раннер) → False: шаг system_caps.json пропускается."""
+    monkeypatch.setattr(importlib.util, "find_spec", lambda name: None)
+    assert build_setup.caps_available() is False
+
+
+def test_installer_version_is_overridable_and_matches_package():
+    """installer.iss: версия по умолчанию = jarvis.__version__, но с #ifndef."""
+    from jarvis import __version__
+
+    text = (build_setup.BASE / "installer.iss").read_text(encoding="utf-8")
+    assert "#ifndef MyAppVersion" in text, "версия должна переопределяться /D"
+    assert f'#define MyAppVersion "{__version__}"' in text, "рассинхрон версий"
 ```
 
 ### `tests/test_caps.py`
@@ -24130,6 +24242,125 @@ with sd.RawInputStream(samplerate=SR, blocksize=BLOCK, dtype='int16',
 print("\nГотово.")
 ```
 
+### `.github/workflows/release.yml`
+
+```yaml
+# ============================================================
+# GitHub Actions: сборка релиза Феникса (.exe + установщик).
+#
+# Когда запускается:
+#   - push тега v* (например, v1.0.2)  → собирает И делает GitHub Release
+#   - вручную: Actions → build-release → Run workflow → только сборка
+#     и артефакты (без релиза), версию можно задать самому
+#
+# Что делает:
+#   1. Windows-раннер, Python 3.11, кэш pip.
+#   2. Ставит PyInstaller + Pillow (зависимости проекта НЕ нужны).
+#   3. Ставит Inno Setup 6 через Chocolatey (choco install innosetup).
+#   4. python scripts\build_setup.py --version <версия из тега>
+#        → Феникс.exe + dist\Феникс_Setup.exe
+#   5. Оба файла всегда уходят в артефакты запуска.
+#   6. На теге — gh release create: релиз с заметками и двумя вложениями.
+#
+# Почему хватает PyInstaller + Pillow:
+#   Феникс.exe — лёгкий лаунчер (launcher.py, только stdlib).
+#   Тяжёлые пакеты (vosk, faster-whisper, torch…) он ставит сам при первом
+#   запуске, поэтому в CI их тянуть не нужно (~2 ГБ экономии).
+#
+# Файл лежит в: .github/workflows/release.yml
+# ============================================================
+
+name: build-release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Версия для установщика (например, 1.0.2)"
+        required: true
+        default: "0.0.0-ci"
+
+# gh release create нужен токен с правом писать в Releases.
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 40
+
+    # PYTHONUTF8=1 — страховка от UnicodeEncodeError в консоли раннера
+    # (в проекте есть кириллица в именах файлов и в выводе).
+    env:
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: "utf-8"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install build tools (PyInstaller + Pillow)
+        run: pip install -r requirements-dev.txt Pillow
+
+      - name: Install Inno Setup 6
+        run: choco install innosetup --no-progress -y
+
+      - name: Определить версию
+        id: ver
+        shell: pwsh
+        run: |
+          # На теге v1.0.2 → версия 1.0.2; при ручном запуске — ввод.
+          if ("${{ github.ref_type }}" -eq "tag") {
+            $v = "${{ github.ref_name }}".TrimStart("v")
+          } else {
+            $v = "${{ inputs.version }}"
+          }
+          if (-not $v) { $v = "0.0.0-ci" }
+          "value=$v" | Out-File -Append -Encoding utf8 $env:GITHUB_OUTPUT
+          Write-Host "Версия установщика: $v"
+
+      - name: Сборка Феникс.exe + Феникс_Setup.exe
+        run: python scripts/build_setup.py --version "${{ steps.ver.outputs.value }}"
+
+      - name: Проверка артефактов
+        shell: pwsh
+        run: |
+          Get-Item "Феникс.exe", "dist/Феникс_Setup.exe" |
+            Select-Object Name, @{n = "МБ"; e = { [math]::Round($_.Length / 1MB, 2) } } |
+            Format-Table -AutoSize
+          if (-not (Test-Path "dist/Феникс_Setup.exe")) { throw "Установщик не собран" }
+
+      - name: Артефакты запуска
+        uses: actions/upload-artifact@v4
+        with:
+          name: phoenix-setup-${{ steps.ver.outputs.value }}
+          path: |
+            Феникс.exe
+            dist/Феникс_Setup.exe
+          if-no-files-found: error
+
+      - name: Создать GitHub Release
+        if: github.ref_type == 'tag'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" `
+            "dist/Феникс_Setup.exe" `
+            "Феникс.exe" `
+            --title "Феникс ${{ github.ref_name }}" `
+            --generate-notes
+```
+
 ### `.github/workflows/test.yml`
 
 ```yaml
@@ -24888,7 +25119,12 @@ pause
 ; %APPDATA%\Phoenix НЕ трогаются — Inno только перезаписывает код.
 
 #define MyAppName "Феникс"
-#define MyAppVersion "1.0.0"
+; Версия по умолчанию. Переопределяется снаружи:
+;   ISCC.exe /DMyAppVersion=1.0.2 installer.iss
+; (CI передаёт версию из тега: scripts\build_setup.py --version 1.0.2)
+#ifndef MyAppVersion
+  #define MyAppVersion "1.0.0"
+#endif
 #define MyAppPublisher "Phoenix Project"
 #define MyAppURL "https://github.com/BobLoTiK/jarvis-fenix"
 #define MyAppExeName "Феникс.exe"
@@ -25328,10 +25564,11 @@ onnxruntime>=1.17
 
 ## 5. Документация (только оглавления)
 
-#### `.github/workflows/README.md` — 3 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `.github/workflows/README.md` — 4 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Workflows
   - test.yml
+  - release.yml
   - Как добавить новый workflow
 
 #### `ARCHITECTURE.md` — 45 заголовков, полный текст не включён (дублирует PROJECT.md)
@@ -25377,7 +25614,7 @@ onnxruntime>=1.17
     - `scripts/make_installer_images.py`
     - `scripts/build_exe.py`
 
-#### `CHANGELOG.md` — 58 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 59 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
   - 📑 Содержание
@@ -25388,6 +25625,7 @@ onnxruntime>=1.17
       - ✨ Добавлено
         - 🛠 `scripts/build_setup.py` — вся сборка одной командой
       - 📦 Сборка
+      - 🚀 CI — авторелиз по тегу (`release.yml`)
       - 📝 Документация
     - 📅 Сессия 12.10.2026
       - 🐛 Исправлено
@@ -25418,7 +25656,6 @@ onnxruntime>=1.17
       - ✨ Добавлено
         - 🎭 Персона — `jarvis/persona.py`
         - 🎓 Онбординг через LLM-диалог
-        - 👁 Observer — `jarvis/observer.py`
 
 #### `CI.md` — 13 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -25433,7 +25670,7 @@ onnxruntime>=1.17
   - 🎨 Бейдж в README
   - 📋 Что проверять **локально** перед пушем
   - 🆕 Пути в CI
-  - 🎯 Автоматизация релизов (в планах)
+  - 🚀 Авторелиз — release.yml (13.10.2026)
   - 📌 Полезное
 
 #### `CONTRIBUTING.md` — 32 заголовков, полный текст не включён (дублирует PROJECT.md)
@@ -25471,13 +25708,14 @@ onnxruntime>=1.17
   - 🤝 Как задавать вопросы
   - 🎯 Философия
 
-#### `PLAN.md` — 77 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `PLAN.md` — 78 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - 📋 План развития «Феникс»
   - 🎯 ФИЛОСОФИЯ ПРОЕКТА
   - 📊 СВОДКА
   - ✅ СДЕЛАНО — СВОДКА
     - Инсталлятор + сборка (13.10.2026)
+    - CI-релизы (13.10.2026)
     - Prosody (11.10.2026)
     - Tone (11.10.2026)
     - VAD (10.10.2026)
@@ -25512,7 +25750,6 @@ onnxruntime>=1.17
     - 🆕 VLM-зрение (4) ⭐ AIRI-концепция
     - 🆕 Мост Феникс → Hermes (3)
     - 🆕 Приоритеты и очередь (4)
-  - 🧠 УЛУЧШЕНИЕ МОЗГОВ
 
 #### `PROMPT.md` — 27 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -25589,4 +25826,4 @@ onnxruntime>=1.17
 
 ---
 
-_Итого по категориям — code: 123, data: 18, doc: 9, pack: 5. Режим `lean`._
+_Итого по категориям — code: 124, data: 19, doc: 9, pack: 5. Режим `lean`._

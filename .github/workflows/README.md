@@ -19,6 +19,28 @@
 
 **Если упало** — см. `CI.md` в корне репозитория.
 
+## release.yml
+
+Автосборка релиза. Запускается при пуше тега `v*`, а также вручную
+(Actions → **build-release** → Run workflow).
+
+**Что делает:**
+1. Windows-виртуалка, Python 3.11, кэш pip.
+2. `pip install -r requirements-dev.txt Pillow` (зависимости проекта не нужны:
+   `Феникс.exe` — лёгкий лаунчер на чистой stdlib).
+3. `choco install innosetup --no-progress -y` — Inno Setup 6.
+4. `python scripts/build_setup.py --version <версия из тега>` — `.exe` + установщик.
+5. Артефакты запуска: `Феникс.exe`, `dist/Феникс_Setup.exe`.
+6. На теге — `gh release create` с двумя файлами и авто-заметками.
+
+**Env:** `PYTHONUTF8=1`, `PYTHONIOENCODING=utf-8` (в проекте кириллица в именах файлов).
+**Права:** `contents: write` — без него релиз не создать.
+**Timeout:** 40 минут (PyInstaller + Inno Setup).
+
+**Версия:** тег `v1.0.2` → `1.0.2` → `/DMyAppVersion=1.0.2` в `installer.iss`.
+
+**Если упало** — см. `CI.md`, раздел «Авторелиз».
+
 ## Как добавить новый workflow
 
 Создай файл `.github/workflows/<name>.yml`:

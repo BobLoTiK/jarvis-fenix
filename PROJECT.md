@@ -34,7 +34,8 @@ MIT + attribution (не удалять).
 | Мозг | Ollama `qwen2.5` (в наличии 1.5b / 7b / 14b) |
 | GUI | Flet 1.0.x, **главный поток** |
 | Окна | `uiautomation` (20+ браузеров по PID) |
-| Сборка | PyInstaller → `Феникс.exe`; Inno Setup → установщик (одна команда: `python scripts\build_setup.py`) |
+| Сборка | PyInstaller → `Феникс.exe`; Inno Setup → установщик (одной командой: `python scripts\build_setup.py`) |
+| Авторелиз | Тег `v*` → GitHub Actions собирает и публикует `Феникс_Setup.exe` (`.github/workflows/release.yml`) |
 
 **Python 3.13/3.14 не использовать** — `libvosk.dll` падает с access violation.
 
@@ -181,7 +182,7 @@ debug → correction → undo → weather_currency`
 
 ```bat
 python check_syntax.py            :: синтаксис всех .py, включая tests/
-python -m pytest tests\ -q        :: 260 тестов
+python -m pytest tests\ -q        :: 268 тестов
 python test_intents.py            :: 32 сценария без LLM/сети (ИТОГ: 32 / 32)
 python test_intents.py --llm --network   :: + LLM (3-8 мин) и погода/курс
 ```
@@ -201,10 +202,11 @@ python test_intents.py --llm --network   :: + LLM (3-8 мин) и погода/�
 спрайт-аватар → PyInstaller/CI + VLM + Hermes → улучшение мозгов.
 
 Сборка уже автоматизирована: `python scripts\build_setup.py` даёт `Феникс.exe` +
-`dist\Феникс_Setup.exe`. В CI (№121) осталось обернуть это в workflow.
+`dist\Феникс_Setup.exe`. Авторелиз тоже готов (№121 ✅): пуш тега `v*` собирает
+и публикует установщик (`.github/workflows/release.yml`, подробности — `CI.md`).
 
 ---
 
 _Последняя правка: 13.10.2026, синхронизация с кодом и планом (инсталлятор +
-`build_setup.py`, счётчики тестов: 260 pytest / 32 test_intents)._
+`build_setup.py`, CI-авторелиз по тегу; счётчики: 268 pytest / 32 test_intents)._
 

@@ -1,6 +1,7 @@
 # 🦅 Феникс
 
 [![tests](https://github.com/BobLoTiK/jarvis-fenix/actions/workflows/test.yml/badge.svg)](https://github.com/BobLoTiK/jarvis-fenix/actions/workflows/test.yml)
+[![build-release](https://github.com/BobLoTiK/jarvis-fenix/actions/workflows/release.yml/badge.svg)](https://github.com/BobLoTiK/jarvis-fenix/actions/workflows/release.yml)
 [![Release](https://img.shields.io/github/v/release/BobLoTiK/jarvis-fenix)](https://github.com/BobLoTiK/jarvis-fenix/releases)
 
 > Локальный голосовой ассистент для Windows. Форк проекта
@@ -727,7 +728,8 @@ python -m jarvis
 
 ~~~~bat
 python scripts\build_setup.py
-python scripts\build_setup.py --run     REM + сразу запустить установщик
+python scripts\build_setup.py --run              REM + сразу запустить установщик
+python scripts\build_setup.py --version 1.0.2   REM версия установщика
 ~~~~
 
 **Что делает `build_setup.py`:**
@@ -740,9 +742,19 @@ python scripts\build_setup.py --run     REM + сразу запустить ус
 | 4 | `scripts\build_exe.py` — `Феникс.exe` (PyInstaller) |
 | 5 | `ISCC.exe installer.iss` — `dist\Феникс_Setup.exe` |
 
-**Требуется:** PyInstaller (в `requirements-dev.txt`) и Inno Setup 6
+**Требуется:** PyInstaller (в `requirements-dev.txt`), Pillow и Inno Setup 6
 ([скачать](https://jrsoftware.org/isdl.php)). `ISCC.exe` ищется в `PATH`,
 затем в стандартных папках установки.
+
+**Версия** берётся из `installer.iss` (`MyAppVersion`), а `--version`
+переопределяет её на лету (в ISCC уходит `/DMyAppVersion`). CI подставляет
+версию из тега: `git tag v1.0.2` → установщик с версией `1.0.2`.
+
+**Авторелиз.** Пуш тега `v*` запускает
+[`.github/workflows/release.yml`](.github/workflows/release.yml): он собирает
+`Феникс.exe` + `Феникс_Setup.exe` на Windows-раннере и создаёт GitHub Release
+с обоими файлами. Ручной запуск (Actions → **build-release** → Run workflow)
+собирает то же, но без релиза — файлы остаются в артефактах запуска.
 
 **Что кладёт установщик** — в `C:\ProgramData\Phoenix`:
 
@@ -817,6 +829,9 @@ python test_intents.py
 2. `pytest`.
 3. `test_intents.py`.
 
+**При пуше тега `v*`:** workflow `build-release.yml` собирает `Феникс.exe` +
+`Феникс_Setup.exe` и делает GitHub Release с обоими файлами.
+
 **Подробнее** — `CI.md`.
 
 **Локально:**
@@ -851,7 +866,6 @@ python test_intents.py -k weather       # фильтр
 - Telegram + веб.
 - Wake-слово (openWakeWord).
 - **Сборка в один `.exe`** (PyInstaller) — 20–30 ч.
-- **GitHub Actions авторелизы** — 4–6 ч.
 - **VLM-зрение** — 6–10 ч.
 - **Мост Феникс → Hermes** — 4–6 ч.
 - **Приоритеты и очередь** — 3–5 ч.
@@ -894,7 +908,8 @@ python test_intents.py -k weather       # фильтр
 | Сборка | PyInstaller |
 | Установщик | Inno Setup 6.7 |
 | Установщик — UI | `WizardStyle=modern` + BMP-баннер |
-| CI | GitHub Actions |
+| CI | GitHub Actions — тесты на push (`test.yml`) |
+| Авторелиз | GitHub Actions — тег `v*` → Release с `Феникс_Setup.exe` (`release.yml`) |
 | Сериализация | `cmd_lock` в Jarvis |
 
 ---

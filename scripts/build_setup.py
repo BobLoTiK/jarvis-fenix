@@ -9,12 +9,19 @@
 
 Запуск:
     python scripts\\build_setup.py
-    python scripts\\build_setup.py --run     (сразу запустить установщик)
+    python scripts\\build_setup.py --run               (сразу запустить установщик)
+    python scripts\\build_setup.py --version 1.0.2    (версия установщика)
 
 Требуется:
     - PyInstaller в текущем Python (pip install -r requirements-dev.txt)
+    - Pillow — для баннеров установщика
     - Inno Setup 6: https://jrsoftware.org/isdl.php
       ISCC.exe ищется в PATH, затем в стандартных папках установки.
+
+Версия:
+    --version переопределяет MyAppVersion в installer.iss (в ISCC уходит
+    /DMyAppVersion). CI берёт версию из тега: релиз v1.0.2 → «1.0.2».
+    Без флага используется значение из installer.iss.
 
 Результат:
     dist\\Феникс_Setup.exe — установщик (ставит в C:\\ProgramData\\Phoenix)
@@ -91,9 +98,38 @@ def find_iscc() -> str:
     sys.exit(1)
 
 
+def parse_version(argv: list[str]) -> str | None:
+    """Версия из `--version X` / `--version=X` (уходит в ISCC как /DMyAppVersion)."""
+    for i, arg in enumerate(argv):
+        if arg == "--version" and i + 1 < len(argv):
+            return argv[i + 1].strip()
+        if arg.startswith("--version="):
+            return arg.split("=", 1)[1].strip()
+    return None
+
+
+def caps_available() -> bool:
+    """Есть ли модули, нужные scripts/check_caps.py (pycaw + sbc).
+
+    В CI их нет — тогда шаг с system_caps.json просто пропускается.
+    Файл необязателен: в installer.iss он с skipifsourcedoesntexist,
+    а код без него считает громкость/яркость недоступными.
+    """
+    import importlib.util
+
+    return all(
+        importlib.util.find_spec(name)
+        for name in ("pycaw", "screen_brightness_control")
+    )
+
+
 def main() -> int:
+    version = parse_version(sys.argv)
+
     print("Феникс — сборка установщика")
     print(f"Корень проекта: {BASE}")
+    if version:
+        print(f"Версия (--version): {version}")
 
     if not ISS.exists():
         print(f"ОШИБКА: не найден {ISS}")
@@ -114,6 +150,10 @@ def main() -> int:
     step(3, "Возможности системы (system_caps.json)")
     if CAPS.exists():
         print(f"OK: уже есть ({CAPS})")
+    elif not caps_available():
+        print("ПРОПУСК: нет pycaw / screen-brightness-control (обычно это CI).")
+        print("Файл необязателен: в installer.iss он с skipifsourcedoesntexist,")
+        print("а код без него считает громкость/яркость недоступными.")
     else:
         print("Нет файла — генерирую...")
         try:
@@ -133,7 +173,12 @@ def main() -> int:
     step(5, "Компиляция установщика (Inno Setup)")
     iscc = find_iscc()
     print(f"ISCC: {iscc}")
-    run([iscc, str(ISS)])
+    cmd: list[str] = [iscc]
+    if version:
+        print(f"Версия установщика: {version} (/DMyAppVersion)")
+        cmd.append(f"/DMyAppVersion={version}")
+    cmd.append(str(ISS))
+    run(cmd)
 
     if not SETUP_EXE.exists():
         print(f"ОШИБКА: ISCC не создал {SETUP_EXE}")
@@ -145,6 +190,8 @@ def main() -> int:
     print("=" * 60)
     print(f"Установщик: {SETUP_EXE}")
     print(f"Размер:     {SETUP_EXE.stat().st_size / 1024 / 1024:.1f} МБ")
+    if version:
+        print(f"Версия:     {version}")
     print()
     print("Запусти его — Феникс встанет в C:\\ProgramData\\Phoenix.")
     print("Первый запуск ярлыка скачает зависимости и Vosk-модель.")

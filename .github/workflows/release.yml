@@ -1,0 +1,114 @@
+# ============================================================
+# GitHub Actions: сборка релиза Феникса (.exe + установщик).
+#
+# Когда запускается:
+#   - push тега v* (например, v1.0.2)  → собирает И делает GitHub Release
+#   - вручную: Actions → build-release → Run workflow → только сборка
+#     и артефакты (без релиза), версию можно задать самому
+#
+# Что делает:
+#   1. Windows-раннер, Python 3.11, кэш pip.
+#   2. Ставит PyInstaller + Pillow (зависимости проекта НЕ нужны).
+#   3. Ставит Inno Setup 6 через Chocolatey (choco install innosetup).
+#   4. python scripts\build_setup.py --version <версия из тега>
+#        → Феникс.exe + dist\Феникс_Setup.exe
+#   5. Оба файла всегда уходят в артефакты запуска.
+#   6. На теге — gh release create: релиз с заметками и двумя вложениями.
+#
+# Почему хватает PyInstaller + Pillow:
+#   Феникс.exe — лёгкий лаунчер (launcher.py, только stdlib).
+#   Тяжёлые пакеты (vosk, faster-whisper, torch…) он ставит сам при первом
+#   запуске, поэтому в CI их тянуть не нужно (~2 ГБ экономии).
+#
+# Файл лежит в: .github/workflows/release.yml
+# ============================================================
+
+name: build-release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Версия для установщика (например, 1.0.2)"
+        required: true
+        default: "0.0.0-ci"
+
+# gh release create нужен токен с правом писать в Releases.
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 40
+
+    # PYTHONUTF8=1 — страховка от UnicodeEncodeError в консоли раннера
+    # (в проекте есть кириллица в именах файлов и в выводе).
+    env:
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: "utf-8"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install build tools (PyInstaller + Pillow)
+        run: pip install -r requirements-dev.txt Pillow
+
+      - name: Install Inno Setup 6
+        run: choco install innosetup --no-progress -y
+
+      - name: Определить версию
+        id: ver
+        shell: pwsh
+        run: |
+          # На теге v1.0.2 → версия 1.0.2; при ручном запуске — ввод.
+          if ("${{ github.ref_type }}" -eq "tag") {
+            $v = "${{ github.ref_name }}".TrimStart("v")
+          } else {
+            $v = "${{ inputs.version }}"
+          }
+          if (-not $v) { $v = "0.0.0-ci" }
+          "value=$v" | Out-File -Append -Encoding utf8 $env:GITHUB_OUTPUT
+          Write-Host "Версия установщика: $v"
+
+      - name: Сборка Феникс.exe + Феникс_Setup.exe
+        run: python scripts/build_setup.py --version "${{ steps.ver.outputs.value }}"
+
+      - name: Проверка артефактов
+        shell: pwsh
+        run: |
+          Get-Item "Феникс.exe", "dist/Феникс_Setup.exe" |
+            Select-Object Name, @{n = "МБ"; e = { [math]::Round($_.Length / 1MB, 2) } } |
+            Format-Table -AutoSize
+          if (-not (Test-Path "dist/Феникс_Setup.exe")) { throw "Установщик не собран" }
+
+      - name: Артефакты запуска
+        uses: actions/upload-artifact@v4
+        with:
+          name: phoenix-setup-${{ steps.ver.outputs.value }}
+          path: |
+            Феникс.exe
+            dist/Феникс_Setup.exe
+          if-no-files-found: error
+
+      - name: Создать GitHub Release
+        if: github.ref_type == 'tag'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" `
+            "dist/Феникс_Setup.exe" `
+            "Феникс.exe" `
+            --title "Феникс ${{ github.ref_name }}" `
+            --generate-notes

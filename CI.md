@@ -12,7 +12,8 @@ GitHub запускает их сам.
 
 ## 📁 Где лежит
 
-`.github/workflows/test.yml` — инструкция для GitHub.
+- `.github/workflows/test.yml` — тесты на `push` и `pull_request`.
+- `.github/workflows/release.yml` — автосборка и релиз по тегу `v*`.
 
 ## 🔍 Что делает
 
@@ -102,27 +103,77 @@ python test_intents.py
 `requirements-ci.txt` **не стоят**. Значит `paths.py` вызывается,
 но **модели не качаются**.
 
-## 🎯 Автоматизация релизов (в планах)
+## 🚀 Авторелиз — release.yml (13.10.2026)
 
-**Идея:** при пуше тега `v*` GitHub Actions **сам**:
-1. Собирает `.exe` (PyInstaller).
-2. Собирает `Феникс_Setup.exe` (Inno Setup).
-3. Создаёт релиз на GitHub.
-4. Прикрепляет файлы.
+Раньше это было «в планах», теперь работает: пуш тега `v*` собирает
+`Феникс.exe` + `Феникс_Setup.exe` и создаёт GitHub Release.
 
-**Что нужно:**
-- PyInstaller в CI (или в `requirements-dev.txt`).
-- Скачивание + тихая установка Inno Setup.
-- Компиляция `installer.iss` через `ISCC.exe`.
+**Когда запускается:**
 
-**Локально сборка уже автоматизирована** — одна команда собирает `.exe`
+| Что | Результат |
+|---|---|
+| `git push origin v1.0.2` (тег `v*`) | сборка + **GitHub Release** с двумя файлами |
+| Actions → **build-release** → Run workflow | только сборка, файлы в артефактах |
+
+**Что делает по шагам:**
+
+1. Checkout, Python 3.11, кэш pip.
+2. `pip install -r requirements-dev.txt Pillow` — PyInstaller для `.exe`,
+   Pillow для BMP-баннеров установщика. **Зависимости проекта не ставятся:**
+   `Феникс.exe` — это `launcher.py`, а он на чистой стандартной библиотеке,
+   тяжёлые пакеты (vosk, faster-whisper, torch…) ставит сам при первом запуске.
+3. `choco install innosetup --no-progress -y` — Inno Setup 6 через Chocolatey
+   (на раннере он есть; `ISCC.exe` появляется в `PATH`).
+4. `python scripts\build_setup.py --version <версия из тега>` — иконка →
+   баннеры → `Феникс.exe` → `Феникс_Setup.exe`.
+5. `actions/upload-artifact@v4` — оба файла (доступны всегда, даже на теге).
+6. На теге — `gh release create "$TAG" dist\Феникс_Setup.exe Феникс.exe
+   --generate-notes`: релиз с авто-заметками и двумя вложениями.
+
+**Версия.** Из тега `v1.0.2` берётся `1.0.2` и уходит в Inno Setup как
+`/DMyAppVersion=1.0.2` → `AppVersion` установщика и `ProductVersion` в
+свойствах файла. Локально то же самое:
+
+```bat
+python scripts\build_setup.py --version 1.0.2
+```
+
+**Как выпустить релиз:**
+
+```bat
+git tag v1.0.2 -m "Феникс 1.0.2"
+git push origin v1.0.2
+```
+
+Дальше GitHub собирает и публикует сам: файлы появятся на вкладке
+**Releases**, копия — в артефактах запуска Actions.
+
+**Если упало:**
+
+| Симптом | Причина / что делать |
+|---|---|
+| `не найден ISCC.exe` | Chocolatey не поставил Inno Setup → смотри шаг `Install Inno Setup 6` |
+| `no files found matching "packs\*"` | из репозитория пропал файл поставки → `git ls-files packs` |
+| Ошибка прав при создании релиза | в workflow должно быть `permissions: contents: write` |
+| PyInstaller не собрал `.exe` | лог шага `Сборка Феникс.exe + Феникс_Setup.exe` |
+
+**Почему `system_caps.json` в CI не генерируется:** `scripts/check_caps.py`
+требует `pycaw` и `screen-brightness-control`, которых на раннере нет (нет
+звуковой карты и дисплея). `build_setup.py` это видит и **пропускает** шаг —
+файл необязателен (в `installer.iss` он с `skipifsourcedoesntexist`).
+
+**Локально сборка тоже автоматизирована** — одна команда собирает `.exe`
 и установщик (см. `scripts/build_setup.py`):
 
 ```bat
 python scripts\build_setup.py
 ```
 
-**Время:** 4–6 часов на настройку. **В планах (№121).**
+**Проверено локально:** сборка с `--version 1.0.2` даёт установщик с
+`ProductVersion 1.0.2`, без флага — дефолт `1.0.0` из `installer.iss`
+(`#ifndef MyAppVersion`). Сам workflow валидирован по YAML и по прогону
+всех его команд на локальной машине; первый настоящий запуск на GitHub
+произойдёт при пуше тега.
 
 ## 📌 Полезное
 

@@ -24,7 +24,12 @@
 ; %APPDATA%\Phoenix НЕ трогаются — Inno только перезаписывает код.
 
 #define MyAppName "Феникс"
-#define MyAppVersion "1.0.0"
+; Версия по умолчанию. Переопределяется снаружи:
+;   ISCC.exe /DMyAppVersion=1.0.2 installer.iss
+; (CI передаёт версию из тега: scripts\build_setup.py --version 1.0.2)
+#ifndef MyAppVersion
+  #define MyAppVersion "1.0.0"
+#endif
 #define MyAppPublisher "Phoenix Project"
 #define MyAppURL "https://github.com/BobLoTiK/jarvis-fenix"
 #define MyAppExeName "Феникс.exe"
