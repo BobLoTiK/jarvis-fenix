@@ -7,6 +7,9 @@
     - Без LLM (Brain не создаётся). Хочешь с LLM — флаг --llm.
     - Без озвучки. Хочешь озвучку — флаг --voice.
     - Без сети (тесты погоды/курса пропускаются). Хочешь сеть — флаг --network.
+    - Без настоящего браузера: «открой ютуб» проверяет разбор команды,
+      а не открывает вкладку (иначе каждый прогон плодит вкладки, а на CI
+      браузера нет вовсе). Нужен настоящий браузер — --real-browser.
 
 Запуск:
     python tests/test_intents.py                  # правила, без LLM, без сети, без озвучки
@@ -14,6 +17,7 @@
     python tests/test_intents.py --network        # + тесты погоды/курса (нужна сеть)
     python tests/test_intents.py --llm --network  # всё вместе
     python tests/test_intents.py --voice          # с озвучкой
+    python tests/test_intents.py --real-browser   # сайты открываются по-настоящему
     python tests/test_intents.py -k weather       # только тесты со словом 'weather'
 
 ВНИМАНИЕ: это НЕ pytest-тест, а скрипт-раннер. pytest его не собирает
@@ -25,6 +29,7 @@ import argparse
 import logging
 import sys
 import time
+from contextlib import ExitStack, contextmanager
 from pathlib import Path
 
 # Принудительно UTF-8 для stdout/stderr — иначе на CI (Windows, cp1252)
@@ -252,6 +257,30 @@ def build_handler(use_llm=False, reset_profile=True):
     return IntentHandler(config, build_apps(config), brain)
 
 
+# =================================================================
+# Тесты не должны открывать настоящий браузер
+# =================================================================
+# «открой ютуб» — проверка разбора команды, а не повод открыть вкладку.
+# Локально каждый прогон добавлял вкладку (а прогонов много), в CI браузера
+# нет вовсе. Подменяем только действия-открывашки: разбор фразы, ответ и
+# проверка ожиданий остаются настоящими.
+
+_OPEN_ACTIONS = ("open_url", "open_browser", "open_search", "open_site_lucky")
+
+
+@contextmanager
+def no_real_browser():
+    """Открытие сайтов/браузера → заглушка «открыл» (True)."""
+    from unittest.mock import patch
+
+    from jarvis import actions
+
+    with ExitStack() as stack:
+        for name in _OPEN_ACTIONS:
+            stack.enter_context(patch.object(actions, name, return_value=True))
+        yield
+
+
 def reset_handler_state(handler):
     """Сбрасывает stateful-состояние между тестами.
 
@@ -326,6 +355,8 @@ def main():
                         help="Озвучивать ответы")
     parser.add_argument("--network", action="store_true",
                         help="Запускать тесты, требующие сеть (погода, курс)")
+    parser.add_argument("--real-browser", action="store_true",
+                        help="Открывать сайты по-настоящему (по умолчанию — заглушка)")
     parser.add_argument("-k", "--filter",
                         help="Фильтр по имени теста")
     args = parser.parse_args()
@@ -334,10 +365,11 @@ def main():
 
     log.info("=" * 70)
     log.info("АВТОТЕСТ ФЕНИКСА")
-    log.info("LLM: %s | Сеть: %s | Озвучка: %s",
+    log.info("LLM: %s | Сеть: %s | Озвучка: %s | Браузер: %s",
              "вкл" if args.llm else "выкл",
              "вкл" if args.network else "выкл",
-             "вкл" if args.voice else "выкл")
+             "вкл" if args.voice else "выкл",
+             "настоящий" if args.real_browser else "заглушка")
     log.info("Лог: %s", LOG_FILE)
     log.info("=" * 70)
 
@@ -360,19 +392,24 @@ def main():
     results = []
     skipped = []
     t_start = time.time()
-    for entry in tests:
-        # entry — 6 полей: (name, cmd, expected, requires_llm, requires_network, hooks)
-        name, cmd, expected, requires_llm, requires_network, hooks = entry
-        if requires_llm and not args.llm:
-            log.info("ПРОПУСК %s (требует --llm)", name)
-            skipped.append(f"{name} (--llm)")
-            continue
-        if requires_network and not args.network:
-            log.info("ПРОПУСК %s (требует --network)", name)
-            skipped.append(f"{name} (--network)")
-            continue
-        r = run_one(handler, speaker, name, cmd, expected, hooks)
-        results.append(r)
+    # Сайты по умолчанию не открываем по-настоящему — иначе тесты плодят
+    # вкладки в браузере (см. no_real_browser). Нужен настоящий — --real-browser.
+    with ExitStack() as stack:
+        if not args.real_browser:
+            stack.enter_context(no_real_browser())
+        for entry in tests:
+            # entry — 6 полей: (name, cmd, expected, requires_llm, requires_network, hooks)
+            name, cmd, expected, requires_llm, requires_network, hooks = entry
+            if requires_llm and not args.llm:
+                log.info("ПРОПУСК %s (требует --llm)", name)
+                skipped.append(f"{name} (--llm)")
+                continue
+            if requires_network and not args.network:
+                log.info("ПРОПУСК %s (требует --network)", name)
+                skipped.append(f"{name} (--network)")
+                continue
+            r = run_one(handler, speaker, name, cmd, expected, hooks)
+            results.append(r)
 
     total = time.time() - t_start
     passed = [r for r in results if r.passed]

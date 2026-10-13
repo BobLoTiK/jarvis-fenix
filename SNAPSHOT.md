@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=a8d83da84dbae58e` · режим `lean` · файлов `162` · строк `29975` · источник `1225 КБ`
+`sha256=9e4c72821ce5e94f` · режим `lean` · файлов `163` · строк `30983` · источник `1275 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -196,7 +196,7 @@ debug → correction → undo → weather_currency`
 ```bat
 check_all.bat                     :: всё сразу: 4 шага + компактный итог
 python check_syntax.py            :: синтаксис всех .py, включая tests/
-python -m pytest tests\ -q        :: 275 тестов
+python -m pytest tests\ -q        :: 300 тестов
 python tests\test_intents.py      :: 32 сценария без LLM/сети (ИТОГ: 32 / 32)
 python tests\stress_intents.py    :: 100 ситуаций (ИТОГ: 100 / 100)
 python tests\test_intents.py --llm --network   :: + LLM (3-8 мин) и погода/курс
@@ -224,7 +224,7 @@ python tests\test_intents.py --llm --network   :: + LLM (3-8 мин) и пого
 
 _Последняя правка: 13.10.2026, синхронизация с кодом и планом (инсталлятор +
 `build_setup.py`, CI-авторелиз по тегу; все тесты собраны в `tests/`,
-всё гоняется через `check_all.bat`; счётчики: 275 pytest / 32 test_intents /
+всё гоняется через `check_all.bat`; счётчики: 300 pytest / 32 test_intents /
 100 stress)._
 `````
 
@@ -241,7 +241,7 @@ jarvis/
 │   │   ├── release.yml  (114 стр)
 │   │   ├── test.yml  (64 стр)
 ├── ARCHITECTURE.md  (896 стр)
-├── CHANGELOG.md  (798 стр)
+├── CHANGELOG.md  (848 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -289,7 +289,7 @@ jarvis/
 │   │   │   ├── system.py  (130 стр)
 │   │   │   ├── tasks.py  (7 стр)
 │   │   │   ├── timers.py  (7 стр)
-│   │   │   ├── uia.py  (125 стр)
+│   │   │   ├── uia.py  (180 стр)
 │   │   │   ├── undo.py  (67 стр)
 │   │   │   ├── voices.py  (10 стр)
 │   │   │   ├── weather.py  (113 стр)
@@ -341,7 +341,7 @@ jarvis/
 │   │   ├── sapi.py  (113 стр)
 │   │   ├── silero.py  (215 стр)
 │   │   ├── winrt.py  (158 стр)
-│   ├── uia.py  (647 стр)
+│   ├── uia.py  (907 стр)
 │   ├── vad.py  (567 стр)
 │   ├── voices.py  (220 стр)
 │   ├── weather.py  (394 стр)
@@ -358,7 +358,7 @@ jarvis/
 ├── PROJECT.md  (216 стр)
 ├── PROMPT.md  (491 стр)
 ├── pytest.ini  (20 стр)
-├── README.md  (938 стр)
+├── README.md  (943 стр)
 ├── requirements-ci.txt  (24 стр)
 ├── requirements-dev.txt  (10 стр)
 ├── requirements.txt  (59 стр)
@@ -383,18 +383,19 @@ jarvis/
 │   ├── __init__.py  (0 стр)
 │   ├── conftest.py  (20 стр)
 │   ├── manual/
+│   │   ├── uia_close_probe.py  (82 стр)
 │   │   ├── uia_dump.py  (47 стр)
 │   │   ├── uia_manual.py  (61 стр)
 │   │   ├── vad_debug.py  (61 стр)
 │   │   ├── vad_live.py  (41 стр)
-│   ├── README.md  (59 стр)
-│   ├── stress_intents.py  (516 стр)
+│   ├── README.md  (70 стр)
+│   ├── stress_intents.py  (533 стр)
 │   ├── test_build_setup.py  (56 стр)
 │   ├── test_caps.py  (23 стр)
 │   ├── test_config_manager.py  (47 стр)
 │   ├── test_engine_probe.py  (100 стр)
 │   ├── test_gui_wiring.py  (532 стр)
-│   ├── test_intents.py  (408 стр)
+│   ├── test_intents.py  (445 стр)
 │   ├── test_main_wiring.py  (187 стр)
 │   ├── test_mood.py  (386 стр)
 │   ├── test_persona.py  (155 стр)
@@ -403,8 +404,8 @@ jarvis/
 │   ├── test_stt.py  (435 стр)
 │   ├── test_tray.py  (180 стр)
 │   ├── test_tts.py  (243 стр)
-│   ├── test_uia.py  (295 стр)
-│   ├── test_uia_fast.py  (35 стр)
+│   ├── test_uia.py  (661 стр)
+│   ├── test_uia_fast.py  (160 стр)
 │   ├── test_vad.py  (333 стр)
 │   ├── test_vad_model.py  (273 стр)
 │   ├── test_weather.py  (237 стр)
@@ -1399,8 +1400,14 @@ jarvis/
   def read_browser_url()
   def read_browser_tab_title()
   def read_browser_tabs()
+  _SITE_ALIASES = ...
+  _TRANSLIT = ...
+  def title_matches(name: str, query: str)
+  _CLOSE_WAIT = ...
+  _CLOSE_POLL = ...
   def close_browser_tab(tab_title_part: str)
   def switch_browser_tab(tab_title_part: str)
+  def active_tab_matches(query: str)
   def click_menu_item(path: str)
   def is_supported()
   def is_available()
@@ -1637,6 +1644,14 @@ jarvis/
   # Настройки pytest для папки tests/.
 ```
 
+**`tests/manual/uia_close_probe.py`**
+
+```
+  # Живая проверка «закрой вкладку ютуб» (без моков).
+  QUERY = ...
+  def find_hits(window)
+```
+
 **`tests/manual/uia_dump.py`**
 
 ```
@@ -1821,6 +1836,8 @@ jarvis/
   class Result
     def __init__(self, name, cmd, reply_text, expected, elapsed)
   def build_handler(use_llm=False, reset_profile=True)
+  _OPEN_ACTIONS = ...
+  def no_real_browser()
   def reset_handler_state(handler)
   def run_one(handler, speaker, name, cmd, expected, hooks=None)
   def main()
@@ -2057,6 +2074,27 @@ jarvis/
   def test_read_browser_tabs_no_browser()
   def test_read_browser_tabs_from_toolbar()
   def test_read_browser_tabs_fallback()
+  def test_title_matches_same_alphabet_substring()
+  def test_title_matches_russian_name_of_latin_tab()
+  def test_title_matches_alias_and_translit()
+  def test_title_matches_latin_query_russian_title()
+  def test_title_matches_no_false_positive()
+  class _TabList
+    def __init__(self, before, after=None)
+  def test_close_browser_tab_closes_and_verifies_by_tab_list()
+  def test_close_browser_tab_middle_click_when_button_is_inert()
+  class _DeadTab
+    def __init__(self, title: str, children: list)
+    def Name(self)
+    def GetChildren(self)
+  def test_close_browser_tab_survives_vanished_element()
+  def test_close_browser_tab_other_tab_not_touched()
+  def test_close_browser_tab_falls_back_to_ctrl_w()
+  def test_close_browser_tab_no_hotkey_when_tab_not_selected()
+  def test_close_browser_tab_honest_false_when_nothing_closes()
+  def test_switch_browser_tab_russian_name()
+  def test_active_tab_matches_russian_query()
+  def test_active_tab_matches_no_browser()
   def test_read_browser_url_no_browser()
   def test_read_browser_url_from_edit()
   def test_read_browser_url_fallback_from_title()
@@ -2066,6 +2104,9 @@ jarvis/
   def test_ensure_init_without_library_raises_uia_unavailable()
   def test_is_supported_false_without_library()
   def test_is_supported_true_when_init_ok()
+  def test_no_module_level_control_type_name()
+  def test_is_tab_item_uses_instance_type_name()
+  def test_is_control_type_survives_broken_control()
 ```
 
 **`tests/test_uia_fast.py`**
@@ -2074,6 +2115,13 @@ jarvis/
   # Тесты быстрых UIA-команд — `jarvis/intents/fast/uia.py`.
   def test_uia_command_without_library_answers_clearly()
   def test_uia_read_window_without_library_answers_clearly()
+  def test_when_no_browser_is_running_still_blames_library()
+  def test_key_command_works_without_library()
+  def test_close_named_tab_falls_back_to_ctrl_w()
+  def test_no_extra_ctrl_w_when_tab_list_is_readable()
+  def test_tab_list_read_error_counts_as_unreadable()
+  def test_close_named_tab_not_found_answers_honestly()
+  def test_switch_to_active_tab_is_not_a_failure()
   def test_not_our_command_returns_none()
 ```
 
@@ -2300,7 +2348,7 @@ jarvis/
 | `jarvis/intents/fast/system.py` | 130 | code | Системные команды: раскладка, громкость, яркость. |
 | `jarvis/intents/fast/tasks.py` | 7 | code | Задачи — обёртка над `tasks`. |
 | `jarvis/intents/fast/timers.py` | 7 | code | Напоминания — обёртка над `timers`. |
-| `jarvis/intents/fast/uia.py` | 125 | code | UIA-команды голосом: «прочитай окно», «закрой вкладку ютуб», «какой са |
+| `jarvis/intents/fast/uia.py` | 180 | code | UIA-команды голосом: «прочитай окно», «закрой вкладку ютуб», «какой са |
 | `jarvis/intents/fast/undo.py` | 67 | code | Отмена последнего действия («не то», «отмени»). |
 | `jarvis/intents/fast/voices.py` | 10 | code | Голоса Piper — обёртка над модулем `voices`. |
 | `jarvis/intents/fast/weather.py` | 113 | code | Простые правила для погоды и курса — без LLM. |
@@ -2350,7 +2398,7 @@ jarvis/
 | `jarvis/tts_engines/sapi.py` | 113 | code | SAPI TTS — старый Windows-синтез через pyttsx3. |
 | `jarvis/tts_engines/silero.py` | 215 | code | Silero TTS v5_5 — русский голос, ~150 МБ, требует PyTorch. |
 | `jarvis/tts_engines/winrt.py` | 158 | code | WinRT TTS — системный синтез Windows, без внешних моделей. |
-| `jarvis/uia.py` | 647 | code | UI Automation — видим окна и элементы интерфейса. |
+| `jarvis/uia.py` | 907 | code | UI Automation — видим окна и элементы интерфейса. |
 | `jarvis/vad.py` | 567 | code | Silero VAD — детекция речи в аудио-потоке с адаптивным порогом. |
 | `jarvis/voices.py` | 220 | code | Управление голосами TTS — работает через tts_engines. |
 | `jarvis/weather.py` | 394 | code | Погода и курс валют. |
@@ -2369,17 +2417,18 @@ jarvis/
 | `scripts/wakebench.py` | 88 | code | Бенчмарк кандидатов в wake-слово: TTS (Pavel) -> Vosk-small -> что усл |
 | `tests/__init__.py` | 0 | code |  |
 | `tests/conftest.py` | 20 | code | Настройки pytest для папки tests/. |
+| `tests/manual/uia_close_probe.py` | 82 | code | Живая проверка «закрой вкладку ютуб» (без моков). |
 | `tests/manual/uia_dump.py` | 47 | code | Дамп дерева UIA активного окна браузера. |
 | `tests/manual/uia_manual.py` | 61 | code | Ручная проверка UIA в браузере — без хардкода конкретного браузера. |
 | `tests/manual/vad_debug.py` | 61 | code | Отладка Silero VAD — прогон на синтетике. |
 | `tests/manual/vad_live.py` | 41 | code | Живой тест VAD: пишет 5 сек с микрофона, показывает prob. |
-| `tests/stress_intents.py` | 516 | code | Стресс-тест Феникса: ровно 100 разных ситуаций без микрофона и сети. |
+| `tests/stress_intents.py` | 533 | code | Стресс-тест Феникса: ровно 100 разных ситуаций без микрофона и сети. |
 | `tests/test_build_setup.py` | 56 | code | Тесты scripts.build_setup — версия установщика и мягкий пропуск шага c |
 | `tests/test_caps.py` | 23 | code | Тесты check_caps: структура system_caps.json. |
 | `tests/test_config_manager.py` | 47 | code | Тесты config_manager: параллельная запись не рвёт файл. |
 | `tests/test_engine_probe.py` | 100 | code | Заглушка движка TTS (factory._probe_engine). |
 | `tests/test_gui_wiring.py` | 532 | code | GUI → config: каждый элемент окна реально отсылает изменение. |
-| `tests/test_intents.py` | 408 | code | Автотест Феникса без микрофона. |
+| `tests/test_intents.py` | 445 | code | Автотест Феникса без микрофона. |
 | `tests/test_main_wiring.py` | 187 | code | config → живое ядро: подписчик make_config_listener. |
 | `tests/test_mood.py` | 386 | code | Тесты jarvis.mood — состояние, детекция, decay, влияние. |
 | `tests/test_persona.py` | 155 | code | Тесты jarvis.persona — стиль, tone, prompt-блок. |
@@ -2388,8 +2437,8 @@ jarvis/
 | `tests/test_stt.py` | 435 | code | stt.Listener: живое применение настроек (то, что раньше не работало). |
 | `tests/test_tray.py` | 180 | code | Трей (jarvis.tray): пункты меню реально дёргают ядро и GUI. |
 | `tests/test_tts.py` | 243 | code | Тесты jarvis.tts_engines — движки и фабрика. С моками. |
-| `tests/test_uia.py` | 295 | code | Тесты jarvis.uia — логика обёртки. С моками. |
-| `tests/test_uia_fast.py` | 35 | code | Тесты быстрых UIA-команд — `jarvis/intents/fast/uia.py`. |
+| `tests/test_uia.py` | 661 | code | Тесты jarvis.uia — логика обёртки. С моками. |
+| `tests/test_uia_fast.py` | 160 | code | Тесты быстрых UIA-команд — `jarvis/intents/fast/uia.py`. |
 | `tests/test_vad.py` | 333 | code | Тесты jarvis.vad — Silero VAD ONNX. |
 | `tests/test_vad_model.py` | 273 | code | Авто-скачивание модели Silero VAD (jarvis.vad). |
 | `tests/test_weather.py` | 237 | code | Тесты weather: структура ответов, describe_*, geocode с моками. |
@@ -9029,7 +9078,7 @@ def timers_fast(handler, cmd: str) -> str | None:
 ### `jarvis/intents/fast/uia.py`
 
 ```python
-"""UIA-команды голосом: «прочитай окно», «закрой вкладку ютуб», «какой сайт». ... [10 строк]"""
+"""UIA-команды голосом: «прочитай окно», «закрой вкладку ютуб», «какой сайт». ... [14 строк]"""
 
 import logging
 import re
@@ -9047,6 +9096,21 @@ UIA_MISSING_REPLY = (
 )
 
 
+def _tabs_unreadable() -> bool:
+    """Браузер не отдаёт список вкладок? (видна только активная — и всё) ... [4 строк]"""
+    try:
+        return len(uia.read_browser_tabs()) <= 1
+    except Exception:
+        log.debug("read_browser_tabs не сработал", exc_info=True)
+        return True
+
+
+def _require_uia() -> None:
+    """Нет библиотеки `uiautomation` → бросаем `UIAUnavailable`. ... [7 строк]"""
+    if not uia.is_supported():
+        raise uia.UIAUnavailable(f"нет библиотеки ({uia.UIA_PIP_HINT})")
+
+
 def uia_fast(handler, cmd: str) -> str | None:
     """Быстрые команды UIA. None, если не наша. ... [5 строк]"""
     try:
@@ -9062,6 +9126,7 @@ def _uia_fast_impl(handler, cmd: str) -> str | None:
     # === Активное окно — что открыто ===
     if re.search(r"(что|какое)\s+(у\s+меня\s+)?(открыто|окно|приложение)", cmd) \
             or cmd in {"что открыто", "какое окно", "активное окно"}:
+        _require_uia()
         return uia.describe_active_window()
 
     # === Прочитать текст активного окна ===
@@ -9069,6 +9134,7 @@ def _uia_fast_impl(handler, cmd: str) -> str | None:
                  cmd) \
             or cmd in {"прочитай окно", "прочитай блокнот", "что в блокноте",
                        "что написано в окне"}:
+        _require_uia()
         text = uia.read_active_text_stripped(max_chars=1500)
         if not text:
             return "В активном окне не вижу текста."
@@ -9080,6 +9146,7 @@ def _uia_fast_impl(handler, cmd: str) -> str | None:
     # === URL активной вкладки ===
     if re.search(r"(какой|какая)\s+(сайт|url|адрес|ссылка)", cmd) \
             or cmd in {"какой сайт", "какой сайт открыт", "какая ссылка"}:
+        _require_uia()
         url = uia.read_browser_url()
         if not url:
             return "Активное окно — не браузер, или не вижу URL."
@@ -9088,6 +9155,7 @@ def _uia_fast_impl(handler, cmd: str) -> str | None:
     # === Заголовок активной вкладки ===
     if re.search(r"(что|какая)\s+(за\s+)?(вкладка|страница)", cmd) \
             or cmd in {"какая вкладка", "что за вкладка"}:
+        _require_uia()
         title = uia.read_browser_tab_title()
         if not title:
             return "Активное окно — не браузер."
@@ -9096,6 +9164,7 @@ def _uia_fast_impl(handler, cmd: str) -> str | None:
     # === Список вкладок ===
     if re.search(r"(какие|список|покажи)\s+вкладк", cmd) \
             or cmd in {"какие вкладки", "список вкладок", "покажи вкладки"}:
+        _require_uia()
         tabs = uia.read_browser_tabs()
         if not tabs:
             return "Не вижу открытых вкладок. Возможно, активное окно — не браузер."
@@ -9107,11 +9176,25 @@ def _uia_fast_impl(handler, cmd: str) -> str | None:
     if m:
         target = m.group(1).strip().rstrip(".,!?")
         if target in ("эту", "текущую", "это"):
-            # «закрой эту вкладку» — просто Ctrl+W, безопаснее.
+            # Закрытие текущей вкладки — просто Ctrl+W, UIA не нужна.
             from jarvis import actions
             actions.hotkey(["ctrl", "w"])
             return "Закрыл текущую вкладку."
+        # Остальные вкладки ищем через UIA.
+        _require_uia()
         ok = uia.close_browser_tab(target)
+        if not ok and _tabs_unreadable() and uia.active_tab_matches(target):
+            # Вкладки через UIA не видны (Яндекс группирует их), но нужная
+            # вкладка активна — значит хватит Ctrl+W.
+            #
+            # Когда список вкладок читается, `close_browser_tab` сам выбирает
+            # вкладку и жмёт Ctrl+W (`_close_tab_by_hotkey`). Жать второй раз
+            # нельзя: закрылась бы следующая вкладка с тем же названием —
+            # «ютуб» часто открыт не в одном экземпляре.
+            from jarvis import actions
+            actions.hotkey(["ctrl", "w"])
+            log.info("Вкладка %r активна — закрыл через Ctrl+W", target)
+            ok = True
         return f"Закрыл вкладку {target}." if ok else f"Вкладку «{target}» не нашёл."
 
     # === Переключиться на вкладку ===
@@ -9119,7 +9202,11 @@ def _uia_fast_impl(handler, cmd: str) -> str | None:
         or re.search(r"перейди\s+на\s+вкладк\w*\s+(.+)", cmd)
     if m:
         target = m.group(1).strip().rstrip(".,!?")
+        _require_uia()
         ok = uia.switch_browser_tab(target)
+        if not ok and uia.active_tab_matches(target):
+            # Вкладки через UIA не видно, но нужная уже активна.
+            ok = True
         return f"Переключился на {target}." if ok else f"Вкладку «{target}» не нашёл."
 
     # === Нажать кнопку ===
@@ -9135,6 +9222,8 @@ def _uia_fast_impl(handler, cmd: str) -> str | None:
             )
             actions.key_press(key)
             return f"Нажал {target}."
+        # Остальные кнопки ищем через UIA.
+        _require_uia()
         ok = uia.click_button(target)
         return f"Нажал «{target}»." if ok else f"Кнопку «{target}» не нашёл."
 
@@ -16041,7 +16130,7 @@ class WinRTEngine:
 ### `jarvis/uia.py`
 
 ```python
-"""UI Automation — видим окна и элементы интерфейса. ... [18 строк]"""
+"""UI Automation — видим окна и элементы интерфейса. ... [20 строк]"""
 
 import logging
 import re
@@ -16077,6 +16166,39 @@ def _ensure_init():
                 f"не установлена библиотека uiautomation ({UIA_PIP_HINT})"
             ) from exc
     return _uia
+
+
+# =================================================================
+# Типы контролов UIA
+# =================================================================
+# Внимание: у модуля `uiautomation` НЕТ атрибута `ControlTypeName`
+# (есть `ControlTypes`, `ControlTypeNames` и числовой `ControlType`).
+# Обращение `uia.ControlTypeName.ButtonControl` бросало AttributeError,
+# а он глотался `except Exception` внутри обходов дерева — из-за этого
+# «закрой вкладку ютуб» не находила НИ ОДНОЙ вкладки: всегда «не нашёл».
+# Сравниваем по имени типа у самого контрола: оно строковое и стабильное.
+
+def _is_control_type(ctrl, type_name: str) -> bool:
+    """Контрол нужного типа? («TabItemControl», «ButtonControl», ...)"""
+    try:
+        return (ctrl.ControlTypeName or "") == type_name
+    except Exception:
+        return False
+
+
+def _is_tab_item(ctrl) -> bool:
+    """Это вкладка браузера?"""
+    return _is_control_type(ctrl, "TabItemControl")
+
+
+def _is_button(ctrl) -> bool:
+    """Это кнопка?"""
+    return _is_control_type(ctrl, "ButtonControl")
+
+
+def _is_menu_item(ctrl) -> bool:
+    """Это пункт меню?"""
+    return _is_control_type(ctrl, "MenuItemControl")
 
 
 # =================================================================
@@ -16198,7 +16320,7 @@ def click_button(name_part: str, window_title: str | None = None,
                 for ctrl in window.GetChildren():
                     for c in _walk_controls(ctrl, depth=10):
                         try:
-                            if c.ControlType != uia.ControlTypeName.ButtonControl:
+                            if not _is_button(c):
                                 continue
                             cname = (c.Name or "").strip().lower()
                             if name_low in cname:
@@ -16451,7 +16573,7 @@ def read_browser_tabs() -> list[str]:
                 # Обходим прямых детей тулбара — это TabItemControl.
                 for child in toolbar.GetChildren():
                     try:
-                        if child.ControlType != uia.ControlType.TabItemControl:
+                        if not _is_tab_item(child):
                             continue
                         name = (child.Name or "").strip()
                         if name and name not in tabs:
@@ -16465,7 +16587,7 @@ def read_browser_tabs() -> list[str]:
                     for child in toolbar.GetChildren():
                         for sub in child.GetChildren():
                             try:
-                                if sub.ControlType != uia.ControlType.TabItemControl:
+                                if not _is_tab_item(sub):
                                     continue
                                 name = (sub.Name or "").strip()
                                 if name and name not in tabs:
@@ -16486,57 +16608,230 @@ def read_browser_tabs() -> list[str]:
     return tabs
 
 
+# =================================================================
+# Сопоставление имён вкладок: «ютуб» ↔ «YouTube»
+# =================================================================
+#
+# Человек называет сайт по-русски, а в заголовке вкладки — латиница
+# ((2) YouTube, GitHub, vk.com). Простое «"ютуб" in "(2) youtube"» не
+# срабатывает, и «закрой вкладку ютуб» отвечала «не нашёл». Поэтому
+# сравниваем не строки, а варианты написания: алиасы дают бренд
+# (ютуб → youtube), транслитерация — «как слышится» (хабр → habr).
+
+# Русское название сайта → латинское (как в заголовке вкладки/домене).
+_SITE_ALIASES = {
+    "ютуб": "youtube", "ютюб": "youtube", "ютьюб": "youtube",
+    "вк": "vk", "вконтакте": "vk",
+    "телеграм": "telegram", "телега": "telegram",
+    "инстаграм": "instagram", "инста": "instagram",
+    "фейсбук": "facebook", "фб": "facebook",
+    "гитхаб": "github", "гит": "git",
+    "википедия": "wikipedia", "вики": "wiki",
+    "гугл": "google", "яндекс": "yandex", "почта": "mail",
+    "дискорд": "discord", "тикток": "tiktok", "твиттер": "twitter",
+    "спотифай": "spotify", "реддит": "reddit",
+    "озон": "ozon", "авито": "avito", "вб": "wildberries",
+    "вайлдберриз": "wildberries", "кинопоиск": "kinopoisk",
+    "хабр": "habr", "гигачат": "gigachat",
+}
+
+# Русские буквы → латинские (транслитерация «как слышится»).
+_TRANSLIT = {
+    "а": "a", "б": "b", "в": "v", "г": "g", "д": "d", "е": "e", "ё": "e",
+    "ж": "zh", "з": "z", "и": "i", "й": "i", "к": "k", "л": "l", "м": "m",
+    "н": "n", "о": "o", "п": "p", "р": "r", "с": "s", "т": "t", "у": "u",
+    "ф": "f", "х": "kh", "ц": "ts", "ч": "ch", "ш": "sh", "щ": "shch",
+    "ъ": "", "ы": "y", "ь": "", "э": "e", "ю": "yu", "я": "ya",
+}
+
+
+def _norm_text(text: str) -> str:
+    """Нижний регистр, пунктуация → пробел, кратные пробелы убраны."""
+    text = (text or "").casefold()
+    for ch in "«»\"'“”.,!?;:()[]—–-|/\\+":
+        text = text.replace(ch, " ")
+    return " ".join(text.split())
+
+
+def _translit(text: str) -> str:
+    """«хабр» → «habr»: латиница «как слышится»."""
+    return "".join(_TRANSLIT.get(ch, ch) for ch in text)
+
+
+def _word_variants(word: str) -> set[str]:
+    """Написания одного слова: как есть, алиас в обе стороны, транслит."""
+    out = {word, _translit(word)}
+    alias = _SITE_ALIASES.get(word)
+    if alias:
+        out.add(alias)
+    # Обратно: «vk» → «вк», «youtube» → «ютуб».
+    for ru, latin in _SITE_ALIASES.items():
+        if word == latin:
+            out.add(ru)
+    return {w for w in out if len(w) >= 2}
+
+
+def title_matches(name: str, query: str) -> bool:
+    """Похожа ли вкладка/окно на то, что просят? («ютуб» ≈ «(2) YouTube»). ... [9 строк]"""
+    name_norm = _norm_text(name)
+    query_norm = _norm_text(query)
+    if not name_norm or not query_norm:
+        return False
+
+    if query_norm in name_norm:
+        return True
+
+    asked: set[str] = set()
+    for word in query_norm.split():
+        asked |= _word_variants(word)
+    have = set(name_norm.split()) | set(_translit(name_norm).split())
+    return bool(asked & have)
+
+
+# Сколько ждём, что вкладка закроется, и как часто смотрим список вкладок.
+_CLOSE_WAIT = 2.0
+_CLOSE_POLL = 0.15
+
+
+def _safe_name(ctrl) -> str:
+    """Имя контрола без исключений. ... [5 строк]"""
+    try:
+        return (ctrl.Name or "").strip()
+    except Exception:
+        return ""
+
+
+def _tab_close_button(ctrl):
+    """Кнопка закрытия ВНУТРИ вкладки (или None)."""
+    try:
+        for child in ctrl.GetChildren():
+            if not _is_button(child):
+                continue
+            cname = (child.Name or "").lower()
+            if "close" in cname or "закры" in cname or not cname:
+                return child
+    except Exception:
+        log.debug("Не прочитал детей вкладки %r", _safe_name(ctrl),
+                  exc_info=True)
+    return None
+
+
+def _tabs_shrank(before: list[str], timeout: float | None = None) -> bool:
+    """Вкладок стало меньше? Это единственный честный признак закрытия. ... [5 строк]"""
+    if timeout is None:
+        timeout = _CLOSE_WAIT
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        time.sleep(_CLOSE_POLL)
+        try:
+            if before and len(read_browser_tabs()) < len(before):
+                return True
+        except Exception:
+            continue
+    return False
+
+
+def _close_tab_by_hotkey(w, ctrl, tab_title_part: str, name: str,
+                         before: list[str]) -> bool:
+    """Выбрать вкладку и нажать Ctrl+W — как это сделал бы человек. ... [4 строк]"""
+    selected = False
+    try:
+        ctrl.GetSelectionItemPattern().Select()
+        selected = True
+    except Exception:
+        log.warning("Не удалось выбрать вкладку %r", name)
+
+    if not selected and not active_tab_matches(tab_title_part):
+        return False
+
+    time.sleep(_CLOSE_POLL)
+    try:
+        w.SetActive()
+    except Exception:
+        log.debug("SetActive не удался", exc_info=True)
+    time.sleep(_CLOSE_POLL)
+
+    from jarvis import actions  # локально: jarvis.actions тянет uia
+    actions.hotkey(["ctrl", "w"])
+
+    # Список вкладок браузер может и не отдавать (одна активная) — тогда
+    # судить не по чему, но Ctrl+W по выбранной вкладке закрывает её.
+    if len(before) <= 1 or _tabs_shrank(before):
+        log.info("Закрыл вкладку %r (Ctrl+W)", name)
+        return True
+    return False
+
+
 def close_browser_tab(tab_title_part: str) -> bool:
-    """Закрывает вкладку браузера по части заголовка."""
-    uia = _ensure_init()
+    """Закрывает вкладку браузера по части заголовка. ... [14 строк]"""
+    _ensure_init()
     w = _get_browser_window()
     if w is None:
         return False
 
-    tab_low = tab_title_part.lower()
+    target = None
     with _lock:
         try:
             for ctrl in _walk_controls(w, depth=15):
                 try:
-                    if ctrl.ControlType != uia.ControlTypeName.TabItemControl:
+                    if not _is_tab_item(ctrl):
                         continue
-                    name = (ctrl.Name or "").lower()
-                    if tab_low not in name:
-                        continue
-                    # Ищем кнопку закрытия внутри вкладки.
-                    for child in ctrl.GetChildren():
-                        try:
-                            if child.ControlType == uia.ControlTypeName.ButtonControl:
-                                cname = (child.Name or "").lower()
-                                if "close" in cname or "закры" in cname or not cname:
-                                    child.GetInvokePattern().Invoke()
-                                    log.info("Закрыл вкладку %r", ctrl.Name)
-                                    return True
-                        except Exception:
-                            continue
+                    if title_matches(ctrl.Name or "", tab_title_part):
+                        target = ctrl
+                        break
                 except Exception:
                     continue
         except Exception:
             log.exception("close_browser_tab упал")
-    return False
+
+        if target is None:
+            log.info("Вкладка %r не найдена", tab_title_part)
+            return False
+
+        # Имя читаем ДО действий: закрытая вкладка перестаёт отвечать.
+        name = _safe_name(target)
+        before = read_browser_tabs()
+        log.info("Закрываю вкладку %r (вкладок: %d)", name, len(before))
+
+        # 1. Кнопка закрытия внутри вкладки.
+        btn = _tab_close_button(target)
+        if btn is not None:
+            try:
+                btn.GetInvokePattern().Invoke()
+            except Exception:
+                log.debug("Invoke кнопки закрытия не удался", exc_info=True)
+            if _tabs_shrank(before):
+                log.info("Закрыл вкладку %r (кнопка закрытия)", name)
+                return True
+
+        # 2. Средний клик по вкладке. Так закрывают вкладки руками —
+        #    работает и когда кнопка закрытия скрыта до наведения.
+        try:
+            target.MiddleClick()
+        except Exception:
+            log.debug("MiddleClick по вкладке не удался", exc_info=True)
+        if _tabs_shrank(before):
+            log.info("Закрыл вкладку %r (средний клик)", name)
+            return True
+
+        # 3. Кнопка и клик не помогли — выбираем вкладку и жмём Ctrl+W.
+        return _close_tab_by_hotkey(w, target, tab_title_part, name, before)
 
 
 def switch_browser_tab(tab_title_part: str) -> bool:
-    """Переключается на вкладку по части заголовка."""
+    """Переключается на вкладку по части заголовка. ... [4 строк]"""
     uia = _ensure_init()
     w = _get_browser_window()
     if w is None:
         return False
 
-    tab_low = tab_title_part.lower()
     with _lock:
         try:
             for ctrl in _walk_controls(w, depth=15):
                 try:
-                    if ctrl.ControlType != uia.ControlTypeName.TabItemControl:
+                    if not _is_tab_item(ctrl):
                         continue
-                    name = (ctrl.Name or "").lower()
-                    if tab_low in name:
+                    if title_matches(ctrl.Name or "", tab_title_part):
                         ctrl.GetSelectionItemPattern().Select()
                         log.info("Переключился на вкладку %r", ctrl.Name)
                         return True
@@ -16545,6 +16840,12 @@ def switch_browser_tab(tab_title_part: str) -> bool:
         except Exception:
             log.exception("switch_browser_tab упал")
     return False
+
+
+def active_tab_matches(query: str) -> bool:
+    """Активная вкладка — это та, которую просят? ... [5 строк]"""
+    title = read_browser_tab_title()
+    return bool(title) and title_matches(title, query)
 
 
 # =================================================================
@@ -16566,7 +16867,7 @@ def click_menu_item(path: str) -> bool:
         try:
             for ctrl in _walk_controls(w, depth=10):
                 try:
-                    if ctrl.ControlType != uia.ControlTypeName.MenuItemControl:
+                    if not _is_menu_item(ctrl):
                         continue
                     name = (ctrl.Name or "").strip().lower()
                     if parts[0].lower() in name:
@@ -16578,7 +16879,7 @@ def click_menu_item(path: str) -> bool:
                         # Дальше — обход подменю.
                         for sub in _walk_controls(ctrl, depth=5):
                             try:
-                                if sub.ControlType != uia.ControlTypeName.MenuItemControl:
+                                if not _is_menu_item(sub):
                                     continue
                                 sname = (sub.Name or "").strip().lower()
                                 if parts[1].lower() in sname:
@@ -18890,6 +19191,85 @@ if __name__ == "__main__":
 collect_ignore = ["test_intents.py"]
 ```
 
+### `tests/manual/uia_close_probe.py`
+
+```python
+"""Живая проверка «закрой вкладку ютуб» (без моков). ... [8 строк]"""
+
+import sys
+import time
+from pathlib import Path
+
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
+# Корень проекта: tests/manual/../.. — иначе `import jarvis` не найдётся.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+from jarvis import uia  # noqa: E402
+
+QUERY = "ютуб"
+
+
+def find_hits(window):
+    """TabItem-попадания: [(имя вкладки, [имена кнопок внутри]), ...]."""
+    hits = []
+    for ctrl in uia._walk_controls(window, depth=15):
+        try:
+            if not uia._is_tab_item(ctrl):
+                continue
+            if not uia.title_matches(ctrl.Name or "", QUERY):
+                continue
+            buttons = []
+            for child in ctrl.GetChildren():
+                try:
+                    if uia._is_button(child):
+                        buttons.append((child.Name or "").strip())
+                except Exception:
+                    continue
+            hits.append(((ctrl.Name or "").strip(), buttons))
+        except Exception:
+            continue
+    return hits
+
+
+print(f"UIA доступен: {uia.is_supported()}")
+window = uia.find_browser_window()
+if window is None:
+    print("Браузер не найден.")
+    raise SystemExit(1)
+print(f"Окно: {window.Name}")
+
+tabs = uia.read_browser_tabs()
+print(f"\nread_browser_tabs(): {len(tabs)} вкладок")
+for name in tabs:
+    mark = "   <-- ютуб" if uia.title_matches(name, QUERY) else ""
+    print(f"  - {name!r}{mark}")
+
+hits = find_hits(window)
+print(f"\nTabItem-попаданий по {QUERY!r}: {len(hits)}")
+for name, buttons in hits:
+    print(f"  - {name!r}   кнопки внутри: {buttons}")
+
+active = uia.read_browser_tab_title()
+print(f"\nАктивная вкладка: {active!r}")
+print(f"active_tab_matches({QUERY!r}): {uia.active_tab_matches(QUERY)}")
+
+if "--close" not in sys.argv:
+    print("\nDry-run: ничего не нажимаю (реально закрыть — с флагом --close).")
+    raise SystemExit(0)
+
+before = len(tabs)
+ok = uia.close_browser_tab(QUERY)
+time.sleep(1.5)
+after = uia.read_browser_tabs()
+print(f"\nclose_browser_tab({QUERY!r}) → {ok}")
+print(f"Вкладок: {before} → {len(after)}")
+print("Закрылось." if len(after) < before else "!! Число вкладок не изменилось")
+```
+
 ### `tests/manual/uia_dump.py`
 
 ```python
@@ -19107,7 +19487,7 @@ print("\nГотово.")
 ### `tests/stress_intents.py`
 
 ```python
-"""Стресс-тест Феникса: ровно 100 разных ситуаций без микрофона и сети. ... [35 строк]"""
+"""Стресс-тест Феникса: ровно 100 разных ситуаций без микрофона и сети. ... [41 строк]"""
 
 from __future__ import annotations
 
@@ -19115,6 +19495,7 @@ import argparse
 import logging
 import sys
 import time
+from contextlib import ExitStack
 from pathlib import Path
 
 # Принудительно UTF-8 для stdout/stderr — иначе на CI (Windows, cp1252)
@@ -19131,7 +19512,8 @@ for _p in (str(BASE_DIR), str(TESTS_DIR)):
         sys.path.insert(0, _p)
 
 # Харнес сборки IntentHandler общий с test_intents.py — не дублируем.
-from test_intents import build_handler  # noqa: E402
+# no_real_browser — чтобы «открой ютуб» не открывал настоящую вкладку.
+from test_intents import build_handler, no_real_browser  # noqa: E402
 
 LOGS_DIR = BASE_DIR / "logs"
 LOGS_DIR.mkdir(exist_ok=True)
@@ -19492,6 +19874,8 @@ def cleanup(handler) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Стресс-тест Феникса: 100 ситуаций")
     parser.add_argument("--voice", action="store_true", help="Озвучивать ответы")
+    parser.add_argument("--real-browser", action="store_true",
+                        help="Открывать сайты по-настоящему (по умолчанию — заглушка)")
     parser.add_argument("-k", "--filter", help="Фильтр по имени ситуации")
     parser.add_argument("--list", action="store_true", dest="list_only",
                         help="Показать список ситуаций и выйти")
@@ -19522,7 +19906,9 @@ def main() -> None:
 
     log.info("=" * 70)
     log.info("СТРЕСС-ТЕСТ ФЕНИКСА")
-    log.info("Ситуаций: %d | озвучка: %s", len(cases), "вкл" if args.voice else "выкл")
+    log.info("Ситуаций: %d | озвучка: %s | браузер: %s",
+             len(cases), "вкл" if args.voice else "выкл",
+             "настоящий" if args.real_browser else "заглушка")
     log.info("UIA: %s", "доступна — окна читаю по-настоящему" if uia_ok
              else "нет библиотеки uiautomation — ситуации uia_* ждут понятный отказ")
     log.info("Лог: %s", LOG_FILE)
@@ -19539,8 +19925,13 @@ def main() -> None:
         except Exception:
             log.exception("Speaker не завёлся — без озвучки")
 
-    results = [run_case(handler, speaker, name, cmd, expected)
-               for name, cmd, expected in cases]
+    # Сайты по умолчанию не открываем по-настоящему — иначе тесты плодят
+    # вкладки в браузере (см. no_real_browser). Нужен настоящий — --real-browser.
+    with ExitStack() as stack:
+        if not args.real_browser:
+            stack.enter_context(no_real_browser())
+        results = [run_case(handler, speaker, name, cmd, expected)
+                   for name, cmd, expected in cases]
 
     failed = [r for r in results if not r.passed]
     times = [r.elapsed for r in results]
@@ -20327,12 +20718,13 @@ def test_launch_mode_rejects_unknown(gui, cfg):
 ### `tests/test_intents.py`
 
 ```python
-"""Автотест Феникса без микрофона. ... [21 строк]"""
+"""Автотест Феникса без микрофона. ... [25 строк]"""
 
 import argparse
 import logging
 import sys
 import time
+from contextlib import ExitStack, contextmanager
 from pathlib import Path
 
 # Принудительно UTF-8 для stdout/stderr — иначе на CI (Windows, cp1252)
@@ -20551,6 +20943,30 @@ def build_handler(use_llm=False, reset_profile=True):
     return IntentHandler(config, build_apps(config), brain)
 
 
+# =================================================================
+# Тесты не должны открывать настоящий браузер
+# =================================================================
+# «открой ютуб» — проверка разбора команды, а не повод открыть вкладку.
+# Локально каждый прогон добавлял вкладку (а прогонов много), в CI браузера
+# нет вовсе. Подменяем только действия-открывашки: разбор фразы, ответ и
+# проверка ожиданий остаются настоящими.
+
+_OPEN_ACTIONS = ("open_url", "open_browser", "open_search", "open_site_lucky")
+
+
+@contextmanager
+def no_real_browser():
+    """Открытие сайтов/браузера → заглушка «открыл» (True)."""
+    from unittest.mock import patch
+
+    from jarvis import actions
+
+    with ExitStack() as stack:
+        for name in _OPEN_ACTIONS:
+            stack.enter_context(patch.object(actions, name, return_value=True))
+        yield
+
+
 def reset_handler_state(handler):
     """Сбрасывает stateful-состояние между тестами. ... [7 строк]"""
     handler._pending_password = None
@@ -20618,6 +21034,8 @@ def main():
                         help="Озвучивать ответы")
     parser.add_argument("--network", action="store_true",
                         help="Запускать тесты, требующие сеть (погода, курс)")
+    parser.add_argument("--real-browser", action="store_true",
+                        help="Открывать сайты по-настоящему (по умолчанию — заглушка)")
     parser.add_argument("-k", "--filter",
                         help="Фильтр по имени теста")
     args = parser.parse_args()
@@ -20626,10 +21044,11 @@ def main():
 
     log.info("=" * 70)
     log.info("АВТОТЕСТ ФЕНИКСА")
-    log.info("LLM: %s | Сеть: %s | Озвучка: %s",
+    log.info("LLM: %s | Сеть: %s | Озвучка: %s | Браузер: %s",
              "вкл" if args.llm else "выкл",
              "вкл" if args.network else "выкл",
-             "вкл" if args.voice else "выкл")
+             "вкл" if args.voice else "выкл",
+             "настоящий" if args.real_browser else "заглушка")
     log.info("Лог: %s", LOG_FILE)
     log.info("=" * 70)
 
@@ -20652,19 +21071,24 @@ def main():
     results = []
     skipped = []
     t_start = time.time()
-    for entry in tests:
-        # entry — 6 полей: (name, cmd, expected, requires_llm, requires_network, hooks)
-        name, cmd, expected, requires_llm, requires_network, hooks = entry
-        if requires_llm and not args.llm:
-            log.info("ПРОПУСК %s (требует --llm)", name)
-            skipped.append(f"{name} (--llm)")
-            continue
-        if requires_network and not args.network:
-            log.info("ПРОПУСК %s (требует --network)", name)
-            skipped.append(f"{name} (--network)")
-            continue
-        r = run_one(handler, speaker, name, cmd, expected, hooks)
-        results.append(r)
+    # Сайты по умолчанию не открываем по-настоящему — иначе тесты плодят
+    # вкладки в браузере (см. no_real_browser). Нужен настоящий — --real-browser.
+    with ExitStack() as stack:
+        if not args.real_browser:
+            stack.enter_context(no_real_browser())
+        for entry in tests:
+            # entry — 6 полей: (name, cmd, expected, requires_llm, requires_network, hooks)
+            name, cmd, expected, requires_llm, requires_network, hooks = entry
+            if requires_llm and not args.llm:
+                log.info("ПРОПУСК %s (требует --llm)", name)
+                skipped.append(f"{name} (--llm)")
+                continue
+            if requires_network and not args.network:
+                log.info("ПРОПУСК %s (требует --network)", name)
+                skipped.append(f"{name} (--network)")
+                continue
+            r = run_one(handler, speaker, name, cmd, expected, hooks)
+            results.append(r)
 
     total = time.time() - t_start
     passed = [r for r in results if r.passed]
@@ -22432,13 +22856,13 @@ def test_do_change_voice_switch_and_history():
 ### `tests/test_uia.py`
 
 ```python
-"""Тесты jarvis.uia — логика обёртки. С моками. ... [9 строк]"""
+"""Тесты jarvis.uia — логика обёртки. С моками. ... [15 строк]"""
 
 from unittest.mock import patch, MagicMock
 
 import pytest
 
-from jarvis import uia
+from jarvis import actions, uia
 
 
 # =================================================================
@@ -22558,13 +22982,13 @@ def test_read_browser_tabs_no_browser():
 def test_read_browser_tabs_from_toolbar():
     """Toolbar 'Вкладки' содержит TabItem-детей."""
     fake_tab1 = MagicMock()
-    fake_tab1.ControlType = "TabItemControl"
+    fake_tab1.ControlTypeName = "TabItemControl"
     fake_tab1.Name = "YouTube"
     fake_tab2 = MagicMock()
-    fake_tab2.ControlType = "TabItemControl"
+    fake_tab2.ControlTypeName = "TabItemControl"
     fake_tab2.Name = "GitHub"
     fake_tab3 = MagicMock()
-    fake_tab3.ControlType = "ButtonControl"
+    fake_tab3.ControlTypeName = "ButtonControl"
     fake_tab3.Name = "Новая вкладка"
 
     fake_toolbar = MagicMock()
@@ -22576,10 +23000,8 @@ def test_read_browser_tabs_from_toolbar():
 
     fake_auto = MagicMock()
     fake_auto.ToolBarControl.return_value = fake_toolbar
-    # Настраиваем ControlType — иначе MagicMock вернёт MagicMock,
-    # и сравнение ctrl.ControlType != fake_auto.ControlType.TabItemControl
-    # всегда даст True.
-    fake_auto.ControlType.TabItemControl = "TabItemControl"
+    # Тип контрола сравнивается по имени (`ControlTypeName`) — как в
+    # настоящем uiautomation. Модульные константы тут не нужны.
 
     with patch.object(uia, "_ensure_init", return_value=fake_auto), \
          patch.object(uia, "_uia", fake_auto), \
@@ -22606,6 +23028,299 @@ def test_read_browser_tabs_fallback():
         result = uia.read_browser_tabs()
 
     assert result == ["YouTube"]
+
+
+# =================================================================
+# Сопоставление имён вкладок: «ютуб» ↔ «(2) YouTube»
+#
+# Из-за этого не закрывалась вкладка: человек говорит «ютуб», а заголовок
+# вкладки — латиницей, и «ютуб» in «(2) youtube» давало False.
+# =================================================================
+
+def test_title_matches_same_alphabet_substring():
+    """Обычное вхождение подстроки — как было до сопоставления."""
+    assert uia.title_matches("YouTube — Яндекс Браузер", "youtube") is True
+    assert uia.title_matches("Моддинг для Minecraft", "моддинг") is True
+    assert uia.title_matches("ЮТУБ — Яндекс Браузер", "ютуб") is True
+
+
+def test_title_matches_russian_name_of_latin_tab():
+    """«ютуб» находит вкладку «(2) YouTube»."""
+    assert uia.title_matches("(2) YouTube", "ютуб") is True
+    assert uia.title_matches(
+        "(2) Forge Modding Tutorial - Minecraft 1.20.1 #39 - YouTube", "ютуб"
+    ) is True
+    assert uia.title_matches("YouTube Music", "ютуб") is True
+
+
+def test_title_matches_alias_and_translit():
+    """Алиасы (вк → vk) и транслитерация (хабр → habr)."""
+    assert uia.title_matches("vk.com — Chrome", "вк") is True
+    assert uia.title_matches("ВКонтакте", "вк") is True
+    assert uia.title_matches("habr.com — Chrome", "хабр") is True
+    assert uia.title_matches("GitHub — Chrome", "гитхаб") is True
+    assert uia.title_matches("ru.wikipedia.org", "википедия") is True
+
+
+def test_title_matches_latin_query_russian_title():
+    """И обратно: сказали «youtube», а вкладка называется «Ютуб»."""
+    assert uia.title_matches("Ютуб", "youtube") is True
+
+
+def test_title_matches_no_false_positive():
+    """Ложных срабатываний быть не должно. ... [4 строк]"""
+    assert uia.title_matches(
+        'Заказ "24/7(Без входа) DeepSeek API | Пополнение баланса"', "вк"
+    ) is False
+    assert uia.title_matches("DeepSeek Platform", "ютуб") is False
+    assert uia.title_matches("moodle.nntc.nnov.ru", "ютуб") is False
+    assert uia.title_matches("", "ютуб") is False
+    assert uia.title_matches("YouTube", "") is False
+
+
+def _fake_tab(name: str, control_type: str = "TabItemControl"):
+    """Вкладка-заглушка. Тип — строкой, как у настоящего uiautomation."""
+    tab = MagicMock()
+    tab.ControlTypeName = control_type
+    tab.Name = name
+    return tab
+
+
+def _fake_close_button(name: str = "Закрыть"):
+    """Кнопка закрытия внутри вкладки."""
+    btn = MagicMock()
+    btn.ControlTypeName = "ButtonControl"
+    btn.Name = name
+    return btn
+
+
+class _TabList:
+    """Список вкладок, который меняется после действия. ... [4 строк]"""
+
+    def __init__(self, before, after=None):
+        self.before = before
+        self.after = after if after is not None else before
+        self.calls = 0
+
+    def __call__(self):
+        self.calls += 1
+        return self.before if self.calls == 1 else self.after
+
+
+def test_close_browser_tab_closes_and_verifies_by_tab_list():
+    """«закрой вкладку ютуб» закрывает «(2) YouTube» и ПРОВЕРЯЕТ результат."""
+    btn = _fake_close_button()
+    tab = _fake_tab("(2) YouTube")
+    tab.GetChildren.return_value = [btn]
+
+    fake_w = MagicMock()
+    fake_w.GetChildren.return_value = [tab]
+
+    tabs = _TabList(["(2) YouTube", "Почта"], ["Почта"])
+
+    with patch.object(uia, "_ensure_init", return_value=MagicMock()), \
+         patch.object(uia, "_get_browser_window", return_value=fake_w), \
+         patch.object(uia, "read_browser_tabs", side_effect=tabs), \
+         patch.object(uia, "_CLOSE_POLL", 0.001), \
+         patch.object(uia, "_CLOSE_WAIT", 0.05):
+        assert uia.close_browser_tab("ютуб") is True
+
+    btn.GetInvokePattern().Invoke.assert_called_once_with()
+    tab.MiddleClick.assert_not_called()
+
+
+def test_close_browser_tab_middle_click_when_button_is_inert():
+    """Кнопка закрытия «нажалась», но вкладка жива → средний клик по вкладке. ... [4 строк]"""
+    btn = _fake_close_button()
+    tab = _fake_tab("YouTube")
+    tab.GetChildren.return_value = [btn]
+
+    fake_w = MagicMock()
+    fake_w.GetChildren.return_value = [tab]
+
+    state = {"clicked": False}
+
+    def tabs_now():
+        return ["Почта"] if state["clicked"] else ["YouTube", "Почта"]
+
+    def middle_click(x=None, y=None):
+        state["clicked"] = True
+
+    tab.MiddleClick.side_effect = middle_click
+
+    with patch.object(uia, "_ensure_init", return_value=MagicMock()), \
+         patch.object(uia, "_get_browser_window", return_value=fake_w), \
+         patch.object(uia, "read_browser_tabs", side_effect=tabs_now), \
+         patch.object(uia, "_CLOSE_POLL", 0.001), \
+         patch.object(uia, "_CLOSE_WAIT", 0.02):
+        assert uia.close_browser_tab("ютуб") is True
+
+    btn.GetInvokePattern().Invoke.assert_called_once_with()
+    tab.MiddleClick.assert_called_once()
+
+
+class _DeadTab:
+    """Вкладка, чей UIA-элемент «умирает» сразу после закрытия. ... [5 строк]"""
+
+    def __init__(self, title: str, children: list):
+        self.ControlTypeName = "TabItemControl"
+        self._title = title
+        self._children = children
+        self.closed = False
+
+    @property
+    def Name(self):
+        if self.closed:
+            raise RuntimeError("COMError: элемент больше не доступен")
+        return self._title
+
+    def GetChildren(self):
+        return self._children
+
+
+def test_close_browser_tab_survives_vanished_element():
+    """Закрыли — и элемент умер: имя уже прочитано, падать не на чем."""
+    btn = _fake_close_button()
+    tab = _DeadTab("YouTube", [btn])
+    btn.GetInvokePattern.return_value.Invoke.side_effect = \
+        lambda: setattr(tab, "closed", True)
+
+    fake_w = MagicMock()
+    fake_w.GetChildren.return_value = [tab]
+
+    tabs = _TabList(["YouTube", "Почта"], ["Почта"])
+
+    with patch.object(uia, "_ensure_init", return_value=MagicMock()), \
+         patch.object(uia, "_get_browser_window", return_value=fake_w), \
+         patch.object(uia, "read_browser_tabs", side_effect=tabs), \
+         patch.object(uia, "_CLOSE_POLL", 0.001), \
+         patch.object(uia, "_CLOSE_WAIT", 0.05):
+        assert uia.close_browser_tab("ютуб") is True
+
+
+def test_close_browser_tab_other_tab_not_touched():
+    """Ничего похожего нет → не закрываем, не жмём горячие клавиши."""
+    btn = _fake_close_button()
+    tab = _fake_tab("DeepSeek Platform")
+    tab.GetChildren.return_value = [btn]
+
+    fake_w = MagicMock()
+    fake_w.GetChildren.return_value = [tab]
+
+    hotkeys = []
+    with patch.object(uia, "_ensure_init", return_value=MagicMock()), \
+         patch.object(uia, "_get_browser_window", return_value=fake_w), \
+         patch.object(actions, "hotkey", side_effect=hotkeys.append):
+        assert uia.close_browser_tab("ютуб") is False
+
+    btn.GetInvokePattern().Invoke.assert_not_called()
+    assert hotkeys == []
+
+
+def test_close_browser_tab_falls_back_to_ctrl_w():
+    """Кнопка «нажалась», но вкладка не закрылась → выбираем и Ctrl+W. ... [4 строк]"""
+    btn = _fake_close_button()
+    tab = _fake_tab("YouTube")
+    tab.GetChildren.return_value = [btn]
+
+    fake_w = MagicMock()
+    fake_w.GetChildren.return_value = [tab]
+
+    state = {"pressed": False}
+
+    def tabs_now():
+        return ["Почта"] if state["pressed"] else ["YouTube", "Почта"]
+
+    def hotkey(keys):
+        state["pressed"] = True
+        return True
+
+    with patch.object(uia, "_ensure_init", return_value=MagicMock()), \
+         patch.object(uia, "_get_browser_window", return_value=fake_w), \
+         patch.object(uia, "read_browser_tabs", side_effect=tabs_now), \
+         patch.object(uia, "_CLOSE_POLL", 0.001), \
+         patch.object(uia, "_CLOSE_WAIT", 0.02), \
+         patch.object(actions, "hotkey", side_effect=hotkey):
+        assert uia.close_browser_tab("ютуб") is True
+
+    tab.GetSelectionItemPattern().Select.assert_called_once_with()
+    fake_w.SetActive.assert_called_once_with()
+
+
+def test_close_browser_tab_no_hotkey_when_tab_not_selected():
+    """Вкладку выбрать не удалось и активна не она → Ctrl+W запрещён. ... [3 строк]"""
+    btn = _fake_close_button()
+    tab = _fake_tab("YouTube")
+    tab.GetChildren.return_value = [btn]
+    tab.GetSelectionItemPattern.return_value.Select.side_effect = \
+        RuntimeError("нет паттерна SelectionItem")
+
+    fake_w = MagicMock()
+    fake_w.GetChildren.return_value = [tab]
+
+    hotkeys = []
+    with patch.object(uia, "_ensure_init", return_value=MagicMock()), \
+         patch.object(uia, "_get_browser_window", return_value=fake_w), \
+         patch.object(uia, "read_browser_tabs",
+                      return_value=["YouTube", "Почта"]), \
+         patch.object(uia, "read_browser_tab_title", return_value="DeepSeek"), \
+         patch.object(uia, "_CLOSE_POLL", 0.001), \
+         patch.object(uia, "_CLOSE_WAIT", 0.02), \
+         patch.object(actions, "hotkey", side_effect=hotkeys.append):
+        assert uia.close_browser_tab("ютуб") is False
+
+    assert hotkeys == []
+
+
+def test_close_browser_tab_honest_false_when_nothing_closes():
+    """Ни кнопка, ни Ctrl+W не помогли → честное False, а не «закрыл»."""
+    btn = _fake_close_button()
+    tab = _fake_tab("YouTube")
+    tab.GetChildren.return_value = [btn]
+
+    fake_w = MagicMock()
+    fake_w.GetChildren.return_value = [tab]
+
+    hotkeys = []
+    with patch.object(uia, "_ensure_init", return_value=MagicMock()), \
+         patch.object(uia, "_get_browser_window", return_value=fake_w), \
+         patch.object(uia, "read_browser_tabs",
+                      return_value=["YouTube", "Почта"]), \
+         patch.object(uia, "_CLOSE_POLL", 0.001), \
+         patch.object(uia, "_CLOSE_WAIT", 0.02), \
+         patch.object(actions, "hotkey", side_effect=hotkeys.append):
+        assert uia.close_browser_tab("ютуб") is False
+
+    assert hotkeys == [["ctrl", "w"]]
+
+
+def test_switch_browser_tab_russian_name():
+    """«переключись на вкладку ютуб» находит «YouTube Music»."""
+    tab = _fake_tab("YouTube Music")
+    fake_w = MagicMock()
+    fake_w.GetChildren.return_value = [tab]
+
+    with patch.object(uia, "_ensure_init", return_value=MagicMock()), \
+         patch.object(uia, "_get_browser_window", return_value=fake_w):
+        assert uia.switch_browser_tab("ютуб") is True
+
+    tab.GetSelectionItemPattern().Select.assert_called_once_with()
+
+
+def test_active_tab_matches_russian_query():
+    """Запасной ход: активная «YouTube» — это «ютуб»."""
+    fake_w = MagicMock()
+    fake_w.Name = "YouTube — Яндекс Браузер"
+
+    with patch.object(uia, "_get_browser_window", return_value=fake_w):
+        assert uia.active_tab_matches("ютуб") is True
+        assert uia.active_tab_matches("вк") is False
+
+
+def test_active_tab_matches_no_browser():
+    """Браузера нет → запасной ход не срабатывает."""
+    with patch.object(uia, "_get_browser_window", return_value=None):
+        assert uia.active_tab_matches("ютуб") is False
 
 
 # =================================================================
@@ -22718,22 +23433,78 @@ def test_is_supported_true_when_init_ok():
     fake_auto = MagicMock()
     with patch.object(uia, "_ensure_init", return_value=fake_auto):
         assert uia.is_supported() is True
+
+
+# =================================================================
+# Капкан: у модуля `uiautomation` нет `ControlTypeName`
+# =================================================================
+
+def test_no_module_level_control_type_name():
+    """В коде нет `uia.ControlTypeName.X` — только `.ControlTypeName` у контрола. ... [7 строк]"""
+    import inspect
+    import re
+
+    # Комментарии (где мина и задокументирована) не считаем кодом.
+    src = inspect.getsource(uia)
+    code = "\n".join(ln.split("#")[0] for ln in src.splitlines())
+    bad = re.findall(r"uia\.ControlTypeName\b", code)
+    assert not bad, f"uia.ControlTypeName не существует: {bad}"
+
+
+def test_is_tab_item_uses_instance_type_name():
+    """Тип контрола — по строке `ControlTypeName` у самого контрола."""
+    tab = _fake_tab("YouTube")
+    btn = _fake_close_button()
+
+    assert uia._is_tab_item(tab) is True
+    assert uia._is_tab_item(btn) is False
+    assert uia._is_button(btn) is True
+    assert uia._is_button(tab) is False
+
+
+def test_is_control_type_survives_broken_control():
+    """Контрол с падающим свойством не роняет обход (UIA — COM, бывает)."""
+    class Boom:
+        @property
+        def ControlTypeName(self):
+            raise RuntimeError("COM error")
+
+    assert uia._is_control_type(Boom(), "TabItemControl") is False
 ```
 
 ### `tests/test_uia_fast.py`
 
 ```python
-"""Тесты быстрых UIA-команд — `jarvis/intents/fast/uia.py`. ... [6 строк]"""
+"""Тесты быстрых UIA-команд — `jarvis/intents/fast/uia.py`. ... [10 строк]"""
 
+from contextlib import contextmanager
 from unittest.mock import patch
 
-from jarvis import uia
+from jarvis import actions, uia
 from jarvis.intents.fast.uia import UIA_MISSING_REPLY, uia_fast
+
+
+@contextmanager
+def _without_uiautomation():
+    """Контекст «библиотеки нет»: блокируем импорт и сбрасываем кэш `_uia`."""
+    import builtins
+
+    real_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == "uiautomation":
+            raise ImportError("No module named 'uiautomation' (CI)")
+        return real_import(name, *args, **kwargs)
+
+    # `_uia=None` — иначе после других тестов библиотека уже проинициализирована.
+    with patch.object(builtins, "__import__", fake_import), \
+            patch.object(uia, "_uia", None):
+        yield
 
 
 def test_uia_command_without_library_answers_clearly():
     """Нет библиотеки → честный отказ, а не падение и не «LLM недоступна»."""
-    with patch.object(uia, "_ensure_init", side_effect=uia.UIAUnavailable()):
+    with _without_uiautomation():
         reply = uia_fast(None, "какие вкладки открыты")
 
     assert reply == UIA_MISSING_REPLY
@@ -22743,10 +23514,96 @@ def test_uia_command_without_library_answers_clearly():
 
 def test_uia_read_window_without_library_answers_clearly():
     """«прочитай окно» — та же ветка отказа (текст окна читать нечем)."""
-    with patch.object(uia, "_ensure_init", side_effect=uia.UIAUnavailable()):
+    with _without_uiautomation():
         reply = uia_fast(None, "прочитай окно")
 
     assert reply == UIA_MISSING_REPLY
+
+
+def test_when_no_browser_is_running_still_blames_library():
+    """CI: нет библиотеки И нет браузера — всё равно отказ про библиотеку. ... [5 строк]"""
+    with _without_uiautomation(), \
+            patch.object(uia, "find_browser_window", return_value=None):
+        reply = uia_fast(None, "список вкладок")
+
+    assert reply == UIA_MISSING_REPLY
+
+
+def test_key_command_works_without_library():
+    """«нажми enter» — это клавиша, а не UIA: работает и без библиотеки."""
+    with _without_uiautomation(), \
+            patch.object(actions, "key_press") as press:
+        reply = uia_fast(None, "нажми enter")
+
+    assert reply == "Нажал enter."
+    press.assert_called_once_with("enter")
+
+
+def test_close_named_tab_falls_back_to_ctrl_w():
+    """UIA вкладок не отдал (видна одна активная), но нужная активна → Ctrl+W. ... [4 строк]"""
+    hotkeys = []
+    with patch.object(uia, "is_supported", return_value=True), \
+            patch.object(uia, "close_browser_tab", return_value=False), \
+            patch.object(uia, "read_browser_tabs", return_value=["DeepSeek"]), \
+            patch.object(uia, "active_tab_matches", return_value=True), \
+            patch.object(actions, "hotkey", side_effect=hotkeys.append):
+        reply = uia_fast(None, "закрой вкладку ютуб")
+
+    assert reply == "Закрыл вкладку ютуб."
+    assert hotkeys == [["ctrl", "w"]]
+
+
+def test_no_extra_ctrl_w_when_tab_list_is_readable():
+    """Список вкладок виден → Ctrl+W уже нажал `close_browser_tab`. ... [4 строк]"""
+    hotkeys = []
+    with patch.object(uia, "is_supported", return_value=True), \
+            patch.object(uia, "close_browser_tab", return_value=False), \
+            patch.object(uia, "read_browser_tabs",
+                         return_value=["ютуб", "Почта"]), \
+            patch.object(uia, "active_tab_matches", return_value=True), \
+            patch.object(actions, "hotkey", side_effect=hotkeys.append):
+        reply = uia_fast(None, "закрой вкладку ютуб")
+
+    assert hotkeys == []
+    assert "не нашёл" in reply
+
+
+def test_tab_list_read_error_counts_as_unreadable():
+    """`read_browser_tabs` упал (COM) → считаем, что вкладок не видно. ... [3 строк]"""
+    hotkeys = []
+    with patch.object(uia, "is_supported", return_value=True), \
+            patch.object(uia, "close_browser_tab", return_value=False), \
+            patch.object(uia, "read_browser_tabs",
+                         side_effect=RuntimeError("COM")), \
+            patch.object(uia, "active_tab_matches", return_value=True), \
+            patch.object(actions, "hotkey", side_effect=hotkeys.append):
+        reply = uia_fast(None, "закрой вкладку ютуб")
+
+    assert reply == "Закрыл вкладку ютуб."
+    assert hotkeys == [["ctrl", "w"]]
+
+
+def test_close_named_tab_not_found_answers_honestly():
+    """Ни по имени, ни в активной — честное «не нашёл», без Ctrl+W."""
+    hotkeys = []
+    with patch.object(uia, "is_supported", return_value=True), \
+            patch.object(uia, "close_browser_tab", return_value=False), \
+            patch.object(uia, "active_tab_matches", return_value=False), \
+            patch.object(actions, "hotkey", side_effect=hotkeys.append):
+        reply = uia_fast(None, "закрой вкладку зптщклмн")
+
+    assert "не нашёл" in reply
+    assert hotkeys == []
+
+
+def test_switch_to_active_tab_is_not_a_failure():
+    """Вкладка уже активна (UIA её не видит) → не врём про «не нашёл»."""
+    with patch.object(uia, "is_supported", return_value=True), \
+            patch.object(uia, "switch_browser_tab", return_value=False), \
+            patch.object(uia, "active_tab_matches", return_value=True):
+        reply = uia_fast(None, "переключись на вкладку ютуб")
+
+    assert reply == "Переключился на ютуб."
 
 
 def test_not_our_command_returns_none():
@@ -26394,11 +27251,12 @@ onnxruntime>=1.17
 
 ## 5. Документация (только оглавления)
 
-#### `tests/README.md` — 6 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `tests/README.md` — 7 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Тесты Феникса
   - Карта
   - Правила
+  - Ручные прогоны (`tests/manual/`)
   - Зависимость от окружения
   - Логи
   - См. также
@@ -26453,12 +27311,13 @@ onnxruntime>=1.17
     - `scripts/make_installer_images.py`
     - `scripts/build_exe.py`
 
-#### `CHANGELOG.md` — 62 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 63 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
   - 📑 Содержание
   - 🚧 [Unreleased] — 0.4.0
     - 📅 Сессия 13.10.2026
+      - 🐞 «Закрой вкладку ютуб» — почему вкладка не закрывалась
       - 🧪 Тесты — одна папка, стресс-тест на 100 ситуаций, единый прогон
         - 🕐 Время — добавлены естественные формулировки
       - 🐛 Исправлено
@@ -26494,7 +27353,6 @@ onnxruntime>=1.17
         - 🧰 snapshot.py — переписан
       - 🐛 Погода — падежи городов
       - 🔧 Исправлено (аудит 10.10.2026)
-    - 📅 Сессия 09.10.2026
 
 #### `CI.md` — 13 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -26665,4 +27523,4 @@ onnxruntime>=1.17
 
 ---
 
-_Итого по категориям — code: 128, data: 19, doc: 10, pack: 5. Режим `lean`._
+_Итого по категориям — code: 129, data: 19, doc: 10, pack: 5. Режим `lean`._

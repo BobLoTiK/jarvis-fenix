@@ -50,6 +50,9 @@ logs/
 system_caps.json
 *.log
 
+# === Артефакты UIA (uiautomation пишет рядом со скриптом) ===
+@AutomationLog.txt
+
 # === Случайные файлы из редакторов ===
 вкладка
 new *

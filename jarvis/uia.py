@@ -9,6 +9,8 @@
     - Нажать кнопку по имени.
     - Закрыть вкладку браузера.
     - Переключиться на вкладку по имени.
+    - Понимать русские названия сайтов: «ютуб» находит вкладку «YouTube»
+      (алиасы + транслитерация, `title_matches`).
 
 Всё через `uiautomation`, thread-safe через RLock (COM не любит
 многопоточность без инициализации).
@@ -59,6 +61,39 @@ def _ensure_init():
                 f"не установлена библиотека uiautomation ({UIA_PIP_HINT})"
             ) from exc
     return _uia
+
+
+# =================================================================
+# Типы контролов UIA
+# =================================================================
+# Внимание: у модуля `uiautomation` НЕТ атрибута `ControlTypeName`
+# (есть `ControlTypes`, `ControlTypeNames` и числовой `ControlType`).
+# Обращение `uia.ControlTypeName.ButtonControl` бросало AttributeError,
+# а он глотался `except Exception` внутри обходов дерева — из-за этого
+# «закрой вкладку ютуб» не находила НИ ОДНОЙ вкладки: всегда «не нашёл».
+# Сравниваем по имени типа у самого контрола: оно строковое и стабильное.
+
+def _is_control_type(ctrl, type_name: str) -> bool:
+    """Контрол нужного типа? («TabItemControl», «ButtonControl», ...)"""
+    try:
+        return (ctrl.ControlTypeName or "") == type_name
+    except Exception:
+        return False
+
+
+def _is_tab_item(ctrl) -> bool:
+    """Это вкладка браузера?"""
+    return _is_control_type(ctrl, "TabItemControl")
+
+
+def _is_button(ctrl) -> bool:
+    """Это кнопка?"""
+    return _is_control_type(ctrl, "ButtonControl")
+
+
+def _is_menu_item(ctrl) -> bool:
+    """Это пункт меню?"""
+    return _is_control_type(ctrl, "MenuItemControl")
 
 
 # =================================================================
@@ -187,7 +222,7 @@ def click_button(name_part: str, window_title: str | None = None,
                 for ctrl in window.GetChildren():
                     for c in _walk_controls(ctrl, depth=10):
                         try:
-                            if c.ControlType != uia.ControlTypeName.ButtonControl:
+                            if not _is_button(c):
                                 continue
                             cname = (c.Name or "").strip().lower()
                             if name_low in cname:
@@ -457,7 +492,7 @@ def read_browser_tabs() -> list[str]:
                 # Обходим прямых детей тулбара — это TabItemControl.
                 for child in toolbar.GetChildren():
                     try:
-                        if child.ControlType != uia.ControlType.TabItemControl:
+                        if not _is_tab_item(child):
                             continue
                         name = (child.Name or "").strip()
                         if name and name not in tabs:
@@ -471,7 +506,7 @@ def read_browser_tabs() -> list[str]:
                     for child in toolbar.GetChildren():
                         for sub in child.GetChildren():
                             try:
-                                if sub.ControlType != uia.ControlType.TabItemControl:
+                                if not _is_tab_item(sub):
                                     continue
                                 name = (sub.Name or "").strip()
                                 if name and name not in tabs:
@@ -492,57 +527,271 @@ def read_browser_tabs() -> list[str]:
     return tabs
 
 
+# =================================================================
+# Сопоставление имён вкладок: «ютуб» ↔ «YouTube»
+# =================================================================
+#
+# Человек называет сайт по-русски, а в заголовке вкладки — латиница
+# ((2) YouTube, GitHub, vk.com). Простое «"ютуб" in "(2) youtube"» не
+# срабатывает, и «закрой вкладку ютуб» отвечала «не нашёл». Поэтому
+# сравниваем не строки, а варианты написания: алиасы дают бренд
+# (ютуб → youtube), транслитерация — «как слышится» (хабр → habr).
+
+# Русское название сайта → латинское (как в заголовке вкладки/домене).
+_SITE_ALIASES = {
+    "ютуб": "youtube", "ютюб": "youtube", "ютьюб": "youtube",
+    "вк": "vk", "вконтакте": "vk",
+    "телеграм": "telegram", "телега": "telegram",
+    "инстаграм": "instagram", "инста": "instagram",
+    "фейсбук": "facebook", "фб": "facebook",
+    "гитхаб": "github", "гит": "git",
+    "википедия": "wikipedia", "вики": "wiki",
+    "гугл": "google", "яндекс": "yandex", "почта": "mail",
+    "дискорд": "discord", "тикток": "tiktok", "твиттер": "twitter",
+    "спотифай": "spotify", "реддит": "reddit",
+    "озон": "ozon", "авито": "avito", "вб": "wildberries",
+    "вайлдберриз": "wildberries", "кинопоиск": "kinopoisk",
+    "хабр": "habr", "гигачат": "gigachat",
+}
+
+# Русские буквы → латинские (транслитерация «как слышится»).
+_TRANSLIT = {
+    "а": "a", "б": "b", "в": "v", "г": "g", "д": "d", "е": "e", "ё": "e",
+    "ж": "zh", "з": "z", "и": "i", "й": "i", "к": "k", "л": "l", "м": "m",
+    "н": "n", "о": "o", "п": "p", "р": "r", "с": "s", "т": "t", "у": "u",
+    "ф": "f", "х": "kh", "ц": "ts", "ч": "ch", "ш": "sh", "щ": "shch",
+    "ъ": "", "ы": "y", "ь": "", "э": "e", "ю": "yu", "я": "ya",
+}
+
+
+def _norm_text(text: str) -> str:
+    """Нижний регистр, пунктуация → пробел, кратные пробелы убраны."""
+    text = (text or "").casefold()
+    for ch in "«»\"'“”.,!?;:()[]—–-|/\\+":
+        text = text.replace(ch, " ")
+    return " ".join(text.split())
+
+
+def _translit(text: str) -> str:
+    """«хабр» → «habr»: латиница «как слышится»."""
+    return "".join(_TRANSLIT.get(ch, ch) for ch in text)
+
+
+def _word_variants(word: str) -> set[str]:
+    """Написания одного слова: как есть, алиас в обе стороны, транслит."""
+    out = {word, _translit(word)}
+    alias = _SITE_ALIASES.get(word)
+    if alias:
+        out.add(alias)
+    # Обратно: «vk» → «вк», «youtube» → «ютуб».
+    for ru, latin in _SITE_ALIASES.items():
+        if word == latin:
+            out.add(ru)
+    return {w for w in out if len(w) >= 2}
+
+
+def title_matches(name: str, query: str) -> bool:
+    """Похожа ли вкладка/окно на то, что просят? («ютуб» ≈ «(2) YouTube»).
+
+    Два шага, чтобы не ловить ложные срабатывания:
+
+    1. Как есть — вхождение подстроки (русский запрос против русского
+       заголовка, латиница против латиницы).
+    2. Разные алфавиты — сравниваем СЛОВА: «ютуб» → youtube, «хабр» →
+       habr. Пословно, а не подстрокой: иначе «вк» → «vk» прилипает
+       к «vkhoda» («без входа»).
+    """
+    name_norm = _norm_text(name)
+    query_norm = _norm_text(query)
+    if not name_norm or not query_norm:
+        return False
+
+    if query_norm in name_norm:
+        return True
+
+    asked: set[str] = set()
+    for word in query_norm.split():
+        asked |= _word_variants(word)
+    have = set(name_norm.split()) | set(_translit(name_norm).split())
+    return bool(asked & have)
+
+
+# Сколько ждём, что вкладка закроется, и как часто смотрим список вкладок.
+_CLOSE_WAIT = 2.0
+_CLOSE_POLL = 0.15
+
+
+def _safe_name(ctrl) -> str:
+    """Имя контрола без исключений.
+
+    Элемент закрытой вкладки в UIA уже мёртв, и обращение к `Name`
+    бросает COMError («элемент больше не доступен»). Имя поэтому читаем
+    ДО действий, а в логах берём только строку.
+    """
+    try:
+        return (ctrl.Name or "").strip()
+    except Exception:
+        return ""
+
+
+def _tab_close_button(ctrl):
+    """Кнопка закрытия ВНУТРИ вкладки (или None)."""
+    try:
+        for child in ctrl.GetChildren():
+            if not _is_button(child):
+                continue
+            cname = (child.Name or "").lower()
+            if "close" in cname or "закры" in cname or not cname:
+                return child
+    except Exception:
+        log.debug("Не прочитал детей вкладки %r", _safe_name(ctrl),
+                  exc_info=True)
+    return None
+
+
+def _tabs_shrank(before: list[str], timeout: float | None = None) -> bool:
+    """Вкладок стало меньше? Это единственный честный признак закрытия.
+
+    Вызовы вида `Invoke()` возвращают True и когда нажатие ничего не
+    сделало (кнопка скрыта до наведения, элемент не «реализован»).
+    Поэтому верим не возврату вызова, а списку вкладок.
+    """
+    if timeout is None:
+        timeout = _CLOSE_WAIT
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        time.sleep(_CLOSE_POLL)
+        try:
+            if before and len(read_browser_tabs()) < len(before):
+                return True
+        except Exception:
+            continue
+    return False
+
+
+def _close_tab_by_hotkey(w, ctrl, tab_title_part: str, name: str,
+                         before: list[str]) -> bool:
+    """Выбрать вкладку и нажать Ctrl+W — как это сделал бы человек.
+
+    Жмём только когда вкладка точно активна (выбралась сама или уже была):
+    иначе Ctrl+W закрыл бы соседнюю.
+    """
+    selected = False
+    try:
+        ctrl.GetSelectionItemPattern().Select()
+        selected = True
+    except Exception:
+        log.warning("Не удалось выбрать вкладку %r", name)
+
+    if not selected and not active_tab_matches(tab_title_part):
+        return False
+
+    time.sleep(_CLOSE_POLL)
+    try:
+        w.SetActive()
+    except Exception:
+        log.debug("SetActive не удался", exc_info=True)
+    time.sleep(_CLOSE_POLL)
+
+    from jarvis import actions  # локально: jarvis.actions тянет uia
+    actions.hotkey(["ctrl", "w"])
+
+    # Список вкладок браузер может и не отдавать (одна активная) — тогда
+    # судить не по чему, но Ctrl+W по выбранной вкладке закрывает её.
+    if len(before) <= 1 or _tabs_shrank(before):
+        log.info("Закрыл вкладку %r (Ctrl+W)", name)
+        return True
+    return False
+
+
 def close_browser_tab(tab_title_part: str) -> bool:
-    """Закрывает вкладку браузера по части заголовка."""
-    uia = _ensure_init()
+    """Закрывает вкладку браузера по части заголовка.
+
+    Заголовок ищем с учётом русских названий: «закрой вкладку ютуб»
+    находит вкладку «(2) YouTube» (см. `title_matches`).
+
+    Три способа, и после каждого проверяем СПИСОК вкладок:
+        1. Кнопка закрытия внутри вкладки (`Invoke`) — ничего не двигает.
+        2. Средний клик по вкладке — обычный жест «закрыть вкладку».
+        3. Выбрать вкладку и нажать Ctrl+W.
+    `Invoke()` в браузерах отдаёт True и при впустую нажатой кнопке, так
+    что без проверки «закрыл» — враньё (так и было: отвечали «закрыл»,
+    а вкладка оставалась).
+
+    True — только если вкладка ДЕЙСТВИТЕЛЬНО исчезла из списка.
+    """
+    _ensure_init()
     w = _get_browser_window()
     if w is None:
         return False
 
-    tab_low = tab_title_part.lower()
+    target = None
     with _lock:
         try:
             for ctrl in _walk_controls(w, depth=15):
                 try:
-                    if ctrl.ControlType != uia.ControlTypeName.TabItemControl:
+                    if not _is_tab_item(ctrl):
                         continue
-                    name = (ctrl.Name or "").lower()
-                    if tab_low not in name:
-                        continue
-                    # Ищем кнопку закрытия внутри вкладки.
-                    for child in ctrl.GetChildren():
-                        try:
-                            if child.ControlType == uia.ControlTypeName.ButtonControl:
-                                cname = (child.Name or "").lower()
-                                if "close" in cname or "закры" in cname or not cname:
-                                    child.GetInvokePattern().Invoke()
-                                    log.info("Закрыл вкладку %r", ctrl.Name)
-                                    return True
-                        except Exception:
-                            continue
+                    if title_matches(ctrl.Name or "", tab_title_part):
+                        target = ctrl
+                        break
                 except Exception:
                     continue
         except Exception:
             log.exception("close_browser_tab упал")
-    return False
+
+        if target is None:
+            log.info("Вкладка %r не найдена", tab_title_part)
+            return False
+
+        # Имя читаем ДО действий: закрытая вкладка перестаёт отвечать.
+        name = _safe_name(target)
+        before = read_browser_tabs()
+        log.info("Закрываю вкладку %r (вкладок: %d)", name, len(before))
+
+        # 1. Кнопка закрытия внутри вкладки.
+        btn = _tab_close_button(target)
+        if btn is not None:
+            try:
+                btn.GetInvokePattern().Invoke()
+            except Exception:
+                log.debug("Invoke кнопки закрытия не удался", exc_info=True)
+            if _tabs_shrank(before):
+                log.info("Закрыл вкладку %r (кнопка закрытия)", name)
+                return True
+
+        # 2. Средний клик по вкладке. Так закрывают вкладки руками —
+        #    работает и когда кнопка закрытия скрыта до наведения.
+        try:
+            target.MiddleClick()
+        except Exception:
+            log.debug("MiddleClick по вкладке не удался", exc_info=True)
+        if _tabs_shrank(before):
+            log.info("Закрыл вкладку %r (средний клик)", name)
+            return True
+
+        # 3. Кнопка и клик не помогли — выбираем вкладку и жмём Ctrl+W.
+        return _close_tab_by_hotkey(w, target, tab_title_part, name, before)
 
 
 def switch_browser_tab(tab_title_part: str) -> bool:
-    """Переключается на вкладку по части заголовка."""
+    """Переключается на вкладку по части заголовка.
+
+    Русские названия тоже понимаем: «переключись на вкладку ютуб»
+    (см. `title_matches`).
+    """
     uia = _ensure_init()
     w = _get_browser_window()
     if w is None:
         return False
 
-    tab_low = tab_title_part.lower()
     with _lock:
         try:
             for ctrl in _walk_controls(w, depth=15):
                 try:
-                    if ctrl.ControlType != uia.ControlTypeName.TabItemControl:
+                    if not _is_tab_item(ctrl):
                         continue
-                    name = (ctrl.Name or "").lower()
-                    if tab_low in name:
+                    if title_matches(ctrl.Name or "", tab_title_part):
                         ctrl.GetSelectionItemPattern().Select()
                         log.info("Переключился на вкладку %r", ctrl.Name)
                         return True
@@ -551,6 +800,17 @@ def switch_browser_tab(tab_title_part: str) -> bool:
         except Exception:
             log.exception("switch_browser_tab упал")
     return False
+
+
+def active_tab_matches(query: str) -> bool:
+    """Активная вкладка — это та, которую просят?
+
+    Нужно как запасной ход: браузер может не отдавать список вкладок
+    через UIA (Яндекс группирует вкладки), но заголовок окна виден
+    всегда. Тогда для закрытия хватает Ctrl+W.
+    """
+    title = read_browser_tab_title()
+    return bool(title) and title_matches(title, query)
 
 
 # =================================================================
@@ -575,7 +835,7 @@ def click_menu_item(path: str) -> bool:
         try:
             for ctrl in _walk_controls(w, depth=10):
                 try:
-                    if ctrl.ControlType != uia.ControlTypeName.MenuItemControl:
+                    if not _is_menu_item(ctrl):
                         continue
                     name = (ctrl.Name or "").strip().lower()
                     if parts[0].lower() in name:
@@ -587,7 +847,7 @@ def click_menu_item(path: str) -> bool:
                         # Дальше — обход подменю.
                         for sub in _walk_controls(ctrl, depth=5):
                             try:
-                                if sub.ControlType != uia.ControlTypeName.MenuItemControl:
+                                if not _is_menu_item(sub):
                                     continue
                                 sname = (sub.Name or "").strip().lower()
                                 if parts[1].lower() in sname:

@@ -26,10 +26,16 @@
 Опасные команды (удаление профиля, закрытие окон, сброс буфера) в набор
 намеренно НЕ входят — стресс-тест не должен ломать систему.
 
+Сайты по умолчанию НЕ открываются по-настоящему: ситуация «открой ютуб»
+проверяет разбор фразы, а не открывает вкладку (иначе каждый прогон
+плодит вкладки, а в CI браузера нет вовсе). Нужен настоящий браузер —
+флаг --real-browser.
+
 Запуск:
     python tests/stress_intents.py                 # без LLM, без сети, без озвучки
     python tests/stress_intents.py -k weather      # только ситуации со словом 'weather'
     python tests/stress_intents.py --voice         # с озвучкой
+    python tests/stress_intents.py --real-browser  # сайты открываются по-настоящему
     python tests/stress_intents.py --list          # только показать список ситуаций
 
 ВНИМАНИЕ: это НЕ pytest-тест, а скрипт-раннер (см. tests/conftest.py).
@@ -41,6 +47,7 @@ import argparse
 import logging
 import sys
 import time
+from contextlib import ExitStack
 from pathlib import Path
 
 # Принудительно UTF-8 для stdout/stderr — иначе на CI (Windows, cp1252)
@@ -57,7 +64,8 @@ for _p in (str(BASE_DIR), str(TESTS_DIR)):
         sys.path.insert(0, _p)
 
 # Харнес сборки IntentHandler общий с test_intents.py — не дублируем.
-from test_intents import build_handler  # noqa: E402
+# no_real_browser — чтобы «открой ютуб» не открывал настоящую вкладку.
+from test_intents import build_handler, no_real_browser  # noqa: E402
 
 LOGS_DIR = BASE_DIR / "logs"
 LOGS_DIR.mkdir(exist_ok=True)
@@ -430,6 +438,8 @@ def cleanup(handler) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Стресс-тест Феникса: 100 ситуаций")
     parser.add_argument("--voice", action="store_true", help="Озвучивать ответы")
+    parser.add_argument("--real-browser", action="store_true",
+                        help="Открывать сайты по-настоящему (по умолчанию — заглушка)")
     parser.add_argument("-k", "--filter", help="Фильтр по имени ситуации")
     parser.add_argument("--list", action="store_true", dest="list_only",
                         help="Показать список ситуаций и выйти")
@@ -460,7 +470,9 @@ def main() -> None:
 
     log.info("=" * 70)
     log.info("СТРЕСС-ТЕСТ ФЕНИКСА")
-    log.info("Ситуаций: %d | озвучка: %s", len(cases), "вкл" if args.voice else "выкл")
+    log.info("Ситуаций: %d | озвучка: %s | браузер: %s",
+             len(cases), "вкл" if args.voice else "выкл",
+             "настоящий" if args.real_browser else "заглушка")
     log.info("UIA: %s", "доступна — окна читаю по-настоящему" if uia_ok
              else "нет библиотеки uiautomation — ситуации uia_* ждут понятный отказ")
     log.info("Лог: %s", LOG_FILE)
@@ -477,8 +489,13 @@ def main() -> None:
         except Exception:
             log.exception("Speaker не завёлся — без озвучки")
 
-    results = [run_case(handler, speaker, name, cmd, expected)
-               for name, cmd, expected in cases]
+    # Сайты по умолчанию не открываем по-настоящему — иначе тесты плодят
+    # вкладки в браузере (см. no_real_browser). Нужен настоящий — --real-browser.
+    with ExitStack() as stack:
+        if not args.real_browser:
+            stack.enter_context(no_real_browser())
+        results = [run_case(handler, speaker, name, cmd, expected)
+                   for name, cmd, expected in cases]
 
     failed = [r for r in results if not r.passed]
     times = [r.elapsed for r in results]

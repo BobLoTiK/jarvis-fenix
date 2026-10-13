@@ -5,6 +5,12 @@ CI не имеет браузера, поэтому все внешние выз
     - Как разбираются результаты FindAll/FindAllControls.
     - Как работают fallback'и (заголовок окна → URL).
     - Как ведёт себя describe_active_window.
+    - Как русские названия вкладок сопоставляются с латинскими заголовками
+      («ютуб» ↔ «(2) YouTube»): из-за этого не закрывалась вкладка.
+    - Что закрытие вкладки подтверждается СПИСКОМ вкладок, а не возвратом
+      `Invoke()`: кнопка закрытия в Яндексе скрыта до наведения, и нажатие
+      «успешно» ничего не делает — тогда закрываем средним кликом по
+      вкладке, а если и он не сработал — выбор вкладки + Ctrl+W.
     - Что бывает, когда библиотеки `uiautomation` вообще нет (CI-раннер):
       тогда UIAUnavailable + is_supported() == False, а не голый ImportError.
 """
@@ -13,7 +19,7 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
-from jarvis import uia
+from jarvis import actions, uia
 
 
 # =================================================================
@@ -133,13 +139,13 @@ def test_read_browser_tabs_no_browser():
 def test_read_browser_tabs_from_toolbar():
     """Toolbar 'Вкладки' содержит TabItem-детей."""
     fake_tab1 = MagicMock()
-    fake_tab1.ControlType = "TabItemControl"
+    fake_tab1.ControlTypeName = "TabItemControl"
     fake_tab1.Name = "YouTube"
     fake_tab2 = MagicMock()
-    fake_tab2.ControlType = "TabItemControl"
+    fake_tab2.ControlTypeName = "TabItemControl"
     fake_tab2.Name = "GitHub"
     fake_tab3 = MagicMock()
-    fake_tab3.ControlType = "ButtonControl"
+    fake_tab3.ControlTypeName = "ButtonControl"
     fake_tab3.Name = "Новая вкладка"
 
     fake_toolbar = MagicMock()
@@ -151,10 +157,8 @@ def test_read_browser_tabs_from_toolbar():
 
     fake_auto = MagicMock()
     fake_auto.ToolBarControl.return_value = fake_toolbar
-    # Настраиваем ControlType — иначе MagicMock вернёт MagicMock,
-    # и сравнение ctrl.ControlType != fake_auto.ControlType.TabItemControl
-    # всегда даст True.
-    fake_auto.ControlType.TabItemControl = "TabItemControl"
+    # Тип контрола сравнивается по имени (`ControlTypeName`) — как в
+    # настоящем uiautomation. Модульные константы тут не нужны.
 
     with patch.object(uia, "_ensure_init", return_value=fake_auto), \
          patch.object(uia, "_uia", fake_auto), \
@@ -181,6 +185,323 @@ def test_read_browser_tabs_fallback():
         result = uia.read_browser_tabs()
 
     assert result == ["YouTube"]
+
+
+# =================================================================
+# Сопоставление имён вкладок: «ютуб» ↔ «(2) YouTube»
+#
+# Из-за этого не закрывалась вкладка: человек говорит «ютуб», а заголовок
+# вкладки — латиницей, и «ютуб» in «(2) youtube» давало False.
+# =================================================================
+
+def test_title_matches_same_alphabet_substring():
+    """Обычное вхождение подстроки — как было до сопоставления."""
+    assert uia.title_matches("YouTube — Яндекс Браузер", "youtube") is True
+    assert uia.title_matches("Моддинг для Minecraft", "моддинг") is True
+    assert uia.title_matches("ЮТУБ — Яндекс Браузер", "ютуб") is True
+
+
+def test_title_matches_russian_name_of_latin_tab():
+    """«ютуб» находит вкладку «(2) YouTube»."""
+    assert uia.title_matches("(2) YouTube", "ютуб") is True
+    assert uia.title_matches(
+        "(2) Forge Modding Tutorial - Minecraft 1.20.1 #39 - YouTube", "ютуб"
+    ) is True
+    assert uia.title_matches("YouTube Music", "ютуб") is True
+
+
+def test_title_matches_alias_and_translit():
+    """Алиасы (вк → vk) и транслитерация (хабр → habr)."""
+    assert uia.title_matches("vk.com — Chrome", "вк") is True
+    assert uia.title_matches("ВКонтакте", "вк") is True
+    assert uia.title_matches("habr.com — Chrome", "хабр") is True
+    assert uia.title_matches("GitHub — Chrome", "гитхаб") is True
+    assert uia.title_matches("ru.wikipedia.org", "википедия") is True
+
+
+def test_title_matches_latin_query_russian_title():
+    """И обратно: сказали «youtube», а вкладка называется «Ютуб»."""
+    assert uia.title_matches("Ютуб", "youtube") is True
+
+
+def test_title_matches_no_false_positive():
+    """Ложных срабатываний быть не должно.
+
+    «вк» → «vk» совпадало с «vkhoda» («без входа») — так ловилась чужая
+    вкладка. Поэтому разные алфавиты сравниваем пословно.
+    """
+    assert uia.title_matches(
+        'Заказ "24/7(Без входа) DeepSeek API | Пополнение баланса"', "вк"
+    ) is False
+    assert uia.title_matches("DeepSeek Platform", "ютуб") is False
+    assert uia.title_matches("moodle.nntc.nnov.ru", "ютуб") is False
+    assert uia.title_matches("", "ютуб") is False
+    assert uia.title_matches("YouTube", "") is False
+
+
+def _fake_tab(name: str, control_type: str = "TabItemControl"):
+    """Вкладка-заглушка. Тип — строкой, как у настоящего uiautomation."""
+    tab = MagicMock()
+    tab.ControlTypeName = control_type
+    tab.Name = name
+    return tab
+
+
+def _fake_close_button(name: str = "Закрыть"):
+    """Кнопка закрытия внутри вкладки."""
+    btn = MagicMock()
+    btn.ControlTypeName = "ButtonControl"
+    btn.Name = name
+    return btn
+
+
+class _TabList:
+    """Список вкладок, который меняется после действия.
+
+    Так же ведёт себя настоящий браузер: закрытие видно только по тому,
+    что вкладок стало меньше.
+    """
+
+    def __init__(self, before, after=None):
+        self.before = before
+        self.after = after if after is not None else before
+        self.calls = 0
+
+    def __call__(self):
+        self.calls += 1
+        return self.before if self.calls == 1 else self.after
+
+
+def test_close_browser_tab_closes_and_verifies_by_tab_list():
+    """«закрой вкладку ютуб» закрывает «(2) YouTube» и ПРОВЕРЯЕТ результат."""
+    btn = _fake_close_button()
+    tab = _fake_tab("(2) YouTube")
+    tab.GetChildren.return_value = [btn]
+
+    fake_w = MagicMock()
+    fake_w.GetChildren.return_value = [tab]
+
+    tabs = _TabList(["(2) YouTube", "Почта"], ["Почта"])
+
+    with patch.object(uia, "_ensure_init", return_value=MagicMock()), \
+         patch.object(uia, "_get_browser_window", return_value=fake_w), \
+         patch.object(uia, "read_browser_tabs", side_effect=tabs), \
+         patch.object(uia, "_CLOSE_POLL", 0.001), \
+         patch.object(uia, "_CLOSE_WAIT", 0.05):
+        assert uia.close_browser_tab("ютуб") is True
+
+    btn.GetInvokePattern().Invoke.assert_called_once_with()
+    tab.MiddleClick.assert_not_called()
+
+
+def test_close_browser_tab_middle_click_when_button_is_inert():
+    """Кнопка закрытия «нажалась», но вкладка жива → средний клик по вкладке.
+
+    Так ведёт себя Яндекс: кнопка закрытия скрыта до наведения, и
+    `Invoke()` отдаёт True, ничего не сделав.
+    """
+    btn = _fake_close_button()
+    tab = _fake_tab("YouTube")
+    tab.GetChildren.return_value = [btn]
+
+    fake_w = MagicMock()
+    fake_w.GetChildren.return_value = [tab]
+
+    state = {"clicked": False}
+
+    def tabs_now():
+        return ["Почта"] if state["clicked"] else ["YouTube", "Почта"]
+
+    def middle_click(x=None, y=None):
+        state["clicked"] = True
+
+    tab.MiddleClick.side_effect = middle_click
+
+    with patch.object(uia, "_ensure_init", return_value=MagicMock()), \
+         patch.object(uia, "_get_browser_window", return_value=fake_w), \
+         patch.object(uia, "read_browser_tabs", side_effect=tabs_now), \
+         patch.object(uia, "_CLOSE_POLL", 0.001), \
+         patch.object(uia, "_CLOSE_WAIT", 0.02):
+        assert uia.close_browser_tab("ютуб") is True
+
+    btn.GetInvokePattern().Invoke.assert_called_once_with()
+    tab.MiddleClick.assert_called_once()
+
+
+class _DeadTab:
+    """Вкладка, чей UIA-элемент «умирает» сразу после закрытия.
+
+    Живой случай: после закрытия вкладки обращение к `Name` бросает
+    COMError «элемент больше не доступен» — и ответ на команду падал
+    вместо «закрыл»/«не нашёл».
+    """
+
+    def __init__(self, title: str, children: list):
+        self.ControlTypeName = "TabItemControl"
+        self._title = title
+        self._children = children
+        self.closed = False
+
+    @property
+    def Name(self):
+        if self.closed:
+            raise RuntimeError("COMError: элемент больше не доступен")
+        return self._title
+
+    def GetChildren(self):
+        return self._children
+
+
+def test_close_browser_tab_survives_vanished_element():
+    """Закрыли — и элемент умер: имя уже прочитано, падать не на чем."""
+    btn = _fake_close_button()
+    tab = _DeadTab("YouTube", [btn])
+    btn.GetInvokePattern.return_value.Invoke.side_effect = \
+        lambda: setattr(tab, "closed", True)
+
+    fake_w = MagicMock()
+    fake_w.GetChildren.return_value = [tab]
+
+    tabs = _TabList(["YouTube", "Почта"], ["Почта"])
+
+    with patch.object(uia, "_ensure_init", return_value=MagicMock()), \
+         patch.object(uia, "_get_browser_window", return_value=fake_w), \
+         patch.object(uia, "read_browser_tabs", side_effect=tabs), \
+         patch.object(uia, "_CLOSE_POLL", 0.001), \
+         patch.object(uia, "_CLOSE_WAIT", 0.05):
+        assert uia.close_browser_tab("ютуб") is True
+
+
+def test_close_browser_tab_other_tab_not_touched():
+    """Ничего похожего нет → не закрываем, не жмём горячие клавиши."""
+    btn = _fake_close_button()
+    tab = _fake_tab("DeepSeek Platform")
+    tab.GetChildren.return_value = [btn]
+
+    fake_w = MagicMock()
+    fake_w.GetChildren.return_value = [tab]
+
+    hotkeys = []
+    with patch.object(uia, "_ensure_init", return_value=MagicMock()), \
+         patch.object(uia, "_get_browser_window", return_value=fake_w), \
+         patch.object(actions, "hotkey", side_effect=hotkeys.append):
+        assert uia.close_browser_tab("ютуб") is False
+
+    btn.GetInvokePattern().Invoke.assert_not_called()
+    assert hotkeys == []
+
+
+def test_close_browser_tab_falls_back_to_ctrl_w():
+    """Кнопка «нажалась», но вкладка не закрылась → выбираем и Ctrl+W.
+
+    Так ведёт себя Яндекс: кнопка закрытия внутри вкладки скрыта до
+    наведения, `Invoke()` возвращает True и ничего не делает.
+    """
+    btn = _fake_close_button()
+    tab = _fake_tab("YouTube")
+    tab.GetChildren.return_value = [btn]
+
+    fake_w = MagicMock()
+    fake_w.GetChildren.return_value = [tab]
+
+    state = {"pressed": False}
+
+    def tabs_now():
+        return ["Почта"] if state["pressed"] else ["YouTube", "Почта"]
+
+    def hotkey(keys):
+        state["pressed"] = True
+        return True
+
+    with patch.object(uia, "_ensure_init", return_value=MagicMock()), \
+         patch.object(uia, "_get_browser_window", return_value=fake_w), \
+         patch.object(uia, "read_browser_tabs", side_effect=tabs_now), \
+         patch.object(uia, "_CLOSE_POLL", 0.001), \
+         patch.object(uia, "_CLOSE_WAIT", 0.02), \
+         patch.object(actions, "hotkey", side_effect=hotkey):
+        assert uia.close_browser_tab("ютуб") is True
+
+    tab.GetSelectionItemPattern().Select.assert_called_once_with()
+    fake_w.SetActive.assert_called_once_with()
+
+
+def test_close_browser_tab_no_hotkey_when_tab_not_selected():
+    """Вкладку выбрать не удалось и активна не она → Ctrl+W запрещён.
+
+    Иначе Ctrl+W закрыл бы соседнюю вкладку — не ту, которую просили.
+    """
+    btn = _fake_close_button()
+    tab = _fake_tab("YouTube")
+    tab.GetChildren.return_value = [btn]
+    tab.GetSelectionItemPattern.return_value.Select.side_effect = \
+        RuntimeError("нет паттерна SelectionItem")
+
+    fake_w = MagicMock()
+    fake_w.GetChildren.return_value = [tab]
+
+    hotkeys = []
+    with patch.object(uia, "_ensure_init", return_value=MagicMock()), \
+         patch.object(uia, "_get_browser_window", return_value=fake_w), \
+         patch.object(uia, "read_browser_tabs",
+                      return_value=["YouTube", "Почта"]), \
+         patch.object(uia, "read_browser_tab_title", return_value="DeepSeek"), \
+         patch.object(uia, "_CLOSE_POLL", 0.001), \
+         patch.object(uia, "_CLOSE_WAIT", 0.02), \
+         patch.object(actions, "hotkey", side_effect=hotkeys.append):
+        assert uia.close_browser_tab("ютуб") is False
+
+    assert hotkeys == []
+
+
+def test_close_browser_tab_honest_false_when_nothing_closes():
+    """Ни кнопка, ни Ctrl+W не помогли → честное False, а не «закрыл»."""
+    btn = _fake_close_button()
+    tab = _fake_tab("YouTube")
+    tab.GetChildren.return_value = [btn]
+
+    fake_w = MagicMock()
+    fake_w.GetChildren.return_value = [tab]
+
+    hotkeys = []
+    with patch.object(uia, "_ensure_init", return_value=MagicMock()), \
+         patch.object(uia, "_get_browser_window", return_value=fake_w), \
+         patch.object(uia, "read_browser_tabs",
+                      return_value=["YouTube", "Почта"]), \
+         patch.object(uia, "_CLOSE_POLL", 0.001), \
+         patch.object(uia, "_CLOSE_WAIT", 0.02), \
+         patch.object(actions, "hotkey", side_effect=hotkeys.append):
+        assert uia.close_browser_tab("ютуб") is False
+
+    assert hotkeys == [["ctrl", "w"]]
+
+
+def test_switch_browser_tab_russian_name():
+    """«переключись на вкладку ютуб» находит «YouTube Music»."""
+    tab = _fake_tab("YouTube Music")
+    fake_w = MagicMock()
+    fake_w.GetChildren.return_value = [tab]
+
+    with patch.object(uia, "_ensure_init", return_value=MagicMock()), \
+         patch.object(uia, "_get_browser_window", return_value=fake_w):
+        assert uia.switch_browser_tab("ютуб") is True
+
+    tab.GetSelectionItemPattern().Select.assert_called_once_with()
+
+
+def test_active_tab_matches_russian_query():
+    """Запасной ход: активная «YouTube» — это «ютуб»."""
+    fake_w = MagicMock()
+    fake_w.Name = "YouTube — Яндекс Браузер"
+
+    with patch.object(uia, "_get_browser_window", return_value=fake_w):
+        assert uia.active_tab_matches("ютуб") is True
+        assert uia.active_tab_matches("вк") is False
+
+
+def test_active_tab_matches_no_browser():
+    """Браузера нет → запасной ход не срабатывает."""
+    with patch.object(uia, "_get_browser_window", return_value=None):
+        assert uia.active_tab_matches("ютуб") is False
 
 
 # =================================================================
@@ -293,3 +614,48 @@ def test_is_supported_true_when_init_ok():
     fake_auto = MagicMock()
     with patch.object(uia, "_ensure_init", return_value=fake_auto):
         assert uia.is_supported() is True
+
+
+# =================================================================
+# Капкан: у модуля `uiautomation` нет `ControlTypeName`
+# =================================================================
+
+def test_no_module_level_control_type_name():
+    """В коде нет `uia.ControlTypeName.X` — только `.ControlTypeName` у контрола.
+
+    См. PROMPT.md #43. У модуля `uiautomation` нет атрибута
+    `ControlTypeName` (есть `ControlTypeNames` и числа `ControlType`).
+    Обращение `uia.ControlTypeName.ButtonControl` бросало AttributeError,
+    он глотался `except Exception` внутри обходов дерева — и «закрой
+    вкладку ютуб» молча не находила НИ ОДНОЙ вкладки.
+    """
+    import inspect
+    import re
+
+    # Комментарии (где мина и задокументирована) не считаем кодом.
+    src = inspect.getsource(uia)
+    code = "\n".join(ln.split("#")[0] for ln in src.splitlines())
+    bad = re.findall(r"uia\.ControlTypeName\b", code)
+    assert not bad, f"uia.ControlTypeName не существует: {bad}"
+
+
+def test_is_tab_item_uses_instance_type_name():
+    """Тип контрола — по строке `ControlTypeName` у самого контрола."""
+    tab = _fake_tab("YouTube")
+    btn = _fake_close_button()
+
+    assert uia._is_tab_item(tab) is True
+    assert uia._is_tab_item(btn) is False
+    assert uia._is_button(btn) is True
+    assert uia._is_button(tab) is False
+
+
+def test_is_control_type_survives_broken_control():
+    """Контрол с падающим свойством не роняет обход (UIA — COM, бывает)."""
+    class Boom:
+        @property
+        def ControlTypeName(self):
+            raise RuntimeError("COM error")
+
+    assert uia._is_control_type(Boom(), "TabItemControl") is False
+
