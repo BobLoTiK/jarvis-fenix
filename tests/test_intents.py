@@ -9,12 +9,16 @@
     - Без сети (тесты погоды/курса пропускаются). Хочешь сеть — флаг --network.
 
 Запуск:
-    python test_intents.py                  # правила, без LLM, без сети, без озвучки
-    python test_intents.py --llm            # + LLM (нужна Ollama)
-    python test_intents.py --network        # + тесты погоды/курса (нужна сеть)
-    python test_intents.py --llm --network  # всё вместе
-    python test_intents.py --voice          # с озвучкой
-    python test_intents.py -k weather       # только тесты со словом 'weather'
+    python tests/test_intents.py                  # правила, без LLM, без сети, без озвучки
+    python tests/test_intents.py --llm            # + LLM (нужна Ollama)
+    python tests/test_intents.py --network        # + тесты погоды/курса (нужна сеть)
+    python tests/test_intents.py --llm --network  # всё вместе
+    python tests/test_intents.py --voice          # с озвучкой
+    python tests/test_intents.py -k weather       # только тесты со словом 'weather'
+
+ВНИМАНИЕ: это НЕ pytest-тест, а скрипт-раннер. pytest его не собирает
+(см. `tests/conftest.py`, collect_ignore) — запускать только напрямую
+или через `check_all.bat`.
 """
 
 import argparse
@@ -29,7 +33,14 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
-BASE_DIR = Path(__file__).resolve().parent
+# Скрипт лежит в tests/, а корень проекта — на уровень выше.
+# BASE_DIR = корень нужен, чтобы лог остался в logs/ проекта (как в docs),
+# а sys.path — чтобы `python tests/test_intents.py` видел пакет jarvis
+# (иначе sys.path[0] = tests/ и `import jarvis` падает).
+BASE_DIR = Path(__file__).resolve().parent.parent
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
+
 LOGS_DIR = BASE_DIR / "logs"
 LOGS_DIR.mkdir(exist_ok=True)
 LOG_FILE = LOGS_DIR / "test_intents.log"
@@ -39,13 +50,21 @@ log.setLevel(logging.INFO)
 
 _fmt = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
 
-_fh = logging.FileHandler(LOG_FILE, mode="w", encoding="utf-8")
-_fh.setFormatter(_fmt)
-log.addHandler(_fh)
 
-_ch = logging.StreamHandler()
-_ch.setFormatter(_fmt)
-log.addHandler(_ch)
+def setup_logging() -> None:
+    """Вешает хендлеры лениво — только при реальном запуске скрипта.
+
+    Иначе импорт модуля (stress_intents.py берёт отсюда build_handler)
+    открывал бы logs/test_intents.log на запись и обрезал чужой лог.
+    """
+    if log.handlers:
+        return
+    fh = logging.FileHandler(LOG_FILE, mode="w", encoding="utf-8")
+    fh.setFormatter(_fmt)
+    log.addHandler(fh)
+    ch = logging.StreamHandler()
+    ch.setFormatter(_fmt)
+    log.addHandler(ch)
 
 
 # =================================================================
@@ -310,6 +329,8 @@ def main():
     parser.add_argument("-k", "--filter",
                         help="Фильтр по имени теста")
     args = parser.parse_args()
+
+    setup_logging()
 
     log.info("=" * 70)
     log.info("АВТОТЕСТ ФЕНИКСА")

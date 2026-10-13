@@ -6,7 +6,7 @@
 #   - pyautogui, pygetwindow, keyboard, mouse — GUI
 #
 # Здесь ЕСТЬ только то, что реально импортируется IntentHandler
-# и тестами (tests/, test_intents.py).
+# и тестами (tests/).
 
 # --- Утилиты ---
 filelock>=3.13

@@ -1,7 +1,16 @@
-"""Ручная проверка UIA в браузере — без хардкода конкретного браузера."""
+"""Ручная проверка UIA в браузере — без хардкода конкретного браузера.
 
+Ручной прогон (нужен открытый браузер): python tests/manual/uia_manual.py
+"""
+
+import sys
 import time
-from jarvis import uia
+from pathlib import Path
+
+# Корень проекта: tests/manual/../.. — иначе `import jarvis` не найдётся.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+from jarvis import uia  # noqa: E402
 
 print("=" * 60)
 print("UIA — ручная проверка")

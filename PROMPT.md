@@ -83,7 +83,7 @@
 
 - **`Config.subscribe`** для реакции на изменения.
 - **Разделение ответственности** — один модуль = одна задача.
-- **Тесты** — `pytest` + `test_intents.py`.
+- **Тесты** — `pytest` + `tests/test_intents.py` + `tests/stress_intents.py` (100 ситуаций).
 - **Логи** — `jarvis.log`, `actions.log`, `errors.log`.
 - **Реестр `fast/__init__.py`** — новые быстрые правила туда.
 - **Пакеты вместо монолитов** — `intents/` — пример.
@@ -385,7 +385,7 @@ Jarvis._process → mood.apply_from_text(cmd)
 2. Не плоди `_atomic_write`. `config_manager.save()`.
 3. Не плоди глобальное состояние.
 4. Нормализация — задача LLM.
-5. `test_intents.py` — после правок.
+5. `check_all.bat` — после правок.
 6. `normalize(cmd)` в `handle()`.
 7. Per-call stop-token в `tts.py`.
 8. `PALETTES` в `gui.py`.
@@ -466,7 +466,7 @@ Jarvis._process → mood.apply_from_text(cmd)
 3. Воспроизвести.
 4. Локализовать.
 5. Фикс без костылей.
-6. Тесты: `check_syntax.py` + `pytest` + `test_intents.py`.
+6. Тесты: `check_all.bat` (синтаксис + pytest + интенты + стресс).
 7. Коммит: `fix: <краткое>`.
 
 ---

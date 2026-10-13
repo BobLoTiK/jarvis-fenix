@@ -22,7 +22,8 @@ GitHub запускает их сам.
 3. `pip install -r requirements-ci.txt` — облегчённые зависимости.
 4. `python check_syntax.py` — синтаксис.
 5. `python -m pytest tests/ -q` — юнит-тесты.
-6. `python test_intents.py` — интент-тесты без флагов.
+6. `python tests/test_intents.py` — интент-тесты без флагов.
+7. `python tests/stress_intents.py` — стресс-тест: 100 ситуаций.
 
 `PYTHONUTF8=1` — глобально на весь job, страховка от cp1252.
 
@@ -40,7 +41,10 @@ GitHub запускает их сам.
 **Шаг `pytest`** — юнит-тест упал. Лог покажет какой.
 
 **Шаг `Intent tests`** — интент-тест упал. Логи в артефактах Actions или
-локально `logs/test_intents.log`.
+локально `logs/test_intents.log` (в конце вывода — блок «ПРОВАЛЫ»).
+
+**Шаг `Stress test`** — стресс-тест: 100 ситуаций. Лог `logs/stress_intents.log`,
+разбор — в блоке «ПРОВАЛЫ» (имя ситуации, вход, ответ, причина).
 
 **Общая ошибка `UnicodeEncodeError`** — Windows-консоль в cp1252 не может
 напечатать русский. Уже пофикшено (`reconfigure` + `PYTHONUTF8=1`). Если
@@ -85,12 +89,14 @@ GitHub запускает их сам.
 Чтобы CI не падал — прогони у себя:
 
 ```bat
+check_all.bat                     :: всё сразу (4 шага) + компактный итог
 python check_syntax.py
 python -m pytest tests/ -q
-python test_intents.py
+python tests/test_intents.py
+python tests/stress_intents.py
 ```
 
-Все три — зелёные → **CI тоже пройдёт**.
+Все шаги зелёные → **CI тоже пройдёт**.
 
 ## 🆕 Пути в CI
 

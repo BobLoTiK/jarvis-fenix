@@ -2,10 +2,18 @@
 
 Показывает, какие контролы видит UIA. По нему видно,
 есть ли EditControl (адресная строка), TabItem (вкладки).
+
+Ручной прогон (нужен открытый браузер): python tests/manual/uia_dump.py
 """
 
-from jarvis import uia
-import uiautomation as auto
+import sys
+from pathlib import Path
+
+# Корень проекта: tests/manual/../.. — иначе `import jarvis` не найдётся.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+from jarvis import uia  # noqa: E402
+import uiautomation as auto  # noqa: E402
 
 
 def dump_tree(ctrl, depth=0, max_depth=8):

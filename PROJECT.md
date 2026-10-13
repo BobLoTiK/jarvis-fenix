@@ -181,13 +181,15 @@ debug → correction → undo → weather_currency`
 ## 8. Контракт проверки
 
 ```bat
+check_all.bat                     :: всё сразу: 4 шага + компактный итог
 python check_syntax.py            :: синтаксис всех .py, включая tests/
 python -m pytest tests\ -q        :: 268 тестов
-python test_intents.py            :: 32 сценария без LLM/сети (ИТОГ: 32 / 32)
-python test_intents.py --llm --network   :: + LLM (3-8 мин) и погода/курс
+python tests\test_intents.py      :: 32 сценария без LLM/сети (ИТОГ: 32 / 32)
+python tests\stress_intents.py    :: 100 ситуаций (ИТОГ: 100 / 100)
+python tests\test_intents.py --llm --network   :: + LLM (3-8 мин) и погода/курс
 ```
 
-Все три зелёные → CI пройдёт. Логи: `%APPDATA%\Phoenix\logs\`
+Все шаги зелёные → CI пройдёт. Логи: `%APPDATA%\Phoenix\logs\`
 (`jarvis.log`, `actions.log`, `errors.log`, `launcher.log`).
 
 **Тесты и CI — святое.** Красный CI = стоп всему. Не тестировать: GUI (нужно окно),
@@ -208,5 +210,7 @@ python test_intents.py --llm --network   :: + LLM (3-8 мин) и погода/�
 ---
 
 _Последняя правка: 13.10.2026, синхронизация с кодом и планом (инсталлятор +
-`build_setup.py`, CI-авторелиз по тегу; счётчики: 268 pytest / 32 test_intents)._
+`build_setup.py`, CI-авторелиз по тегу; все тесты собраны в `tests/`,
+всё гоняется через `check_all.bat`; счётчики: 268 pytest / 32 test_intents /
+100 stress)._
 

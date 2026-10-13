@@ -85,7 +85,7 @@ TTS: **Silero** / **Piper** / WinRT / SAPI).
 - Объект `Config` в памяти — подписки.
 - Калибровка Barge-in.
 - CJK-фильтр.
-- Тесты — `test_intents.py` + `pytest`.
+- Тесты — `pytest` + `tests/test_intents.py` + `tests/stress_intents.py` (100 ситуаций).
 
 ### 🗣 Этап 1 — команды
 
@@ -657,7 +657,9 @@ python -m jarvis
 | `actions.log` | Команды, интенты |
 | `errors.log` | WARNING и ERROR |
 | `launcher.log` | Логи лаунчера |
-| `test_intents.log` | Логи тестов |
+| `test_intents.log` | Логи интент-тестов |
+| `stress_intents.log` | Логи стресс-теста (100 ситуаций) |
+| `check_all\` | Вывод шагов `check_all.bat` по шагам |
 
 ---
 
@@ -794,8 +796,11 @@ Inno перезаписывает только код. Запущенного Ф
 | `install.bat` | Установка |
 | `start_fenix.bat` | Без консоли |
 | `start_fenix_debug.bat` | С логами |
+| `check_all.bat` | Всё сразу: синтаксис + pytest + интенты + стресс |
 | `check_syntax.py` | Синтаксис |
-| `test_intents.py` | 32 сценария без LLM/сети (всего 39) |
+| `tests/test_intents.py` | 32 сценария без LLM/сети (всего 39) |
+| `tests/stress_intents.py` | Стресс-тест: 100 ситуаций (мусор, инъекции, границы) |
+| `tests/manual/` | Ручные прогоны: микрофон, UIA, ONNX |
 | `snapshot.py` | `SNAPSHOT.md` |
 | `commit.bat` | Автокоммит |
 | `scripts/make_icon.py` | Иконка |
@@ -814,9 +819,11 @@ Inno перезаписывает только код. Запущенного Ф
 **Тесты:**
 
 ~~~~bat
-python check_syntax.py
-python -m pytest tests/ -v
-python test_intents.py
+check_all.bat                       :: всё сразу — «ВСЁ ОТЛИЧНО» или разбор ошибок
+python check_syntax.py              :: синтаксис всех .py
+python -m pytest tests/ -v          :: юнит-тесты
+python tests/test_intents.py        :: интент-тесты (39 сценариев)
+python tests/stress_intents.py      :: стресс-тест (100 ситуаций)
 ~~~~
 
 ---
@@ -827,7 +834,8 @@ python test_intents.py
 
 1. Синтаксис.
 2. `pytest`.
-3. `test_intents.py`.
+3. `tests/test_intents.py`.
+4. `tests/stress_intents.py` (100 ситуаций).
 
 **При пуше тега `v*`:** workflow `build-release.yml` собирает `Феникс.exe` +
 `Феникс_Setup.exe` и делает GitHub Release с обоими файлами.
@@ -837,12 +845,15 @@ python test_intents.py
 **Локально:**
 
 ~~~~bat
-python test_intents.py                  # без LLM, без сети
-python test_intents.py --llm            # + LLM
-python test_intents.py --network        # + погода/курс
-python test_intents.py --llm --network  # всё
-python test_intents.py --voice          # с озвучкой
-python test_intents.py -k weather       # фильтр
+check_all.bat                              :: всё сразу (4 шага)
+python tests/test_intents.py               :: интент-тесты без LLM, без сети
+python tests/stress_intents.py             :: стресс-тест: 100 ситуаций
+python tests/test_intents.py --llm         :: + LLM
+python tests/test_intents.py --network     :: + погода/курс
+python tests/test_intents.py --llm --network  :: всё
+python tests/test_intents.py --voice       :: с озвучкой
+python tests/test_intents.py -k weather    :: фильтр
+python tests/stress_intents.py -k uia      :: фильтр по ситуациям
 ~~~~
 
 ---

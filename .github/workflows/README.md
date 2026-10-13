@@ -9,7 +9,8 @@
 2. `pip install -r requirements-ci.txt`.
 3. `python check_syntax.py`.
 4. `python -m pytest tests/ -q`.
-5. `python test_intents.py` (без флагов).
+5. `python tests/test_intents.py` (без флагов).
+6. `python tests/stress_intents.py` (100 ситуаций, без LLM/сети).
 
 **Env:**
 - `PYTHONUTF8=1` — UTF-8 mode интерпретатора.

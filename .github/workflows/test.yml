@@ -7,7 +7,8 @@
 #   3. Ставит лёгкие зависимости (requirements-ci.txt).
 #   4. Проверяет синтаксис (check_syntax.py).
 #   5. Гоняет pytest (tests/).
-#   6. Гоняет test_intents.py (без LLM, без сети, без озвучки).
+#   6. Гоняет интент-тесты (tests/test_intents.py — без LLM/сети/озвучки).
+#   7. Гоняет стресс-тест (tests/stress_intents.py — 100 ситуаций).
 #
 # Где смотреть результат:
 #   На GitHub → вкладка "Actions" → последний запуск.
@@ -55,4 +56,7 @@ jobs:
         run: python -m pytest tests/ -q
 
       - name: Intent tests (без LLM, без сети, без озвучки)
-        run: python test_intents.py
+        run: python tests/test_intents.py
+
+      - name: Stress test (100 ситуаций, без LLM/сети)
+        run: python tests/stress_intents.py

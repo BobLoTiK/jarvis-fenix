@@ -311,7 +311,7 @@ echo.
 echo   Сейчас прогонятся:
 echo     - Проверка синтаксиса check_syntax.py
 echo     - Юнит-тесты pytest tests/
-echo     - Интент-тесты test_intents.py
+echo     - Интент-тесты tests\test_intents.py
 echo.
 
 set /p RUN_CHECKS="Запустить проверку сейчас? y/n: "
@@ -343,9 +343,9 @@ if errorlevel 1 (
 
 REM --- test_intents ---
 echo.
-echo   --- Интент-тесты test_intents.py ---
+echo   --- Интент-тесты tests\test_intents.py ---
 echo   Это может занять до 30 секунд.
-python test_intents.py
+python tests\test_intents.py
 if errorlevel 1 (
     echo   ОШИБКА: интент-тесты упали — смотри logs\test_intents.log
     set CHECK_FAILED=1
@@ -374,9 +374,10 @@ goto checks_done
 
 :skip_checks
 echo   Пропускаю проверку. Запустишь позже вручную:
-echo     check_syntax.bat
+echo     check_all.bat
 echo     python -m pytest tests/ -q
-echo     python test_intents.py
+echo     python tests\test_intents.py
+echo     python tests\stress_intents.py
 echo.
 
 :checks_done

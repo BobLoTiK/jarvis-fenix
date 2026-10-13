@@ -29,10 +29,13 @@ jarvis/             — пакет
   celebrations.py   — поздравление с ДР
   ...
 
-tests/              — pytest-тесты
-test_intents.py     — интент-тесты (без микрофона)
-check_syntax.py     — синтаксис всех .py
-snapshot.py         — сборка SNAPSHOT.md
+tests/                  — pytest-тесты
+tests/test_intents.py   — интент-тесты (без микрофона)
+tests/stress_intents.py — стресс-тест (100 ситуаций)
+tests/manual/           — ручные прогоны (микрофон, UIA, ONNX)
+check_all.bat           — всё сразу: 4 шага + компактный итог
+check_syntax.py         — синтаксис всех .py
+snapshot.py             — сборка SNAPSHOT.md
 
 PROJECT.md          — ИСТОЧНИК ПРАВДЫ: инварианты, правила,
                       история ошибок, контракт проверки
@@ -49,7 +52,7 @@ scripts/            — утилиты (make_icon, build_exe, mics, ...)
 3. **Не плоди глобальное состояние** — кроме `Config._GLOBAL`.
 4. **Нормализация (города, валюты, паков) — задача LLM.**
 5. **Логи в `actions.log`** — главный инструмент отладки.
-6. **`test_intents.py`** — первое, что запускаешь после правки `intents/`, `brain.py`, `actions.py`.
+6. **`check_all.bat`** — первое, что запускаешь после правки `intents/`, `brain.py`, `actions.py` (4 шага, компактный итог).
 7. **`normalize(cmd)` в `IntentHandler.handle()`** — единая точка.
 8. **Per-call stop-token в `tts.py`.**
 9. **`PALETTES` в `gui.py`** — две палитры, `_detect_system_theme()` для системной.
@@ -104,8 +107,10 @@ python check_syntax.py
 ### 3. Тесты
 
 ```bat
+check_all.bat                     :: всё сразу (синтаксис + pytest + интенты + стресс)
 python -m pytest tests/ -q
-python test_intents.py
+python tests/test_intents.py
+python tests/stress_intents.py
 ```
 
 ### 4. Обновление SNAPSHOT
@@ -164,7 +169,7 @@ print("custom matched")
 
 ### Что писать
 
-- **Новые интенты** — сценарий в `test_intents.py`.
+- **Новые интенты** — сценарий в `tests/test_intents.py` (или ситуация в `tests/stress_intents.py`).
 - **Новые функции** с логикой — `pytest`.
 - **Погода/курс** — с моками `_http_get_json`.
 
@@ -312,8 +317,8 @@ class PiperEngine:
 2. **Посмотри `%APPDATA%\Phoenix\logs\actions.log`** — там команды и интенты.
 3. **Посмотри `%APPDATA%\Phoenix\logs\launcher.log`** — если проблема с запуском.
 4. **Проверь Event Viewer** — `eventvwr.msc` → Application / System.
-5. **Запусти `check_syntax.py`** — может, опечатка.
-6. **Запусти `test_intents.py`** — может, регрессия.
+5. **Запусти `check_all.bat`** — синтаксис, pytest, интенты, стресс: сразу видно, что упало.
+6. **Сузь поиск** — `python tests/test_intents.py -k <фраза>` или `python tests/stress_intents.py -k <имя>`.
 7. **Откати коммит** — если совсем плохо:
 
 ```bat
@@ -322,9 +327,9 @@ git reset --hard HEAD~1
 
 ## 📋 Чек-лист перед коммитом
 
-- [ ] `python check_syntax.py` — без ошибок.
+- [ ] `check_all.bat` — «ВСЁ ОТЛИЧНО» (синтаксис + pytest + интенты + стресс).
 - [ ] `python -m pytest tests/ -q` — все тесты зелёные.
-- [ ] `python test_intents.py` — все интенты проходят.
+- [ ] `python tests/test_intents.py` + `python tests/stress_intents.py` — интенты и 100 ситуаций проходят.
 - [ ] **Не коммичу** `.venv311`, `config.json`, `profiles/`, `system_caps.json`, `timers.json`, `tasks.json`, `models/`, `voices/`, `dist/`, `build/`.
 - [ ] **Проверил** `git status` — нет лишних файлов.
 - [ ] **Личные данные** не попали в публичные файлы.

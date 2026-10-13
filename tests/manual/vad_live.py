@@ -1,10 +1,19 @@
-"""Живой тест VAD: пишет 5 сек с микрофона, показывает prob."""
+"""Живой тест VAD: пишет 5 сек с микрофона, показывает prob.
 
+Ручной прогон (нужен микрофон): python tests/manual/vad_live.py
+"""
+
+import sys
 import time
+from pathlib import Path
+
 import numpy as np
 import sounddevice as sd
 
-from jarvis.vad import VAD
+# Корень проекта: tests/manual/../.. — иначе `import jarvis` не найдётся.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+from jarvis.vad import VAD  # noqa: E402
 
 SR = 16000
 BLOCK = 8000

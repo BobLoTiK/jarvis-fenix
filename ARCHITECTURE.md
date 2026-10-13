@@ -759,16 +759,17 @@ actions.spec_from_string(s)
 
 | Файл | Что тестирует |
 |---|---|
-| `test_intents.py` | 32 сценария без LLM/сети (всего 39) |
+| `tests/test_intents.py` | 32 сценария без LLM/сети (всего 39) |
+| `tests/stress_intents.py` | Стресс-тест: 100 ситуаций (интенты + мусор + враждебный ввод) |
 | `tests/test_config_manager.py` | параллельная запись |
 | `tests/test_weather.py` | погода/курс с моками |
 | `tests/test_caps.py` | структура `system_caps.json` |
 | `tests/test_mood.py` | Mood: состояние, детекция, decay, влияние (29 тестов) |
 | `tests/test_uia.py` | UIA: логика обёртки с моками (17 тестов) |
 
-Полный набор — `tests/` (16 файлов, **254 теста**); интент-скрипт — `test_intents.py` (**32** без LLM/сети, всего **39**).
+Полный набор — `tests/` (**268 тестов**); `tests/manual/` — ручные прогоны. Интент-скрипт — `tests/test_intents.py` (**32** без LLM/сети, всего **39**); стресс-тест — `tests/stress_intents.py` (**100** ситуаций).
 
-**CI:** `.github/workflows/test.yml` — `check_syntax.py` + `pytest tests/` + `test_intents.py`.
+**CI:** `.github/workflows/test.yml` — `check_syntax.py` + `pytest tests/` + `tests/test_intents.py` + `tests/stress_intents.py`.
 
 **`requirements-ci.txt`** — лёгкие зависимости, без звука и Windows-специфики.
 
@@ -853,7 +854,7 @@ Inno Setup 6.7 → `Феникс_Setup.exe`. Ставит в `C:\ProgramData\Pho
 3. **Не плоди глобальное состояние** — кроме `Config._GLOBAL`.
 4. **Нормализация (города, валюты, паков) — задача LLM.**
 5. **Логи в `actions.log`** — главный инструмент отладки.
-6. **`test_intents.py`** — первое, что запускаешь после правок.
+6. **`check_all.bat`** — первое, что запускаешь после правок (4 шага, компактный итог).
 7. **`normalize(cmd)` в `IntentHandler.handle()`** — единая точка.
 8. **Per-call stop-token в `tts.py`.**
 9. **`ft.Button`** вместо `ElevatedButton`/`TextButton`.

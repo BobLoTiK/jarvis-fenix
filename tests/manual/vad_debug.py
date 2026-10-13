@@ -1,4 +1,8 @@
-"""Отладка Silero VAD — прогон на синтетике."""
+"""Отладка Silero VAD — прогон на синтетике.
+
+Ручной прогон (нужна модель в C:\\ProgramData\\Phoenix\\vad):
+    python tests/manual/vad_debug.py
+"""
 
 import numpy as np
 import onnxruntime as ort
