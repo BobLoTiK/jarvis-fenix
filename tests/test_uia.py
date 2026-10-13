@@ -5,9 +5,13 @@ CI не имеет браузера, поэтому все внешние выз
     - Как разбираются результаты FindAll/FindAllControls.
     - Как работают fallback'и (заголовок окна → URL).
     - Как ведёт себя describe_active_window.
+    - Что бывает, когда библиотеки `uiautomation` вообще нет (CI-раннер):
+      тогда UIAUnavailable + is_supported() == False, а не голый ImportError.
 """
 
 from unittest.mock import patch, MagicMock
+
+import pytest
 
 from jarvis import uia
 
@@ -245,3 +249,47 @@ def test_is_available_true():
 def test_is_available_false():
     with patch.object(uia, "_ensure_init", side_effect=ImportError("no uia")):
         assert uia.is_available() is False
+
+
+# =================================================================
+# Библиотеки uiautomation нет (CI-раннер, «голая» Windows)
+# =================================================================
+
+def _without_uiautomation():
+    """Контекст: `import uiautomation` падает, как на CI-раннере."""
+    import builtins
+
+    real_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == "uiautomation":
+            raise ImportError("No module named 'uiautomation' (CI)")
+        return real_import(name, *args, **kwargs)
+
+    return patch.object(builtins, "__import__", fake_import)
+
+
+def test_uia_unavailable_is_import_error():
+    """UIAUnavailable — наследник ImportError: старый код ловит как раньше."""
+    assert issubclass(uia.UIAUnavailable, ImportError)
+
+
+def test_ensure_init_without_library_raises_uia_unavailable():
+    """Нет библиотеки → UIAUnavailable (её ловят быстрые команды)."""
+    with patch.object(uia, "_uia", None), _without_uiautomation():
+        with pytest.raises(uia.UIAUnavailable) as exc:
+            uia._ensure_init()
+    assert "uiautomation" in str(exc.value)
+
+
+def test_is_supported_false_without_library():
+    """Нет библиотеки → False: стресс-тест смягчает ожидания uia_*."""
+    with patch.object(uia, "_uia", None), _without_uiautomation():
+        assert uia.is_supported() is False
+
+
+def test_is_supported_true_when_init_ok():
+    """Библиотека есть → True (к COM не обращаемся)."""
+    fake_auto = MagicMock()
+    with patch.object(uia, "_ensure_init", return_value=fake_auto):
+        assert uia.is_supported() is True

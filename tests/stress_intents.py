@@ -10,7 +10,16 @@
     1. Разбор — ответ содержит ожидаемые подстроки (если они заданы).
     2. Живучесть — нет исключения и ответ непустой (даже zero-width
        убираем: «поздравление» отвечает \\u200b).
-    3. Отзывчивость — ни одна команда не выполняется дольше 5 секунд.
+    3. Отзывчивость — ни одна команда не выполняется дольше 5 секунд
+       (у ситуаций `uia_*` потолок 15 секунд: они читают реальный рабочий
+       стол, а у UIA свои внутренние таймауты).
+
+Зависимость от окружения (важно для CI): пять ситуаций `uia_*` читают
+активное окно и требуют библиотеку `uiautomation`. В `requirements-ci.txt`
+её нет, поэтому там эти ситуации проверяют не чтение окна, а понятный
+отказ «UI Automation недоступна». Ответ на вопрос «есть ли библиотека»
+берём у `jarvis.uia.is_supported()` — тот же источник, что и у самих
+команд. Набор при этом всегда один: ровно 100 ситуаций.
 
 Внимание (как и test_intents.py): тест пишет в память и настройки
 (config: режим, память; profile: факт; persona: стиль) и делает скриншот.
@@ -70,8 +79,47 @@ log.addHandler(_ch)
 # Потолок отзывчивости: без LLM и сети любая разумная команда быстрая.
 MAX_SECONDS = 5.0
 
+# UIA читает реальный рабочий стол (обход окон и вкладок) и внутри
+# `jarvis.uia` у него свои таймауты — под нагрузкой (много окон, занятый
+# диск) это бывает дольше пяти секунд. Поэтому у ситуаций `uia_*` свой
+# потолок: тест не должен «флакать» из-за чужой нагрузки на машину.
+UIA_MAX_SECONDS = 15.0
+
+
+def time_limit(name: str) -> float:
+    """Потолок отзывчивости для ситуации: у `uia_*` он выше."""
+    return UIA_MAX_SECONDS if name.startswith("uia_") else MAX_SECONDS
+
+
 # Ровно 100 ситуаций — это требование к набору, проверяется в main().
 EXPECTED_CASES = 100
+
+# Что должны ответить UIA-команды, когда библиотеки `uiautomation` нет
+# (CI-раннер, «голая» Windows): читать окна нечем, но команда обязана
+# ответить понятным отказом, а не провалиться в LLM.
+UIA_REFUSAL = ["UI Automation недоступна"]
+
+
+def uia_supported() -> bool:
+    """Есть ли библиотека `uiautomation` — от этого зависят ожидания `uia_*`.
+
+    Спрашиваем у самого `jarvis.uia` (там есть `is_supported()`), чтобы
+    тест и команды смотрели на один и тот же признак.
+    """
+    try:
+        from jarvis import uia
+        return uia.is_supported()
+    except Exception:
+        log.exception("Не удалось проверить доступность UIA")
+        return False
+
+
+def adapt_expected(name: str, expected: list[str] | None,
+                   uia_ok: bool) -> list[str] | None:
+    """Подменяет ожидания `uia_*` на честный отказ, если UIA нет."""
+    if expected and not uia_ok and name.startswith("uia_"):
+        return UIA_REFUSAL
+    return expected
 
 
 # =====================================================================
@@ -258,9 +306,10 @@ class Stressed:
         visible = self.reply.replace("\u200b", "").strip()
         if not visible:
             self.problems.append("пустой ответ")
-        if self.elapsed > MAX_SECONDS:
+        limit = time_limit(self.name)
+        if self.elapsed > limit:
             self.problems.append(
-                f"долго: {self.elapsed:.2f} с (потолок {MAX_SECONDS:g})"
+                f"долго: {self.elapsed:.2f} с (потолок {limit:g})"
             )
         if self.expected:
             text = self.reply.lower()
@@ -392,7 +441,11 @@ def main() -> None:
                   len(CASES), EXPECTED_CASES)
         sys.exit(2)
 
-    cases = CASES
+    # Ожидания uia_* зависят от окружения: есть библиотека — читаем окна,
+    # нет (CI) — ждём понятный отказ. Набор ситуаций не меняется.
+    uia_ok = uia_supported()
+    cases = [(name, cmd, adapt_expected(name, expected, uia_ok))
+             for name, cmd, expected in CASES]
     if args.filter:
         f = args.filter.lower()
         cases = [c for c in cases if f in c[0].lower()]
@@ -408,6 +461,8 @@ def main() -> None:
     log.info("=" * 70)
     log.info("СТРЕСС-ТЕСТ ФЕНИКСА")
     log.info("Ситуаций: %d | озвучка: %s", len(cases), "вкл" if args.voice else "выкл")
+    log.info("UIA: %s", "доступна — окна читаю по-настоящему" if uia_ok
+             else "нет библиотеки uiautomation — ситуации uia_* ждут понятный отказ")
     log.info("Лог: %s", LOG_FILE)
     log.info("=" * 70)
 

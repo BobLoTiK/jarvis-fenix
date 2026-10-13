@@ -30,6 +30,20 @@ _lock = threading.RLock()
 # Ленивая инициализация uiautomation.
 _uia = None
 
+# Подсказка человеку: что делать, если библиотеки нет.
+UIA_PIP_HINT = "pip install uiautomation"
+
+
+class UIAUnavailable(ImportError):
+    """Нет библиотеки `uiautomation` — Windows UI Automation недоступна.
+
+    Наследник ImportError: старый код (и тесты) продолжают ловить именно
+    ImportError, а быстрые команды (`jarvis/intents/fast/uia.py`) ловят
+    `UIAUnavailable` и отвечают понятной фразой вместо падения в LLM.
+
+    Типичный случай — CI-раннер: в `requirements-ci.txt` библиотеки нет.
+    """
+
 
 def _ensure_init():
     """Ленивая инициализация UIA в текущем потоке."""
@@ -39,9 +53,11 @@ def _ensure_init():
             import uiautomation as auto
             _uia = auto
             log.info("UIA инициализирован")
-        except ImportError:
-            log.error("uiautomation не установлен. pip install uiautomation")
-            raise
+        except ImportError as exc:
+            log.error("uiautomation не установлен. %s", UIA_PIP_HINT)
+            raise UIAUnavailable(
+                f"не установлена библиотека uiautomation ({UIA_PIP_HINT})"
+            ) from exc
     return _uia
 
 
@@ -589,6 +605,20 @@ def click_menu_item(path: str) -> bool:
 # =================================================================
 # Диагностика
 # =================================================================
+
+def is_supported() -> bool:
+    """Есть ли библиотека `uiautomation` — без обращения к COM.
+
+    Отвечает на вопрос «можно ли вообще пробовать UIA»: на CI-раннере
+    библиотеки нет, локально она есть. Тесты (`tests/stress_intents.py`)
+    спрашивают ответ отсюда, чтобы ожидания совпадали с поведением команд.
+    """
+    try:
+        _ensure_init()
+        return True
+    except Exception:
+        return False
+
 
 def is_available() -> bool:
     """Проверяет, работает ли UIA (COM инициализируется)."""

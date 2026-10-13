@@ -183,7 +183,7 @@ debug → correction → undo → weather_currency`
 ```bat
 check_all.bat                     :: всё сразу: 4 шага + компактный итог
 python check_syntax.py            :: синтаксис всех .py, включая tests/
-python -m pytest tests\ -q        :: 268 тестов
+python -m pytest tests\ -q        :: 275 тестов
 python tests\test_intents.py      :: 32 сценария без LLM/сети (ИТОГ: 32 / 32)
 python tests\stress_intents.py    :: 100 ситуаций (ИТОГ: 100 / 100)
 python tests\test_intents.py --llm --network   :: + LLM (3-8 мин) и погода/курс
@@ -211,6 +211,6 @@ python tests\test_intents.py --llm --network   :: + LLM (3-8 мин) и пого
 
 _Последняя правка: 13.10.2026, синхронизация с кодом и планом (инсталлятор +
 `build_setup.py`, CI-авторелиз по тегу; все тесты собраны в `tests/`,
-всё гоняется через `check_all.bat`; счётчики: 268 pytest / 32 test_intents /
+всё гоняется через `check_all.bat`; счётчики: 275 pytest / 32 test_intents /
 100 stress)._
 

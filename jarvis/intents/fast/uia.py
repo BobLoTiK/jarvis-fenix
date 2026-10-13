@@ -5,6 +5,9 @@
 
 В реестре ставится ВЫШЕ open_fast — иначе «закрой вкладку ютуб»
 перехватится как «закрой окно».
+
+Если библиотеки `uiautomation` нет (CI-раннер, «голая» Windows) — отвечаем
+понятным отказом «UI Automation недоступна...», а не падаем в LLM.
 """
 
 import logging
@@ -14,9 +17,31 @@ from jarvis import uia
 
 log = logging.getLogger("jarvis.intents")
 
+# Что ответить, если библиотеки нет (CI-раннер, «голая» Windows).
+# Раньше в этом случае обработчик падал, стадия глотала исключение,
+# и человек получал «LLM недоступна» — то есть вообще непонятно, что случилось.
+UIA_MISSING_REPLY = (
+    "UI Automation недоступна: не установлена библиотека uiautomation. "
+    f"Установите её: {uia.UIA_PIP_HINT}"
+)
+
 
 def uia_fast(handler, cmd: str) -> str | None:
-    """Быстрые команды UIA. None, если не наша."""
+    """Быстрые команды UIA. None, если не наша.
+
+    Ветки, которым UIA не нужна («нажми enter», «закрой эту вкладку»),
+    работают и без библиотеки — поэтому проверяем не вход, а именно вызов
+    UIA: исключение ловим здесь, а не в стадии.
+    """
+    try:
+        return _uia_fast_impl(handler, cmd)
+    except uia.UIAUnavailable:
+        log.warning("UIA недоступна, отвечаю отказом: %r", cmd)
+        return UIA_MISSING_REPLY
+
+
+def _uia_fast_impl(handler, cmd: str) -> str | None:
+    """Тело быстрых UIA-команд (см. `uia_fast`)."""
 
     # === Активное окно — что открыто ===
     if re.search(r"(что|какое)\s+(у\s+меня\s+)?(открыто|окно|приложение)", cmd) \

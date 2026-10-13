@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=b5f96f450e12d718` · режим `lean` · файлов `161` · строк `29716` · источник `1209 КБ`
+`sha256=a8d83da84dbae58e` · режим `lean` · файлов `162` · строк `29975` · источник `1225 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -196,7 +196,7 @@ debug → correction → undo → weather_currency`
 ```bat
 check_all.bat                     :: всё сразу: 4 шага + компактный итог
 python check_syntax.py            :: синтаксис всех .py, включая tests/
-python -m pytest tests\ -q        :: 268 тестов
+python -m pytest tests\ -q        :: 275 тестов
 python tests\test_intents.py      :: 32 сценария без LLM/сети (ИТОГ: 32 / 32)
 python tests\stress_intents.py    :: 100 ситуаций (ИТОГ: 100 / 100)
 python tests\test_intents.py --llm --network   :: + LLM (3-8 мин) и погода/курс
@@ -224,7 +224,7 @@ python tests\test_intents.py --llm --network   :: + LLM (3-8 мин) и пого
 
 _Последняя правка: 13.10.2026, синхронизация с кодом и планом (инсталлятор +
 `build_setup.py`, CI-авторелиз по тегу; все тесты собраны в `tests/`,
-всё гоняется через `check_all.bat`; счётчики: 268 pytest / 32 test_intents /
+всё гоняется через `check_all.bat`; счётчики: 275 pytest / 32 test_intents /
 100 stress)._
 `````
 
@@ -237,16 +237,16 @@ jarvis/
 ├── .clineignore  (34 стр)
 ├── .github/
 │   ├── workflows/
-│   │   ├── README.md  (60 стр)
+│   │   ├── README.md  (61 стр)
 │   │   ├── release.yml  (114 стр)
-│   │   ├── test.yml  (62 стр)
-├── ARCHITECTURE.md  (895 стр)
-├── CHANGELOG.md  (770 стр)
+│   │   ├── test.yml  (64 стр)
+├── ARCHITECTURE.md  (896 стр)
+├── CHANGELOG.md  (798 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
 ├── check_syntax.py  (60 стр)
-├── CI.md  (194 стр)
+├── CI.md  (205 стр)
 ├── cmds/
 │   ├── open_terminal.bat  (3 стр)
 │   ├── show_ip.bat  (3 стр)
@@ -289,7 +289,7 @@ jarvis/
 │   │   │   ├── system.py  (130 стр)
 │   │   │   ├── tasks.py  (7 стр)
 │   │   │   ├── timers.py  (7 стр)
-│   │   │   ├── uia.py  (100 стр)
+│   │   │   ├── uia.py  (125 стр)
 │   │   │   ├── undo.py  (67 стр)
 │   │   │   ├── voices.py  (10 стр)
 │   │   │   ├── weather.py  (113 стр)
@@ -341,7 +341,7 @@ jarvis/
 │   │   ├── sapi.py  (113 стр)
 │   │   ├── silero.py  (215 стр)
 │   │   ├── winrt.py  (158 стр)
-│   ├── uia.py  (617 стр)
+│   ├── uia.py  (647 стр)
 │   ├── vad.py  (567 стр)
 │   ├── voices.py  (220 стр)
 │   ├── weather.py  (394 стр)
@@ -358,7 +358,7 @@ jarvis/
 ├── PROJECT.md  (216 стр)
 ├── PROMPT.md  (491 стр)
 ├── pytest.ini  (20 стр)
-├── README.md  (934 стр)
+├── README.md  (938 стр)
 ├── requirements-ci.txt  (24 стр)
 ├── requirements-dev.txt  (10 стр)
 ├── requirements.txt  (59 стр)
@@ -387,8 +387,8 @@ jarvis/
 │   │   ├── uia_manual.py  (61 стр)
 │   │   ├── vad_debug.py  (61 стр)
 │   │   ├── vad_live.py  (41 стр)
-│   ├── README.md  (40 стр)
-│   ├── stress_intents.py  (461 стр)
+│   ├── README.md  (59 стр)
+│   ├── stress_intents.py  (516 стр)
 │   ├── test_build_setup.py  (56 стр)
 │   ├── test_caps.py  (23 стр)
 │   ├── test_config_manager.py  (47 стр)
@@ -403,7 +403,8 @@ jarvis/
 │   ├── test_stt.py  (435 стр)
 │   ├── test_tray.py  (180 стр)
 │   ├── test_tts.py  (243 стр)
-│   ├── test_uia.py  (247 стр)
+│   ├── test_uia.py  (295 стр)
+│   ├── test_uia_fast.py  (35 стр)
 │   ├── test_vad.py  (333 стр)
 │   ├── test_vad_model.py  (273 стр)
 │   ├── test_weather.py  (237 стр)
@@ -764,6 +765,7 @@ jarvis/
 
 ```
   # UIA-команды голосом: «прочитай окно», «закрой вкладку ютуб», «какой сайт».
+  UIA_MISSING_REPLY = ...
   def uia_fast(handler, cmd: str)
 ```
 
@@ -1382,6 +1384,8 @@ jarvis/
 
 ```
   # UI Automation — видим окна и элементы интерфейса.
+  UIA_PIP_HINT = ...
+  class UIAUnavailable(ImportError)
   def find_window(title_part: str, timeout: float=2.0)
   def get_active_window()
   def get_active_window_title()
@@ -1398,6 +1402,7 @@ jarvis/
   def close_browser_tab(tab_title_part: str)
   def switch_browser_tab(tab_title_part: str)
   def click_menu_item(path: str)
+  def is_supported()
   def is_available()
   def describe_active_window()
   def describe_browsers()
@@ -1672,7 +1677,12 @@ jarvis/
   LOGS_DIR = ...
   LOG_FILE = ...
   MAX_SECONDS = ...
+  UIA_MAX_SECONDS = ...
+  def time_limit(name: str)
   EXPECTED_CASES = ...
+  UIA_REFUSAL = ...
+  def uia_supported()
+  def adapt_expected(name: str, expected: list[str] | None, uia_ok: bool)
   CASES: ...
   class Stressed
     def __init__(self, name: str, cmd: str, expected: list[str] | None)
@@ -2052,6 +2062,19 @@ jarvis/
   def test_read_browser_url_fallback_from_title()
   def test_is_available_true()
   def test_is_available_false()
+  def test_uia_unavailable_is_import_error()
+  def test_ensure_init_without_library_raises_uia_unavailable()
+  def test_is_supported_false_without_library()
+  def test_is_supported_true_when_init_ok()
+```
+
+**`tests/test_uia_fast.py`**
+
+```
+  # Тесты быстрых UIA-команд — `jarvis/intents/fast/uia.py`.
+  def test_uia_command_without_library_answers_clearly()
+  def test_uia_read_window_without_library_answers_clearly()
+  def test_not_our_command_returns_none()
 ```
 
 **`tests/test_vad.py`**
@@ -2277,7 +2300,7 @@ jarvis/
 | `jarvis/intents/fast/system.py` | 130 | code | Системные команды: раскладка, громкость, яркость. |
 | `jarvis/intents/fast/tasks.py` | 7 | code | Задачи — обёртка над `tasks`. |
 | `jarvis/intents/fast/timers.py` | 7 | code | Напоминания — обёртка над `timers`. |
-| `jarvis/intents/fast/uia.py` | 100 | code | UIA-команды голосом: «прочитай окно», «закрой вкладку ютуб», «какой са |
+| `jarvis/intents/fast/uia.py` | 125 | code | UIA-команды голосом: «прочитай окно», «закрой вкладку ютуб», «какой са |
 | `jarvis/intents/fast/undo.py` | 67 | code | Отмена последнего действия («не то», «отмени»). |
 | `jarvis/intents/fast/voices.py` | 10 | code | Голоса Piper — обёртка над модулем `voices`. |
 | `jarvis/intents/fast/weather.py` | 113 | code | Простые правила для погоды и курса — без LLM. |
@@ -2327,7 +2350,7 @@ jarvis/
 | `jarvis/tts_engines/sapi.py` | 113 | code | SAPI TTS — старый Windows-синтез через pyttsx3. |
 | `jarvis/tts_engines/silero.py` | 215 | code | Silero TTS v5_5 — русский голос, ~150 МБ, требует PyTorch. |
 | `jarvis/tts_engines/winrt.py` | 158 | code | WinRT TTS — системный синтез Windows, без внешних моделей. |
-| `jarvis/uia.py` | 617 | code | UI Automation — видим окна и элементы интерфейса. |
+| `jarvis/uia.py` | 647 | code | UI Automation — видим окна и элементы интерфейса. |
 | `jarvis/vad.py` | 567 | code | Silero VAD — детекция речи в аудио-потоке с адаптивным порогом. |
 | `jarvis/voices.py` | 220 | code | Управление голосами TTS — работает через tts_engines. |
 | `jarvis/weather.py` | 394 | code | Погода и курс валют. |
@@ -2350,7 +2373,7 @@ jarvis/
 | `tests/manual/uia_manual.py` | 61 | code | Ручная проверка UIA в браузере — без хардкода конкретного браузера. |
 | `tests/manual/vad_debug.py` | 61 | code | Отладка Silero VAD — прогон на синтетике. |
 | `tests/manual/vad_live.py` | 41 | code | Живой тест VAD: пишет 5 сек с микрофона, показывает prob. |
-| `tests/stress_intents.py` | 461 | code | Стресс-тест Феникса: ровно 100 разных ситуаций без микрофона и сети. |
+| `tests/stress_intents.py` | 516 | code | Стресс-тест Феникса: ровно 100 разных ситуаций без микрофона и сети. |
 | `tests/test_build_setup.py` | 56 | code | Тесты scripts.build_setup — версия установщика и мягкий пропуск шага c |
 | `tests/test_caps.py` | 23 | code | Тесты check_caps: структура system_caps.json. |
 | `tests/test_config_manager.py` | 47 | code | Тесты config_manager: параллельная запись не рвёт файл. |
@@ -2365,7 +2388,8 @@ jarvis/
 | `tests/test_stt.py` | 435 | code | stt.Listener: живое применение настроек (то, что раньше не работало). |
 | `tests/test_tray.py` | 180 | code | Трей (jarvis.tray): пункты меню реально дёргают ядро и GUI. |
 | `tests/test_tts.py` | 243 | code | Тесты jarvis.tts_engines — движки и фабрика. С моками. |
-| `tests/test_uia.py` | 247 | code | Тесты jarvis.uia — логика обёртки. С моками. |
+| `tests/test_uia.py` | 295 | code | Тесты jarvis.uia — логика обёртки. С моками. |
+| `tests/test_uia_fast.py` | 35 | code | Тесты быстрых UIA-команд — `jarvis/intents/fast/uia.py`. |
 | `tests/test_vad.py` | 333 | code | Тесты jarvis.vad — Silero VAD ONNX. |
 | `tests/test_vad_model.py` | 273 | code | Авто-скачивание модели Silero VAD (jarvis.vad). |
 | `tests/test_weather.py` | 237 | code | Тесты weather: структура ответов, describe_*, geocode с моками. |
@@ -9005,7 +9029,7 @@ def timers_fast(handler, cmd: str) -> str | None:
 ### `jarvis/intents/fast/uia.py`
 
 ```python
-"""UIA-команды голосом: «прочитай окно», «закрой вкладку ютуб», «какой сайт». ... [7 строк]"""
+"""UIA-команды голосом: «прочитай окно», «закрой вкладку ютуб», «какой сайт». ... [10 строк]"""
 
 import logging
 import re
@@ -9014,9 +9038,26 @@ from jarvis import uia
 
 log = logging.getLogger("jarvis.intents")
 
+# Что ответить, если библиотеки нет (CI-раннер, «голая» Windows).
+# Раньше в этом случае обработчик падал, стадия глотала исключение,
+# и человек получал «LLM недоступна» — то есть вообще непонятно, что случилось.
+UIA_MISSING_REPLY = (
+    "UI Automation недоступна: не установлена библиотека uiautomation. "
+    f"Установите её: {uia.UIA_PIP_HINT}"
+)
+
 
 def uia_fast(handler, cmd: str) -> str | None:
-    """Быстрые команды UIA. None, если не наша."""
+    """Быстрые команды UIA. None, если не наша. ... [5 строк]"""
+    try:
+        return _uia_fast_impl(handler, cmd)
+    except uia.UIAUnavailable:
+        log.warning("UIA недоступна, отвечаю отказом: %r", cmd)
+        return UIA_MISSING_REPLY
+
+
+def _uia_fast_impl(handler, cmd: str) -> str | None:
+    """Тело быстрых UIA-команд (см. `uia_fast`)."""
 
     # === Активное окно — что открыто ===
     if re.search(r"(что|какое)\s+(у\s+меня\s+)?(открыто|окно|приложение)", cmd) \
@@ -16014,6 +16055,13 @@ _lock = threading.RLock()
 # Ленивая инициализация uiautomation.
 _uia = None
 
+# Подсказка человеку: что делать, если библиотеки нет.
+UIA_PIP_HINT = "pip install uiautomation"
+
+
+class UIAUnavailable(ImportError):
+    """Нет библиотеки `uiautomation` — Windows UI Automation недоступна. ... [7 строк]"""
+
 
 def _ensure_init():
     """Ленивая инициализация UIA в текущем потоке."""
@@ -16023,9 +16071,11 @@ def _ensure_init():
             import uiautomation as auto
             _uia = auto
             log.info("UIA инициализирован")
-        except ImportError:
-            log.error("uiautomation не установлен. pip install uiautomation")
-            raise
+        except ImportError as exc:
+            log.error("uiautomation не установлен. %s", UIA_PIP_HINT)
+            raise UIAUnavailable(
+                f"не установлена библиотека uiautomation ({UIA_PIP_HINT})"
+            ) from exc
     return _uia
 
 
@@ -16546,6 +16596,15 @@ def click_menu_item(path: str) -> bool:
 # =================================================================
 # Диагностика
 # =================================================================
+
+def is_supported() -> bool:
+    """Есть ли библиотека `uiautomation` — без обращения к COM. ... [5 строк]"""
+    try:
+        _ensure_init()
+        return True
+    except Exception:
+        return False
+
 
 def is_available() -> bool:
     """Проверяет, работает ли UIA (COM инициализируется)."""
@@ -19048,7 +19107,7 @@ print("\nГотово.")
 ### `tests/stress_intents.py`
 
 ```python
-"""Стресс-тест Феникса: ровно 100 разных ситуаций без микрофона и сети. ... [26 строк]"""
+"""Стресс-тест Феникса: ровно 100 разных ситуаций без микрофона и сети. ... [35 строк]"""
 
 from __future__ import annotations
 
@@ -19094,8 +19153,43 @@ log.addHandler(_ch)
 # Потолок отзывчивости: без LLM и сети любая разумная команда быстрая.
 MAX_SECONDS = 5.0
 
+# UIA читает реальный рабочий стол (обход окон и вкладок) и внутри
+# `jarvis.uia` у него свои таймауты — под нагрузкой (много окон, занятый
+# диск) это бывает дольше пяти секунд. Поэтому у ситуаций `uia_*` свой
+# потолок: тест не должен «флакать» из-за чужой нагрузки на машину.
+UIA_MAX_SECONDS = 15.0
+
+
+def time_limit(name: str) -> float:
+    """Потолок отзывчивости для ситуации: у `uia_*` он выше."""
+    return UIA_MAX_SECONDS if name.startswith("uia_") else MAX_SECONDS
+
+
 # Ровно 100 ситуаций — это требование к набору, проверяется в main().
 EXPECTED_CASES = 100
+
+# Что должны ответить UIA-команды, когда библиотеки `uiautomation` нет
+# (CI-раннер, «голая» Windows): читать окна нечем, но команда обязана
+# ответить понятным отказом, а не провалиться в LLM.
+UIA_REFUSAL = ["UI Automation недоступна"]
+
+
+def uia_supported() -> bool:
+    """Есть ли библиотека `uiautomation` — от этого зависят ожидания `uia_*`. ... [4 строк]"""
+    try:
+        from jarvis import uia
+        return uia.is_supported()
+    except Exception:
+        log.exception("Не удалось проверить доступность UIA")
+        return False
+
+
+def adapt_expected(name: str, expected: list[str] | None,
+                   uia_ok: bool) -> list[str] | None:
+    """Подменяет ожидания `uia_*` на честный отказ, если UIA нет."""
+    if expected and not uia_ok and name.startswith("uia_"):
+        return UIA_REFUSAL
+    return expected
 
 
 # =====================================================================
@@ -19282,9 +19376,10 @@ class Stressed:
         visible = self.reply.replace("\u200b", "").strip()
         if not visible:
             self.problems.append("пустой ответ")
-        if self.elapsed > MAX_SECONDS:
+        limit = time_limit(self.name)
+        if self.elapsed > limit:
             self.problems.append(
-                f"долго: {self.elapsed:.2f} с (потолок {MAX_SECONDS:g})"
+                f"долго: {self.elapsed:.2f} с (потолок {limit:g})"
             )
         if self.expected:
             text = self.reply.lower()
@@ -19408,7 +19503,11 @@ def main() -> None:
                   len(CASES), EXPECTED_CASES)
         sys.exit(2)
 
-    cases = CASES
+    # Ожидания uia_* зависят от окружения: есть библиотека — читаем окна,
+    # нет (CI) — ждём понятный отказ. Набор ситуаций не меняется.
+    uia_ok = uia_supported()
+    cases = [(name, cmd, adapt_expected(name, expected, uia_ok))
+             for name, cmd, expected in CASES]
     if args.filter:
         f = args.filter.lower()
         cases = [c for c in cases if f in c[0].lower()]
@@ -19424,6 +19523,8 @@ def main() -> None:
     log.info("=" * 70)
     log.info("СТРЕСС-ТЕСТ ФЕНИКСА")
     log.info("Ситуаций: %d | озвучка: %s", len(cases), "вкл" if args.voice else "выкл")
+    log.info("UIA: %s", "доступна — окна читаю по-настоящему" if uia_ok
+             else "нет библиотеки uiautomation — ситуации uia_* ждут понятный отказ")
     log.info("Лог: %s", LOG_FILE)
     log.info("=" * 70)
 
@@ -22331,9 +22432,11 @@ def test_do_change_voice_switch_and_history():
 ### `tests/test_uia.py`
 
 ```python
-"""Тесты jarvis.uia — логика обёртки. С моками. ... [7 строк]"""
+"""Тесты jarvis.uia — логика обёртки. С моками. ... [9 строк]"""
 
 from unittest.mock import patch, MagicMock
+
+import pytest
 
 from jarvis import uia
 
@@ -22571,6 +22674,84 @@ def test_is_available_true():
 def test_is_available_false():
     with patch.object(uia, "_ensure_init", side_effect=ImportError("no uia")):
         assert uia.is_available() is False
+
+
+# =================================================================
+# Библиотеки uiautomation нет (CI-раннер, «голая» Windows)
+# =================================================================
+
+def _without_uiautomation():
+    """Контекст: `import uiautomation` падает, как на CI-раннере."""
+    import builtins
+
+    real_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == "uiautomation":
+            raise ImportError("No module named 'uiautomation' (CI)")
+        return real_import(name, *args, **kwargs)
+
+    return patch.object(builtins, "__import__", fake_import)
+
+
+def test_uia_unavailable_is_import_error():
+    """UIAUnavailable — наследник ImportError: старый код ловит как раньше."""
+    assert issubclass(uia.UIAUnavailable, ImportError)
+
+
+def test_ensure_init_without_library_raises_uia_unavailable():
+    """Нет библиотеки → UIAUnavailable (её ловят быстрые команды)."""
+    with patch.object(uia, "_uia", None), _without_uiautomation():
+        with pytest.raises(uia.UIAUnavailable) as exc:
+            uia._ensure_init()
+    assert "uiautomation" in str(exc.value)
+
+
+def test_is_supported_false_without_library():
+    """Нет библиотеки → False: стресс-тест смягчает ожидания uia_*."""
+    with patch.object(uia, "_uia", None), _without_uiautomation():
+        assert uia.is_supported() is False
+
+
+def test_is_supported_true_when_init_ok():
+    """Библиотека есть → True (к COM не обращаемся)."""
+    fake_auto = MagicMock()
+    with patch.object(uia, "_ensure_init", return_value=fake_auto):
+        assert uia.is_supported() is True
+```
+
+### `tests/test_uia_fast.py`
+
+```python
+"""Тесты быстрых UIA-команд — `jarvis/intents/fast/uia.py`. ... [6 строк]"""
+
+from unittest.mock import patch
+
+from jarvis import uia
+from jarvis.intents.fast.uia import UIA_MISSING_REPLY, uia_fast
+
+
+def test_uia_command_without_library_answers_clearly():
+    """Нет библиотеки → честный отказ, а не падение и не «LLM недоступна»."""
+    with patch.object(uia, "_ensure_init", side_effect=uia.UIAUnavailable()):
+        reply = uia_fast(None, "какие вкладки открыты")
+
+    assert reply == UIA_MISSING_REPLY
+    assert "uiautomation" in reply
+    assert "pip install" in reply
+
+
+def test_uia_read_window_without_library_answers_clearly():
+    """«прочитай окно» — та же ветка отказа (текст окна читать нечем)."""
+    with patch.object(uia, "_ensure_init", side_effect=uia.UIAUnavailable()):
+        reply = uia_fast(None, "прочитай окно")
+
+    assert reply == UIA_MISSING_REPLY
+
+
+def test_not_our_command_returns_none():
+    """Не наша фраза → None: дальше подключаются другие стадии."""
+    assert uia_fast(None, "привет") is None
 ```
 
 ### `tests/test_vad.py`
@@ -25126,6 +25307,8 @@ jobs:
         run: python tests/test_intents.py
 
       - name: Stress test (100 ситуаций, без LLM/сети)
+        # Ситуации uia_* зависят от окружения: в CI нет uiautomation,
+        # поэтому они проверяют понятный отказ «UI Automation недоступна».
         run: python tests/stress_intents.py
 ```
 
@@ -26211,11 +26394,12 @@ onnxruntime>=1.17
 
 ## 5. Документация (только оглавления)
 
-#### `tests/README.md` — 5 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `tests/README.md` — 6 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Тесты Феникса
   - Карта
   - Правила
+  - Зависимость от окружения
   - Логи
   - См. также
 
@@ -26269,7 +26453,7 @@ onnxruntime>=1.17
     - `scripts/make_installer_images.py`
     - `scripts/build_exe.py`
 
-#### `CHANGELOG.md` — 61 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 62 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
   - 📑 Содержание
@@ -26278,6 +26462,7 @@ onnxruntime>=1.17
       - 🧪 Тесты — одна папка, стресс-тест на 100 ситуаций, единый прогон
         - 🕐 Время — добавлены естественные формулировки
       - 🐛 Исправлено
+        - 🖥 UIA без библиотеки — понятный отказ вместо «LLM недоступна»
         - 📦 Установщик (Inno Setup) — доведён до рабочего состояния
       - ✨ Добавлено
         - 🛠 `scripts/build_setup.py` — вся сборка одной командой
@@ -26310,7 +26495,6 @@ onnxruntime>=1.17
       - 🐛 Погода — падежи городов
       - 🔧 Исправлено (аудит 10.10.2026)
     - 📅 Сессия 09.10.2026
-      - ✨ Добавлено
 
 #### `CI.md` — 13 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -26481,4 +26665,4 @@ onnxruntime>=1.17
 
 ---
 
-_Итого по категориям — code: 127, data: 19, doc: 10, pack: 5. Режим `lean`._
+_Итого по категориям — code: 128, data: 19, doc: 10, pack: 5. Режим `lean`._

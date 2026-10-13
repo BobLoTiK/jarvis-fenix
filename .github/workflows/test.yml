@@ -59,4 +59,6 @@ jobs:
         run: python tests/test_intents.py
 
       - name: Stress test (100 ситуаций, без LLM/сети)
+        # Ситуации uia_* зависят от окружения: в CI нет uiautomation,
+        # поэтому они проверяют понятный отказ «UI Automation недоступна».
         run: python tests/stress_intents.py
