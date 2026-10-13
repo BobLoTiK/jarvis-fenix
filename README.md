@@ -5,7 +5,7 @@
 [![Release](https://img.shields.io/github/v/release/BobLoTiK/jarvis-fenix)](https://github.com/BobLoTiK/jarvis-fenix/releases)
 
 > Локальный голосовой ассистент для Windows. Форк проекта
-> [jsays12/jarvis](https://github.com/jsays12/jarvis).
+> [jsays12/jarvis](https://github.com/jsys12/jarvis).
 
 **Офлайн** для распознавания и синтеза речи (**Vosk** + **Whisper**;
 TTS: **Silero** / **Piper** / WinRT / SAPI).
