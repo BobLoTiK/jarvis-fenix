@@ -6,9 +6,9 @@
 Версии: [Semantic Versioning](https://semver.org/lang/ru/).
 
 > **Attribution:** этот проект — форк
-> [jsays12/jarvis](https://github.com/jsays12/jarvis).
+> [jsys12/jarvis](https://github.com/jsys12/jarvis).
 > Коммиты до июня 2026 — от оригинала.
-> Оригинальный код — собственность автора `jsays12`.
+> Оригинальный код — собственность автора `jsys12`.
 > См. [LICENSE](LICENSE).
 
 ---
@@ -819,7 +819,7 @@
 
 #### ✨ Добавлено
 
-- **`LICENSE`** — MIT + attribution `jsays12`.
+- **`LICENSE`** — MIT + attribution `jsys12`.
 - **`scripts/make_icon.py`** — иконка.
 - **`scripts/build_exe.py`** — `.exe`.
 - **`installer.iss`** — установщик.
@@ -913,4 +913,4 @@
 ## 📦 [0.2.1] и раньше
 
 См. коммиты в репозитории до июня 2026 — от оригинала
-[jsays12/jarvis](https://github.com/jsays12/jarvis).
+[jsys12/jarvis](https://github.com/jsys12/jarvis).

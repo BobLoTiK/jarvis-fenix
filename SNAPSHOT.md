@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=2db14b9ae1ef41f8` · режим `lean` · файлов `163` · строк `31482` · источник `1312 КБ`
+`sha256=36bdad1f354538aa` · режим `lean` · файлов `165` · строк `31729` · источник `1327 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -27,7 +27,7 @@
 
 ## 1. Что это
 
-Локальный голосовой ассистент для Windows. Форк [jsays12/jarvis](https://github.com/jsays12/jarvis),
+Локальный голосовой ассистент для Windows. Форк [jsys12/jarvis](https://github.com/jsys12/jarvis),
 MIT + attribution (не удалять).
 
 Цепочка: **микрофон → Vosk (wake) → Whisper (уточнение) → разбор команды → TTS-ответ.**
@@ -95,7 +95,8 @@ USER_DIR     %APPDATA%\Phoenix         config, profiles, logs, timers, tasks.
 7. Vosk API — **только из listener-потока**. `flush()` не должен трогать Vosk
    (иначе `libvosk.dll` → `0xc0000015`).
 8. TTS — per-call stop-token, а не общий флаг: иначе 2-3 голоса накладываются.
-9. UIA требует STA. Вызовы идут из голосового и GUI-потока — держать под `_lock`.
+9. UIA требует STA: первый вызов в потоке инициализирует COM сам, поэтому
+   все вызовы идут под `_lock` (голосовой поток + GUI-поток).
 
 **Безопасность**
 
@@ -111,7 +112,7 @@ USER_DIR     %APPDATA%\Phoenix         config, profiles, logs, timers, tasks.
     + `shlex`, а не `os.startfile`.
 15. Нормализация (`normalize`) — **одна** точка, в `IntentHandler.handle()`.
     Она вырезает пунктуацию: для доменов берите **сырой** `intent["target"]`.
-16. Attribution `jsays12` не удалять.
+16. Attribution `jsys12` не удалять.
 ---
 
 ## 5. Архитектура в одном экране
@@ -145,7 +146,7 @@ debug → correction → undo → weather_currency`
 
 ---
 
-## 6. Известные баги (аудит 10.10.2026)
+## 6. Известные баги
 
 Закрыты в этой же сессии: арность `finalize_stream` в тестах, дыра в харнесе
 (`expected=[]` маскировал исключения), отсутствующий `_on_profile_switch` в GUI,
@@ -158,8 +159,6 @@ debug → correction → undo → weather_currency`
 | Что | Где | Почему не сделано |
 |---|---|---|
 | Мёртвые `debug_*` в LLM-промптах | `brain.py` SYSTEM_* | правка промптов меняет поведение LLM, нужен прогон |
-| `uia` без STA-инициализации | `uia.py` | проверить можно только с реальным окном |
-| `scan_start_menu()` + `scan_steam_games()` синхронно на старте | `intents/handler.py` | возможны 1-3 с блокировки, надо мерить |
 | Трей отдельным процессом | `tray.py` (daemon-поток) | ✅ иконка поднимается до `ft.run`; схема `tray_runner.py` не нужна — отложена |
 | GUI: 4 вкладки после смены темы | `gui.py` | **проверить руками** |
 
@@ -238,12 +237,14 @@ README)._
 
 ```
 jarvis/
-├── .clineignore  (34 стр)
+├── .clineignore  (48 стр)
+├── .clinerules  (43 стр)
 ├── .github/
 │   ├── workflows/
 │   │   ├── README.md  (61 стр)
 │   │   ├── release.yml  (114 стр)
 │   │   ├── test.yml  (64 стр)
+├── AGENTS.md  (100 стр)
 ├── ARCHITECTURE.md  (917 стр)
 ├── CHANGELOG.md  (916 стр)
 ├── check_all.bat  (24 стр)
@@ -255,7 +256,7 @@ jarvis/
 │   ├── open_terminal.bat  (3 стр)
 │   ├── show_ip.bat  (3 стр)
 ├── config.example.json  (69 стр)
-├── CONTRIBUTING.md  (373 стр)
+├── CONTRIBUTING.md  (375 стр)
 ├── create_shortcut.bat  (51 стр)
 ├── install.bat  (411 стр)
 ├── installer.iss  (117 стр)
@@ -297,7 +298,7 @@ jarvis/
 │   │   │   ├── undo.py  (67 стр)
 │   │   │   ├── voices.py  (10 стр)
 │   │   │   ├── weather.py  (113 стр)
-│   │   ├── handler.py  (196 стр)
+│   │   ├── handler.py  (253 стр)
 │   │   ├── password.py  (86 стр)
 │   │   ├── sites.py  (62 стр)
 │   │   ├── stages/
@@ -324,7 +325,7 @@ jarvis/
 │   ├── mood.py  (388 стр)
 │   ├── observer.py  (198 стр)
 │   ├── packs.py  (117 стр)
-│   ├── paths.py  (182 стр)
+│   ├── paths.py  (216 стр)
 │   ├── persona.py  (219 стр)
 │   ├── profile.py  (451 стр)
 │   ├── prosody.py  (152 стр)
@@ -359,10 +360,10 @@ jarvis/
 │   ├── system.json  (17 стр)
 │   ├── work.json  (11 стр)
 ├── PLAN.md  (1005 стр)
-├── PROJECT.md  (220 стр)
+├── PROJECT.md  (219 стр)
 ├── PROMPT.md  (509 стр)
 ├── pytest.ini  (20 стр)
-├── README.md  (964 стр)
+├── README.md  (962 стр)
 ├── requirements-ci.txt  (24 стр)
 ├── requirements-dev.txt  (10 стр)
 ├── requirements.txt  (59 стр)
@@ -802,6 +803,8 @@ jarvis/
   # IntentHandler — оркестрация.
   class IntentHandler
     def __init__(self, config, apps, brain=None, listener=None, gui=None, jarvis=None)
+    def installed(self)
+    def steam_games(self)
     def handle(self, cmd: str)
     def finalize_stream(self, full_text: str)
 ```
@@ -2377,7 +2380,7 @@ jarvis/
 | `jarvis/intents/fast/undo.py` | 67 | code | Отмена последнего действия («не то», «отмени»). |
 | `jarvis/intents/fast/voices.py` | 10 | code | Голоса Piper — обёртка над модулем `voices`. |
 | `jarvis/intents/fast/weather.py` | 113 | code | Простые правила для погоды и курса — без LLM. |
-| `jarvis/intents/handler.py` | 196 | code | IntentHandler — оркестрация. |
+| `jarvis/intents/handler.py` | 253 | code | IntentHandler — оркестрация. |
 | `jarvis/intents/password.py` | 86 | code | Хеширование пароля и действия, требующие пароля. |
 | `jarvis/intents/sites.py` | 62 | code | Сайты для открытия голосом — ленивая загрузка из packs/sites.json. |
 | `jarvis/intents/stages/__init__.py` | 44 | code | Стадии обработки команды. Порядок = приоритет. |
@@ -2403,7 +2406,7 @@ jarvis/
 | `jarvis/mood.py` | 388 | code | Mood — эмоциональное состояние ассистента. |
 | `jarvis/observer.py` | 198 | code | Observer — фоновое наблюдение за диалогом. |
 | `jarvis/packs.py` | 117 | code | Загрузка и выгрузка паков команд из папки packs/. |
-| `jarvis/paths.py` | 182 | code | Централизованное определение путей Феникса. |
+| `jarvis/paths.py` | 216 | code | Централизованное определение путей Феникса. |
 | `jarvis/persona.py` | 219 | code | Персона ассистента — стиль общения, черты, backstory, tone. |
 | `jarvis/profile.py` | 451 | code | Профиль пользователя — мультипрофиль. |
 | `jarvis/prosody.py` | 152 | code | Prosody — эмоции из голоса (RMS + pitch + ZCR). |
@@ -9448,6 +9451,8 @@ def _strip_city_noise(raw: str) -> str:
 """IntentHandler — оркестрация. ... [6 строк]"""
 
 import logging
+import threading
+import time
 from collections import deque
 
 from jarvis import memory, profile
@@ -9472,11 +9477,14 @@ class IntentHandler:
         self.gui = gui
         self.jarvis = jarvis
 
-        # Индексы — читаются один раз при старте.
-        from jarvis.installed import scan_start_menu
-        from jarvis.steam import scan_steam_games
-        self.installed = scan_start_menu()
-        self.steam_games = scan_steam_games()
+        # Индексы приложений («Пуск», Steam) собираются 1-3 с, поэтому уходят
+        # в фоновый поток: старт не ждёт, а первый запрос дождётся его сам.
+        self._installed: dict | None = None
+        self._steam_games: list | None = None
+        self._index_lock = threading.Lock()
+        threading.Thread(
+            target=self._warm_indexes, daemon=True, name="app-index"
+        ).start()
 
         self.music_app = config.get("music_app", "яндекс музыка")
         self.music_wait = float(config.get("music_wait_sec", 6))
@@ -9521,6 +9529,58 @@ class IntentHandler:
         # Подписки.
         config.subscribe(self._on_config_change)
         profile.subscribe(self._on_profile_switch)
+
+    # =================================================================
+    # Индексы приложений
+    # =================================================================
+
+    def _warm_indexes(self) -> None:
+        """Прогревает индексы в фоне — старт не должен ждать 1-3 с."""
+        started = time.monotonic()
+        self.installed
+        self.steam_games
+        log.info(
+            "Индексы приложений готовы за %.2f с (Пуск: %d, Steam: %d)",
+            time.monotonic() - started,
+            len(self._installed or {}),
+            len(self._steam_games or []),
+        )
+
+    def _scan_installed(self) -> dict:
+        from jarvis.installed import scan_start_menu
+
+        try:
+            return scan_start_menu()
+        except Exception:
+            log.exception("scan_start_menu упал — индекс «Пуск» пуст")
+            return {}
+
+    def _scan_steam(self) -> list:
+        from jarvis.steam import scan_steam_games
+
+        try:
+            return scan_steam_games()
+        except Exception:
+            log.exception("scan_steam_games упал — список игр пуст")
+            return []
+
+    @property
+    def installed(self) -> dict:
+        """Индекс «Пуск» → путь к .exe. Собирается лениво и ровно один раз."""
+        if self._installed is None:
+            with self._index_lock:
+                if self._installed is None:
+                    self._installed = self._scan_installed()
+        return self._installed
+
+    @property
+    def steam_games(self) -> list:
+        """Список Steam-игр (name, appid). Собирается лениво и ровно один раз."""
+        if self._steam_games is None:
+            with self._index_lock:
+                if self._steam_games is None:
+                    self._steam_games = self._scan_steam()
+        return self._steam_games
 
     # =================================================================
     # Публичный API
@@ -12330,7 +12390,7 @@ def handle_pack_command(cmd: str, current_active: list[str], config=None) -> tup
 ### `jarvis/paths.py`
 
 ```python
-"""Централизованное определение путей Феникса. ... [22 строк]"""
+"""Централизованное определение путей Феникса. ... [27 строк]"""
 
 import logging
 import os
@@ -12372,7 +12432,11 @@ def _pick_program_dir() -> Path:
     if program_data:
         candidates.append(Path(program_data) / APP_NAME)
 
-    candidates.append(Path(r"C:\Phoenix"))
+    if os.name == "nt":
+        # Жёсткие ASCII-адреса: PROGRAMDATA и TEMP могут указывать на
+        # кириллицу (имя пользователя), а Vosk её не переваривает.
+        candidates.append(Path(r"C:\ProgramData") / APP_NAME)
+        candidates.append(Path(r"C:\Phoenix"))
 
     temp = Path(tempfile.gettempdir())
     candidates.append(temp / APP_NAME)
@@ -12380,7 +12444,16 @@ def _pick_program_dir() -> Path:
     # Последний — рядом с кодом
     candidates.append(Path(__file__).resolve().parent.parent / "runtime")
 
+    # Убираем дубли, сохраняя порядок (PROGRAMDATA обычно = C:\ProgramData).
+    seen: set[str] = set()
+    unique: list = []
     for cand in candidates:
+        key = str(cand).lower()
+        if key not in seen:
+            seen.add(key)
+            unique.append(cand)
+
+    for cand in unique:
         if not _is_ascii(cand):
             log.debug("Пропускаю не-ASCII путь: %s", cand)
             continue
@@ -12389,10 +12462,26 @@ def _pick_program_dir() -> Path:
             return cand
         log.debug("Не удалось создать: %s", cand)
 
-    # Совсем крайний случай — temp (гарантированно есть)
+    # Аварийный режим: берём ASCII-кандидат даже без проверки записи — лишь бы
+    # Vosk не получил кириллический путь и не упал на загрузке модели.
+    for cand in unique:
+        if not _is_ascii(cand):
+            continue
+        try:
+            cand.mkdir(parents=True, exist_ok=True)
+        except Exception:
+            log.debug("Аварийный фолбэк не создался: %s", cand)
+            continue
+        log.warning("PROGRAM_DIR: аварийный ASCII-фолбэк %s", cand)
+        return cand
+
+    # Совсем ничего ASCII — остаётся TEMP, но он может быть с кириллицей.
     fallback = temp / APP_NAME
     fallback.mkdir(parents=True, exist_ok=True)
-    log.warning("PROGRAM_DIR: fallback на %s", fallback)
+    log.error(
+        "PROGRAM_DIR: только не-ASCII путь %s — Vosk может не загрузить модель",
+        fallback,
+    )
     return fallback
 
 
@@ -27322,6 +27411,68 @@ tasks.json
 
 # Большие текстовые файлы, которые не нужны для кодинга
 SNAPSHOT.md
+
+# Сборка и артефакты
+dist/
+build/
+*.spec
+*.bmp
+
+# Разовые логи, бэкапы и личные данные
+*.log
+*.bak
+*.bak*
+dialog.json
+system_caps.json
+user_profile.json
+```
+
+### `.clinerules`
+
+```
+# .clinerules — правила работы в репозитории «Феникс»
+
+Стоимость запроса ≈ (число ответов агента) × (весь контекст на каждом шаге).
+Каждый ответ агента — это новый запрос со ВСЕЙ историей. Сокращать надо оба множителя.
+
+## Порядок работы
+
+1. Начало задачи — прочитать `AGENTS.md` (≈8 КБ, там команды, карта, конвенции).
+   Не читать целиком: `README.md`, `PROJECT.md`, `PROMPT.md`, `CONTRIBUTING.md`,
+   `CHANGELOG.md`, `PLAN.md`, `ARCHITECTURE.md`, `CI.md`. `SNAPSHOT.md` (1 МБ) — никогда.
+2. **Батчинг:** все независимые поиски, чтения, команды и правки — в ОДНОМ ответе.
+   Не разносить на «прочитал → подумал → ещё раз прочитал».
+3. Сначала `search_codebase`, потом чтение **точного диапазона** (`start_line`/`end_line`).
+   Файл > 400 строк целиком не читать никогда — только нужный участок.
+4. Если нужен широкий контекст — **спросить**, что открыть, вместо чтения всего подряд.
+
+## Вывод и проверки
+
+5. Вывод команд обрезать: `| Select-Object -Last 15`, `-q`, `--stat`, `| Measure-Object`.
+   Полные логи/диффы/дампы — в файл, в чат — 3 строки.
+6. Тесты (`pytest`, `check_all.py`) — только если менялся код, и в ответ — **итоговую строку**.
+7. После правки файл не перечитывать. Верификация: `git --no-pager diff -- <файл>`
+   либо `--stat` + `check_syntax.py`.
+8. Код в чат не дублировать — писать через редактор прямо в файл.
+9. Скриншоты и картинки — только если без них задача не решается (это дорого).
+
+## Ответы
+
+10. Итог — **до 5 строк**: что сделано, где, результат проверки. Подробности — по запросу.
+11. Не пересказывать задачу и не подтверждать понимание абзацами.
+12. Планы и отчёты длиннее 10 строк — в файл, не в чат.
+
+## Конвенции (детали — в AGENTS.md)
+
+13. Сохранять UTF-8 без BOM и CRLF.
+14. Пути — через `jarvis/paths.py`; `PROGRAM_DIR` — только ASCII.
+15. Новые зависимости — только по явной просьбе.
+16. Добавил/удалил файл или поменял код — пересобрать `SNAPSHOT.md`
+    (`.\.venv311\Scripts\python.exe snapshot.py`).
+
+## Для человека
+
+Одна задача = одна сессия. Закрыл задачу — новый чат, не продолжай в раздутой истории.
 ```
 
 ### `LICENSE`
@@ -27332,8 +27483,8 @@ MIT License
 Copyright (c) 2026 BobLoTiK
 
 Portions of this software are derived from the project "jarvis"
-by jsays12 (https://github.com/jsays12/jarvis),
-used with attribution. Original copyright (c) jsays12.
+by jsys12 (https://github.com/jsys12/jarvis),
+used with attribution. Original copyright (c) jsys12.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27509,6 +27660,17 @@ onnxruntime>=1.17
   - test.yml
   - release.yml
   - Как добавить новый workflow
+
+#### `AGENTS.md` — 8 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- AGENTS.md — шпаргалка для AI-агентов
+  - Проект
+  - Команды (PowerShell, из `c:\jarvis`)
+  - Правила чтения (главная экономия)
+  - Конвенции кода
+  - Карта кода
+  - Ключевые API
+  - Экономия (обязательно к исполнению)
 
 #### `ARCHITECTURE.md` — 45 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -27735,7 +27897,7 @@ onnxruntime>=1.17
     - 🔤 Этап 7 — реестр + Unicode-пути
     - 📦 Этап 8 — автолаунчер и установщик
     - 🎉 Этап 9 — поздравление с ДР
-    - 🔍 Этап 10 — аудит Kimi (25 багов)
+    - 🛡 Этап 10 — надёжность и безопасность
     - 🎭 Этап 11 — Персона, Онбординг, Observer
     - ✨ Этап 12 — красивый установщик (Inno UI)
     - 🧹 Этап 13 — Техдолг
@@ -27765,4 +27927,4 @@ onnxruntime>=1.17
 
 ---
 
-_Итого по категориям — code: 129, data: 19, doc: 10, pack: 5. Режим `lean`._
+_Итого по категориям — code: 129, data: 20, doc: 11, pack: 5. Режим `lean`._

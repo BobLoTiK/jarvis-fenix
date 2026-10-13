@@ -7,6 +7,8 @@
 """
 
 import logging
+import threading
+import time
 from collections import deque
 
 from jarvis import memory, profile
@@ -31,11 +33,14 @@ class IntentHandler:
         self.gui = gui
         self.jarvis = jarvis
 
-        # Индексы — читаются один раз при старте.
-        from jarvis.installed import scan_start_menu
-        from jarvis.steam import scan_steam_games
-        self.installed = scan_start_menu()
-        self.steam_games = scan_steam_games()
+        # Индексы приложений («Пуск», Steam) собираются 1-3 с, поэтому уходят
+        # в фоновый поток: старт не ждёт, а первый запрос дождётся его сам.
+        self._installed: dict | None = None
+        self._steam_games: list | None = None
+        self._index_lock = threading.Lock()
+        threading.Thread(
+            target=self._warm_indexes, daemon=True, name="app-index"
+        ).start()
 
         self.music_app = config.get("music_app", "яндекс музыка")
         self.music_wait = float(config.get("music_wait_sec", 6))
@@ -80,6 +85,58 @@ class IntentHandler:
         # Подписки.
         config.subscribe(self._on_config_change)
         profile.subscribe(self._on_profile_switch)
+
+    # =================================================================
+    # Индексы приложений
+    # =================================================================
+
+    def _warm_indexes(self) -> None:
+        """Прогревает индексы в фоне — старт не должен ждать 1-3 с."""
+        started = time.monotonic()
+        self.installed
+        self.steam_games
+        log.info(
+            "Индексы приложений готовы за %.2f с (Пуск: %d, Steam: %d)",
+            time.monotonic() - started,
+            len(self._installed or {}),
+            len(self._steam_games or []),
+        )
+
+    def _scan_installed(self) -> dict:
+        from jarvis.installed import scan_start_menu
+
+        try:
+            return scan_start_menu()
+        except Exception:
+            log.exception("scan_start_menu упал — индекс «Пуск» пуст")
+            return {}
+
+    def _scan_steam(self) -> list:
+        from jarvis.steam import scan_steam_games
+
+        try:
+            return scan_steam_games()
+        except Exception:
+            log.exception("scan_steam_games упал — список игр пуст")
+            return []
+
+    @property
+    def installed(self) -> dict:
+        """Индекс «Пуск» → путь к .exe. Собирается лениво и ровно один раз."""
+        if self._installed is None:
+            with self._index_lock:
+                if self._installed is None:
+                    self._installed = self._scan_installed()
+        return self._installed
+
+    @property
+    def steam_games(self) -> list:
+        """Список Steam-игр (name, appid). Собирается лениво и ровно один раз."""
+        if self._steam_games is None:
+            with self._index_lock:
+                if self._steam_games is None:
+                    self._steam_games = self._scan_steam()
+        return self._steam_games
 
     # =================================================================
     # Публичный API

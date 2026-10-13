@@ -1,6 +1,6 @@
 # 📋 План развития «Феникс»
 
-Форк [jsays12/jarvis](https://github.com/jsays12/jarvis).
+Форк [jsys12/jarvis](https://github.com/jsys12/jarvis).
 Коммиты до июня 2026 — от оригинала, с октября 2026 — мои.
 
 **Сложность:** 🟢 легко · 🟡 средне · 🔴 сложно

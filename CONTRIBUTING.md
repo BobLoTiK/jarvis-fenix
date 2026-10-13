@@ -36,6 +36,8 @@ tests/manual/           — ручные прогоны (микрофон, UIA, 
 check_all.bat           — всё сразу: 4 шага + компактный итог
 check_syntax.py         — синтаксис всех .py
 snapshot.py             — сборка SNAPSHOT.md
+AGENTS.md               — шпаргалка для AI-агентов: команды, карта, конвенции
+.clinerules             — правила экономии токенов для AI-агентов
 
 PROJECT.md          — ИСТОЧНИК ПРАВДЫ: инварианты, правила,
                       история ошибок, контракт проверки
@@ -90,7 +92,7 @@ scripts/            — утилиты (make_icon, build_exe, mics, ...)
 
 **И они — в `.gitignore`.**
 
-**Не удаляй attribution `jsays12`** из `LICENSE`, `README.md`, `CHANGELOG.md`.
+**Не удаляй attribution `jsys12`** из `LICENSE`, `README.md`, `CHANGELOG.md`.
 
 ## 🚀 Рабочий процесс
 
@@ -333,7 +335,7 @@ git reset --hard HEAD~1
 - [ ] **Не коммичу** `.venv311`, `config.json`, `profiles/`, `system_caps.json`, `timers.json`, `tasks.json`, `models/`, `voices/`, `dist/`, `build/`.
 - [ ] **Проверил** `git status` — нет лишних файлов.
 - [ ] **Личные данные** не попали в публичные файлы.
-- [ ] **Attribution `jsays12`** на месте.
+- [ ] **Attribution `jsys12`** на месте.
 - [ ] **Сообщение коммита** — понятное.
 
 ## 🤝 Как задавать вопросы

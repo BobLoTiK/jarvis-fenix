@@ -14,7 +14,7 @@
 
 ## 1. Что это
 
-Локальный голосовой ассистент для Windows. Форк [jsays12/jarvis](https://github.com/jsays12/jarvis),
+Локальный голосовой ассистент для Windows. Форк [jsys12/jarvis](https://github.com/jsys12/jarvis),
 MIT + attribution (не удалять).
 
 Цепочка: **микрофон → Vosk (wake) → Whisper (уточнение) → разбор команды → TTS-ответ.**
@@ -82,7 +82,8 @@ USER_DIR     %APPDATA%\Phoenix         config, profiles, logs, timers, tasks.
 7. Vosk API — **только из listener-потока**. `flush()` не должен трогать Vosk
    (иначе `libvosk.dll` → `0xc0000015`).
 8. TTS — per-call stop-token, а не общий флаг: иначе 2-3 голоса накладываются.
-9. UIA требует STA. Вызовы идут из голосового и GUI-потока — держать под `_lock`.
+9. UIA требует STA: первый вызов в потоке инициализирует COM сам, поэтому
+   все вызовы идут под `_lock` (голосовой поток + GUI-поток).
 
 **Безопасность**
 
@@ -98,7 +99,7 @@ USER_DIR     %APPDATA%\Phoenix         config, profiles, logs, timers, tasks.
     + `shlex`, а не `os.startfile`.
 15. Нормализация (`normalize`) — **одна** точка, в `IntentHandler.handle()`.
     Она вырезает пунктуацию: для доменов берите **сырой** `intent["target"]`.
-16. Attribution `jsays12` не удалять.
+16. Attribution `jsys12` не удалять.
 ---
 
 ## 5. Архитектура в одном экране
@@ -132,7 +133,7 @@ debug → correction → undo → weather_currency`
 
 ---
 
-## 6. Известные баги (аудит 10.10.2026)
+## 6. Известные баги
 
 Закрыты в этой же сессии: арность `finalize_stream` в тестах, дыра в харнесе
 (`expected=[]` маскировал исключения), отсутствующий `_on_profile_switch` в GUI,
@@ -145,8 +146,6 @@ debug → correction → undo → weather_currency`
 | Что | Где | Почему не сделано |
 |---|---|---|
 | Мёртвые `debug_*` в LLM-промптах | `brain.py` SYSTEM_* | правка промптов меняет поведение LLM, нужен прогон |
-| `uia` без STA-инициализации | `uia.py` | проверить можно только с реальным окном |
-| `scan_start_menu()` + `scan_steam_games()` синхронно на старте | `intents/handler.py` | возможны 1-3 с блокировки, надо мерить |
 | Трей отдельным процессом | `tray.py` (daemon-поток) | ✅ иконка поднимается до `ft.run`; схема `tray_runner.py` не нужна — отложена |
 | GUI: 4 вкладки после смены темы | `gui.py` | **проверить руками** |
 

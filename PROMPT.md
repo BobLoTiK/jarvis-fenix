@@ -8,7 +8,7 @@
 ## 🎯 Контекст
 
 **«Феникс»** — локальный голосовой ассистент для Windows.
-Форк `jsays12/jarvis`. Коммиты до июня 2026 — от оригинала,
+Форк `jsys12/jarvis`. Коммиты до июня 2026 — от оригинала,
 с октября 2026 — мои.
 
 **Стек:**
@@ -26,7 +26,7 @@
 
 **Репозиторий:** `C:\jarvis`
 **GitHub:** `https://github.com/BobLoTiK/jarvis-fenix`
-**Лицензия:** MIT + attribution jsays12.
+**Лицензия:** MIT + attribution jsys12.
 
 **Два корня путей:**
 
@@ -74,7 +74,7 @@
 - **Vosk API из главного потока** — только listener-поток.
 - **`prevent_close` + `on_event`** в Flet 1.0.3 — не работает.
 - **`HF_HOME` глобально** — Piper degraded mode. Временно, сброс.
-- **Удалять attribution `jsays12`**.
+- **Удалять attribution `jsys12`**.
 - **Упоминать личные данные** (имя, город, CPU, GPU, ОС) в публичных файлах.
 - **Хардкод браузеров** — список процессов только из `jarvis/uia.py`
   (`_BROWSER_PROCESSES` / публичный `browser_process_names()`). Свой список

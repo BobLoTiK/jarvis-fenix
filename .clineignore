@@ -32,3 +32,17 @@ tasks.json
 
 # Большие текстовые файлы, которые не нужны для кодинга
 SNAPSHOT.md
+
+# Сборка и артефакты
+dist/
+build/
+*.spec
+*.bmp
+
+# Разовые логи, бэкапы и личные данные
+*.log
+*.bak
+*.bak*
+dialog.json
+system_caps.json
+user_profile.json

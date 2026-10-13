@@ -15,7 +15,12 @@
     Значит модель ОБЯЗАНА быть в ASCII-пути.
     Всё остальное (настройки, логи, профили) — где угодно.
 
-Fallback для PROGRAM_DIR:
+Аварийный режим: если ни один ASCII-кандидат не создался, берётся первый
+доступный ASCII-путь. И только если ASCII нет вообще — %TEMP%: он может быть
+с кириллицей (имя пользователя на кириллице), и тогда Vosk не загрузит модель
+— в логе будет ERROR.
+
+Fallback для PROGRAM_DIR (все кандидаты проверяются на ASCII):
     1. C:\\ProgramData\\Phoenix          (стандарт, ASCII)
     2. C:\\Phoenix                       (если ProgramData недоступен)
     3. %TEMP%\\Phoenix                   (последний шанс)
@@ -69,7 +74,11 @@ def _pick_program_dir() -> Path:
     if program_data:
         candidates.append(Path(program_data) / APP_NAME)
 
-    candidates.append(Path(r"C:\Phoenix"))
+    if os.name == "nt":
+        # Жёсткие ASCII-адреса: PROGRAMDATA и TEMP могут указывать на
+        # кириллицу (имя пользователя), а Vosk её не переваривает.
+        candidates.append(Path(r"C:\ProgramData") / APP_NAME)
+        candidates.append(Path(r"C:\Phoenix"))
 
     temp = Path(tempfile.gettempdir())
     candidates.append(temp / APP_NAME)
@@ -77,7 +86,16 @@ def _pick_program_dir() -> Path:
     # Последний — рядом с кодом
     candidates.append(Path(__file__).resolve().parent.parent / "runtime")
 
+    # Убираем дубли, сохраняя порядок (PROGRAMDATA обычно = C:\ProgramData).
+    seen: set[str] = set()
+    unique: list = []
     for cand in candidates:
+        key = str(cand).lower()
+        if key not in seen:
+            seen.add(key)
+            unique.append(cand)
+
+    for cand in unique:
         if not _is_ascii(cand):
             log.debug("Пропускаю не-ASCII путь: %s", cand)
             continue
@@ -86,10 +104,26 @@ def _pick_program_dir() -> Path:
             return cand
         log.debug("Не удалось создать: %s", cand)
 
-    # Совсем крайний случай — temp (гарантированно есть)
+    # Аварийный режим: берём ASCII-кандидат даже без проверки записи — лишь бы
+    # Vosk не получил кириллический путь и не упал на загрузке модели.
+    for cand in unique:
+        if not _is_ascii(cand):
+            continue
+        try:
+            cand.mkdir(parents=True, exist_ok=True)
+        except Exception:
+            log.debug("Аварийный фолбэк не создался: %s", cand)
+            continue
+        log.warning("PROGRAM_DIR: аварийный ASCII-фолбэк %s", cand)
+        return cand
+
+    # Совсем ничего ASCII — остаётся TEMP, но он может быть с кириллицей.
     fallback = temp / APP_NAME
     fallback.mkdir(parents=True, exist_ok=True)
-    log.warning("PROGRAM_DIR: fallback на %s", fallback)
+    log.error(
+        "PROGRAM_DIR: только не-ASCII путь %s — Vosk может не загрузить модель",
+        fallback,
+    )
     return fallback
 
 
