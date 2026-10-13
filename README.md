@@ -198,9 +198,11 @@ TTS: **Silero** / **Piper** / WinRT / SAPI).
 ### 🖥 Этап 15 — UIA
 
 - **`jarvis/uia.py`** — обёртка над `uiautomation`.
-- Находит **любой** браузер (Chrome, Edge, Яндекс, Opera, Brave, Firefox и др.) **по PID процесса**.
-- Команды: «Что открыто», «Прочитай окно», «Какой сайт открыт», «Какие вкладки», «Закрой вкладку ютуб», «Переключись на вкладку хабр», «Нажми OK».
-- **9 LLM-actions** + 17 тестов с моками.
+- Находит **любой** браузер (Chrome, Edge, Яндекс, Opera, Brave, Firefox и др.) **по PID процесса**; единый список — `browser_process_names()` (21 имя), им же пользуется `actions.close_browser()`.
+- Команды: «Что открыто», «Прочитай окно», «Какой сайт открыт», «Какие вкладки», «Закрой вкладку ютуб», «Закрой эту вкладку» (Ctrl+W), «Переключись на вкладку хабр», «Нажми OK» и «нажми на кнопку OK».
+- **Ctrl+W — только фолбэк** (`tabs_unreadable()`), когда вкладки не читаются: иначе закроется соседняя вкладка с похожим именем.
+- Без имени — переспрос: «Какую вкладку закрыть?», «Какую кнопку нажать?».
+- **9 LLM-actions** + 66 тестов с моками (`tests/test_uia.py` — 49, `tests/test_uia_fast.py` — 17).
 
 ### 🎉 Этап 16 — Праздничные триггеры в config
 
@@ -228,6 +230,12 @@ TTS: **Silero** / **Piper** / WinRT / SAPI).
 - **`jarvis/prosody.py`** — эмоции из голоса (RMS + pitch + ZCR), эвристика без ML.
 - `prosody_priority`: `prosody` / `text` / `both`.
 - Влияет на Mood через `mood.apply_from_prosody()`; вызывается в `main._process`.
+
+### 🎚 Этап 20 — Tone (планка общения)
+
+- **`jarvis/persona.py`** — `tone`: `auto` / `polite` / `unrestricted` (`VALID_TONES`, `normalize_tone()`, `set_tone()`).
+- Идёт в system prompt через `persona.build_prompt_block()` рядом со стилем и Mood.
+- Команды: «говори проще», «без цензуры», «верни цензуру», «какой у тебя тон» (`jarvis/intents/fast/persona.py`).
 
 ---
 
@@ -310,6 +318,7 @@ python -m jarvis
 {
   "assistant_name": "Феникс",
   "speech_style": "friendly",
+  "tone": "auto",
   "traits": [],
   "backstory": "",
   "onboarding_done": true
@@ -325,6 +334,14 @@ python -m jarvis
 | `sarcastic` | С сухим юмором |
 | `brief` | Коротко, по делу |
 
+**Тон (`tone`) — «планка» общения, задаётся вручную:**
+
+| Тон | Что значит |
+|---|---|
+| `auto` | Подстраивается под собеседника (по умолчанию) |
+| `polite` | Явно вежливый, без мата |
+| `unrestricted` | Не стесняется, если юзер сам матерится |
+
 **Команды:**
 
 | Фраза | Что делает |
@@ -334,8 +351,12 @@ python -m jarvis
 | «какой у тебя стиль» | Опишет |
 | «как тебя зовут» | Скажет имя ассистента |
 | «давай заново познакомимся» | Сброс онбординга |
+| «говори проще» | Тон → `auto` |
+| «без цензуры» | Тон → `unrestricted` |
+| «верни цензуру» | Тон → `polite` |
+| «какой у тебя тон» | Опишет текущий тон |
 
-**Как работает:** `brain._system_with_context()` собирает `CHAT_SYSTEM + persona.build_prompt_block() + mood.build_prompt_block() + learning.build_context()`. Стиль и настроение **напрямую влияют** на ответы LLM.
+**Как работает:** `brain._system_with_context()` собирает `CHAT_SYSTEM + persona.build_prompt_block() + mood.build_prompt_block() + learning.build_context()`. Стиль, тон и настроение **напрямую влияют** на ответы LLM.
 
 ---
 
@@ -882,8 +903,8 @@ python tests/stress_intents.py -k uia      :: фильтр по ситуация
 - Трей отдельным процессом (сейчас иконка живёт в daemon-потоке и с Flet
   не конфликтует).
 - Платные фичи (GPT-4o, Claude).
-- MCP + плагины.
-- Telegram + веб.
+- MCP + плагины — этап 5 Фазы 1 в `PLAN.md` (не начато).
+- Telegram + веб — этап 6 Фазы 1 в `PLAN.md` (не начато).
 - Wake-слово (openWakeWord).
 - **Сборка в один `.exe`** (PyInstaller) — 20–30 ч.
 - **VLM-зрение** — 6–10 ч.
