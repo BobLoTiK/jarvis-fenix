@@ -158,3 +158,81 @@ def test_switch_to_active_tab_is_not_a_failure():
 def test_not_our_command_returns_none():
     """Не наша фраза → None: дальше подключаются другие стадии."""
     assert uia_fast(None, "привет") is None
+
+
+# =================================================================
+# Формы записи: цель перед словом, команда без цели, «нажми на кнопку»
+# =================================================================
+
+def test_close_current_tab_with_target_before_the_word():
+    """«закрой эту вкладку» — Ctrl+W без UIA (раньше уходило в LLM).
+
+    Регулярка ждёт цель ПОСЛЕ «вкладк», поэтому такая форма не ловилась,
+    хотя UIA для неё не нужна вовсе.
+    """
+    hotkeys = []
+    with patch.object(actions, "hotkey", side_effect=hotkeys.append):
+        reply = uia_fast(None, "закрой эту вкладку")
+
+    assert reply == "Закрыл текущую вкладку."
+    assert hotkeys == [["ctrl", "w"]]
+
+
+def test_close_current_tab_works_without_library():
+    """Тот же случай без библиотеки: это клавиша, UIA не нужна."""
+    hotkeys = []
+    with _without_uiautomation(), \
+            patch.object(actions, "hotkey", side_effect=hotkeys.append):
+        reply = uia_fast(None, "закрой текущую вкладку")
+
+    assert reply == "Закрыл текущую вкладку."
+    assert hotkeys == [["ctrl", "w"]]
+
+
+def test_close_tab_without_name_asks_which():
+    """«закрой вкладку» без имени → переспрос, а не поход в LLM."""
+    assert uia_fast(None, "закрой вкладку") == "Какую вкладку закрыть?"
+
+
+def test_switch_to_current_tab_says_already_open():
+    """«переключись на вкладку эту» → «уже открыта», а не «не нашёл»."""
+    with patch.object(uia, "is_supported", return_value=True):
+        reply = uia_fast(None, "переключись на вкладку эту")
+
+    assert reply == "Эта вкладка уже открыта."
+
+
+def test_press_on_button_phrase_finds_the_button():
+    """«нажми на кнопку ок» ищет кнопку «ок», а не «на кнопку ок».
+
+    Раньше предлог попадал в имя кнопки, и Феникс отвечал
+    «Кнопку «на кнопку ок» не нашёл».
+    """
+    with patch.object(uia, "is_supported", return_value=True), \
+            patch.object(uia, "click_button", return_value=True) as click:
+        reply = uia_fast(None, "нажми на кнопку ок")
+
+    assert reply == "Нажал «ок»."
+    click.assert_called_once_with("ок")
+
+
+def test_press_button_without_name_asks_which():
+    """«нажми кнопку» без имени → переспрос, а не «Кнопку «кнопку» не нашёл»."""
+    assert uia_fast(None, "нажми кнопку") == "Какую кнопку нажать?"
+    assert uia_fast(None, "нажми на кнопку") == "Какую кнопку нажать?"
+
+
+def test_close_named_tab_goes_through_shared_fallback():
+    """Fast-ветка закрытия ходит через общий `_with_fallback` из `jarvis.uia`.
+
+    Так запасной ход Ctrl+W (Яндекс не отдаёт список вкладок) одинаков
+    для фразы и для интента — раньше код был продублирован в одном месте
+    и отсутствовал в другом.
+    """
+    with patch.object(uia, "is_supported", return_value=True), \
+            patch.object(uia, "close_browser_tab_with_fallback",
+                         return_value=True) as close:
+        reply = uia_fast(None, "закрой вкладку ютуб")
+
+    assert reply == "Закрыл вкладку ютуб."
+    close.assert_called_once_with("ютуб")

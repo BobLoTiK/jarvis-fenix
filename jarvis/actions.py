@@ -868,12 +868,17 @@ def close_browser() -> bool:
     №89: раньше был early exit — при открытых Chrome + Firefox + Edge
     закрывался только первый. Теперь проходим по всем и убиваем всё,
     что нашли. Возвращаем True, если хоть один процесс убит.
+
+    Список браузеров берём у UIA (`uia.browser_process_names`) — там же,
+    где Феникс ищет окно браузера. Здесь был свой короткий список из шести
+    имён, и «закрой браузер» не трогал Vivaldi, Arc, Opera GX, Chromium,
+    Tor и прочие — хотя README обещает 20+ браузеров.
     """
+    from jarvis import uia  # локально: jarvis.uia поднимает COM не сразу
+
     any_killed = False
-    for name in ("chrome.exe", "firefox.exe", "msedge.exe",
-                 "opera.exe", "brave.exe", "yandex.exe"):
-        base = name.removesuffix(".exe")
-        if find_process(base) and kill_process(name):
+    for name in uia.browser_process_names():
+        if kill_process(name):
             any_killed = True
     if any_killed:
         log.info("close_browser: закрыл все найденные браузеры")

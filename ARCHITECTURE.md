@@ -765,10 +765,10 @@ actions.spec_from_string(s)
 | `tests/test_weather.py` | погода/курс с моками |
 | `tests/test_caps.py` | структура `system_caps.json` |
 | `tests/test_mood.py` | Mood: состояние, детекция, decay, влияние (29 тестов) |
-| `tests/test_uia.py` | UIA: логика обёртки с моками, сопоставление имён, закрытие вкладки, «нет библиотеки» (39 тестов) |
-| `tests/test_uia_fast.py` | UIA-команды: отказ без библиотеки, Ctrl+W-фолбэк (10 тестов) |
+| `tests/test_uia.py` | UIA: логика обёртки с моками, сопоставление имён, закрытие вкладки, единый список браузеров, «нет библиотеки» (49 тестов) |
+| `tests/test_uia_fast.py` | UIA-команды: отказ без библиотеки, Ctrl+W-фолбэк, формы записи фраз (17 тестов) |
 
-Полный набор — `tests/` (**300 тестов**); `tests/manual/` — ручные прогоны. Интент-скрипт — `tests/test_intents.py` (**32** без LLM/сети, всего **39**); стресс-тест — `tests/stress_intents.py` (**100** ситуаций; ситуации `uia_*` подстраиваются под окружение — в CI нет `uiautomation`, там они проверяют понятный отказ).
+Полный набор — `tests/` (**317 тестов**); `tests/manual/` — ручные прогоны. Интент-скрипт — `tests/test_intents.py` (**32** без LLM/сети, всего **39**); стресс-тест — `tests/stress_intents.py` (**100** ситуаций; ситуации `uia_*` подстраиваются под окружение — в CI нет `uiautomation`, там они проверяют понятный отказ).
 
 **CI:** `.github/workflows/test.yml` — `check_syntax.py` + `pytest tests/` + `tests/test_intents.py` + `tests/stress_intents.py`.
 

@@ -767,14 +767,18 @@ def _do_uia_close_tab(handler, intent, target, query):
     if target.lower() in ("эту", "текущую", "это"):
         actions.hotkey(["ctrl", "w"])
         return "Закрыл текущую вкладку."
-    ok = uia.close_browser_tab(target)
+    # `_with_fallback` — тот же запасной ход Ctrl+W, что и в fast-ветке:
+    # браузер может не отдавать список вкладок (Яндекс группирует их).
+    ok = uia.close_browser_tab_with_fallback(target)
     return f"Закрыл вкладку {target}." if ok else f"Вкладку «{target}» не нашёл."
 
 
 def _do_uia_switch_tab(handler, intent, target, query):
     if not target:
         return "На какую вкладку переключиться?"
-    ok = uia.switch_browser_tab(target)
+    if target.lower() in ("эту", "текущую", "это"):
+        return "Эта вкладка уже открыта."
+    ok = uia.switch_browser_tab_with_fallback(target)
     return f"Переключился на {target}." if ok else f"Вкладку «{target}» не нашёл."
 
 

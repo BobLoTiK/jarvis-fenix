@@ -13,6 +13,8 @@ CI не имеет браузера, поэтому все внешние выз
       вкладке, а если и он не сработал — выбор вкладки + Ctrl+W.
     - Что бывает, когда библиотеки `uiautomation` вообще нет (CI-раннер):
       тогда UIAUnavailable + is_supported() == False, а не голый ImportError.
+    - Что запасной ход Ctrl+W один на оба пути (fast-фраза и интент
+      `uia_close_tab`), и что «закрой браузер» знает все 20+ браузеров.
 """
 
 from unittest.mock import patch, MagicMock
@@ -502,6 +504,131 @@ def test_active_tab_matches_no_browser():
     """Браузера нет → запасной ход не срабатывает."""
     with patch.object(uia, "_get_browser_window", return_value=None):
         assert uia.active_tab_matches("ютуб") is False
+
+
+# =================================================================
+# Единый список браузеров: UIA и «закрой браузер» — из одного места
+# =================================================================
+
+def test_browser_process_names_is_a_single_list():
+    """Имена для «закрой браузер» берутся из того же списка, что и поиск окна.
+
+    В `actions.close_browser` был свой короткий список из шести имён, и
+    команда молча не трогала Vivaldi, Arc, Opera GX, Chromium, LibreWolf,
+    Tor и других — хотя окно такого браузера UIA находит.
+    """
+    names = uia.browser_process_names()
+
+    assert names == sorted(uia._BROWSER_PROCESSES)
+    for exe in ("vivaldi.exe", "arc.exe", "opera_gx.exe", "chromium.exe",
+                "librewolf.exe", "waterfox.exe", "tor.exe"):
+        assert exe in names
+
+
+def test_close_browser_tries_every_known_browser():
+    """«закрой браузер» пробует ВСЕ известные браузеры, и закрывает все.
+
+    №89: ранний выход закрывал только первый найденный браузер.
+    """
+    killed = []
+
+    def fake_kill(name):
+        killed.append(name)
+        return True
+
+    with patch.object(actions, "kill_process", side_effect=fake_kill):
+        assert actions.close_browser() is True
+
+    assert killed == uia.browser_process_names()
+
+
+def test_close_browser_false_when_nothing_is_running():
+    """Ни одного браузера → честное False (ответ «не запущен»)."""
+    with patch.object(actions, "kill_process", return_value=False):
+        assert actions.close_browser() is False
+
+
+# =================================================================
+# Запасные ходы закрытия/переключения вкладки — один код на оба пути
+# =================================================================
+
+def test_close_tab_with_fallback_uses_ctrl_w_when_tabs_unreadable():
+    """Список вкладок не читается, нужная активна → Ctrl+W."""
+    hotkeys = []
+    with patch.object(uia, "close_browser_tab", return_value=False), \
+         patch.object(uia, "read_browser_tabs", return_value=["DeepSeek"]), \
+         patch.object(uia, "active_tab_matches", return_value=True), \
+         patch.object(actions, "hotkey", side_effect=hotkeys.append):
+        assert uia.close_browser_tab_with_fallback("ютуб") is True
+
+    assert hotkeys == [["ctrl", "w"]]
+
+
+def test_close_tab_with_fallback_no_second_ctrl_w_when_list_is_readable():
+    """Список вкладок виден → второе Ctrl+W закрыло бы соседнюю вкладку."""
+    hotkeys = []
+    with patch.object(uia, "close_browser_tab", return_value=False), \
+         patch.object(uia, "read_browser_tabs",
+                      return_value=["YouTube", "Почта"]), \
+         patch.object(uia, "active_tab_matches", return_value=True), \
+         patch.object(actions, "hotkey", side_effect=hotkeys.append):
+        assert uia.close_browser_tab_with_fallback("ютуб") is False
+
+    assert hotkeys == []
+
+
+def test_close_tab_with_fallback_is_honest_when_nothing_matches():
+    """Ни по имени, ни в активной → False, Ctrl+W не жмём."""
+    hotkeys = []
+    with patch.object(uia, "close_browser_tab", return_value=False), \
+         patch.object(uia, "read_browser_tabs", return_value=["DeepSeek"]), \
+         patch.object(uia, "active_tab_matches", return_value=False), \
+         patch.object(actions, "hotkey", side_effect=hotkeys.append):
+        assert uia.close_browser_tab_with_fallback("ютуб") is False
+
+    assert hotkeys == []
+
+
+def test_switch_tab_with_fallback_counts_active_tab_as_success():
+    """Переключаться некуда, но вкладка уже активна → это успех."""
+    with patch.object(uia, "switch_browser_tab", return_value=False), \
+         patch.object(uia, "active_tab_matches", return_value=True):
+        assert uia.switch_browser_tab_with_fallback("ютуб") is True
+
+
+def test_switch_tab_with_fallback_false_when_nowhere_to_switch():
+    with patch.object(uia, "switch_browser_tab", return_value=False), \
+         patch.object(uia, "active_tab_matches", return_value=False):
+        assert uia.switch_browser_tab_with_fallback("ютуб") is False
+
+
+def test_intent_close_tab_uses_the_same_fallback():
+    """Интент-путь (`uia_close_tab`) получает тот же запасной ход Ctrl+W.
+
+    Раньше запасной ход жил только в `fast/uia.py`, и на Яндексе (список
+    вкладок не читается) интент отвечал «Вкладку «ютуб» не нашёл».
+    """
+    from jarvis.intents.execute import _do_uia_close_tab
+
+    with patch.object(uia, "close_browser_tab", return_value=False), \
+         patch.object(uia, "read_browser_tabs", return_value=["DeepSeek"]), \
+         patch.object(uia, "active_tab_matches", return_value=True), \
+         patch.object(actions, "hotkey") as hotkey:
+        reply = _do_uia_close_tab(None, None, "ютуб", None)
+
+    assert reply == "Закрыл вкладку ютуб."
+    hotkey.assert_called_once_with(["ctrl", "w"])
+
+
+def test_intent_switch_to_current_tab_says_already_open():
+    """«переключись на эту вкладку» через интент — не поход в UIA."""
+    from jarvis.intents.execute import _do_uia_switch_tab
+
+    with patch.object(uia, "switch_browser_tab") as switch:
+        reply = _do_uia_switch_tab(None, None, "эту", None)
+
+    assert reply == "Эта вкладка уже открыта."
+    switch.assert_not_called()
 
 
 # =================================================================

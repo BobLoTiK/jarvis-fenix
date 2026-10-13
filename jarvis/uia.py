@@ -322,6 +322,17 @@ def list_browsers() -> list[tuple[str, str]]:
     return sorted(found.items())
 
 
+def browser_process_names() -> list[str]:
+    """Имена .exe всех известных браузеров (отсортировано).
+
+    Единый источник правды для «закрой браузер»: в `actions.close_browser`
+    был свой список из шести имён, и команда молча не трогала Vivaldi, Arc,
+    Opera GX, Chromium, LibreWolf, Tor и остальных — хотя окно такого
+    браузера UIA находит, а README обещает 20+ браузеров.
+    """
+    return sorted(_BROWSER_PROCESSES)
+
+
 def _find_window_by_process(process_names: set[str], timeout: float = 2.0):
     """Ищет видимое окно, чей PID принадлежит процессу из process_names."""
     try:
@@ -811,6 +822,57 @@ def active_tab_matches(query: str) -> bool:
     """
     title = read_browser_tab_title()
     return bool(title) and title_matches(title, query)
+
+
+# -----------------------------------------------------------------
+# Запасные ходы: браузер может не отдавать список вкладок через UIA
+# -----------------------------------------------------------------
+
+def tabs_unreadable() -> bool:
+    """Браузер не отдаёт список вкладок? (видна только активная — и всё)
+
+    Так ведёт себя Яндекс с группировкой вкладок: по вкладкам UIA видит
+    одну активную, выбрать нужную нельзя, и остаётся только Ctrl+W.
+    """
+    try:
+        return len(read_browser_tabs()) <= 1
+    except Exception:
+        log.debug("read_browser_tabs не сработал", exc_info=True)
+        return True
+
+
+def close_browser_tab_with_fallback(tab_title_part: str) -> bool:
+    """`close_browser_tab` + запасной ход Ctrl+W, когда вкладок не видно.
+
+    Раньше этот ход жил только в `intents/fast/uia.py`, а интент-путь
+    (`uia_close_tab` в `intents/execute.py`) о нём не знал: на Яндексе, где
+    список вкладок не читается, Феникс отвечал «Вкладку «ютуб» не нашёл»
+    вместо закрытия. Теперь запасной ход один на оба пути.
+
+    Когда список вкладок читается, `close_browser_tab` жмёт Ctrl+W сам
+    (`_close_tab_by_hotkey`), и второй раз жать нельзя: закрылась бы
+    следующая вкладка с тем же названием — «ютуб» часто открыт не в одном
+    экземпляре. Поэтому здесь Ctrl+W только при `tabs_unreadable()`.
+    """
+    if close_browser_tab(tab_title_part):
+        return True
+    if tabs_unreadable() and active_tab_matches(tab_title_part):
+        from jarvis import actions  # локально: jarvis.actions тянет uia
+        actions.hotkey(["ctrl", "w"])
+        log.info("Вкладка %r активна — закрыл через Ctrl+W", tab_title_part)
+        return True
+    return False
+
+
+def switch_browser_tab_with_fallback(tab_title_part: str) -> bool:
+    """`switch_browser_tab` + случай «нужная вкладка уже активна».
+
+    Если список вкладок не читается, `switch_browser_tab` вернёт False, но
+    переключаться и не нужно: активная вкладка — уже та самая.
+    """
+    if switch_browser_tab(tab_title_part):
+        return True
+    return active_tab_matches(tab_title_part)
 
 
 # =================================================================

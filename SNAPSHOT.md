@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=9e4c72821ce5e94f` · режим `lean` · файлов `163` · строк `30983` · источник `1275 КБ`
+`sha256=451e855ebac45e9e` · режим `lean` · файлов `163` · строк `31292` · источник `1293 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -196,7 +196,7 @@ debug → correction → undo → weather_currency`
 ```bat
 check_all.bat                     :: всё сразу: 4 шага + компактный итог
 python check_syntax.py            :: синтаксис всех .py, включая tests/
-python -m pytest tests\ -q        :: 300 тестов
+python -m pytest tests\ -q        :: 317 тестов
 python tests\test_intents.py      :: 32 сценария без LLM/сети (ИТОГ: 32 / 32)
 python tests\stress_intents.py    :: 100 ситуаций (ИТОГ: 100 / 100)
 python tests\test_intents.py --llm --network   :: + LLM (3-8 мин) и погода/курс
@@ -224,8 +224,9 @@ python tests\test_intents.py --llm --network   :: + LLM (3-8 мин) и пого
 
 _Последняя правка: 13.10.2026, синхронизация с кодом и планом (инсталлятор +
 `build_setup.py`, CI-авторелиз по тегу; все тесты собраны в `tests/`,
-всё гоняется через `check_all.bat`; счётчики: 300 pytest / 32 test_intents /
-100 stress)._
+всё гоняется через `check_all.bat`; счётчики: 317 pytest / 32 test_intents /
+100 stress; углублённое управление браузером — единый список браузеров и
+общий запасной ход Ctrl+W на оба пути)._
 `````
 
 ---
@@ -241,7 +242,7 @@ jarvis/
 │   │   ├── release.yml  (114 стр)
 │   │   ├── test.yml  (64 стр)
 ├── ARCHITECTURE.md  (896 стр)
-├── CHANGELOG.md  (848 стр)
+├── CHANGELOG.md  (883 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -258,7 +259,7 @@ jarvis/
 ├── jarvis/
 │   ├── __init__.py  (8 стр)
 │   ├── __main__.py  (4 стр)
-│   ├── actions.py  (1155 стр)
+│   ├── actions.py  (1160 стр)
 │   ├── apps.py  (114 стр)
 │   ├── brain.py  (831 стр)
 │   ├── celebrations.py  (165 стр)
@@ -272,7 +273,7 @@ jarvis/
 │   ├── intents/
 │   │   ├── __init__.py  (10 стр)
 │   │   ├── context.py  (19 стр)
-│   │   ├── execute.py  (873 стр)
+│   │   ├── execute.py  (877 стр)
 │   │   ├── fast/
 │   │   │   ├── __init__.py  (54 стр)
 │   │   │   ├── correction.py  (28 стр)
@@ -289,7 +290,7 @@ jarvis/
 │   │   │   ├── system.py  (130 стр)
 │   │   │   ├── tasks.py  (7 стр)
 │   │   │   ├── timers.py  (7 стр)
-│   │   │   ├── uia.py  (180 стр)
+│   │   │   ├── uia.py  (174 стр)
 │   │   │   ├── undo.py  (67 стр)
 │   │   │   ├── voices.py  (10 стр)
 │   │   │   ├── weather.py  (113 стр)
@@ -341,7 +342,7 @@ jarvis/
 │   │   ├── sapi.py  (113 стр)
 │   │   ├── silero.py  (215 стр)
 │   │   ├── winrt.py  (158 стр)
-│   ├── uia.py  (907 стр)
+│   ├── uia.py  (969 стр)
 │   ├── vad.py  (567 стр)
 │   ├── voices.py  (220 стр)
 │   ├── weather.py  (394 стр)
@@ -355,8 +356,8 @@ jarvis/
 │   ├── system.json  (17 стр)
 │   ├── work.json  (11 стр)
 ├── PLAN.md  (908 стр)
-├── PROJECT.md  (216 стр)
-├── PROMPT.md  (491 стр)
+├── PROJECT.md  (217 стр)
+├── PROMPT.md  (494 стр)
 ├── pytest.ini  (20 стр)
 ├── README.md  (943 стр)
 ├── requirements-ci.txt  (24 стр)
@@ -404,8 +405,8 @@ jarvis/
 │   ├── test_stt.py  (435 стр)
 │   ├── test_tray.py  (180 стр)
 │   ├── test_tts.py  (243 стр)
-│   ├── test_uia.py  (661 стр)
-│   ├── test_uia_fast.py  (160 стр)
+│   ├── test_uia.py  (788 стр)
+│   ├── test_uia_fast.py  (238 стр)
 │   ├── test_vad.py  (333 стр)
 │   ├── test_vad_model.py  (273 стр)
 │   ├── test_weather.py  (237 стр)
@@ -1396,6 +1397,7 @@ jarvis/
   _BROWSER_PROCESSES = ...
   def list_windows()
   def list_browsers()
+  def browser_process_names()
   def find_browser_window()
   def read_browser_url()
   def read_browser_tab_title()
@@ -1408,6 +1410,9 @@ jarvis/
   def close_browser_tab(tab_title_part: str)
   def switch_browser_tab(tab_title_part: str)
   def active_tab_matches(query: str)
+  def tabs_unreadable()
+  def close_browser_tab_with_fallback(tab_title_part: str)
+  def switch_browser_tab_with_fallback(tab_title_part: str)
   def click_menu_item(path: str)
   def is_supported()
   def is_available()
@@ -2095,6 +2100,16 @@ jarvis/
   def test_switch_browser_tab_russian_name()
   def test_active_tab_matches_russian_query()
   def test_active_tab_matches_no_browser()
+  def test_browser_process_names_is_a_single_list()
+  def test_close_browser_tries_every_known_browser()
+  def test_close_browser_false_when_nothing_is_running()
+  def test_close_tab_with_fallback_uses_ctrl_w_when_tabs_unreadable()
+  def test_close_tab_with_fallback_no_second_ctrl_w_when_list_is_readable()
+  def test_close_tab_with_fallback_is_honest_when_nothing_matches()
+  def test_switch_tab_with_fallback_counts_active_tab_as_success()
+  def test_switch_tab_with_fallback_false_when_nowhere_to_switch()
+  def test_intent_close_tab_uses_the_same_fallback()
+  def test_intent_switch_to_current_tab_says_already_open()
   def test_read_browser_url_no_browser()
   def test_read_browser_url_from_edit()
   def test_read_browser_url_fallback_from_title()
@@ -2123,6 +2138,13 @@ jarvis/
   def test_close_named_tab_not_found_answers_honestly()
   def test_switch_to_active_tab_is_not_a_failure()
   def test_not_our_command_returns_none()
+  def test_close_current_tab_with_target_before_the_word()
+  def test_close_current_tab_works_without_library()
+  def test_close_tab_without_name_asks_which()
+  def test_switch_to_current_tab_says_already_open()
+  def test_press_on_button_phrase_finds_the_button()
+  def test_press_button_without_name_asks_which()
+  def test_close_named_tab_goes_through_shared_fallback()
 ```
 
 **`tests/test_vad.py`**
@@ -2319,7 +2341,7 @@ jarvis/
 |---|---:|---|---|
 | `jarvis/__init__.py` | 8 | code | Феникс — локальный голосовой ассистент для Windows. |
 | `jarvis/__main__.py` | 4 | code |  |
-| `jarvis/actions.py` | 1155 | code | Действия: запуск приложений, открытие сайтов, скриншоты, медиа, печать |
+| `jarvis/actions.py` | 1160 | code | Действия: запуск приложений, открытие сайтов, скриншоты, медиа, печать |
 | `jarvis/apps.py` | 114 | code | Каталог известных приложений: как их зовут голосом, как открыть и как  |
 | `jarvis/brain.py` | 831 | code | LLM-фолбэк: локальная нейронка (Ollama) разбирает команду в структурны |
 | `jarvis/celebrations.py` | 165 | code | Праздничные триггеры — поздравление с ДР + двойной салют. |
@@ -2332,7 +2354,7 @@ jarvis/
 | `jarvis/installed.py` | 51 | code | Индекс установленных программ по ярлыкам меню «Пуск». |
 | `jarvis/intents/__init__.py` | 10 | code | Разбор команд Феникса — пакет. |
 | `jarvis/intents/context.py` | 19 | code | Контекст, который передаётся между стадиями pipeline. |
-| `jarvis/intents/execute.py` | 873 | code | Dispatch: action → функция-обработчик. |
+| `jarvis/intents/execute.py` | 877 | code | Dispatch: action → функция-обработчик. |
 | `jarvis/intents/fast/__init__.py` | 54 | code | Реестр быстрых обработчиков. |
 | `jarvis/intents/fast/correction.py` | 28 | code | Коррекция: «это не то, я сказал логи». |
 | `jarvis/intents/fast/custom.py` | 72 | code | Пользовательские команды: из config.json и из паков. |
@@ -2348,7 +2370,7 @@ jarvis/
 | `jarvis/intents/fast/system.py` | 130 | code | Системные команды: раскладка, громкость, яркость. |
 | `jarvis/intents/fast/tasks.py` | 7 | code | Задачи — обёртка над `tasks`. |
 | `jarvis/intents/fast/timers.py` | 7 | code | Напоминания — обёртка над `timers`. |
-| `jarvis/intents/fast/uia.py` | 180 | code | UIA-команды голосом: «прочитай окно», «закрой вкладку ютуб», «какой са |
+| `jarvis/intents/fast/uia.py` | 174 | code | UIA-команды голосом: «прочитай окно», «закрой вкладку ютуб», «какой са |
 | `jarvis/intents/fast/undo.py` | 67 | code | Отмена последнего действия («не то», «отмени»). |
 | `jarvis/intents/fast/voices.py` | 10 | code | Голоса Piper — обёртка над модулем `voices`. |
 | `jarvis/intents/fast/weather.py` | 113 | code | Простые правила для погоды и курса — без LLM. |
@@ -2398,7 +2420,7 @@ jarvis/
 | `jarvis/tts_engines/sapi.py` | 113 | code | SAPI TTS — старый Windows-синтез через pyttsx3. |
 | `jarvis/tts_engines/silero.py` | 215 | code | Silero TTS v5_5 — русский голос, ~150 МБ, требует PyTorch. |
 | `jarvis/tts_engines/winrt.py` | 158 | code | WinRT TTS — системный синтез Windows, без внешних моделей. |
-| `jarvis/uia.py` | 907 | code | UI Automation — видим окна и элементы интерфейса. |
+| `jarvis/uia.py` | 969 | code | UI Automation — видим окна и элементы интерфейса. |
 | `jarvis/vad.py` | 567 | code | Silero VAD — детекция речи в аудио-потоке с адаптивным порогом. |
 | `jarvis/voices.py` | 220 | code | Управление голосами TTS — работает через tts_engines. |
 | `jarvis/weather.py` | 394 | code | Погода и курс валют. |
@@ -2437,8 +2459,8 @@ jarvis/
 | `tests/test_stt.py` | 435 | code | stt.Listener: живое применение настроек (то, что раньше не работало). |
 | `tests/test_tray.py` | 180 | code | Трей (jarvis.tray): пункты меню реально дёргают ядро и GUI. |
 | `tests/test_tts.py` | 243 | code | Тесты jarvis.tts_engines — движки и фабрика. С моками. |
-| `tests/test_uia.py` | 661 | code | Тесты jarvis.uia — логика обёртки. С моками. |
-| `tests/test_uia_fast.py` | 160 | code | Тесты быстрых UIA-команд — `jarvis/intents/fast/uia.py`. |
+| `tests/test_uia.py` | 788 | code | Тесты jarvis.uia — логика обёртки. С моками. |
+| `tests/test_uia_fast.py` | 238 | code | Тесты быстрых UIA-команд — `jarvis/intents/fast/uia.py`. |
 | `tests/test_vad.py` | 333 | code | Тесты jarvis.vad — Silero VAD ONNX. |
 | `tests/test_vad_model.py` | 273 | code | Авто-скачивание модели Silero VAD (jarvis.vad). |
 | `tests/test_weather.py` | 237 | code | Тесты weather: структура ответов, describe_*, geocode с моками. |
@@ -3277,12 +3299,12 @@ def kill_process(name: str) -> bool:
 
 
 def close_browser() -> bool:
-    """Закрывает ВСЕ известные браузеры. ... [5 строк]"""
+    """Закрывает ВСЕ известные браузеры. ... [10 строк]"""
+    from jarvis import uia  # локально: jarvis.uia поднимает COM не сразу
+
     any_killed = False
-    for name in ("chrome.exe", "firefox.exe", "msedge.exe",
-                 "opera.exe", "brave.exe", "yandex.exe"):
-        base = name.removesuffix(".exe")
-        if find_process(base) and kill_process(name):
+    for name in uia.browser_process_names():
+        if kill_process(name):
             any_killed = True
     if any_killed:
         log.info("close_browser: закрыл все найденные браузеры")
@@ -8124,14 +8146,18 @@ def _do_uia_close_tab(handler, intent, target, query):
     if target.lower() in ("эту", "текущую", "это"):
         actions.hotkey(["ctrl", "w"])
         return "Закрыл текущую вкладку."
-    ok = uia.close_browser_tab(target)
+    # `_with_fallback` — тот же запасной ход Ctrl+W, что и в fast-ветке:
+    # браузер может не отдавать список вкладок (Яндекс группирует их).
+    ok = uia.close_browser_tab_with_fallback(target)
     return f"Закрыл вкладку {target}." if ok else f"Вкладку «{target}» не нашёл."
 
 
 def _do_uia_switch_tab(handler, intent, target, query):
     if not target:
         return "На какую вкладку переключиться?"
-    ok = uia.switch_browser_tab(target)
+    if target.lower() in ("эту", "текущую", "это"):
+        return "Эта вкладка уже открыта."
+    ok = uia.switch_browser_tab_with_fallback(target)
     return f"Переключился на {target}." if ok else f"Вкладку «{target}» не нашёл."
 
 
@@ -9096,15 +9122,6 @@ UIA_MISSING_REPLY = (
 )
 
 
-def _tabs_unreadable() -> bool:
-    """Браузер не отдаёт список вкладок? (видна только активная — и всё) ... [4 строк]"""
-    try:
-        return len(uia.read_browser_tabs()) <= 1
-    except Exception:
-        log.debug("read_browser_tabs не сработал", exc_info=True)
-        return True
-
-
 def _require_uia() -> None:
     """Нет библиотеки `uiautomation` → бросаем `UIAUnavailable`. ... [7 строк]"""
     if not uia.is_supported():
@@ -9172,6 +9189,15 @@ def _uia_fast_impl(handler, cmd: str) -> str | None:
         return "Открыты: " + "; ".join(short) + "."
 
     # === Закрыть вкладку ===
+    # Одна команда в двух формах записи: «закрой вкладку ютуб» (цель после
+    # слова) и «закрой эту вкладку» (цель перед ним). Вторую ловим отдельно:
+    # регулярка ниже ждёт цель ПОСЛЕ «вкладк», поэтому такая фраза уходила
+    # в LLM, хотя UIA для неё не нужна вовсе.
+    if re.search(r"закр\w+\s+(?:эту|текущую|это)\s+вкладк", cmd):
+        from jarvis import actions
+        actions.hotkey(["ctrl", "w"])
+        return "Закрыл текущую вкладку."
+
     m = re.search(r"закр\w+\s+вкладк\w*\s+(.+)", cmd)
     if m:
         target = m.group(1).strip().rstrip(".,!?")
@@ -9180,39 +9206,37 @@ def _uia_fast_impl(handler, cmd: str) -> str | None:
             from jarvis import actions
             actions.hotkey(["ctrl", "w"])
             return "Закрыл текущую вкладку."
-        # Остальные вкладки ищем через UIA.
+        # Остальные вкладки ищем через UIA. Запасной ход Ctrl+W (Яндекс не
+        # отдаёт список вкладок) живёт в `uia.close_browser_tab_with_fallback`
+        # — тем же путём ходит интент-обработчик.
         _require_uia()
-        ok = uia.close_browser_tab(target)
-        if not ok and _tabs_unreadable() and uia.active_tab_matches(target):
-            # Вкладки через UIA не видны (Яндекс группирует их), но нужная
-            # вкладка активна — значит хватит Ctrl+W.
-            #
-            # Когда список вкладок читается, `close_browser_tab` сам выбирает
-            # вкладку и жмёт Ctrl+W (`_close_tab_by_hotkey`). Жать второй раз
-            # нельзя: закрылась бы следующая вкладка с тем же названием —
-            # «ютуб» часто открыт не в одном экземпляре.
-            from jarvis import actions
-            actions.hotkey(["ctrl", "w"])
-            log.info("Вкладка %r активна — закрыл через Ctrl+W", target)
-            ok = True
+        ok = uia.close_browser_tab_with_fallback(target)
         return f"Закрыл вкладку {target}." if ok else f"Вкладку «{target}» не нашёл."
+
+    # «закрой вкладку» без имени — переспрашиваем, какую (тот же ответ,
+    # что в `intents/execute.py`).
+    if re.search(r"закр\w+\s+вкладк\w*$", cmd):
+        return "Какую вкладку закрыть?"
 
     # === Переключиться на вкладку ===
     m = re.search(r"переключ\w*\s+(?:на\s+)?вкладк\w*\s+(.+)", cmd) \
         or re.search(r"перейди\s+на\s+вкладк\w*\s+(.+)", cmd)
     if m:
         target = m.group(1).strip().rstrip(".,!?")
+        if target in ("эту", "текущую", "это"):
+            return "Эта вкладка уже открыта."
         _require_uia()
-        ok = uia.switch_browser_tab(target)
-        if not ok and uia.active_tab_matches(target):
-            # Вкладки через UIA не видно, но нужная уже активна.
-            ok = True
+        ok = uia.switch_browser_tab_with_fallback(target)
         return f"Переключился на {target}." if ok else f"Вкладку «{target}» не нашёл."
 
     # === Нажать кнопку ===
-    m = re.search(r"нажми\s+(?:кнопку\s+)?(.+)", cmd)
+    # «нажми ок», «нажми кнопку ок», «нажми на кнопку ок» — все три формы.
+    m = re.search(r"нажми\s+(?:на\s+)?(?:кнопку\s+)?(.+)", cmd)
     if m:
         target = m.group(1).strip().rstrip(".,!?")
+        # «нажми кнопку» без имени — переспрашиваем, какую.
+        if target.lower() in ("кнопку", "на кнопку"):
+            return "Какую кнопку нажать?"
         # «нажми enter» / «нажми tab» — это клавиши, не кнопки.
         if target.lower() in ("enter", "escape", "esc", "tab", "space",
                               "пробел", "энтер", "эскейп"):
@@ -16416,6 +16440,11 @@ def list_browsers() -> list[tuple[str, str]]:
     return sorted(found.items())
 
 
+def browser_process_names() -> list[str]:
+    """Имена .exe всех известных браузеров (отсортировано). ... [6 строк]"""
+    return sorted(_BROWSER_PROCESSES)
+
+
 def _find_window_by_process(process_names: set[str], timeout: float = 2.0):
     """Ищет видимое окно, чей PID принадлежит процессу из process_names."""
     try:
@@ -16846,6 +16875,38 @@ def active_tab_matches(query: str) -> bool:
     """Активная вкладка — это та, которую просят? ... [5 строк]"""
     title = read_browser_tab_title()
     return bool(title) and title_matches(title, query)
+
+
+# -----------------------------------------------------------------
+# Запасные ходы: браузер может не отдавать список вкладок через UIA
+# -----------------------------------------------------------------
+
+def tabs_unreadable() -> bool:
+    """Браузер не отдаёт список вкладок? (видна только активная — и всё) ... [4 строк]"""
+    try:
+        return len(read_browser_tabs()) <= 1
+    except Exception:
+        log.debug("read_browser_tabs не сработал", exc_info=True)
+        return True
+
+
+def close_browser_tab_with_fallback(tab_title_part: str) -> bool:
+    """`close_browser_tab` + запасной ход Ctrl+W, когда вкладок не видно. ... [11 строк]"""
+    if close_browser_tab(tab_title_part):
+        return True
+    if tabs_unreadable() and active_tab_matches(tab_title_part):
+        from jarvis import actions  # локально: jarvis.actions тянет uia
+        actions.hotkey(["ctrl", "w"])
+        log.info("Вкладка %r активна — закрыл через Ctrl+W", tab_title_part)
+        return True
+    return False
+
+
+def switch_browser_tab_with_fallback(tab_title_part: str) -> bool:
+    """`switch_browser_tab` + случай «нужная вкладка уже активна». ... [4 строк]"""
+    if switch_browser_tab(tab_title_part):
+        return True
+    return active_tab_matches(tab_title_part)
 
 
 # =================================================================
@@ -22856,7 +22917,7 @@ def test_do_change_voice_switch_and_history():
 ### `tests/test_uia.py`
 
 ```python
-"""Тесты jarvis.uia — логика обёртки. С моками. ... [15 строк]"""
+"""Тесты jarvis.uia — логика обёртки. С моками. ... [17 строк]"""
 
 from unittest.mock import patch, MagicMock
 
@@ -23324,6 +23385,119 @@ def test_active_tab_matches_no_browser():
 
 
 # =================================================================
+# Единый список браузеров: UIA и «закрой браузер» — из одного места
+# =================================================================
+
+def test_browser_process_names_is_a_single_list():
+    """Имена для «закрой браузер» берутся из того же списка, что и поиск окна. ... [5 строк]"""
+    names = uia.browser_process_names()
+
+    assert names == sorted(uia._BROWSER_PROCESSES)
+    for exe in ("vivaldi.exe", "arc.exe", "opera_gx.exe", "chromium.exe",
+                "librewolf.exe", "waterfox.exe", "tor.exe"):
+        assert exe in names
+
+
+def test_close_browser_tries_every_known_browser():
+    """«закрой браузер» пробует ВСЕ известные браузеры, и закрывает все. ... [3 строк]"""
+    killed = []
+
+    def fake_kill(name):
+        killed.append(name)
+        return True
+
+    with patch.object(actions, "kill_process", side_effect=fake_kill):
+        assert actions.close_browser() is True
+
+    assert killed == uia.browser_process_names()
+
+
+def test_close_browser_false_when_nothing_is_running():
+    """Ни одного браузера → честное False (ответ «не запущен»)."""
+    with patch.object(actions, "kill_process", return_value=False):
+        assert actions.close_browser() is False
+
+
+# =================================================================
+# Запасные ходы закрытия/переключения вкладки — один код на оба пути
+# =================================================================
+
+def test_close_tab_with_fallback_uses_ctrl_w_when_tabs_unreadable():
+    """Список вкладок не читается, нужная активна → Ctrl+W."""
+    hotkeys = []
+    with patch.object(uia, "close_browser_tab", return_value=False), \
+         patch.object(uia, "read_browser_tabs", return_value=["DeepSeek"]), \
+         patch.object(uia, "active_tab_matches", return_value=True), \
+         patch.object(actions, "hotkey", side_effect=hotkeys.append):
+        assert uia.close_browser_tab_with_fallback("ютуб") is True
+
+    assert hotkeys == [["ctrl", "w"]]
+
+
+def test_close_tab_with_fallback_no_second_ctrl_w_when_list_is_readable():
+    """Список вкладок виден → второе Ctrl+W закрыло бы соседнюю вкладку."""
+    hotkeys = []
+    with patch.object(uia, "close_browser_tab", return_value=False), \
+         patch.object(uia, "read_browser_tabs",
+                      return_value=["YouTube", "Почта"]), \
+         patch.object(uia, "active_tab_matches", return_value=True), \
+         patch.object(actions, "hotkey", side_effect=hotkeys.append):
+        assert uia.close_browser_tab_with_fallback("ютуб") is False
+
+    assert hotkeys == []
+
+
+def test_close_tab_with_fallback_is_honest_when_nothing_matches():
+    """Ни по имени, ни в активной → False, Ctrl+W не жмём."""
+    hotkeys = []
+    with patch.object(uia, "close_browser_tab", return_value=False), \
+         patch.object(uia, "read_browser_tabs", return_value=["DeepSeek"]), \
+         patch.object(uia, "active_tab_matches", return_value=False), \
+         patch.object(actions, "hotkey", side_effect=hotkeys.append):
+        assert uia.close_browser_tab_with_fallback("ютуб") is False
+
+    assert hotkeys == []
+
+
+def test_switch_tab_with_fallback_counts_active_tab_as_success():
+    """Переключаться некуда, но вкладка уже активна → это успех."""
+    with patch.object(uia, "switch_browser_tab", return_value=False), \
+         patch.object(uia, "active_tab_matches", return_value=True):
+        assert uia.switch_browser_tab_with_fallback("ютуб") is True
+
+
+def test_switch_tab_with_fallback_false_when_nowhere_to_switch():
+    with patch.object(uia, "switch_browser_tab", return_value=False), \
+         patch.object(uia, "active_tab_matches", return_value=False):
+        assert uia.switch_browser_tab_with_fallback("ютуб") is False
+
+
+def test_intent_close_tab_uses_the_same_fallback():
+    """Интент-путь (`uia_close_tab`) получает тот же запасной ход Ctrl+W. ... [4 строк]"""
+    from jarvis.intents.execute import _do_uia_close_tab
+
+    with patch.object(uia, "close_browser_tab", return_value=False), \
+         patch.object(uia, "read_browser_tabs", return_value=["DeepSeek"]), \
+         patch.object(uia, "active_tab_matches", return_value=True), \
+         patch.object(actions, "hotkey") as hotkey:
+        reply = _do_uia_close_tab(None, None, "ютуб", None)
+
+    assert reply == "Закрыл вкладку ютуб."
+    hotkey.assert_called_once_with(["ctrl", "w"])
+
+
+def test_intent_switch_to_current_tab_says_already_open():
+    """«переключись на эту вкладку» через интент — не поход в UIA."""
+    from jarvis.intents.execute import _do_uia_switch_tab
+
+    with patch.object(uia, "switch_browser_tab") as switch:
+        reply = _do_uia_switch_tab(None, None, "эту", None)
+
+    assert reply == "Эта вкладка уже открыта."
+    switch.assert_not_called()
+
+
+# =================================================================
 # read_browser_url
 # =================================================================
 
@@ -23609,6 +23783,71 @@ def test_switch_to_active_tab_is_not_a_failure():
 def test_not_our_command_returns_none():
     """Не наша фраза → None: дальше подключаются другие стадии."""
     assert uia_fast(None, "привет") is None
+
+
+# =================================================================
+# Формы записи: цель перед словом, команда без цели, «нажми на кнопку»
+# =================================================================
+
+def test_close_current_tab_with_target_before_the_word():
+    """«закрой эту вкладку» — Ctrl+W без UIA (раньше уходило в LLM). ... [4 строк]"""
+    hotkeys = []
+    with patch.object(actions, "hotkey", side_effect=hotkeys.append):
+        reply = uia_fast(None, "закрой эту вкладку")
+
+    assert reply == "Закрыл текущую вкладку."
+    assert hotkeys == [["ctrl", "w"]]
+
+
+def test_close_current_tab_works_without_library():
+    """Тот же случай без библиотеки: это клавиша, UIA не нужна."""
+    hotkeys = []
+    with _without_uiautomation(), \
+            patch.object(actions, "hotkey", side_effect=hotkeys.append):
+        reply = uia_fast(None, "закрой текущую вкладку")
+
+    assert reply == "Закрыл текущую вкладку."
+    assert hotkeys == [["ctrl", "w"]]
+
+
+def test_close_tab_without_name_asks_which():
+    """«закрой вкладку» без имени → переспрос, а не поход в LLM."""
+    assert uia_fast(None, "закрой вкладку") == "Какую вкладку закрыть?"
+
+
+def test_switch_to_current_tab_says_already_open():
+    """«переключись на вкладку эту» → «уже открыта», а не «не нашёл»."""
+    with patch.object(uia, "is_supported", return_value=True):
+        reply = uia_fast(None, "переключись на вкладку эту")
+
+    assert reply == "Эта вкладка уже открыта."
+
+
+def test_press_on_button_phrase_finds_the_button():
+    """«нажми на кнопку ок» ищет кнопку «ок», а не «на кнопку ок». ... [4 строк]"""
+    with patch.object(uia, "is_supported", return_value=True), \
+            patch.object(uia, "click_button", return_value=True) as click:
+        reply = uia_fast(None, "нажми на кнопку ок")
+
+    assert reply == "Нажал «ок»."
+    click.assert_called_once_with("ок")
+
+
+def test_press_button_without_name_asks_which():
+    """«нажми кнопку» без имени → переспрос, а не «Кнопку «кнопку» не нашёл»."""
+    assert uia_fast(None, "нажми кнопку") == "Какую кнопку нажать?"
+    assert uia_fast(None, "нажми на кнопку") == "Какую кнопку нажать?"
+
+
+def test_close_named_tab_goes_through_shared_fallback():
+    """Fast-ветка закрытия ходит через общий `_with_fallback` из `jarvis.uia`. ... [5 строк]"""
+    with patch.object(uia, "is_supported", return_value=True), \
+            patch.object(uia, "close_browser_tab_with_fallback",
+                         return_value=True) as close:
+        reply = uia_fast(None, "закрой вкладку ютуб")
+
+    assert reply == "Закрыл вкладку ютуб."
+    close.assert_called_once_with("ютуб")
 ```
 
 ### `tests/test_vad.py`
@@ -27311,7 +27550,7 @@ onnxruntime>=1.17
     - `scripts/make_installer_images.py`
     - `scripts/build_exe.py`
 
-#### `CHANGELOG.md` — 63 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 64 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
   - 📑 Содержание
@@ -27322,6 +27561,7 @@ onnxruntime>=1.17
         - 🕐 Время — добавлены естественные формулировки
       - 🐛 Исправлено
         - 🖥 UIA без библиотеки — понятный отказ вместо «LLM недоступна»
+        - 🌐 Углублённое управление браузером — что упустил первый проход
         - 📦 Установщик (Inno Setup) — доведён до рабочего состояния
       - ✨ Добавлено
         - 🛠 `scripts/build_setup.py` — вся сборка одной командой
@@ -27352,7 +27592,6 @@ onnxruntime>=1.17
         - 📋 PROJECT.md — источник правды
         - 🧰 snapshot.py — переписан
       - 🐛 Погода — падежи городов
-      - 🔧 Исправлено (аудит 10.10.2026)
 
 #### `CI.md` — 13 заголовков, полный текст не включён (дублирует PROJECT.md)
 

@@ -10,8 +10,8 @@
 понятным отказом «UI Automation недоступна...», а не падаем в LLM.
 
 Проверяемся ПЕРЕД каждым действием, которое UIA требует (`_require_uia`),
-а не на входе: «нажми enter» и «закрой вкладку эту» (Ctrl+W) — это клавиши,
-они работают и без библиотеки.
+а не на входе: «нажми enter», «закрой эту вкладку» и «закрой вкладку эту»
+(Ctrl+W) — это клавиши, они работают и без библиотеки.
 """
 
 import logging
@@ -28,19 +28,6 @@ UIA_MISSING_REPLY = (
     "UI Automation недоступна: не установлена библиотека uiautomation. "
     f"Установите её: {uia.UIA_PIP_HINT}"
 )
-
-
-def _tabs_unreadable() -> bool:
-    """Браузер не отдаёт список вкладок? (видна только активная — и всё)
-
-    Это случай Яндекса с группировкой вкладок: по вкладкам UIA видит
-    одну активную, выбрать вкладку нельзя, и остаётся только Ctrl+W.
-    """
-    try:
-        return len(uia.read_browser_tabs()) <= 1
-    except Exception:
-        log.debug("read_browser_tabs не сработал", exc_info=True)
-        return True
 
 
 def _require_uia() -> None:
@@ -122,6 +109,15 @@ def _uia_fast_impl(handler, cmd: str) -> str | None:
         return "Открыты: " + "; ".join(short) + "."
 
     # === Закрыть вкладку ===
+    # Одна команда в двух формах записи: «закрой вкладку ютуб» (цель после
+    # слова) и «закрой эту вкладку» (цель перед ним). Вторую ловим отдельно:
+    # регулярка ниже ждёт цель ПОСЛЕ «вкладк», поэтому такая фраза уходила
+    # в LLM, хотя UIA для неё не нужна вовсе.
+    if re.search(r"закр\w+\s+(?:эту|текущую|это)\s+вкладк", cmd):
+        from jarvis import actions
+        actions.hotkey(["ctrl", "w"])
+        return "Закрыл текущую вкладку."
+
     m = re.search(r"закр\w+\s+вкладк\w*\s+(.+)", cmd)
     if m:
         target = m.group(1).strip().rstrip(".,!?")
@@ -130,39 +126,37 @@ def _uia_fast_impl(handler, cmd: str) -> str | None:
             from jarvis import actions
             actions.hotkey(["ctrl", "w"])
             return "Закрыл текущую вкладку."
-        # Остальные вкладки ищем через UIA.
+        # Остальные вкладки ищем через UIA. Запасной ход Ctrl+W (Яндекс не
+        # отдаёт список вкладок) живёт в `uia.close_browser_tab_with_fallback`
+        # — тем же путём ходит интент-обработчик.
         _require_uia()
-        ok = uia.close_browser_tab(target)
-        if not ok and _tabs_unreadable() and uia.active_tab_matches(target):
-            # Вкладки через UIA не видны (Яндекс группирует их), но нужная
-            # вкладка активна — значит хватит Ctrl+W.
-            #
-            # Когда список вкладок читается, `close_browser_tab` сам выбирает
-            # вкладку и жмёт Ctrl+W (`_close_tab_by_hotkey`). Жать второй раз
-            # нельзя: закрылась бы следующая вкладка с тем же названием —
-            # «ютуб» часто открыт не в одном экземпляре.
-            from jarvis import actions
-            actions.hotkey(["ctrl", "w"])
-            log.info("Вкладка %r активна — закрыл через Ctrl+W", target)
-            ok = True
+        ok = uia.close_browser_tab_with_fallback(target)
         return f"Закрыл вкладку {target}." if ok else f"Вкладку «{target}» не нашёл."
+
+    # «закрой вкладку» без имени — переспрашиваем, какую (тот же ответ,
+    # что в `intents/execute.py`).
+    if re.search(r"закр\w+\s+вкладк\w*$", cmd):
+        return "Какую вкладку закрыть?"
 
     # === Переключиться на вкладку ===
     m = re.search(r"переключ\w*\s+(?:на\s+)?вкладк\w*\s+(.+)", cmd) \
         or re.search(r"перейди\s+на\s+вкладк\w*\s+(.+)", cmd)
     if m:
         target = m.group(1).strip().rstrip(".,!?")
+        if target in ("эту", "текущую", "это"):
+            return "Эта вкладка уже открыта."
         _require_uia()
-        ok = uia.switch_browser_tab(target)
-        if not ok and uia.active_tab_matches(target):
-            # Вкладки через UIA не видно, но нужная уже активна.
-            ok = True
+        ok = uia.switch_browser_tab_with_fallback(target)
         return f"Переключился на {target}." if ok else f"Вкладку «{target}» не нашёл."
 
     # === Нажать кнопку ===
-    m = re.search(r"нажми\s+(?:кнопку\s+)?(.+)", cmd)
+    # «нажми ок», «нажми кнопку ок», «нажми на кнопку ок» — все три формы.
+    m = re.search(r"нажми\s+(?:на\s+)?(?:кнопку\s+)?(.+)", cmd)
     if m:
         target = m.group(1).strip().rstrip(".,!?")
+        # «нажми кнопку» без имени — переспрашиваем, какую.
+        if target.lower() in ("кнопку", "на кнопку"):
+            return "Какую кнопку нажать?"
         # «нажми enter» / «нажми tab» — это клавиши, не кнопки.
         if target.lower() in ("enter", "escape", "esc", "tab", "space",
                               "пробел", "энтер", "эскейп"):
