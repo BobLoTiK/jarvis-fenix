@@ -1,17 +1,27 @@
 ; Inno Setup скрипт для Феникса.
 ;
 ; Собирает установщик Феникс_Setup.exe:
-;   - Копирует всю папку проекта в Program Files\Феникс
+;   - Копирует сборку в C:\ProgramData\Phoenix (ASCII-путь из paths.py)
 ;   - Создаёт ярлык в меню Пуск
 ;   - Создаёт ярлык на рабочем столе (опционально)
 ;   - Добавляет в автозапуск (опционально)
 ;
-; Сборка:
+; Почему ProgramData: Vosk (C++/Kaldi) падает на не-ASCII путях,
+; а PROGRAM_DIR из jarvis/paths.py должен быть без кириллицы.
+;
+; Сборка (автоматически — из корня проекта):
+;   python scripts\build_setup.py
+;
+; Сборка (вручную):
 ;   1. Установи Inno Setup: https://jrsoftware.org/isdl.php
-;   2. Открой installer.iss в Inno Setup Compiler
-;   3. Нажми Build → Build
+;   2. python scripts\build_exe.py   (сначала обновить Феникс.exe)
+;   3. Открой installer.iss в Inno Setup Compiler
+;   4. Нажми Build → Build
 ;
 ; Результат: dist\Феникс_Setup.exe
+;
+; Обновление поверх старой версии: .venv311, models\ и данные в
+; %APPDATA%\Phoenix НЕ трогаются — Inno только перезаписывает код.
 
 #define MyAppName "Феникс"
 #define MyAppVersion "1.0.0"
@@ -30,10 +40,11 @@ AppUpdatesURL={#MyAppURL}
 DefaultDirName={commonappdata}\Phoenix
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
-LicenseFile=README.md
+LicenseFile=LICENSE
 OutputDir=dist
 OutputBaseFilename=Феникс_Setup
 SetupIconFile=jarvis\icon.ico
+UninstallDisplayIcon={app}\{#MyAppExeName}
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
@@ -43,6 +54,12 @@ WizardImageStretch=yes
 WizardImageBackColor=$00160E0A
 PrivilegesRequired=lowest
 ArchitecturesInstallIn64BitMode=x64compatible
+; Тот же мьютекс, что в launcher.py — Inno попросит закрыть
+; запущенного Феникса перед перезаписью файлов.
+AppMutex=Local\JarvisPhoenixSingleInstance
+; При обновлении поверх работающего Феникса — не требовать перезагрузки
+CloseApplications=yes
+RestartApplications=no
 
 [Languages]
 Name: "russian"; MessagesFile: "compiler:Languages\Russian.isl"
@@ -51,22 +68,33 @@ Name: "russian"; MessagesFile: "compiler:Languages\Russian.isl"
 Name: "desktopicon"; Description: "Создать ярлык на рабочем столе"; GroupDescription: "Ярлыки:"; Flags: checkedonce
 Name: "autostart"; Description: "Запускать Феникс при старте Windows"; GroupDescription: "Автозапуск:"; Flags: unchecked
 
+[Dirs]
+; models\ — сюда лаунчер качает Vosk-модель (~45 МБ) при первом запуске
+Name: "{app}\models"
+; runtime\ — ASCII-фоллбэк из paths.py (PROGRAM_DIR)
+Name: "{app}\runtime"
+
 [Files]
 ; Главный exe
 Source: "Феникс.exe"; DestDir: "{app}"; Flags: ignoreversion
-; Пакет jarvis
-Source: "jarvis\*"; DestDir: "{app}\jarvis"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "__pycache__,*.pyc"
+; Пакет jarvis (без createallsubdirs — иначе пустые __pycache__ создаются)
+Source: "jarvis\*"; DestDir: "{app}\jarvis"; Flags: ignoreversion recursesubdirs; Excludes: "__pycache__\*,*.pyc,*.pyo"
 ; Паки
-Source: "packs\*"; DestDir: "{app}\packs"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "packs\*"; DestDir: "{app}\packs"; Flags: ignoreversion recursesubdirs
 ; Скрипты
-Source: "scripts\*"; DestDir: "{app}\scripts"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "__pycache__,*.pyc"
+Source: "scripts\*"; DestDir: "{app}\scripts"; Flags: ignoreversion recursesubdirs; Excludes: "__pycache__\*,*.pyc,*.pyo"
 ; Конфиг-пример
 Source: "config.example.json"; DestDir: "{app}"; Flags: ignoreversion
 ; Зависимости
 Source: "requirements.txt"; DestDir: "{app}"; Flags: ignoreversion
+; Возможности системы (генерируется scripts\check_caps.py;
+; читается actions.py и gui.py — не критичен, поэтому skipifsourcedoesntexist)
+Source: "system_caps.json"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 ; Документация
 Source: "README.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "ARCHITECTURE.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "CHANGELOG.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 ; Ярлык в меню Пуск

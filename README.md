@@ -723,13 +723,42 @@ python -m jarvis
 
 ## 📦 Сборка `.exe` и установщик
 
+Одна команда собирает всё: иконку, баннеры, `.exe` и установщик.
+
 ~~~~bat
-python scripts\make_icon.py
-python scripts\make_installer_images.py
-python scripts\build_exe.py
-REM потом в Inno Setup → Build → Compile
-create_shortcut.bat
+python scripts\build_setup.py
+python scripts\build_setup.py --run     REM + сразу запустить установщик
 ~~~~
+
+**Что делает `build_setup.py`:**
+
+| Шаг | Действие |
+|---|---|
+| 1 | `scripts\make_icon.py` — `jarvis\icon.ico` (если ещё нет) |
+| 2 | `scripts\make_installer_images.py` — BMP-баннеры для Inno Setup |
+| 3 | `scripts\check_caps.py` — `system_caps.json` (если ещё нет) |
+| 4 | `scripts\build_exe.py` — `Феникс.exe` (PyInstaller) |
+| 5 | `ISCC.exe installer.iss` — `dist\Феникс_Setup.exe` |
+
+**Требуется:** PyInstaller (в `requirements-dev.txt`) и Inno Setup 6
+([скачать](https://jrsoftware.org/isdl.php)). `ISCC.exe` ищется в `PATH`,
+затем в стандартных папках установки.
+
+**Что кладёт установщик** — в `C:\ProgramData\Phoenix`:
+
+| Что | Примечание |
+|---|---|
+| `Феникс.exe`, `jarvis\` | код (`__pycache__` и `*.pyc` исключены) |
+| `packs\`, `scripts\` | паки команд и скрипты |
+| `config.example.json`, `requirements.txt` | шаблон конфига + зависимости |
+| `system_caps.json` | кэш возможностей (`actions.py`, `gui.py`) |
+| `README.md`, `ARCHITECTURE.md`, `CHANGELOG.md`, `LICENSE` | документация |
+| `models\`, `runtime\` | пустые: Vosk-модель качает лаунчер |
+
+**Обновление поверх старой версии:** `.venv311`, `models\` и данные в
+`%APPDATA%\Phoenix` (`config.json`, `profiles\`, `logs\`) **не трогаются** —
+Inno перезаписывает только код. Запущенного Феникса установщик попросит
+закрыть (общий мьютекс с `launcher.py`).
 
 **Что делает `make_installer_images.py`:**
 
@@ -760,6 +789,7 @@ create_shortcut.bat
 | `scripts/make_icon.py` | Иконка |
 | `scripts/make_installer_images.py` | BMP для Inno Setup |
 | `scripts/build_exe.py` | `.exe` |
+| `scripts/build_setup.py` | `.exe` + установщик одной командой |
 | `scripts/mics.py` | Микрофон |
 | `scripts/wakebench.py` | Бенчмарк wake-слова |
 | `scripts/vadbench.py` | Бенчмарк задержки VAD (блок 128 мс — как в бою) |

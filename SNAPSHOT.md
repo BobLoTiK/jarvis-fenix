@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=329da984eda4585d` · режим `lean` · файлов `154` · строк `28288` · источник `1130 КБ`
+`sha256=3aefc57c75af5b8a` · режим `lean` · файлов `155` · строк `28597` · источник `1147 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -47,7 +47,7 @@ MIT + attribution (не удалять).
 | Мозг | Ollama `qwen2.5` (в наличии 1.5b / 7b / 14b) |
 | GUI | Flet 1.0.x, **главный поток** |
 | Окна | `uiautomation` (20+ браузеров по PID) |
-| Сборка | PyInstaller → `Феникс.exe`; Inno Setup → установщик |
+| Сборка | PyInstaller → `Феникс.exe`; Inno Setup → установщик (одна команда: `python scripts\build_setup.py`) |
 
 **Python 3.13/3.14 не использовать** — `libvosk.dll` падает с access violation.
 
@@ -194,8 +194,8 @@ debug → correction → undo → weather_currency`
 
 ```bat
 python check_syntax.py            :: синтаксис всех .py, включая tests/
-python -m pytest tests\ -q        :: 254 теста
-python test_intents.py            :: 32 сценария без LLM/сети (всего 39)
+python -m pytest tests\ -q        :: 260 тестов
+python test_intents.py            :: 32 сценария без LLM/сети (ИТОГ: 32 / 32)
 python test_intents.py --llm --network   :: + LLM (3-8 мин) и погода/курс
 ```
 
@@ -209,12 +209,17 @@ python test_intents.py --llm --network   :: + LLM (3-8 мин) и погода/�
 
 ## 9. Что дальше
 
-По `PLAN.md`: Vector memory (ChromaDB + RAG) → спрайт-аватар →
-PyInstaller в один `.exe` → облако (Groq / Edge TTS).
+По `PLAN.md` (порядок работ Фазы 1): облако (Edge TTS / Groq) → управление
+приложениями → Vector memory (ChromaDB + RAG) → MCP-заготовки → Telegram →
+спрайт-аватар → PyInstaller/CI + VLM + Hermes → улучшение мозгов.
+
+Сборка уже автоматизирована: `python scripts\build_setup.py` даёт `Феникс.exe` +
+`dist\Феникс_Setup.exe`. В CI (№121) осталось обернуть это в workflow.
 
 ---
 
-_Последняя правка: 12.10.2026, синхронизация с кодом (Silero TTS, VAD, Prosody, счётчики тестов)._
+_Последняя правка: 13.10.2026, синхронизация с кодом и планом (инсталлятор +
+`build_setup.py`, счётчики тестов: 260 pytest / 32 test_intents)._
 `````
 
 ---
@@ -229,11 +234,11 @@ jarvis/
 │   │   ├── README.md  (37 стр)
 │   │   ├── test.yml  (58 стр)
 ├── ARCHITECTURE.md  (894 стр)
-├── CHANGELOG.md  (650 стр)
+├── CHANGELOG.md  (706 стр)
 ├── check_all.bat  (88 стр)
 ├── check_syntax.bat  (7 стр)
 ├── check_syntax.py  (60 стр)
-├── CI.md  (130 стр)
+├── CI.md  (137 стр)
 ├── cmds/
 │   ├── open_terminal.bat  (3 стр)
 │   ├── show_ip.bat  (3 стр)
@@ -241,7 +246,7 @@ jarvis/
 ├── CONTRIBUTING.md  (368 стр)
 ├── create_shortcut.bat  (51 стр)
 ├── install.bat  (410 стр)
-├── installer.iss  (84 стр)
+├── installer.iss  (112 стр)
 ├── jarvis/
 │   ├── __init__.py  (8 стр)
 │   ├── __main__.py  (4 стр)
@@ -341,17 +346,18 @@ jarvis/
 │   ├── sites.json  (22 стр)
 │   ├── system.json  (17 стр)
 │   ├── work.json  (11 стр)
-├── PLAN.md  (866 стр)
-├── PROJECT.md  (205 стр)
+├── PLAN.md  (888 стр)
+├── PROJECT.md  (210 стр)
 ├── PROMPT.md  (491 стр)
 ├── pytest.ini  (15 стр)
-├── README.md  (878 стр)
+├── README.md  (908 стр)
 ├── requirements-ci.txt  (24 стр)
 ├── requirements-dev.txt  (10 стр)
 ├── requirements.txt  (59 стр)
 ├── scripts/
 │   ├── __init__.py  (7 стр)
 │   ├── build_exe.py  (78 стр)
+│   ├── build_setup.py  (161 стр)
 │   ├── check_caps.py  (174 стр)
 │   ├── make_icon.py  (80 стр)
 │   ├── make_installer_images.py  (121 стр)
@@ -1476,6 +1482,25 @@ jarvis/
   def build()
 ```
 
+**`scripts/build_setup.py`**
+
+```
+  # Полная сборка Феникса: Феникс.exe + Феникс_Setup.exe — одной командой.
+  BASE = ...
+  SCRIPTS = ...
+  ICON = ...
+  CAPS = ...
+  ISS = ...
+  SETUP_EXE = ...
+  ISCC_SEARCH_PATHS = ...
+  TOTAL_STEPS = ...
+  def step(num: int, text: str)
+  def run(cmd: list[str])
+  def include_script(name: str)
+  def find_iscc()
+  def main()
+```
+
 **`scripts/check_caps.py`**
 
 ```
@@ -2230,6 +2255,7 @@ jarvis/
 | `jarvis/weather.py` | 394 | code | Погода и курс валют. |
 | `scripts/__init__.py` | 7 | code | Пакет scripts: утилиты разработчика. |
 | `scripts/build_exe.py` | 78 | code | Сборка Феникс.exe (лёгкий лаунчер). |
+| `scripts/build_setup.py` | 161 | code | Полная сборка Феникса: Феникс.exe + Феникс_Setup.exe — одной командой. |
 | `scripts/check_caps.py` | 174 | code | Проверка возможностей системы — запускается из install.bat. |
 | `scripts/make_icon.py` | 80 | code | Генерация иконки Феникса (jarvis/icon.ico). |
 | `scripts/make_installer_images.py` | 121 | code | Генерация картинок для Inno Setup установщика Феникса. |
@@ -17549,6 +17575,152 @@ if __name__ == "__main__":
     build()
 ```
 
+### `scripts/build_setup.py`
+
+```python
+"""Полная сборка Феникса: Феникс.exe + Феникс_Setup.exe — одной командой. ... [20 строк]"""
+
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+BASE = Path(__file__).resolve().parent.parent
+SCRIPTS = BASE / "scripts"
+ICON = BASE / "jarvis" / "icon.ico"
+CAPS = BASE / "system_caps.json"
+ISS = BASE / "installer.iss"
+SETUP_EXE = BASE / "dist" / "Феникс_Setup.exe"
+
+# Где искать ISCC.exe, если его нет в PATH
+ISCC_SEARCH_PATHS = [
+    r"C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
+    r"C:\Program Files\Inno Setup 6\ISCC.exe",
+    r"C:\Program Files (x86)\Inno Setup 5\ISCC.exe",
+]
+
+TOTAL_STEPS = 5
+
+
+def step(num: int, text: str) -> None:
+    print()
+    print("=" * 60)
+    print(f"[{num}/{TOTAL_STEPS}] {text}")
+    print("=" * 60)
+
+
+def run(cmd: list[str]) -> None:
+    """Запускает команду, падая с понятной ошибкой."""
+    print(">", " ".join(str(c) for c in cmd))
+    try:
+        result = subprocess.run(cmd, cwd=str(BASE))
+    except FileNotFoundError as exc:
+        print(f"ОШИБКА: не найдена команда {cmd[0]!r}: {exc}")
+        sys.exit(1)
+
+    if result.returncode != 0:
+        print(f"ОШИБКА: команда завершилась с кодом {result.returncode}")
+        sys.exit(1)
+
+
+def include_script(name: str) -> None:
+    """Запускает scripts/<name> текущим интерпретатором из корня проекта."""
+    path = SCRIPTS / name
+    if not path.exists():
+        print(f"ОШИБКА: не найден скрипт {path}")
+        sys.exit(1)
+    run([sys.executable, str(path)])
+
+
+def find_iscc() -> str:
+    """Ищет ISCC.exe: PATH → INNO_SETUP → стандартные папки."""
+    found = shutil.which("ISCC")
+    if found:
+        return found
+
+    for path in ISCC_SEARCH_PATHS:
+        if Path(path).exists():
+            return path
+
+    print("ОШИБКА: не найден ISCC.exe (компилятор Inno Setup 6).")
+    print()
+    print("Что делать:")
+    print("  1. Скачай Inno Setup: https://jrsoftware.org/isdl.php")
+    print("  2. Установи (по умолчанию — C:\\Program Files (x86)\\Inno Setup 6)")
+    print("  3. Запусти этот скрипт снова")
+    sys.exit(1)
+
+
+def main() -> int:
+    print("Феникс — сборка установщика")
+    print(f"Корень проекта: {BASE}")
+
+    if not ISS.exists():
+        print(f"ОШИБКА: не найден {ISS}")
+        return 1
+
+    # 1. Иконка
+    step(1, "Иконка jarvis\\icon.ico")
+    if ICON.exists():
+        print(f"OK: уже есть ({ICON.stat().st_size / 1024:.1f} КБ)")
+    else:
+        include_script("make_icon.py")
+
+    # 2. Картинки для Inno Setup
+    step(2, "Баннеры установщика (installer_banner.bmp, installer_small.bmp)")
+    include_script("make_installer_images.py")
+
+    # 3. Возможности системы — system_caps.json читают actions.py и gui.py
+    step(3, "Возможности системы (system_caps.json)")
+    if CAPS.exists():
+        print(f"OK: уже есть ({CAPS})")
+    else:
+        print("Нет файла — генерирую...")
+        try:
+            include_script("check_caps.py")
+        except SystemExit as exc:
+            # Не критично: в installer.iss у файла skipifsourcedoesntexist
+            print(f"ВНИМАНИЕ: check_caps.py завершился с кодом {exc.code}")
+            print("Установщик соберётся и без system_caps.json")
+        if not CAPS.exists():
+            print("ВНИМАНИЕ: system_caps.json не создан — собираю без него")
+
+    # 4. Феникс.exe (PyInstaller)
+    step(4, "Сборка Феникс.exe (PyInstaller)")
+    include_script("build_exe.py")
+
+    # 5. Установщик (Inno Setup)
+    step(5, "Компиляция установщика (Inno Setup)")
+    iscc = find_iscc()
+    print(f"ISCC: {iscc}")
+    run([iscc, str(ISS)])
+
+    if not SETUP_EXE.exists():
+        print(f"ОШИБКА: ISCC не создал {SETUP_EXE}")
+        return 1
+
+    print()
+    print("=" * 60)
+    print("ГОТОВО")
+    print("=" * 60)
+    print(f"Установщик: {SETUP_EXE}")
+    print(f"Размер:     {SETUP_EXE.stat().st_size / 1024 / 1024:.1f} МБ")
+    print()
+    print("Запусти его — Феникс встанет в C:\\ProgramData\\Phoenix.")
+    print("Первый запуск ярлыка скачает зависимости и Vosk-модель.")
+
+    if "--run" in sys.argv:
+        print()
+        print("Запускаю установщик...")
+        subprocess.Popen([str(SETUP_EXE)])
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+
 ### `scripts/check_caps.py`
 
 ```python
@@ -24693,17 +24865,27 @@ pause
 ; Inno Setup скрипт для Феникса.
 ;
 ; Собирает установщик Феникс_Setup.exe:
-;   - Копирует всю папку проекта в Program Files\Феникс
+;   - Копирует сборку в C:\ProgramData\Phoenix (ASCII-путь из paths.py)
 ;   - Создаёт ярлык в меню Пуск
 ;   - Создаёт ярлык на рабочем столе (опционально)
 ;   - Добавляет в автозапуск (опционально)
 ;
-; Сборка:
+; Почему ProgramData: Vosk (C++/Kaldi) падает на не-ASCII путях,
+; а PROGRAM_DIR из jarvis/paths.py должен быть без кириллицы.
+;
+; Сборка (автоматически — из корня проекта):
+;   python scripts\build_setup.py
+;
+; Сборка (вручную):
 ;   1. Установи Inno Setup: https://jrsoftware.org/isdl.php
-;   2. Открой installer.iss в Inno Setup Compiler
-;   3. Нажми Build → Build
+;   2. python scripts\build_exe.py   (сначала обновить Феникс.exe)
+;   3. Открой installer.iss в Inno Setup Compiler
+;   4. Нажми Build → Build
 ;
 ; Результат: dist\Феникс_Setup.exe
+;
+; Обновление поверх старой версии: .venv311, models\ и данные в
+; %APPDATA%\Phoenix НЕ трогаются — Inno только перезаписывает код.
 
 #define MyAppName "Феникс"
 #define MyAppVersion "1.0.0"
@@ -24722,10 +24904,11 @@ AppUpdatesURL={#MyAppURL}
 DefaultDirName={commonappdata}\Phoenix
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
-LicenseFile=README.md
+LicenseFile=LICENSE
 OutputDir=dist
 OutputBaseFilename=Феникс_Setup
 SetupIconFile=jarvis\icon.ico
+UninstallDisplayIcon={app}\{#MyAppExeName}
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
@@ -24735,6 +24918,12 @@ WizardImageStretch=yes
 WizardImageBackColor=$00160E0A
 PrivilegesRequired=lowest
 ArchitecturesInstallIn64BitMode=x64compatible
+; Тот же мьютекс, что в launcher.py — Inno попросит закрыть
+; запущенного Феникса перед перезаписью файлов.
+AppMutex=Local\JarvisPhoenixSingleInstance
+; При обновлении поверх работающего Феникса — не требовать перезагрузки
+CloseApplications=yes
+RestartApplications=no
 
 [Languages]
 Name: "russian"; MessagesFile: "compiler:Languages\Russian.isl"
@@ -24743,22 +24932,33 @@ Name: "russian"; MessagesFile: "compiler:Languages\Russian.isl"
 Name: "desktopicon"; Description: "Создать ярлык на рабочем столе"; GroupDescription: "Ярлыки:"; Flags: checkedonce
 Name: "autostart"; Description: "Запускать Феникс при старте Windows"; GroupDescription: "Автозапуск:"; Flags: unchecked
 
+[Dirs]
+; models\ — сюда лаунчер качает Vosk-модель (~45 МБ) при первом запуске
+Name: "{app}\models"
+; runtime\ — ASCII-фоллбэк из paths.py (PROGRAM_DIR)
+Name: "{app}\runtime"
+
 [Files]
 ; Главный exe
 Source: "Феникс.exe"; DestDir: "{app}"; Flags: ignoreversion
-; Пакет jarvis
-Source: "jarvis\*"; DestDir: "{app}\jarvis"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "__pycache__,*.pyc"
+; Пакет jarvis (без createallsubdirs — иначе пустые __pycache__ создаются)
+Source: "jarvis\*"; DestDir: "{app}\jarvis"; Flags: ignoreversion recursesubdirs; Excludes: "__pycache__\*,*.pyc,*.pyo"
 ; Паки
-Source: "packs\*"; DestDir: "{app}\packs"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "packs\*"; DestDir: "{app}\packs"; Flags: ignoreversion recursesubdirs
 ; Скрипты
-Source: "scripts\*"; DestDir: "{app}\scripts"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "__pycache__,*.pyc"
+Source: "scripts\*"; DestDir: "{app}\scripts"; Flags: ignoreversion recursesubdirs; Excludes: "__pycache__\*,*.pyc,*.pyo"
 ; Конфиг-пример
 Source: "config.example.json"; DestDir: "{app}"; Flags: ignoreversion
 ; Зависимости
 Source: "requirements.txt"; DestDir: "{app}"; Flags: ignoreversion
+; Возможности системы (генерируется scripts\check_caps.py;
+; читается actions.py и gui.py — не критичен, поэтому skipifsourcedoesntexist)
+Source: "system_caps.json"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 ; Документация
 Source: "README.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "ARCHITECTURE.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "CHANGELOG.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 ; Ярлык в меню Пуск
@@ -25177,11 +25377,18 @@ onnxruntime>=1.17
     - `scripts/make_installer_images.py`
     - `scripts/build_exe.py`
 
-#### `CHANGELOG.md` — 51 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 58 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
   - 📑 Содержание
   - 🚧 [Unreleased] — 0.4.0
+    - 📅 Сессия 13.10.2026
+      - 🐛 Исправлено
+        - 📦 Установщик (Inno Setup) — доведён до рабочего состояния
+      - ✨ Добавлено
+        - 🛠 `scripts/build_setup.py` — вся сборка одной командой
+      - 📦 Сборка
+      - 📝 Документация
     - 📅 Сессия 12.10.2026
       - 🐛 Исправлено
         - 🔊 VAD (Silero) — починен и сделан адаптивным
@@ -25212,13 +25419,6 @@ onnxruntime>=1.17
         - 🎭 Персона — `jarvis/persona.py`
         - 🎓 Онбординг через LLM-диалог
         - 👁 Observer — `jarvis/observer.py`
-        - 🎨 Красивый установщик — Inno UI
-        - 🛡 Защита от BOM и кракозябр
-      - 🔧 Исправлено
-    - 📅 Сессия 08.10.2026
-      - ✨ Добавлено
-        - 🎉 Поздравление с ДР — `jarvis/celebrations.py`
-        - 🔍 Аудит Kimi — 25 багов
 
 #### `CI.md` — 13 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -25271,12 +25471,13 @@ onnxruntime>=1.17
   - 🤝 Как задавать вопросы
   - 🎯 Философия
 
-#### `PLAN.md` — 76 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `PLAN.md` — 77 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - 📋 План развития «Феникс»
   - 🎯 ФИЛОСОФИЯ ПРОЕКТА
   - 📊 СВОДКА
   - ✅ СДЕЛАНО — СВОДКА
+    - Инсталлятор + сборка (13.10.2026)
     - Prosody (11.10.2026)
     - Tone (11.10.2026)
     - VAD (10.10.2026)
@@ -25312,7 +25513,6 @@ onnxruntime>=1.17
     - 🆕 Мост Феникс → Hermes (3)
     - 🆕 Приоритеты и очередь (4)
   - 🧠 УЛУЧШЕНИЕ МОЗГОВ
-    - 🎯 Неделя 1 — быстрые выигрыши
 
 #### `PROMPT.md` — 27 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -25389,4 +25589,4 @@ onnxruntime>=1.17
 
 ---
 
-_Итого по категориям — code: 122, data: 18, doc: 9, pack: 5. Режим `lean`._
+_Итого по категориям — code: 123, data: 18, doc: 9, pack: 5. Режим `lean`._

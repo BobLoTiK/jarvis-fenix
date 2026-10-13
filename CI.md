@@ -111,9 +111,16 @@ python test_intents.py
 4. Прикрепляет файлы.
 
 **Что нужно:**
-- PyInstaller в CI.
+- PyInstaller в CI (или в `requirements-dev.txt`).
 - Скачивание + тихая установка Inno Setup.
 - Компиляция `installer.iss` через `ISCC.exe`.
+
+**Локально сборка уже автоматизирована** — одна команда собирает `.exe`
+и установщик (см. `scripts/build_setup.py`):
+
+```bat
+python scripts\build_setup.py
+```
 
 **Время:** 4–6 часов на настройку. **В планах (№121).**
 
