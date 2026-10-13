@@ -20,7 +20,13 @@ def _fresh_probe_cache(monkeypatch):
     monkeypatch.setattr(factory, "_PROBE_CACHE", {})
 
 
-def test_probe_has_voices():
+def test_probe_has_voices(monkeypatch):
+    # Голоса — статические атрибуты класса, поэтому заглушка собирается
+    # даже без установленного piper. Наличие самого пакета проверяет
+    # отдельный тест (test_probe_dependency_check_is_used), а здесь он
+    # не нужен — иначе тест падал бы в CI, где piper не ставится.
+    monkeypatch.setattr(factory, "_dependency_present", lambda name: True)
+
     probe = factory._try_create("piper", "", "medium", 1.15)
     assert probe is not None
     assert "ruslan" in probe.voices
@@ -57,6 +63,11 @@ def test_probe_dependency_check_is_used(monkeypatch):
 
 
 def test_probe_result_is_cached(monkeypatch):
+    # Проверяем именно кэш импорта: без подмены _dependency_present в CI
+    # (нет пакета piper) импорт модуля вообще не состоялся бы и считать
+    # было бы нечего.
+    monkeypatch.setattr(factory, "_dependency_present", lambda name: True)
+
     calls = []
     real_import = factory.importlib.import_module
 

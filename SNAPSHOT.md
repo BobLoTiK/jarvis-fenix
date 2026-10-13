@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=e2fe7f97bb1caf3e` · режим `lean` · файлов `154` · строк `28269` · источник `1129 КБ`
+`sha256=329da984eda4585d` · режим `lean` · файлов `154` · строк `28288` · источник `1130 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -374,7 +374,7 @@ jarvis/
 │   ├── __init__.py  (0 стр)
 │   ├── test_caps.py  (23 стр)
 │   ├── test_config_manager.py  (47 стр)
-│   ├── test_engine_probe.py  (89 стр)
+│   ├── test_engine_probe.py  (100 стр)
 │   ├── test_gui_wiring.py  (532 стр)
 │   ├── test_main_wiring.py  (187 стр)
 │   ├── test_mood.py  (386 стр)
@@ -386,7 +386,7 @@ jarvis/
 │   ├── test_tts.py  (243 стр)
 │   ├── test_uia.py  (247 стр)
 │   ├── test_vad.py  (333 стр)
-│   ├── test_vad_model.py  (265 стр)
+│   ├── test_vad_model.py  (273 стр)
 │   ├── test_weather.py  (237 стр)
 ```
 
@@ -1609,7 +1609,7 @@ jarvis/
 
 ```
   # Заглушка движка TTS (factory._probe_engine).
-  def test_probe_has_voices()
+  def test_probe_has_voices(monkeypatch)
   def test_probe_is_not_real_engine()
   def test_probe_unknown_backend_is_none()
   def test_probe_none_without_dependency(monkeypatch)
@@ -1957,6 +1957,7 @@ jarvis/
 
 ```
   # Авто-скачивание модели Silero VAD (jarvis.vad).
+  _HAS_ONNXRUNTIME = ...
   REAL_MODEL = ...
   def test_model_dirs_first_is_vad_subdir(tmp_path, monkeypatch)
   def test_find_model_finds_file_in_first_dir(tmp_path, monkeypatch)
@@ -2242,7 +2243,7 @@ jarvis/
 | `tests/__init__.py` | 0 | code |  |
 | `tests/test_caps.py` | 23 | code | Тесты check_caps: структура system_caps.json. |
 | `tests/test_config_manager.py` | 47 | code | Тесты config_manager: параллельная запись не рвёт файл. |
-| `tests/test_engine_probe.py` | 89 | code | Заглушка движка TTS (factory._probe_engine). |
+| `tests/test_engine_probe.py` | 100 | code | Заглушка движка TTS (factory._probe_engine). |
 | `tests/test_gui_wiring.py` | 532 | code | GUI → config: каждый элемент окна реально отсылает изменение. |
 | `tests/test_main_wiring.py` | 187 | code | config → живое ядро: подписчик make_config_listener. |
 | `tests/test_mood.py` | 386 | code | Тесты jarvis.mood — состояние, детекция, decay, влияние. |
@@ -2254,7 +2255,7 @@ jarvis/
 | `tests/test_tts.py` | 243 | code | Тесты jarvis.tts_engines — движки и фабрика. С моками. |
 | `tests/test_uia.py` | 247 | code | Тесты jarvis.uia — логика обёртки. С моками. |
 | `tests/test_vad.py` | 333 | code | Тесты jarvis.vad — Silero VAD ONNX. |
-| `tests/test_vad_model.py` | 265 | code | Авто-скачивание модели Silero VAD (jarvis.vad). |
+| `tests/test_vad_model.py` | 273 | code | Авто-скачивание модели Silero VAD (jarvis.vad). |
 | `tests/test_weather.py` | 237 | code | Тесты weather: структура ответов, describe_*, geocode с моками. |
 | `check_syntax.py` | 60 | code | Проверяет синтаксис всех .py файлов в проекте. |
 | `launcher.py` | 693 | code | Лаунчер Феникса — полный автозапуск. |
@@ -18622,7 +18623,13 @@ def _fresh_probe_cache(monkeypatch):
     monkeypatch.setattr(factory, "_PROBE_CACHE", {})
 
 
-def test_probe_has_voices():
+def test_probe_has_voices(monkeypatch):
+    # Голоса — статические атрибуты класса, поэтому заглушка собирается
+    # даже без установленного piper. Наличие самого пакета проверяет
+    # отдельный тест (test_probe_dependency_check_is_used), а здесь он
+    # не нужен — иначе тест падал бы в CI, где piper не ставится.
+    monkeypatch.setattr(factory, "_dependency_present", lambda name: True)
+
     probe = factory._try_create("piper", "", "medium", 1.15)
     assert probe is not None
     assert "ruslan" in probe.voices
@@ -18659,6 +18666,11 @@ def test_probe_dependency_check_is_used(monkeypatch):
 
 
 def test_probe_result_is_cached(monkeypatch):
+    # Проверяем именно кэш импорта: без подмены _dependency_present в CI
+    # (нет пакета piper) импорт модуля вообще не состоялся бы и считать
+    # было бы нечего.
+    monkeypatch.setattr(factory, "_dependency_present", lambda name: True)
+
     calls = []
     real_import = factory.importlib.import_module
 
@@ -21491,6 +21503,7 @@ def test_vad_debug_from_config():
 ```python
 """Авто-скачивание модели Silero VAD (jarvis.vad). ... [14 строк]"""
 
+import importlib.util
 import io
 import threading
 from pathlib import Path
@@ -21499,6 +21512,11 @@ from unittest.mock import patch
 import pytest
 
 from jarvis import vad
+
+# VAD.__init__ без onnxruntime выходит рано (numpy/onnxruntime — необязательные):
+# тесты, которым нужен «живой» VAD без модели, в CI пропускаем.
+# Так же поступает tests/test_vad.py.
+_HAS_ONNXRUNTIME = importlib.util.find_spec("onnxruntime") is not None
 
 # Модель, которая реально лежит на машине разработчика (если ставилась).
 REAL_MODEL = Path(r"C:\ProgramData\Phoenix\vad\silero_vad.onnx")
@@ -21665,6 +21683,8 @@ def test_ensure_model_async_is_one_per_process(tmp_path):
 # VAD: модель качается в фоне
 # =================================================================
 
+@pytest.mark.skipif(not _HAS_ONNXRUNTIME,
+                    reason="нет onnxruntime — VAD не инициализируется (CI)")
 def test_vad_pending_when_model_missing(monkeypatch, tmp_path):
     """Модели нет и качать разрешено: VAD живой, но помечен «качается»."""
     started = []

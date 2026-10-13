@@ -14,6 +14,7 @@
     - VAD: модель есть/нет + auto_download, включение на лету.
 """
 
+import importlib.util
 import io
 import threading
 from pathlib import Path
@@ -22,6 +23,11 @@ from unittest.mock import patch
 import pytest
 
 from jarvis import vad
+
+# VAD.__init__ без onnxruntime выходит рано (numpy/onnxruntime — необязательные):
+# тесты, которым нужен «живой» VAD без модели, в CI пропускаем.
+# Так же поступает tests/test_vad.py.
+_HAS_ONNXRUNTIME = importlib.util.find_spec("onnxruntime") is not None
 
 # Модель, которая реально лежит на машине разработчика (если ставилась).
 REAL_MODEL = Path(r"C:\ProgramData\Phoenix\vad\silero_vad.onnx")
@@ -188,6 +194,8 @@ def test_ensure_model_async_is_one_per_process(tmp_path):
 # VAD: модель качается в фоне
 # =================================================================
 
+@pytest.mark.skipif(not _HAS_ONNXRUNTIME,
+                    reason="нет onnxruntime — VAD не инициализируется (CI)")
 def test_vad_pending_when_model_missing(monkeypatch, tmp_path):
     """Модели нет и качать разрешено: VAD живой, но помечен «качается»."""
     started = []
