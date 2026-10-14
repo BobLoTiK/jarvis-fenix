@@ -694,6 +694,26 @@ BROWSER_WORDS = frozenset({
     "хром", "хроме", "интернет", "интернете",
 })
 
+# Конкретные браузеры: «открой хром» — это именно Chrome, а не браузер
+# по умолчанию (№1). «Яндекс» сюда не входит намеренно: «открой яндекс»
+# чаще про сайт (yandex.ru), а не про Яндекс.Браузер.
+_BROWSER_PROCS = {
+    "хром": "chrome.exe",
+    "chrome": "chrome.exe",
+    "эдж": "msedge.exe",
+    "едж": "msedge.exe",
+    "edge": "msedge.exe",
+    "firefox": "firefox.exe",
+    "фаерфокс": "firefox.exe",
+    "файрфокс": "firefox.exe",
+    "опера": "opera.exe",
+    "opera": "opera.exe",
+    "brave": "brave.exe",
+    "вивальди": "vivaldi.exe",
+    "vivaldi": "vivaldi.exe",
+    "arc": "arc.exe",
+}
+
 
 # Слова-«наполнители» в «закрой все окна проводника»: без чистки find_app
 # видит не «проводник», а «все окна проводника», и приложение не находит.
@@ -719,7 +739,23 @@ def _do_open(handler, target: str) -> str:
         return "Пока нечего открывать."
 
     tokens = target.split()
-    rest = [t for t in tokens if t not in BROWSER_WORDS]
+    # «открой хром» — это Chrome, а не браузер по умолчанию (№1): если он
+    # уже запущен, переключаемся на его окно, а не плодим новое.
+    named = next((t for t in tokens if t in _BROWSER_PROCS), None)
+    rest = [t for t in tokens if t not in BROWSER_WORDS and t != named]
+
+    if named and not rest:
+        process = _BROWSER_PROCS[named]
+        if actions.focus_browser(process):
+            return f"Переключаюсь на {named}."
+        app = find_app(handler.apps, named)
+        spec = app.resolve_open() if app else None
+        if spec is not None:
+            actions.run_spec(spec)
+            return f"Открываю {named}."
+        actions.open_browser(process)
+        return f"Открываю {named}."
+
     if len(rest) < len(tokens):
         if not rest:
             actions.open_browser()

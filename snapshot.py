@@ -27,6 +27,8 @@
       файл был «грязным» в git всегда, даже когда ничего не менялось.
     * guard на секреты: password/token/api_key с непустым значением
       редактируется в ***.
+    * дерево не зависит от имени папки проекта (ROOT_LABEL = "./"):
+      иначе снимок из C:\jarvis «устаревал» в CI на D:\a\jarvis-fenix\...
     * CLI через argparse вместо нуля аргументов.
 """
 
@@ -41,6 +43,11 @@ from pathlib import Path
 
 BASE = Path(__file__).resolve().parent
 OUTPUT = BASE / "SNAPSHOT.md"
+
+# Метка корня в дереве. Имя самой папки печатать нельзя: снимок, собранный
+# в C:\jarvis, в CI (D:\a\jarvis-fenix\jarvis-fenix) считался устаревшим —
+# строка дерева отличалась, хотя код тот же.
+ROOT_LABEL = "./"
 
 # -----------------------------------------------------------------
 # Исключения
@@ -547,7 +554,7 @@ def build_snapshot(mode: str, budget_kb: float | None) -> tuple[str, list[str]]:
     L.append("## 1. Карта проекта")
     L.append("")
     L.append("```")
-    L.append(BASE.name + "/")
+    L.append(ROOT_LABEL)
     L.append(build_tree(files, BASE))
     L.append("```")
     L.append("")
@@ -642,7 +649,12 @@ def drift_reason(content: str, path: Path) -> list[str]:
         return []
 
     def _head(text: str, key: str) -> str:
-        m = re.search(rf"{key}\s*`([^`]+)`", text)
+        """Значение ключа из шапки: `sha256=abc` и `файлов `168``.
+
+        Старая версия ждала кавычку сразу после ключа, а у sha256 стоит
+        знак «=», поэтому в отчёте было «?» вместо хеша.
+        """
+        m = re.search(rf"{key}\s*=?\s*`?([^`\s·]+)", text)
         return m.group(1) if m else "?"
 
     reasons = [

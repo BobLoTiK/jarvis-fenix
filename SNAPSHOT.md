@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=642120ec4f4b151e` · режим `lean` · файлов `168` · строк `32935` · источник `1387 КБ`
+`sha256=6908c98dfaa900dd` · режим `lean` · файлов `169` · строк `33592` · источник `1421 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -236,9 +236,9 @@ README)._
 ## 1. Карта проекта
 
 ```
-jarvis/
+./
 ├── .clineignore  (48 стр)
-├── .clinerules  (43 стр)
+├── .clinerules  (44 стр)
 ├── .github/
 │   ├── workflows/
 │   │   ├── README.md  (61 стр)
@@ -246,7 +246,7 @@ jarvis/
 │   │   ├── test.yml  (71 стр)
 ├── AGENTS.md  (103 стр)
 ├── ARCHITECTURE.md  (919 стр)
-├── CHANGELOG.md  (1015 стр)
+├── CHANGELOG.md  (1066 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -263,7 +263,7 @@ jarvis/
 ├── jarvis/
 │   ├── __init__.py  (8 стр)
 │   ├── __main__.py  (4 стр)
-│   ├── actions.py  (1360 стр)
+│   ├── actions.py  (1478 стр)
 │   ├── apps.py  (114 стр)
 │   ├── brain.py  (836 стр)
 │   ├── celebrations.py  (165 стр)
@@ -277,7 +277,7 @@ jarvis/
 │   ├── intents/
 │   │   ├── __init__.py  (10 стр)
 │   │   ├── context.py  (19 стр)
-│   │   ├── execute.py  (981 стр)
+│   │   ├── execute.py  (1017 стр)
 │   │   ├── fast/
 │   │   │   ├── __init__.py  (54 стр)
 │   │   │   ├── correction.py  (28 стр)
@@ -347,7 +347,7 @@ jarvis/
 │   │   ├── sapi.py  (113 стр)
 │   │   ├── silero.py  (215 стр)
 │   │   ├── winrt.py  (158 стр)
-│   ├── uia.py  (969 стр)
+│   ├── uia.py  (1013 стр)
 │   ├── vad.py  (567 стр)
 │   ├── voices.py  (220 стр)
 │   ├── weather.py  (394 стр)
@@ -360,7 +360,7 @@ jarvis/
 │   ├── sites.json  (22 стр)
 │   ├── system.json  (17 стр)
 │   ├── work.json  (11 стр)
-├── PLAN.md  (1012 стр)
+├── PLAN.md  (1069 стр)
 ├── PROJECT.md  (219 стр)
 ├── PROMPT.md  (509 стр)
 ├── pytest.ini  (20 стр)
@@ -382,7 +382,7 @@ jarvis/
 │   ├── vadbench.py  (185 стр)
 │   ├── voicedemo.py  (41 стр)
 │   ├── wakebench.py  (88 стр)
-├── snapshot.py  (698 стр)
+├── snapshot.py  (710 стр)
 ├── start_fenix.bat  (6 стр)
 ├── start_fenix_debug.bat  (15 стр)
 ├── tests/
@@ -396,6 +396,7 @@ jarvis/
 │   │   ├── vad_live.py  (41 стр)
 │   ├── README.md  (70 стр)
 │   ├── stress_intents.py  (533 стр)
+│   ├── test_browser_target.py  (338 стр)
 │   ├── test_build_setup.py  (56 стр)
 │   ├── test_caps.py  (23 стр)
 │   ├── test_config_manager.py  (47 стр)
@@ -440,8 +441,10 @@ jarvis/
   def run_spec(spec)
   def open_path(path, minimized: bool=False)
   def open_in_editor(path, prefer: str='auto')
+  _DEFAULT_URL = ...
+  def focus_browser(process: str | None=None)
   def open_url(url: str)
-  def open_browser()
+  def open_browser(process: str | None=None)
   def open_search(engine: str, query: str)
   def google_search(query: str)
   def open_site_lucky(name: str)
@@ -664,6 +667,7 @@ jarvis/
   _LETTER_KEYS = ...
   _KEY_MAP = ...
   BROWSER_WORDS = ...
+  _BROWSER_PROCS = ...
   _MASS_WORDS = ...
   _DISPATCH = ...
 ```
@@ -1429,6 +1433,8 @@ jarvis/
   def list_windows()
   def list_browsers()
   def browser_process_names()
+  def browser_name(process: str)
+  def active_browser_process(timeout: float=0.6)
   def find_browser_window()
   def read_browser_url()
   def read_browser_tab_title()
@@ -1745,6 +1751,36 @@ jarvis/
   def restore_settings(handler, snap: dict)
   def cleanup(handler)
   def main()
+```
+
+**`tests/test_browser_target.py`**
+
+```
+  # №1: Феникс работает в том браузере, в котором сидит пользователь.
+  def fake_processes(monkeypatch)
+  HANDLER = ...
+  def test_browser_name_known_and_unknown()
+  def test_active_browser_process_from_foreground(monkeypatch, fake_processes)
+  def test_active_browser_process_falls_back_to_top_window(monkeypatch, fake_processes)
+  def test_active_browser_process_none(monkeypatch, fake_processes)
+  def test_active_browser_process_survives_uia_error(monkeypatch, fake_processes)
+  def test_running_browser_single(monkeypatch, fake_processes)
+  def test_running_browser_prefers_user_browser(monkeypatch, fake_processes)
+  def test_running_browser_none_without_browsers(monkeypatch, fake_processes)
+  def test_running_browser_specific_not_running(monkeypatch, fake_processes)
+  def test_open_url_opens_in_user_browser(monkeypatch, fake_processes)
+  def test_open_url_falls_back_to_default_browser(monkeypatch, fake_processes)
+  def test_open_url_falls_back_when_exe_path_hidden(monkeypatch, fake_processes)
+  def test_open_browser_focuses_running_window(monkeypatch, fake_processes)
+  def test_open_browser_restores_minimized(monkeypatch, fake_processes)
+  def test_open_browser_named_launches_tab_when_window_missing(monkeypatch, fake_processes)
+  def test_open_browser_without_browsers_uses_default(monkeypatch, fake_processes)
+  def test_focus_browser_false_without_windows(monkeypatch, fake_processes)
+  def test_do_open_chrome_switches_to_running_window(monkeypatch)
+  def test_do_open_chrome_from_catalog_when_not_running(monkeypatch)
+  def test_do_open_browser_word_uses_user_browser(monkeypatch)
+  def test_do_open_site_goes_through_open_url(monkeypatch)
+  def test_do_open_site_in_browser_word(monkeypatch)
 ```
 
 **`tests/test_build_setup.py`**
@@ -2395,6 +2431,7 @@ jarvis/
   # Собирает снимок проекта в один SNAPSHOT.md.
   BASE = ...
   OUTPUT = ...
+  ROOT_LABEL = ...
   EXCLUDE_DIRS = ...
   EXCLUDE_FILES = ...
   EXCLUDE_EXT = ...
@@ -2429,7 +2466,7 @@ jarvis/
 |---|---:|---|---|
 | `jarvis/__init__.py` | 8 | code | Феникс — локальный голосовой ассистент для Windows. |
 | `jarvis/__main__.py` | 4 | code |  |
-| `jarvis/actions.py` | 1360 | code | Действия: запуск приложений, открытие сайтов, скриншоты, медиа, печать |
+| `jarvis/actions.py` | 1478 | code | Действия: запуск приложений, открытие сайтов, скриншоты, медиа, печать |
 | `jarvis/apps.py` | 114 | code | Каталог известных приложений: как их зовут голосом, как открыть и как  |
 | `jarvis/brain.py` | 836 | code | LLM-фолбэк: локальная нейронка (Ollama) разбирает команду в структурны |
 | `jarvis/celebrations.py` | 165 | code | Праздничные триггеры — поздравление с ДР + двойной салют. |
@@ -2442,7 +2479,7 @@ jarvis/
 | `jarvis/installed.py` | 51 | code | Индекс установленных программ по ярлыкам меню «Пуск». |
 | `jarvis/intents/__init__.py` | 10 | code | Разбор команд Феникса — пакет. |
 | `jarvis/intents/context.py` | 19 | code | Контекст, который передаётся между стадиями pipeline. |
-| `jarvis/intents/execute.py` | 981 | code | Dispatch: action → функция-обработчик. |
+| `jarvis/intents/execute.py` | 1017 | code | Dispatch: action → функция-обработчик. |
 | `jarvis/intents/fast/__init__.py` | 54 | code | Реестр быстрых обработчиков. |
 | `jarvis/intents/fast/correction.py` | 28 | code | Коррекция: «это не то, я сказал логи». |
 | `jarvis/intents/fast/custom.py` | 72 | code | Пользовательские команды: из config.json и из паков. |
@@ -2509,7 +2546,7 @@ jarvis/
 | `jarvis/tts_engines/sapi.py` | 113 | code | SAPI TTS — старый Windows-синтез через pyttsx3. |
 | `jarvis/tts_engines/silero.py` | 215 | code | Silero TTS v5_5 — русский голос, ~150 МБ, требует PyTorch. |
 | `jarvis/tts_engines/winrt.py` | 158 | code | WinRT TTS — системный синтез Windows, без внешних моделей. |
-| `jarvis/uia.py` | 969 | code | UI Automation — видим окна и элементы интерфейса. |
+| `jarvis/uia.py` | 1013 | code | UI Automation — видим окна и элементы интерфейса. |
 | `jarvis/vad.py` | 567 | code | Silero VAD — детекция речи в аудио-потоке с адаптивным порогом. |
 | `jarvis/voices.py` | 220 | code | Управление голосами TTS — работает через tts_engines. |
 | `jarvis/weather.py` | 394 | code | Погода и курс валют. |
@@ -2534,6 +2571,7 @@ jarvis/
 | `tests/manual/vad_debug.py` | 61 | code | Отладка Silero VAD — прогон на синтетике. |
 | `tests/manual/vad_live.py` | 41 | code | Живой тест VAD: пишет 5 сек с микрофона, показывает prob. |
 | `tests/stress_intents.py` | 533 | code | Стресс-тест Феникса: ровно 100 разных ситуаций без микрофона и сети. |
+| `tests/test_browser_target.py` | 338 | code | №1: Феникс работает в том браузере, в котором сидит пользователь. |
 | `tests/test_build_setup.py` | 56 | code | Тесты scripts.build_setup — версия установщика и мягкий пропуск шага c |
 | `tests/test_caps.py` | 23 | code | Тесты check_caps: структура system_caps.json. |
 | `tests/test_config_manager.py` | 47 | code | Тесты config_manager: параллельная запись не рвёт файл. |
@@ -2558,7 +2596,7 @@ jarvis/
 | `check_all.py` | 170 | code | Единый прогон всех проверок Феникса — движок для check_all.bat. |
 | `check_syntax.py` | 60 | code | Проверяет синтаксис всех .py файлов в проекте. |
 | `launcher.py` | 693 | code | Лаунчер Феникса — полный автозапуск. |
-| `snapshot.py` | 698 | code | Собирает снимок проекта в один SNAPSHOT.md. |
+| `snapshot.py` | 710 | code | Собирает снимок проекта в один SNAPSHOT.md. |
 
 ---
 
@@ -2930,8 +2968,95 @@ def _find_vscode() -> str | None:
     exe = shutil.which("code") or shutil.which("code.exe")
     return exe
 
+# =================================================================
+# Браузер пользователя (№1): работать там, где сидит человек,
+# а не в браузере по умолчанию
+# =================================================================
+
+_DEFAULT_URL = "https://www.google.com"
+
+
+def _running_browser(process: str | None = None) -> str | None:
+    """Имя процесса запущенного браузера, в котором сидит пользователь. ... [5 строк]"""
+    from jarvis import uia  # локально: jarvis.uia поднимает COM не сразу
+
+    running = uia.list_browsers()
+    if not running:
+        return None
+    if process:
+        low = process.lower()
+        return next((exe for exe, _ in running if exe == low), None)
+    if len(running) == 1:
+        # Быстрый путь: спорить не с кем, UIA не нужен.
+        return running[0][0]
+
+    active = uia.active_browser_process()
+    if active:
+        return active
+    return running[0][0]
+
+
+def _browser_exe(process: str) -> str | None:
+    """Путь к .exe запущенного браузера — чтобы открыть вкладку в нём же."""
+    try:
+        import psutil
+    except ImportError:
+        log.debug("psutil нет — путь к браузеру не узнать")
+        return None
+
+    low = process.lower()
+    for proc in psutil.process_iter(["name"]):
+        try:
+            if (proc.info.get("name") or "").lower() == low:
+                return proc.exe()
+        except Exception:
+            continue
+    return None
+
+
+def focus_browser(process: str | None = None) -> bool:
+    """Разворачивает и переключает на окно запущенного браузера. ... [4 строк]"""
+    from jarvis import uia
+
+    if process:
+        order = [process]
+    else:
+        order = []
+        active = uia.active_browser_process()
+        if active:
+            order.append(active)
+        order += [exe for exe, _ in uia.list_browsers() if exe != active]
+
+    for exe in order:
+        for w in windows_by_process([exe]):
+            try:
+                if w.isMinimized:
+                    w.restore()
+            except Exception:
+                log.debug("окно %s не развернулось", exe, exc_info=True)
+            try:
+                w.activate()
+                log.info("Переключился на окно %s", exe)
+                return True
+            except Exception:
+                log.debug("окно %s не активировалось", exe, exc_info=True)
+    return False
+
+
 def open_url(url: str) -> bool:
+    """Открывает URL в ТОМ браузере, в котором сидит пользователь. ... [6 строк]"""
     log.info("Открываю URL: %s", url)
+    process = _running_browser()
+    if process:
+        exe = _browser_exe(process)
+        if exe:
+            try:
+                subprocess.Popen([exe, url])
+                log.info("URL открыт в %s", process)
+                return True
+            except Exception:
+                log.exception("Не удалось открыть URL в %s", process)
+
     try:
         os.startfile(url)
         return True
@@ -2940,10 +3065,22 @@ def open_url(url: str) -> bool:
         return False
 
 
-def open_browser() -> bool:
-    log.info("Открываю браузер")
+def open_browser(process: str | None = None) -> bool:
+    """Открывает браузер: запущенный — на передний план, иначе по умолчанию. ... [4 строк]"""
+    log.info("Открываю браузер: %s", process or "в котором работает пользователь")
+    if focus_browser(process):
+        return True
+
+    exe = _browser_exe(process) if process else None
+    if exe:
+        try:
+            subprocess.Popen([exe, _DEFAULT_URL])
+            return True
+        except Exception:
+            log.exception("Не удалось открыть %s", process)
+
     try:
-        os.startfile("https://www.google.com")
+        os.startfile(_DEFAULT_URL)
         return True
     except Exception:
         log.exception("open_browser не удался")
@@ -8387,6 +8524,26 @@ BROWSER_WORDS = frozenset({
     "хром", "хроме", "интернет", "интернете",
 })
 
+# Конкретные браузеры: «открой хром» — это именно Chrome, а не браузер
+# по умолчанию (№1). «Яндекс» сюда не входит намеренно: «открой яндекс»
+# чаще про сайт (yandex.ru), а не про Яндекс.Браузер.
+_BROWSER_PROCS = {
+    "хром": "chrome.exe",
+    "chrome": "chrome.exe",
+    "эдж": "msedge.exe",
+    "едж": "msedge.exe",
+    "edge": "msedge.exe",
+    "firefox": "firefox.exe",
+    "фаерфокс": "firefox.exe",
+    "файрфокс": "firefox.exe",
+    "опера": "opera.exe",
+    "opera": "opera.exe",
+    "brave": "brave.exe",
+    "вивальди": "vivaldi.exe",
+    "vivaldi": "vivaldi.exe",
+    "arc": "arc.exe",
+}
+
 
 # Слова-«наполнители» в «закрой все окна проводника»: без чистки find_app
 # видит не «проводник», а «все окна проводника», и приложение не находит.
@@ -8412,7 +8569,23 @@ def _do_open(handler, target: str) -> str:
         return "Пока нечего открывать."
 
     tokens = target.split()
-    rest = [t for t in tokens if t not in BROWSER_WORDS]
+    # «открой хром» — это Chrome, а не браузер по умолчанию (№1): если он
+    # уже запущен, переключаемся на его окно, а не плодим новое.
+    named = next((t for t in tokens if t in _BROWSER_PROCS), None)
+    rest = [t for t in tokens if t not in BROWSER_WORDS and t != named]
+
+    if named and not rest:
+        process = _BROWSER_PROCS[named]
+        if actions.focus_browser(process):
+            return f"Переключаюсь на {named}."
+        app = find_app(handler.apps, named)
+        spec = app.resolve_open() if app else None
+        if spec is not None:
+            actions.run_spec(spec)
+            return f"Открываю {named}."
+        actions.open_browser(process)
+        return f"Открываю {named}."
+
     if len(rest) < len(tokens):
         if not rest:
             actions.open_browser()
@@ -17156,6 +17329,42 @@ def browser_process_names() -> list[str]:
     return sorted(_BROWSER_PROCESSES)
 
 
+def browser_name(process: str) -> str | None:
+    """«chrome.exe» → «Chrome». None — процесс не из списка браузеров."""
+    return _BROWSER_PROCESSES.get((process or "").lower())
+
+
+def _window_process_name(window) -> str:
+    """Имя .exe процесса, которому принадлежит окно UIA. «» — не вышло."""
+    try:
+        import psutil
+    except ImportError:
+        return ""
+    try:
+        return (psutil.Process(window.ProcessId).name() or "").lower()
+    except Exception:
+        return ""
+
+
+def active_browser_process(timeout: float = 0.6) -> str | None:
+    """Имя процесса браузера, в котором сидит пользователь. ... [8 строк]"""
+    try:
+        active = get_active_window()
+        if active is not None:
+            name = _window_process_name(active)
+            if name in _BROWSER_PROCESSES:
+                return name
+    except Exception:
+        log.debug("active_browser_process: активное окно не определилось",
+                  exc_info=True)
+
+    window = _find_window_by_process(set(_BROWSER_PROCESSES), timeout=timeout)
+    if window is None:
+        return None
+    name = _window_process_name(window)
+    return name if name in _BROWSER_PROCESSES else None
+
+
 def _find_window_by_process(process_names: set[str], timeout: float = 2.0):
     """Ищет видимое окно, чей PID принадлежит процессу из process_names."""
     try:
@@ -20739,6 +20948,339 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+```
+
+### `tests/test_browser_target.py`
+
+```python
+"""№1: Феникс работает в том браузере, в котором сидит пользователь. ... [10 строк]"""
+
+import sys
+from types import SimpleNamespace
+from unittest.mock import MagicMock
+
+import pytest
+
+from jarvis import actions, uia
+from jarvis.apps import App
+from jarvis.intents import execute
+
+
+def _window(title="YouTube — Chrome", hwnd=1, visible=True, minimized=False):
+    """Окно как у pygetwindow: заголовок, видимость, приватный hwnd."""
+    w = MagicMock()
+    w.title = title
+    w.visible = visible
+    w.isMinimized = minimized
+    w._hWnd = hwnd
+    return w
+
+
+@pytest.fixture
+def fake_processes(monkeypatch):
+    """psutil без живой системы: список процессов + поиск по pid."""
+
+    def _install(procs, pids=None):
+        class Proc:
+            def __init__(self, name, exe):
+                self.info = {"name": name}
+                self._exe = exe
+
+            def name(self):
+                return self.info["name"]
+
+            def exe(self):
+                if self._exe is None:
+                    raise PermissionError("нет доступа к пути")
+                return self._exe
+
+        objects = [Proc(name, exe) for name, exe in procs]
+        by_pid = {pid: objects[i] for pid, i in (pids or {}).items()}
+
+        def _by_pid(pid):
+            if pid not in by_pid:
+                raise ValueError("нет процесса с таким pid")
+            return by_pid[pid]
+
+        module = SimpleNamespace(process_iter=lambda attrs=None: list(objects),
+                                 Process=_by_pid)
+        monkeypatch.setitem(sys.modules, "psutil", module)
+        return objects
+
+    return _install
+
+
+HANDLER = SimpleNamespace(apps=[], steam_games=[], installed={},
+                          last_file=None, last_folder=None)
+
+
+# =================================================================
+# uia: какой браузер сейчас у пользователя
+# =================================================================
+
+def test_browser_name_known_and_unknown():
+    assert uia.browser_name("Chrome.exe") == "Chrome"
+    assert uia.browser_name("msedge.exe") == "Edge"
+    assert uia.browser_name("explorer.exe") is None
+
+
+def test_active_browser_process_from_foreground(monkeypatch, fake_processes):
+    fake_processes([("chrome.exe", None)], {111: 0})
+    monkeypatch.setattr(uia, "get_active_window",
+                        lambda: SimpleNamespace(ProcessId=111))
+
+    assert uia.active_browser_process() == "chrome.exe"
+
+
+def test_active_browser_process_falls_back_to_top_window(monkeypatch,
+                                                         fake_processes):
+    """Фокус в проводнике — берём самое верхнее окно браузера."""
+    fake_processes([("explorer.exe", None), ("firefox.exe", None)],
+                   {111: 0, 222: 1})
+    monkeypatch.setattr(uia, "get_active_window",
+                        lambda: SimpleNamespace(ProcessId=111))
+    monkeypatch.setattr(uia, "_find_window_by_process",
+                        lambda names, timeout=2.0: SimpleNamespace(ProcessId=222))
+
+    assert uia.active_browser_process() == "firefox.exe"
+
+
+def test_active_browser_process_none(monkeypatch, fake_processes):
+    """Ни фокуса в браузере, ни окон браузера — None (значит браузер по умолчанию)."""
+    fake_processes([("explorer.exe", None)], {111: 0})
+    monkeypatch.setattr(uia, "get_active_window",
+                        lambda: SimpleNamespace(ProcessId=111))
+    monkeypatch.setattr(uia, "_find_window_by_process",
+                        lambda names, timeout=2.0: None)
+
+    assert uia.active_browser_process() is None
+
+
+def test_active_browser_process_survives_uia_error(monkeypatch,
+                                                   fake_processes):
+    """UIA недоступен (CI-раннер) — не падаем, идём по процессам."""
+    fake_processes([("brave.exe", None)], {222: 0})
+
+    def _boom():
+        raise RuntimeError("UIA нет")
+
+    monkeypatch.setattr(uia, "get_active_window", _boom)
+    monkeypatch.setattr(uia, "_find_window_by_process",
+                        lambda names, timeout=2.0: SimpleNamespace(ProcessId=222))
+
+    assert uia.active_browser_process() == "brave.exe"
+
+
+# =================================================================
+# actions._running_browser: чей браузер открывать
+# =================================================================
+
+def test_running_browser_single(monkeypatch, fake_processes):
+    """Один запущенный браузер — берём его, UIA не спрашиваем."""
+    fake_processes([("chrome.exe", None)])
+
+    def _no_uia():
+        raise AssertionError("UIA не нужен, если браузер один")
+
+    monkeypatch.setattr(uia, "active_browser_process", _no_uia)
+
+    assert actions._running_browser() == "chrome.exe"
+
+
+def test_running_browser_prefers_user_browser(monkeypatch, fake_processes):
+    """Два браузера — берём тот, в котором сидит пользователь."""
+    fake_processes([("chrome.exe", None), ("firefox.exe", None)])
+    monkeypatch.setattr(uia, "active_browser_process", lambda: "firefox.exe")
+
+    assert actions._running_browser() == "firefox.exe"
+
+
+def test_running_browser_none_without_browsers(monkeypatch, fake_processes):
+    fake_processes([("explorer.exe", None)])
+
+    assert actions._running_browser() is None
+
+
+def test_running_browser_specific_not_running(monkeypatch, fake_processes):
+    fake_processes([("firefox.exe", None)])
+
+    assert actions._running_browser("chrome.exe") is None
+
+
+# =================================================================
+# actions.open_url: сайт в браузере пользователя
+# =================================================================
+
+def test_open_url_opens_in_user_browser(monkeypatch, fake_processes):
+    """Главное требование №1: сайт открывается там, где сидит человек."""
+    fake_processes([("chrome.exe", r"C:\fake\chrome.exe")])
+    popen, startfile = MagicMock(), MagicMock()
+    monkeypatch.setattr(actions.subprocess, "Popen", popen)
+    monkeypatch.setattr(actions.os, "startfile", startfile)
+
+    assert actions.open_url("https://ya.ru") is True
+
+    popen.assert_called_once_with([r"C:\fake\chrome.exe", "https://ya.ru"])
+    startfile.assert_not_called()
+
+
+def test_open_url_falls_back_to_default_browser(monkeypatch, fake_processes):
+    """Браузеров нет — прежнее поведение (браузер по умолчанию)."""
+    fake_processes([("explorer.exe", None)])
+    popen, startfile = MagicMock(), MagicMock()
+    monkeypatch.setattr(actions.subprocess, "Popen", popen)
+    monkeypatch.setattr(actions.os, "startfile", startfile)
+
+    assert actions.open_url("https://ya.ru") is True
+
+    startfile.assert_called_once_with("https://ya.ru")
+    popen.assert_not_called()
+
+
+def test_open_url_falls_back_when_exe_path_hidden(monkeypatch, fake_processes):
+    """Путь к .exe не читается (защищённый процесс) — открываем как раньше."""
+    fake_processes([("chrome.exe", None)])
+    popen, startfile = MagicMock(), MagicMock()
+    monkeypatch.setattr(actions.subprocess, "Popen", popen)
+    monkeypatch.setattr(actions.os, "startfile", startfile)
+
+    assert actions.open_url("https://ya.ru") is True
+
+    popen.assert_not_called()
+    startfile.assert_called_once_with("https://ya.ru")
+
+
+# =================================================================
+# actions.open_browser: запущенный — на передний план
+# =================================================================
+
+def test_open_browser_focuses_running_window(monkeypatch, fake_processes):
+    """«открой браузер» при запущенном Chrome — переключаемся, не плодим окно."""
+    fake_processes([("chrome.exe", None)])
+    monkeypatch.setattr(uia, "active_browser_process", lambda: None)
+    win = _window()
+    monkeypatch.setattr(actions, "windows_by_process", lambda names: [win])
+    startfile = MagicMock()
+    monkeypatch.setattr(actions.os, "startfile", startfile)
+
+    assert actions.open_browser() is True
+
+    win.activate.assert_called_once()
+    startfile.assert_not_called()
+
+
+def test_open_browser_restores_minimized(monkeypatch, fake_processes):
+    """Свёрнутый браузер разворачиваем, а не открываем второй."""
+    fake_processes([("chrome.exe", None)])
+    monkeypatch.setattr(uia, "active_browser_process", lambda: None)
+    win = _window(minimized=True)
+    monkeypatch.setattr(actions, "windows_by_process", lambda names: [win])
+    monkeypatch.setattr(actions.os, "startfile", MagicMock())
+
+    assert actions.open_browser() is True
+
+    win.restore.assert_called_once()
+    win.activate.assert_called_once()
+
+
+def test_open_browser_named_launches_tab_when_window_missing(monkeypatch,
+                                                             fake_processes):
+    """Окна не видно, но процесс есть — вкладка в нём, а не в браузере по умолчанию."""
+    fake_processes([("chrome.exe", r"C:\fake\chrome.exe")])
+    monkeypatch.setattr(actions, "windows_by_process", lambda names: [])
+    popen, startfile = MagicMock(), MagicMock()
+    monkeypatch.setattr(actions.subprocess, "Popen", popen)
+    monkeypatch.setattr(actions.os, "startfile", startfile)
+
+    assert actions.open_browser("chrome.exe") is True
+
+    popen.assert_called_once_with([r"C:\fake\chrome.exe", actions._DEFAULT_URL])
+    startfile.assert_not_called()
+
+
+def test_open_browser_without_browsers_uses_default(monkeypatch, fake_processes):
+    fake_processes([("explorer.exe", None)])
+    monkeypatch.setattr(uia, "active_browser_process", lambda: None)
+    monkeypatch.setattr(actions, "windows_by_process", lambda names: [])
+    startfile = MagicMock()
+    monkeypatch.setattr(actions.os, "startfile", startfile)
+
+    assert actions.open_browser() is True
+
+    startfile.assert_called_once_with(actions._DEFAULT_URL)
+
+
+def test_focus_browser_false_without_windows(monkeypatch, fake_processes):
+    fake_processes([("chrome.exe", None)])
+    monkeypatch.setattr(uia, "active_browser_process", lambda: None)
+    monkeypatch.setattr(actions, "windows_by_process", lambda names: [])
+
+    assert actions.focus_browser() is False
+
+
+# =================================================================
+# execute._do_open: «открой хром» ≠ браузер по умолчанию
+# =================================================================
+
+def test_do_open_chrome_switches_to_running_window(monkeypatch):
+    seen = []
+    monkeypatch.setattr(actions, "focus_browser",
+                        lambda process=None: seen.append(process) or True)
+    monkeypatch.setattr(actions, "open_browser",
+                        lambda process=None: seen.append("open") or True)
+
+    assert execute._do_open(HANDLER, "хром") == "Переключаюсь на хром."
+    assert seen == ["chrome.exe"]
+
+
+def test_do_open_chrome_from_catalog_when_not_running(monkeypatch):
+    """Chrome не запущен — стартуем Chrome из каталога, не браузер по умолчанию."""
+    app = App("chrome", "Chrome", ["хром"], [("uri", "https://www.google.com")],
+              ["chrome.exe"])
+    handler = SimpleNamespace(apps=[app], steam_games=[], installed={},
+                              last_file=None, last_folder=None)
+    monkeypatch.setattr(actions, "focus_browser", lambda process=None: False)
+    run_spec, open_browser = MagicMock(), MagicMock()
+    monkeypatch.setattr(actions, "run_spec", run_spec)
+    monkeypatch.setattr(actions, "open_browser", open_browser)
+
+    assert execute._do_open(handler, "хром") == "Открываю хром."
+    run_spec.assert_called_once_with(("uri", "https://www.google.com"))
+    open_browser.assert_not_called()
+
+
+def test_do_open_browser_word_uses_user_browser(monkeypatch):
+    monkeypatch.setattr(actions, "open_browser",
+                        lambda process=None: process is None)
+
+    assert execute._do_open(HANDLER, "браузер") == "Открываю браузер."
+
+
+def test_do_open_site_goes_through_open_url(monkeypatch):
+    """«открой ютуб» идёт через open_url — то есть в браузер пользователя."""
+    from jarvis.intents.sites import get_sites
+
+    title, url = get_sites()["ютуб"]
+    opened = []
+    monkeypatch.setattr(actions, "open_url", lambda u: opened.append(u) or True)
+
+    assert execute._do_open(HANDLER, "ютуб") == f"Открываю {title}."
+    assert opened == [url]
+
+
+def test_do_open_site_in_browser_word(monkeypatch):
+    """«открой браузер ютуб» — сайт в своём браузере, чужое окно не трогаем."""
+    from jarvis.intents.sites import get_sites
+
+    title, url = get_sites()["ютуб"]
+    opened = []
+    monkeypatch.setattr(actions, "open_url", lambda u: opened.append(u) or True)
+    focus = MagicMock()
+    monkeypatch.setattr(actions, "focus_browser", focus)
+
+    assert execute._do_open(HANDLER, "браузер ютуб") == f"Открываю {title}."
+    assert opened == [url]
+    focus.assert_not_called()
 ```
 
 ### `tests/test_build_setup.py`
@@ -26742,7 +27284,7 @@ if __name__ == "__main__":
 ### `snapshot.py`
 
 ````python
-"""Собирает снимок проекта в один SNAPSHOT.md. ... [30 строк]"""
+"""Собирает снимок проекта в один SNAPSHOT.md. ... [32 строк]"""
 
 from __future__ import annotations
 
@@ -26755,6 +27297,11 @@ from pathlib import Path
 
 BASE = Path(__file__).resolve().parent
 OUTPUT = BASE / "SNAPSHOT.md"
+
+# Метка корня в дереве. Имя самой папки печатать нельзя: снимок, собранный
+# в C:\jarvis, в CI (D:\a\jarvis-fenix\jarvis-fenix) считался устаревшим —
+# строка дерева отличалась, хотя код тот же.
+ROOT_LABEL = "./"
 
 # -----------------------------------------------------------------
 # Исключения
@@ -27243,7 +27790,7 @@ def build_snapshot(mode: str, budget_kb: float | None) -> tuple[str, list[str]]:
     L.append("## 1. Карта проекта")
     L.append("")
     L.append("```")
-    L.append(BASE.name + "/")
+    L.append(ROOT_LABEL)
     L.append(build_tree(files, BASE))
     L.append("```")
     L.append("")
@@ -27333,7 +27880,8 @@ def drift_reason(content: str, path: Path) -> list[str]:
         return []
 
     def _head(text: str, key: str) -> str:
-        m = re.search(rf"{key}\s*`([^`]+)`", text)
+        """Значение ключа из шапки: `sha256=abc` и `файлов `168``. ... [4 строк]"""
+        m = re.search(rf"{key}\s*=?\s*`?([^`\s·]+)", text)
         return m.group(1) if m else "?"
 
     reasons = [
@@ -28525,10 +29073,11 @@ user_profile.json
    `CHANGELOG.md`, `PLAN.md`, `ARCHITECTURE.md`, `CI.md`. `SNAPSHOT.md` (1 МБ) — никогда.
 2. **Батчинг:** все независимые поиски, чтения, команды и правки — в ОДНОМ ответе.
    Не разносить на «прочитал → подумал → ещё раз прочитал».
-3. Сначала `search_codebase`, потом чтение **точного диапазона** (`start_line`/`end_line`).
+3. Сначала рассказываешь план действий и ждешь согласия человека, потом `search_codebase`, потом чтение **точного диапазона** (`start_line`/`end_line`).
    Файл > 400 строк целиком не читать никогда — только нужный участок.
 4. Если нужен широкий контекст — **спросить**, что открыть, вместо чтения всего подряд.
 
+5. Не коммитить без разрешения пользователя
 ## Вывод и проверки
 
 5. Вывод команд обрезать: `| Select-Object -Last 15`, `-q`, `--stat`, `| Measure-Object`.
@@ -28806,11 +29355,14 @@ onnxruntime>=1.17
     - `scripts/make_installer_images.py`
     - `scripts/build_exe.py`
 
-#### `CHANGELOG.md` — 68 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 71 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
   - 📑 Содержание
   - 🚧 [Unreleased] — 0.4.0
+    - 📅 Сессия 14.10.2026
+      - 🔧 `snapshot.py --check` — почему CI был красным всегда
+      - 🌐 Браузер пользователя: работаем там, где он сидит (№1)
     - 📅 Сессия 13.10.2026
       - 🪟 Окно ищется по процессу, а не по заголовку (№45–№50)
       - 🔒 Приватность и «красная черта»: Observer выключен, ответы фильтруются
@@ -28845,9 +29397,6 @@ onnxruntime>=1.17
         - 🧹 Технический долг (ТД)
         - 🎭 Mood — эмоциональное состояние ассистента
         - 🖥 UIA — управление окнами Windows
-        - 🎉 Праздничные триггеры — в config
-      - 🐛 Исправлено
-  - 📅 Сессия 10.10.2026
 
 #### `CI.md` — 13 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -28900,12 +29449,13 @@ onnxruntime>=1.17
   - 🤝 Как задавать вопросы
   - 🎯 Философия
 
-#### `PLAN.md` — 81 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `PLAN.md` — 83 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - 📋 План развития «Феникс»
   - 🎯 ФИЛОСОФИЯ ПРОЕКТА
   - 📊 СВОДКА
   - ✅ СДЕЛАНО — СВОДКА
+    - Сессия 14.10.2026 — CI перестал «врать» про устаревший снимок
     - Углублённое управление браузером (13.10.2026)
     - Инсталлятор + сборка (13.10.2026)
     - CI-релизы (13.10.2026)
@@ -28941,7 +29491,6 @@ onnxruntime>=1.17
     - 🆕 Визуализация + Спрайт (4) ⭐ AIRI-концепция
     - 🆕 Сборка в `.exe` (2)
     - 🆕 CI/релизы (1)
-    - 🆕 Тесты (1)
 
 #### `PROMPT.md` — 27 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -29018,4 +29567,4 @@ onnxruntime>=1.17
 
 ---
 
-_Итого по категориям — code: 132, data: 20, doc: 11, pack: 5. Режим `lean`._
+_Итого по категориям — code: 133, data: 20, doc: 11, pack: 5. Режим `lean`._

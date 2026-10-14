@@ -333,6 +333,50 @@ def browser_process_names() -> list[str]:
     return sorted(_BROWSER_PROCESSES)
 
 
+def browser_name(process: str) -> str | None:
+    """«chrome.exe» → «Chrome». None — процесс не из списка браузеров."""
+    return _BROWSER_PROCESSES.get((process or "").lower())
+
+
+def _window_process_name(window) -> str:
+    """Имя .exe процесса, которому принадлежит окно UIA. «» — не вышло."""
+    try:
+        import psutil
+    except ImportError:
+        return ""
+    try:
+        return (psutil.Process(window.ProcessId).name() or "").lower()
+    except Exception:
+        return ""
+
+
+def active_browser_process(timeout: float = 0.6) -> str | None:
+    """Имя процесса браузера, в котором сидит пользователь.
+
+    Порядок: окно в фокусе (если это браузер) → самое верхнее окно
+    запущенного браузера → None. Нужно, чтобы «открой ютуб» открывалось
+    в браузере пользователя, а не в браузере по умолчанию (№1).
+
+    `timeout` маленький: если ни одного окна браузера не видно, ждать
+    нечего, а вызывается это на каждой команде открытия сайта.
+    """
+    try:
+        active = get_active_window()
+        if active is not None:
+            name = _window_process_name(active)
+            if name in _BROWSER_PROCESSES:
+                return name
+    except Exception:
+        log.debug("active_browser_process: активное окно не определилось",
+                  exc_info=True)
+
+    window = _find_window_by_process(set(_BROWSER_PROCESSES), timeout=timeout)
+    if window is None:
+        return None
+    name = _window_process_name(window)
+    return name if name in _BROWSER_PROCESSES else None
+
+
 def _find_window_by_process(process_names: set[str], timeout: float = 2.0):
     """Ищет видимое окно, чей PID принадлежит процессу из process_names."""
     try:

@@ -371,8 +371,110 @@ def _find_vscode() -> str | None:
     exe = shutil.which("code") or shutil.which("code.exe")
     return exe
 
+# =================================================================
+# Браузер пользователя (№1): работать там, где сидит человек,
+# а не в браузере по умолчанию
+# =================================================================
+
+_DEFAULT_URL = "https://www.google.com"
+
+
+def _running_browser(process: str | None = None) -> str | None:
+    """Имя процесса запущенного браузера, в котором сидит пользователь.
+
+    `process` — конкретный браузер («открой хром»). Без него порядок:
+    единственный запущенный → окно в фокусе → самый верхний запущенный.
+    None — браузеров нет, значит остаётся браузер по умолчанию.
+    """
+    from jarvis import uia  # локально: jarvis.uia поднимает COM не сразу
+
+    running = uia.list_browsers()
+    if not running:
+        return None
+    if process:
+        low = process.lower()
+        return next((exe for exe, _ in running if exe == low), None)
+    if len(running) == 1:
+        # Быстрый путь: спорить не с кем, UIA не нужен.
+        return running[0][0]
+
+    active = uia.active_browser_process()
+    if active:
+        return active
+    return running[0][0]
+
+
+def _browser_exe(process: str) -> str | None:
+    """Путь к .exe запущенного браузера — чтобы открыть вкладку в нём же."""
+    try:
+        import psutil
+    except ImportError:
+        log.debug("psutil нет — путь к браузеру не узнать")
+        return None
+
+    low = process.lower()
+    for proc in psutil.process_iter(["name"]):
+        try:
+            if (proc.info.get("name") or "").lower() == low:
+                return proc.exe()
+        except Exception:
+            continue
+    return None
+
+
+def focus_browser(process: str | None = None) -> bool:
+    """Разворачивает и переключает на окно запущенного браузера.
+
+    `process` — конкретный браузер. Без него первым идёт тот, в котором
+    сидит пользователь. False — окна браузера не нашлось.
+    """
+    from jarvis import uia
+
+    if process:
+        order = [process]
+    else:
+        order = []
+        active = uia.active_browser_process()
+        if active:
+            order.append(active)
+        order += [exe for exe, _ in uia.list_browsers() if exe != active]
+
+    for exe in order:
+        for w in windows_by_process([exe]):
+            try:
+                if w.isMinimized:
+                    w.restore()
+            except Exception:
+                log.debug("окно %s не развернулось", exe, exc_info=True)
+            try:
+                w.activate()
+                log.info("Переключился на окно %s", exe)
+                return True
+            except Exception:
+                log.debug("окно %s не активировалось", exe, exc_info=True)
+    return False
+
+
 def open_url(url: str) -> bool:
+    """Открывает URL в ТОМ браузере, в котором сидит пользователь.
+
+    Раньше здесь был только `os.startfile(url)`: Windows всегда открывал
+    браузер по умолчанию, даже если человек сидит в другом (№1). Запуск
+    .exe уже работающего браузера с URL добавляет вкладку в его окно и в
+    его профиль. Браузеров не запущено — прежнее поведение.
+    """
     log.info("Открываю URL: %s", url)
+    process = _running_browser()
+    if process:
+        exe = _browser_exe(process)
+        if exe:
+            try:
+                subprocess.Popen([exe, url])
+                log.info("URL открыт в %s", process)
+                return True
+            except Exception:
+                log.exception("Не удалось открыть URL в %s", process)
+
     try:
         os.startfile(url)
         return True
@@ -381,10 +483,26 @@ def open_url(url: str) -> bool:
         return False
 
 
-def open_browser() -> bool:
-    log.info("Открываю браузер")
+def open_browser(process: str | None = None) -> bool:
+    """Открывает браузер: запущенный — на передний план, иначе по умолчанию.
+
+    Раньше всегда звался `os.startfile`, то есть браузер по умолчанию, даже
+    когда нужный уже работал. `process` — конкретный браузер («открой хром»).
+    """
+    log.info("Открываю браузер: %s", process or "в котором работает пользователь")
+    if focus_browser(process):
+        return True
+
+    exe = _browser_exe(process) if process else None
+    if exe:
+        try:
+            subprocess.Popen([exe, _DEFAULT_URL])
+            return True
+        except Exception:
+            log.exception("Не удалось открыть %s", process)
+
     try:
-        os.startfile("https://www.google.com")
+        os.startfile(_DEFAULT_URL)
         return True
     except Exception:
         log.exception("open_browser не удался")
