@@ -599,6 +599,10 @@ def main() -> None:
         if not brain.available:
             brain = None
 
+    # Векторная память: индексация фактов в фоне. Модель эмбеддингов
+    # подтянется только когда фича включена (см. vectormem.warmup_async).
+    vectormem.warmup_async()
+
     # Speaker с lazy=True: движок (PiperVoice.load ~2.3 с, Silero — до
     # минуты) грузится в фоне, окно Феникса появляется сразу.
     speaker = Speaker(config, lazy=True)

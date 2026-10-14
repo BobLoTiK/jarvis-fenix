@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=34aa8388916b0b16` · режим `lean` · файлов `171` · строк `34745` · источник `1466 КБ`
+`sha256=2761e28735356046` · режим `lean` · файлов `172` · строк `34957` · источник `1476 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -265,13 +265,13 @@ README)._
 │   ├── __main__.py  (4 стр)
 │   ├── actions.py  (1478 стр)
 │   ├── apps.py  (114 стр)
-│   ├── brain.py  (836 стр)
+│   ├── brain.py  (852 стр)
 │   ├── celebrations.py  (165 стр)
 │   ├── config.py  (269 стр)
 │   ├── config_manager.py  (156 стр)
 │   ├── files.py  (102 стр)
 │   ├── first_run.py  (26 стр)
-│   ├── gui.py  (2196 стр)
+│   ├── gui.py  (2242 стр)
 │   ├── history.py  (75 стр)
 │   ├── installed.py  (51 стр)
 │   ├── intents/
@@ -316,8 +316,8 @@ README)._
 │   │   │   ├── password.py  (94 стр)
 │   │   │   ├── pending.py  (62 стр)
 │   │   ├── verbs.py  (45 стр)
-│   ├── learning.py  (177 стр)
-│   ├── main.py  (787 стр)
+│   ├── learning.py  (180 стр)
+│   ├── main.py  (791 стр)
 │   ├── matching.py  (113 стр)
 │   ├── memory.py  (137 стр)
 │   ├── model.py  (102 стр)
@@ -397,12 +397,13 @@ README)._
 │   │   ├── vad_live.py  (41 стр)
 │   ├── README.md  (70 стр)
 │   ├── stress_intents.py  (533 стр)
+│   ├── test_brain_rag.py  (133 стр)
 │   ├── test_browser_target.py  (338 стр)
 │   ├── test_build_setup.py  (56 стр)
 │   ├── test_caps.py  (23 стр)
 │   ├── test_config_manager.py  (47 стр)
 │   ├── test_engine_probe.py  (100 стр)
-│   ├── test_gui_wiring.py  (540 стр)
+│   ├── test_gui_wiring.py  (550 стр)
 │   ├── test_intents.py  (445 стр)
 │   ├── test_main_wiring.py  (202 стр)
 │   ├── test_mood.py  (386 стр)
@@ -978,7 +979,7 @@ README)._
   def find_correction(cmd: str, threshold: float=0.85)
   def all_corrections()
   def forget_correction(wrong: str)
-  def build_context()
+  def build_context(include_facts: bool=True)
 ```
 
 **`jarvis/main.py`**
@@ -1786,6 +1787,21 @@ README)._
   def main()
 ```
 
+**`tests/test_brain_rag.py`**
+
+```
+  # Отбор фактов в system-промпт (jarvis.brain._system_with_context).
+  FACTS = ...
+  def cfg(tmp_path)
+  def brain(cfg, monkeypatch)
+  def test_disabled_keeps_all_facts(brain, cfg)
+  def test_no_query_keeps_all_facts(brain)
+  def test_rag_block_replaces_full_fact_list(brain, cfg, monkeypatch)
+  def test_facts_are_not_duplicated(brain, cfg, monkeypatch)
+  def test_build_context_include_facts_flag(cfg)
+  def test_broken_memory_does_not_break_prompt(brain, cfg, monkeypatch)
+```
+
 **`tests/test_browser_target.py`**
 
 ```
@@ -1903,6 +1919,7 @@ README)._
   def test_theme_dropdown(gui, cfg)
   def test_theme_dropdown_rejects_unknown(gui, cfg)
   def test_observer_enabled_checkbox(gui, cfg)
+  def test_memory_rag_checkbox(gui, cfg)
   def test_persona_name_goes_to_config(gui, cfg)
   def test_persona_fields_go_to_persona_module(gui, monkeypatch)
   def test_persona_tone_rejects_unknown(gui, monkeypatch)
@@ -2532,13 +2549,13 @@ README)._
 | `jarvis/__main__.py` | 4 | code |  |
 | `jarvis/actions.py` | 1478 | code | Действия: запуск приложений, открытие сайтов, скриншоты, медиа, печать |
 | `jarvis/apps.py` | 114 | code | Каталог известных приложений: как их зовут голосом, как открыть и как  |
-| `jarvis/brain.py` | 836 | code | LLM-фолбэк: локальная нейронка (Ollama) разбирает команду в структурны |
+| `jarvis/brain.py` | 852 | code | LLM-фолбэк: локальная нейронка (Ollama) разбирает команду в структурны |
 | `jarvis/celebrations.py` | 165 | code | Праздничные триггеры — поздравление с ДР + двойной салют. |
 | `jarvis/config.py` | 269 | code | Загрузка конфигурации и объект Config в памяти. |
 | `jarvis/config_manager.py` | 156 | code | Единый менеджер записи в config.json. |
 | `jarvis/files.py` | 102 | code | Файлы и папки: открыть, посмотреть содержимое, создать. |
 | `jarvis/first_run.py` | 26 | code | Первый запуск — знакомство через LLM-диалог. |
-| `jarvis/gui.py` | 2196 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
+| `jarvis/gui.py` | 2242 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
 | `jarvis/history.py` | 75 | code | История последних действий для отмены («стоп, не то»). |
 | `jarvis/installed.py` | 51 | code | Индекс установленных программ по ярлыкам меню «Пуск». |
 | `jarvis/intents/__init__.py` | 10 | code | Разбор команд Феникса — пакет. |
@@ -2580,8 +2597,8 @@ README)._
 | `jarvis/intents/stages/password.py` | 94 | code | Ожидание пароля + команда «удали профиль X». |
 | `jarvis/intents/stages/pending.py` | 62 | code | Ожидание уточнения (pending_question). |
 | `jarvis/intents/verbs.py` | 45 | code | Константы глаголов и слов — единый источник истины. |
-| `jarvis/learning.py` | 177 | code | Самообучение Феникса: факты и коррекции. |
-| `jarvis/main.py` | 787 | code | Точка входа: связывает распознавание, интенты, синтез речи и GUI. |
+| `jarvis/learning.py` | 180 | code | Самообучение Феникса: факты и коррекции. |
+| `jarvis/main.py` | 791 | code | Точка входа: связывает распознавание, интенты, синтез речи и GUI. |
 | `jarvis/matching.py` | 113 | code | Нечёткое сопоставление речи с названиями: транслитерация + difflib. |
 | `jarvis/memory.py` | 137 | code | Память диалога — на профиль. |
 | `jarvis/model.py` | 102 | code | Скачивание и распаковка модели Vosk для русского языка (~45 МБ). |
@@ -2636,12 +2653,13 @@ README)._
 | `tests/manual/vad_debug.py` | 61 | code | Отладка Silero VAD — прогон на синтетике. |
 | `tests/manual/vad_live.py` | 41 | code | Живой тест VAD: пишет 5 сек с микрофона, показывает prob. |
 | `tests/stress_intents.py` | 533 | code | Стресс-тест Феникса: ровно 100 разных ситуаций без микрофона и сети. |
+| `tests/test_brain_rag.py` | 133 | code | Отбор фактов в system-промпт (jarvis.brain._system_with_context). |
 | `tests/test_browser_target.py` | 338 | code | №1: Феникс работает в том браузере, в котором сидит пользователь. |
 | `tests/test_build_setup.py` | 56 | code | Тесты scripts.build_setup — версия установщика и мягкий пропуск шага c |
 | `tests/test_caps.py` | 23 | code | Тесты check_caps: структура system_caps.json. |
 | `tests/test_config_manager.py` | 47 | code | Тесты config_manager: параллельная запись не рвёт файл. |
 | `tests/test_engine_probe.py` | 100 | code | Заглушка движка TTS (factory._probe_engine). |
-| `tests/test_gui_wiring.py` | 540 | code | GUI → config: каждый элемент окна реально отсылает изменение. |
+| `tests/test_gui_wiring.py` | 550 | code | GUI → config: каждый элемент окна реально отсылает изменение. |
 | `tests/test_intents.py` | 445 | code | Автотест Феникса без микрофона. |
 | `tests/test_main_wiring.py` | 202 | code | config → живое ядро: подписчик make_config_listener. |
 | `tests/test_mood.py` | 386 | code | Тесты jarvis.mood — состояние, детекция, decay, влияние. |
@@ -4717,8 +4735,8 @@ class Brain:
         with urllib.request.urlopen(req, timeout=timeout) as r:
             return json.loads(r.read())["message"]["content"]
 
-    def _system_with_context(self, base: str) -> str:
-        """Добавляет к промпту персону + mood + факты + corrections."""
+    def _system_with_context(self, base: str, query: str = None) -> str:
+        """Добавляет к промпту персону + mood + факты + corrections. ... [5 строк]"""
         parts = []
 
         try:
@@ -4737,12 +4755,23 @@ class Brain:
         except Exception:
             log.exception("Не удалось собрать блок mood")
 
+        rag = ""
         try:
-            extra = learning.build_context()
+            from jarvis import vectormem
+            rag = vectormem.build_prompt_block(query)
+        except Exception:
+            log.exception("Не удалось собрать блок векторной памяти")
+
+        try:
+            # rag непустой — факты уже отобраны по смыслу, второй раз их не шлём.
+            extra = learning.build_context(include_facts=not rag)
             if extra:
                 parts.append(extra)
         except Exception:
             log.exception("Не удалось собрать контекст обучения")
+
+        if rag:
+            parts.append("\n\n" + rag)
 
         if not parts:
             return base
@@ -4759,7 +4788,7 @@ class Brain:
     def chat(self, cmd, history=None):
         if not self.available:
             return None
-        system = self._system_with_context(CHAT_SYSTEM)
+        system = self._system_with_context(CHAT_SYSTEM, cmd)
         msgs = ([{"role": "system", "content": system}]
                 + list(history or [])
                 + [{"role": "user", "content": cmd}])
@@ -4778,7 +4807,7 @@ class Brain:
     def chat_stream(self, cmd, history=None):
         if not self.available:
             return
-        system = self._system_with_context(CHAT_SYSTEM)
+        system = self._system_with_context(CHAT_SYSTEM, cmd)
         msgs = ([{"role": "system", "content": system}]
                 + list(history or [])
                 + [{"role": "user", "content": cmd}])
@@ -6879,6 +6908,24 @@ class FenixGUI:
                 "анализ диалога остановился."
             )
 
+    def _on_memory_rag_enabled(self, e) -> None:
+        """Векторная память — отбор фактов по смыслу запроса. ... [4 строк]"""
+        value = bool(e.control.value)
+        self.config.set("memory_rag_enabled", value)
+        log.info("GUI: memory_rag_enabled → %s (применяется сразу)", value)
+        if value:
+            self._show_status(
+                "Векторная память включена: Феникс будет подбирать факты "
+                "под запрос. Нужна модель эмбеддингов — если её нет, "
+                "выполни «ollama pull nomic-embed-text» (~274 МБ). "
+                "Индекс: %APPDATA%\\Phoenix\\profiles\\<профиль>\\memory_index.json"
+            )
+        else:
+            self._show_status(
+                "Векторная память выключена: в промпт снова уходят все "
+                "факты о тебе, как раньше. Индекс остаётся на диске."
+            )
+
     def _on_launch_mode(self, e) -> None:
         """Режим запуска (gui/tray) — применится при следующем старте."""
         value = e.control.value
@@ -7007,6 +7054,26 @@ class FenixGUI:
             color=TEXT_DIM,
         )
 
+        # Векторная память фактов (RAG). Тоже по умолчанию выключена:
+        # это производная обработка данных о пользователе. Новых данных
+        # не собирает — только отбирает уже сохранённые факты.
+        rag_checkbox = ft.Checkbox(
+            label="Подбирать факты по смыслу (векторная память, RAG)",
+            value=bool(self.config.get("memory_rag_enabled", False)),
+            on_change=self._on_memory_rag_enabled,
+        )
+
+        rag_hint = ft.Text(
+            "Когда фактов много, в промпт уходят только релевантные "
+            "запросу — остальные не мешают. Нужна модель эмбеддингов: "
+            "«ollama pull nomic-embed-text» (~274 МБ). Всё локально: "
+            "запросы идут только в Ollama на этом же компьютере, "
+            "индекс лежит в memory_index.json рядом с profile.json. "
+            "Выключено по умолчанию, применяется сразу.",
+            size=11,
+            color=TEXT_DIM,
+        )
+
         def _section(title):
             return ft.Text(title, size=16, weight=ft.FontWeight.BOLD, color=ACCENT)
 
@@ -7050,6 +7117,10 @@ class FenixGUI:
                     observer_checkbox,
                     ft.Container(height=8),
                     observer_hint,
+                    ft.Container(height=12),
+                    rag_checkbox,
+                    ft.Container(height=8),
+                    rag_hint,
                 ],
                 spacing=6,
                 scroll=ft.ScrollMode.AUTO,
@@ -11282,8 +11353,8 @@ def forget_correction(wrong: str) -> bool:
 # Сборка контекста для промпта
 # ---------------------------------------------------------------
 
-def build_context() -> str:
-    """Собирает блок для промпта из профиля, фактов и коррекций. ... [3 строк]"""
+def build_context(include_facts: bool = True) -> str:
+    """Собирает блок для промпта из профиля, фактов и коррекций. ... [6 строк]"""
     parts = []
 
     # Базовые поля профиля — name, default_city.
@@ -11299,7 +11370,7 @@ def build_context() -> str:
     if profile_lines:
         parts.append("Данные профиля пользователя:\n" + "\n".join(profile_lines))
 
-    facts = all_facts()
+    facts = all_facts() if include_facts else {}
     if facts:
         lines = [f"- {k}: {v}" for k, v in facts.items()]
         parts.append("Известные факты о пользователе:\n" + "\n".join(lines))
@@ -11871,6 +11942,10 @@ def main() -> None:
         )
         if not brain.available:
             brain = None
+
+    # Векторная память: индексация фактов в фоне. Модель эмбеддингов
+    # подтянется только когда фича включена (см. vectormem.warmup_async).
+    vectormem.warmup_async()
 
     # Speaker с lazy=True: движок (PiperVoice.load ~2.3 с, Silero — до
     # минуты) грузится в фоне, окно Феникса появляется сразу.
@@ -21703,6 +21778,133 @@ if __name__ == "__main__":
     main()
 ```
 
+### `tests/test_brain_rag.py`
+
+```python
+"""Отбор фактов в system-промпт (jarvis.brain._system_with_context). ... [11 строк]"""
+
+import pytest
+
+from jarvis import learning, profile, vectormem
+from jarvis.brain import CHAT_SYSTEM, Brain
+from jarvis.config import Config
+
+FACTS = {"город": "Казань", "работа": "программист",
+         "любимая игра": "Дота", "любимый фильм": "Матрица"}
+
+
+@pytest.fixture(autouse=True)
+def _isolated(tmp_path, monkeypatch):
+    monkeypatch.setattr(profile, "PROFILES_DIR", tmp_path / "profiles")
+    monkeypatch.setattr(vectormem, "_config", None)
+    monkeypatch.setattr(vectormem, "warmup_async", lambda: None)
+    profile._cache_invalidate()
+    vectormem.reset_for_tests()
+    yield
+    vectormem.reset_for_tests()
+    profile._cache_invalidate()
+
+
+@pytest.fixture()
+def cfg(tmp_path):
+    return Config(tmp_path / "config.json")
+
+
+def _brain(cfg, monkeypatch):
+    """Brain без сети: сеть не пингуем, ollama serve не поднимаем."""
+    monkeypatch.setattr(Brain, "_ping", lambda self: False)
+    monkeypatch.setattr(Brain, "_try_start", lambda self: False)
+    return Brain(config=cfg)
+
+
+@pytest.fixture()
+def brain(cfg, monkeypatch):
+    b = _brain(cfg, monkeypatch)
+    vectormem.set_config(cfg)
+    for key, value in FACTS.items():
+        assert learning.add_fact(key, value)
+    return b
+
+
+def test_disabled_keeps_all_facts(brain, cfg):
+    """Фича выключена (дефолт) — промпт не отличается от того, что был до неё."""
+    prompt = brain._system_with_context(CHAT_SYSTEM, "какой у меня город")
+
+    for value in FACTS.values():
+        assert value in prompt
+
+
+def test_no_query_keeps_all_facts(brain):
+    """Запроса нет (онбординг, разбор команды) — отбирать нечего."""
+    prompt = brain._system_with_context(CHAT_SYSTEM)
+
+    for value in FACTS.values():
+        assert value in prompt
+
+
+def test_rag_block_replaces_full_fact_list(brain, cfg, monkeypatch):
+    """Память отобрала факты — остальные в промпт не идут."""
+    cfg.set("memory_rag_enabled", True)
+    seen = {}
+
+    def _fake_block(query, k=None):
+        seen["query"] = query
+        return "Факты о пользователе (отобраны по смыслу запроса):\n- город: Казань\n"
+
+    monkeypatch.setattr(vectormem, "build_prompt_block", _fake_block)
+
+    prompt = brain._system_with_context(CHAT_SYSTEM, "какой у меня город")
+
+    assert seen["query"] == "какой у меня город"
+    assert "Казань" in prompt
+    assert "Матрица" not in prompt
+    assert "программист" not in prompt
+
+
+def test_facts_are_not_duplicated(brain, cfg, monkeypatch):
+    """Когда память отобрала факты, build_context их уже не добавляет."""
+    cfg.set("memory_rag_enabled", True)
+    monkeypatch.setattr(vectormem, "build_prompt_block",
+                        lambda query, k=None: "Факты о пользователе:\n- город: Казань\n")
+
+    calls = []
+    original = learning.build_context
+    monkeypatch.setattr(learning, "build_context",
+                        lambda include_facts=True: calls.append(include_facts) or original(include_facts))
+
+    brain._system_with_context(CHAT_SYSTEM, "какой у меня город")
+
+    assert calls == [False]
+
+
+def test_build_context_include_facts_flag(cfg):
+    """include_facts=False убирает блок фактов, но профиль и коррекции остаются."""
+    vectormem.set_config(cfg)
+    for key, value in FACTS.items():
+        learning.add_fact(key, value)
+
+    with_facts = learning.build_context()
+    without = learning.build_context(include_facts=False)
+
+    assert "Казань" in with_facts
+    assert "Казань" not in without
+
+
+def test_broken_memory_does_not_break_prompt(brain, cfg, monkeypatch):
+    """Падение памяти не должно ломать диалог — факты просто идут как раньше."""
+    cfg.set("memory_rag_enabled", True)
+
+    def _boom(query, k=None):
+        raise RuntimeError("память сломалась")
+
+    monkeypatch.setattr(vectormem, "build_prompt_block", _boom)
+
+    prompt = brain._system_with_context(CHAT_SYSTEM, "какой у меня город")
+
+    assert "Казань" in prompt
+    assert "Матрица" in prompt
+```
+
 ### `tests/test_browser_target.py`
 
 ```python
@@ -22540,6 +22742,16 @@ def test_observer_enabled_checkbox(gui, cfg):
     assert cfg["observer_enabled"] is True
     gui._on_observer_enabled(ev(False))
     assert cfg["observer_enabled"] is False
+
+
+def test_memory_rag_checkbox(gui, cfg):
+    """Векторная память: галочка пишет флаг, Observer при этом не включается."""
+    gui._on_memory_rag_enabled(ev(True))
+    assert cfg["memory_rag_enabled"] is True
+    assert cfg["observer_enabled"] is False
+
+    gui._on_memory_rag_enabled(ev(False))
+    assert cfg["memory_rag_enabled"] is False
 
 
 # =================================================================
@@ -30719,4 +30931,4 @@ onnxruntime>=1.17
 
 ---
 
-_Итого по категориям — code: 135, data: 20, doc: 11, pack: 5. Режим `lean`._
+_Итого по категориям — code: 136, data: 20, doc: 11, pack: 5. Режим `lean`._

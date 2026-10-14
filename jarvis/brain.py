@@ -548,8 +548,13 @@ class Brain:
         with urllib.request.urlopen(req, timeout=timeout) as r:
             return json.loads(r.read())["message"]["content"]
 
-    def _system_with_context(self, base: str) -> str:
-        """Добавляет к промпту персону + mood + факты + corrections."""
+    def _system_with_context(self, base: str, query: str = None) -> str:
+        """Добавляет к промпту персону + mood + факты + corrections.
+
+        query — фраза пользователя: по ней векторная память (если включена)
+        отбирает релевантные факты. Отобрала — в промпт идут только они;
+        нет — как раньше, все факты целиком.
+        """
         parts = []
 
         try:
@@ -568,12 +573,23 @@ class Brain:
         except Exception:
             log.exception("Не удалось собрать блок mood")
 
+        rag = ""
         try:
-            extra = learning.build_context()
+            from jarvis import vectormem
+            rag = vectormem.build_prompt_block(query)
+        except Exception:
+            log.exception("Не удалось собрать блок векторной памяти")
+
+        try:
+            # rag непустой — факты уже отобраны по смыслу, второй раз их не шлём.
+            extra = learning.build_context(include_facts=not rag)
             if extra:
                 parts.append(extra)
         except Exception:
             log.exception("Не удалось собрать контекст обучения")
+
+        if rag:
+            parts.append("\n\n" + rag)
 
         if not parts:
             return base
@@ -590,7 +606,7 @@ class Brain:
     def chat(self, cmd, history=None):
         if not self.available:
             return None
-        system = self._system_with_context(CHAT_SYSTEM)
+        system = self._system_with_context(CHAT_SYSTEM, cmd)
         msgs = ([{"role": "system", "content": system}]
                 + list(history or [])
                 + [{"role": "user", "content": cmd}])
@@ -609,7 +625,7 @@ class Brain:
     def chat_stream(self, cmd, history=None):
         if not self.available:
             return
-        system = self._system_with_context(CHAT_SYSTEM)
+        system = self._system_with_context(CHAT_SYSTEM, cmd)
         msgs = ([{"role": "system", "content": system}]
                 + list(history or [])
                 + [{"role": "user", "content": cmd}])

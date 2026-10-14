@@ -288,6 +288,16 @@ def test_observer_enabled_checkbox(gui, cfg):
     assert cfg["observer_enabled"] is False
 
 
+def test_memory_rag_checkbox(gui, cfg):
+    """Векторная память: галочка пишет флаг, Observer при этом не включается."""
+    gui._on_memory_rag_enabled(ev(True))
+    assert cfg["memory_rag_enabled"] is True
+    assert cfg["observer_enabled"] is False
+
+    gui._on_memory_rag_enabled(ev(False))
+    assert cfg["memory_rag_enabled"] is False
+
+
 # =================================================================
 # Вкладка «Персона»
 # =================================================================

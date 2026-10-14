@@ -1254,6 +1254,28 @@ class FenixGUI:
                 "анализ диалога остановился."
             )
 
+    def _on_memory_rag_enabled(self, e) -> None:
+        """Векторная память — отбор фактов по смыслу запроса.
+
+        В отличие от Observer, перезапуск не нужен: vectormem читает
+        конфиг на каждый вызов, а подписчик в main.py будит индексацию.
+        """
+        value = bool(e.control.value)
+        self.config.set("memory_rag_enabled", value)
+        log.info("GUI: memory_rag_enabled → %s (применяется сразу)", value)
+        if value:
+            self._show_status(
+                "Векторная память включена: Феникс будет подбирать факты "
+                "под запрос. Нужна модель эмбеддингов — если её нет, "
+                "выполни «ollama pull nomic-embed-text» (~274 МБ). "
+                "Индекс: %APPDATA%\\Phoenix\\profiles\\<профиль>\\memory_index.json"
+            )
+        else:
+            self._show_status(
+                "Векторная память выключена: в промпт снова уходят все "
+                "факты о тебе, как раньше. Индекс остаётся на диске."
+            )
+
     def _on_launch_mode(self, e) -> None:
         """Режим запуска (gui/tray) — применится при следующем старте."""
         value = e.control.value
@@ -1382,6 +1404,26 @@ class FenixGUI:
             color=TEXT_DIM,
         )
 
+        # Векторная память фактов (RAG). Тоже по умолчанию выключена:
+        # это производная обработка данных о пользователе. Новых данных
+        # не собирает — только отбирает уже сохранённые факты.
+        rag_checkbox = ft.Checkbox(
+            label="Подбирать факты по смыслу (векторная память, RAG)",
+            value=bool(self.config.get("memory_rag_enabled", False)),
+            on_change=self._on_memory_rag_enabled,
+        )
+
+        rag_hint = ft.Text(
+            "Когда фактов много, в промпт уходят только релевантные "
+            "запросу — остальные не мешают. Нужна модель эмбеддингов: "
+            "«ollama pull nomic-embed-text» (~274 МБ). Всё локально: "
+            "запросы идут только в Ollama на этом же компьютере, "
+            "индекс лежит в memory_index.json рядом с profile.json. "
+            "Выключено по умолчанию, применяется сразу.",
+            size=11,
+            color=TEXT_DIM,
+        )
+
         def _section(title):
             return ft.Text(title, size=16, weight=ft.FontWeight.BOLD, color=ACCENT)
 
@@ -1425,6 +1467,10 @@ class FenixGUI:
                     observer_checkbox,
                     ft.Container(height=8),
                     observer_hint,
+                    ft.Container(height=12),
+                    rag_checkbox,
+                    ft.Container(height=8),
+                    rag_hint,
                 ],
                 spacing=6,
                 scroll=ft.ScrollMode.AUTO,

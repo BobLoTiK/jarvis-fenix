@@ -140,8 +140,11 @@ def forget_correction(wrong: str) -> bool:
 # Сборка контекста для промпта
 # ---------------------------------------------------------------
 
-def build_context() -> str:
+def build_context(include_facts: bool = True) -> str:
     """Собирает блок для промпта из профиля, фактов и коррекций.
+
+    include_facts=False — когда релевантные факты уже отобрала векторная
+    память (vectormem): иначе они попадут в промпт дважды.
 
     Возвращает пустую строку, если нечего добавить.
     """
@@ -160,7 +163,7 @@ def build_context() -> str:
     if profile_lines:
         parts.append("Данные профиля пользователя:\n" + "\n".join(profile_lines))
 
-    facts = all_facts()
+    facts = all_facts() if include_facts else {}
     if facts:
         lines = [f"- {k}: {v}" for k, v in facts.items()]
         parts.append("Известные факты о пользователе:\n" + "\n".join(lines))
