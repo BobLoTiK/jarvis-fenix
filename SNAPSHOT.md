@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=282dbf3b9a6cd10f` · режим `lean` · файлов `167` · строк `32288` · источник `1356 КБ`
+`sha256=642120ec4f4b151e` · режим `lean` · файлов `168` · строк `32935` · источник `1387 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -246,7 +246,7 @@ jarvis/
 │   │   ├── test.yml  (71 стр)
 ├── AGENTS.md  (103 стр)
 ├── ARCHITECTURE.md  (919 стр)
-├── CHANGELOG.md  (978 стр)
+├── CHANGELOG.md  (1015 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -263,9 +263,9 @@ jarvis/
 ├── jarvis/
 │   ├── __init__.py  (8 стр)
 │   ├── __main__.py  (4 стр)
-│   ├── actions.py  (1160 стр)
+│   ├── actions.py  (1360 стр)
 │   ├── apps.py  (114 стр)
-│   ├── brain.py  (831 стр)
+│   ├── brain.py  (836 стр)
 │   ├── celebrations.py  (165 стр)
 │   ├── config.py  (257 стр)
 │   ├── config_manager.py  (156 стр)
@@ -277,7 +277,7 @@ jarvis/
 │   ├── intents/
 │   │   ├── __init__.py  (10 стр)
 │   │   ├── context.py  (19 стр)
-│   │   ├── execute.py  (877 стр)
+│   │   ├── execute.py  (981 стр)
 │   │   ├── fast/
 │   │   │   ├── __init__.py  (54 стр)
 │   │   │   ├── correction.py  (28 стр)
@@ -360,7 +360,7 @@ jarvis/
 │   ├── sites.json  (22 стр)
 │   ├── system.json  (17 стр)
 │   ├── work.json  (11 стр)
-├── PLAN.md  (1005 стр)
+├── PLAN.md  (1012 стр)
 ├── PROJECT.md  (219 стр)
 ├── PROMPT.md  (509 стр)
 ├── pytest.ini  (20 стр)
@@ -416,6 +416,7 @@ jarvis/
 │   ├── test_vad.py  (333 стр)
 │   ├── test_vad_model.py  (273 стр)
 │   ├── test_weather.py  (237 стр)
+│   ├── test_window_targets.py  (294 стр)
 ```
 
 ## 2. Смысл из кода (сигнатуры, константы, порядок)
@@ -463,12 +464,19 @@ jarvis/
   def get_brightness()
   def set_brightness(percent: int)
   def find_process(name: str, threshold: float=0.7)
+  PROTECTED_PROCESSES = ...
+  def is_protected_process(name: str)
   def kill_process(name: str)
   def close_browser()
   def minimize_window(name: str)
   def type_text(text: str)
   def minimize_all()
   _WINDOW_SYNONYMS = ...
+  _FUZZY_TITLE_MIN = ...
+  def window_processes()
+  _WINDOW_EXCLUDE = ...
+  def windows_by_process(process_names)
+  def close_windows_by_process(process_names)
   def minimize_window_by_title(name: str)
   def maximize_window_by_title(name: str)
   def activate_window_by_title(name: str)
@@ -652,8 +660,11 @@ jarvis/
   _FOLDER_TITLES = ...
   def execute_intent(handler, intent: dict)
   def execute_steps(handler, steps: list)
+  _SPOKEN_KEYS = ...
+  _LETTER_KEYS = ...
   _KEY_MAP = ...
   BROWSER_WORDS = ...
+  _MASS_WORDS = ...
   _DISPATCH = ...
 ```
 
@@ -2263,6 +2274,41 @@ jarvis/
   def test_cache_different_cities()
 ```
 
+**`tests/test_window_targets.py`**
+
+```
+  # Тесты выбора окна: голосовое имя → процессы → окно.
+  APPS = ...
+  def fake_windows(monkeypatch)
+  def fake_apps(monkeypatch)
+  def test_process_base_drops_exe()
+  def test_matches_process_by_name_and_substring()
+  def test_matches_process_rejects_lookalikes()
+  def test_candidates_from_app_catalog()
+  def test_candidates_from_window_synonyms()
+  def test_candidates_unknown_name_falls_back_to_itself()
+  def test_candidates_empty_name()
+  def test_windows_by_process_picks_owner(monkeypatch, fake_windows)
+  def test_windows_by_process_without_process_info(monkeypatch, fake_windows)
+  def test_find_window_resolves_russian_name_by_process(monkeypatch, fake_windows, fake_apps)
+  def test_find_window_rejects_weak_fuzzy_match(monkeypatch, fake_windows, fake_apps)
+  def test_find_window_prefers_visible_window(monkeypatch, fake_windows, fake_apps)
+  def test_all_windows_skips_desktop(fake_windows)
+  def test_close_windows_skips_desktop(monkeypatch, fake_windows)
+  def test_close_windows_by_process_closes_every_window(monkeypatch, fake_windows)
+  def test_kill_process_refuses_protected_explorer()
+  def test_kill_process_refuses_uppercase_protected()
+  def test_close_mass_windows_never_kills_explorer(monkeypatch)
+  def test_close_app_still_kills_its_process(monkeypatch)
+  def test_close_unknown_app_needs_confident_process(monkeypatch)
+  def test_close_browser_uses_browser_path(monkeypatch)
+  def test_close_without_target_asks()
+  def test_parse_hotkey(spoken, expected)
+  def test_do_hotkey_sends_combo(monkeypatch)
+  def test_do_hotkey_without_keys_asks(monkeypatch)
+  def test_hotkey_action_is_dispatched()
+```
+
 **`check_all.py`**
 
 ```
@@ -2383,9 +2429,9 @@ jarvis/
 |---|---:|---|---|
 | `jarvis/__init__.py` | 8 | code | Феникс — локальный голосовой ассистент для Windows. |
 | `jarvis/__main__.py` | 4 | code |  |
-| `jarvis/actions.py` | 1160 | code | Действия: запуск приложений, открытие сайтов, скриншоты, медиа, печать |
+| `jarvis/actions.py` | 1360 | code | Действия: запуск приложений, открытие сайтов, скриншоты, медиа, печать |
 | `jarvis/apps.py` | 114 | code | Каталог известных приложений: как их зовут голосом, как открыть и как  |
-| `jarvis/brain.py` | 831 | code | LLM-фолбэк: локальная нейронка (Ollama) разбирает команду в структурны |
+| `jarvis/brain.py` | 836 | code | LLM-фолбэк: локальная нейронка (Ollama) разбирает команду в структурны |
 | `jarvis/celebrations.py` | 165 | code | Праздничные триггеры — поздравление с ДР + двойной салют. |
 | `jarvis/config.py` | 257 | code | Загрузка конфигурации и объект Config в памяти. |
 | `jarvis/config_manager.py` | 156 | code | Единый менеджер записи в config.json. |
@@ -2396,7 +2442,7 @@ jarvis/
 | `jarvis/installed.py` | 51 | code | Индекс установленных программ по ярлыкам меню «Пуск». |
 | `jarvis/intents/__init__.py` | 10 | code | Разбор команд Феникса — пакет. |
 | `jarvis/intents/context.py` | 19 | code | Контекст, который передаётся между стадиями pipeline. |
-| `jarvis/intents/execute.py` | 877 | code | Dispatch: action → функция-обработчик. |
+| `jarvis/intents/execute.py` | 981 | code | Dispatch: action → функция-обработчик. |
 | `jarvis/intents/fast/__init__.py` | 54 | code | Реестр быстрых обработчиков. |
 | `jarvis/intents/fast/correction.py` | 28 | code | Коррекция: «это не то, я сказал логи». |
 | `jarvis/intents/fast/custom.py` | 72 | code | Пользовательские команды: из config.json и из паков. |
@@ -2508,6 +2554,7 @@ jarvis/
 | `tests/test_vad.py` | 333 | code | Тесты jarvis.vad — Silero VAD ONNX. |
 | `tests/test_vad_model.py` | 273 | code | Авто-скачивание модели Silero VAD (jarvis.vad). |
 | `tests/test_weather.py` | 237 | code | Тесты weather: структура ответов, describe_*, geocode с моками. |
+| `tests/test_window_targets.py` | 294 | code | Тесты выбора окна: голосовое имя → процессы → окно. |
 | `check_all.py` | 170 | code | Единый прогон всех проверок Феникса — движок для check_all.bat. |
 | `check_syntax.py` | 60 | code | Проверяет синтаксис всех .py файлов в проекте. |
 | `launcher.py` | 693 | code | Лаунчер Феникса — полный автозапуск. |
@@ -3322,10 +3369,23 @@ def find_process(name: str, threshold: float = 0.7):
     return None
 
 
+# Процессы, которые Феникс не убивает никогда. `explorer.exe` — оболочка
+# Windows: её завершение перезапускает рабочий стол, и «закрой проводник»
+# выглядело бы как «ничего не произошло». Для таких процессов закрываем
+# ОКНА (`close_windows_by_process`), а не процесс.
+PROTECTED_PROCESSES = frozenset({
+    "system", "svchost.exe", "csrss.exe", "wininit.exe",
+    "services.exe", "lsass.exe", "explorer.exe",
+})
+
+
+def is_protected_process(name: str) -> bool:
+    """Запрещено ли убивать процесс (см. `PROTECTED_PROCESSES`)."""
+    return (name or "").lower() in PROTECTED_PROCESSES
+
+
 def kill_process(name: str) -> bool:
-    protected = {"system", "svchost.exe", "csrss.exe", "wininit.exe",
-                 "services.exe", "lsass.exe", "explorer.exe"}
-    if name.lower() in protected:
+    if is_protected_process(name):
         log.warning("Запрещено убивать защищённый процесс: %s", name)
         return False
     log.info("Убиваю процесс: %s", name)
@@ -3414,7 +3474,7 @@ _WINDOW_SYNONYMS = {
     "командную строку": ["cmd.exe", "command prompt", "c:\\users\\", "c:\\windows\\"],
     "командная строка": ["cmd.exe", "command prompt", "c:\\users\\", "c:\\windows\\"],
     "cmd": ["cmd.exe", "command prompt", "c:\\users\\", "c:\\windows\\"],
-    "браузер": ["chrome", "firefox", "яндекс", "yandex", "edge", "opera", "brave"],
+    "браузер": ["chrome", "firefox", "яндекс", "yandex", "edge", "opera", "brave", "browser"],
     "хром": ["chrome"],
     "яндекс браузер": ["яндекс", "yandex"],
     "firefox": ["firefox"],
@@ -3442,13 +3502,164 @@ _WINDOW_SYNONYMS = {
 }
 
 
-def _find_window(name: str):
+# Порог нечёткого поиска окна. Был 0.6 — этого хватало, чтобы «переключись
+# на телеграм» находило окно Steam (0.62), «клод» — окно VS Code (0.67),
+# а «диспетчер задач» — «Диспетчер устройств» (0.75). Переключить не туда
+# хуже, чем честно не найти окно: основной поиск теперь идёт по процессу
+# (`_window_process_candidates`), а нечёткий — последний шанс.
+_FUZZY_TITLE_MIN = 0.75
+
+
+def _process_base(name: str) -> str:
+    """«Telegram.exe» → «telegram»: процессы сравниваем без .exe."""
+    return (name or "").strip().lower().removesuffix(".exe")
+
+
+def _matches_process(candidate: str, proc: str) -> bool:
+    """Совпадает ли голосовое имя (синоним) с именем процесса. ... [6 строк]"""
+    cand, exe = _process_base(candidate), _process_base(proc)
+    if not cand or not exe:
+        return False
+    return cand == exe or cand in exe or exe in cand
+
+
+def _window_process_candidates(name: str, apps: list | None = None) -> set[str]:
+    """Какие процессы могут владеть окном «name». ... [6 строк]"""
+    name_low = (name or "").lower().strip()
+    if not name_low:
+        return set()
+
+    cands: set[str] = set()
+    try:
+        from jarvis.apps import build_apps, find_app
+        app = find_app(apps if apps is not None else build_apps({}), name_low)
+        if app:
+            cands.update(app.procs or [])
+    except Exception:
+        log.debug("каталог приложений недоступен для %r", name_low,
+                  exc_info=True)
+
+    for key, values in _WINDOW_SYNONYMS.items():
+        if key == name_low or key in name_low or name_low in key:
+            cands.update(values)
+
+    if not cands:
+        cands.add(name_low)
+    return cands
+
+
+def window_processes() -> list[tuple[int, str, str]]:
+    """[(hwnd, заголовок, имя процесса)] для видимых окон верхнего уровня. ... [5 строк]"""
+    try:
+        import win32gui
+        import win32process
+        import psutil
+    except ImportError:
+        log.debug("pywin32/psutil нет — окна по процессу не ищу")
+        return []
+
+    infos: list[tuple[int, str, str]] = []
+    names: dict[int, str] = {}
+
+    def _enum_cb(hwnd, _):
+        try:
+            if not win32gui.IsWindowVisible(hwnd):
+                return
+            title = (win32gui.GetWindowText(hwnd) or "").strip()
+            if not title:
+                return
+            pid = win32process.GetWindowThreadProcessId(hwnd)[1]
+            if pid not in names:
+                try:
+                    names[pid] = psutil.Process(pid).name() or ""
+                except Exception:
+                    names[pid] = ""
+            proc = names[pid]
+            if proc:
+                infos.append((int(hwnd), title, _process_base(proc)))
+        except Exception:
+            return
+
+    try:
+        win32gui.EnumWindows(_enum_cb, None)
+    except Exception:
+        log.exception("window_processes: EnumWindows не удался")
+    return infos
+
+
+# Окна, которые Феникс не трогает даже по имени процесса. «Program Manager»
+# — это рабочий стол, а его процесс тоже explorer.exe: свернуть или закрыть
+# его нельзя, а «закрой все окна проводника» вполне могло до него дойти.
+_WINDOW_EXCLUDE = frozenset({"program manager"})
+
+
+def _all_windows() -> list:
+    """Видимые окна с заголовком (объекты pygetwindow)."""
     try:
         import pygetwindow as gw
     except ImportError:
+        return []
+    try:
+        return [w for w in gw.getAllWindows()
+                if w.title and w.title.strip().lower() not in _WINDOW_EXCLUDE]
+    except Exception:
+        log.exception("getAllWindows не удался")
+        return []
+
+
+def _hwnd_of(window) -> int | None:
+    """hwnd окна pygetwindow (лежит в приватном `_hWnd`)."""
+    try:
+        return int(getattr(window, "_hWnd", 0)) or None
+    except Exception:
         return None
 
-    windows = [w for w in gw.getAllWindows() if w.title]
+
+def windows_by_process(process_names) -> list:
+    """Окна (pygetwindow), чей процесс совпал с одним из имён."""
+    if not process_names:
+        return []
+    infos = window_processes()
+    if not infos:
+        return []
+
+    wanted: set[str] = set()
+    for candidate in process_names:
+        for _, _, proc in infos:
+            if _matches_process(candidate, proc):
+                wanted.add(proc)
+    if not wanted:
+        return []
+
+    hwnds = {hwnd for hwnd, _, proc in infos if proc in wanted}
+    titles = {title.lower() for _, title, proc in infos if proc in wanted}
+
+    result = []
+    for w in _all_windows():
+        hwnd = _hwnd_of(w)
+        if hwnd in hwnds or (hwnd is None and (w.title or "").lower() in titles):
+            result.append(w)
+    return result
+
+
+def close_windows_by_process(process_names) -> int:
+    """Закрывает ОКНА процессов (WM_CLOSE), не убивая сами процессы. ... [6 строк]"""
+    closed = 0
+    for w in windows_by_process(process_names):
+        try:
+            w.close()
+            closed += 1
+        except Exception:
+            log.debug("окно %r не закрылось", getattr(w, "title", "?"),
+                      exc_info=True)
+    if closed:
+        log.info("Закрыл окон: %d (%s)", closed,
+                 ", ".join(sorted(str(p) for p in process_names)))
+    return closed
+
+
+def _find_window(name: str):
+    windows = _all_windows()
     name_low = name.lower().strip()
 
     for noise in (" музыка", " browser", " браузер"):
@@ -3464,6 +3675,19 @@ def _find_window(name: str):
             except Exception:
                 pass
         return direct[0]
+
+    # 2) По процессу. Голосовое имя («телега», «хром») редко встречается
+    # в заголовке — у Telegram заголовок «Telegram», у Chrome вообще
+    # заголовок страницы. Зато известно имя процесса.
+    by_proc = windows_by_process(_window_process_candidates(name_low))
+    if by_proc:
+        for w in by_proc:
+            try:
+                if w.visible and not w.isMinimized:
+                    return w
+            except Exception:
+                pass
+        return by_proc[0]
 
     subs = None
     for key, values in _WINDOW_SYNONYMS.items():
@@ -3488,7 +3712,7 @@ def _find_window(name: str):
 
     from jarvis.matching import match_score
     best = None
-    best_score = 0.6
+    best_score = _FUZZY_TITLE_MIN
     for w in windows:
         title = w.title.lower()
         score = match_score(name_low, title[:40])
@@ -3719,7 +3943,7 @@ def build_apps(config: dict) -> list[App]:
         ),
         App("calc", "Калькулятор", ["калькулятор"], [("uri", "calc:")], ["CalculatorApp.exe", "Calculator.exe"]),
         App("notepad", "Блокнот", ["блокнот"], [("cmd", ["notepad.exe"])], ["notepad.exe", "Notepad.exe"]),
-        App("explorer", "Проводник", ["проводник", "папку", "файлы"], [("cmd", ["explorer.exe"])]),
+        App("explorer", "Проводник", ["проводник", "папку", "файлы"], [("cmd", ["explorer.exe"])], ["explorer.exe"]),
         App("paint", "Пэйнт", ["пэйнт", "паинт", "пейнт", "рисовалку"], [("cmd", ["mspaint.exe"])], ["mspaint.exe"]),
         App("taskmgr", "Диспетчер задач", ["диспетчер задач", "диспетчер"], [("cmd", ["taskmgr.exe"])], ["Taskmgr.exe"]),
     ]
@@ -3786,6 +4010,7 @@ open_folder (target)
 list_folder (target)
 create_file (target; folder)
 type_text (text)
+hotkey (keys: ["ctrl", "s"])
 media_key (key)
 play_pause
 next_track
@@ -3882,6 +4107,9 @@ none
 сверни это -> {"action":"minimize_active"}
 разверни текущее -> {"action":"maximize_active"}
 переключи окно -> {"action":"switch_window"}
+закрой все окна проводника -> {"action":"close_app","target":"все окна проводника"}
+нажми контрл эс -> {"action":"hotkey","keys":["ctrl","s"]}
+нажми альт таб -> {"action":"hotkey","keys":["alt","tab"]}
 пауза -> {"action":"play_pause"}
 следующий трек -> {"action":"next_track"}
 сделай громче -> {"action":"volume_up"}
@@ -3986,6 +4214,7 @@ open_folder (target)
 list_folder (target)
 create_file (target; folder)
 type_text (text)
+hotkey (keys: ["ctrl", "s"])
 media_key (key)
 play_pause / next_track / prev_track
 volume_up / volume_down / mute
@@ -4057,7 +4286,7 @@ SYSTEM_LARGE = """Ты — Феникс, локальный голосовой �
 
 === ДЕЙСТВИЯ ===
 open_app, close_app, open_site, search (engine: google|youtube|wiki), screenshot,
-open_file, open_folder, list_folder, create_file, type_text,
+open_file, open_folder, list_folder, create_file, type_text, hotkey,
 media_key, play_pause, next_track, prev_track, volume_up, volume_down, mute,
 set_volume, get_volume, set_brightness, get_brightness,
 switch_layout, set_layout_ru, set_layout_en, get_layout,
@@ -4541,7 +4770,7 @@ class Brain:
 ACTIONS = {
     "open_app", "close_app", "open_site", "search", "screenshot", "open_file",
     "media_key", "wait", "answer", "none", "open_folder", "list_folder",
-    "create_file", "type_text", "minimize_all", "minimize_window",
+    "create_file", "type_text", "hotkey", "minimize_all", "minimize_window",
     "maximize_window", "activate_window", "minimize_active", "maximize_active",
     "switch_window", "set_mode", "load_pack", "unload_pack", "list_packs",
     "change_voice", "list_voices", "set_timer", "list_timers", "cancel_timers",
@@ -7496,6 +7725,7 @@ class Ctx:
 
 import datetime
 import logging
+import re
 import time
 
 from jarvis import actions, files, history, uia
@@ -7685,6 +7915,67 @@ def _do_type_text(handler, intent, target, query):
     text = str(intent.get("text") or intent.get("target") or "").strip()
     ok = actions.type_text(text)
     return f"Печатаю: {text}." if ok else "Не удалось напечатать."
+
+
+# ------------------------------------------------------------------
+# Горячие клавиши: «нажми контрл эс» → hotkey(["ctrl", "s"])
+# ------------------------------------------------------------------
+
+_SPOKEN_KEYS = {
+    "контрл": "ctrl", "контроль": "ctrl", "ctrl": "ctrl", "control": "ctrl",
+    "шифт": "shift", "сдвиг": "shift", "shift": "shift",
+    "альт": "alt", "алт": "alt", "alt": "alt",
+    "вин": "win", "виндовс": "win", "win": "win",
+    "энтер": "enter", "интер": "enter", "ввод": "enter", "enter": "enter",
+    "таб": "tab", "табуляция": "tab", "tab": "tab",
+    "эскейп": "esc", "escape": "esc", "esc": "esc",
+    "пробел": "space", "space": "space",
+    "бэкспейс": "backspace", "стереть": "backspace", "backspace": "backspace",
+    "делит": "delete", "удалить": "delete", "delete": "delete",
+    "вверх": "up", "вниз": "down", "влево": "left", "вправо": "right",
+    "хип": "home", "энд": "end", "home": "home", "end": "end",
+}
+
+# Латинские буквы, которые Vosk произносит русскими словами: «эс» → s.
+_LETTER_KEYS = {
+    "эй": "a", "би": "b", "си": "c", "ди": "d", "эф": "f",
+    "джи": "g", "эйч": "h", "ай": "i", "джей": "j", "кей": "k", "эл": "l",
+    "эм": "m", "эн": "n", "пи": "p", "кью": "q", "эр": "r",
+    "эс": "s", "ти": "t", "икс": "x", "уай": "y", "зед": "z", "зет": "z",
+}
+
+
+def _parse_hotkey(text: str) -> list[str]:
+    """«контрл эс» / «ctrl+s» / «alt tab» → ["ctrl", "s"]. ... [6 строк]"""
+    keys = []
+    for part in re.split(r"[\s+,]+", (text or "").lower()):
+        if not part:
+            continue
+        if part in _SPOKEN_KEYS:
+            keys.append(_SPOKEN_KEYS[part])
+        elif part in _LETTER_KEYS:
+            keys.append(_LETTER_KEYS[part])
+        elif len(part) <= 3 and part.isascii() and part.isalnum():
+            keys.append(part)          # «s», «f5», «1»
+    return keys
+
+
+def _do_hotkey(handler, intent, target, query):
+    raw = intent.get("keys")
+    if isinstance(raw, list):
+        keys = [str(k).strip().lower() for k in raw if str(k).strip()]
+    elif isinstance(raw, str):
+        keys = _parse_hotkey(raw)
+    else:
+        keys = []
+
+    if not keys:
+        keys = _parse_hotkey(target or query)
+    if not keys:
+        return "Не понял, какие клавиши нажать."
+    if not actions.hotkey(keys):
+        return "Не удалось нажать клавиши."
+    return f"Нажимаю {', '.join(keys)}."
 
 
 def _do_media_key(handler, intent, target, query):
@@ -8097,6 +8388,14 @@ BROWSER_WORDS = frozenset({
 })
 
 
+# Слова-«наполнители» в «закрой все окна проводника»: без чистки find_app
+# видит не «проводник», а «все окна проводника», и приложение не находит.
+_MASS_WORDS = frozenset({
+    "все", "всё", "всех", "окна", "окон", "окно", "окошка",
+    "приложение", "приложения", "программу", "программы",
+})
+
+
 def _do_open(handler, target: str) -> str:
     """Открыть что угодно: приложение, сайт, папку, игру, ярлык."""
     from jarvis.apps import find_app
@@ -8175,20 +8474,47 @@ def _do_close(handler, target: str) -> str:
 
     if not target:
         return "Что именно закрыть?"
+
+    # «закрой все окна проводника»: без чистки наполнителей find_app видит
+    # не «проводник», а «все окна проводника» и приложение не находит.
+    words = [w for w in target.split() if w not in _MASS_WORDS]
+    mass = len(words) < len(target.split())
+    name = " ".join(words) or target
+
     if any(w in target for w in ("браузер", "интернет", "хром")):
         return "Закрываю браузер." if actions.close_browser() else "Браузер не запущен."
-    app = find_app(handler.apps, target)
-    if app and app.procs:
-        ok = any(actions.kill_process(p) for p in app.procs)
-        if ok:
-            return f"Закрываю {app.title}."
-    exe = actions.find_process(target)
-    if exe:
-        actions.kill_process(exe)
-        return f"Закрываю {exe.removesuffix('.exe')}."
-    if app:
-        return f"{app.title} сейчас не запущен."
-    return f"Не нашёл запущенной программы {target}."
+
+    app = find_app(handler.apps, name)
+    title = app.title if app else None
+    procs = list(app.procs) if app else []
+
+    if not procs:
+        # Вне каталога — только уверенное совпадение (0.9). На пороге 0.7
+        # «закрой клод» убивал gcloud.exe (0.80), а «закрой диспетчер
+        # задач» — pet.exe (0.90). Лучше сказать «не нашёл», чем закрыть
+        # чужую программу.
+        exe = actions.find_process(name, threshold=0.9)
+        if exe:
+            actions.kill_process(exe)
+            return f"Закрываю {exe.removesuffix('.exe')}."
+        if title:
+            return f"{title} сейчас не запущен."
+        return f"Не нашёл запущенной программы {name}."
+
+    # Проводник и прочие защищённые процессы не убиваем — закрываем их ОКНА
+    # (`close_windows_by_process`): завершение explorer.exe перезапускает
+    # рабочий стол, и «закрой проводник» выглядело бы как поломка.
+    if mass or any(actions.is_protected_process(p) for p in procs):
+        closed = actions.close_windows_by_process(procs)
+        if closed:
+            return f"Закрыл окон: {closed}." if mass else f"Закрываю {title}."
+        if title:
+            return f"Открытых окон {title} не нашёл."
+        return f"Открытых окон {name} не нашёл."
+
+    if any(actions.kill_process(p) for p in procs):
+        return f"Закрываю {title}."
+    return f"{title} сейчас не запущен."
 
 
 def _reload_packs(handler) -> None:
@@ -8285,6 +8611,7 @@ _DISPATCH = {
     "list_folder":        _do_list_folder,
     "create_file":        _do_create_file,
     "type_text":          _do_type_text,
+    "hotkey":             _do_hotkey,
     "media_key":          _do_media_key,
     "play_pause":         _do_play_pause,
     "next_track":         _do_next_track,
@@ -25213,6 +25540,294 @@ def test_cache_different_cities():
     assert mock.call_count == 2
 ```
 
+### `tests/test_window_targets.py`
+
+```python
+"""Тесты выбора окна: голосовое имя → процессы → окно. ... [10 строк]"""
+
+import sys
+from types import SimpleNamespace
+from unittest.mock import MagicMock
+
+import pytest
+
+from jarvis import actions
+from jarvis.apps import App
+from jarvis.intents import execute
+
+
+def _window(title, hwnd=1, visible=True, minimized=False):
+    """Окно как у pygetwindow: заголовок, видимость, приватный hwnd."""
+    w = MagicMock()
+    w.title = title
+    w.visible = visible
+    w.isMinimized = minimized
+    w._hWnd = hwnd
+    return w
+
+
+APPS = [
+    App("telegram", "Телеграм", ["телега", "телеграм"],
+        [("exe", r"C:\fake\Telegram.exe")], ["Telegram.exe"]),
+    App("explorer", "Проводник", ["проводник"],
+        [("cmd", ["explorer.exe"])], ["explorer.exe"]),
+]
+
+
+@pytest.fixture
+def fake_windows(monkeypatch):
+    """Подменяет pygetwindow — окна без живого рабочего стола."""
+    def _install(windows):
+        module = SimpleNamespace(getAllWindows=lambda: list(windows))
+        monkeypatch.setitem(sys.modules, "pygetwindow", module)
+        return windows
+    return _install
+
+
+@pytest.fixture
+def fake_apps(monkeypatch):
+    """Каталог приложений без чтения реестра (путь к Steam и т.п.)."""
+    monkeypatch.setattr("jarvis.apps.build_apps", lambda config: APPS)
+
+
+# =================================================================
+# Имя → процесс
+# =================================================================
+
+def test_process_base_drops_exe():
+    assert actions._process_base("Telegram.exe") == "telegram"
+    assert actions._process_base("") == ""
+
+
+def test_matches_process_by_name_and_substring():
+    assert actions._matches_process("telegram", "Telegram.exe")
+    assert actions._matches_process("steam", "steamwebhelper.exe")
+
+
+def test_matches_process_rejects_lookalikes():
+    """«клод» не должен совпасть с gcloud — иначе закрыли бы чужое."""
+    assert not actions._matches_process("клод", "gcloud.exe")
+    assert not actions._matches_process("", "gcloud.exe")
+    assert not actions._matches_process("клод", "")
+
+
+def test_candidates_from_app_catalog():
+    """«телега» → процессы из каталога + синоним окна (оба — telegram)."""
+    assert actions._window_process_candidates("телега", apps=APPS) == {
+        "Telegram.exe", "telegram"}
+
+
+def test_candidates_from_window_synonyms():
+    """«хром» — слово из _WINDOW_SYNONYMS, каталог для него не нужен."""
+    assert "chrome" in actions._window_process_candidates("хром", apps=[])
+
+
+def test_candidates_unknown_name_falls_back_to_itself():
+    assert actions._window_process_candidates("фубар", apps=[]) == {"фубар"}
+
+
+def test_candidates_empty_name():
+    assert actions._window_process_candidates("", apps=APPS) == set()
+
+
+# =================================================================
+# Поиск окна
+# =================================================================
+
+def test_windows_by_process_picks_owner(monkeypatch, fake_windows):
+    monkeypatch.setattr(actions, "window_processes",
+                        lambda: [(101, "Telegram", "telegram"),
+                                 (102, "Steam", "steam")])
+    telegram, steam = _window("Telegram", hwnd=101), _window("Steam", hwnd=102)
+    fake_windows([telegram, steam])
+
+    assert actions.windows_by_process(["Telegram.exe"]) == [telegram]
+
+
+def test_windows_by_process_without_process_info(monkeypatch, fake_windows):
+    """Нет данных о процессах (CI, нет pywin32) — пустой список."""
+    monkeypatch.setattr(actions, "window_processes", lambda: [])
+    fake_windows([_window("Telegram", hwnd=101)])
+
+    assert actions.windows_by_process(["Telegram.exe"]) == []
+
+
+def test_find_window_resolves_russian_name_by_process(monkeypatch,
+                                                     fake_windows, fake_apps):
+    """«телега» → окно «Telegram»: русского имени в заголовке нет."""
+    monkeypatch.setattr(actions, "window_processes",
+                        lambda: [(101, "Telegram", "telegram"),
+                                 (102, "Steam", "steam")])
+    telegram = _window("Telegram", hwnd=101)
+    fake_windows([telegram, _window("Steam", hwnd=102)])
+
+    assert actions._find_window("телега") is telegram
+
+
+def test_find_window_rejects_weak_fuzzy_match(monkeypatch, fake_windows,
+                                              fake_apps):
+    """«телеграм» не должен находить Steam по сходству 0.62."""
+    assert actions._FUZZY_TITLE_MIN >= 0.75
+    monkeypatch.setattr(actions, "window_processes",
+                        lambda: [(102, "Steam", "steam")])
+    fake_windows([_window("Steam", hwnd=102)])
+
+    assert actions._find_window("телеграм") is None
+
+
+def test_find_window_prefers_visible_window(monkeypatch, fake_windows,
+                                            fake_apps):
+    """Из свёрнутого и видимого окон берём видимое."""
+    monkeypatch.setattr(actions, "window_processes",
+                        lambda: [(101, "Telegram", "telegram"),
+                                 (102, "Telegram (2)", "telegram")])
+    hidden = _window("Telegram", hwnd=101, visible=False)
+    shown = _window("Telegram (2)", hwnd=102)
+    fake_windows([hidden, shown])
+
+    assert actions._find_window("телега") is shown
+
+
+def test_all_windows_skips_desktop(fake_windows):
+    """«Program Manager» — рабочий стол (процесс тоже explorer.exe)."""
+    fake_windows([_window("Program Manager", hwnd=1),
+                  _window("Загрузки — проводник", hwnd=2)])
+
+    assert [w.title for w in actions._all_windows()] == ["Загрузки — проводник"]
+
+
+def test_close_windows_skips_desktop(monkeypatch, fake_windows):
+    """Массовое закрытие проводника не заденет рабочий стол."""
+    monkeypatch.setattr(actions, "window_processes",
+                        lambda: [(1, "Program Manager", "explorer"),
+                                 (2, "Загрузки — проводник", "explorer")])
+    desktop = _window("Program Manager", hwnd=1)
+    folder = _window("Загрузки — проводник", hwnd=2)
+    fake_windows([desktop, folder])
+
+    assert actions.close_windows_by_process(["explorer.exe"]) == 1
+    desktop.close.assert_not_called()
+    folder.close.assert_called_once_with()
+
+
+# =================================================================
+# Закрытие
+# =================================================================
+
+def test_close_windows_by_process_closes_every_window(monkeypatch,
+                                                      fake_windows):
+    monkeypatch.setattr(actions, "window_processes",
+                        lambda: [(201, "Загрузки", "explorer"),
+                                 (202, "Документы", "explorer")])
+    first = _window("Загрузки", hwnd=201)
+    second = _window("Документы", hwnd=202)
+    fake_windows([first, second])
+
+    assert actions.close_windows_by_process(["explorer.exe"]) == 2
+    first.close.assert_called_once_with()
+    second.close.assert_called_once_with()
+
+
+def test_kill_process_refuses_protected_explorer():
+    """Оболочку Windows не убиваем никогда — закрываем её окна."""
+    assert actions.is_protected_process("explorer.exe")
+    assert actions.kill_process("explorer.exe") is False
+
+
+def test_kill_process_refuses_uppercase_protected():
+    assert actions.kill_process("Explorer.exe") is False
+
+
+# =================================================================
+# Обработчики: execute._do_close / _do_hotkey
+# =================================================================
+
+def _handler():
+    return SimpleNamespace(apps=APPS)
+
+
+def test_close_mass_windows_never_kills_explorer(monkeypatch):
+    """«закрой все окна проводника»: закрываем окна, процесс не трогаем."""
+    kill = MagicMock(return_value=True)
+    closed = MagicMock(return_value=2)
+    monkeypatch.setattr(actions, "kill_process", kill)
+    monkeypatch.setattr(actions, "close_windows_by_process", closed)
+
+    assert execute._do_close(_handler(), "все окна проводника") == "Закрыл окон: 2."
+    closed.assert_called_once_with(["explorer.exe"])
+    kill.assert_not_called()
+
+
+def test_close_app_still_kills_its_process(monkeypatch):
+    kill = MagicMock(return_value=True)
+    closed = MagicMock()
+    monkeypatch.setattr(actions, "kill_process", kill)
+    monkeypatch.setattr(actions, "close_windows_by_process", closed)
+
+    assert execute._do_close(_handler(), "телеграм") == "Закрываю Телеграм."
+    kill.assert_called_once_with("Telegram.exe")
+    closed.assert_not_called()
+
+
+def test_close_unknown_app_needs_confident_process(monkeypatch):
+    """«закрой клод» не убивает gcloud.exe (было 0.80 при пороге 0.7)."""
+    find = MagicMock(return_value=None)
+    kill = MagicMock(return_value=True)
+    monkeypatch.setattr(actions, "find_process", find)
+    monkeypatch.setattr(actions, "kill_process", kill)
+
+    reply = execute._do_close(_handler(), "клод")
+
+    assert reply == "Не нашёл запущенной программы клод."
+    assert find.call_args.kwargs["threshold"] == 0.9
+    kill.assert_not_called()
+
+
+def test_close_browser_uses_browser_path(monkeypatch):
+    monkeypatch.setattr(actions, "close_browser", MagicMock(return_value=True))
+    assert execute._do_close(_handler(), "хром") == "Закрываю браузер."
+
+
+def test_close_without_target_asks():
+    assert execute._do_close(_handler(), "") == "Что именно закрыть?"
+
+
+# =================================================================
+# Горячие клавиши
+# =================================================================
+
+@pytest.mark.parametrize("spoken,expected", [
+    ("контрл эс", ["ctrl", "s"]),
+    ("ctrl+s", ["ctrl", "s"]),
+    ("alt таб", ["alt", "tab"]),
+    ("shift f5", ["shift", "f5"]),
+    ("мусор", []),
+    ("", []),
+])
+def test_parse_hotkey(spoken, expected):
+    assert execute._parse_hotkey(spoken) == expected
+
+
+def test_do_hotkey_sends_combo(monkeypatch):
+    hk = MagicMock(return_value=True)
+    monkeypatch.setattr(actions, "hotkey", hk)
+
+    reply = execute._do_hotkey(None, {"keys": ["ctrl", "s"]}, "ctrl+s", "")
+
+    assert reply == "Нажимаю ctrl, s."
+    hk.assert_called_once_with(["ctrl", "s"])
+
+
+def test_do_hotkey_without_keys_asks(monkeypatch):
+    monkeypatch.setattr(actions, "hotkey", MagicMock(return_value=True))
+    assert execute._do_hotkey(None, {}, "", "непонятно") == \
+        "Не понял, какие клавиши нажать."
+
+
+def test_hotkey_action_is_dispatched():
+    assert execute._DISPATCH["hotkey"] is execute._do_hotkey
+```
+
 ### `check_all.py`
 
 ```python
@@ -28191,12 +28806,13 @@ onnxruntime>=1.17
     - `scripts/make_installer_images.py`
     - `scripts/build_exe.py`
 
-#### `CHANGELOG.md` — 67 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 68 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
   - 📑 Содержание
   - 🚧 [Unreleased] — 0.4.0
     - 📅 Сессия 13.10.2026
+      - 🪟 Окно ищется по процессу, а не по заголовку (№45–№50)
       - 🔒 Приватность и «красная черта»: Observer выключен, ответы фильтруются
       - 🐞 «Закрой вкладку ютуб» — почему вкладка не закрывалась
       - 🧪 Тесты — одна папка, стресс-тест на 100 ситуаций, единый прогон
@@ -28232,7 +28848,6 @@ onnxruntime>=1.17
         - 🎉 Праздничные триггеры — в config
       - 🐛 Исправлено
   - 📅 Сессия 10.10.2026
-      - ✨ Добавлено
 
 #### `CI.md` — 13 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -28403,4 +29018,4 @@ onnxruntime>=1.17
 
 ---
 
-_Итого по категориям — code: 131, data: 20, doc: 11, pack: 5. Режим `lean`._
+_Итого по категориям — code: 132, data: 20, doc: 11, pack: 5. Режим `lean`._

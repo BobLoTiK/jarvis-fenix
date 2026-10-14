@@ -41,6 +41,7 @@ open_folder (target)
 list_folder (target)
 create_file (target; folder)
 type_text (text)
+hotkey (keys: ["ctrl", "s"])
 media_key (key)
 play_pause
 next_track
@@ -137,6 +138,9 @@ none
 сверни это -> {"action":"minimize_active"}
 разверни текущее -> {"action":"maximize_active"}
 переключи окно -> {"action":"switch_window"}
+закрой все окна проводника -> {"action":"close_app","target":"все окна проводника"}
+нажми контрл эс -> {"action":"hotkey","keys":["ctrl","s"]}
+нажми альт таб -> {"action":"hotkey","keys":["alt","tab"]}
 пауза -> {"action":"play_pause"}
 следующий трек -> {"action":"next_track"}
 сделай громче -> {"action":"volume_up"}
@@ -241,6 +245,7 @@ open_folder (target)
 list_folder (target)
 create_file (target; folder)
 type_text (text)
+hotkey (keys: ["ctrl", "s"])
 media_key (key)
 play_pause / next_track / prev_track
 volume_up / volume_down / mute
@@ -312,7 +317,7 @@ SYSTEM_LARGE = """Ты — Феникс, локальный голосовой �
 
 === ДЕЙСТВИЯ ===
 open_app, close_app, open_site, search (engine: google|youtube|wiki), screenshot,
-open_file, open_folder, list_folder, create_file, type_text,
+open_file, open_folder, list_folder, create_file, type_text, hotkey,
 media_key, play_pause, next_track, prev_track, volume_up, volume_down, mute,
 set_volume, get_volume, set_brightness, get_brightness,
 switch_layout, set_layout_ru, set_layout_en, get_layout,
@@ -799,7 +804,7 @@ class Brain:
 ACTIONS = {
     "open_app", "close_app", "open_site", "search", "screenshot", "open_file",
     "media_key", "wait", "answer", "none", "open_folder", "list_folder",
-    "create_file", "type_text", "minimize_all", "minimize_window",
+    "create_file", "type_text", "hotkey", "minimize_all", "minimize_window",
     "maximize_window", "activate_window", "minimize_active", "maximize_active",
     "switch_window", "set_mode", "load_pack", "unload_pack", "list_packs",
     "change_voice", "list_voices", "set_timer", "list_timers", "cancel_timers",

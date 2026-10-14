@@ -23,6 +23,7 @@
 
 import datetime
 import logging
+import re
 import time
 
 from jarvis import actions, files, history, uia
@@ -215,6 +216,73 @@ def _do_type_text(handler, intent, target, query):
     text = str(intent.get("text") or intent.get("target") or "").strip()
     ok = actions.type_text(text)
     return f"Печатаю: {text}." if ok else "Не удалось напечатать."
+
+
+# ------------------------------------------------------------------
+# Горячие клавиши: «нажми контрл эс» → hotkey(["ctrl", "s"])
+# ------------------------------------------------------------------
+
+_SPOKEN_KEYS = {
+    "контрл": "ctrl", "контроль": "ctrl", "ctrl": "ctrl", "control": "ctrl",
+    "шифт": "shift", "сдвиг": "shift", "shift": "shift",
+    "альт": "alt", "алт": "alt", "alt": "alt",
+    "вин": "win", "виндовс": "win", "win": "win",
+    "энтер": "enter", "интер": "enter", "ввод": "enter", "enter": "enter",
+    "таб": "tab", "табуляция": "tab", "tab": "tab",
+    "эскейп": "esc", "escape": "esc", "esc": "esc",
+    "пробел": "space", "space": "space",
+    "бэкспейс": "backspace", "стереть": "backspace", "backspace": "backspace",
+    "делит": "delete", "удалить": "delete", "delete": "delete",
+    "вверх": "up", "вниз": "down", "влево": "left", "вправо": "right",
+    "хип": "home", "энд": "end", "home": "home", "end": "end",
+}
+
+# Латинские буквы, которые Vosk произносит русскими словами: «эс» → s.
+_LETTER_KEYS = {
+    "эй": "a", "би": "b", "си": "c", "ди": "d", "эф": "f",
+    "джи": "g", "эйч": "h", "ай": "i", "джей": "j", "кей": "k", "эл": "l",
+    "эм": "m", "эн": "n", "пи": "p", "кью": "q", "эр": "r",
+    "эс": "s", "ти": "t", "икс": "x", "уай": "y", "зед": "z", "зет": "z",
+}
+
+
+def _parse_hotkey(text: str) -> list[str]:
+    """«контрл эс» / «ctrl+s» / «alt tab» → ["ctrl", "s"].
+
+    Непонятные куски пропускаем: нажать меньше клавиш безопаснее, чем
+    наугад ткнуть в чужую комбинацию. Ожидаются однословные токены —
+    так их и пишет Vosk («дабл ю» не поддержан, кириллица как клавиша —
+    только через `_LETTER_KEYS`).
+    """
+    keys = []
+    for part in re.split(r"[\s+,]+", (text or "").lower()):
+        if not part:
+            continue
+        if part in _SPOKEN_KEYS:
+            keys.append(_SPOKEN_KEYS[part])
+        elif part in _LETTER_KEYS:
+            keys.append(_LETTER_KEYS[part])
+        elif len(part) <= 3 and part.isascii() and part.isalnum():
+            keys.append(part)          # «s», «f5», «1»
+    return keys
+
+
+def _do_hotkey(handler, intent, target, query):
+    raw = intent.get("keys")
+    if isinstance(raw, list):
+        keys = [str(k).strip().lower() for k in raw if str(k).strip()]
+    elif isinstance(raw, str):
+        keys = _parse_hotkey(raw)
+    else:
+        keys = []
+
+    if not keys:
+        keys = _parse_hotkey(target or query)
+    if not keys:
+        return "Не понял, какие клавиши нажать."
+    if not actions.hotkey(keys):
+        return "Не удалось нажать клавиши."
+    return f"Нажимаю {', '.join(keys)}."
 
 
 def _do_media_key(handler, intent, target, query):
@@ -627,6 +695,14 @@ BROWSER_WORDS = frozenset({
 })
 
 
+# Слова-«наполнители» в «закрой все окна проводника»: без чистки find_app
+# видит не «проводник», а «все окна проводника», и приложение не находит.
+_MASS_WORDS = frozenset({
+    "все", "всё", "всех", "окна", "окон", "окно", "окошка",
+    "приложение", "приложения", "программу", "программы",
+})
+
+
 def _do_open(handler, target: str) -> str:
     """Открыть что угодно: приложение, сайт, папку, игру, ярлык."""
     from jarvis.apps import find_app
@@ -705,20 +781,47 @@ def _do_close(handler, target: str) -> str:
 
     if not target:
         return "Что именно закрыть?"
+
+    # «закрой все окна проводника»: без чистки наполнителей find_app видит
+    # не «проводник», а «все окна проводника» и приложение не находит.
+    words = [w for w in target.split() if w not in _MASS_WORDS]
+    mass = len(words) < len(target.split())
+    name = " ".join(words) or target
+
     if any(w in target for w in ("браузер", "интернет", "хром")):
         return "Закрываю браузер." if actions.close_browser() else "Браузер не запущен."
-    app = find_app(handler.apps, target)
-    if app and app.procs:
-        ok = any(actions.kill_process(p) for p in app.procs)
-        if ok:
-            return f"Закрываю {app.title}."
-    exe = actions.find_process(target)
-    if exe:
-        actions.kill_process(exe)
-        return f"Закрываю {exe.removesuffix('.exe')}."
-    if app:
-        return f"{app.title} сейчас не запущен."
-    return f"Не нашёл запущенной программы {target}."
+
+    app = find_app(handler.apps, name)
+    title = app.title if app else None
+    procs = list(app.procs) if app else []
+
+    if not procs:
+        # Вне каталога — только уверенное совпадение (0.9). На пороге 0.7
+        # «закрой клод» убивал gcloud.exe (0.80), а «закрой диспетчер
+        # задач» — pet.exe (0.90). Лучше сказать «не нашёл», чем закрыть
+        # чужую программу.
+        exe = actions.find_process(name, threshold=0.9)
+        if exe:
+            actions.kill_process(exe)
+            return f"Закрываю {exe.removesuffix('.exe')}."
+        if title:
+            return f"{title} сейчас не запущен."
+        return f"Не нашёл запущенной программы {name}."
+
+    # Проводник и прочие защищённые процессы не убиваем — закрываем их ОКНА
+    # (`close_windows_by_process`): завершение explorer.exe перезапускает
+    # рабочий стол, и «закрой проводник» выглядело бы как поломка.
+    if mass or any(actions.is_protected_process(p) for p in procs):
+        closed = actions.close_windows_by_process(procs)
+        if closed:
+            return f"Закрыл окон: {closed}." if mass else f"Закрываю {title}."
+        if title:
+            return f"Открытых окон {title} не нашёл."
+        return f"Открытых окон {name} не нашёл."
+
+    if any(actions.kill_process(p) for p in procs):
+        return f"Закрываю {title}."
+    return f"{title} сейчас не запущен."
 
 
 def _reload_packs(handler) -> None:
@@ -815,6 +918,7 @@ _DISPATCH = {
     "list_folder":        _do_list_folder,
     "create_file":        _do_create_file,
     "type_text":          _do_type_text,
+    "hotkey":             _do_hotkey,
     "media_key":          _do_media_key,
     "play_pause":         _do_play_pause,
     "next_track":         _do_next_track,

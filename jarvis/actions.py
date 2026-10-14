@@ -842,10 +842,23 @@ def find_process(name: str, threshold: float = 0.7):
     return None
 
 
+# Процессы, которые Феникс не убивает никогда. `explorer.exe` — оболочка
+# Windows: её завершение перезапускает рабочий стол, и «закрой проводник»
+# выглядело бы как «ничего не произошло». Для таких процессов закрываем
+# ОКНА (`close_windows_by_process`), а не процесс.
+PROTECTED_PROCESSES = frozenset({
+    "system", "svchost.exe", "csrss.exe", "wininit.exe",
+    "services.exe", "lsass.exe", "explorer.exe",
+})
+
+
+def is_protected_process(name: str) -> bool:
+    """Запрещено ли убивать процесс (см. `PROTECTED_PROCESSES`)."""
+    return (name or "").lower() in PROTECTED_PROCESSES
+
+
 def kill_process(name: str) -> bool:
-    protected = {"system", "svchost.exe", "csrss.exe", "wininit.exe",
-                 "services.exe", "lsass.exe", "explorer.exe"}
-    if name.lower() in protected:
+    if is_protected_process(name):
         log.warning("Запрещено убивать защищённый процесс: %s", name)
         return False
     log.info("Убиваю процесс: %s", name)
@@ -944,7 +957,7 @@ _WINDOW_SYNONYMS = {
     "командную строку": ["cmd.exe", "command prompt", "c:\\users\\", "c:\\windows\\"],
     "командная строка": ["cmd.exe", "command prompt", "c:\\users\\", "c:\\windows\\"],
     "cmd": ["cmd.exe", "command prompt", "c:\\users\\", "c:\\windows\\"],
-    "браузер": ["chrome", "firefox", "яндекс", "yandex", "edge", "opera", "brave"],
+    "браузер": ["chrome", "firefox", "яндекс", "yandex", "edge", "opera", "brave", "browser"],
     "хром": ["chrome"],
     "яндекс браузер": ["яндекс", "yandex"],
     "firefox": ["firefox"],
@@ -972,13 +985,187 @@ _WINDOW_SYNONYMS = {
 }
 
 
-def _find_window(name: str):
+# Порог нечёткого поиска окна. Был 0.6 — этого хватало, чтобы «переключись
+# на телеграм» находило окно Steam (0.62), «клод» — окно VS Code (0.67),
+# а «диспетчер задач» — «Диспетчер устройств» (0.75). Переключить не туда
+# хуже, чем честно не найти окно: основной поиск теперь идёт по процессу
+# (`_window_process_candidates`), а нечёткий — последний шанс.
+_FUZZY_TITLE_MIN = 0.75
+
+
+def _process_base(name: str) -> str:
+    """«Telegram.exe» → «telegram»: процессы сравниваем без .exe."""
+    return (name or "").strip().lower().removesuffix(".exe")
+
+
+def _matches_process(candidate: str, proc: str) -> bool:
+    """Совпадает ли голосовое имя (синоним) с именем процесса.
+
+    Правило то же, что в `find_process`: равны или одно входит в другое.
+    «steam» ↔ «steamwebhelper» — да, «клод» ↔ «gcloud» — нет: иначе
+    «закрой клод» убивал бы облачный CLI, а «переключись на клод» —
+    окно чужой программы.
+    """
+    cand, exe = _process_base(candidate), _process_base(proc)
+    if not cand or not exe:
+        return False
+    return cand == exe or cand in exe or exe in cand
+
+
+def _window_process_candidates(name: str, apps: list | None = None) -> set[str]:
+    """Какие процессы могут владеть окном «name».
+
+    Источники: каталог приложений (`jarvis.apps`: «телега» → telegram.exe),
+    таблица синонимов (`_WINDOW_SYNONYMS`: «хром» → chrome, «браузер» →
+    семь браузеров) и само имя — на случай программы вне каталога.
+    `apps` — для тестов, иначе каталог собирается сам.
+    """
+    name_low = (name or "").lower().strip()
+    if not name_low:
+        return set()
+
+    cands: set[str] = set()
+    try:
+        from jarvis.apps import build_apps, find_app
+        app = find_app(apps if apps is not None else build_apps({}), name_low)
+        if app:
+            cands.update(app.procs or [])
+    except Exception:
+        log.debug("каталог приложений недоступен для %r", name_low,
+                  exc_info=True)
+
+    for key, values in _WINDOW_SYNONYMS.items():
+        if key == name_low or key in name_low or name_low in key:
+            cands.update(values)
+
+    if not cands:
+        cands.add(name_low)
+    return cands
+
+
+def window_processes() -> list[tuple[int, str, str]]:
+    """[(hwnd, заголовок, имя процесса)] для видимых окон верхнего уровня.
+
+    Нужно, чтобы «переключись на телегу» находило окно по процессу:
+    русское имя приложения в заголовке обычно не встречается
+    (у Telegram заголовок «Telegram», у Chrome — заголовок страницы).
+    """
+    try:
+        import win32gui
+        import win32process
+        import psutil
+    except ImportError:
+        log.debug("pywin32/psutil нет — окна по процессу не ищу")
+        return []
+
+    infos: list[tuple[int, str, str]] = []
+    names: dict[int, str] = {}
+
+    def _enum_cb(hwnd, _):
+        try:
+            if not win32gui.IsWindowVisible(hwnd):
+                return
+            title = (win32gui.GetWindowText(hwnd) or "").strip()
+            if not title:
+                return
+            pid = win32process.GetWindowThreadProcessId(hwnd)[1]
+            if pid not in names:
+                try:
+                    names[pid] = psutil.Process(pid).name() or ""
+                except Exception:
+                    names[pid] = ""
+            proc = names[pid]
+            if proc:
+                infos.append((int(hwnd), title, _process_base(proc)))
+        except Exception:
+            return
+
+    try:
+        win32gui.EnumWindows(_enum_cb, None)
+    except Exception:
+        log.exception("window_processes: EnumWindows не удался")
+    return infos
+
+
+# Окна, которые Феникс не трогает даже по имени процесса. «Program Manager»
+# — это рабочий стол, а его процесс тоже explorer.exe: свернуть или закрыть
+# его нельзя, а «закрой все окна проводника» вполне могло до него дойти.
+_WINDOW_EXCLUDE = frozenset({"program manager"})
+
+
+def _all_windows() -> list:
+    """Видимые окна с заголовком (объекты pygetwindow)."""
     try:
         import pygetwindow as gw
     except ImportError:
+        return []
+    try:
+        return [w for w in gw.getAllWindows()
+                if w.title and w.title.strip().lower() not in _WINDOW_EXCLUDE]
+    except Exception:
+        log.exception("getAllWindows не удался")
+        return []
+
+
+def _hwnd_of(window) -> int | None:
+    """hwnd окна pygetwindow (лежит в приватном `_hWnd`)."""
+    try:
+        return int(getattr(window, "_hWnd", 0)) or None
+    except Exception:
         return None
 
-    windows = [w for w in gw.getAllWindows() if w.title]
+
+def windows_by_process(process_names) -> list:
+    """Окна (pygetwindow), чей процесс совпал с одним из имён."""
+    if not process_names:
+        return []
+    infos = window_processes()
+    if not infos:
+        return []
+
+    wanted: set[str] = set()
+    for candidate in process_names:
+        for _, _, proc in infos:
+            if _matches_process(candidate, proc):
+                wanted.add(proc)
+    if not wanted:
+        return []
+
+    hwnds = {hwnd for hwnd, _, proc in infos if proc in wanted}
+    titles = {title.lower() for _, title, proc in infos if proc in wanted}
+
+    result = []
+    for w in _all_windows():
+        hwnd = _hwnd_of(w)
+        if hwnd in hwnds or (hwnd is None and (w.title or "").lower() in titles):
+            result.append(w)
+    return result
+
+
+def close_windows_by_process(process_names) -> int:
+    """Закрывает ОКНА процессов (WM_CLOSE), не убивая сами процессы.
+
+    Для проводника и других системных процессов это единственный
+    безопасный путь: `kill_process("explorer.exe")` запрещён — оболочка
+    тут же перезапустится, и «закрой проводник» не дал бы видимого
+    результата. Возвращает число закрытых окон.
+    """
+    closed = 0
+    for w in windows_by_process(process_names):
+        try:
+            w.close()
+            closed += 1
+        except Exception:
+            log.debug("окно %r не закрылось", getattr(w, "title", "?"),
+                      exc_info=True)
+    if closed:
+        log.info("Закрыл окон: %d (%s)", closed,
+                 ", ".join(sorted(str(p) for p in process_names)))
+    return closed
+
+
+def _find_window(name: str):
+    windows = _all_windows()
     name_low = name.lower().strip()
 
     for noise in (" музыка", " browser", " браузер"):
@@ -994,6 +1181,19 @@ def _find_window(name: str):
             except Exception:
                 pass
         return direct[0]
+
+    # 2) По процессу. Голосовое имя («телега», «хром») редко встречается
+    # в заголовке — у Telegram заголовок «Telegram», у Chrome вообще
+    # заголовок страницы. Зато известно имя процесса.
+    by_proc = windows_by_process(_window_process_candidates(name_low))
+    if by_proc:
+        for w in by_proc:
+            try:
+                if w.visible and not w.isMinimized:
+                    return w
+            except Exception:
+                pass
+        return by_proc[0]
 
     subs = None
     for key, values in _WINDOW_SYNONYMS.items():
@@ -1018,7 +1218,7 @@ def _find_window(name: str):
 
     from jarvis.matching import match_score
     best = None
-    best_score = 0.6
+    best_score = _FUZZY_TITLE_MIN
     for w in windows:
         title = w.title.lower()
         score = match_score(name_low, title[:40])
