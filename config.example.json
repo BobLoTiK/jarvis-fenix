@@ -8,7 +8,7 @@
     "джарвис",
     "jarvis"
   ],
-  "observer_enabled": true,
+  "observer_enabled": false,
   "tts_backend": "auto",
   "tts_voice": "ruslan",
   "tts_voice_quality": "medium",

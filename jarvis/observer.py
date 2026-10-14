@@ -60,16 +60,19 @@ class DialogObserver:
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
 
+        # Дефолт False — как в DEFAULT_CONFIG: наблюдение за диалогом
+        # включается только согласием пользователя (чекбокс в GUI).
         self._enabled = bool(
             brain is not None
             and getattr(brain, "available", False)
-            and config.get("observer_enabled", True)
+            and config.get("observer_enabled", False)
         )
         if self._enabled:
             log.info("Observer: включён (интервал %.0f сек, батч %d)",
                      min_interval, batch_size)
         else:
-            log.info("Observer: выключен (LLM недоступна или отключён в конфиге)")
+            log.info("Observer: выключен (нет согласия в конфиге "
+                     "или LLM недоступна)")
 
     def start(self) -> None:
         if not self._enabled:

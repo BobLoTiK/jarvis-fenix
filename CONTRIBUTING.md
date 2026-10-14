@@ -121,6 +121,9 @@ python tests/stress_intents.py
 python snapshot.py
 ```
 
+Актуальность снимка проверяет CI (`python snapshot.py --check`): забыл
+пересобрать после правки кода — билд красный.
+
 ### 5. Коммит
 
 ```bat

@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=36bdad1f354538aa` · режим `lean` · файлов `165` · строк `31729` · источник `1327 КБ`
+`sha256=e621cb01a81a640c` · режим `lean` · файлов `167` · строк `32282` · источник `1355 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -243,10 +243,10 @@ jarvis/
 │   ├── workflows/
 │   │   ├── README.md  (61 стр)
 │   │   ├── release.yml  (114 стр)
-│   │   ├── test.yml  (64 стр)
-├── AGENTS.md  (100 стр)
-├── ARCHITECTURE.md  (917 стр)
-├── CHANGELOG.md  (916 стр)
+│   │   ├── test.yml  (71 стр)
+├── AGENTS.md  (103 стр)
+├── ARCHITECTURE.md  (919 стр)
+├── CHANGELOG.md  (974 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -256,7 +256,7 @@ jarvis/
 │   ├── open_terminal.bat  (3 стр)
 │   ├── show_ip.bat  (3 стр)
 ├── config.example.json  (69 стр)
-├── CONTRIBUTING.md  (375 стр)
+├── CONTRIBUTING.md  (378 стр)
 ├── create_shortcut.bat  (51 стр)
 ├── install.bat  (411 стр)
 ├── installer.iss  (117 стр)
@@ -267,11 +267,11 @@ jarvis/
 │   ├── apps.py  (114 стр)
 │   ├── brain.py  (831 стр)
 │   ├── celebrations.py  (165 стр)
-│   ├── config.py  (251 стр)
+│   ├── config.py  (257 стр)
 │   ├── config_manager.py  (156 стр)
 │   ├── files.py  (102 стр)
 │   ├── first_run.py  (26 стр)
-│   ├── gui.py  (2150 стр)
+│   ├── gui.py  (2196 стр)
 │   ├── history.py  (75 стр)
 │   ├── installed.py  (51 стр)
 │   ├── intents/
@@ -317,13 +317,13 @@ jarvis/
 │   │   │   ├── pending.py  (62 стр)
 │   │   ├── verbs.py  (45 стр)
 │   ├── learning.py  (160 стр)
-│   ├── main.py  (742 стр)
+│   ├── main.py  (779 стр)
 │   ├── matching.py  (113 стр)
 │   ├── memory.py  (137 стр)
 │   ├── model.py  (102 стр)
 │   ├── modes.py  (51 стр)
 │   ├── mood.py  (388 стр)
-│   ├── observer.py  (198 стр)
+│   ├── observer.py  (201 стр)
 │   ├── packs.py  (117 стр)
 │   ├── paths.py  (216 стр)
 │   ├── persona.py  (219 стр)
@@ -331,6 +331,7 @@ jarvis/
 │   ├── prosody.py  (152 стр)
 │   ├── recorder.py  (171 стр)
 │   ├── reply.py  (25 стр)
+│   ├── safety.py  (197 стр)
 │   ├── steam.py  (67 стр)
 │   ├── stt.py  (651 стр)
 │   ├── tasks.py  (236 стр)
@@ -363,8 +364,8 @@ jarvis/
 ├── PROJECT.md  (219 стр)
 ├── PROMPT.md  (509 стр)
 ├── pytest.ini  (20 стр)
-├── README.md  (962 стр)
-├── requirements-ci.txt  (24 стр)
+├── README.md  (967 стр)
+├── requirements-ci.txt  (32 стр)
 ├── requirements-dev.txt  (10 стр)
 ├── requirements.txt  (59 стр)
 ├── scripts/
@@ -399,12 +400,13 @@ jarvis/
 │   ├── test_caps.py  (23 стр)
 │   ├── test_config_manager.py  (47 стр)
 │   ├── test_engine_probe.py  (100 стр)
-│   ├── test_gui_wiring.py  (532 стр)
+│   ├── test_gui_wiring.py  (540 стр)
 │   ├── test_intents.py  (445 стр)
 │   ├── test_main_wiring.py  (187 стр)
 │   ├── test_mood.py  (386 стр)
 │   ├── test_persona.py  (155 стр)
 │   ├── test_prosody.py  (83 стр)
+│   ├── test_safety.py  (170 стр)
 │   ├── test_speech_gate.py  (86 стр)
 │   ├── test_stt.py  (435 стр)
 │   ├── test_tray.py  (180 стр)
@@ -1185,6 +1187,18 @@ jarvis/
     def is_stream(self)
 ```
 
+**`jarvis/safety.py`**
+
+```
+  # Постфильтр ответов LLM — вторая линия «красной черты».
+  STREAM_GUARD_CHARS = ...
+  OVERLAP_CHARS = ...
+  SAFE_REPLY = ...
+  FORBIDDEN_PATTERNS: ...
+  def check_response(text: str)
+  def guard_stream(chunks: Iterable[str], state: dict | None=None)
+```
+
 **`jarvis/steam.py`**
 
 ```
@@ -1808,6 +1822,7 @@ jarvis/
   def test_rate_slider(gui, cfg)
   def test_theme_dropdown(gui, cfg)
   def test_theme_dropdown_rejects_unknown(gui, cfg)
+  def test_observer_enabled_checkbox(gui, cfg)
   def test_persona_name_goes_to_config(gui, cfg)
   def test_persona_fields_go_to_persona_module(gui, monkeypatch)
   def test_persona_tone_rejects_unknown(gui, monkeypatch)
@@ -1947,6 +1962,27 @@ jarvis/
   def test_prosody_result_keys()
   def test_prosody_emotion_in_states()
   def test_prosody_rms_reasonable()
+```
+
+**`tests/test_safety.py`**
+
+```
+  # Тесты jarvis.safety — постфильтр «красной черты».
+  def test_forbidden_is_blocked(text, expected)
+  def test_clean_text_passes(text)
+  def test_self_harm_checked_before_violence()
+  def test_safe_reply_is_not_empty()
+  def test_stream_blocked_before_threshold()
+  def test_stream_blocked_at_the_end_of_short_answer()
+  def test_stream_safe_long_passes_through()
+  def test_stream_safe_short_passes_through()
+  def test_stream_catches_phrase_split_across_chunks()
+  def test_stream_catches_phrase_split_inside_buffer()
+  def test_stream_blocked_midway_stops_output()
+  def test_stream_skips_empty_chunks()
+  def test_stream_state_present_without_caller_dict()
+  def test_patterns_have_categories()
+  def test_observer_disabled_by_default()
 ```
 
 **`tests/test_speech_gate.py`**
@@ -2351,11 +2387,11 @@ jarvis/
 | `jarvis/apps.py` | 114 | code | Каталог известных приложений: как их зовут голосом, как открыть и как  |
 | `jarvis/brain.py` | 831 | code | LLM-фолбэк: локальная нейронка (Ollama) разбирает команду в структурны |
 | `jarvis/celebrations.py` | 165 | code | Праздничные триггеры — поздравление с ДР + двойной салют. |
-| `jarvis/config.py` | 251 | code | Загрузка конфигурации и объект Config в памяти. |
+| `jarvis/config.py` | 257 | code | Загрузка конфигурации и объект Config в памяти. |
 | `jarvis/config_manager.py` | 156 | code | Единый менеджер записи в config.json. |
 | `jarvis/files.py` | 102 | code | Файлы и папки: открыть, посмотреть содержимое, создать. |
 | `jarvis/first_run.py` | 26 | code | Первый запуск — знакомство через LLM-диалог. |
-| `jarvis/gui.py` | 2150 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
+| `jarvis/gui.py` | 2196 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
 | `jarvis/history.py` | 75 | code | История последних действий для отмены («стоп, не то»). |
 | `jarvis/installed.py` | 51 | code | Индекс установленных программ по ярлыкам меню «Пуск». |
 | `jarvis/intents/__init__.py` | 10 | code | Разбор команд Феникса — пакет. |
@@ -2398,13 +2434,13 @@ jarvis/
 | `jarvis/intents/stages/pending.py` | 62 | code | Ожидание уточнения (pending_question). |
 | `jarvis/intents/verbs.py` | 45 | code | Константы глаголов и слов — единый источник истины. |
 | `jarvis/learning.py` | 160 | code | Самообучение Феникса: факты и коррекции. |
-| `jarvis/main.py` | 742 | code | Точка входа: связывает распознавание, интенты, синтез речи и GUI. |
+| `jarvis/main.py` | 779 | code | Точка входа: связывает распознавание, интенты, синтез речи и GUI. |
 | `jarvis/matching.py` | 113 | code | Нечёткое сопоставление речи с названиями: транслитерация + difflib. |
 | `jarvis/memory.py` | 137 | code | Память диалога — на профиль. |
 | `jarvis/model.py` | 102 | code | Скачивание и распаковка модели Vosk для русского языка (~45 МБ). |
 | `jarvis/modes.py` | 51 | code | Режимы работы Феникса: commands, llm, combo. |
 | `jarvis/mood.py` | 388 | code | Mood — эмоциональное состояние ассистента. |
-| `jarvis/observer.py` | 198 | code | Observer — фоновое наблюдение за диалогом. |
+| `jarvis/observer.py` | 201 | code | Observer — фоновое наблюдение за диалогом. |
 | `jarvis/packs.py` | 117 | code | Загрузка и выгрузка паков команд из папки packs/. |
 | `jarvis/paths.py` | 216 | code | Централизованное определение путей Феникса. |
 | `jarvis/persona.py` | 219 | code | Персона ассистента — стиль общения, черты, backstory, tone. |
@@ -2412,6 +2448,7 @@ jarvis/
 | `jarvis/prosody.py` | 152 | code | Prosody — эмоции из голоса (RMS + pitch + ZCR). |
 | `jarvis/recorder.py` | 171 | code | Запись действий: клавиши, клики, паузы. |
 | `jarvis/reply.py` | 25 | code | Reply — результат IntentHandler.handle(). |
+| `jarvis/safety.py` | 197 | code | Постфильтр ответов LLM — вторая линия «красной черты». |
 | `jarvis/steam.py` | 67 | code | Индекс установленных игр Steam: appmanifest -> (название, appid). |
 | `jarvis/stt.py` | 651 | code | Распознавание речи. |
 | `jarvis/tasks.py` | 236 | code | Списки задач. |
@@ -2455,12 +2492,13 @@ jarvis/
 | `tests/test_caps.py` | 23 | code | Тесты check_caps: структура system_caps.json. |
 | `tests/test_config_manager.py` | 47 | code | Тесты config_manager: параллельная запись не рвёт файл. |
 | `tests/test_engine_probe.py` | 100 | code | Заглушка движка TTS (factory._probe_engine). |
-| `tests/test_gui_wiring.py` | 532 | code | GUI → config: каждый элемент окна реально отсылает изменение. |
+| `tests/test_gui_wiring.py` | 540 | code | GUI → config: каждый элемент окна реально отсылает изменение. |
 | `tests/test_intents.py` | 445 | code | Автотест Феникса без микрофона. |
 | `tests/test_main_wiring.py` | 187 | code | config → живое ядро: подписчик make_config_listener. |
 | `tests/test_mood.py` | 386 | code | Тесты jarvis.mood — состояние, детекция, decay, влияние. |
 | `tests/test_persona.py` | 155 | code | Тесты jarvis.persona — стиль, tone, prompt-блок. |
 | `tests/test_prosody.py` | 83 | code | Тесты jarvis.prosody — эмоции из голоса (эвристика). |
+| `tests/test_safety.py` | 170 | code | Тесты jarvis.safety — постфильтр «красной черты». |
 | `tests/test_speech_gate.py` | 86 | code | Тесты jarvis.vad.SpeechHangover — «хвост» тишины после речи. |
 | `tests/test_stt.py` | 435 | code | stt.Listener: живое применение настроек (то, что раньше не работало). |
 | `tests/test_tray.py` | 180 | code | Трей (jarvis.tray): пункты меню реально дёргают ядро и GUI. |
@@ -4695,7 +4733,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_CONFIG = {
     "wake_words": ["феникс", "финикс", "феникса", "fenix", "phoenix",
                    "джарвис", "jarvis"],
-    "observer_enabled": True,
+    # Observer — фоновый анализ диалога через LLM: раз в ~30 сек история
+    # уходит в Ollama, оттуда извлекаются факты о пользователе (имя,
+    # город, привычки) и пишутся в profile.json.
+    # По умолчанию ВЫКЛЮЧЕН: это сбор данных о пользователе, включать
+    # только с его согласия. Чекбокс — вкладка «Настройки» →
+    # «Приватность»; ход извлечения — в logs/observer.log.
+    "observer_enabled": False,
     # TTS backend: "auto" | "piper" | "silero" | "winrt" | "sapi"
     # auto — Silero → Piper → WinRT → SAPI (первый доступный).
     # ВАЖНО: при смене backend голос тоже надо менять — они не пересекаются.
@@ -6373,6 +6417,24 @@ class FenixGUI:
         self.config.set("tray_enabled", value)
         log.info("GUI: tray_enabled → %s (применяю на лету)", value)
 
+    def _on_observer_enabled(self, e) -> None:
+        """Observer — согласие на фоновый анализ диалога. ... [5 строк]"""
+        value = bool(e.control.value)
+        self.config.set("observer_enabled", value)
+        log.info("GUI: observer_enabled → %s (применится после перезапуска)", value)
+        if value:
+            self._show_status(
+                "Observer включён: последние сообщения диалога уйдут "
+                "локальной LLM, извлечённые факты — в profile.json, "
+                "ход извлечения — в logs/observer.log. "
+                "Заработает после перезапуска Феникса."
+            )
+        else:
+            self._show_status(
+                "Observer выключен. Перезапусти Феникса, чтобы фоновый "
+                "анализ диалога остановился."
+            )
+
     def _on_launch_mode(self, e) -> None:
         """Режим запуска (gui/tray) — применится при следующем старте."""
         value = e.control.value
@@ -6483,6 +6545,24 @@ class FenixGUI:
             color=TEXT_DIM,
         )
 
+        # Observer — фоновая отправка истории диалога в LLM. По умолчанию
+        # выключен: включение галочки = согласие пользователя.
+        observer_checkbox = ft.Checkbox(
+            label="Фоновый анализ диалога (Observer) — запоминать факты о тебе",
+            value=bool(self.config.get("observer_enabled", False)),
+            on_change=self._on_observer_enabled,
+        )
+
+        observer_hint = ft.Text(
+            "Раз в ~30 секунд последние сообщения диалога уходят в "
+            "локальную LLM (Ollama) — из них извлекаются факты: имя, "
+            "город, работа. Факты пишутся в profile.json (%APPDATA%\\Phoenix), "
+            "ход извлечения — в logs/observer.log. Выключено по умолчанию, "
+            "применяется после перезапуска.",
+            size=11,
+            color=TEXT_DIM,
+        )
+
         def _section(title):
             return ft.Text(title, size=16, weight=ft.FontWeight.BOLD, color=ACCENT)
 
@@ -6521,6 +6601,11 @@ class FenixGUI:
                     _label("Режим запуска:"),
                     launch_dropdown,
                     launch_hint,
+                    ft.Container(height=25),
+                    _section("Приватность"),
+                    observer_checkbox,
+                    ft.Container(height=8),
+                    observer_hint,
                 ],
                 spacing=6,
                 scroll=ft.ScrollMode.AUTO,
@@ -10661,6 +10746,7 @@ from jarvis.text_utils import normalize
 from jarvis.model import ensure_model
 from jarvis.reply import Reply
 from jarvis.stt import Listener
+from jarvis import safety
 from jarvis import timers
 from jarvis.tts import Speaker
 from jarvis.gui import FenixGUI
@@ -10757,6 +10843,14 @@ class Jarvis:
         return barge_happened
 
     def _say_text(self, text: str) -> None:
+        # Постфильтр «красной черты»: промпт в brain.py её только просит.
+        ok, reason = safety.check_response(text)
+        if not ok:
+            log.error(
+                "Safety: ответ заблокирован (категория=%s) — озвучиваю заглушку",
+                reason,
+            )
+            text = safety.SAFE_REPLY
         self.speaker.play_async(text)
         while self.speaker.is_playing():
             if self.barge_enabled and self.listener is not None and self.listener.barge_flag:
@@ -10769,6 +10863,8 @@ class Jarvis:
     def _say_stream(self, gen) -> None:
         """Озвучивает стрим и показывает чанки в GUI. ... [7 строк]"""
         result = {"text": ""}
+        # Состояние постфильтра: safety кладёт сюда весь текст и факт блокировки.
+        guard: dict = {}
 
         def _tee(iterator):
             """Пропускает чанки и в TTS, и в GUI."""
@@ -10780,7 +10876,10 @@ class Jarvis:
 
         def _run():
             try:
-                self.speaker.speak_stream(_tee(gen))
+                # Постфильтр: начало стрима придерживается до проверки.
+                self.speaker.speak_stream(
+                    _tee(safety.guard_stream(gen, guard))
+                )
             except Exception:
                 log.exception("Ошибка в speak_stream")
 
@@ -10801,8 +10900,16 @@ class Jarvis:
             if self.gui is not None:
                 self.gui.end_stream()
 
-            # Финальный текст — в память
-            if result["text"] and hasattr(self.handler, "finalize_stream"):
+            if guard.get("blocked"):
+                log.error(
+                    "Safety: ответ заблокирован (категория=%s) — стрим прерван",
+                    guard.get("reason"),
+                )
+
+            # Финальный текст — в память. Заблокированный ответ в память
+            # не пишем: он не прозвучал.
+            if (result["text"] and not guard.get("blocked")
+                    and hasattr(self.handler, "finalize_stream")):
                 self.handler.finalize_stream(result["text"])
 
     def shutdown(self) -> None:
@@ -11019,6 +11126,21 @@ def setup_logging() -> None:
     )
     actions_handler.setFormatter(formatter)
     actions_logger.addHandler(actions_handler)
+
+    # Observer: отдельный файл. Это данные пользователя («что из диалога
+    # вытащили»), поэтому держим их отдельно от общего jarvis.log —
+    # propagate=False, чтобы факты не дублировались в общий лог.
+    observer_logger = logging.getLogger("jarvis.observer")
+    observer_logger.setLevel(logging.INFO)
+    observer_logger.propagate = False
+    observer_handler = logging.handlers.RotatingFileHandler(
+        LOGS_DIR / "observer.log",
+        maxBytes=1024 * 1024,
+        backupCount=2,
+        encoding="utf-8",
+    )
+    observer_handler.setFormatter(formatter)
+    observer_logger.addHandler(observer_handler)
 
     # Глобальный перехват исключений в потоках
     def _thread_excepthook(args):
@@ -12127,16 +12249,19 @@ class DialogObserver:
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
 
+        # Дефолт False — как в DEFAULT_CONFIG: наблюдение за диалогом
+        # включается только согласием пользователя (чекбокс в GUI).
         self._enabled = bool(
             brain is not None
             and getattr(brain, "available", False)
-            and config.get("observer_enabled", True)
+            and config.get("observer_enabled", False)
         )
         if self._enabled:
             log.info("Observer: включён (интервал %.0f сек, батч %d)",
                      min_interval, batch_size)
         else:
-            log.info("Observer: выключен (LLM недоступна или отключён в конфиге)")
+            log.info("Observer: выключен (нет согласия в конфиге "
+                     "или LLM недоступна)")
 
     def start(self) -> None:
         if not self._enabled:
@@ -13511,6 +13636,171 @@ class Reply:
     @property
     def is_stream(self) -> bool:
         return self.stream is not None
+```
+
+### `jarvis/safety.py`
+
+```python
+"""Постфильтр ответов LLM — вторая линия «красной черты». ... [17 строк]"""
+
+import logging
+import re
+from typing import Iterable, Iterator
+
+log = logging.getLogger("jarvis.safety")
+
+# Сколько символов начала стрима держим до проверки. ~1–2 предложения:
+# TTS стартует на доли секунды позже, зато запрещённое не прозвучит.
+STREAM_GUARD_CHARS = 160
+
+# Хвост предыдущего текста, перепроверяемый вместе со следующим чанком:
+# ловит фразы, разорванные границей чанков («убей» | « себя»).
+OVERLAP_CHARS = 32
+
+SAFE_REPLY = "Не могу ответить на это, сэр."
+
+
+# (регулярка, категория). Порядок важен: self_harm — раньше violence,
+# иначе «убей себя» попадёт в «насилие».
+FORBIDDEN_PATTERNS: list[tuple[re.Pattern, str]] = [
+    (
+        re.compile(
+            r"убей\w*\s+себя|убейся|сдохни|удавись|"
+            r"покончи\w*\s+с\s+собой|покончить\s+с\s+жизнью|"
+            r"уйди\s+из\s+жизни|вскрой\s+вены|режь\s+вены",
+            re.IGNORECASE,
+        ),
+        "self_harm",
+    ),
+    (
+        re.compile(
+            r"(убей|убить|убью|зарежь|прикончи|пристрели|застрели|"
+            r"взорви|отрав[иь]|задуши)\w*\s+"
+            r"(его|её|ее|их|людей|человека|себя)",
+            re.IGNORECASE,
+        ),
+        "violence",
+    ),
+    (
+        re.compile(
+            r"взорв\w*\s+(школ\w*|больниц\w*|метро|поезд\w*|"
+            r"торгов\w*\s+центр\w*)|"
+            r"массов\w+\s+(убийств|расстрел)",
+            re.IGNORECASE,
+        ),
+        "violence",
+    ),
+    (
+        re.compile(
+            r"(сделать|собрать|изготовить|смастерить|сколотить)\w*\s+"
+            r"(бомб\w*|взрывчатк\w*|взрывчатое\w*|оруж\w*|гранат\w*|"
+            r"самопальн\w+\s+оруж\w*)|"
+            r"(рецепт|инструкц\w*|чертёж\w*)\s+"
+            r"(бомб\w*|взрывчатк\w*)",
+            re.IGNORECASE,
+        ),
+        "weapons",
+    ),
+    (
+        re.compile(
+            r"(сварить|синтезировать|изготовить|приготовить|сделать)\w*\s+"
+            r"(метамфетамин\w*|амфетамин\w*|кокаин\w*|героин\w*|"
+            r"мефедрон\w*|метадон\w*|лсд)|"
+            r"(рецепт|инструкц\w*)\s+"
+            r"(метамфетамин\w*|амфетамин\w*|кокаин\w*|героин\w*|"
+            r"мефедрон\w*)",
+            re.IGNORECASE,
+        ),
+        "drugs",
+    ),
+    (
+        re.compile(
+            r"(детск\w*|несовершеннолетн\w*|малолетн\w*)\s+"
+            r"(порн\w*|секс\w*|эротик\w*|интим\w*)|"
+            r"(порн\w*|секс\w*|эротик\w*)\s+(с\s+)?"
+            r"(детьми|ребёнком|ребенком|малолетн\w*|"
+            r"несовершеннолетн\w*)",
+            re.IGNORECASE,
+        ),
+        "csam",
+    ),
+]
+
+
+def check_response(text: str) -> tuple[bool, str]:
+    """Проверяет ответ LLM. ... [5 строк]"""
+    if not text:
+        return True, ""
+
+    for pattern, category in FORBIDDEN_PATTERNS:
+        if pattern.search(text):
+            log.warning(
+                "SAFETY: ответ заблокирован (категория=%s): %r",
+                category,
+                text[:200],
+            )
+            return False, category
+
+    return True, ""
+
+
+def guard_stream(chunks: Iterable[str], state: dict | None = None) -> Iterator[str]:
+    """Обёртка стрима ответа: запрещённое не уходит в TTS. ... [15 строк]"""
+    held: list[str] = []
+    held_len = 0
+    full: list[str] = []
+    tail = ""
+    opened = False
+    blocked = False
+    reason = ""
+
+    try:
+        for chunk in chunks:
+            if not chunk:
+                continue
+            full.append(chunk)
+
+            if opened:
+                ok, why = check_response(tail + chunk)
+                if not ok:
+                    blocked, reason = True, why
+                    break
+                tail = (tail + chunk)[-OVERLAP_CHARS:]
+                yield chunk
+                continue
+
+            held.append(chunk)
+            held_len += len(chunk)
+            if held_len < STREAM_GUARD_CHARS:
+                continue
+
+            ok, why = check_response("".join(held))
+            if not ok:
+                blocked, reason = True, why
+                break
+            opened = True
+            tail = "".join(held)[-OVERLAP_CHARS:]
+            # Отдаём буфер по чанкам — границы чанков сохраняем как были.
+            for piece in held:
+                yield piece
+            held = []
+
+        if not opened and not blocked and held:
+            ok, why = check_response("".join(held))
+            if not ok:
+                blocked, reason = True, why
+            else:
+                for piece in held:
+                    yield piece
+
+        if blocked:
+            log.error("SAFETY: стрим прерван (категория=%s)", reason)
+            yield SAFE_REPLY
+    finally:
+        if state is not None:
+            state["text"] = "".join(full)
+            state["blocked"] = blocked
+            state["reason"] = reason
 ```
 
 ### `jarvis/steam.py`
@@ -20620,6 +20910,14 @@ def test_theme_dropdown_rejects_unknown(gui, cfg):
     assert cfg["gui_theme"] == "Системная"
 
 
+def test_observer_enabled_checkbox(gui, cfg):
+    """Observer — согласие: галочка пишет флаг в config."""
+    gui._on_observer_enabled(ev(True))
+    assert cfg["observer_enabled"] is True
+    gui._on_observer_enabled(ev(False))
+    assert cfg["observer_enabled"] is False
+
+
 # =================================================================
 # Вкладка «Персона»
 # =================================================================
@@ -22088,6 +22386,167 @@ def test_prosody_rms_reasonable():
     result = prosody.analyze_prosody(pcm, 16000)
     assert result is not None
     assert result["rms"] > 0
+```
+
+### `tests/test_safety.py`
+
+```python
+"""Тесты jarvis.safety — постфильтр «красной черты». ... [6 строк]"""
+
+import pytest
+
+from jarvis import safety
+
+
+# =================================================================
+# check_response
+# =================================================================
+
+@pytest.mark.parametrize(
+    "text, expected",
+    [
+        ("убей себя", "self_harm"),
+        ("Сдохни, железяка", "self_harm"),
+        ("Как покончить с собой?", "self_harm"),
+        ("Как убить человека и не попасться", "violence"),
+        ("взорви школу", "violence"),
+        ("Как сделать бомбу в домашних условиях", "weapons"),
+        ("дай рецепт взрывчатки", "weapons"),
+        ("как сварить метамфетамин", "drugs"),
+        ("детская порнография", "csam"),
+        ("секс с несовершеннолетними", "csam"),
+    ],
+)
+def test_forbidden_is_blocked(text, expected):
+    """Запрещённые формулировки блокируются с нужной категорией."""
+    ok, reason = safety.check_response(text)
+    assert not ok
+    assert reason == expected
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "",
+        None,
+        "Открываю Steam, сэр.",
+        "Как убить время вечером?",          # «убить» без цели — не насилие
+        "Как собрать компьютер из комплектующих?",
+        "Блин, опять эта фигня не работает",  # мат — не «красная черта»
+        "Сейчас 21:40, сэр.",
+        "Погода в Нижнем Новгороде на завтра",
+    ],
+)
+def test_clean_text_passes(text):
+    """Обычные ответы не блокируются (плюс пустая строка и None)."""
+    ok, reason = safety.check_response(text)
+    assert ok
+    assert reason == ""
+
+
+def test_self_harm_checked_before_violence():
+    """«убей себя» — это self_harm, а не violence (порядок категорий)."""
+    ok, reason = safety.check_response("убей себя")
+    assert not ok
+    assert reason == "self_harm"
+
+
+def test_safe_reply_is_not_empty():
+    """Заглушка, которую услышит пользователь, — непустая строка."""
+    assert safety.SAFE_REPLY.strip()
+
+
+# =================================================================
+# guard_stream
+# =================================================================
+
+def test_stream_blocked_before_threshold():
+    """Запрещённое в начале стрима — в TTS уходит только заглушка."""
+    state = {}
+    out = list(safety.guard_stream(
+        ["Давай ", "убей себя", " и спи спокойно"], state))
+
+    assert out == [safety.SAFE_REPLY]
+    assert state["blocked"] is True
+    assert state["reason"] == "self_harm"
+
+
+def test_stream_blocked_at_the_end_of_short_answer():
+    """Стрим короче порога и с запрещённым в конце — тоже заглушка."""
+    out = list(safety.guard_stream(["Вот тебе ответ: ", "сдохни"]))
+
+    assert out == [safety.SAFE_REPLY]
+
+
+def test_stream_safe_long_passes_through():
+    """Чистый стрим проходит целиком и по порядку."""
+    chunks = ["а" * 100, "б" * 100, "в" * 100]
+    state = {}
+    out = list(safety.guard_stream(chunks, state))
+
+    assert out == chunks
+    assert state["blocked"] is False
+    assert state["text"] == "".join(chunks)
+
+
+def test_stream_safe_short_passes_through():
+    """Чистый стрим короче порога не теряется."""
+    chunks = ["Привет, ", "сэр."]
+    assert list(safety.guard_stream(chunks)) == chunks
+
+
+def test_stream_catches_phrase_split_across_chunks():
+    """Фраза, разорванная границей чанков, ловится по хвосту. ... [4 строк]"""
+    first = "п" * 200 + "убей "
+    out = list(safety.guard_stream([first, "себя!"]))
+
+    assert out == [first, safety.SAFE_REPLY]
+    assert "себя" not in "".join(out)
+
+
+def test_stream_catches_phrase_split_inside_buffer():
+    """Та же разорванная фраза, но внутри буфера — ловится целиком."""
+    out = list(safety.guard_stream(["п" * 150 + "убей ", "себя!"]))
+
+    assert out == [safety.SAFE_REPLY]
+
+
+def test_stream_blocked_midway_stops_output():
+    """Если LLM «сорвалась» в середине — остаток не озвучивается."""
+    head = "п" * 200
+    out = list(safety.guard_stream([head, "сдохни"]))
+
+    assert out == [head, safety.SAFE_REPLY]
+
+
+def test_stream_skips_empty_chunks():
+    """Пустые чанки не ломают фильтр."""
+    assert list(safety.guard_stream(["", "ок", ""])) == ["ок"]
+
+
+def test_stream_state_present_without_caller_dict():
+    """Без state фильтр работает так же (state — необязательный)."""
+    out = list(safety.guard_stream(["сдохни"]))
+    assert out == [safety.SAFE_REPLY]
+
+
+def test_patterns_have_categories():
+    """У каждой регулярки — непустая категория из ожидаемого набора."""
+    known = {"self_harm", "violence", "weapons", "drugs", "csam"}
+    for pattern, category in safety.FORBIDDEN_PATTERNS:
+        assert category in known
+        assert pattern.search("тестовый текст") is None
+
+
+# =================================================================
+# Приватность: Observer выключен по умолчанию
+# =================================================================
+
+def test_observer_disabled_by_default():
+    """Сбор фактов о пользователе не идёт без его согласия. ... [4 строк]"""
+    from jarvis.config import DEFAULT_CONFIG
+
+    assert DEFAULT_CONFIG["observer_enabled"] is False
 ```
 
 ### `tests/test_speech_gate.py`
@@ -26445,6 +26904,7 @@ jobs:
 #   5. Гоняет pytest (tests/).
 #   6. Гоняет интент-тесты (tests/test_intents.py — без LLM/сети/озвучки).
 #   7. Гоняет стресс-тест (tests/stress_intents.py — 100 ситуаций).
+#   8. Проверяет, что SNAPSHOT.md не устарел (snapshot.py --check).
 #
 # Где смотреть результат:
 #   На GitHub → вкладка "Actions" → последний запуск.
@@ -26487,6 +26947,12 @@ jobs:
 
       - name: Check syntax
         run: python check_syntax.py
+
+      # snapshot.py --check возвращает 1, если SNAPSHOT.md на диске
+      # разошёлся с кодом. Локально снимок обновляет commit.bat,
+      # но если коммит делали руками — CI напомнит: python snapshot.py
+      - name: Snapshot is up to date (SNAPSHOT.md)
+        run: python snapshot.py --check
 
       - name: Unit tests (pytest)
         run: python -m pytest tests/ -q
@@ -26570,7 +27036,7 @@ pause
     "джарвис",
     "jarvis"
   ],
-  "observer_enabled": true,
+  "observer_enabled": false,
   "tts_backend": "auto",
   "tts_voice": "ruslan",
   "tts_voice_quality": "medium",
@@ -27558,6 +28024,14 @@ Pillow>=10
 # На CI он обязателен — без него тесты prosody просто не соберутся.
 numpy>=1.26
 
+# --- GUI ---
+# flet нужен, чтобы tests/test_gui_wiring.py не пропускался в CI:
+# без него файл делает pytest.skip на уровне модуля, и ~500 строк
+# проверок GUI молча не бегут (сборка вкладок + каждый контрол
+# «дошёл ли до config.json»). Окно на сервере не поднимается —
+# flet-desktop не нужен, хватает самого flet.
+flet>=1.0.3
+
 # --- Тесты ---
 pytest>=8.0
 pytest-asyncio>=0.23
@@ -27715,12 +28189,13 @@ onnxruntime>=1.17
     - `scripts/make_installer_images.py`
     - `scripts/build_exe.py`
 
-#### `CHANGELOG.md` — 65 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 67 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
   - 📑 Содержание
   - 🚧 [Unreleased] — 0.4.0
     - 📅 Сессия 13.10.2026
+      - 🔒 Приватность и «красная черта»: Observer выключен, ответы фильтруются
       - 🐞 «Закрой вкладку ютуб» — почему вкладка не закрывалась
       - 🧪 Тесты — одна папка, стресс-тест на 100 ситуаций, единый прогон
         - 🕐 Время — добавлены естественные формулировки
@@ -27734,6 +28209,7 @@ onnxruntime>=1.17
       - 🚀 CI — авторелиз по тегу (`release.yml`)
       - 📝 Документация
       - 🧭 Документация — план приведён к фактам
+      - ⚖️ Vosk остаётся: замер вместо переписывания
     - 📅 Сессия 12.10.2026
       - 🐛 Исправлено
         - 🔊 VAD (Silero) — починен и сделан адаптивным
@@ -27755,8 +28231,6 @@ onnxruntime>=1.17
       - 🐛 Исправлено
   - 📅 Сессия 10.10.2026
       - ✨ Добавлено
-        - 📋 PROJECT.md — источник правды
-        - 🧰 snapshot.py — переписан
 
 #### `CI.md` — 13 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -27927,4 +28401,4 @@ onnxruntime>=1.17
 
 ---
 
-_Итого по категориям — code: 129, data: 20, doc: 11, pack: 5. Режим `lean`._
+_Итого по категориям — code: 131, data: 20, doc: 11, pack: 5. Режим `lean`._

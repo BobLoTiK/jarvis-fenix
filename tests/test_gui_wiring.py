@@ -280,6 +280,14 @@ def test_theme_dropdown_rejects_unknown(gui, cfg):
     assert cfg["gui_theme"] == "Системная"
 
 
+def test_observer_enabled_checkbox(gui, cfg):
+    """Observer — согласие: галочка пишет флаг в config."""
+    gui._on_observer_enabled(ev(True))
+    assert cfg["observer_enabled"] is True
+    gui._on_observer_enabled(ev(False))
+    assert cfg["observer_enabled"] is False
+
+
 # =================================================================
 # Вкладка «Персона»
 # =================================================================

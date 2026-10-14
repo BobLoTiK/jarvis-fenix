@@ -269,7 +269,9 @@ DialogObserver._loop (раз в 5 сек)
 
 **Ключевое:** observer **не блокирует** диалог. Работает **параллельно**.
 
-**Конфиг:** `observer_enabled: true`, `min_interval: 30.0`, `batch_size: 6`.
+**Конфиг:** `observer_enabled: false` (по умолчанию ВЫКЛЮЧЕН — согласие
+даётся галочкой в «Настройки → Приватность»), `min_interval: 30.0`,
+`batch_size: 6`. Ход извлечения — `logs/observer.log`.
 
 ---
 

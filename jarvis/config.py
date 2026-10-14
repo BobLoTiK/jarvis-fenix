@@ -21,7 +21,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_CONFIG = {
     "wake_words": ["феникс", "финикс", "феникса", "fenix", "phoenix",
                    "джарвис", "jarvis"],
-    "observer_enabled": True,
+    # Observer — фоновый анализ диалога через LLM: раз в ~30 сек история
+    # уходит в Ollama, оттуда извлекаются факты о пользователе (имя,
+    # город, привычки) и пишутся в profile.json.
+    # По умолчанию ВЫКЛЮЧЕН: это сбор данных о пользователе, включать
+    # только с его согласия. Чекбокс — вкладка «Настройки» →
+    # «Приватность»; ход извлечения — в logs/observer.log.
+    "observer_enabled": False,
     # TTS backend: "auto" | "piper" | "silero" | "winrt" | "sapi"
     # auto — Silero → Piper → WinRT → SAPI (первый доступный).
     # ВАЖНО: при смене backend голос тоже надо менять — они не пересекаются.

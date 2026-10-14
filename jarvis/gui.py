@@ -1231,6 +1231,29 @@ class FenixGUI:
         self.config.set("tray_enabled", value)
         log.info("GUI: tray_enabled → %s (применяю на лету)", value)
 
+    def _on_observer_enabled(self, e) -> None:
+        """Observer — согласие на фоновый анализ диалога.
+
+        Выключен по умолчанию (DEFAULT_CONFIG): галочка = согласие
+        пользователя. Поток поднимается на старте, поэтому эффект —
+        после перезапуска (как у режима запуска).
+        """
+        value = bool(e.control.value)
+        self.config.set("observer_enabled", value)
+        log.info("GUI: observer_enabled → %s (применится после перезапуска)", value)
+        if value:
+            self._show_status(
+                "Observer включён: последние сообщения диалога уйдут "
+                "локальной LLM, извлечённые факты — в profile.json, "
+                "ход извлечения — в logs/observer.log. "
+                "Заработает после перезапуска Феникса."
+            )
+        else:
+            self._show_status(
+                "Observer выключен. Перезапусти Феникса, чтобы фоновый "
+                "анализ диалога остановился."
+            )
+
     def _on_launch_mode(self, e) -> None:
         """Режим запуска (gui/tray) — применится при следующем старте."""
         value = e.control.value
@@ -1341,6 +1364,24 @@ class FenixGUI:
             color=TEXT_DIM,
         )
 
+        # Observer — фоновая отправка истории диалога в LLM. По умолчанию
+        # выключен: включение галочки = согласие пользователя.
+        observer_checkbox = ft.Checkbox(
+            label="Фоновый анализ диалога (Observer) — запоминать факты о тебе",
+            value=bool(self.config.get("observer_enabled", False)),
+            on_change=self._on_observer_enabled,
+        )
+
+        observer_hint = ft.Text(
+            "Раз в ~30 секунд последние сообщения диалога уходят в "
+            "локальную LLM (Ollama) — из них извлекаются факты: имя, "
+            "город, работа. Факты пишутся в profile.json (%APPDATA%\\Phoenix), "
+            "ход извлечения — в logs/observer.log. Выключено по умолчанию, "
+            "применяется после перезапуска.",
+            size=11,
+            color=TEXT_DIM,
+        )
+
         def _section(title):
             return ft.Text(title, size=16, weight=ft.FontWeight.BOLD, color=ACCENT)
 
@@ -1379,6 +1420,11 @@ class FenixGUI:
                     _label("Режим запуска:"),
                     launch_dropdown,
                     launch_hint,
+                    ft.Container(height=25),
+                    _section("Приватность"),
+                    observer_checkbox,
+                    ft.Container(height=8),
+                    observer_hint,
                 ],
                 spacing=6,
                 scroll=ft.ScrollMode.AUTO,

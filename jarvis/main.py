@@ -27,6 +27,7 @@ from jarvis.text_utils import normalize
 from jarvis.model import ensure_model
 from jarvis.reply import Reply
 from jarvis.stt import Listener
+from jarvis import safety
 from jarvis import timers
 from jarvis.tts import Speaker
 from jarvis.gui import FenixGUI
@@ -123,6 +124,14 @@ class Jarvis:
         return barge_happened
 
     def _say_text(self, text: str) -> None:
+        # Постфильтр «красной черты»: промпт в brain.py её только просит.
+        ok, reason = safety.check_response(text)
+        if not ok:
+            log.error(
+                "Safety: ответ заблокирован (категория=%s) — озвучиваю заглушку",
+                reason,
+            )
+            text = safety.SAFE_REPLY
         self.speaker.play_async(text)
         while self.speaker.is_playing():
             if self.barge_enabled and self.listener is not None and self.listener.barge_flag:
@@ -142,6 +151,8 @@ class Jarvis:
         и в GUI через add_stream_chunk.
         """
         result = {"text": ""}
+        # Состояние постфильтра: safety кладёт сюда весь текст и факт блокировки.
+        guard: dict = {}
 
         def _tee(iterator):
             """Пропускает чанки и в TTS, и в GUI."""
@@ -153,7 +164,10 @@ class Jarvis:
 
         def _run():
             try:
-                self.speaker.speak_stream(_tee(gen))
+                # Постфильтр: начало стрима придерживается до проверки.
+                self.speaker.speak_stream(
+                    _tee(safety.guard_stream(gen, guard))
+                )
             except Exception:
                 log.exception("Ошибка в speak_stream")
 
@@ -174,8 +188,16 @@ class Jarvis:
             if self.gui is not None:
                 self.gui.end_stream()
 
-            # Финальный текст — в память
-            if result["text"] and hasattr(self.handler, "finalize_stream"):
+            if guard.get("blocked"):
+                log.error(
+                    "Safety: ответ заблокирован (категория=%s) — стрим прерван",
+                    guard.get("reason"),
+                )
+
+            # Финальный текст — в память. Заблокированный ответ в память
+            # не пишем: он не прозвучал.
+            if (result["text"] and not guard.get("blocked")
+                    and hasattr(self.handler, "finalize_stream")):
                 self.handler.finalize_stream(result["text"])
 
     def shutdown(self) -> None:
@@ -410,6 +432,21 @@ def setup_logging() -> None:
     )
     actions_handler.setFormatter(formatter)
     actions_logger.addHandler(actions_handler)
+
+    # Observer: отдельный файл. Это данные пользователя («что из диалога
+    # вытащили»), поэтому держим их отдельно от общего jarvis.log —
+    # propagate=False, чтобы факты не дублировались в общий лог.
+    observer_logger = logging.getLogger("jarvis.observer")
+    observer_logger.setLevel(logging.INFO)
+    observer_logger.propagate = False
+    observer_handler = logging.handlers.RotatingFileHandler(
+        LOGS_DIR / "observer.log",
+        maxBytes=1024 * 1024,
+        backupCount=2,
+        encoding="utf-8",
+    )
+    observer_handler.setFormatter(formatter)
+    observer_logger.addHandler(observer_handler)
 
     # Глобальный перехват исключений в потоках
     def _thread_excepthook(args):

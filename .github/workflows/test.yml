@@ -9,6 +9,7 @@
 #   5. Гоняет pytest (tests/).
 #   6. Гоняет интент-тесты (tests/test_intents.py — без LLM/сети/озвучки).
 #   7. Гоняет стресс-тест (tests/stress_intents.py — 100 ситуаций).
+#   8. Проверяет, что SNAPSHOT.md не устарел (snapshot.py --check).
 #
 # Где смотреть результат:
 #   На GitHub → вкладка "Actions" → последний запуск.
@@ -51,6 +52,12 @@ jobs:
 
       - name: Check syntax
         run: python check_syntax.py
+
+      # snapshot.py --check возвращает 1, если SNAPSHOT.md на диске
+      # разошёлся с кодом. Локально снимок обновляет commit.bat,
+      # но если коммит делали руками — CI напомнит: python snapshot.py
+      - name: Snapshot is up to date (SNAPSHOT.md)
+        run: python snapshot.py --check
 
       - name: Unit tests (pytest)
         run: python -m pytest tests/ -q
