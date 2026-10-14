@@ -129,21 +129,45 @@ class Speaker:
         except Exception:
             pass
 
-        old = self._engine_name
+        old_backend = self._backend
         self._backend = backend
+        if not self._recreate_engine():
+            # Возвращаем прежнее имя backend, а не имя загруженного
+            # движка: иначе из «auto» в настройках оседало «silero».
+            self._backend = old_backend
+            return False
+        return True
+
+    def set_quality(self, quality: str) -> bool:
+        """Смена качества голоса: читается только при создании движка.
+
+        Прежний GUI-путь звал switch_backend(текущий) — ранний выход
+        возвращал True, и настройка не применялась до перезапуска.
+        """
+        quality = quality if quality in ("medium", "high") else "medium"
+        if quality == self.quality and self._engine is not None:
+            return True
+        self.quality = quality
+        if self._engine is None:
+            return True  # подхватится при ленивом создании
+        return self._recreate_engine()
+
+    def _recreate_engine(self) -> bool:
+        """Пересоздаёт движок с текущими backend/voice/quality/rate."""
+        old_name = self._engine_name
         self.stop()
         self.wait_end(timeout=2.0)
-        engine = get_engine(backend, self.voice, self.quality, self.rate)
+        engine = get_engine(self._backend, self.voice, self.quality, self.rate)
         if engine is None:
-            log.warning("TTS: не удалось переключиться на %s", backend)
-            self._backend = old
+            log.warning("TTS: не удалось пересоздать движок %s", self._backend)
             return False
         with self._init_lock:
             self._engine = engine
             self._engine_name = engine.name
         # Если шла ленивая загрузка — считаем её завершённой.
         self._engine_ready.set()
-        log.info("TTS: движок переключён %s → %s", old, self._engine_name)
+        log.info("TTS: движок пересоздан %s → %s (quality=%s)",
+                 old_name, self._engine_name, self.quality)
         return True
 
     # ------------------------------------------------------------------
@@ -187,19 +211,24 @@ class Speaker:
     # ------------------------------------------------------------------
 
     def speak(self, text: str) -> None:
-        """Синхронная озвучка (для тестов)."""
+        """Синхронная озвучка (для тестов и скриптов)."""
         if not text:
             return
         if not self._ensure_engine():
             return
         token = self._new_token()
         try:
-            if hasattr(self._engine, "synthesize"):
-                self._engine.synthesize(text, self.voice, self.rate)
-            # Для SAPI (без synthesize) — через стриминг с одним куском
             if self._engine_name == "sapi":
+                # SAPI играет сам, через стриминг с одним куском.
                 list(self._engine.speak_stream(iter([text]),
                                                self.voice, self.rate, token))
+                return
+            wav = self._engine.synthesize(text, self.voice, self.rate)
+            # Раньше байты просто выбрасывались — speak() не играл звук
+            # ни на одном движке (SAPI-ветка была недостижима: hasattr
+            # ловил его NotImplementedError раньше проверки имени).
+            if wav:
+                self._play_wav(wav, token)
         except Exception:
             log.exception("TTS: ошибка в speak()")
 
@@ -260,6 +289,10 @@ class Speaker:
         token = self._new_token()
         with self._play_lock:
             self._playing = True
+            # Публикуем поток: иначе is_playing()/wait_end() во время
+            # стрима отвечали «не играю» и напоминание могло озвучиться
+            # поверх ответа.
+            self._play_thread = threading.current_thread()
 
         try:
             return self._engine.speak_stream(

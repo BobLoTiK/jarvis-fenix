@@ -513,10 +513,15 @@ class Brain:
             log.info("LLM: URL Ollama → %s", self.url)
 
     def _ping(self):
+        if not self.url:
+            return False
         try:
             with urllib.request.urlopen(self.url + "/api/version", timeout=2):
                 return True
-        except OSError:
+        except (OSError, ValueError):
+            # ValueError — некорректный URL (пустой/битый ollama_url):
+            # при одиночном OSError он вылетал из Brain.__init__
+            # и ронял старт Феникса.
             return False
 
     def _try_start(self):

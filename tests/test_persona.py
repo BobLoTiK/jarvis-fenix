@@ -32,12 +32,12 @@ def test_set_field_valid():
     def fake_get(key, default=None):
         return saved.get(key, default)
 
-    def fake_set(key, value):
-        saved[key] = value
+    def fake_mutate(key, func):
+        saved[key] = func(saved.get(key))
         return True
 
     with patch("jarvis.profile.get", side_effect=fake_get), \
-         patch("jarvis.profile.set", side_effect=fake_set):
+         patch("jarvis.profile.mutate", side_effect=fake_mutate):
         ok = persona.set_field("tone", "unrestricted")
         assert ok
         assert saved["persona"]["tone"] == "unrestricted"
@@ -80,12 +80,12 @@ def test_set_tone_valid():
     def fake_get(key, default=None):
         return saved.get(key, default)
 
-    def fake_set(key, value):
-        saved[key] = value
+    def fake_mutate(key, func):
+        saved[key] = func(saved.get(key))
         return True
 
     with patch("jarvis.profile.get", side_effect=fake_get), \
-         patch("jarvis.profile.set", side_effect=fake_set):
+         patch("jarvis.profile.mutate", side_effect=fake_mutate):
         reply = persona.set_tone("unrestricted")
     assert "не стесняется" in reply
     assert saved["persona"]["tone"] == "unrestricted"
@@ -98,12 +98,12 @@ def test_set_tone_fallback():
     def fake_get(key, default=None):
         return saved.get(key, default)
 
-    def fake_set(key, value):
-        saved[key] = value
+    def fake_mutate(key, func):
+        saved[key] = func(saved.get(key))
         return True
 
     with patch("jarvis.profile.get", side_effect=fake_get), \
-         patch("jarvis.profile.set", side_effect=fake_set):
+         patch("jarvis.profile.mutate", side_effect=fake_mutate):
         persona.set_tone("банан")
     assert saved["persona"]["tone"] == "auto"
 

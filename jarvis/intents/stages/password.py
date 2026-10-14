@@ -28,12 +28,32 @@ class PasswordStage(Stage):
             return reply
 
         # 2. Если ждём ввода пароля — обрабатываем.
-        if not h._pending_password:
+        if h._pending_password:
+            if time.time() >= h._pending_password.get("expires_at", 0):
+                h._pending_password = None
+            else:
+                return self._handle_answer(ctx)
+
+        # 3. Опасные fast-команды («очисти список», «отмени все напоминания»):
+        # fast-реестр идёт после этой стадии, а проверка is_danger живёт
+        # только в LLMStage — без гейта здесь такие команды выполнялись
+        # без пароля, хотя входят в DANGER_ACTIONS.
+        return self._maybe_gate_fast_danger(ctx)
+
+    # ----------------------------------------------------------------
+
+    def _maybe_gate_fast_danger(self, ctx) -> str | None:
+        """Пароль для опасных fast-команд (clear_tasks / cancel_timers)."""
+        h = ctx.handler
+        if not h._danger_password():
             return None
-        if time.time() >= h._pending_password.get("expires_at", 0):
-            h._pending_password = None
-            return None
-        return self._handle_answer(ctx)
+        from jarvis import tasks as _tasks
+        from jarvis import timers as _timers
+        if _tasks.is_clear_command(ctx.cmd):
+            return h._ask_password({"action": "clear_tasks"})
+        if _timers.is_cancel_all_command(ctx.cmd):
+            return h._ask_password({"action": "cancel_timers"})
+        return None
 
     # ----------------------------------------------------------------
 

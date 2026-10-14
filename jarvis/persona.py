@@ -94,20 +94,27 @@ def get() -> dict:
 
 
 def set_persona(data: dict) -> bool:
-    current = get()
-    for key in DEFAULT_PERSONA:
-        if key in data:
-            current[key] = data[key]
-    return profile.set("persona", current)
+    def _apply(current):
+        current = dict(current or {})
+        for key in DEFAULT_PERSONA:
+            if key in data:
+                current[key] = data[key]
+        return current
+
+    return profile.mutate("persona", _apply)
 
 
 def set_field(key: str, value) -> bool:
     if key not in DEFAULT_PERSONA:
         log.warning("persona.set_field: неизвестный ключ %r", key)
         return False
-    current = get()
-    current[key] = value
-    return profile.set("persona", current)
+
+    def _apply(current):
+        current = dict(current or {})
+        current[key] = value
+        return current
+
+    return profile.mutate("persona", _apply)
 
 
 def normalize_style(text: str) -> str | None:

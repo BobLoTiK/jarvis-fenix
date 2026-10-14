@@ -55,7 +55,14 @@ def describe_folder(path: Path, limit: int = 5) -> str:
     dirs = [e for e in entries if e.is_dir()]
     if not entries:
         return f"Папка {path.name} пуста."
-    recent = sorted(files, key=lambda f: f.stat().st_mtime, reverse=True)[:limit]
+
+    def _mtime(f: Path) -> float:
+        try:
+            return f.stat().st_mtime
+        except OSError:
+            return 0.0  # файл исчез между листингом и stat (активная загрузка)
+
+    recent = sorted(files, key=_mtime, reverse=True)[:limit]
     names = ", ".join(f.stem for f in recent)
     parts = []
     if files:

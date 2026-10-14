@@ -35,9 +35,11 @@ REAL_MODEL = Path(r"C:\ProgramData\Phoenix\vad\silero_vad.onnx")
 
 @pytest.fixture(autouse=True)
 def _reset_download_state():
-    """Модуль помнит «качать уже пробовали» — между тестами сбрасываем."""
+    """Модуль помнит состояние скачивания — между тестами сбрасываем."""
     with patch.object(vad, "_download_started", False), \
-            patch.object(vad, "_download_thread", None):
+            patch.object(vad, "_download_thread", None), \
+            patch.object(vad, "_download_finished", False), \
+            patch.object(vad, "_callbacks", []):
         yield
 
 
@@ -185,9 +187,29 @@ def test_ensure_model_async_is_one_per_process(tmp_path):
         first = vad.ensure_model_async()
         second = vad.ensure_model_async()
         assert first is not None
-        assert second is first  # тот же поток, новых запросов нет
+        assert second is None  # попытка уже идёт: новый поток не запущен
         blocker.set()
         first.join(timeout=3.0)
+
+
+def test_ensure_model_async_callbacks_not_lost(tmp_path):
+    """Второй VAD, созданный во время скачивания, тоже получает модель."""
+    blocker = threading.Event()
+    calls = []
+
+    def _fake_download(dest=None, timeout=None):
+        blocker.wait(3.0)
+        return tmp_path / vad.MODEL_FILENAME
+
+    with patch.object(vad, "download_model", _fake_download):
+        first = vad.ensure_model_async(lambda p: calls.append("first"))
+        second = vad.ensure_model_async(lambda p: calls.append("second"))
+        assert first is not None
+        assert second is None
+        blocker.set()
+        first.join(timeout=3.0)
+
+    assert calls == ["first", "second"]
 
 
 # =================================================================
@@ -226,15 +248,15 @@ def test_vad_no_network_when_auto_download_off(monkeypatch, tmp_path):
     assert v.is_model_pending() is False
 
 
-def test_model_pending_false_when_download_not_started(monkeypatch, tmp_path):
-    """Скачивание уже пробовали (и не вышло) — «качается» не заявляем."""
+def test_model_pending_true_when_download_already_running(monkeypatch, tmp_path):
+    """None от ensure_model_async = попытка уже идёт, callback в очереди."""
     monkeypatch.setattr(vad, "_find_model", lambda: None)
     monkeypatch.setattr(vad, "model_dirs", lambda: [tmp_path])
     monkeypatch.setattr(vad, "ensure_model_async", lambda cb=None: None)
 
     v = vad.VAD()
 
-    assert v.is_model_pending() is False
+    assert v.is_model_pending() is True
 
 
 def test_on_model_ready_turns_vad_on(monkeypatch, tmp_path):

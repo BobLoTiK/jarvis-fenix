@@ -69,6 +69,10 @@ def append(message: dict) -> None:
                     if isinstance(parsed, list):
                         data = parsed
             data.append(message)
+            # Файл не растёт без границ: держим последние 500 сообщений
+            # (контекст для LLM всё равно короче).
+            if len(data) > 500:
+                del data[:len(data) - 500]
 
             path.parent.mkdir(parents=True, exist_ok=True)
             fd, tmp_name = tempfile.mkstemp(
@@ -125,7 +129,13 @@ def handle_memory_command(cmd: str, messages: list) -> tuple[str | None, bool]:
             or cmd in {"что мы обсуждали", "о чём мы говорили", "что обсуждали"}:
         return describe(messages), False
 
-    if re.search(r"(забудь|очисти|сбрось|сотри)\s+(вс[её]|память|историю|диалог)", cmd) \
+    # Анкоры обязательны: без них «очисти историю браузера» и «сотри диалог
+    # в телеграме» удаляли память диалога Феникса.
+    if re.match(
+            r"^(забудь|очисти|сбрось|сотри)\s+"
+            r"(вс[её](\s+и\s+не\s+помни)?|(всю\s+)?память|(всю\s+)?историю(\s+диалога)?|"
+            r"диалог)$",
+            cmd) \
             or cmd in {"забудь всё", "очисти память", "сбрось память", "сотри память"}:
         clear()
         return "Память очищена.", True

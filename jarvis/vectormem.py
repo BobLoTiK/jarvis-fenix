@@ -344,8 +344,12 @@ def load_index() -> dict:
     return data
 
 
-def save_index(items: list, dim: int) -> bool:
-    """Атомарно пишет индекс (config_manager: mkstemp + os.replace + FileLock)."""
+def save_index(items: list, dim: int, path=None) -> bool:
+    """Атомарно пишет индекс (config_manager: mkstemp + os.replace + FileLock).
+
+    path — явный получатель: профиль мог переключиться между чтением
+    facts и записью, и уходить в индекс чужого профиля нельзя.
+    """
     data = {
         "version": SCHEMA_VERSION,
         "embed_model": _model(),
@@ -353,7 +357,7 @@ def save_index(items: list, dim: int) -> bool:
         "updated_at": time.time(),
         "items": items,
     }
-    return config_manager.save(data, path=index_path())
+    return config_manager.save(data, path=path or index_path())
 
 
 def _stamp(path):
@@ -455,6 +459,7 @@ def _matrix(items: list):
     with _lock:
         if _items_cache["matrix"] is not None:
             return _items_cache["matrix"]
+        stamp = _items_cache["stamp"]
 
     vec_items = [it for it in items if isinstance(it.get("vec"), list) and it["vec"]]
     if not vec_items:
@@ -473,7 +478,11 @@ def _matrix(items: list):
     matrix /= norms
 
     with _lock:
-        _items_cache["matrix"] = (vec_items, matrix)
+        # Кэшируем, только если индекс не инвалидирован, пока считали:
+        # иначе устаревшая матрица (с уже удалёнными фактами) жила бы
+        # до следующей инвалидации и поиск возвращал фантомы.
+        if stamp is not None and _items_cache["stamp"] == stamp:
+            _items_cache["matrix"] = (vec_items, matrix)
     return vec_items, matrix
 
 
@@ -515,7 +524,16 @@ def search(query: str, k: int = 3, min_score: float = None,
     v_th = _min_score() if min_score is None else float(min_score)
     l_th = _lexical_min() if lexical_min is None else float(lexical_min)
 
-    items = _items() or _items_from_facts()
+    items = _items()
+    if items:
+        # Факты, которых ещё нет в индексе (добавлены после последнего
+        # sync: воркер занят или эмбеддинги недоступны), не теряем —
+        # их добирает лексический проход.
+        known = {it.get("key") for it in items}
+        items = items + [it for it in _items_from_facts()
+                         if it.get("key") not in known]
+    else:
+        items = _items_from_facts()
     if not items:
         return []
 
@@ -638,17 +656,15 @@ def sync(force: bool = False) -> int:
             changed += 1
 
     if changed:
-        if index_path() != path:
-            # Профиль переключился, пока считали — в чужой индекс не пишем.
-            log.info("Профиль сменился во время индексации — пропускаю запись")
-            _invalidate()
-            return 0
         dim = int(data.get("dim", 0) or 0)
         for it in items.values():
             if it.get("vec"):
                 dim = len(it["vec"])
                 break
-        if not save_index(list(items.values()), dim):
+        # Пишем в ИСХОДНЫЙ path: проверка index_path() != path была
+        # TOCTOU-окном — между ней и save профиль мог смениться, и
+        # байты одного профиля попадали в индекс другого.
+        if not save_index(list(items.values()), dim, path=path):
             return 0
         _invalidate()
 
@@ -723,6 +739,10 @@ def on_config_change(key: str, value) -> None:
     global _legacy_api, _fails, _breaker_until
     if key == "ollama_url":
         _legacy_api = False
+        # Сбрасываем и breaker: после починки URL эмбеддинги иначе
+        # не пробовались бы до истечения паузы (до 300 с).
+        _fails = 0
+        _breaker_until = 0.0
         _invalidate()
         return
     if key in ("memory_rag_enabled", "memory_rag_model"):

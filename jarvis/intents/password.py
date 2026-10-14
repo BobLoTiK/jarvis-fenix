@@ -57,19 +57,30 @@ DANGER_ACTIONS = frozenset({
 })
 
 
+def _action_is_danger(action, target) -> bool:
+    if action in DANGER_ACTIONS:
+        return True
+    if action == "open_app":
+        t = str(target or "").lower()
+        if "shutdown" in t or "выключ" in t or "перезагруз" in t:
+            return True
+    return False
+
+
 def is_danger(intent: dict, stored_password: str) -> bool:
     """Проверяет, опасно ли действие.
 
     stored_password — уже захешированный (или пустой).
+    Смотрит и сам intent, и шаги сценария: у steps-интента action=None,
+    и раньше опасный шаг (например clear_tasks) проходил без пароля.
     """
     if not stored_password:
         return False
-    action = intent.get("action")
-    if action in DANGER_ACTIONS:
+    if _action_is_danger(intent.get("action"), intent.get("target")):
         return True
-    if action == "open_app":
-        target = str(intent.get("target") or "").lower()
-        if "shutdown" in target or "выключ" in target or "перезагруз" in target:
+    for step in intent.get("steps") or []:
+        if isinstance(step, dict) and _action_is_danger(step.get("action"),
+                                                        step.get("target")):
             return True
     return False
 

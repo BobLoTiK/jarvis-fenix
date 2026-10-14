@@ -113,6 +113,15 @@ class FakeStream:
         self.kwargs = kwargs
         FakeStream.opened.append(kwargs.get("device"))
 
+    def start(self):
+        pass
+
+    def stop(self):
+        pass
+
+    def close(self):
+        pass
+
     def __enter__(self):
         return self
 

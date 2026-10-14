@@ -100,7 +100,12 @@ class SAPIEngine:
         if not text.strip().strip("\u200b\u200c\u200d\ufeff\u00ad"):
             return
         try:
-            self._engine.setProperty("rate", int((rate - 1.0) * 100))
+            # pyttsx3/SAPI5 ждёт «слов в минуту» (база 200), а speaker
+            # передаёт множитель 0.5–2.0. Прежняя формула int((rate-1)*100)
+            # при rate≈1 давала 0 → math domain error внутри драйвера →
+            # каждое предложение пропускалось молча.
+            wpm = int(round(200 * max(0.3, min(3.0, float(rate)))))
+            self._engine.setProperty("rate", wpm)
             self._engine.say(text)
             self._engine.runAndWait()
         except Exception:

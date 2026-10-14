@@ -358,6 +358,33 @@ def _cache_invalidate(path: Path | None = None) -> None:
             _cache.pop(path, None)
 
 
+def mutate(key: str, func) -> bool:
+    """Атомарно меняет ключ: func(копия текущего значения) → новое.
+
+    Нужен для словарей-накопителей (facts, persona): get → правка → set
+    в два вызова не атомарен, и два потока (голос + observer) затирали
+    записи друг друга. func получает deepcopy; KeyError — «менять нечего».
+    """
+    with _lock:
+        try:
+            data = _safe_load()
+        except json.JSONDecodeError:
+            return False
+        try:
+            data[key] = func(copy.deepcopy(data.get(key)))
+        except KeyError:
+            return False
+        data.setdefault("created_at", time.time())
+        path = profile_path()
+        ok = config_manager.save(data, path=path)
+        if ok:
+            _cache_store(path, data)
+            log.info("Профиль %s: %s изменён (mutate)", current(), key)
+        else:
+            log.error("Профиль %s: не удалось сохранить %s", current(), key)
+        return ok
+
+
 def get(key: str, default=None):
     try:
         return _safe_load().get(key, default)
@@ -412,9 +439,12 @@ def forget(key: str) -> bool:
 # ---------------------------------------------------------------
 
 def set_fact(key: str, value: str) -> bool:
-    facts = get("facts", {}) or {}
-    facts[key] = value
-    return set("facts", facts)
+    def _apply(facts):
+        facts = dict(facts or {})
+        facts[key] = value
+        return facts
+
+    return mutate("facts", _apply)
 
 
 def get_fact(key: str, default=None):
@@ -427,11 +457,14 @@ def all_facts() -> dict:
 
 
 def forget_fact(key: str) -> bool:
-    facts = get("facts", {}) or {}
-    if key not in facts:
-        return False
-    del facts[key]
-    return set("facts", facts)
+    def _apply(facts):
+        facts = dict(facts or {})
+        if key not in facts:
+            raise KeyError(key)
+        del facts[key]
+        return facts
+
+    return mutate("facts", _apply)
 
 
 # ---------------------------------------------------------------

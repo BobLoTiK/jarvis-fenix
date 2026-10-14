@@ -20,6 +20,15 @@ _NOT_A_CITY = (
     "загугли", "поищи", "напечатай",
 )
 
+# Слова-команды, которыми юзер может ответить на вопрос о городе
+# («пауза», «громче»): это команда, а не город — раньше она съедалась,
+# и «пауза» записывалась в профиль как default_city.
+_CONTROL_WORDS = {
+    "пауза", "стоп", "отмена", "отмени", "громче", "погромче", "тише",
+    "потише", "играй", "плей", "дальше", "следующий", "следующую",
+    "предыдущий", "предыдущую", "хватит", "замолчи", "продолжи",
+}
+
 
 class PendingStage(Stage):
     name = "pending"
@@ -45,7 +54,8 @@ class PendingStage(Stage):
             if not city or len(city) > 60 or len(words) > 3:
                 return "Не расслышал город. Повторите, пожалуйста."
 
-            if any(w in city for w in _NOT_A_CITY):
+            if any(w in city for w in _NOT_A_CITY) \
+                    or set(words) & _CONTROL_WORDS:
                 log.info("pending_question: %r не похоже на город — обрабатываю как команду", city)
                 result = h._handle_single(ctx.cmd)
                 return result if isinstance(result, str) else "Не понял команду."

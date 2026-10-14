@@ -985,8 +985,13 @@ def kill_process(name: str) -> bool:
         killed = False
         for proc in psutil.process_iter(["name"]):
             if (proc.info.get("name") or "").lower() == name.lower():
-                proc.kill()
-                killed = True
+                try:
+                    proc.kill()
+                    killed = True
+                except Exception:
+                    # Процесс уже умер / AccessDenied: не прерываем цикл —
+                    # иначе «не запущен» при частично убитых процессах.
+                    log.debug("kill_process: %s уже исчез?", name, exc_info=True)
         return killed
     except Exception:
         log.exception("kill_process не удался: %s", name)

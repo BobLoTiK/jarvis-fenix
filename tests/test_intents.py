@@ -116,6 +116,26 @@ def _add_note_teardown(handler):
     learning.forget_fact("тестовая заметка")
 
 
+def _correction_setup(handler):
+    """Запоминает коррекции до теста — teardown уберёт только новые."""
+    from jarvis import learning
+    handler._corrections_before = dict(learning.all_corrections())
+
+
+def _correction_teardown(handler):
+    """Убирает коррекции, созданные тестом.
+
+    После фикса correction_fast «это не то, я сказал X» реально сохраняет
+    пару, и без уборки она подменяла команды в следующих прогонах
+    (например, стресс-кейс «что ты обо мне помнишь»).
+    """
+    from jarvis import learning
+    before = getattr(handler, "_corrections_before", {})
+    for wrong in list(learning.all_corrections()):
+        if wrong not in before:
+            learning.forget_correction(wrong)
+
+
 # teardown — тот же, что у _no_password_teardown
 
 
@@ -194,7 +214,7 @@ TESTS = [
     ("learn_fact",          "запомни: мой город Казань",  ["Запомнил"],              False, False, None),
     ("learn_fact_query",    "что ты обо мне знаешь",      ["Казань", "Знаю"],        False, False, None),
     ("learn_fact_remember", "что ты обо мне помнишь",     ["Казань", "Знаю"],        False, False, None),
-    ("learn_correction",    "это не то, я сказал логи",   ["Понял", "запомнил", "Что было"], False, False, None),
+    ("learn_correction",    "это не то, я сказал логи",   ["Понял", "запомнил", "Что было"], False, False, (_correction_setup, _correction_teardown)),
     # «забудь про X» — не по ключу, а по смыслу (векторная память, без неё — слова)
     ("forget_by_meaning",   "забудь про заметку",         ["Забыл"],
      False, False, (_add_note_setup, _add_note_teardown)),

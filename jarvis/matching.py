@@ -90,8 +90,13 @@ def match_score(spoken: str, candidate: str) -> float:
         for c in {cand, _fold(translit(cand))}:
             if s == c:
                 return 1.0
+            # Подстрочное совпадение — только когда обе стороны «весомые»:
+            # иначе короткий алиас («дис») находился внутри длинной чужой
+            # фразы («диспетчер устройств») и получал 0.9.
             if len(s) >= 5 and (s in c or c in s):
-                best = max(best, 0.9)
+                inner, outer = (s, c) if len(s) <= len(c) else (c, s)
+                if len(inner) >= 4 and len(inner) > 0.5 * len(outer):
+                    best = max(best, 0.9)
             best = max(best, SequenceMatcher(None, s, c).ratio())
             best = max(best, SequenceMatcher(None, s.replace(" ", ""), c.replace(" ", "")).ratio())
             s_words, c_words = s.split(), c.split()

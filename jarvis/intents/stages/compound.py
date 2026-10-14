@@ -12,6 +12,7 @@ import re
 
 from jarvis.intents.stages.base import Stage
 from jarvis.intents.verbs import COMMAND_VERBS
+from jarvis.text_utils import normalize
 
 log = logging.getLogger("jarvis.intents")
 
@@ -20,7 +21,7 @@ class CompoundStage(Stage):
     name = "compound"
 
     def handle(self, ctx):
-        parts = self._split(ctx.cmd)
+        parts = self._split(ctx)
         if not parts:
             return None
 
@@ -35,18 +36,29 @@ class CompoundStage(Stage):
             return ". ".join(replies) + "."
         return None
 
-    def _split(self, cmd: str) -> list[str] | None:
-        """Возвращает список частей или None, если не compound."""
-        parts = re.split(r"\s+и\s+|,\s*", cmd)
+    def _split(self, ctx) -> list[str] | None:
+        """Возвращает нормализованные части или None, если не compound.
+
+        Режем СЫРУЮ фразу (handler._raw_cmd): normalize() удаляет запятые,
+        поэтому split по «, » на нормализованном тексте никогда не срабатывал
+        и «сделай скриншот, покажи буфер» оставалось одной командой.
+        """
+        h = ctx.handler
+        raw = getattr(h, "_raw_cmd", "") or ""
+        # Сырую фразу берём только на верхнем уровне: в рекурсии ctx.cmd —
+        # это уже часть, и повторный split по всему raw зациклил бы разбор.
+        source = raw if normalize(raw) == ctx.cmd else ctx.cmd
+
+        parts = re.split(r"\s+и\s+|,\s*", source)
         if len(parts) < 2:
             return None
 
-        parts = [p.strip() for p in parts if p.strip()]
+        parts = [normalize(p) for p in parts if p.strip()]
         if len(parts) < 2:
             return None
 
         for part in parts:
-            first = part.split()[0].lower() if part.split() else ""
+            first = part.split()[0] if part.split() else ""
             if first not in COMMAND_VERBS:
                 return None
 

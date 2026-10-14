@@ -165,6 +165,12 @@ def _cached(key: tuple, fetcher):
     if data is not None:
         with _CACHE_LOCK:
             _CACHE[key] = (time.time(), data)
+            # Вытесняем старейшие: иначе Феникс в трее копил бы записи
+            # всех когда-либо запрошенных городов до перезапуска.
+            if len(_CACHE) > 64:
+                extra = len(_CACHE) - 64
+                for old_key in sorted(_CACHE, key=lambda k: _CACHE[k][0])[:extra]:
+                    _CACHE.pop(old_key, None)
     return data
 
 

@@ -68,6 +68,7 @@ class IntentHandler:
         self._last_debug: dict = {}
         self._recent_phrases: deque = deque(maxlen=10)
         self._last_cmd: str = ""
+        self._raw_cmd: str = ""
 
         # Миграция пароля (plaintext → sha256).
         migrate_password_if_needed(config)
@@ -146,13 +147,18 @@ class IntentHandler:
         """Возвращает Reply: либо text, либо stream."""
         self.last_was_chat = False
 
+        self._raw_cmd = cmd
         cmd = normalize(cmd)
         actions_log.info("Команда: %r (режим: %s)", cmd, self.mode)
         self._recent_phrases.append(cmd)
 
-        self._last_cmd = cmd
-
         result = self._handle_single(cmd)
+
+        # Запоминаем ПОСЛЕ разбора: correction_fast читает _last_cmd как
+        # «предыдущую» команду. Раньше запись стояла до pipeline, и фраза
+        # «это не то, я сказал X» сравнивалась сама с собой — коррекция
+        # никогда не сохранялась.
+        self._last_cmd = cmd
 
         # Mood: реагируем на эмоциональный окрас фразы.
         # Делается ДО сохранения user_msg, чтобы mood был актуален

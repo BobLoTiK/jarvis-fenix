@@ -62,6 +62,7 @@ EXCLUDE_DIRS = {
     "voices",
     "profiles",       # личные данные - не в снимок
     "sounds",
+    "graphify-out",   # артефакты graphify (.gitignore) - не в снимок и не в CI
 }
 
 EXCLUDE_FILES = {

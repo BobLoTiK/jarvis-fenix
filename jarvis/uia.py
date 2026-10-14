@@ -535,15 +535,20 @@ def read_browser_tabs() -> list[str]:
     tabs: list[str] = []
     with _lock:
         try:
-            # Ищем тулбар «Вкладки» внутри окна браузера.
-            # auto.ToolBarControl(searchFromControl=..., searchDepth=...)
-            # возвращает ПЕРВЫЙ найденный тулбар.
-            toolbar = uia.ToolBarControl(
-                searchFromControl=w,
-                Name="Вкладки",
-                searchDepth=15,
-            )
-            if toolbar.Exists(2):
+            # Ищем тулбар вкладок внутри окна браузера. Имя зависит от
+            # локали UI: «Вкладки» (RU) / «Tabs» (EN) — на англоязычной
+            # Windows жёсткое имя делало вкладки «нечитаемыми» навсегда.
+            toolbar = None
+            for toolbar_name in ("Вкладки", "Tabs"):
+                candidate = uia.ToolBarControl(
+                    searchFromControl=w,
+                    Name=toolbar_name,
+                    searchDepth=15,
+                )
+                if candidate.Exists(2):
+                    toolbar = candidate
+                    break
+            if toolbar is not None:
                 # Обходим прямых детей тулбара — это TabItemControl.
                 for child in toolbar.GetChildren():
                     try:
@@ -902,6 +907,15 @@ def close_browser_tab_with_fallback(tab_title_part: str) -> bool:
         return True
     if tabs_unreadable() and active_tab_matches(tab_title_part):
         from jarvis import actions  # локально: jarvis.actions тянет uia
+        # Активируем окно браузера ДО Ctrl+W: иначе клавиша уходит в
+        # фокусное окно (в Word/Excel Ctrl+W закрывает документ) —
+        # Феникс обычно слушает, когда пользователь в другом окне.
+        w = _get_browser_window()
+        if w is not None:
+            try:
+                w.SetActive()
+            except Exception:
+                log.debug("SetActive не удался", exc_info=True)
         actions.hotkey(["ctrl", "w"])
         log.info("Вкладка %r активна — закрыл через Ctrl+W", tab_title_part)
         return True

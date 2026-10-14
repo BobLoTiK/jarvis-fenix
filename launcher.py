@@ -274,11 +274,20 @@ def download_python_installer(logger) -> Path | None:
     )
 
     logger.info("Скачиваю installer: %s", PYTHON_INSTALLER_URL)
+    part = installer.with_name(installer.name + ".part")
     try:
-        urllib.request.urlretrieve(PYTHON_INSTALLER_URL, installer)
+        # Качаем в .part и переименовываем только после успеха: обрыв
+        # оставлял обрезанный exe, который следующий запуск молча
+        # переиспользовал («installer уже есть»).
+        urllib.request.urlretrieve(PYTHON_INSTALLER_URL, part)
+        part.replace(installer)
         logger.info("Installer скачан: %s", installer)
         return installer
     except Exception:
+        try:
+            part.unlink()
+        except OSError:
+            pass
         logger.exception("Не удалось скачать installer Python")
         error(
             "Не удалось скачать Python.\n\n"

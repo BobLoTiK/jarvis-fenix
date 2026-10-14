@@ -458,16 +458,31 @@ class Listener:
         # ставит _device_reload; здесь мы выходим из `with` (PortAudio
         # закрывает поток в своём же потоке — так безопасно) и
         # открываем новый уже на другом устройстве.
+        backoff = 0.5
         while not stop_event.is_set():
             self._device_reload = False
-            with sd.RawInputStream(
-                samplerate=self._sample_rate,
-                blocksize=self._block_size,
-                dtype="int16",
-                channels=1,
-                device=self._device,
-                callback=self._callback,
-            ):
+            try:
+                stream = sd.RawInputStream(
+                    samplerate=self._sample_rate,
+                    blocksize=self._block_size,
+                    dtype="int16",
+                    channels=1,
+                    device=self._device,
+                    callback=self._callback,
+                )
+                stream.start()
+            except Exception:
+                # Устройство занято/битое: раньше исключение вылетало из
+                # phrases(), run_loop глотал его один раз — и слушатель
+                # замолкал до перезапуска. Теперь повторяем с паузой.
+                log.exception("Listener: не удалось открыть микрофон (%s) — "
+                              "повторю через %.1f с", self.device_name, backoff)
+                if stop_event.wait(backoff):
+                    return
+                backoff = min(backoff * 2, 10.0)
+                continue
+            backoff = 0.5
+            try:
                 log.info("Микрофон открыт (%s), слушаю...", self.device_name)
                 while not stop_event.is_set() and not self._device_reload:
                     try:
@@ -488,6 +503,13 @@ class Listener:
                             self.recent_phrases.append(text)
                             log.info("Распознано (vosk): %s", text)
                             yield text, audio
+            finally:
+                # Закрываем поток в своём же потоке (PortAudio-безопасно).
+                for closer in (stream.stop, stream.close):
+                    try:
+                        closer()
+                    except Exception:
+                        pass
 
             if self._device_reload and not stop_event.is_set():
                 # Мы в потоке слушателя, поэтому Vosk дёргаем отсюда же:

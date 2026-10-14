@@ -611,9 +611,14 @@ class FenixGUI:
             on_submit=self._on_send,
         )
 
+        # Иконка отражает фактическое состояние: после пересборки вкладок
+        # кнопка раньше всегда выглядела «включённой», даже если микрофон
+        # на паузе.
+        _listening = self.jarvis is None or getattr(
+            self.jarvis, "listening_enabled", True)
         self._mic_btn = ft.IconButton(
-            icon=ft.Icons.MIC,
-            icon_color=TEXT_DIM,
+            icon=ft.Icons.MIC if _listening else ft.Icons.MIC_OFF,
+            icon_color=TEXT_DIM if _listening else "#f85149",
             icon_size=24,
             tooltip="Пауза/возобновить микрофон",
             on_click=self._on_mic_toggle,
@@ -2064,7 +2069,10 @@ class FenixGUI:
         self.config.set("llm_model", e.control.value)
 
     def _on_ollama_change(self, e) -> None:
-        self.config.set("ollama_url", e.control.value)
+        # Пустое поле раньше сохранялось как есть и роняло старт:
+        # urlopen('') даёт ValueError при инициализации Brain.
+        value = (e.control.value or "").strip() or "http://127.0.0.1:11434"
+        self.config.set("ollama_url", value)
 
     def _on_tts_change(self, e) -> None:
         backend = e.control.value
@@ -2118,17 +2126,11 @@ class FenixGUI:
         if quality not in ("medium", "high"):
             quality = "medium"
 
+        # set() рассылает подписчикам — движок пересоздаст
+        # make_config_listener (ветка tts_voice_quality). Прежний ручной
+        # switch_backend(текущий backend) выходил по раннему return
+        # и был no-op: настройка не применялась до перезапуска.
         self.config.set("tts_voice_quality", quality)
-
-        if self.jarvis is not None and self.jarvis.speaker is not None:
-            voice = self.config.get("tts_voice", "ruslan")
-            try:
-                # Пересоздаём движок с новым качеством через switch_backend
-                backend = self.config.get("tts_backend", "auto")
-                self.jarvis.speaker.switch_backend(backend)
-                log.info("TTS переключён на %s/%s/%s", backend, voice, quality)
-            except Exception:
-                log.exception("Не удалось переключить качество голоса")
 
     def _on_rate_change(self, e) -> None:
         self.config.set("voice_rate", round(float(e.control.value), 2))

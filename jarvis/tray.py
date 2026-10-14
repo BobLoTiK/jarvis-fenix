@@ -138,12 +138,16 @@ def build_icon(jarvis):
     )
 
 
-def start_tray(jarvis, check_after: float = 3.0):
+def start_tray(jarvis, check_after: float = 3.0, on_fail=None):
     """Поднимает иконку в фоне. Возвращает Icon или None (трея не будет).
 
     Вызывать ДО ft.run(): pystray создаёт собственный message loop, и если
     запускать его после того, как главный поток ушёл в Flet, иконка
     может не появиться вовсе.
+
+    on_fail — callback, если иконка не появилась за check_after: мёртвый
+    трей опаснее отсутствия — «крестик» спрятал бы окно навсегда, а
+    вернуть его было бы нечем.
     """
     try:
         icon = build_icon(jarvis)
@@ -168,8 +172,20 @@ def start_tray(jarvis, check_after: float = 3.0):
                 log.info("Трей: иконка в системном трее (поток %s)", thread.name)
                 return
             time.sleep(0.2)
-        log.warning("Трей: иконка не появилась за %.1f с — "
-                    "проверьте pystray/Pillow", check_after)
+        if getattr(icon, "visible", False):
+            return
+        log.warning("Трей: иконка не появилась за %.1f с (поток %s) — "
+                    "работаю без трея", check_after,
+                    "жив" if thread.is_alive() else "упал")
+        try:
+            icon.stop()
+        except Exception:
+            log.debug("Трей: не удалось снять невидимую иконку", exc_info=True)
+        if on_fail is not None:
+            try:
+                on_fail()
+            except Exception:
+                log.exception("Трей: on_fail упал")
 
     threading.Thread(target=_check_visible, daemon=True,
                      name="tray-check").start()

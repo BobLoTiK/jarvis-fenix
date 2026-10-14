@@ -41,15 +41,22 @@ def _notify_index(func: str, *args) -> None:
 # ---------------------------------------------------------------
 
 def add_fact(key: str, value: str) -> bool:
-    """Сохраняет факт. Ключ нормализуется (нижний регистр)."""
+    """Сохраняет факт. Ключ нормализуется (нижний регистр).
+
+    Пишем через profile.mutate: get → правка → set в два вызова
+    не атомарен, и «запомни» параллельно с observer теряло факты.
+    """
     key = key.strip().lower()
     value = value.strip()
     if not key or not value:
         return False
 
-    facts = profile.get("facts", {}) or {}
-    facts[key] = value
-    ok = profile.set("facts", facts)
+    def _apply(facts):
+        facts = dict(facts or {})
+        facts[key] = value
+        return facts
+
+    ok = profile.mutate("facts", _apply)
     if ok:
         log.info("Факт: %s = %r", key, value)
         _notify_index("index_fact", key, value)
@@ -66,12 +73,16 @@ def all_facts() -> dict:
 
 
 def forget_fact(key: str) -> bool:
-    facts = profile.get("facts", {}) or {}
     key = key.strip().lower()
-    if key not in facts:
-        return False
-    del facts[key]
-    ok = profile.set("facts", facts)
+
+    def _apply(facts):
+        facts = dict(facts or {})
+        if key not in facts:
+            raise KeyError(key)  # «менять нечего» — mutate вернёт False
+        del facts[key]
+        return facts
+
+    ok = profile.mutate("facts", _apply)
     if ok:
         _notify_index("forget_fact", key)
     return ok

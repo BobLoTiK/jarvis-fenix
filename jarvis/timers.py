@@ -1,4 +1,4 @@
-"""Таймеры и напоминания.
+r"""Таймеры и напоминания.
 
 Голосом:
     «напомни через 10 минут выпить чай»      → через 10 минут скажет голосом
@@ -118,18 +118,29 @@ def _parse_duration(text: str) -> int | None:
             return 60
         return None
 
-    raw = m.group(1)
-    unit = m.group(2) or "мин"
+    raw = m.group(1).lower()
+    unit = m.group(2) or ""
 
-    # число
+    # число или слово-числительное
     if raw.isdigit():
         num = int(raw)
+    elif raw in _NUM_WORDS:
+        num = _NUM_WORDS[raw]
+    # само слово — единица времени: «через час», «через минуту», «через полчаса»
+    elif raw in ("час", "часа", "часов"):
+        num, unit = 1, unit or "час"
+    elif raw in ("минуту", "минута", "минутку", "минуты"):
+        num, unit = 1, unit or "мин"
+    elif raw in ("секунду", "секунда", "секунды"):
+        num, unit = 1, unit or "сек"
+    elif raw in ("полчаса", "пол часа"):
+        return 30 * 60
     else:
-        num = _NUM_WORDS.get(raw.lower())
-        if num is None:
-            return None
+        return None
 
     # единица
+    if not unit:
+        unit = "мин"
     if unit.startswith("сек") or unit == "с":
         return int(num)
     if unit.startswith("мин") or unit == "м":
@@ -168,6 +179,9 @@ def _extract_reminder_text(cmd: str) -> str:
     text = re.sub(r"через\s+(\d+|[а-яё]+)\s*\S+", "", text, count=1)
     text = re.sub(r"\bв\s+\d{1,2}[:.]\d{2}", "", text, count=1)
     text = re.sub(r"\bв\s+\d{1,2}\s+час\w*", "", text, count=1)
+    # «таймер на 5 минут» → текст пустой, а не «на 5 минут»
+    text = re.sub(r"^на\s+(\d+|[а-яё]+)\s*(секунд\w*|мин\w*|час\w*|ч|с|м)\b",
+                  "", text, count=1)
     text = text.strip(" ,.:!?")
     return text
 
@@ -211,8 +225,12 @@ def _schedule_one(timer: dict) -> None:
         delay = 0.1
     t = threading.Timer(delay, _fire, args=(timer["id"],))
     t.daemon = True
-    t.start()
-    _scheduled[timer["id"]] = t
+    # Регистрируем ДО старта: при delay≈0.1 поток мог сработать раньше
+    # записи, _fire чистил пустой слот, а мёртвый Timer оставался в
+    # _scheduled навсегда.
+    with _lock:
+        _scheduled[timer["id"]] = t
+        t.start()
 
 
 def _next_id(timers: list) -> int:
@@ -292,6 +310,19 @@ def restore_all() -> int:
 # Обработка команд
 # ---------------------------------------------------------------
 
+def is_cancel_all_command(cmd: str) -> bool:
+    """«отмени все напоминания» и родственные — отмена всех таймеров.
+
+    Отдельной функцией: та же проверка нужна PasswordStage — команда
+    выполняется fast-обработчиком в обход LLMStage, и без гейта
+    danger_password её не защищал.
+    """
+    return bool(
+        re.search(r"(отмени|удали|очисти|сбрось)\s*(все\s+)?(напоминани|таймер)", cmd)
+        or cmd in {"отмени все напоминания", "удали все напоминания"}
+    )
+
+
 def handle_timer_command(cmd: str) -> str | None:
     """Разбирает команды таймеров. Возвращает ответ или None."""
     # список
@@ -300,8 +331,7 @@ def handle_timer_command(cmd: str) -> str | None:
         return format_list(list_all())
 
     # отмена
-    if re.search(r"(отмени|удали|очисти|сбрось)\s*(все\s+)?(напоминани|таймер)", cmd) \
-            or cmd in {"отмени все напоминания", "удали все напоминания"}:
+    if is_cancel_all_command(cmd):
         n = remove_all()
         return f"Отменено напоминаний: {n}." if n else "Напоминаний не было."
 

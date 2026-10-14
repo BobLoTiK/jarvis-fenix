@@ -115,11 +115,14 @@ MODEL_URL = (
 MODEL_MIN_BYTES = 1_000_000     # sanity-check: обрезанный файл не подсовываем
 DOWNLOAD_TIMEOUT = 30.0         # сек на соединение/чтение
 
-# Один поток скачивания на процесс: Listener пересоздаёт VAD при каждом
-# reload_vad() — без этого флага мы бы слали запрос на каждый чих.
+# Скачивание модели: один поток за раз + очередь callbacks. Listener
+# пересоздаёт VAD при каждом reload_vad() — каждый инстанс ждёт модель,
+# поэтому callbacks собираются, а не теряются вместе со старым потоком.
 _download_lock = threading.Lock()
 _download_thread: threading.Thread | None = None
 _download_started = False
+_download_finished = False
+_callbacks: list = []
 
 
 def model_dirs() -> list[Path]:
@@ -190,34 +193,48 @@ def download_model(dest: Path | None = None,
 
 
 def ensure_model_async(callback=None) -> threading.Thread | None:
-    """Запускает скачивание модели в фоне (не более одного раза за процесс).
+    """Запускает скачивание модели в фоне (один поток за раз).
 
     callback(path) зовётся из потока скачивания, если всё получилось.
-    None — скачивание уже запускалось (или идёт) и второй раз не нужно.
+    Возвращает поток новой попытки или None, если скачивание уже идёт —
+    callback встанет в очередь текущей попытки. После неудачной попытки
+    следующий вызов пробует ещё раз: раньше «одна попытка за процесс»
+    навсегда оставляла VAD без модели.
     """
-    global _download_thread, _download_started
+    global _download_thread, _download_started, _download_finished
 
     with _download_lock:
-        if _download_started:
-            return _download_thread
+        if _download_started and not _download_finished:
+            # Идёт: второй поток не нужен, callback — в очередь.
+            if callback is not None:
+                _callbacks.append(callback)
+            return None
         _download_started = True
+        _download_finished = False
+        if callback is not None:
+            _callbacks.append(callback)
         _download_thread = threading.Thread(
-            target=_download_worker, args=(callback,),
-            daemon=True, name="vad-download")
+            target=_download_worker, daemon=True, name="vad-download")
 
     log.info("VAD: модель не найдена — качаю в фоне, включится на лету")
     _download_thread.start()
     return _download_thread
 
 
-def _download_worker(callback) -> None:
+def _download_worker() -> None:
+    global _download_finished
     path = download_model()
-    if path is None or callback is None:
+    with _download_lock:
+        _download_finished = True
+        callbacks = list(_callbacks)
+        _callbacks.clear()
+    if path is None:
         return
-    try:
-        callback(path)
-    except Exception:
-        log.exception("VAD: обработчик после скачивания упал")
+    for cb in callbacks:
+        try:
+            cb(path)
+        except Exception:
+            log.exception("VAD: обработчик после скачивания упал")
 
 
 class VAD:
@@ -275,9 +292,9 @@ class VAD:
 
         self._model_pending = True
         log.info("VAD: модель не найдена, качаю в фоне (%s)", dest)
-        if ensure_model_async(self._on_model_ready) is None:
-            # Качать уже пробовали и, судя по всему, не вышло — не ждём чуда.
-            self._model_pending = False
+        # None = скачивание уже идёт, наш callback встал в очередь и
+        # сработает — «качается» остаётся честным флагом.
+        ensure_model_async(self._on_model_ready)
 
     # --- модель -----------------------------------------------------------
 

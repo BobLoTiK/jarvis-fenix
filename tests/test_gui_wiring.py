@@ -248,16 +248,14 @@ def test_tts_backend_sends_and_rebuilds_tabs(gui, cfg, stub_tabs):
     assert "_build_main_tab" in stub_tabs, "вкладки не пересобраны"
 
 
-def test_voice_quality_sends_and_switches_engine(gui, cfg):
-    switched = []
-    gui.jarvis = SimpleNamespace(speaker=SimpleNamespace(
-        switch_backend=lambda backend: switched.append(backend) or True,
-    ))
+def test_voice_quality_updates_config(gui, cfg):
+    # Движок пересоздаёт make_config_listener по ключу tts_voice_quality:
+    # ручной switch_backend(текущий) был no-op (ранний return по backend).
+    gui.jarvis = SimpleNamespace(speaker=SimpleNamespace())
 
     gui._on_voice_quality_change(ev("high"))
 
     assert cfg["tts_voice_quality"] == "high"
-    assert switched == [cfg["tts_backend"]]
 
 
 def test_voice_quality_rejects_unknown(gui, cfg):

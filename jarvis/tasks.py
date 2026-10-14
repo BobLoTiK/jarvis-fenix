@@ -1,4 +1,4 @@
-"""Списки задач.
+r"""Списки задач.
 
 Голосом:
     «добавь в список купить хлеб»             → добавляет
@@ -190,6 +190,19 @@ def format_list(tasks: list | None = None) -> str:
 # Обработка команд
 # ---------------------------------------------------------------
 
+def is_clear_command(cmd: str) -> bool:
+    """«очисти список» / «удали все задачи» — полная очистка списка.
+
+    Отдельной функцией: та же проверка нужна PasswordStage — команда
+    выполняется fast-обработчиком в обход LLMStage, и без гейта
+    danger_password её не защищал.
+    """
+    return bool(
+        re.search(r"(очисти|удали)\s+(весь\s+)?список", cmd)
+        or cmd in {"очисти список", "удали все задачи"}
+    )
+
+
 def handle_task_command(cmd: str) -> str | None:
     """Разбирает команды списка задач. Возвращает ответ или None."""
 
@@ -199,8 +212,7 @@ def handle_task_command(cmd: str) -> str | None:
         return format_list()
 
     # очистить
-    if re.search(r"(очисти|удали)\s+(весь\s+)?список", cmd) \
-            or cmd in {"очисти список", "удали все задачи"}:
+    if is_clear_command(cmd):
         n = clear_all()
         return f"Очищено задач: {n}." if n else "Список и так пуст."
 

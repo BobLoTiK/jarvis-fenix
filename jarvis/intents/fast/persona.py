@@ -26,7 +26,7 @@ def persona_fast(handler, cmd: str) -> str | None:
             tone_text = "auto"
         elif "без цензуры" in cmd or "без тормозов" in cmd or "материться" in cmd:
             tone_text = "unrestricted"
-        elif "нормально" in cmd or "вежливо" in cmd or "цензур" in cmd:
+        elif "нормальн" in cmd or "вежливо" in cmd or "цензур" in cmd:
             tone_text = "polite"
         else:
             tone_text = "auto"

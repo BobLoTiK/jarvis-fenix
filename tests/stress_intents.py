@@ -387,6 +387,7 @@ def run_case(handler, speaker, name, cmd, expected) -> Stressed:
 
 def snapshot_settings(handler) -> dict:
     """Снимает настройки, которые стресс-тест может изменить."""
+    from jarvis import learning
     from jarvis import persona
 
     p = persona.get()
@@ -396,6 +397,7 @@ def snapshot_settings(handler) -> dict:
         "llm_context_messages": handler.config.get("llm_context_messages", 20),
         "style": p.get("speech_style"),
         "tone": p.get("tone"),
+        "corrections": dict(learning.all_corrections()),
     }
 
 
@@ -422,6 +424,17 @@ def restore_settings(handler, snap: dict) -> None:
             persona_updates["tone"] = snap["tone"]
         if persona_updates:
             persona.set_persona(persona_updates)
+
+        # Кейс «это не то, я сказал логи» реально сохраняет пару (после
+        # фикса correction_fast) — убираем всё, что появилось за прогон:
+        # иначе пара «верни как было → логи» подменяет команды в
+        # следующих запусках (кейс undo_rollback падал в LLM).
+        from jarvis import learning
+        before = snap.get("corrections", {})
+        for wrong in list(learning.all_corrections()):
+            if wrong not in before:
+                learning.forget_correction(wrong)
+
         log.info("Уборка: настройки восстановлены (%s)", ", ".join(snap))
     except Exception:
         log.exception("Не удалось восстановить настройки")

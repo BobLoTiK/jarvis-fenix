@@ -34,6 +34,18 @@ OVERLAP_CHARS = 32
 SAFE_REPLY = "Не могу ответить на это, сэр."
 
 
+# Markdown/нулевые символы, которые TTS снимает до озвучки (prepare_text):
+# «**убей** себя» проходил проверку сырого текста, а произносилось
+# «убей себя». Снимаем маскировку ДО применения правил.
+_DISGUISE_RE = re.compile(r"[*_`#>~]+|[\u200b\u200c\u200d\ufeff\u00ad]+")
+
+
+def _unmask(text: str) -> str:
+    # Заменяем на ПРОБЕЛ, не на пустоту: «убей​себя» со скрытым
+    # символом внутри слова после склейки обошёл бы regex с \s+.
+    return _DISGUISE_RE.sub(" ", text)
+
+
 # (регулярка, категория). Порядок важен: self_harm — раньше violence,
 # иначе «убей себя» попадёт в «насилие».
 FORBIDDEN_PATTERNS: list[tuple[re.Pattern, str]] = [
@@ -111,8 +123,12 @@ def check_response(text: str) -> tuple[bool, str]:
     if not text:
         return True, ""
 
+    # Фильтр обязан видеть текст таким, каким он прозвучит: TTS снимает
+    # markdown и нулевые символы (prepare_text), поэтому «**убей** себя»
+    # не должен проскакивать regex.
+    probe = _unmask(text)
     for pattern, category in FORBIDDEN_PATTERNS:
-        if pattern.search(text):
+        if pattern.search(probe):
             log.warning(
                 "SAFETY: ответ заблокирован (категория=%s): %r",
                 category,

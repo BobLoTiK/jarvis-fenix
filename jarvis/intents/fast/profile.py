@@ -34,10 +34,21 @@ _MY_KEY_MAP = {
 def profile_fast(handler, cmd: str) -> str | None:
     log.info("profile_fast: %r", cmd)
 
-    # «я — Маша», «зови меня X», «переключись на X».
+    # «я — Маша»: тире съедает normalize, поэтому смотрим сырую фразу.
+    raw = (getattr(handler, "_raw_cmd", "") or "").strip().lower()
+    m_dash = re.match(
+        r"^я\s*[-—]\s*([а-яёa-z][а-яёa-z\s\-]{0,40})$",
+        raw,
+    )
+    if m_dash:
+        name = m_dash.group(1).strip()
+        if name and name not in _NOT_A_CITY:
+            return profile.switch(name)
+
+    # «зови меня X», «переключись на X», «я это X».
     # БЕЗ голого «я » — иначе «я хочу спать» создаёт профиль.
     m = re.match(
-        r"^(?:я\s*[-—]\s*|зови\s+меня\s+|переключись\s+на\s+|я\s+это\s+)"
+        r"^(?:зови\s+меня\s+|переключись\s+на\s+|я\s+это\s+)"
         r"([а-яёa-z][а-яёa-z\s\-]{0,40})$",
         cmd,
     )

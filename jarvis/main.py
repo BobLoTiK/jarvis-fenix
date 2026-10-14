@@ -512,6 +512,12 @@ def make_config_listener(jarvis, config, listener, speaker, handler,
                 speaker.switch_backend(str(value))
             except Exception:
                 log.exception("Не удалось переключить TTS backend")
+        elif key == "tts_voice_quality":
+            # Качество читается только при создании движка — пересоздаём.
+            try:
+                speaker.set_quality(str(value))
+            except Exception:
+                log.exception("Не удалось переключить качество голоса")
         elif key == "vad_enabled":
             if listener is not None:
                 listener.set_vad_enabled(bool(value))
@@ -537,9 +543,37 @@ def make_config_listener(jarvis, config, listener, speaker, handler,
     return _on_config_change
 
 
+# Handle мьютекса держим на уровне модуля: соберёт GC — мьютекс
+# освободится, и второй экземпляр сможет стартовать.
+_MUTEX_HANDLE = None
+
+
+def _single_instance() -> bool:
+    """Именованный мьютекс на всё время работы процесса.
+
+    Лаунчер свой мьютекс освобождает сразу после DETACHED-старта,
+    поэтому настоящий guard от второго экземпляра — здесь. Имя совпадает
+    с лаунчером и AppMutex инсталлятора.
+    """
+    global _MUTEX_HANDLE
+    import ctypes
+    kernel32 = ctypes.windll.kernel32
+    _MUTEX_HANDLE = kernel32.CreateMutexW(None, False,
+                                          "Local\\JarvisPhoenixSingleInstance")
+    if kernel32.GetLastError() == 183:  # ERROR_ALREADY_EXISTS
+        kernel32.CloseHandle(_MUTEX_HANDLE)
+        _MUTEX_HANDLE = None
+        return False
+    return True
+
+
 def main() -> None:
     setup_logging()
     log.info("%s v%s запускается", APP_NAME, __version__)
+
+    if not _single_instance():
+        log.warning("Феникс уже запущен — второй экземпляр не стартую")
+        return
 
     # Порядок импортов критичен для Windows:
     #   faster_whisper → ctranslate2 → winrt.
@@ -588,15 +622,21 @@ def main() -> None:
 
     brain = None
     if config.get("use_llm", True):
-        from jarvis.brain import Brain
-        brain = Brain(
-            config.get("llm_model", "qwen2.5:7b-instruct"),
-            config.get("ollama_url", "http://127.0.0.1:11434"),
-            prompt_level=config.get("prompt_level", "auto"),
-            temperature=config.get("llm_temperature", 0.7),
-            config=config,
-        )
-        if not brain.available:
+        try:
+            from jarvis.brain import Brain
+            brain = Brain(
+                config.get("llm_model", "qwen2.5:7b-instruct"),
+                config.get("ollama_url", "http://127.0.0.1:11434"),
+                prompt_level=config.get("prompt_level", "auto"),
+                temperature=config.get("llm_temperature", 0.7),
+                config=config,
+            )
+        except Exception:
+            # Битый ollama_url и прочие неожиданности не должны ронять
+            # старт: Феникс живёт и без LLM.
+            log.exception("Brain не завёлся — работаю без LLM")
+            brain = None
+        if brain is not None and not brain.available:
             brain = None
 
     # Векторная память: индексация фактов в фоне. Модель эмбеддингов
@@ -670,12 +710,22 @@ def main() -> None:
     # =================================================================
     tray_holder = {"icon": None}
 
+    def _tray_failed() -> None:
+        """Иконка не появилась — снимаем режим «крестик прячет окно».
+
+        Мёртвый трей хуже отсутствующего: окно исчезало по крестику,
+        а вернуть его было нечем.
+        """
+        tray_holder["icon"] = None
+        if gui is not None:
+            gui.set_tray_active(False)
+
     def _apply_tray(enabled: bool) -> None:
         """Включает/выключает иконку трея и режим «крестик сворачивает»."""
         if enabled and tray_holder["icon"] is None:
             try:
                 from jarvis.tray import start_tray
-                tray_holder["icon"] = start_tray(jarvis)
+                tray_holder["icon"] = start_tray(jarvis, on_fail=_tray_failed)
             except Exception:
                 log.exception("Трей: запуск упал — работаю без трея")
         elif not enabled and tray_holder["icon"] is not None:
