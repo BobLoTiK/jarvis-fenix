@@ -113,7 +113,17 @@ DEFAULT_CONFIG = {
     "memory_rag_enabled": False,
     "memory_rag_model": "nomic-embed-text",
     "memory_rag_top_k": 3,
-    "memory_rag_min_score": 0.35,
+    # Порог косинуса. Замерено на живых nomic-embed-text (14.10.2026):
+    # релевантный факт даёт 0.63–0.74, случайный — 0.58–0.63. Шкалы
+    # ПЕРЕКРЫВАЮТСЯ, поэтому одного порога мало — нужен ещё отрыв лидера.
+    "memory_rag_min_score": 0.6,
+    # Отрыв лидера от второго места: меньше — считаем, что «явного
+    # победителя нет», и отдаём в промпт все факты (как до фичи).
+    # Так фича никогда не может стать хуже, чем было.
+    "memory_rag_margin": 0.04,
+    # У лексического поиска (без эмбеддингов) своя шкала: совпадение
+    # по словам даёт ~0.43, шум — ниже 0.3.
+    "memory_rag_lexical_min_score": 0.35,
     "memory_rag_timeout": 2.5,
     "memory_rag_max_items": 500,
     "memory_rag_lexical_fallback": True,

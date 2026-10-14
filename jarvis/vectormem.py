@@ -110,8 +110,32 @@ def _top_k() -> int:
 
 
 def _min_score() -> float:
+    """Порог косинуса. У nomic шкала сжатая (релевантное 0.66–0.74,
+    случайное 0.57–0.63), поэтому дефолт 0.6, а не 0.35."""
     try:
-        return float(_cfg("memory_rag_min_score", 0.35))
+        return float(_cfg("memory_rag_min_score", 0.6))
+    except (TypeError, ValueError):
+        return 0.6
+
+
+def _margin() -> float:
+    """Насколько лидер должен оторваться от второго места.
+
+    У nomic шкала сжата настолько, что «просто выше порога» ничего не
+    значит: на запрос «сколько сейчас времени» случайный факт набирает
+    0.626, а релевантный на другой запрос — 0.633. Разделяет не порог,
+    а отрыв: у настоящего совпадения он 0.08–0.14, у шума — 0.00–0.03.
+    """
+    try:
+        return float(_cfg("memory_rag_margin", 0.04))
+    except (TypeError, ValueError):
+        return 0.04
+
+
+def _lexical_min() -> float:
+    """Порог лексического поиска — у него своя шкала (совпадение ~0.43)."""
+    try:
+        return float(_cfg("memory_rag_lexical_min_score", 0.35))
     except (TypeError, ValueError):
         return 0.35
 
@@ -125,6 +149,16 @@ def _timeout() -> float:
 
 def _lexical_fallback() -> bool:
     return bool(_cfg("memory_rag_lexical_fallback", True))
+
+
+def _background_timeout() -> float:
+    """Таймаут для фоновых вызовов, где голосовой цикл не ждёт.
+
+    Замерено 14.10.2026: первый вызов nomic-embed-text тянет ~20 с — Ollama
+    грузит модель с диска. Горячему пути такие паузы противопоказаны
+    (там 2.5 с), а фону — можно.
+    """
+    return max(60.0, _timeout() * 4)
 
 
 # ---------------------------------------------------------------
@@ -461,8 +495,13 @@ def _vector_hits(query: str, items: list) -> list:
     return [(float(sims[i]), vec_items[i]) for i in range(len(vec_items))]
 
 
-def search(query: str, k: int = 3, min_score: float = None) -> list:
+def search(query: str, k: int = 3, min_score: float = None,
+           lexical_min: float = None) -> list:
     """Ищет факты по смыслу. Работает и без эмбеддингов (лексика).
+
+    Два порога, потому что шкалы разные: косинус у nomic сжат в 0.57–0.74,
+    а лексическая близость разбросана шире. Один порог на оба пути либо
+    пропускал бы мусор, либо отсекал годное.
 
     Возвращает [{"key", "value", "score"}] — отсортировано по убыванию.
     """
@@ -473,26 +512,42 @@ def search(query: str, k: int = 3, min_score: float = None) -> list:
         k = max(1, int(k or 3))
     except (TypeError, ValueError):
         k = 3
-    threshold = _min_score() if min_score is None else float(min_score)
+    v_th = _min_score() if min_score is None else float(min_score)
+    l_th = _lexical_min() if lexical_min is None else float(lexical_min)
 
     items = _items() or _items_from_facts()
     if not items:
         return []
 
-    hits = _vector_hits(q, items)
+    hits = [(s, it) for s, it in _vector_hits(q, items) if s >= v_th]
     if hits:
         # Факты без вектора (только что добавлен, фон не успел) — добираем лексикой.
         seen = {id(it) for _, it in hits}
-        hits += [(s, it) for s, it in _lexical_hits(q, items) if id(it) not in seen]
+        hits += [(s, it) for s, it in _lexical_hits(q, items)
+                 if id(it) not in seen and s >= l_th]
     elif _lexical_fallback():
-        hits = _lexical_hits(q, items)
+        hits = [(s, it) for s, it in _lexical_hits(q, items) if s >= l_th]
 
-    good = [(s, it) for s, it in hits if s >= threshold]
-    if not good:
+    if not hits:
         return []
-    good.sort(key=lambda pair: pair[0], reverse=True)
+    hits.sort(key=lambda pair: pair[0], reverse=True)
     return [{"key": it.get("key", ""), "value": it.get("value", ""), "score": score}
-            for score, it in good[:k]]
+            for score, it in hits[:k]]
+
+
+def _confident(hits: list) -> bool:
+    """Есть ли явный лидер?
+
+    Одинокому хиту сравнивать не с чем, поэтому с него спрос строже:
+    порог плюс отрыв (0.64 против 0.6). Иначе случайный факт на запрос
+    «сколько сейчас времени» (0.626) проходил бы как «явный победитель» —
+    ровно на этом живой замер 14.10.2026 и поймал фичу.
+    """
+    if not hits:
+        return False
+    if len(hits) == 1:
+        return hits[0]["score"] >= _min_score() + _margin()
+    return (hits[0]["score"] - hits[1]["score"]) >= _margin()
 
 
 def build_prompt_block(query: str, k: int = None) -> str:
@@ -515,6 +570,9 @@ def build_prompt_block(query: str, k: int = None) -> str:
 
     hits = search(q, k=k)
     if not hits:
+        return ""
+    if not _confident(hits):
+        # Явного победителя нет — не рискуем: пусть brain возьмёт все факты.
         return ""
     lines = [f"- {h['key']}: {h['value']}" for h in hits]
     return ("Факты о пользователе (отобраны по смыслу запроса):\n"
@@ -563,8 +621,9 @@ def sync(force: bool = False) -> int:
         missing = missing[:max(0, max_items - len(items))]
 
         texts = [f"{k}: {v}" for k, v in missing]
-        # В фоне таймаут щедрее: голосовой цикл здесь не ждёт.
-        vecs = embed_texts(texts, kind="document", timeout=_timeout() * 4)
+        # В фоне таймаут щедрее: голосовой цикл здесь не ждёт,
+        # а первый вызов грузит модель (~20 с на живых замерах).
+        vecs = embed_texts(texts, kind="document", timeout=_background_timeout())
         for (key, value), vec in zip(missing, vecs or []):
             if not vec:
                 continue
@@ -584,7 +643,7 @@ def sync(force: bool = False) -> int:
             log.info("Профиль сменился во время индексации — пропускаю запись")
             _invalidate()
             return 0
-        dim = 0
+        dim = int(data.get("dim", 0) or 0)
         for it in items.values():
             if it.get("vec"):
                 dim = len(it["vec"])
@@ -627,7 +686,21 @@ def warmup_async() -> None:
         log.info("Индексация фактов запущена в фоне")
 
 
+def _warm_embed() -> None:
+    """Один пробный эмбеддинг — грузит модель в память заранее.
+
+    Иначе первый же вопрос пользователя упирался бы в холодный старт
+    модели (а это дольше таймаута горячего пути), и Феникс молча отвечал
+    бы по словам вместо смысла. Заодно рано видно, что модель не скачана.
+    """
+    if embed_texts(["прогрев"], kind="query",
+                   timeout=_background_timeout()) is None:
+        log.info("Эмбеддинги недоступны — пока ищем по словам, "
+                 "не по смыслу (нужна «ollama pull %s»)", _model())
+
+
 def _worker_loop() -> None:
+    _warm_embed()
     while not _stop.is_set():
         _wake.wait(timeout=5.0)
         _wake.clear()

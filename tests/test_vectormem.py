@@ -246,6 +246,23 @@ def test_prompt_block_selects_relevant_facts(cfg, tmp_path, monkeypatch):
     assert "Матрица" not in block          # нерелевантное не подмешиваем
 
 
+def test_no_clear_winner_keeps_all_facts(cfg, tmp_path, monkeypatch):
+    """Лидер без отрыва — не отбираем: brain возьмёт все факты, как раньше.
+
+    У nomic шкала сжата (шум 0.58–0.63, релевантное 0.63–0.74), поэтому
+    «прошло порог» ещё не значит «это оно». Отбор — только при явном лидере.
+    """
+    table = dict(_vectors())
+    table["search_query: что-то невнятное"] = [0.7, 0.7, 0.0, 0.0]
+    _seed(tmp_path, monkeypatch, table=table)
+    vectormem.sync()
+
+    hits = vectormem.search("что-то невнятное", k=3)
+    assert len(hits) == 2
+    assert hits[0]["score"] == pytest.approx(hits[1]["score"])
+    assert vectormem.build_prompt_block("что-то невнятное") == ""
+
+
 def test_prompt_block_empty_query(cfg, tmp_path, monkeypatch):
     _seed(tmp_path, monkeypatch)
     vectormem.sync()

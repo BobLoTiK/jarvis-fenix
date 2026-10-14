@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=9f9953788ca6c165` · режим `lean` · файлов `172` · строк `35166` · источник `1491 КБ`
+`sha256=a8789d8da3f29125` · режим `lean` · файлов `172` · строк `35311` · источник `1502 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -246,8 +246,8 @@ README)._
 │   │   ├── release.yml  (114 стр)
 │   │   ├── test.yml  (71 стр)
 ├── AGENTS.md  (109 стр)
-├── ARCHITECTURE.md  (955 стр)
-├── CHANGELOG.md  (1120 стр)
+├── ARCHITECTURE.md  (969 стр)
+├── CHANGELOG.md  (1139 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -256,7 +256,7 @@ README)._
 ├── cmds/
 │   ├── open_terminal.bat  (3 стр)
 │   ├── show_ip.bat  (3 стр)
-├── config.example.json  (76 стр)
+├── config.example.json  (78 стр)
 ├── CONTRIBUTING.md  (378 стр)
 ├── create_shortcut.bat  (51 стр)
 ├── install.bat  (411 стр)
@@ -268,7 +268,7 @@ README)._
 │   ├── apps.py  (114 стр)
 │   ├── brain.py  (852 стр)
 │   ├── celebrations.py  (165 стр)
-│   ├── config.py  (269 стр)
+│   ├── config.py  (279 стр)
 │   ├── config_manager.py  (156 стр)
 │   ├── files.py  (102 стр)
 │   ├── first_run.py  (26 стр)
@@ -289,7 +289,7 @@ README)._
 │   │   │   ├── open.py  (61 стр)
 │   │   │   ├── packs.py  (27 стр)
 │   │   │   ├── persona.py  (77 стр)
-│   │   │   ├── profile.py  (176 стр)
+│   │   │   ├── profile.py  (180 стр)
 │   │   │   ├── screenshot.py  (26 стр)
 │   │   │   ├── small_talk.py  (74 стр)
 │   │   │   ├── system.py  (130 стр)
@@ -350,7 +350,7 @@ README)._
 │   │   ├── winrt.py  (158 стр)
 │   ├── uia.py  (1013 стр)
 │   ├── vad.py  (567 стр)
-│   ├── vectormem.py  (691 стр)
+│   ├── vectormem.py  (764 стр)
 │   ├── voices.py  (220 стр)
 │   ├── weather.py  (394 стр)
 ├── jarvis-fenix.code-workspace  (8 стр)
@@ -366,7 +366,7 @@ README)._
 ├── PROJECT.md  (220 стр)
 ├── PROMPT.md  (509 стр)
 ├── pytest.ini  (20 стр)
-├── README.md  (1006 стр)
+├── README.md  (1012 стр)
 ├── requirements-ci.txt  (32 стр)
 ├── requirements-dev.txt  (10 стр)
 ├── requirements.txt  (59 стр)
@@ -419,7 +419,7 @@ README)._
 │   ├── test_uia_fast.py  (238 стр)
 │   ├── test_vad.py  (333 стр)
 │   ├── test_vad_model.py  (273 стр)
-│   ├── test_vectormem.py  (388 стр)
+│   ├── test_vectormem.py  (405 стр)
 │   ├── test_weather.py  (237 стр)
 │   ├── test_window_targets.py  (294 стр)
 ```
@@ -1519,7 +1519,7 @@ README)._
   def load_index()
   def save_index(items: list, dim: int)
   _TOKEN_RE = ...
-  def search(query: str, k: int=3, min_score: float=None)
+  def search(query: str, k: int=3, min_score: float=None, lexical_min: float=None)
   def build_prompt_block(query: str, k: int=None)
   def sync(force: bool=False)
   def index_fact(key: str, value: str, source: str='user')
@@ -2358,6 +2358,7 @@ README)._
   def test_search_respects_threshold(cfg, tmp_path, monkeypatch)
   def test_prompt_block_skips_selection_for_few_facts(cfg, tmp_path, monkeypatch)
   def test_prompt_block_selects_relevant_facts(cfg, tmp_path, monkeypatch)
+  def test_no_clear_winner_keeps_all_facts(cfg, tmp_path, monkeypatch)
   def test_prompt_block_empty_query(cfg, tmp_path, monkeypatch)
   def test_lexical_fallback_without_embeddings(cfg, tmp_path, monkeypatch)
   def test_lexical_fallback_can_be_disabled(cfg, tmp_path, monkeypatch)
@@ -2551,7 +2552,7 @@ README)._
 | `jarvis/apps.py` | 114 | code | Каталог известных приложений: как их зовут голосом, как открыть и как  |
 | `jarvis/brain.py` | 852 | code | LLM-фолбэк: локальная нейронка (Ollama) разбирает команду в структурны |
 | `jarvis/celebrations.py` | 165 | code | Праздничные триггеры — поздравление с ДР + двойной салют. |
-| `jarvis/config.py` | 269 | code | Загрузка конфигурации и объект Config в памяти. |
+| `jarvis/config.py` | 279 | code | Загрузка конфигурации и объект Config в памяти. |
 | `jarvis/config_manager.py` | 156 | code | Единый менеджер записи в config.json. |
 | `jarvis/files.py` | 102 | code | Файлы и папки: открыть, посмотреть содержимое, создать. |
 | `jarvis/first_run.py` | 26 | code | Первый запуск — знакомство через LLM-диалог. |
@@ -2570,7 +2571,7 @@ README)._
 | `jarvis/intents/fast/open.py` | 61 | code | Открытие приложений / сайтов / папок / профиля — без LLM. |
 | `jarvis/intents/fast/packs.py` | 27 | code | Паки команд — обёртка с side-effect. |
 | `jarvis/intents/fast/persona.py` | 77 | code | Команды персоны: стиль общения, описание, сброс онбординга. |
-| `jarvis/intents/fast/profile.py` | 176 | code | Профиль: смена, список, факты «запомни: X — Y». |
+| `jarvis/intents/fast/profile.py` | 180 | code | Профиль: смена, список, факты «запомни: X — Y». |
 | `jarvis/intents/fast/screenshot.py` | 26 | code | Скриншот: «сделай скриншот», «открой скриншот». |
 | `jarvis/intents/fast/small_talk.py` | 74 | code | Мелкий разговор: время, дата, «кто ты», праздники. |
 | `jarvis/intents/fast/system.py` | 130 | code | Системные команды: раскладка, громкость, яркость. |
@@ -2629,7 +2630,7 @@ README)._
 | `jarvis/tts_engines/winrt.py` | 158 | code | WinRT TTS — системный синтез Windows, без внешних моделей. |
 | `jarvis/uia.py` | 1013 | code | UI Automation — видим окна и элементы интерфейса. |
 | `jarvis/vad.py` | 567 | code | Silero VAD — детекция речи в аудио-потоке с адаптивным порогом. |
-| `jarvis/vectormem.py` | 691 | code | Векторная память фактов (RAG) — на профиль. |
+| `jarvis/vectormem.py` | 764 | code | Векторная память фактов (RAG) — на профиль. |
 | `jarvis/voices.py` | 220 | code | Управление голосами TTS — работает через tts_engines. |
 | `jarvis/weather.py` | 394 | code | Погода и курс валют. |
 | `scripts/__init__.py` | 7 | code | Пакет scripts: утилиты разработчика. |
@@ -2674,7 +2675,7 @@ README)._
 | `tests/test_uia_fast.py` | 238 | code | Тесты быстрых UIA-команд — `jarvis/intents/fast/uia.py`. |
 | `tests/test_vad.py` | 333 | code | Тесты jarvis.vad — Silero VAD ONNX. |
 | `tests/test_vad_model.py` | 273 | code | Авто-скачивание модели Silero VAD (jarvis.vad). |
-| `tests/test_vectormem.py` | 388 | code | Векторная память фактов (jarvis.vectormem, №51–53). |
+| `tests/test_vectormem.py` | 405 | code | Векторная память фактов (jarvis.vectormem, №51–53). |
 | `tests/test_weather.py` | 237 | code | Тесты weather: структура ответов, describe_*, geocode с моками. |
 | `tests/test_window_targets.py` | 294 | code | Тесты выбора окна: голосовое имя → процессы → окно. |
 | `check_all.py` | 170 | code | Единый прогон всех проверок Феникса — движок для check_all.bat. |
@@ -5286,7 +5287,17 @@ DEFAULT_CONFIG = {
     "memory_rag_enabled": False,
     "memory_rag_model": "nomic-embed-text",
     "memory_rag_top_k": 3,
-    "memory_rag_min_score": 0.35,
+    # Порог косинуса. Замерено на живых nomic-embed-text (14.10.2026):
+    # релевантный факт даёт 0.63–0.74, случайный — 0.58–0.63. Шкалы
+    # ПЕРЕКРЫВАЮТСЯ, поэтому одного порога мало — нужен ещё отрыв лидера.
+    "memory_rag_min_score": 0.6,
+    # Отрыв лидера от второго места: меньше — считаем, что «явного
+    # победителя нет», и отдаём в промпт все факты (как до фичи).
+    # Так фича никогда не может стать хуже, чем было.
+    "memory_rag_margin": 0.04,
+    # У лексического поиска (без эмбеддингов) своя шкала: совпадение
+    # по словам даёт ~0.43, шум — ниже 0.3.
+    "memory_rag_lexical_min_score": 0.35,
     "memory_rag_timeout": 2.5,
     "memory_rag_max_items": 500,
     "memory_rag_lexical_fallback": True,
@@ -9558,10 +9569,10 @@ def profile_fast(handler, cmd: str) -> str | None:
 
 
 def _forget_by_meaning(query: str) -> str | None:
-    """Ищет факт по смыслу и забывает его. ... [5 строк]"""
+    """Ищет факт по смыслу и забывает его. ... [9 строк]"""
     try:
         from jarvis import vectormem
-        hits = vectormem.search(query, k=1, min_score=0.5)
+        hits = vectormem.search(query, k=1, min_score=0.7, lexical_min=0.5)
     except Exception:
         log.exception("Поиск факта для «забудь» упал")
         return None
@@ -18684,8 +18695,26 @@ def _top_k() -> int:
 
 
 def _min_score() -> float:
+    """Порог косинуса. У nomic шкала сжатая (релевантное 0.66–0.74,
+    случайное 0.57–0.63), поэтому дефолт 0.6, а не 0.35."""
     try:
-        return float(_cfg("memory_rag_min_score", 0.35))
+        return float(_cfg("memory_rag_min_score", 0.6))
+    except (TypeError, ValueError):
+        return 0.6
+
+
+def _margin() -> float:
+    """Насколько лидер должен оторваться от второго места. ... [6 строк]"""
+    try:
+        return float(_cfg("memory_rag_margin", 0.04))
+    except (TypeError, ValueError):
+        return 0.04
+
+
+def _lexical_min() -> float:
+    """Порог лексического поиска — у него своя шкала (совпадение ~0.43)."""
+    try:
+        return float(_cfg("memory_rag_lexical_min_score", 0.35))
     except (TypeError, ValueError):
         return 0.35
 
@@ -18699,6 +18728,11 @@ def _timeout() -> float:
 
 def _lexical_fallback() -> bool:
     return bool(_cfg("memory_rag_lexical_fallback", True))
+
+
+def _background_timeout() -> float:
+    """Таймаут для фоновых вызовов, где голосовой цикл не ждёт. ... [5 строк]"""
+    return max(60.0, _timeout() * 4)
 
 
 # ---------------------------------------------------------------
@@ -19014,8 +19048,9 @@ def _vector_hits(query: str, items: list) -> list:
     return [(float(sims[i]), vec_items[i]) for i in range(len(vec_items))]
 
 
-def search(query: str, k: int = 3, min_score: float = None) -> list:
-    """Ищет факты по смыслу. Работает и без эмбеддингов (лексика). ... [3 строк]"""
+def search(query: str, k: int = 3, min_score: float = None,
+           lexical_min: float = None) -> list:
+    """Ищет факты по смыслу. Работает и без эмбеддингов (лексика). ... [7 строк]"""
     q = (query or "").strip()
     if not q:
         return []
@@ -19023,26 +19058,36 @@ def search(query: str, k: int = 3, min_score: float = None) -> list:
         k = max(1, int(k or 3))
     except (TypeError, ValueError):
         k = 3
-    threshold = _min_score() if min_score is None else float(min_score)
+    v_th = _min_score() if min_score is None else float(min_score)
+    l_th = _lexical_min() if lexical_min is None else float(lexical_min)
 
     items = _items() or _items_from_facts()
     if not items:
         return []
 
-    hits = _vector_hits(q, items)
+    hits = [(s, it) for s, it in _vector_hits(q, items) if s >= v_th]
     if hits:
         # Факты без вектора (только что добавлен, фон не успел) — добираем лексикой.
         seen = {id(it) for _, it in hits}
-        hits += [(s, it) for s, it in _lexical_hits(q, items) if id(it) not in seen]
+        hits += [(s, it) for s, it in _lexical_hits(q, items)
+                 if id(it) not in seen and s >= l_th]
     elif _lexical_fallback():
-        hits = _lexical_hits(q, items)
+        hits = [(s, it) for s, it in _lexical_hits(q, items) if s >= l_th]
 
-    good = [(s, it) for s, it in hits if s >= threshold]
-    if not good:
+    if not hits:
         return []
-    good.sort(key=lambda pair: pair[0], reverse=True)
+    hits.sort(key=lambda pair: pair[0], reverse=True)
     return [{"key": it.get("key", ""), "value": it.get("value", ""), "score": score}
-            for score, it in good[:k]]
+            for score, it in hits[:k]]
+
+
+def _confident(hits: list) -> bool:
+    """Есть ли явный лидер? ... [6 строк]"""
+    if not hits:
+        return False
+    if len(hits) == 1:
+        return hits[0]["score"] >= _min_score() + _margin()
+    return (hits[0]["score"] - hits[1]["score"]) >= _margin()
 
 
 def build_prompt_block(query: str, k: int = None) -> str:
@@ -19062,6 +19107,9 @@ def build_prompt_block(query: str, k: int = None) -> str:
 
     hits = search(q, k=k)
     if not hits:
+        return ""
+    if not _confident(hits):
+        # Явного победителя нет — не рискуем: пусть brain возьмёт все факты.
         return ""
     lines = [f"- {h['key']}: {h['value']}" for h in hits]
     return ("Факты о пользователе (отобраны по смыслу запроса):\n"
@@ -19107,8 +19155,9 @@ def sync(force: bool = False) -> int:
         missing = missing[:max(0, max_items - len(items))]
 
         texts = [f"{k}: {v}" for k, v in missing]
-        # В фоне таймаут щедрее: голосовой цикл здесь не ждёт.
-        vecs = embed_texts(texts, kind="document", timeout=_timeout() * 4)
+        # В фоне таймаут щедрее: голосовой цикл здесь не ждёт,
+        # а первый вызов грузит модель (~20 с на живых замерах).
+        vecs = embed_texts(texts, kind="document", timeout=_background_timeout())
         for (key, value), vec in zip(missing, vecs or []):
             if not vec:
                 continue
@@ -19128,7 +19177,7 @@ def sync(force: bool = False) -> int:
             log.info("Профиль сменился во время индексации — пропускаю запись")
             _invalidate()
             return 0
-        dim = 0
+        dim = int(data.get("dim", 0) or 0)
         for it in items.values():
             if it.get("vec"):
                 dim = len(it["vec"])
@@ -19171,7 +19220,16 @@ def warmup_async() -> None:
         log.info("Индексация фактов запущена в фоне")
 
 
+def _warm_embed() -> None:
+    """Один пробный эмбеддинг — грузит модель в память заранее. ... [5 строк]"""
+    if embed_texts(["прогрев"], kind="query",
+                   timeout=_background_timeout()) is None:
+        log.info("Эмбеддинги недоступны — пока ищем по словам, "
+                 "не по смыслу (нужна «ollama pull %s»)", _model())
+
+
 def _worker_loop() -> None:
+    _warm_embed()
     while not _stop.is_set():
         _wake.wait(timeout=5.0)
         _wake.clear()
@@ -27111,6 +27169,19 @@ def test_prompt_block_selects_relevant_facts(cfg, tmp_path, monkeypatch):
     assert "Матрица" not in block          # нерелевантное не подмешиваем
 
 
+def test_no_clear_winner_keeps_all_facts(cfg, tmp_path, monkeypatch):
+    """Лидер без отрыва — не отбираем: brain возьмёт все факты, как раньше. ... [4 строк]"""
+    table = dict(_vectors())
+    table["search_query: что-то невнятное"] = [0.7, 0.7, 0.0, 0.0]
+    _seed(tmp_path, monkeypatch, table=table)
+    vectormem.sync()
+
+    hits = vectormem.search("что-то невнятное", k=3)
+    assert len(hits) == 2
+    assert hits[0]["score"] == pytest.approx(hits[1]["score"])
+    assert vectormem.build_prompt_block("что-то невнятное") == ""
+
+
 def test_prompt_block_empty_query(cfg, tmp_path, monkeypatch):
     _seed(tmp_path, monkeypatch)
     vectormem.sync()
@@ -29644,7 +29715,9 @@ pause
   "memory_rag_enabled": false,
   "memory_rag_model": "nomic-embed-text",
   "memory_rag_top_k": 3,
-  "memory_rag_min_score": 0.35,
+  "memory_rag_min_score": 0.6,
+  "memory_rag_margin": 0.04,
+  "memory_rag_lexical_min_score": 0.35,
   "memory_rag_timeout": 2.5,
   "memory_rag_max_items": 500,
   "memory_rag_lexical_fallback": true,
