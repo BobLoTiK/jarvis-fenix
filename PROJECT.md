@@ -198,9 +198,10 @@ python tests\test_intents.py --llm --network   :: + LLM (3-8 мин) и пого
 
 ## 9. Что дальше
 
-По `PLAN.md` (порядок работ Фазы 1): облако (Edge TTS / Groq) → управление
-приложениями → Vector memory (ChromaDB + RAG) → MCP-заготовки → Telegram →
-спрайт-аватар → PyInstaller/CI + VLM + Hermes → улучшение мозгов.
+По `PLAN.md` (порядок работ Фазы 1): управление приложениями ✅ → Vector memory
+✅ (Ollama-эмбеддинги + RAG, без новых пакетов) → Non-verbal → облако
+(Edge TTS / Groq) → MCP-заготовки → Telegram → спрайт-аватар →
+PyInstaller/CI + VLM + Hermes → улучшение мозгов.
 
 Сборка уже автоматизирована: `python scripts\build_setup.py` даёт `Феникс.exe` +
 `dist\Феникс_Setup.exe`. Авторелиз тоже готов (№121 ✅): пуш тега `v*` собирает

@@ -3,8 +3,8 @@
 Шаги (по порядку — от быстрого к медленному):
     1. check_syntax.py          — синтаксис всех .py
     2. pytest tests/            — юнит-тесты
-    3. tests/test_intents.py    — интент-тесты (39 сценариев)
-    4. tests/stress_intents.py  — стресс-тест (100 ситуаций)
+    3. tests/test_intents.py    — интент-тесты (41 сценарий)
+    4. tests/stress_intents.py  — стресс-тест (102 ситуаций)
 
 Печатает компактную сводку: при успехе — одну итоговую строку «ВСЁ ОТЛИЧНО»,
 при провале — какой именно шаг упал и что конкретно сломалось. Полные логи
@@ -91,8 +91,8 @@ class Step:
 STEPS = [
     Step("syntax", "синтаксис .py", [sys.executable, "check_syntax.py"], summarize_syntax),
     Step("pytest", "юнит-тесты (pytest)", [sys.executable, "-m", "pytest", "tests/", "-q"], summarize_pytest),
-    Step("intents", "интент-тесты (39)", [sys.executable, "tests/test_intents.py"], summarize_harness),
-    Step("stress", "стресс-тест (100)", [sys.executable, "tests/stress_intents.py"], summarize_harness),
+    Step("intents", "интент-тесты (41)", [sys.executable, "tests/test_intents.py"], summarize_harness),
+    Step("stress", "стресс-тест (102)", [sys.executable, "tests/stress_intents.py"], summarize_harness),
 ]
 
 

@@ -22,9 +22,9 @@ GUI — Flet, STT — Vosk/Whisper, TTS — несколько движков, L
 
 ```powershell
 .\.venv311\Scripts\python.exe check_all.py            # 4 шага + компактный итог (лучший вариант)
-.\.venv311\Scripts\python.exe -m pytest tests/ -q     # юнит-тесты: 349
-.\.venv311\Scripts\python.exe tests/test_intents.py   # интент-тесты: 39 кейсов (7 — только с --llm/--network)
-.\.venv311\Scripts\python.exe tests/stress_intents.py # стресс: 100 ситуаций
+.\.venv311\Scripts\python.exe -m pytest tests/ -q     # юнит-тесты: 430
+.\.venv311\Scripts\python.exe tests/test_intents.py   # интент-тесты: 41 кейс (7 — только с --llm/--network)
+.\.venv311\Scripts\python.exe tests/stress_intents.py # стресс: 102 ситуаций
 .\.venv311\Scripts\python.exe check_syntax.py         # синтаксис всех .py (131 файл)
 .\.venv311\Scripts\python.exe snapshot.py             # пересобрать SNAPSHOT.md
 .\.venv311\Scripts\python.exe snapshot.py --check     # проверка актуальности снимка
@@ -76,11 +76,12 @@ CI (`.github/workflows/test.yml`): `check_syntax.py` → `snapshot.py --check` �
 | `jarvis/safety.py` | 197 | постфильтр ответов LLM («красная черта») перед TTS |
 | `jarvis/stt.py` / `vad.py` / `tts.py` / `tts_engines/` | 651 / 567 / 367 | распознавание, VAD, синтез |
 | `jarvis/profile.py` / `config.py` / `paths.py` | 451 / 257 / 216 | данные, настройки, пути |
+| `jarvis/memory.py` / `learning.py` / `vectormem.py` | 137 / 180 / 691 | память: диалог / факты / векторный индекс фактов (RAG) |
 | `jarvis/installed.py` / `steam.py` / `apps.py` | 51 / 67 / 114 | индексы «Пуска» и Steam |
 | `jarvis/mood.py` / `prosody.py` / `persona.py` / `observer.py` | 388 / 152 / 219 / 201 | «личность» и эмоции; observer по умолчанию ВЫКЛ |
 | `jarvis/timers.py` / `tasks.py` / `weather.py` / `tray.py` | 340 / 236 / 394 / 176 | таймеры, задачи, погода, трей |
 | `launcher.py` / `snapshot.py` / `check_all.py` | 693 / 698 / 170 | автозапуск / снимок / проверки |
-| `tests/` | — | `test_*.py` (pytest, 349 тестов), `test_intents.py`, `stress_intents.py`, `manual/` |
+| `tests/` | — | `test_*.py` (pytest, 430 тестов), `test_intents.py`, `stress_intents.py`, `manual/` |
 
 ## Ключевые API
 
@@ -94,6 +95,11 @@ CI (`.github/workflows/test.yml`): `check_syntax.py` → `snapshot.py --check` �
 - `jarvis/config.py` — `load_config()`, `subscribe()` (дефолты — через `jarvis/paths.py`).
 - `jarvis/safety.py` — `check_response(text)` → `(ok, reason)`, `guard_stream(chunks, state)`;
   вызывается из `Jarvis._say_text` / `_say_stream`: заблокированное не озвучивается.
+- `jarvis/vectormem.py` — векторная память фактов (RAG), **выключена по умолчанию**
+  (`memory_rag_enabled`): эмбеддинги через Ollama (`/api/embed`), косинус на numpy,
+  индекс — `profiles/<профиль>/memory_index.json`. Без модели/Ollama — лексический
+  поиск, дальше brain берёт все факты, как раньше. `build_prompt_block(query)` —
+  блок для промпта (пустая строка = «факты не отбирались»).
 
 ## Экономия (обязательно к исполнению)
 

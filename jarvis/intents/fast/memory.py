@@ -5,7 +5,10 @@
 «долгая память»   → 200 / 40
 """
 
+import logging
 import re
+
+log = logging.getLogger("jarvis.intents")
 
 
 def memory_fast(handler, cmd: str) -> str | None:
@@ -34,6 +37,21 @@ def memory_fast(handler, cmd: str) -> str | None:
             or cmd in {"какая память", "текущая память"}):
         mm = handler.config.get("memory_max", 100)
         lc = handler.config.get("llm_context_messages", 20)
-        return f"Память: {mm} сообщений, контекст LLM — {lc}."
+        return (f"Память: {mm} сообщений, контекст LLM — {lc}."
+                + _rag_status())
 
     return None
+
+
+def _rag_status() -> str:
+    """Хвост к ответу «какая память»: состояние векторной памяти фактов."""
+    try:
+        from jarvis import vectormem
+        st = vectormem.status()
+    except Exception:
+        log.exception("Не удалось получить статус векторной памяти")
+        return ""
+    if not st["enabled"]:
+        return " Векторная память выключена."
+    return (f" Векторная память: {st['items']} фактов в индексе, "
+            f"модель {st['model']}.")

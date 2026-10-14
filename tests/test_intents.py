@@ -100,6 +100,22 @@ def _with_password_setup(handler):
     handler.config._data["danger_password"] = "test_password_123"
 
 
+def _add_note_setup(handler):
+    """Заводит факт, ключ которого не совпадает со словами команды.
+
+    Иначе «забудь про заметку» сработало бы точным совпадением ключа
+    и не проверило поиск по смыслу.
+    """
+    from jarvis import learning
+    learning.add_fact("тестовая заметка", "проверка 12345")
+
+
+def _add_note_teardown(handler):
+    """Если команда не сработала — факт не должен остаться в профиле."""
+    from jarvis import learning
+    learning.forget_fact("тестовая заметка")
+
+
 # teardown — тот же, что у _no_password_teardown
 
 
@@ -177,7 +193,11 @@ TESTS = [
     # === Learning (5.3) ===
     ("learn_fact",          "запомни: мой город Казань",  ["Запомнил"],              False, False, None),
     ("learn_fact_query",    "что ты обо мне знаешь",      ["Казань", "Знаю"],        False, False, None),
+    ("learn_fact_remember", "что ты обо мне помнишь",     ["Казань", "Знаю"],        False, False, None),
     ("learn_correction",    "это не то, я сказал логи",   ["Понял", "запомнил", "Что было"], False, False, None),
+    # «забудь про X» — не по ключу, а по смыслу (векторная память, без неё — слова)
+    ("forget_by_meaning",   "забудь про заметку",         ["Забыл"],
+     False, False, (_add_note_setup, _add_note_teardown)),
 ]
 
 

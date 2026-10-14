@@ -677,16 +677,6 @@ def status() -> dict:
     }
 
 
-def describe(limit: int = 12) -> str:
-    """Короткая сводка для команды «что ты обо мне помнишь»."""
-    facts = _facts()
-    if not facts:
-        return "Пока ничего о тебе не знаю."
-    lines = [f"{k} — {v}" for k, v in list(facts.items())[:limit]]
-    tail = "" if len(facts) <= limit else f" (и ещё {len(facts) - limit})"
-    return "Помню: " + "; ".join(lines) + tail + "."
-
-
 def reset_for_tests() -> None:
     """Сброс кэшей между тестами."""
     global _fails, _breaker_until, _legacy_api, _said_no_model

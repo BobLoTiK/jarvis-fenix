@@ -275,6 +275,42 @@ DialogObserver._loop (раз в 5 сек)
 
 ---
 
+## 🧠 Векторная память фактов (RAG)
+
+> **Производная структура.** Источник правды — `profile.json` (ключ `facts`);
+> `memory_index.json` можно удалить в любой момент. Реплик диалога в нём нет —
+> короткая память (`dialog.json`) и долгая не дублируются.
+
+~~~~
+learning.add_fact(k, v) → vectormem.index_fact() → будим воркер
+   ↓
+vectormem._worker_loop (daemon «vectormem-index»)
+   └── sync(): сверка facts ↔ items, эмбеддинг батчами по 16
+       └── Ollama POST /api/embed → profiles/<user>/memory_index.json
+   ↓
+диалог: brain.chat_stream(cmd)
+   └── _system_with_context(CHAT_SYSTEM, cmd)
+       ├── vectormem.build_prompt_block(cmd) → top-K фактов по косинусу
+       └── learning.build_context(include_facts=not rag) — без дублей
+~~~~
+
+**Правило трёх уровней:** эмбеддинги живы → top-K по косинусу (L1);
+эмбеддингов нет → лексический поиск по словам (L2); ничего выше порога —
+блок пустой (L3), и brain берёт **все** факты, как до фичи. Гарантия:
+без Ollama и без модели поведение не хуже прежнего.
+
+**Ключевое:** индексация — только в фоне, голосовой цикл её не ждёт.
+Предохранитель: 3 ошибки подряд → 300 с пауза.
+
+**Конфиг:** `memory_rag_enabled: false` (по умолчанию ВЫКЛЮЧЕН — согласие
+даётся галочкой в «Настройки → Приватность», применяется сразу),
+`memory_rag_model: "nomic-embed-text"` (`ollama pull nomic-embed-text`),
+`memory_rag_top_k: 3`, `memory_rag_min_score: 0.35`,
+`memory_rag_timeout: 2.5`, `memory_rag_max_items: 500`,
+`memory_rag_lexical_fallback: true`.
+
+---
+
 ## 🎭 Персона
 
 **Файл:** `jarvis/persona.py`.

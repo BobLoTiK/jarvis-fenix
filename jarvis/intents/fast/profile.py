@@ -76,20 +76,48 @@ def profile_fast(handler, cmd: str) -> str | None:
             return f"Запомнил: {key} — {value}."
         return "Не удалось сохранить — проверь профиль (возможно, битый JSON)."
 
-    # «что ты обо мне знаешь»
-    if (re.search(r"(что|чё)\s+ты\s+(обо\s+мне\s+)?знаешь", cmd)
-            or cmd in {"что ты обо мне знаешь", "что ты знаешь"}):
+    # «что ты обо мне знаешь» / «что ты обо мне помнишь»
+    if (re.search(r"(что|чё)\s+ты\s+(обо\s+мне\s+)?(знаешь|помнишь)", cmd)
+            or cmd in {"что ты обо мне знаешь", "что ты знаешь",
+                       "что ты обо мне помнишь", "что ты помнишь"}):
         return _describe_known(profile)
 
-    # «забудь X»
-    m = re.match(r"^забудь\s+(?:факт\s+)?(.+)$", cmd)
+    # «забудь X» — по ключу; «забудь про X» / «забудь о X» — ещё и по смыслу
+    m = re.match(r"^забудь\s+(?:факт\s+)?(?:про\s+|об?\s+)?(.+)$", cmd)
     if m:
-        key = m.group(1).strip(" ,.:!?").lower()
-        if profile.forget_fact(key):
-            return f"Забыл: {key}."
-        return f"Факта «{key}» не знаю."
+        raw = m.group(1).strip(" ,.:!?")
+        if raw:
+            key = raw.lower()
+            if profile.forget_fact(key):
+                return f"Забыл: {key}."
+            found = _forget_by_meaning(raw)
+            if found:
+                return found
+        return f"Факта «{raw}» не знаю."
 
     return None
+
+
+def _forget_by_meaning(query: str) -> str | None:
+    """Ищет факт по смыслу и забывает его.
+
+    «забудь про работу» должно сработать, даже если ключ называется
+    «профессия»: сравниваем не строки, а смысл (векторная память, а без
+    неё — по словам). Порог высокий: лучше не забыть, чем забыть не то.
+    """
+    try:
+        from jarvis import vectormem
+        hits = vectormem.search(query, k=1, min_score=0.5)
+    except Exception:
+        log.exception("Поиск факта для «забудь» упал")
+        return None
+    if not hits:
+        return None
+
+    key, value = hits[0]["key"], hits[0]["value"]
+    if not profile.forget_fact(key):
+        return None
+    return f"Забыл: {key} — {value}."
 
 
 def _parse_fact(fact: str) -> tuple[str, str]:
