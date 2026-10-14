@@ -14,6 +14,7 @@
     tts_voice                                     → speaker.set_voice()
     voice_rate                                    → speaker.set_rate()
     mode                                          → handler.mode
+    memory_rag_enabled / memory_rag_model         → vectormem.on_config_change()
 
 Компоненты — заглушки: микрофон не открывается, модели не грузятся.
 """
@@ -28,6 +29,7 @@ if missing:
     pytest.skip(f"нет {', '.join(missing)} — тест пропущен",
                 allow_module_level=True)
 
+from jarvis import vectormem  # noqa: E402
 from jarvis.main import make_config_listener  # noqa: E402
 
 
@@ -171,6 +173,19 @@ def test_unknown_key_is_ignored(wiring):
     callback("совсем_не_тот_ключ", 1)
     assert listener.calls == []
     assert speaker.calls == []
+
+
+def test_memory_rag_reaches_vectormem(wiring, monkeypatch):
+    """Галочка векторной памяти применяется сразу, без перезапуска."""
+    _, _, _, _, callback = wiring
+    seen = []
+    monkeypatch.setattr(vectormem, "on_config_change",
+                        lambda key, value: seen.append((key, value)))
+
+    callback("memory_rag_enabled", True)
+    callback("memory_rag_model", "bge-m3")
+
+    assert seen == [("memory_rag_enabled", True), ("memory_rag_model", "bge-m3")]
 
 
 def test_missing_listener_is_safe(wiring):

@@ -527,6 +527,12 @@ def make_config_listener(jarvis, config, listener, speaker, handler,
             # RawInputStream на новом устройстве (без перезапуска).
             if listener is not None:
                 listener.set_input_device(value)
+        elif key in ("memory_rag_enabled", "memory_rag_model",
+                     "ollama_url", "memory_rag_top_k"):
+            # Векторная память читает конфиг на каждый вызов, поэтому
+            # достаточно разбудить индексацию и сбросить кэши.
+            from jarvis import vectormem
+            vectormem.on_config_change(key, value)
 
     return _on_config_change
 
@@ -551,9 +557,11 @@ def main() -> None:
 
     config: Config = load_config(BASE_DIR)
     from jarvis import profile as _profile
+    from jarvis import vectormem
     from jarvis import weather as _weather
     _profile.init()
     _weather.set_config(config)
+    vectormem.set_config(config)
     # ensure_model сам найдёт/скопирует/скачает модель в ASCII-путь.
     # Передаём локальную папку models (может быть в C:\jarvis\models),
     # если она есть — модель скопируется оттуда, иначе скачается.

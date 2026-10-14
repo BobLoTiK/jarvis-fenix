@@ -23,6 +23,19 @@ from jarvis import profile
 log = logging.getLogger("jarvis.learning")
 
 
+def _notify_index(func: str, *args) -> None:
+    """Сообщает векторной памяти об изменении фактов.
+
+    Импорт ленивый: vectormem сам импортирует learning (цикл был бы иначе).
+    Ошибка памяти не должна ломать сохранение факта.
+    """
+    try:
+        from jarvis import vectormem
+        getattr(vectormem, func)(*args)
+    except Exception:
+        log.exception("vectormem.%s упал", func)
+
+
 # ---------------------------------------------------------------
 # Факты
 # ---------------------------------------------------------------
@@ -39,6 +52,7 @@ def add_fact(key: str, value: str) -> bool:
     ok = profile.set("facts", facts)
     if ok:
         log.info("Факт: %s = %r", key, value)
+        _notify_index("index_fact", key, value)
     return ok
 
 
@@ -57,7 +71,10 @@ def forget_fact(key: str) -> bool:
     if key not in facts:
         return False
     del facts[key]
-    return profile.set("facts", facts)
+    ok = profile.set("facts", facts)
+    if ok:
+        _notify_index("forget_fact", key)
+    return ok
 
 
 # ---------------------------------------------------------------

@@ -105,6 +105,18 @@ DEFAULT_CONFIG = {
     "memory_file": "dialog.json",
     "memory_max": 100,
     "llm_context_messages": 20,
+    # Векторная память фактов (RAG). ВЫКЛЮЧЕНА по умолчанию — как Observer:
+    # включается только галочкой «Настройки → Приватность». Подбирает факты
+    # по смыслу запроса вместо «все факты всегда». Нужна модель эмбеддингов
+    # в Ollama («ollama pull nomic-embed-text»); без неё всё работает как раньше.
+    # Индекс: profiles/<профиль>/memory_index.json.
+    "memory_rag_enabled": False,
+    "memory_rag_model": "nomic-embed-text",
+    "memory_rag_top_k": 3,
+    "memory_rag_min_score": 0.35,
+    "memory_rag_timeout": 2.5,
+    "memory_rag_max_items": 500,
+    "memory_rag_lexical_fallback": True,
     "weather_cache_ttl_sec": 600,
     "danger_password": "",
     "gui_enabled": True,

@@ -114,6 +114,11 @@ def dialog_path() -> Path:
     return profile_dir() / "dialog.json"
 
 
+def memory_index_path() -> Path:
+    """Путь к memory_index.json текущего профиля (векторный индекс фактов)."""
+    return profile_dir() / "memory_index.json"
+
+
 # ---------------------------------------------------------------
 # Миграция
 # ---------------------------------------------------------------

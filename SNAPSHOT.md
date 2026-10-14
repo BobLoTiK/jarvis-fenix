@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=6908c98dfaa900dd` · режим `lean` · файлов `169` · строк `33592` · источник `1421 КБ`
+`sha256=34aa8388916b0b16` · режим `lean` · файлов `171` · строк `34745` · источник `1466 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -255,7 +255,7 @@ README)._
 ├── cmds/
 │   ├── open_terminal.bat  (3 стр)
 │   ├── show_ip.bat  (3 стр)
-├── config.example.json  (69 стр)
+├── config.example.json  (76 стр)
 ├── CONTRIBUTING.md  (378 стр)
 ├── create_shortcut.bat  (51 стр)
 ├── install.bat  (411 стр)
@@ -267,7 +267,7 @@ README)._
 │   ├── apps.py  (114 стр)
 │   ├── brain.py  (836 стр)
 │   ├── celebrations.py  (165 стр)
-│   ├── config.py  (257 стр)
+│   ├── config.py  (269 стр)
 │   ├── config_manager.py  (156 стр)
 │   ├── files.py  (102 стр)
 │   ├── first_run.py  (26 стр)
@@ -316,8 +316,8 @@ README)._
 │   │   │   ├── password.py  (94 стр)
 │   │   │   ├── pending.py  (62 стр)
 │   │   ├── verbs.py  (45 стр)
-│   ├── learning.py  (160 стр)
-│   ├── main.py  (779 стр)
+│   ├── learning.py  (177 стр)
+│   ├── main.py  (787 стр)
 │   ├── matching.py  (113 стр)
 │   ├── memory.py  (137 стр)
 │   ├── model.py  (102 стр)
@@ -327,7 +327,7 @@ README)._
 │   ├── packs.py  (117 стр)
 │   ├── paths.py  (216 стр)
 │   ├── persona.py  (219 стр)
-│   ├── profile.py  (451 стр)
+│   ├── profile.py  (456 стр)
 │   ├── prosody.py  (152 стр)
 │   ├── recorder.py  (171 стр)
 │   ├── reply.py  (25 стр)
@@ -349,6 +349,7 @@ README)._
 │   │   ├── winrt.py  (158 стр)
 │   ├── uia.py  (1013 стр)
 │   ├── vad.py  (567 стр)
+│   ├── vectormem.py  (701 стр)
 │   ├── voices.py  (220 стр)
 │   ├── weather.py  (394 стр)
 ├── jarvis-fenix.code-workspace  (8 стр)
@@ -403,7 +404,7 @@ README)._
 │   ├── test_engine_probe.py  (100 стр)
 │   ├── test_gui_wiring.py  (540 стр)
 │   ├── test_intents.py  (445 стр)
-│   ├── test_main_wiring.py  (187 стр)
+│   ├── test_main_wiring.py  (202 стр)
 │   ├── test_mood.py  (386 стр)
 │   ├── test_persona.py  (155 стр)
 │   ├── test_prosody.py  (83 стр)
@@ -416,6 +417,7 @@ README)._
 │   ├── test_uia_fast.py  (238 стр)
 │   ├── test_vad.py  (333 стр)
 │   ├── test_vad_model.py  (273 стр)
+│   ├── test_vectormem.py  (388 стр)
 │   ├── test_weather.py  (237 стр)
 │   ├── test_window_targets.py  (294 стр)
 ```
@@ -1151,6 +1153,7 @@ README)._
   def profile_dir()
   def profile_path()
   def dialog_path()
+  def memory_index_path()
   def current()
   def subscribe(callback)
   def unsubscribe(callback)
@@ -1495,6 +1498,36 @@ README)._
     def feed(self, is_speech: bool)
     def reset(self)
     def blocks_for_ms(ms: float, block_ms: float)
+```
+
+**`jarvis/vectormem.py`**
+
+```
+  # Векторная память фактов (RAG) — на профиль.
+  SCHEMA_VERSION = ...
+  DEFAULT_MODEL = ...
+  DEFAULT_OLLAMA_URL = ...
+  BREAKER_SEC = ...
+  BREAKER_FAILS = ...
+  CACHE_MAX = ...
+  def set_config(config)
+  def embed_texts(texts: list, kind: str='document', timeout: float=None)
+  def embed_cached(text: str, kind: str='query')
+  def index_path()
+  def load_index()
+  def save_index(items: list, dim: int)
+  _TOKEN_RE = ...
+  def search(query: str, k: int=3, min_score: float=None)
+  def build_prompt_block(query: str, k: int=None)
+  def sync(force: bool=False)
+  def index_fact(key: str, value: str, source: str='user')
+  def forget_fact(key: str)
+  def warmup_async()
+  def stop()
+  def on_config_change(key: str, value)
+  def status()
+  def describe(limit: int=12)
+  def reset_for_tests()
 ```
 
 **`jarvis/voices.py`**
@@ -1940,6 +1973,7 @@ README)._
   def test_tts_voice_and_rate(wiring)
   def test_mode_goes_to_handler(wiring)
   def test_unknown_key_is_ignored(wiring)
+  def test_memory_rag_reaches_vectormem(wiring, monkeypatch)
   def test_missing_listener_is_safe(wiring)
 ```
 
@@ -2288,6 +2322,36 @@ README)._
   def test_load_session_returns_false_for_broken_file(monkeypatch, tmp_path)
 ```
 
+**`tests/test_vectormem.py`**
+
+```
+  # Векторная память фактов (jarvis.vectormem, №51–53).
+  class _Resp(io.BytesIO)
+  class FakeOllama
+    def __init__(self, table=None, dim=4, fail=None)
+  def cfg(tmp_path)
+  def test_disabled_by_default_makes_no_calls(tmp_path, monkeypatch)
+  def test_sync_indexes_facts(cfg, tmp_path, monkeypatch)
+  def test_sync_is_idempotent(cfg, tmp_path, monkeypatch)
+  def test_sync_removes_orphans(cfg, tmp_path, monkeypatch)
+  def test_sync_updates_changed_value(cfg, tmp_path, monkeypatch)
+  def test_model_change_invalidates_index(cfg, tmp_path, monkeypatch)
+  def test_broken_index_file(cfg, tmp_path, monkeypatch)
+  def test_search_ranks_by_cosine(cfg, tmp_path, monkeypatch)
+  def test_search_respects_threshold(cfg, tmp_path, monkeypatch)
+  def test_prompt_block_skips_selection_for_few_facts(cfg, tmp_path, monkeypatch)
+  def test_prompt_block_selects_relevant_facts(cfg, tmp_path, monkeypatch)
+  def test_prompt_block_empty_query(cfg, tmp_path, monkeypatch)
+  def test_lexical_fallback_without_embeddings(cfg, tmp_path, monkeypatch)
+  def test_lexical_fallback_can_be_disabled(cfg, tmp_path, monkeypatch)
+  def test_breaker_stops_hammering_ollama(cfg, tmp_path, monkeypatch)
+  def test_breaker_resets_on_success(cfg, tmp_path, monkeypatch)
+  def test_missing_model_warns_and_does_not_switch_endpoint(cfg, tmp_path, monkeypatch)
+  def test_old_ollama_falls_back_to_legacy_endpoint(cfg, tmp_path, monkeypatch)
+  def test_prefixes_only_for_nomic(cfg, tmp_path, monkeypatch)
+  def test_concurrent_sync_keeps_index_valid(cfg, tmp_path, monkeypatch)
+```
+
 **`tests/test_weather.py`**
 
 ```
@@ -2470,7 +2534,7 @@ README)._
 | `jarvis/apps.py` | 114 | code | Каталог известных приложений: как их зовут голосом, как открыть и как  |
 | `jarvis/brain.py` | 836 | code | LLM-фолбэк: локальная нейронка (Ollama) разбирает команду в структурны |
 | `jarvis/celebrations.py` | 165 | code | Праздничные триггеры — поздравление с ДР + двойной салют. |
-| `jarvis/config.py` | 257 | code | Загрузка конфигурации и объект Config в памяти. |
+| `jarvis/config.py` | 269 | code | Загрузка конфигурации и объект Config в памяти. |
 | `jarvis/config_manager.py` | 156 | code | Единый менеджер записи в config.json. |
 | `jarvis/files.py` | 102 | code | Файлы и папки: открыть, посмотреть содержимое, создать. |
 | `jarvis/first_run.py` | 26 | code | Первый запуск — знакомство через LLM-диалог. |
@@ -2516,8 +2580,8 @@ README)._
 | `jarvis/intents/stages/password.py` | 94 | code | Ожидание пароля + команда «удали профиль X». |
 | `jarvis/intents/stages/pending.py` | 62 | code | Ожидание уточнения (pending_question). |
 | `jarvis/intents/verbs.py` | 45 | code | Константы глаголов и слов — единый источник истины. |
-| `jarvis/learning.py` | 160 | code | Самообучение Феникса: факты и коррекции. |
-| `jarvis/main.py` | 779 | code | Точка входа: связывает распознавание, интенты, синтез речи и GUI. |
+| `jarvis/learning.py` | 177 | code | Самообучение Феникса: факты и коррекции. |
+| `jarvis/main.py` | 787 | code | Точка входа: связывает распознавание, интенты, синтез речи и GUI. |
 | `jarvis/matching.py` | 113 | code | Нечёткое сопоставление речи с названиями: транслитерация + difflib. |
 | `jarvis/memory.py` | 137 | code | Память диалога — на профиль. |
 | `jarvis/model.py` | 102 | code | Скачивание и распаковка модели Vosk для русского языка (~45 МБ). |
@@ -2527,7 +2591,7 @@ README)._
 | `jarvis/packs.py` | 117 | code | Загрузка и выгрузка паков команд из папки packs/. |
 | `jarvis/paths.py` | 216 | code | Централизованное определение путей Феникса. |
 | `jarvis/persona.py` | 219 | code | Персона ассистента — стиль общения, черты, backstory, tone. |
-| `jarvis/profile.py` | 451 | code | Профиль пользователя — мультипрофиль. |
+| `jarvis/profile.py` | 456 | code | Профиль пользователя — мультипрофиль. |
 | `jarvis/prosody.py` | 152 | code | Prosody — эмоции из голоса (RMS + pitch + ZCR). |
 | `jarvis/recorder.py` | 171 | code | Запись действий: клавиши, клики, паузы. |
 | `jarvis/reply.py` | 25 | code | Reply — результат IntentHandler.handle(). |
@@ -2548,6 +2612,7 @@ README)._
 | `jarvis/tts_engines/winrt.py` | 158 | code | WinRT TTS — системный синтез Windows, без внешних моделей. |
 | `jarvis/uia.py` | 1013 | code | UI Automation — видим окна и элементы интерфейса. |
 | `jarvis/vad.py` | 567 | code | Silero VAD — детекция речи в аудио-потоке с адаптивным порогом. |
+| `jarvis/vectormem.py` | 701 | code | Векторная память фактов (RAG) — на профиль. |
 | `jarvis/voices.py` | 220 | code | Управление голосами TTS — работает через tts_engines. |
 | `jarvis/weather.py` | 394 | code | Погода и курс валют. |
 | `scripts/__init__.py` | 7 | code | Пакет scripts: утилиты разработчика. |
@@ -2578,7 +2643,7 @@ README)._
 | `tests/test_engine_probe.py` | 100 | code | Заглушка движка TTS (factory._probe_engine). |
 | `tests/test_gui_wiring.py` | 540 | code | GUI → config: каждый элемент окна реально отсылает изменение. |
 | `tests/test_intents.py` | 445 | code | Автотест Феникса без микрофона. |
-| `tests/test_main_wiring.py` | 187 | code | config → живое ядро: подписчик make_config_listener. |
+| `tests/test_main_wiring.py` | 202 | code | config → живое ядро: подписчик make_config_listener. |
 | `tests/test_mood.py` | 386 | code | Тесты jarvis.mood — состояние, детекция, decay, влияние. |
 | `tests/test_persona.py` | 155 | code | Тесты jarvis.persona — стиль, tone, prompt-блок. |
 | `tests/test_prosody.py` | 83 | code | Тесты jarvis.prosody — эмоции из голоса (эвристика). |
@@ -2591,6 +2656,7 @@ README)._
 | `tests/test_uia_fast.py` | 238 | code | Тесты быстрых UIA-команд — `jarvis/intents/fast/uia.py`. |
 | `tests/test_vad.py` | 333 | code | Тесты jarvis.vad — Silero VAD ONNX. |
 | `tests/test_vad_model.py` | 273 | code | Авто-скачивание модели Silero VAD (jarvis.vad). |
+| `tests/test_vectormem.py` | 388 | code | Векторная память фактов (jarvis.vectormem, №51–53). |
 | `tests/test_weather.py` | 237 | code | Тесты weather: структура ответов, describe_*, geocode с моками. |
 | `tests/test_window_targets.py` | 294 | code | Тесты выбора окна: голосовое имя → процессы → окно. |
 | `check_all.py` | 170 | code | Единый прогон всех проверок Феникса — движок для check_all.bat. |
@@ -5183,6 +5249,18 @@ DEFAULT_CONFIG = {
     "memory_file": "dialog.json",
     "memory_max": 100,
     "llm_context_messages": 20,
+    # Векторная память фактов (RAG). ВЫКЛЮЧЕНА по умолчанию — как Observer:
+    # включается только галочкой «Настройки → Приватность». Подбирает факты
+    # по смыслу запроса вместо «все факты всегда». Нужна модель эмбеддингов
+    # в Ollama («ollama pull nomic-embed-text»); без неё всё работает как раньше.
+    # Индекс: profiles/<профиль>/memory_index.json.
+    "memory_rag_enabled": False,
+    "memory_rag_model": "nomic-embed-text",
+    "memory_rag_top_k": 3,
+    "memory_rag_min_score": 0.35,
+    "memory_rag_timeout": 2.5,
+    "memory_rag_max_items": 500,
+    "memory_rag_lexical_fallback": True,
     "weather_cache_ttl_sec": 600,
     "danger_password": "",
     "gui_enabled": True,
@@ -11094,6 +11172,15 @@ from jarvis import profile
 log = logging.getLogger("jarvis.learning")
 
 
+def _notify_index(func: str, *args) -> None:
+    """Сообщает векторной памяти об изменении фактов. ... [4 строк]"""
+    try:
+        from jarvis import vectormem
+        getattr(vectormem, func)(*args)
+    except Exception:
+        log.exception("vectormem.%s упал", func)
+
+
 # ---------------------------------------------------------------
 # Факты
 # ---------------------------------------------------------------
@@ -11110,6 +11197,7 @@ def add_fact(key: str, value: str) -> bool:
     ok = profile.set("facts", facts)
     if ok:
         log.info("Факт: %s = %r", key, value)
+        _notify_index("index_fact", key, value)
     return ok
 
 
@@ -11128,7 +11216,10 @@ def forget_fact(key: str) -> bool:
     if key not in facts:
         return False
     del facts[key]
-    return profile.set("facts", facts)
+    ok = profile.set("facts", facts)
+    if ok:
+        _notify_index("forget_fact", key)
+    return ok
 
 
 # ---------------------------------------------------------------
@@ -11709,6 +11800,12 @@ def make_config_listener(jarvis, config, listener, speaker, handler,
             # RawInputStream на новом устройстве (без перезапуска).
             if listener is not None:
                 listener.set_input_device(value)
+        elif key in ("memory_rag_enabled", "memory_rag_model",
+                     "ollama_url", "memory_rag_top_k"):
+            # Векторная память читает конфиг на каждый вызов, поэтому
+            # достаточно разбудить индексацию и сбросить кэши.
+            from jarvis import vectormem
+            vectormem.on_config_change(key, value)
 
     return _on_config_change
 
@@ -11733,9 +11830,11 @@ def main() -> None:
 
     config: Config = load_config(BASE_DIR)
     from jarvis import profile as _profile
+    from jarvis import vectormem
     from jarvis import weather as _weather
     _profile.init()
     _weather.set_config(config)
+    vectormem.set_config(config)
     # ensure_model сам найдёт/скопирует/скачает модель в ASCII-путь.
     # Передаём локальную папку models (может быть в C:\jarvis\models),
     # если она есть — модель скопируется оттуда, иначе скачается.
@@ -13503,6 +13602,11 @@ def profile_path() -> Path:
 def dialog_path() -> Path:
     """Путь к dialog.json текущего профиля."""
     return profile_dir() / "dialog.json"
+
+
+def memory_index_path() -> Path:
+    """Путь к memory_index.json текущего профиля (векторный индекс фактов)."""
+    return profile_dir() / "memory_index.json"
 
 
 # ---------------------------------------------------------------
@@ -18376,6 +18480,655 @@ class SpeechHangover:
         return int(round(max(0.0, float(ms)) / block_ms))
 ```
 
+### `jarvis/vectormem.py`
+
+```python
+"""Векторная память фактов (RAG) — на профиль. ... [27 строк]"""
+
+import json
+import logging
+import re
+import threading
+import time
+import urllib.error
+import urllib.request
+from collections import OrderedDict
+from difflib import SequenceMatcher
+
+from jarvis import config_manager, profile
+
+log = logging.getLogger("jarvis.vectormem")
+
+SCHEMA_VERSION = 1
+DEFAULT_MODEL = "nomic-embed-text"
+DEFAULT_OLLAMA_URL = "http://127.0.0.1:11434"
+BREAKER_SEC = 300.0
+BREAKER_FAILS = 3
+CACHE_MAX = 64
+
+_lock = threading.RLock()
+_config = None
+
+# Состояние эмбеддингов.
+_legacy_api = False          # Ollama без /api/embed — ходим в /api/embeddings
+_fails = 0                   # ошибок подряд
+_breaker_until = 0.0         # до этого времени эмбеддинги не пробуем
+_said_no_model = False       # предупреждение про ollama pull — один раз
+_embed_cache: "OrderedDict[str, list]" = OrderedDict()
+
+# Кэш индекса в RAM: перечитываем только при смене файла.
+_items_cache = {"stamp": None, "items": [], "matrix": None}
+
+# Фоновый воркер индексации.
+_worker = None
+_wake = threading.Event()
+_stop = threading.Event()
+
+
+# ---------------------------------------------------------------
+# Конфиг
+# ---------------------------------------------------------------
+
+def set_config(config) -> None:
+    """Принимает конфиг приложения (как weather.set_config)."""
+    global _config
+    _config = config
+    log.info("Конфиг принят: модель %s", _model())
+
+
+def _cfg(key, default=None):
+    if _config is None:
+        return default
+    try:
+        return _config.get(key, default)
+    except Exception:
+        log.exception("Не удалось прочитать ключ %s", key)
+        return default
+
+
+def _enabled() -> bool:
+    """Фича включена? Выключена — ни одного сетевого вызова."""
+    return bool(_cfg("memory_rag_enabled", False))
+
+
+def _model() -> str:
+    return str(_cfg("memory_rag_model", DEFAULT_MODEL) or DEFAULT_MODEL)
+
+
+def _ollama_url() -> str:
+    url = str(_cfg("ollama_url", DEFAULT_OLLAMA_URL) or DEFAULT_OLLAMA_URL)
+    return url.rstrip("/")
+
+
+def _top_k() -> int:
+    try:
+        return max(1, int(_cfg("memory_rag_top_k", 3) or 3))
+    except (TypeError, ValueError):
+        return 3
+
+
+def _min_score() -> float:
+    try:
+        return float(_cfg("memory_rag_min_score", 0.35))
+    except (TypeError, ValueError):
+        return 0.35
+
+
+def _timeout() -> float:
+    try:
+        return float(_cfg("memory_rag_timeout", 2.5) or 2.5)
+    except (TypeError, ValueError):
+        return 2.5
+
+
+def _lexical_fallback() -> bool:
+    return bool(_cfg("memory_rag_lexical_fallback", True))
+
+
+# ---------------------------------------------------------------
+# Эмбеддинги (Ollama, stdlib urllib)
+# ---------------------------------------------------------------
+
+def _apply_prefix(text: str, kind: str) -> str:
+    """Префиксы nomic: документы и запросы асимметричны. ... [5 строк]"""
+    if "nomic" in _model().lower():
+        return ("search_query: " if kind == "query" else "search_document: ") + text
+    return text
+
+
+def _post(url: str, payload: dict, timeout: float) -> dict:
+    req = urllib.request.Request(url, json.dumps(payload).encode(),
+                                 {"Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return json.loads(r.read())
+
+
+def _note_ok() -> None:
+    global _fails, _breaker_until, _said_no_model
+    _fails = 0
+    _breaker_until = 0.0
+    _said_no_model = False
+
+
+def _note_fail(msg: str, *args) -> None:
+    global _fails, _breaker_until
+    _fails += 1
+    log.warning(msg, *args)
+    if _fails >= BREAKER_FAILS:
+        _breaker_until = time.time() + BREAKER_SEC
+        log.warning("Эмбеддинги недоступны — пауза %.0f с (лексический поиск)",
+                    BREAKER_SEC)
+
+
+def embed_texts(texts: list, kind: str = "document", timeout: float = None):
+    """Векторы для текстов. None — эмбеддинги недоступны. ... [3 строк]"""
+    global _legacy_api, _said_no_model
+    if not texts:
+        return []
+    if not _enabled():
+        return None
+    if time.time() < _breaker_until:
+        return None
+
+    model = _model()
+    t = float(timeout or _timeout())
+
+    try:
+        if not _legacy_api:
+            payload = {
+                "model": model,
+                "input": [_apply_prefix(x, kind) for x in texts],
+                "keep_alive": -1,
+            }
+            data = _post(_ollama_url() + "/api/embed", payload, t)
+            vecs = data.get("embeddings")
+            if not isinstance(vecs, list) or len(vecs) != len(texts):
+                _note_fail("Ollama вернула неожиданный ответ /api/embed")
+                return None
+        else:
+            vecs = _embed_legacy(texts, kind, t, model)
+            if vecs is None:
+                return None
+    except urllib.error.HTTPError as e:
+        body = ""
+        try:
+            body = e.read().decode("utf-8", "replace")
+        except Exception:
+            pass
+        if "try pulling" in body or ("not found" in body and "model" in body):
+            if not _said_no_model:
+                _said_no_model = True
+                _note_fail("Модель эмбеддингов %r не скачана — "
+                           "выполни «ollama pull %s»", model, model)
+            else:
+                _note_fail("Модель эмбеддингов %r недоступна", model)
+            return None
+        if e.code == 404 and not _legacy_api:
+            log.info("Ollama не знает /api/embed — перехожу на /api/embeddings")
+            _legacy_api = True
+            try:
+                vecs = _embed_legacy(texts, kind, t, model)
+            except Exception:
+                _note_fail("Эмбеддинги недоступны (legacy /api/embeddings)")
+                return None
+            if vecs is None:
+                return None
+        else:
+            _note_fail("Эмбеддинги: HTTP %s", getattr(e, "code", "?"))
+            return None
+    except Exception as e:
+        _note_fail("Эмбеддинги недоступны: %s", e)
+        return None
+
+    for v in vecs:
+        if not isinstance(v, list) or not v:
+            _note_fail("Эмбеддинги: пустой вектор в ответе")
+            return None
+
+    _note_ok()
+    return vecs
+
+
+def _embed_legacy(texts: list, kind: str, timeout: float, model: str):
+    """Старый /api/embeddings — по одному тексту за вызов."""
+    out = []
+    for text in texts:
+        payload = {"model": model, "prompt": _apply_prefix(text, kind)}
+        data = _post(_ollama_url() + "/api/embeddings", payload, timeout)
+        vec = data.get("embedding")
+        if not isinstance(vec, list) or not vec:
+            return None
+        out.append(vec)
+    return out
+
+
+def embed_cached(text: str, kind: str = "query"):
+    """То же, но с LRU-кэшем — для горячего пути диалога."""
+    key = f"{kind}\x00{text}"
+    with _lock:
+        if key in _embed_cache:
+            _embed_cache.move_to_end(key)
+            return _embed_cache[key]
+    vecs = embed_texts([text], kind=kind)
+    if not vecs:
+        return None
+    with _lock:
+        _embed_cache[key] = vecs[0]
+        _embed_cache.move_to_end(key)
+        while len(_embed_cache) > CACHE_MAX:
+            _embed_cache.popitem(last=False)
+    return vecs[0]
+
+
+# ---------------------------------------------------------------
+# Индекс: чтение / запись
+# ---------------------------------------------------------------
+
+def index_path():
+    """Путь к индексу текущего профиля."""
+    return profile.memory_index_path()
+
+
+def _valid(data: dict) -> bool:
+    """Индекс годится? Модель и версия должны совпадать. ... [4 строк]"""
+    if not isinstance(data, dict):
+        return False
+    if data.get("version") != SCHEMA_VERSION:
+        return False
+    if data.get("embed_model") != _model():
+        return False
+    return isinstance(data.get("items"), list)
+
+
+def load_index() -> dict:
+    """Читает индекс. Битый/устаревший — пустой словарь."""
+    path = index_path()
+    if not path.exists():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        log.exception("Не удалось прочитать %s", path)
+        return {}
+    if not _valid(data):
+        log.info("Индекс %s устарел (версия/модель) — пересоберу", path.name)
+        return {}
+    return data
+
+
+def save_index(items: list, dim: int) -> bool:
+    """Атомарно пишет индекс (config_manager: mkstemp + os.replace + FileLock)."""
+    data = {
+        "version": SCHEMA_VERSION,
+        "embed_model": _model(),
+        "dim": int(dim or 0),
+        "updated_at": time.time(),
+        "items": items,
+    }
+    return config_manager.save(data, path=index_path())
+
+
+def _stamp(path):
+    """Ключ кэша: путь + файл + модель. ... [4 строк]"""
+    try:
+        st = path.stat()
+        return (str(path), st.st_mtime_ns, st.st_size, _model())
+    except OSError:
+        return (str(path), None, None, _model())
+
+
+def _items() -> list:
+    """Элементы индекса из кэша (перечитывается только при смене файла)."""
+    path = index_path()
+    stamp = _stamp(path)
+    with _lock:
+        if _items_cache["stamp"] != stamp:
+            data = load_index()
+            _items_cache["stamp"] = stamp
+            _items_cache["items"] = data.get("items", []) if data else []
+            _items_cache["matrix"] = None
+        return _items_cache["items"]
+
+
+def _invalidate() -> None:
+    with _lock:
+        _items_cache["stamp"] = None
+        _items_cache["matrix"] = None
+
+
+# ---------------------------------------------------------------
+# Факты (источник правды — profile.json)
+# ---------------------------------------------------------------
+
+def _facts() -> dict:
+    """Факты из профиля. Импорт ленивый — иначе цикл learning ↔ vectormem."""
+    try:
+        from jarvis import learning
+        facts = learning.all_facts()
+        return facts if isinstance(facts, dict) else {}
+    except Exception:
+        log.exception("Не удалось прочитать факты профиля")
+        return {}
+
+
+def _items_from_facts() -> list:
+    """Факты как элементы индекса — без векторов (индекс ещё не собран)."""
+    return [{"key": k, "value": v, "text": f"{k}: {v}", "vec": None}
+            for k, v in _facts().items()]
+
+
+# ---------------------------------------------------------------
+# Поиск
+# ---------------------------------------------------------------
+
+_TOKEN_RE = re.compile(r"[а-яёa-z0-9]{3,}")
+
+
+def _stems(text: str) -> set:
+    """Грубые основы: первые 4 буквы слова (город/городе/города → «горо»)."""
+    return {t[:4] for t in _TOKEN_RE.findall((text or "").lower())}
+
+
+def _lexical_score(query: str, text: str) -> float:
+    """Грубая близость запроса и факта. ... [5 строк]"""
+    a, b = _stems(query), _stems(text)
+    if not a or not b:
+        return 0.0
+    inter = len(a & b)
+    if not inter:
+        return 0.0
+    coverage = inter / min(len(a), len(b))
+    jaccard = inter / len(a | b)
+    ratio = SequenceMatcher(None, query.lower(), text.lower()).ratio()
+    return 0.7 * coverage + 0.2 * jaccard + 0.1 * ratio
+
+
+def _lexical_hits(query: str, items: list) -> list:
+    hits = []
+    for it in items:
+        text = it.get("text") or f"{it.get('key', '')}: {it.get('value', '')}"
+        score = _lexical_score(query, text)
+        if score > 0:
+            hits.append((score, it))
+    return hits
+
+
+def _matrix(items: list):
+    """(vec_items, нормализованная матрица) или (None, None)."""
+    with _lock:
+        if _items_cache["matrix"] is not None:
+            return _items_cache["matrix"]
+
+    vec_items = [it for it in items if isinstance(it.get("vec"), list) and it["vec"]]
+    if not vec_items:
+        return None, None
+    try:
+        import numpy as np
+    except Exception:
+        log.info("numpy недоступен — остаётся лексический поиск")
+        return None, None
+
+    dim = len(vec_items[0]["vec"])
+    vec_items = [it for it in vec_items if len(it["vec"]) == dim]
+    matrix = np.asarray([it["vec"] for it in vec_items], dtype=np.float32)
+    norms = np.linalg.norm(matrix, axis=1, keepdims=True)
+    norms[norms == 0] = 1.0
+    matrix /= norms
+
+    with _lock:
+        _items_cache["matrix"] = (vec_items, matrix)
+    return vec_items, matrix
+
+
+def _vector_hits(query: str, items: list) -> list:
+    vec_items, matrix = _matrix(items)
+    if not vec_items:
+        return []
+    qv = embed_cached(query, kind="query")
+    if not qv or len(qv) != matrix.shape[1]:
+        return []
+    try:
+        import numpy as np
+        qa = np.asarray(qv, dtype=np.float32)
+        qa = qa / (float(np.linalg.norm(qa)) + 1e-9)
+        sims = matrix @ qa
+    except Exception:
+        log.exception("Векторный поиск упал")
+        return []
+    return [(float(sims[i]), vec_items[i]) for i in range(len(vec_items))]
+
+
+def search(query: str, k: int = 3, min_score: float = None) -> list:
+    """Ищет факты по смыслу. Работает и без эмбеддингов (лексика). ... [3 строк]"""
+    q = (query or "").strip()
+    if not q:
+        return []
+    try:
+        k = max(1, int(k or 3))
+    except (TypeError, ValueError):
+        k = 3
+    threshold = _min_score() if min_score is None else float(min_score)
+
+    items = _items() or _items_from_facts()
+    if not items:
+        return []
+
+    hits = _vector_hits(q, items)
+    if hits:
+        # Факты без вектора (только что добавлен, фон не успел) — добираем лексикой.
+        seen = {id(it) for _, it in hits}
+        hits += [(s, it) for s, it in _lexical_hits(q, items) if id(it) not in seen]
+    elif _lexical_fallback():
+        hits = _lexical_hits(q, items)
+
+    good = [(s, it) for s, it in hits if s >= threshold]
+    if not good:
+        return []
+    good.sort(key=lambda pair: pair[0], reverse=True)
+    return [{"key": it.get("key", ""), "value": it.get("value", ""), "score": score}
+            for score, it in good[:k]]
+
+
+def build_prompt_block(query: str, k: int = None) -> str:
+    """Блок фактов для system-промпта. "" — если отбирать нечего или не уверены. ... [3 строк]"""
+    if not _enabled():
+        return ""
+    q = (query or "").strip()
+    if not q:
+        return ""
+    facts = _facts()
+    if not facts:
+        return ""
+    k = _top_k() if k is None else max(1, int(k))
+    if len(facts) <= k:
+        # Отбирать не из чего — brain возьмёт все факты.
+        return ""
+
+    hits = search(q, k=k)
+    if not hits:
+        return ""
+    lines = [f"- {h['key']}: {h['value']}" for h in hits]
+    return ("Факты о пользователе (отобраны по смыслу запроса):\n"
+            + "\n".join(lines) + "\n")
+
+
+# ---------------------------------------------------------------
+# Сверка индекса с профилем + фоновый воркер
+# ---------------------------------------------------------------
+
+def _round_vec(vec) -> list:
+    try:
+        return [round(float(x), 6) for x in vec]
+    except Exception:
+        return []
+
+
+def sync(force: bool = False) -> int:
+    """Сверяет индекс с profile.json. Возвращает число изменений. ... [3 строк]"""
+    if not _enabled():
+        return 0
+    path = index_path()
+    facts = _facts()
+
+    data = {} if force else load_index()
+    items = {}
+    for it in data.get("items", []):
+        key = it.get("key")
+        if key and it.get("value") == facts.get(key):
+            items[key] = it
+
+    missing = [(k, v) for k, v in facts.items() if k not in items]
+
+    # Считаем каждый факт один раз: правка значения — это одно изменение,
+    # а не «удалили + добавили».
+    old_keys = {it.get("key") for it in data.get("items", [])}
+    changed = len(old_keys - set(items) - {k for k, _ in missing})
+    if missing:
+        try:
+            max_items = max(1, int(_cfg("memory_rag_max_items", 500) or 500))
+        except (TypeError, ValueError):
+            max_items = 500
+        missing = missing[:max(0, max_items - len(items))]
+
+        texts = [f"{k}: {v}" for k, v in missing]
+        # В фоне таймаут щедрее: голосовой цикл здесь не ждёт.
+        vecs = embed_texts(texts, kind="document", timeout=_timeout() * 4)
+        for (key, value), vec in zip(missing, vecs or []):
+            if not vec:
+                continue
+            items[key] = {
+                "key": key,
+                "value": value,
+                "text": f"{key}: {value}",
+                "vec": _round_vec(vec),
+                "ts": time.time(),
+                "src": "user",
+            }
+            changed += 1
+
+    if changed:
+        if index_path() != path:
+            # Профиль переключился, пока считали — в чужой индекс не пишем.
+            log.info("Профиль сменился во время индексации — пропускаю запись")
+            _invalidate()
+            return 0
+        dim = 0
+        for it in items.values():
+            if it.get("vec"):
+                dim = len(it["vec"])
+                break
+        if not save_index(list(items.values()), dim):
+            return 0
+        _invalidate()
+
+    return changed
+
+
+def index_fact(key: str, value: str, source: str = "user") -> None:
+    """Хук learning.add_fact: будим воркер (сам факт уже в profile.json)."""
+    if not _enabled():
+        return
+    _wake.set()
+    if _worker is None or not _worker.is_alive():
+        warmup_async()
+
+
+def forget_fact(key: str) -> None:
+    """Хук learning.forget_fact: индекс почистит sync."""
+    index_fact(key, "")
+
+
+def warmup_async() -> None:
+    """Запускает фоновую сборку индекса (демон-поток)."""
+    global _worker
+    if not _enabled():
+        return
+    with _lock:
+        if _worker is not None and _worker.is_alive():
+            _wake.set()
+            return
+        _stop.clear()
+        _wake.set()
+        _worker = threading.Thread(target=_worker_loop,
+                                   name="vectormem-index", daemon=True)
+        _worker.start()
+        log.info("Индексация фактов запущена в фоне")
+
+
+def _worker_loop() -> None:
+    while not _stop.is_set():
+        _wake.wait(timeout=5.0)
+        _wake.clear()
+        if _stop.is_set():
+            break
+        try:
+            sync()
+        except Exception:
+            log.exception("vectormem.sync упал")
+
+
+def stop() -> None:
+    """Останавливает воркер (на выходе приложения)."""
+    _stop.set()
+    _wake.set()
+
+
+def on_config_change(key: str, value) -> None:
+    """Реакция на смену настроек в рантайме."""
+    global _legacy_api, _fails, _breaker_until
+    if key == "ollama_url":
+        _legacy_api = False
+        _invalidate()
+        return
+    if key in ("memory_rag_enabled", "memory_rag_model"):
+        _legacy_api = False
+        _fails = 0
+        _breaker_until = 0.0
+        with _lock:
+            _embed_cache.clear()
+        _invalidate()
+        if value:
+            warmup_async()
+
+
+def status() -> dict:
+    """Состояние для GUI и команд «какая память»."""
+    items = _items()
+    return {
+        "enabled": _enabled(),
+        "model": _model(),
+        "items": len(items),
+        "vectors": sum(1 for it in items if it.get("vec")),
+        "breaker": time.time() < _breaker_until,
+        "legacy_api": _legacy_api,
+        "path": str(index_path()),
+    }
+
+
+def describe(limit: int = 12) -> str:
+    """Короткая сводка для команды «что ты обо мне помнишь»."""
+    facts = _facts()
+    if not facts:
+        return "Пока ничего о тебе не знаю."
+    lines = [f"{k} — {v}" for k, v in list(facts.items())[:limit]]
+    tail = "" if len(facts) <= limit else f" (и ещё {len(facts) - limit})"
+    return "Помню: " + "; ".join(lines) + tail + "."
+
+
+def reset_for_tests() -> None:
+    """Сброс кэшей между тестами."""
+    global _fails, _breaker_until, _legacy_api, _said_no_model
+    with _lock:
+        _embed_cache.clear()
+        _items_cache["stamp"] = None
+        _items_cache["items"] = []
+        _items_cache["matrix"] = None
+    _fails = 0
+    _breaker_until = 0.0
+    _legacy_api = False
+    _said_no_model = False
+```
+
 ### `jarvis/voices.py`
 
 ```python
@@ -22449,7 +23202,7 @@ if __name__ == "__main__":
 ### `tests/test_main_wiring.py`
 
 ```python
-"""config → живое ядро: подписчик make_config_listener. ... [18 строк]"""
+"""config → живое ядро: подписчик make_config_listener. ... [19 строк]"""
 
 import importlib.util
 
@@ -22461,6 +23214,7 @@ if missing:
     pytest.skip(f"нет {', '.join(missing)} — тест пропущен",
                 allow_module_level=True)
 
+from jarvis import vectormem  # noqa: E402
 from jarvis.main import make_config_listener  # noqa: E402
 
 
@@ -22604,6 +23358,19 @@ def test_unknown_key_is_ignored(wiring):
     callback("совсем_не_тот_ключ", 1)
     assert listener.calls == []
     assert speaker.calls == []
+
+
+def test_memory_rag_reaches_vectormem(wiring, monkeypatch):
+    """Галочка векторной памяти применяется сразу, без перезапуска."""
+    _, _, _, _, callback = wiring
+    seen = []
+    monkeypatch.setattr(vectormem, "on_config_change",
+                        lambda key, value: seen.append((key, value)))
+
+    callback("memory_rag_enabled", True)
+    callback("memory_rag_model", "bge-m3")
+
+    assert seen == [("memory_rag_enabled", True), ("memory_rag_model", "bge-m3")]
 
 
 def test_missing_listener_is_safe(wiring):
@@ -25843,6 +26610,384 @@ def test_load_session_returns_false_for_broken_file(monkeypatch, tmp_path):
     assert v.is_available() is False
 ```
 
+### `tests/test_vectormem.py`
+
+```python
+"""Векторная память фактов (jarvis.vectormem, №51–53). ... [15 строк]"""
+
+import io
+import json
+import threading
+import urllib.error
+
+import pytest
+
+from jarvis import learning, profile, vectormem
+from jarvis.config import Config
+
+
+# ---------------------------------------------------------------
+# Инфраструктура тестов
+# ---------------------------------------------------------------
+
+class _Resp(io.BytesIO):
+    """Заглушка ответа urlopen (контекстный менеджер, как у настоящего)."""
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+def _never_called(*args, **kwargs):  # pragma: no cover - защита от вызова
+    raise AssertionError("сетевой вызов, которого быть не должно")
+
+
+class FakeOllama:
+    """Подменяет urlopen: отвечает на /api/embed по таблице векторов."""
+
+    def __init__(self, table=None, dim=4, fail=None):
+        self.table = table or {}
+        self.dim = dim
+        self.fail = fail
+        self.calls = []          # [(url, payload)]
+
+    def __call__(self, request, timeout=None):
+        url = request.full_url
+        payload = json.loads(request.data.decode("utf-8"))
+        self.calls.append((url, payload))
+        if self.fail is not None:
+            raise self.fail
+        if url.endswith("/api/embed"):
+            vecs = [self.table.get(t, [0.0] * self.dim) for t in payload["input"]]
+            return _Resp(json.dumps({"embeddings": vecs}).encode("utf-8"))
+        if url.endswith("/api/embeddings"):
+            vec = self.table.get(payload["prompt"], [0.0] * self.dim)
+            return _Resp(json.dumps({"embedding": vec}).encode("utf-8"))
+        raise AssertionError(f"неожиданный URL: {url}")
+
+
+@pytest.fixture(autouse=True)
+def _isolated(tmp_path, monkeypatch):
+    """Свой профиль на тест: реальные facts пользователя не трогаем."""
+    monkeypatch.setattr(profile, "PROFILES_DIR", tmp_path / "profiles")
+    monkeypatch.setattr(vectormem, "_config", None)
+    # Фоновый воркер в тестах не нужен: sync() зовём вручную.
+    monkeypatch.setattr(vectormem, "warmup_async", lambda: None)
+    profile._cache_invalidate()
+    vectormem.reset_for_tests()
+    yield
+    vectormem.reset_for_tests()
+    profile._cache_invalidate()
+
+
+@pytest.fixture()
+def cfg(tmp_path):
+    """Изолированный конфиг с включённой векторной памятью."""
+    c = Config(tmp_path / "config.json")
+    c.set("memory_rag_enabled", True)
+    vectormem.set_config(c)
+    return c
+
+
+def _vectors():
+    """Таблица «текст → вектор» для предсказуемых косинусов."""
+    return {
+        "search_document: город: Казань": [1.0, 0.0, 0.0, 0.0],
+        "search_document: работа: программист": [0.0, 1.0, 0.0, 0.0],
+        "search_document: любимая игра: Дота": [0.0, 0.0, 1.0, 0.0],
+        "search_document: любимый фильм: Матрица": [0.0, 0.0, 0.0, 1.0],
+        "search_query: какой у меня город": [1.0, 0.0, 0.0, 0.0],
+        "search_query: во что я играю": [0.0, 0.0, 1.0, 0.0],
+    }
+
+
+def _seed(tmp_path, monkeypatch, table=None):
+    """Кладёт 4 факта и подменяет urlopen. Возвращает заглушку."""
+    fake = FakeOllama(table=table if table is not None else _vectors())
+    monkeypatch.setattr(vectormem.urllib.request, "urlopen", fake)
+    for key, value in (("город", "Казань"), ("работа", "программист"),
+                       ("любимая игра", "Дота"), ("любимый фильм", "Матрица")):
+        assert learning.add_fact(key, value)
+    return fake
+
+
+# ---------------------------------------------------------------
+# Выключено по умолчанию
+# ---------------------------------------------------------------
+
+def test_disabled_by_default_makes_no_calls(tmp_path, monkeypatch):
+    """Фича выключена — ни одного сетевого вызова и никакого блока в промпт."""
+    c = Config(tmp_path / "config.json")
+    vectormem.set_config(c)
+    monkeypatch.setattr(vectormem.urllib.request, "urlopen", _never_called)
+
+    learning.add_fact("город", "Казань")
+
+    assert vectormem.build_prompt_block("какой у меня город") == ""
+    assert vectormem.sync() == 0
+    assert vectormem.index_fact("город", "Казань") is None
+
+
+# ---------------------------------------------------------------
+# Индексация
+# ---------------------------------------------------------------
+
+def test_sync_indexes_facts(cfg, tmp_path, monkeypatch):
+    fake = _seed(tmp_path, monkeypatch)
+
+    changed = vectormem.sync()
+
+    assert changed == 4
+    data = json.loads(profile.memory_index_path().read_text(encoding="utf-8"))
+    assert data["embed_model"] == "nomic-embed-text"
+    assert data["dim"] == 4
+    assert {it["key"] for it in data["items"]} == {
+        "город", "работа", "любимая игра", "любимый фильм"}
+    assert all(len(it["vec"]) == 4 for it in data["items"])
+    assert len(fake.calls) == 1                      # один батч, не четыре вызова
+    assert len(fake.calls[0][1]["input"]) == 4
+
+
+def test_sync_is_idempotent(cfg, tmp_path, monkeypatch):
+    _seed(tmp_path, monkeypatch)
+    assert vectormem.sync() == 4
+    assert vectormem.sync() == 0
+
+
+def test_sync_removes_orphans(cfg, tmp_path, monkeypatch):
+    _seed(tmp_path, monkeypatch)
+    vectormem.sync()
+
+    assert learning.forget_fact("город")
+    assert vectormem.sync() == 1
+
+    data = json.loads(profile.memory_index_path().read_text(encoding="utf-8"))
+    assert "город" not in {it["key"] for it in data["items"]}
+
+
+def test_sync_updates_changed_value(cfg, tmp_path, monkeypatch):
+    _seed(tmp_path, monkeypatch)
+    vectormem.sync()
+
+    assert learning.add_fact("город", "Москва")
+    assert vectormem.sync() == 1
+
+    data = json.loads(profile.memory_index_path().read_text(encoding="utf-8"))
+    item = next(it for it in data["items"] if it["key"] == "город")
+    assert item["value"] == "Москва"
+
+
+def test_model_change_invalidates_index(cfg, tmp_path, monkeypatch):
+    """Векторы разных моделей несравнимы — индекс пересобирается целиком."""
+    _seed(tmp_path, monkeypatch)
+    vectormem.sync()
+    assert vectormem.status()["items"] == 4
+
+    cfg.set("memory_rag_model", "bge-m3")
+
+    assert vectormem.load_index() == {}
+    assert vectormem.status()["items"] == 0
+
+
+def test_broken_index_file(cfg, tmp_path, monkeypatch):
+    _seed(tmp_path, monkeypatch)
+    profile.memory_index_path().write_text("{это не json", encoding="utf-8")
+
+    assert vectormem.load_index() == {}
+    assert vectormem.status()["items"] == 0
+    # Факты — источник правды, поиск продолжает работать (лексика).
+    assert vectormem.search("какой у меня город")[0]["key"] == "город"
+
+
+# ---------------------------------------------------------------
+# Поиск и блок промпта
+# ---------------------------------------------------------------
+
+def test_search_ranks_by_cosine(cfg, tmp_path, monkeypatch):
+    _seed(tmp_path, monkeypatch)
+    vectormem.sync()
+
+    hits = vectormem.search("во что я играю")
+
+    assert hits[0]["key"] == "любимая игра"
+    assert hits[0]["score"] == pytest.approx(1.0)
+    assert all(h["score"] < 0.5 for h in hits[1:])
+
+
+def test_search_respects_threshold(cfg, tmp_path, monkeypatch):
+    _seed(tmp_path, monkeypatch)
+    vectormem.sync()
+
+    # Ни одно слово не пересекается с фактами — лучше промолчать.
+    assert vectormem.search("сколько сейчас времени в космосе") == []
+
+
+def test_prompt_block_skips_selection_for_few_facts(cfg, tmp_path, monkeypatch):
+    """Фактов ≤ k — отбирать не из чего: блок пуст, brain возьмёт все."""
+    fake = FakeOllama(table=_vectors())
+    monkeypatch.setattr(vectormem.urllib.request, "urlopen", fake)
+    learning.add_fact("город", "Казань")
+    learning.add_fact("работа", "программист")
+    learning.add_fact("любимая игра", "Дота")
+
+    assert vectormem.build_prompt_block("какой у меня город") == ""
+    assert fake.calls == []
+
+
+def test_prompt_block_selects_relevant_facts(cfg, tmp_path, monkeypatch):
+    _seed(tmp_path, monkeypatch)
+    vectormem.sync()
+
+    block = vectormem.build_prompt_block("какой у меня город")
+
+    assert "Казань" in block
+    assert "Матрица" not in block          # нерелевантное не подмешиваем
+
+
+def test_prompt_block_empty_query(cfg, tmp_path, monkeypatch):
+    _seed(tmp_path, monkeypatch)
+    vectormem.sync()
+
+    assert vectormem.build_prompt_block("") == ""
+    assert vectormem.build_prompt_block(None) == ""
+
+
+# ---------------------------------------------------------------
+# Деградация
+# ---------------------------------------------------------------
+
+def test_lexical_fallback_without_embeddings(cfg, tmp_path, monkeypatch):
+    """Ollama недоступна — ищем по словам, а не молчим."""
+    fake = FakeOllama(table=_vectors(), fail=urllib.error.URLError("нет сети"))
+    monkeypatch.setattr(vectormem.urllib.request, "urlopen", fake)
+    for key, value in (("город", "Казань"), ("работа", "программист"),
+                       ("любимая игра", "Дота"), ("любимый фильм", "Матрица")):
+        learning.add_fact(key, value)
+
+    hits = vectormem.search("какой у меня город")
+
+    assert hits and hits[0]["key"] == "город"
+
+
+def test_lexical_fallback_can_be_disabled(cfg, tmp_path, monkeypatch):
+    cfg.set("memory_rag_lexical_fallback", False)
+    fake = FakeOllama(table=_vectors(), fail=urllib.error.URLError("нет сети"))
+    monkeypatch.setattr(vectormem.urllib.request, "urlopen", fake)
+    learning.add_fact("город", "Казань")
+    learning.add_fact("работа", "программист")
+
+    assert vectormem.search("какой у меня город") == []
+
+
+def test_breaker_stops_hammering_ollama(cfg, tmp_path, monkeypatch):
+    """Три ошибки подряд — пауза: недоступная модель не тормозит диалог."""
+    fake = FakeOllama(fail=urllib.error.URLError("нет сети"))
+    monkeypatch.setattr(vectormem.urllib.request, "urlopen", fake)
+
+    for _ in range(3):
+        assert vectormem.embed_texts(["текст"]) is None
+    assert len(fake.calls) == 3
+    assert vectormem.status()["breaker"] is True
+
+    assert vectormem.embed_texts(["текст"]) is None
+    assert len(fake.calls) == 3                    # в сеть больше не ходили
+
+
+def test_breaker_resets_on_success(cfg, tmp_path, monkeypatch):
+    fake = FakeOllama(fail=urllib.error.URLError("нет сети"))
+    monkeypatch.setattr(vectormem.urllib.request, "urlopen", fake)
+    for _ in range(2):
+        vectormem.embed_texts(["текст"])
+
+    good = FakeOllama(table={"search_document: текст": [1.0, 0.0]})
+    monkeypatch.setattr(vectormem.urllib.request, "urlopen", good)
+    assert vectormem.embed_texts(["текст"]) == [[1.0, 0.0]]
+
+    assert vectormem.status()["breaker"] is False
+
+
+def test_missing_model_warns_and_does_not_switch_endpoint(cfg, tmp_path, monkeypatch):
+    """404 «модель не скачана» — это не «старый Ollama без /api/embed»."""
+    body = io.BytesIO(json.dumps(
+        {"error": 'model "nomic-embed-text" not found, try pulling it first'}
+    ).encode("utf-8"))
+    err = urllib.error.HTTPError("http://127.0.0.1:11434/api/embed", 404,
+                                 "Not Found", {}, body)
+    fake = FakeOllama(fail=err)
+    monkeypatch.setattr(vectormem.urllib.request, "urlopen", fake)
+
+    assert vectormem.embed_texts(["текст"]) is None
+    assert vectormem.status()["legacy_api"] is False
+    assert [c[0] for c in fake.calls] == ["http://127.0.0.1:11434/api/embed"]
+
+
+def test_old_ollama_falls_back_to_legacy_endpoint(cfg, tmp_path, monkeypatch):
+    """Ollama без /api/embed (404 на маршрут) — переходим на /api/embeddings."""
+    body = io.BytesIO(b"404 page not found")
+    err = urllib.error.HTTPError("http://127.0.0.1:11434/api/embed", 404,
+                                 "Not Found", {}, body)
+
+    urls = []
+
+    class _Mixed:
+        def __call__(self, request, timeout=None):
+            urls.append(request.full_url)
+            if request.full_url.endswith("/api/embed"):
+                raise err
+            return _Resp(json.dumps({"embedding": [0.5, 0.5]}).encode("utf-8"))
+
+    monkeypatch.setattr(vectormem.urllib.request, "urlopen", _Mixed())
+
+    assert vectormem.embed_texts(["текст"]) == [[0.5, 0.5]]
+    assert urls == ["http://127.0.0.1:11434/api/embed",
+                    "http://127.0.0.1:11434/api/embeddings"]
+    assert vectormem.status()["legacy_api"] is True
+
+
+def test_prefixes_only_for_nomic(cfg, tmp_path, monkeypatch):
+    """У nomic запрос и документ — разные префиксы; у bge их быть не должно."""
+    cfg.set("memory_rag_model", "nomic-embed-text")
+    assert vectormem._apply_prefix("привет", "document").startswith("search_document: ")
+    assert vectormem._apply_prefix("привет", "query").startswith("search_query: ")
+
+    cfg.set("memory_rag_model", "bge-m3")
+    assert vectormem._apply_prefix("привет", "document") == "привет"
+    assert vectormem._apply_prefix("привет", "query") == "привет"
+
+
+# ---------------------------------------------------------------
+# Потоки
+# ---------------------------------------------------------------
+
+def test_concurrent_sync_keeps_index_valid(cfg, tmp_path, monkeypatch):
+    """10 потоков пишут индекс — файл остаётся целым, дублей нет."""
+    _seed(tmp_path, monkeypatch)
+    vectormem.sync()
+
+    errors = []
+
+    def _work():
+        try:
+            vectormem.sync()
+            vectormem.search("какой у меня город")
+        except Exception as e:                       # pragma: no cover
+            errors.append(e)
+
+    threads = [threading.Thread(target=_work) for _ in range(10)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(timeout=10)
+
+    assert not errors
+    data = json.loads(profile.memory_index_path().read_text(encoding="utf-8"))
+    keys = [it["key"] for it in data["items"]]
+    assert sorted(keys) == sorted(set(keys))
+    assert len(keys) == 4
+```
+
 ### `tests/test_weather.py`
 
 ```python
@@ -28231,6 +29376,13 @@ pause
   "memory_file": "dialog.json",
   "memory_max": 100,
   "llm_context_messages": 20,
+  "memory_rag_enabled": false,
+  "memory_rag_model": "nomic-embed-text",
+  "memory_rag_top_k": 3,
+  "memory_rag_min_score": 0.35,
+  "memory_rag_timeout": 2.5,
+  "memory_rag_max_items": 500,
+  "memory_rag_lexical_fallback": true,
   "weather_cache_ttl_sec": 600,
   "danger_password": "",
   "gui_enabled": true,
@@ -29567,4 +30719,4 @@ onnxruntime>=1.17
 
 ---
 
-_Итого по категориям — code: 133, data: 20, doc: 11, pack: 5. Режим `lean`._
+_Итого по категориям — code: 135, data: 20, doc: 11, pack: 5. Режим `lean`._
