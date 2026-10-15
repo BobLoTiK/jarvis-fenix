@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=2b71dae726af074b` · режим `lean` · файлов `198` · строк `39833` · источник `1703 КБ`
+`sha256=42f55bb87ab1402a` · режим `lean` · файлов `207` · строк `41683` · источник `1786 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -200,10 +200,23 @@ Windows CI, живой микрофон, COM, установщик и просл
 не закрывать блоками обновлений. Датированные изменения — в CHANGELOG, описание
 возможностей — в соответствующих разделах README. Старые записи CHANGELOG и graphify-отчёт — история, не текущая карта.
 
+### Отдельная аудиорегрессия
+
+`scripts/audio_regression.py prepare` синтезирует версионированный корпус;
+`run` использует локальные модели, file-mode Listener и настоящий `_process`.
+`tests/audio/` содержит схемы, сборку корпуса, безопасный ограниченный harness
+и отчёты; `test_audio_regression.py` проверяет их контракты без моделей.
+Не импортировать аудиопакет из runtime-приложения. Для replay не нужен PortAudio;
+для микрофона `Listener` по-прежнему явно требует sounddevice/PortAudio и Vosk.
+`WhisperTranscriber(local_files_only=True)` запрещает догрузку модели раннером.
+В обычном приложении этот параметр по умолчанию False, поведение загрузки сохранено.
+WAV/отчёты: `paths.audio_regression_dir()` → USER_DIR/audio-regression.
+См. tests/audio/README.md: покрытие ограничено open/timer/cancel, это не весь реестр.
+
 ## 9. Дальше
 
-Текущий курс — развитие самого Феникса, см. PLAN.md: приёмка ограниченных уточнений,
-контекст исправлений, подтверждаемое самообучение поверх существующего learning,
+Текущий курс — развитие самого Феникса, см. PLAN.md: приёмка аудиорегрессий,
+затем GUI (удобство/функции → оформление), далее контекст исправлений, подтверждаемое самообучение поверх существующего learning,
 качество памяти и измеряемая оптимизация. Облако, Telegram/веб, Hermes, MCP,
 плагины, VLM и новые интерфейсы — дальний бэклог, не следующий обязательный этап.
 Сначала исправляем поведение приложения; дообучение весов возможно позже,
@@ -224,18 +237,18 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── README.md  (74 стр)
 │   │   ├── release.yml  (114 стр)
 │   │   ├── test.yml  (71 стр)
-├── AGENTS.md  (90 стр)
-├── ARCHITECTURE.md  (1024 стр)
+├── AGENTS.md  (102 стр)
+├── ARCHITECTURE.md  (1042 стр)
 ├── assets/
 │   ├── nonverbal/
 │   │   ├── README.md  (40 стр)
 │   │   ├── sources.json  (53 стр)
-├── CHANGELOG.md  (1238 стр)
+├── CHANGELOG.md  (1254 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
 ├── check_syntax.py  (60 стр)
-├── CI.md  (266 стр)
+├── CI.md  (288 стр)
 ├── cmds/
 │   ├── open_terminal.bat  (3 стр)
 │   ├── show_ip.bat  (3 стр)
@@ -261,7 +274,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── installed.py  (51 стр)
 │   ├── intents/
 │   │   ├── __init__.py  (10 стр)
-│   │   ├── clarification.py  (262 стр)
+│   │   ├── clarification.py  (11 стр)
 │   │   ├── context.py  (19 стр)
 │   │   ├── execute.py  (1021 стр)
 │   │   ├── fast/
@@ -323,7 +336,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── nonverbal.py  (93 стр)
 │   ├── observer.py  (203 стр)
 │   ├── packs.py  (117 стр)
-│   ├── paths.py  (230 стр)
+│   ├── paths.py  (235 стр)
 │   ├── persona.py  (226 стр)
 │   ├── profile.py  (489 стр)
 │   ├── prosody.py  (152 стр)
@@ -332,7 +345,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── reply.py  (26 стр)
 │   ├── safety.py  (213 стр)
 │   ├── steam.py  (67 стр)
-│   ├── stt.py  (685 стр)
+│   ├── stt.py  (744 стр)
 │   ├── tasks.py  (257 стр)
 │   ├── text_utils.py  (98 стр)
 │   ├── timers.py  (326 стр)
@@ -360,17 +373,18 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── sites.json  (22 стр)
 │   ├── system.json  (17 стр)
 │   ├── work.json  (11 стр)
-├── PLAN.md  (155 стр)
-├── PROJECT.md  (198 стр)
-├── PROMPT.md  (501 стр)
+├── PLAN.md  (193 стр)
+├── PROJECT.md  (211 стр)
+├── PROMPT.md  (506 стр)
 ├── pytest-log.txt  (27 стр)
 ├── pytest.ini  (20 стр)
-├── README.md  (1079 стр)
+├── README.md  (1110 стр)
 ├── requirements-ci.txt  (36 стр)
 ├── requirements-dev.txt  (10 стр)
 ├── requirements.txt  (63 стр)
 ├── scripts/
 │   ├── __init__.py  (7 стр)
+│   ├── audio_regression.py  (11 стр)
 │   ├── build_exe.py  (78 стр)
 │   ├── build_setup.py  (208 стр)
 │   ├── check_caps.py  (174 стр)
@@ -383,11 +397,19 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── vadbench.py  (185 стр)
 │   ├── voicedemo.py  (41 стр)
 │   ├── wakebench.py  (88 стр)
-├── snapshot.py  (711 стр)
+├── snapshot.py  (712 стр)
 ├── start_fenix.bat  (6 стр)
 ├── start_fenix_debug.bat  (15 стр)
 ├── tests/
 │   ├── __init__.py  (0 стр)
+│   ├── audio/
+│   │   ├── __init__.py  (1 стр)
+│   │   ├── corpus.py  (173 стр)
+│   │   ├── README.md  (179 стр)
+│   │   ├── runner.py  (216 стр)
+│   │   ├── runtime.py  (370 стр)
+│   │   ├── scenarios.json  (217 стр)
+│   │   ├── suite.py  (122 стр)
 │   ├── conftest.py  (20 стр)
 │   ├── manual/
 │   │   ├── nonverbal_live.py  (35 стр)
@@ -396,9 +418,10 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── uia_manual.py  (61 стр)
 │   │   ├── vad_debug.py  (61 стр)
 │   │   ├── vad_live.py  (41 стр)
-│   ├── README.md  (171 стр)
+│   ├── README.md  (201 стр)
 │   ├── stress_intents.py  (552 стр)
-│   ├── test_audit_regressions.py  (252 стр)
+│   ├── test_audio_regression.py  (556 стр)
+│   ├── test_audit_regressions.py  (258 стр)
 │   ├── test_brain_rag.py  (125 стр)
 │   ├── test_browser_target.py  (338 стр)
 │   ├── test_build_setup.py  (56 стр)
@@ -673,17 +696,9 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 **`jarvis/intents/clarification.py`**
 
 ```
-  # Bounded, session-only slot filling shared by GUI and voice.
-  TIMEOUT = ...
-  MAX_ATTEMPTS = ...
-  OPEN = ...
-  TIMER = ...
-  CORRECTION = ...
-  PROMPTS = ...
-  class TimeSlot
-  def pending_alive(pending)
-  def begin(ctx)
-  def resume(ctx)
+  # Запрос недостающего слота до fast/LLM, без выполнения догадок.
+  class ClarificationStage(Stage)
+    def handle(self, ctx)
 ```
 
 **`jarvis/intents/context.py`**
@@ -1290,6 +1305,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def user_dir()
   def program_models_dir()
   def program_whisper_cache_dir()
+  def audio_regression_dir()
   def logs_dir()
   def profiles_dir()
   def config_path()
@@ -1430,7 +1446,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   MIN_BLOCK_SAMPLES = ...
   _CUDA_DLLS_ADDED = ...
   class Listener
-    def __init__(self, model_dir, sample_rate=16000, device=None, config=None)
+    def __init__(self, model_dir, sample_rate=16000, device=None, config=None, *, file_mode=False)
     def barge_start(self)
     def barge_end(self)
     def resolve_device(device)
@@ -1439,9 +1455,11 @@ Non-verbal/микрофон/установщик по-прежнему треб�
     def reload_vad(self)
     def set_input_device(self, device)
     def reset_stats(self)
+    def reset_file_input(self)
+    def feed_pcm(self, pcm)
     def phrases(self, stop_event)
   class WhisperTranscriber
-    def __init__(self, model_name='auto', device='auto', lazy=False, config=None)
+    def __init__(self, model_name='auto', device='auto', lazy=False, config=None, *, local_files_only=False)
     def is_ready(self)
     def wait_ready(self, timeout: float | None=None)
     def preload_async(self)
@@ -1767,6 +1785,12 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   # Пакет scripts: утилиты разработчика.
 ```
 
+**`scripts/audio_regression.py`**
+
+```
+  # Run optional local audio regression tools; ordinary pytest never loads models.
+```
+
 **`scripts/build_exe.py`**
 
 ```
@@ -1909,6 +1933,68 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def main()
 ```
 
+**`tests/audio/__init__.py`**
+
+```
+  # Optional offline audio regression tools, not part of the live assistant.
+```
+
+**`tests/audio/corpus.py`**
+
+```
+  # Local-only WAV preparation. No playback, recordings or model downloads.
+  RATE = ...
+  VARIANTS = ...
+  def atomic_write(path, data)
+  def write_json(path, data)
+  def mono16k(wav)
+  def transform(audio, variant, seed=42)
+  def framed_pcm(audio, seed=42)
+  class LocalSynth
+    def __init__(self, voice='auto')
+  def prepare(suite, suite_hash, directory, *, voices=('auto',), variants=VARIANTS, recordings=None, synth_factory=None)
+```
+
+**`tests/audio/runner.py`**
+
+```
+  # CLI orchestration; blocked resources always exit 2, never a fake pass.
+  ROOT = ...
+  def run(suite, suite_hash, directory, *, engine_factory=Engine, models=None, asr='hybrid', no_vad=False, device='cp...)
+  def main(argv=None)
+```
+
+**`tests/audio/runtime.py`**
+
+```
+  # Real ASR + production _process; only a bounded, side-effect-free command harness.
+  def preflight(root, *, asr='hybrid', no_vad=False, vosk_model=None, whisper_model=None)
+  class Sandbox
+    def __init__(self, listener, whisper=None, *, app_class=None)
+    def process(self, text, pcm)
+    def snapshot(self, event_start, reply_start, timing_before)
+  def check_expected(actual, expect, endpoints)
+  def deny_network(*args, **kwargs)
+  class Engine
+    def __init__(self, models, *, asr='hybrid', no_vad=False, device='cpu')
+    def new_case(self)
+    def replay(self, pcm, sandbox, *, include_transcripts=False)
+```
+
+**`tests/audio/suite.py`**
+
+```
+  # Strict, versioned audio scenarios. Expected text never reaches an ASR prompt.
+  SCHEMA = ...
+  ID = ...
+  DEFAULT_SUITE = ...
+  class Blocked(RuntimeError)
+  def fingerprint(data)
+  def safe_file(root, relative)
+  def load_suite(path=DEFAULT_SUITE)
+  def load_corpus(directory, suite, suite_hash)
+```
+
 **`tests/conftest.py`**
 
 ```
@@ -1987,6 +2073,61 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def restore_settings(handler, snap: dict)
   def cleanup(handler)
   def main()
+```
+
+**`tests/test_audio_regression.py`**
+
+```
+  # Fast contracts only: fake decoders are NOT an audio quality measurement.
+  class FakeRec
+    def __init__(self)
+    def SetWords(self, enabled)
+    def AcceptWaveform(self, data)
+    def Result(self)
+    def Reset(self)
+    def FinalResult(self)
+  def listener(monkeypatch)
+  def test_file_feed_uses_callback_and_real_endpoint_path(listener)
+  def test_reset_clears_audio_and_previous_quality(listener)
+  def test_invalid_pcm_blocks(listener, pcm)
+  def test_empty_and_silent_endpoint_dont_invent_phrase(listener)
+  def test_file_mode_cannot_open_microphone(listener)
+  def test_live_mode_cannot_be_fed_externally(listener)
+  def test_audio_buffer_is_bounded(listener)
+  def test_callback_vad_fault_is_visible_to_runner(listener)
+  class Synth
+    def __init__(self, voice)
+  def prepared(tmp_path)
+  def test_default_corpus_counts_and_hashes(prepared)
+  def test_transforms_are_deterministic_and_do_not_mutate(variant)
+  def test_stereo_resampled_and_framed()
+  def test_paths_cannot_escape(tmp_path, path)
+  def test_symlink_escape(tmp_path)
+  def test_invalid_corpus_is_blocked(prepared, fault)
+  def test_invalid_suite_is_blocked(tmp_path, fault)
+  def test_failed_prepare_keeps_previous_manifest(prepared)
+  def test_recordings_are_never_replaced_with_synthetic(tmp_path)
+  class App
+  def test_manifest_command_expectations_match_production_methods()
+  def test_sandbox_restores_side_effect_functions()
+  def test_expectations_cannot_silently_pass(fault)
+  def test_missing_corpus_exits_blocked_not_pass(tmp_path)
+  def test_network_guard_is_reversible()
+  def test_filter_cannot_produce_empty_pass(prepared)
+  def test_vad_fallback_never_counts_as_full_pass(listener)
+  class ResultEngine
+    def __init__(self, models, **kwargs)
+    def new_case(self)
+    def replay(self, pcm, sandbox, **kwargs)
+  def expected_outputs(suite, *, mismatch=False)
+  def test_runner_reports_real_checks_and_redacts_speech(prepared, mismatch)
+  def test_transcripts_are_explicit_opt_in(prepared)
+  def test_engine_failure_restores_network_patch(monkeypatch)
+  def test_strict_vad_survives_reload_and_whisper_fault_is_blocked(monkeypatch, listener)
+  def test_audio_regression_ignored_by_snapshot()
+  def test_cli_failure_code_one_and_blocked_two(prepared, monkeypatch)
+  def test_whisper_loader_forwards_offline_flag(monkeypatch, tmp_path, local_only)
+  def test_missing_vosk_fails_explicitly(monkeypatch)
 ```
 
 **`tests/test_audit_regressions.py`**
@@ -2987,7 +3128,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/history.py` | 75 | code | История последних действий для отмены («стоп, не то»). |
 | `jarvis/installed.py` | 51 | code | Индекс установленных программ по ярлыкам меню «Пуск». |
 | `jarvis/intents/__init__.py` | 10 | code | Разбор команд Феникса — пакет. |
-| `jarvis/intents/clarification.py` | 262 | code | Bounded, session-only slot filling shared by GUI and voice. |
+| `jarvis/intents/clarification.py` | 11 | code | Запрос недостающего слота до fast/LLM, без выполнения догадок. |
 | `jarvis/intents/context.py` | 19 | code | Контекст, который передаётся между стадиями pipeline. |
 | `jarvis/intents/execute.py` | 1021 | code | Dispatch: action → функция-обработчик. |
 | `jarvis/intents/fast/__init__.py` | 54 | code | Реестр быстрых обработчиков. |
@@ -3046,7 +3187,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/nonverbal.py` | 93 | code | Optional, bounded reaction policy. No LLM tags, text rewriting or extr |
 | `jarvis/observer.py` | 203 | code | Observer — фоновое наблюдение за диалогом. |
 | `jarvis/packs.py` | 117 | code | Загрузка и выгрузка паков команд из папки packs/. |
-| `jarvis/paths.py` | 230 | code | Централизованное определение путей Феникса. |
+| `jarvis/paths.py` | 235 | code | Централизованное определение путей Феникса. |
 | `jarvis/persona.py` | 226 | code | Персона ассистента — стиль общения, черты, backstory, tone. |
 | `jarvis/profile.py` | 489 | code | Профиль пользователя — мультипрофиль. |
 | `jarvis/prosody.py` | 152 | code | Prosody — эмоции из голоса (RMS + pitch + ZCR). |
@@ -3055,7 +3196,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/reply.py` | 26 | code | Reply — результат IntentHandler.handle(). |
 | `jarvis/safety.py` | 213 | code | Постфильтр ответов LLM — вторая линия «красной черты». |
 | `jarvis/steam.py` | 67 | code | Индекс установленных игр Steam: appmanifest -> (название, appid). |
-| `jarvis/stt.py` | 685 | code | Распознавание речи. |
+| `jarvis/stt.py` | 744 | code | Распознавание речи. |
 | `jarvis/tasks.py` | 257 | code | Списки задач. |
 | `jarvis/text_utils.py` | 98 | code | Общие текстовые утилиты для Феникса. |
 | `jarvis/timers.py` | 326 | code | Таймеры и напоминания. |
@@ -3074,6 +3215,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/voices.py` | 220 | code | Управление голосами TTS — работает через tts_engines. |
 | `jarvis/weather.py` | 400 | code | Погода и курс валют. |
 | `scripts/__init__.py` | 7 | code | Пакет scripts: утилиты разработчика. |
+| `scripts/audio_regression.py` | 11 | code | Run optional local audio regression tools; ordinary pytest never loads |
 | `scripts/build_exe.py` | 78 | code | Сборка Феникс.exe (лёгкий лаунчер). |
 | `scripts/build_setup.py` | 208 | code | Полная сборка Феникса: Феникс.exe + Феникс_Setup.exe — одной командой. |
 | `scripts/check_caps.py` | 174 | code | Проверка возможностей системы — запускается из install.bat. |
@@ -3087,6 +3229,11 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `scripts/voicedemo.py` | 41 | code | Прослушка голосов: проигрывает одну фразу всеми доступными голосами. |
 | `scripts/wakebench.py` | 88 | code | Бенчмарк кандидатов в wake-слово: TTS (Pavel) -> Vosk-small -> что усл |
 | `tests/__init__.py` | 0 | code |  |
+| `tests/audio/__init__.py` | 1 | code | Optional offline audio regression tools, not part of the live assistan |
+| `tests/audio/corpus.py` | 173 | code | Local-only WAV preparation. No playback, recordings or model downloads |
+| `tests/audio/runner.py` | 216 | code | CLI orchestration; blocked resources always exit 2, never a fake pass. |
+| `tests/audio/runtime.py` | 370 | code | Real ASR + production _process; only a bounded, side-effect-free comma |
+| `tests/audio/suite.py` | 122 | code | Strict, versioned audio scenarios. Expected text never reaches an ASR  |
 | `tests/conftest.py` | 20 | code | Настройки pytest для папки tests/. |
 | `tests/manual/nonverbal_live.py` | 35 | code | Manual sample audition; optional --mix <speech.wav>. Opens the audio o |
 | `tests/manual/uia_close_probe.py` | 82 | code | Живая проверка «закрой вкладку ютуб» (без моков). |
@@ -3095,7 +3242,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/manual/vad_debug.py` | 61 | code | Отладка Silero VAD — прогон на синтетике. |
 | `tests/manual/vad_live.py` | 41 | code | Живой тест VAD: пишет 5 сек с микрофона, показывает prob. |
 | `tests/stress_intents.py` | 552 | code | Стресс-тест Феникса: ровно 102 разных ситуаций без микрофона и сети. |
-| `tests/test_audit_regressions.py` | 252 | code | Regression tests for the six audited bugs and related edge cases. |
+| `tests/test_audio_regression.py` | 556 | code | Fast contracts only: fake decoders are NOT an audio quality measuremen |
+| `tests/test_audit_regressions.py` | 258 | code | Regression tests for the six audited bugs and related edge cases. |
 | `tests/test_brain_rag.py` | 125 | code | Query-scoped memory: unavailable retrieval never means send all facts. |
 | `tests/test_browser_target.py` | 338 | code | №1: Феникс работает в том браузере, в котором сидит пользователь. |
 | `tests/test_build_setup.py` | 56 | code | Тесты scripts.build_setup — версия установщика и мягкий пропуск шага c |
@@ -3130,7 +3278,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `check_all.py` | 170 | code | Единый прогон всех проверок Феникса — движок для check_all.bat. |
 | `check_syntax.py` | 60 | code | Проверяет синтаксис всех .py файлов в проекте. |
 | `launcher.py` | 702 | code | Лаунчер Феникса — полный автозапуск. |
-| `snapshot.py` | 711 | code | Собирает снимок проекта в один SNAPSHOT.md. |
+| `snapshot.py` | 712 | code | Собирает снимок проекта в один SNAPSHOT.md. |
 
 ---
 
@@ -8645,264 +8793,17 @@ __all__ = ["IntentHandler", "normalize"]
 ### `jarvis/intents/clarification.py`
 
 ```python
-"""Bounded, session-only slot filling shared by GUI and voice. ... [4 строк]"""
+"""Запрос недостающего слота до fast/LLM, без выполнения догадок."""
 
-from dataclasses import dataclass
-import re
-import time
-
-from jarvis.language import analyze_command
-from jarvis.language.numbers import digit_numbers, word_numbers
-from jarvis.language.time import HALF, parse_duration
-from jarvis.language.units import TOKEN, unit_at
-from jarvis.intents.verbs import COMMAND_VERBS
-from jarvis.text_utils import normalize
-
-TIMEOUT = 30.0
-MAX_ATTEMPTS = 3
-OPEN = re.compile(r"^(?:открой|открывай|запусти|включи|врубай)$")
-TIMER = re.compile(
-    r"^(?:(?:поставь|установи)\s+)?(?:таймер|напоминание|напомни|напоминай)\b\s*",
-    re.I,
-)
-CORRECTION = re.compile(r"(?:^|[\s,;.…]+)(?:нет|точнее)\s*[,;:.…]?\s+", re.I)
-PROMPTS = {
-    "target": "Какое приложение открыть? Назови приложение или скажи «отмена».",
-    "time": "На сколько поставить таймер или в какое время напомнить?",
-    "unit": "В каких единицах: секундах, минутах или часах?",
-}
+from jarvis.intents.clarification import begin
+from jarvis.intents.stages.base import Stage
 
 
-@dataclass(frozen=True)
-class TimeSlot:
-    command: str = ""
-    body: str = ""
-    partial: str = ""
-    issue: str = ""
+class ClarificationStage(Stage):
+    name = "clarification"
 
-
-def pending_alive(pending):
-    if not isinstance(pending, dict):
-        return False
-    if pending.get("type") == "command_slot":
-        return time.monotonic() < pending.get("deadline", 0)
-    return time.time() < pending.get("expires_at", 0)
-
-
-def _ask(handler, slot, **data):
-    handler._pending_question = {
-        "type": "command_slot",
-        "slot": slot,
-        "deadline": time.monotonic() + TIMEOUT,
-        # Совместимость окна голосового ввода; проверка срока — монотонная.
-        "expires_at": time.time() + TIMEOUT,
-        "attempts": 0,
-        **data,
-    }
-    return PROMPTS[slot]
-
-
-def _retry(handler, pending, prompt):
-    pending["attempts"] += 1
-    if pending["attempts"] >= MAX_ATTEMPTS:
-        handler._pending_question = None
-        return "Не удалось уточнить команду. Действие отменено; скажи команду заново."
-    # Не продлеваем срок при каждом непонятном ответе.
-    return prompt
-
-
-def _last_version(text):
-    return CORRECTION.split(text)[-1].strip().rstrip(" .!?…")
-
-
-def _has_duration_unit(text):
-    if HALF.search(text):
-        return True
-    for token in TOKEN.finditer(text):
-        unit = unit_at(text, token.start())
-        if unit and unit[0].dimension == "duration":
-            return True
-    return False
-
-
-def _time_slot(text):
-    """Use shared numeric grammar; a bare number never defaults to minutes."""
-    text = text.strip().rstrip(" .!?…")
-    if re.match(r"^[.,]\d", text):
-        return TimeSlot(issue="Укажи ноль перед десятичным разделителем.")
-    if not text:
-        return TimeSlot()
-    if re.fullmatch(r"\d{1,2}[:.]\d{2}", text):
-        text = "в " + text
-    if normalize(text).startswith("не "):
-        return TimeSlot(issue="Укажи время без отрицания.")
-    analysis = analyze_command("таймер " + text)
-    if analysis.issue:
-        return TimeSlot(issue=analysis.issue)
-    clock = re.match(r"^в\s+(\d{1,2}:\d{2})\b\s*", analysis.command[7:], re.I)
-    if clock:
-        rest = analysis.command[7:][clock.end() :].strip()
-        return TimeSlot(command="в " + clock[1], body=rest)
-    duration = parse_duration(text)
-    if duration and _has_duration_unit(text[: duration.end]):
-        if duration.issue:
-            return TimeSlot(issue=duration.issue)
-        seconds = duration.seconds
-        if seconds <= 0 or seconds != seconds.to_integral_value():
-            return TimeSlot(issue="Укажи положительное время с точностью до секунды.")
-        return TimeSlot(
-            command=f"через {int(seconds)} секунд",
-            body=text[duration.end :].strip(" ,.!?…"),
-        )
-    number_text = re.sub(r"^(?:на|через)\s+", "", text, flags=re.I)
-    numbers = (*word_numbers(number_text), *digit_numbers(number_text))
-    whole = [n for n in numbers if n.start == 0 and n.end == len(number_text)]
-    if len(whole) == 1 and whole[0].kind == "cardinal" and whole[0].value > 0:
-        return TimeSlot(partial=number_text)
-    return TimeSlot()
-
-
-def _new_turn(cmd):
-    tokens = cmd.split()
-    if not tokens:
-        return False
-    return tokens[0] in COMMAND_VERBS or tokens[0] in {
-        "установи",
-        "таймер",
-        "напоминание",
-        "расскажи",
-        "почему",
-        "зачем",
-        "как",
-        "кто",
-        "что",
-        "какие",
-        "список",
-        "погода",
-        "привет",
-        "спасибо",
-        "режим",
-        "пауза",
-        "продолжи",
-        "следующий",
-        "предыдущий",
-        "отмени",
-        "сбрось",
-        "который",
-        "громкость",
-        "яркость",
-        "плей",
-        "play",
-        "pause",
-        "дальше",
-        "останови",
-    }
-
-
-def _known_target(handler, answer):
-    """Only an exact known name: a slot answer must not guess an arbitrary site."""
-    target = normalize(answer)
-    if not target or len(target) > 100:
-        return None
-    for app in handler.apps:
-        names = (app.key, app.title, *app.aliases)
-        if any(target == normalize(name) for name in names):
-            return normalize(app.aliases[0]) if app.aliases else normalize(app.title)
-    # Installed indexes are already warmed by IntentHandler; no extra scan/cache.
-    for name in handler.installed:
-        if normalize(name) == target:
-            return target
-    for title, _appid in handler.steam_games:
-        if normalize(title) == target:
-            return target
-    return None
-
-
-def begin(ctx):
-    """Start only supported, explicitly incomplete commands; other intents pass."""
-    h = ctx.handler
-    from jarvis.intents.fast.custom import find_custom
-
-    if OPEN.fullmatch(ctx.cmd):
-        if find_custom(getattr(h, "custom", []), ctx.cmd) is not None:
-            return None
-        return _ask(h, "target", action="open")
-    raw = (getattr(h, "_raw_cmd", "") or ctx.cmd).strip()
-    # Reuse analysis already done by handle(); do not parse every command twice.
-    analysis = getattr(h, "_number_analysis", None)
-    if analysis is None or normalize(analysis.command) != ctx.cmd:
-        raw = ctx.cmd
-    match = TIMER.match(raw)
-    if not match:
-        return None
-    if find_custom(getattr(h, "custom", []), ctx.cmd) is not None:
-        return None
-    tail = raw[match.end() :].strip()
-    corrected = _last_version(tail)
-    value = _time_slot(corrected)
-    if value.command:
-        if re.match(r"^(?:или|либо)\b", value.body, re.I):
-            return _ask(h, "time", action="timer", text="") + " Назови одно время."
-        if corrected != tail.strip(" ,.!?…"):
-            # Only an explicit replacement of a time, not "say no" in a reminder.
-            if not value.body:
-                original = _time_slot(CORRECTION.split(tail)[0].strip())
-                body = original.body if original.command else ""
-                ctx.cmd = normalize("таймер " + value.command + " " + body)
-        return None
-    if value.issue:
-        return _ask(h, "time", action="timer", text="") + " " + value.issue
-    if value.partial:
-        return _ask(h, "unit", action="timer", text="", partial=value.partial)
-    # Preserve the payload of an incomplete reminder, but not malformed time.
-    body = tail if tail and not re.match(r"^(?:на|через|в)\b", tail, re.I) else ""
-    return _ask(h, "time", action="timer", text=body)
-
-
-def resume(ctx):
-    h = ctx.handler
-    pending = h._pending_question
-    if not pending_alive(pending):
-        h._pending_question = None
-        # New full commands still work; a stale slot answer never reaches LLM.
-        if _new_turn(ctx.cmd):
-            return None
-        return "Время уточнения истекло. Скажи команду заново."
-    answer = _last_version(getattr(h, "_raw_cmd", "") or ctx.cmd)
-    clean = normalize(answer)
-    if clean in {"нет", "не надо", "не нужно", "отмени"}:
-        h._pending_question = None
-        return "Действие отменено."
-    if _new_turn(clean):
-        h._pending_question = None
-        return None
-    if pending["slot"] == "target":
-        target = _known_target(h, answer)
-        if not target:
-            return _retry(
-                h,
-                pending,
-                "Не нашёл однозначное название приложения. " + PROMPTS["target"],
-            )
-        command = "открой " + target
-    else:
-        if pending["slot"] == "unit":
-            unit = unit_at(answer, 0)
-            if unit and unit[0].dimension == "duration" and unit[1] == len(answer):
-                answer = pending["partial"] + " " + answer
-        value = _time_slot(answer)
-        if value.partial:
-            pending.update(slot="unit", partial=value.partial)
-            return _retry(h, pending, PROMPTS["unit"])
-        if not value.command or value.body:
-            return _retry(h, pending, value.issue or PROMPTS["time"])
-        command = "таймер " + value.command
-        if pending.get("text"):
-            command += " " + pending["text"]
-    h._pending_question = None
-    ctx.cmd = normalize(command)
-    ctx.state["clarification_resumed"] = True
-    return None
+    def handle(self, ctx):
+        return begin(ctx)
 ```
 
 ### `jarvis/intents/context.py`
@@ -16181,6 +16082,11 @@ def program_whisper_cache_dir() -> Path:
     return d
 
 
+def audio_regression_dir() -> Path:
+    """Локальные тестовые WAV/отчёты, отдельно от профилей и исходников."""
+    return user_dir() / "audio-regression"
+
+
 def logs_dir() -> Path:
     """Логи — в USER_DIR (кириллица ок)."""
     d = user_dir() / "logs"
@@ -17616,8 +17522,15 @@ from collections import deque
 from pathlib import Path
 
 import numpy as np
-import sounddevice as sd
-from vosk import KaldiRecognizer, Model, SetLogLevel
+# File replay/Whisper must not require an installed audio device or PortAudio.
+try:
+    import sounddevice as sd
+except (ImportError, OSError):
+    sd = None
+try:
+    from vosk import KaldiRecognizer, Model, SetLogLevel
+except ImportError:
+    KaldiRecognizer = Model = SetLogLevel = None
 
 from jarvis.vad import DEFAULT_HANGOVER_MS, SpeechHangover, VAD
 
@@ -17659,7 +17572,14 @@ def _enable_cuda_dlls():
 
 
 class Listener:
-    def __init__(self, model_dir, sample_rate=16000, device=None, config=None):
+    def __init__(self, model_dir, sample_rate=16000, device=None, config=None,
+                 *, file_mode=False):
+        if Model is None:
+            raise RuntimeError("Vosk не установлен: требуется пакет vosk")
+        if not file_mode and sd is None:
+            raise RuntimeError("Микрофон недоступен: требуется sounddevice/PortAudio")
+        self._file_mode = bool(file_mode)
+        self.file_vad_errors = 0
         SetLogLevel(-1)
         self._model = Model(str(model_dir))
         self._rec = KaldiRecognizer(self._model, sample_rate)
@@ -17667,8 +17587,8 @@ class Listener:
         self.last_quality = None
         self._sample_rate = sample_rate
         self._config = config
-        self._device = self.resolve_device(device)
-        self.device_name = self._current_device_name()
+        self._device = None if file_mode else self.resolve_device(device)
+        self.device_name = "WAV replay (без микрофона)" if file_mode else self._current_device_name()
         self._audio = queue.Queue()
         self._utt_buf = []
         self._utt_len = 0
@@ -17885,6 +17805,7 @@ class Listener:
             try:
                 speech = self.vad.is_speech(raw)
             except Exception:
+                self.file_vad_errors = getattr(self, "file_vad_errors", 0) + 1
                 log.exception("VAD.is_speech упал — пропускаю чанк как есть")
                 speech = True
             if self._vad_gate is not None and not self._vad_gate.feed(speech):
@@ -18009,8 +17930,62 @@ class Listener:
         self.utterances = 0
         log.info("Listener: статистика сброшена")
 
-    def phrases(self, stop_event):
+    def _consume_audio(self, data):
+        """Один и тот же endpoint/quality путь для микрофона и WAV replay."""
         max_buf = self._sample_rate * 2 * 30
+        self._utt_buf.append(data)
+        self._utt_len += len(data)
+        while self._utt_len > max_buf and len(self._utt_buf) > 1:
+            self._utt_len -= len(self._utt_buf.pop(0))
+        if not self._rec.AcceptWaveform(data):
+            return None
+        from jarvis.recognition import assess_vosk
+        result = json.loads(self._rec.Result())
+        text = result.get("text", "").strip()
+        self.last_quality = assess_vosk(result, getattr(self, "_config", None))
+        audio = b"".join(self._utt_buf)
+        self._utt_buf.clear()
+        self._utt_len = 0
+        if text:
+            self.utterances += 1
+            log.info("Распознана фраза (vosk)")
+            return text, audio
+        return None
+
+    def reset_file_input(self):
+        """Only replay owns its recognizer; never reset the live listener externally."""
+        if not self._file_mode:
+            raise RuntimeError("reset_file_input разрешён только для file_mode")
+        self.flush()
+        self._rec.Reset()
+        self.last_quality = None
+        self.file_vad_errors = 0
+
+    def feed_pcm(self, pcm):
+        """Feed one PCM block without opening a device or forcing FinalResult()."""
+        if not self._file_mode:
+            raise RuntimeError("feed_pcm разрешён только для file_mode")
+        if len(pcm) % 2:
+            raise ValueError("PCM int16 должен содержать целое число сэмплов")
+        if len(pcm) > self._block_size * 2:
+            raise ValueError("Подавай PCM блоками Listener._block_size")
+        if not pcm:
+            return []
+        self._callback(pcm, len(pcm) // 2, None, None)
+        phrases = []
+        while True:
+            try:
+                data = self._audio.get_nowait()
+            except queue.Empty:
+                break
+            phrase = self._consume_audio(data)
+            if phrase is not None:
+                phrases.append(phrase)
+        return phrases
+
+    def phrases(self, stop_event):
+        if self._file_mode:
+            raise RuntimeError("WAV replay не может открывать микрофон")
         # Внешний while — смена микрофона на лету. set_input_device()
         # ставит _device_reload; здесь мы выходим из `with` (PortAudio
         # закрывает поток в своём же потоке — так безопасно) и
@@ -18046,23 +18021,9 @@ class Listener:
                         data = self._audio.get(timeout=0.2)
                     except queue.Empty:
                         continue
-                    self._utt_buf.append(data)
-                    self._utt_len += len(data)
-                    while self._utt_len > max_buf and len(self._utt_buf) > 1:
-                        self._utt_len -= len(self._utt_buf.pop(0))
-                    if self._rec.AcceptWaveform(data):
-                        from jarvis.recognition import assess_vosk
-                        result = json.loads(self._rec.Result())
-                        text = result.get("text", "").strip()
-                        self.last_quality = assess_vosk(result, getattr(self, "_config", None))
-                        audio = b"".join(self._utt_buf)
-                        self._utt_buf.clear()
-                        self._utt_len = 0
-                        if text:
-                            self.utterances += 1
-                            # Историю пополняет main только после окончательной проверки.
-                            log.info("Распознана фраза (vosk)")
-                            yield text, audio
+                    phrase = self._consume_audio(data)
+                    if phrase is not None:
+                        yield phrase
             finally:
                 # Закрываем поток в своём же потоке (PortAudio-безопасно).
                 for closer in (stream.stop, stream.close):
@@ -18092,7 +18053,8 @@ class Listener:
 class WhisperTranscriber:
     """faster-whisper с ленивой (фоновой) загрузкой модели. ... [7 строк]"""
 
-    def __init__(self, model_name="auto", device="auto", lazy=False, config=None):
+    def __init__(self, model_name="auto", device="auto", lazy=False, config=None,
+                 *, local_files_only=False):
         self._model = None
         self._load_error: Exception | None = None
         self._loading = False
@@ -18102,6 +18064,7 @@ class WhisperTranscriber:
         self.last_quality = None
         self._model_name = model_name
         self._device = device
+        self._local_files_only = bool(local_files_only)
 
         if lazy:
             self.preload_async()
@@ -18188,7 +18151,8 @@ class WhisperTranscriber:
                 try:
                     log.info("Загрузка Whisper (%s) на GPU...", name)
                     self._model = WhisperModel(
-                        name, device="cuda", compute_type="int8_float16"
+                        name, device="cuda", compute_type="int8_float16",
+                        local_files_only=self._local_files_only,
                     )
                     log.info("Whisper готов (GPU)")
                 except Exception:
@@ -18198,7 +18162,8 @@ class WhisperTranscriber:
                 name = "small" if model_name == "auto" else model_name
                 log.info("Загрузка Whisper (%s) на CPU...", name)
                 self._model = WhisperModel(
-                    name, device="cpu", compute_type="int8"
+                    name, device="cpu", compute_type="int8",
+                    local_files_only=self._local_files_only,
                 )
                 log.info("Whisper готов (CPU)")
         finally:
@@ -22884,6 +22849,22 @@ def describe_currency(rates: dict, code: str = "") -> str:
 """Пакет scripts: утилиты разработчика. ... [6 строк]"""
 ```
 
+### `scripts/audio_regression.py`
+
+```python
+"""Run optional local audio regression tools; ordinary pytest never loads models."""
+
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+if __name__ == "__main__":
+    from tests.audio.runner import main
+
+    raise SystemExit(main())
+```
+
 ### `scripts/build_exe.py`
 
 ```python
@@ -24112,6 +24093,1131 @@ if __name__ == "__main__":
     main()
 ```
 
+### `tests/audio/__init__.py`
+
+```python
+"""Optional offline audio regression tools, not part of the live assistant."""
+```
+
+### `tests/audio/corpus.py`
+
+```python
+"""Local-only WAV preparation. No playback, recordings or model downloads."""
+
+import json
+import os
+import tempfile
+from pathlib import Path
+
+import numpy as np
+
+from jarvis.audio_output import decode_wav, encode_wav
+from tests.audio.suite import Blocked, fingerprint, safe_file
+
+RATE = 16000
+VARIANTS = ("clean", "quiet", "noise")
+
+
+def atomic_write(path, data):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, name = tempfile.mkstemp(dir=path.parent, prefix=path.name + ".", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "wb") as stream:
+            stream.write(data)
+        os.replace(name, path)
+    finally:
+        Path(name).unlink(missing_ok=True)
+
+
+def write_json(path, data):
+    atomic_write(path, json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8"))
+
+
+def mono16k(wav):
+    audio, rate = decode_wav(wav)
+    if not len(audio) or len(audio) / rate > 30:
+        raise Blocked("Нужен непустой WAV не длиннее 30 секунд")
+    mono = audio.mean(axis=1)
+    if rate != RATE:
+        count = max(1, round(len(mono) * RATE / rate))
+        mono = np.interp(np.arange(count) * rate / RATE, np.arange(len(mono)), mono)
+    return mono.astype(np.float32)
+
+
+def transform(audio, variant, seed=42):
+    if variant not in VARIANTS:
+        raise Blocked("Неизвестный вариант аудио")
+    audio = np.asarray(audio, dtype=np.float32).copy()
+    if variant == "quiet":
+        audio *= 10 ** (-12 / 20)
+    elif variant == "noise":
+        rms = float(np.sqrt(np.mean(audio**2)))
+        noise = np.random.default_rng(seed).normal(size=len(audio))
+        nrms = float(np.sqrt(np.mean(noise**2)))
+        if nrms:
+            audio += noise * (rms / nrms * 10 ** (-20 / 20))
+    return np.clip(audio, -0.999, 0.999).astype(np.float32)
+
+
+def framed_pcm(audio, seed=42):
+    """Known padding, not measured speech-end latency; dither avoids dead-mic mode."""
+    rng = np.random.default_rng(seed)
+    prefix = rng.normal(0, 15 / 32768, round(0.512 * RATE))
+    tail = rng.normal(0, 15 / 32768, round(2.304 * RATE))
+    stream = np.concatenate([prefix, audio, tail])
+    return (np.clip(stream, -1, 1) * 32767).astype("<i2").tobytes()
+
+
+class LocalSynth:
+    """Use the real WinRT WAV engine, never Speaker/playback/download fallback."""
+
+    def __init__(self, voice="auto"):
+        from winrt.windows.media.speechsynthesis import SpeechSynthesizer
+
+        from jarvis.tts_engines.winrt import WinRTEngine
+
+        russian = [
+            v
+            for v in SpeechSynthesizer.all_voices
+            if v.language.lower().startswith("ru")
+        ]
+        selected = next(
+            (
+                v
+                for v in russian
+                if voice == "auto" or voice.lower() in v.display_name.lower()
+            ),
+            None,
+        )
+        if selected is None:
+            raise Blocked("Нет запрошенного русского системного голоса Windows")
+        self.name = selected.display_name
+        self.engine = WinRTEngine(voice=voice, rate=1.0)
+
+    def __call__(self, text):
+        return self.engine.synthesize(text, rate=1.0)
+
+
+def prepare(
+    suite,
+    suite_hash,
+    directory,
+    *,
+    voices=("auto",),
+    variants=VARIANTS,
+    recordings=None,
+    synth_factory=None,
+):
+    directory = Path(directory)
+    synth_factory = synth_factory or LocalSynth
+    if not voices or len(set(voices)) != len(voices) or len(voices) > 4:
+        raise Blocked("Укажи 1–4 разных голоса")
+    if (
+        not variants
+        or len(set(variants)) != len(variants)
+        or set(variants) - set(VARIANTS)
+    ):
+        raise Blocked("Варианты: clean, quiet, noise; без повторов")
+    if recordings:
+        voices = ("recorded",)
+    cases = []
+    for voice in voices:
+        if voice not in {"auto", "Pavel", "Irina", "recorded"}:
+            raise Blocked("Поддержаны auto, Pavel, Irina или --recordings")
+        synth = None if recordings else synth_factory(voice)
+        cache = {}
+        for scenario in suite["scenarios"]:
+            originals = []
+            for index, turn in enumerate(scenario["turns"], 1):
+                if "signal" in turn:
+                    audio = np.zeros(RATE, dtype=np.float32)
+                    if turn["signal"] == "noise":
+                        audio = (
+                            np.random.default_rng(42)
+                            .normal(0, 100 / 32768, RATE)
+                            .astype(np.float32)
+                        )
+                elif recordings:
+                    source = safe_file(recordings, f"{scenario['id']}/{index:02d}.wav")
+                    if not source.is_file():
+                        raise Blocked(
+                            f"Нет записи {scenario['id']}/{index:02d}.wav; синтез не подставляется"
+                        )
+                    if source.stat().st_size > 12_000_000:
+                        raise Blocked("Исходный WAV слишком большой")
+                    audio = mono16k(source.read_bytes())
+                else:
+                    text = turn["text"]
+                    if text not in cache:
+                        cache[text] = mono16k(synth(text))
+                    audio = cache[text]
+                originals.append(audio)
+            for variant in variants:
+                case = {
+                    "id": f"{scenario['id']}--{voice.lower()}--{variant}",
+                    "scenario": scenario["id"],
+                    "variant": variant,
+                    "source": "recorded" if recordings else "synthetic",
+                    "voice": "recorded"
+                    if recordings
+                    else getattr(synth, "name", voice),
+                    "turns": [],
+                }
+                for audio in originals:
+                    wav = encode_wav(transform(audio, variant)[:, None], RATE)
+                    sha = fingerprint(wav)
+                    relative = f"wav/{sha}.wav"
+                    atomic_write(directory / relative, wav)
+                    case["turns"].append({"wav": relative, "sha256": sha})
+                cases.append(case)
+    manifest = {"schema": 1, "suite_sha256": suite_hash, "cases": cases}
+    # The old manifest stays valid if preparation fails partway through.
+    write_json(directory / "corpus.json", manifest)
+    return manifest
+```
+
+### `tests/audio/runner.py`
+
+```python
+"""CLI orchestration; blocked resources always exit 2, never a fake pass."""
+
+import argparse
+import platform
+import sys
+import time
+from pathlib import Path
+
+from tests.audio.corpus import framed_pcm, mono16k, prepare, write_json
+from tests.audio.runtime import Engine, check_expected, preflight
+from tests.audio.suite import DEFAULT_SUITE, Blocked, load_corpus, load_suite, safe_file
+
+ROOT = Path(__file__).resolve().parents[2]
+
+
+def run(
+    suite,
+    suite_hash,
+    directory,
+    *,
+    engine_factory=Engine,
+    models=None,
+    asr="hybrid",
+    no_vad=False,
+    device="cpu",
+    selected=None,
+    include_transcripts=False,
+):
+    cases = load_corpus(directory, suite, suite_hash)
+    selected_cases = [
+        c for c in cases if selected is None or selected in {c["id"], c["scenario"]}
+    ]
+    if not selected_cases:
+        raise Blocked("Фильтр не выбрал ни одного кейса")
+    scenarios = {s["id"]: s for s in suite["scenarios"]}
+    started = time.perf_counter()
+    report = {
+        "schema": 1,
+        "status": "running",
+        "asr": asr,
+        "python": platform.python_version(),
+        "platform": platform.system(),
+        "suite_sha256": suite_hash,
+        "selected_cases": len(selected_cases),
+        "total_cases": len(cases),
+        "coverage": {
+            "vad": not no_vad,
+            "vosk_endpoint": True,
+            "whisper": asr == "hybrid",
+            "production_process": True,
+            "command_domain": ["open", "timer", "cancel"],
+            "physical_mic": False,
+            "playback": False,
+            "llm": False,
+            "full_command_registry": False,
+            "password": False,
+        },
+        "cases": [],
+    }
+    with engine_factory(models, asr=asr, no_vad=no_vad, device=device) as engine:
+        for case in selected_cases:
+            result = {
+                "id": case["id"],
+                "source": case["source"],
+                "variant": case["variant"],
+                "status": "pass",
+                "turns": [],
+            }
+            with engine.new_case() as sandbox:
+                for wav_info, turn in zip(
+                    case["turns"], scenarios[case["scenario"]]["turns"]
+                ):
+                    wav = safe_file(directory, wav_info["wav"]).read_bytes()
+                    actual = engine.replay(
+                        framed_pcm(mono16k(wav)),
+                        sandbox,
+                        include_transcripts=include_transcripts,
+                    )
+                    errors = check_expected(
+                        actual, turn["expect"], len(actual["endpoints"])
+                    )
+                    # Files/hashes identify local recordings without exporting raw ASR text.
+                    saved = {k: v for k, v in actual.items() if k != "replies"}
+                    saved.update(wav_sha256=wav_info["sha256"], errors=errors)
+                    if include_transcripts:
+                        saved["replies"] = actual["replies"]
+                    else:
+                        # Targets/reminder text can also contain recognized private speech.
+                        saved["actions"] = [
+                            {k: v for k, v in a.items() if k in {"action", "seconds"}}
+                            for a in actual["actions"]
+                        ]
+                    result["turns"].append(saved)
+                    if errors:
+                        result["status"] = "fail"
+                        break
+            report["cases"].append(result)
+    report["failed"] = sum(c["status"] != "pass" for c in report["cases"])
+    report["passed"] = len(report["cases"]) - report["failed"]
+    report["status"] = "fail" if report["failed"] else "pass"
+    report["wall_ms"] = round((time.perf_counter() - started) * 1000, 2)
+    return report
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(
+        description="Офлайн-аудиорегрессии Феникса: без микрофона и реальных действий"
+    )
+    parser.add_argument("command", choices=["prepare", "run"])
+    parser.add_argument("--suite", type=Path, default=DEFAULT_SUITE)
+    parser.add_argument(
+        "--workdir", type=Path, help="Локальный каталог WAV и отчётов (не репозиторий)"
+    )
+    parser.add_argument(
+        "--voices",
+        default="auto",
+        help="prepare: auto или Pavel,Irina; только установленные русские голоса",
+    )
+    parser.add_argument("--variants", default="clean,quiet,noise")
+    parser.add_argument(
+        "--recordings",
+        type=Path,
+        help="prepare: локальные <scenario>/01.wav; все речевые ходы обязательны",
+    )
+    parser.add_argument("--asr", choices=["hybrid", "vosk"], default="hybrid")
+    parser.add_argument("--vosk-model", type=Path)
+    parser.add_argument(
+        "--whisper-model",
+        type=Path,
+        help="Полная локальная CTranslate2-папка, не имя для скачивания",
+    )
+    parser.add_argument("--device", choices=["cpu", "auto", "cuda"], default="cpu")
+    parser.add_argument(
+        "--no-vad",
+        action="store_true",
+        help="Диагностический профиль без VAD, не полная проверка",
+    )
+    parser.add_argument(
+        "--case",
+        help="run: только указанный ID сценария/кейса; охват отражается в отчёте",
+    )
+    parser.add_argument(
+        "--include-transcripts",
+        action="store_true",
+        help="Явно сохранить распознанные фразы в локальный отчёт",
+    )
+    parser.add_argument("--report", type=Path)
+    args = parser.parse_args(argv)
+    if args.workdir is None:
+        from jarvis.paths import audio_regression_dir
+
+        args.workdir = audio_regression_dir()
+    report_path = args.report or args.workdir / "reports" / "latest.json"
+    try:
+        suite, sha = load_suite(args.suite)
+        if args.command == "prepare":
+            data = prepare(
+                suite,
+                sha,
+                args.workdir,
+                voices=tuple(args.voices.split(",")),
+                variants=tuple(args.variants.split(",")),
+                recordings=args.recordings,
+            )
+            print(
+                f"Корпус готов: {len(data['cases'])} кейсов, {sum(len(c['turns']) for c in data['cases'])} аудиоходов."
+            )
+            print(f"WAV остаются локально: {args.workdir}")
+            return 0
+        # Validate the whole corpus before loading expensive models.
+        load_corpus(args.workdir, suite, sha)
+        models = preflight(
+            ROOT,
+            asr=args.asr,
+            no_vad=args.no_vad,
+            vosk_model=args.vosk_model,
+            whisper_model=args.whisper_model,
+        )
+        result = run(
+            suite,
+            sha,
+            args.workdir,
+            models=models,
+            asr=args.asr,
+            no_vad=args.no_vad,
+            device=args.device,
+            selected=args.case,
+            include_transcripts=args.include_transcripts,
+        )
+        write_json(report_path, result)
+        print(
+            f"{result['status'].upper()}: {result['passed']} passed, {result['failed']} failed; {result['selected_cases']}/{result['total_cases']} кейсов."
+        )
+        print(
+            f"Профиль: {args.asr}, VAD {'OFF (диагностика)' if args.no_vad else 'ON'}; микрофон/озвучка не проверялись."
+        )
+        for case in result["cases"]:
+            if case["status"] == "fail":
+                print(case["id"] + ": " + "; ".join(case["turns"][-1]["errors"]))
+        print(f"Отчёт: {report_path}")
+        return 1 if result["failed"] else 0
+    except Exception as error:  # noqa: BLE001 -- CLI reports any model failure as BLOCKED
+        # No traceback flood and no silent skip when a runtime/model is missing.
+        result = {
+            "schema": 1,
+            "status": "blocked",
+            "passed": 0,
+            "reason": f"{type(error).__name__}: {str(error)[:600]}",
+        }
+        try:
+            write_json(report_path, result)
+        except OSError:
+            pass
+        print("BLOCKED (не pass): " + result["reason"], file=sys.stderr)
+        print(f"Отчёт: {report_path}", file=sys.stderr)
+        return 2
+```
+
+### `tests/audio/runtime.py`
+
+```python
+"""Real ASR + production _process; only a bounded, side-effect-free command harness. ... [4 строк]"""
+
+import importlib.util
+import os
+import socket
+import threading
+import time
+from collections import deque
+from contextlib import ExitStack
+from copy import deepcopy
+from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
+
+from tests.audio.suite import Blocked
+
+
+def preflight(root, *, asr="hybrid", no_vad=False, vosk_model=None, whisper_model=None):
+    if os.name != "nt":
+        raise Blocked(
+            "Полный аудиопрогон предназначен для Windows; pytest не требует Windows/моделей"
+        )
+    required = ["vosk", "numpy", "flet"]
+    if not no_vad:
+        required.append("onnxruntime")
+    if asr == "hybrid":
+        required += ["faster_whisper", "ctranslate2"]
+    missing = [name for name in required if importlib.util.find_spec(name) is None]
+    if missing:
+        raise Blocked("Нет установленных runtime-зависимостей: " + ", ".join(missing))
+    from jarvis import model, paths, vad
+
+    candidates = (
+        [Path(vosk_model)]
+        if vosk_model
+        else [
+            paths.program_models_dir() / model.MODEL_NAME,
+            Path(root) / "models" / model.MODEL_NAME,
+        ]
+    )
+    vosk = next(
+        (
+            p
+            for p in candidates
+            if (p / "am/final.mdl").is_file() and (p / "conf/model.conf").is_file()
+        ),
+        None,
+    )
+    if vosk is None:
+        raise Blocked(
+            "Нет локальной модели Vosk. Укажи --vosk-model; загрузка не запускается"
+        )
+    if not str(vosk.resolve()).isascii():
+        raise Blocked("Путь модели Vosk должен быть ASCII")
+    if not no_vad and vad._find_model() is None:
+        raise Blocked(
+            "Нет локальной silero_vad.onnx; запусти обычный Феникс для установки или явно --no-vad"
+        )
+    whisper = None
+    if asr == "hybrid":
+        if whisper_model:
+            candidates = [Path(whisper_model)]
+        else:
+            from jarvis.config import DEFAULT_CONFIG
+
+            repo = DEFAULT_CONFIG["whisper_model"].replace("/", "--")
+            cache = (
+                paths.program_whisper_cache_dir() / ("models--" + repo) / "snapshots"
+            )
+            candidates = sorted(
+                cache.glob("*"), key=lambda p: p.stat().st_mtime, reverse=True
+            )
+        whisper = next(
+            (
+                p
+                for p in candidates
+                if all(
+                    (p / f).is_file()
+                    for f in ("model.bin", "config.json", "tokenizer.json")
+                )
+            ),
+            None,
+        )
+        if whisper is None:
+            raise Blocked(
+                "Нет локальной CTranslate2-модели Whisper. Укажи --whisper-model или явно --asr vosk"
+            )
+    return {"vosk": vosk.resolve(), "whisper": whisper.resolve() if whisper else None}
+
+
+class Sandbox:
+    def __init__(self, listener, whisper=None, *, app_class=None):
+        self.stack = ExitStack()
+        try:
+            self._setup(listener, whisper, app_class=app_class)
+        except BaseException:
+            self.stack.close()
+            raise
+
+    def _setup(self, listener, whisper=None, *, app_class=None):
+        from jarvis.config import DEFAULT_CONFIG
+        from jarvis.intents.fast.open import open_fast
+        from jarvis.intents.fast.timers import timers_fast
+        from jarvis.intents.handler import IntentHandler
+        from jarvis.intents.stages.cancel import CancelStage
+        from jarvis.intents.stages.clarification import ClarificationStage
+        from jarvis.intents.stages.compound import CompoundStage
+        from jarvis.intents.stages.fast import FastHandlersStage
+        from jarvis.intents.stages.pending import PendingStage
+
+        if app_class is None:
+            from jarvis.main import Jarvis
+
+            app_class = Jarvis
+
+        self.events, self.replies = [], []
+        self.config = deepcopy(DEFAULT_CONFIG)
+        self.config.update(
+            prosody_enabled=False,
+            observer_enabled=False,
+            nonverbal_enabled=False,
+            mode="commands",
+            use_llm=False,
+            vad_auto_download=False,
+        )
+        self.stack.enter_context(patch("jarvis.memory.append", lambda msg: None))
+        self.stack.enter_context(patch("jarvis.mood.apply_from_text", lambda cmd: None))
+        self.stack.enter_context(patch("jarvis.intents.fast.open._do_open", self._open))
+        self.stack.enter_context(patch("jarvis.timers.add", self._timer))
+        self.stack.enter_context(
+            patch(
+                "jarvis.timers.remove_all", lambda: self._forbidden("remove_all") or 0
+            )
+        )
+        self.stack.enter_context(
+            patch("jarvis.timers.list_all", lambda: self._forbidden("list_all") or [])
+        )
+        h = IntentHandler.__new__(IntentHandler)
+        h.config, h.brain, h.mode = self.config, None, "commands"
+        h.apps = [
+            SimpleNamespace(
+                key="notepad", title="Блокнот", aliases=["блокнот", "notepad"]
+            ),
+            SimpleNamespace(key="steam", title="Стим", aliases=["стим", "steam"]),
+        ]
+        h._installed, h._steam_games = {}, []
+        h._pending_question = h._pending_password = None
+        h._reset_requested = False
+        h._last_cmd = h._raw_cmd = h._last_reply = ""
+        h.dialog, h._recent_phrases = deque(maxlen=100), deque(maxlen=10)
+        h.custom = []
+        h._pipeline = [
+            CancelStage(),
+            PendingStage(),
+            CompoundStage(),
+            ClarificationStage(),
+            FastHandlersStage(),
+        ]
+        h._fast_handlers_cache = [
+            ("open", lambda cmd: open_fast(h, cmd)),
+            ("timers", lambda cmd: timers_fast(h, cmd)),
+        ]
+        a = app_class.__new__(app_class)
+        a.config, a.handler, a.listener, a.whisper = self.config, h, listener, whisper
+        a.gui = a.observer = None
+        a.cmd_lock = threading.Lock()
+        a.speaker = SimpleNamespace(stop=lambda: None, wait_end=lambda **kw: True)
+        a._wake_words, a._wake_word_required = list(DEFAULT_CONFIG["wake_words"]), True
+        a._awaiting_until, a._last_repeat_at = 0.0, float("-inf")
+        a.say = self._say
+        self.app, self.handler = a, h
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.stack.close()
+
+    def _say(self, reply):
+        if reply.is_stream:
+            raise Blocked("В ограниченном аудионаборе потоковый LLM-ответ не разрешён")
+        self.replies.append(reply.text or "")
+        return False
+
+    def _open(self, handler, target):
+        self.events.append({"action": "open", "target": target})
+        return "Открываю приложение (тест)."
+
+    def _timer(self, text, fire_at):
+        seconds = round(fire_at - time.time())
+        self.events.append({"action": "timer", "seconds": seconds, "text": text})
+        return {"id": 1, "text": text, "fire_at": fire_at}
+
+    def _forbidden(self, action):
+        self.events.append({"action": "blocked", "name": action})
+
+    def process(self, text, pcm):
+        self.app._process(text, pcm)
+
+    def snapshot(self, event_start, reply_start, timing_before):
+        pending = self.handler._pending_question
+        return {
+            "actions": self.events[event_start:],
+            "pending": pending.get("slot") if pending else None,
+            "replies": self.replies[reply_start:],
+            "handled": getattr(self.handler, "_last_timings", None)
+            is not timing_before,
+        }
+
+
+def check_expected(actual, expect, endpoints):
+    errors = []
+    if expect.get("speech", True) and endpoints < 1:
+        errors.append("Vosk не отдал ни одной фразы через настоящий endpoint")
+    if not expect.get("speech", True) and endpoints:
+        errors.append("На тишине/шуме получен речевой endpoint")
+    if actual["actions"] != expect["actions"]:
+        errors.append("Действия не совпали с ожиданиями")
+    if actual["pending"] != expect["pending"]:
+        errors.append("Неверное состояние уточнения")
+    if "handled" in expect and actual["handled"] != expect["handled"]:
+        errors.append("Неверная маршрутизация wake/окна диалога")
+    wanted = expect.get("reply_contains", "").lower()
+    if wanted and not any(wanted in r.lower() for r in actual["replies"]):
+        errors.append("Нет ожидаемого вопроса/ответа")
+    return errors
+
+
+def deny_network(*args, **kwargs):
+    raise Blocked("Аудиорегрессия запрещает сетевые соединения")
+
+
+class Engine:
+    def __init__(self, models, *, asr="hybrid", no_vad=False, device="cpu"):
+        self.stack = ExitStack()
+        try:
+            self._setup(models, asr=asr, no_vad=no_vad, device=device)
+        except BaseException:
+            self.stack.close()
+            raise
+
+    def _setup(self, models, *, asr="hybrid", no_vad=False, device="cpu"):
+        from jarvis import stt, vad
+        from jarvis.config import DEFAULT_CONFIG
+
+        # No opt-out download switch: a measurement must use installed models.
+        self.stack.enter_context(patch.object(socket.socket, "connect", deny_network))
+        self.stack.enter_context(
+            patch.object(socket.socket, "connect_ex", deny_network)
+        )
+        self.stack.enter_context(
+            patch.object(socket, "create_connection", deny_network)
+        )
+        self.config = deepcopy(DEFAULT_CONFIG)
+        self.config.update(vad_auto_download=False, vad_enabled=not no_vad)
+
+        class StrictVAD(vad.VAD):
+            fault = False
+
+            def _max_prob(self, samples):
+                try:
+                    return super()._max_prob(samples)
+                except Exception:
+                    self.fault = True
+                    raise
+
+        class StrictWhisper(stt.WhisperTranscriber):
+            fault = False
+            calls = 0
+
+            def transcribe(self, *args, **kwargs):
+                self.calls += 1
+                try:
+                    return super().transcribe(*args, **kwargs)
+                except Exception:
+                    self.fault = True
+                    raise
+
+        self.stack.enter_context(patch.object(stt, "VAD", StrictVAD))
+        self.stack.enter_context(patch.object(vad, "VAD", StrictVAD))
+        try:
+            self.listener = stt.Listener(
+                models["vosk"], config=self.config, file_mode=True
+            )
+            self.whisper = None
+            if asr == "hybrid":
+                self.whisper = StrictWhisper(
+                    str(models["whisper"]),
+                    device=device,
+                    config=self.config,
+                    local_files_only=True,
+                )
+            self.no_vad = no_vad
+            self._require_vad()
+        except BaseException:
+            self.stack.close()
+            raise
+
+    def _require_vad(self):
+        v = self.listener.vad
+        if not self.no_vad and (
+            v is None
+            or not v.is_available()
+            or getattr(v, "fault", False)
+            or getattr(v, "_auto_off", False)
+        ):
+            raise Blocked(
+                "VAD недоступен/отключился/перешёл на fallback: полного измерения нет"
+            )
+        if self.listener.file_vad_errors:
+            raise Blocked(
+                "Ошибка callback VAD; fallback не считается успешной проверкой"
+            )
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.stack.close()
+
+    def new_case(self):
+        # Noise adaptation must not leak between independent scenarios.
+        if not self.no_vad:
+            self.listener.reload_vad()
+            self._require_vad()
+        return Sandbox(self.listener, self.whisper)
+
+    def replay(self, pcm, sandbox, *, include_transcripts=False):
+        self.listener.reset_file_input()
+        n_events, n_replies = len(sandbox.events), len(sandbox.replies)
+        before = getattr(sandbox.handler, "_last_timings", None)
+        started = time.perf_counter()
+        whisper_before = self.whisper.calls if self.whisper else 0
+        endpoints = []
+        size = self.listener._block_size * 2
+        for offset in range(0, len(pcm), size):
+            block = pcm[offset : offset + size]
+            # Silero works in 512-sample chunks, pad only the final block.
+            if len(block) < size:
+                block += b"\0" * (size - len(block))
+            phrases = self.listener.feed_pcm(block)
+            self._require_vad()
+            for text, audio in phrases:
+                endpoint = {
+                    "audio_ms": round((offset + size) / 32, 2),
+                    "quality": self.listener.last_quality.reason,
+                }
+                if include_transcripts:
+                    endpoint["transcript"] = text
+                endpoints.append(endpoint)
+                sandbox.process(text, audio)
+                if self.whisper is not None and self.whisper.fault:
+                    raise Blocked(
+                        "Whisper упал: fallback Vosk не считается hybrid pass"
+                    )
+            self._require_vad()
+        actual = sandbox.snapshot(n_events, n_replies, before)
+        return {
+            **actual,
+            "endpoints": endpoints,
+            "whisper_calls": (self.whisper.calls - whisper_before)
+            if self.whisper
+            else 0,
+            "wall_ms": round((time.perf_counter() - started) * 1000, 2),
+            "audio_ms": round(len(pcm) / 32, 2),
+        }
+```
+
+### `tests/audio/scenarios.json`
+
+```json
+{
+  "schema": 1,
+  "scenarios": [
+    {
+      "id": "open_app",
+      "turns": [
+        {
+          "text": "Феникс открой",
+          "expect": {
+            "actions": [],
+            "pending": "target",
+            "speech": true,
+            "reply_contains": "приложение"
+          }
+        },
+        {
+          "text": "Блокнот",
+          "expect": {
+            "actions": [
+              {
+                "action": "open",
+                "target": "блокнот"
+              }
+            ],
+            "pending": null,
+            "speech": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "timer_units",
+      "turns": [
+        {
+          "text": "Феникс поставь таймер",
+          "expect": {
+            "actions": [],
+            "pending": "time",
+            "speech": true
+          }
+        },
+        {
+          "text": "На десять",
+          "expect": {
+            "actions": [],
+            "pending": "unit",
+            "speech": true
+          }
+        },
+        {
+          "text": "Минут",
+          "expect": {
+            "actions": [
+              {
+                "action": "timer",
+                "seconds": 600,
+                "text": ""
+              }
+            ],
+            "pending": null,
+            "speech": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "timer_correction",
+      "turns": [
+        {
+          "text": "Феникс поставь таймер",
+          "expect": {
+            "actions": [],
+            "pending": "time",
+            "speech": true
+          }
+        },
+        {
+          "text": "На десять нет на пятнадцать минут",
+          "expect": {
+            "actions": [
+              {
+                "action": "timer",
+                "seconds": 900,
+                "text": ""
+              }
+            ],
+            "pending": null,
+            "speech": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "reminder_text",
+      "turns": [
+        {
+          "text": "Феникс напомни выпить чай",
+          "expect": {
+            "actions": [],
+            "pending": "time",
+            "speech": true
+          }
+        },
+        {
+          "text": "Через пять минут",
+          "expect": {
+            "actions": [
+              {
+                "action": "timer",
+                "seconds": 300,
+                "text": "выпить чай"
+              }
+            ],
+            "pending": null,
+            "speech": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "cancel",
+      "turns": [
+        {
+          "text": "Феникс открой",
+          "expect": {
+            "actions": [],
+            "pending": "target",
+            "speech": true
+          }
+        },
+        {
+          "text": "Отмена",
+          "expect": {
+            "actions": [],
+            "pending": null,
+            "speech": true
+          }
+        },
+        {
+          "text": "Блокнот",
+          "expect": {
+            "actions": [],
+            "pending": null,
+            "speech": true,
+            "handled": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "no_wake",
+      "turns": [
+        {
+          "text": "Открой блокнот",
+          "expect": {
+            "actions": [],
+            "pending": null,
+            "speech": true,
+            "handled": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "new_command",
+      "turns": [
+        {
+          "text": "Феникс поставь таймер",
+          "expect": {
+            "actions": [],
+            "pending": "time",
+            "speech": true
+          }
+        },
+        {
+          "text": "Открой блокнот",
+          "expect": {
+            "actions": [
+              {
+                "action": "open",
+                "target": "блокнот"
+              }
+            ],
+            "pending": null,
+            "speech": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "silence",
+      "turns": [
+        {
+          "signal": "silence",
+          "expect": {
+            "actions": [],
+            "pending": null,
+            "speech": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "noise",
+      "turns": [
+        {
+          "signal": "noise",
+          "expect": {
+            "actions": [],
+            "pending": null,
+            "speech": false
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### `tests/audio/suite.py`
+
+```python
+"""Strict, versioned audio scenarios. Expected text never reaches an ASR prompt."""
+
+import hashlib
+import json
+import re
+from pathlib import Path
+
+SCHEMA = 1
+ID = re.compile(r"[a-z0-9_-]{1,64}\Z")
+DEFAULT_SUITE = Path(__file__).with_name("scenarios.json")
+
+
+class Blocked(RuntimeError):
+    """No valid measurement was made: exit 2, never an all-skipped success."""
+
+
+def fingerprint(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def safe_file(root, relative):
+    if not isinstance(relative, str) or "\\" in relative:
+        raise Blocked("Неверный относительный путь WAV")
+    rel = Path(relative)
+    if rel.is_absolute() or ".." in rel.parts:
+        raise Blocked("WAV должен находиться внутри каталога корпуса")
+    result = (Path(root) / rel).resolve()
+    if not result.is_relative_to(Path(root).resolve()):
+        raise Blocked("WAV выходит из каталога корпуса")
+    return result
+
+
+def load_suite(path=DEFAULT_SUITE):
+    raw = Path(path).read_bytes()
+    data = json.loads(raw.decode("utf-8"))
+    if data.get("schema") != SCHEMA or not isinstance(data.get("scenarios"), list):
+        raise Blocked("Неподдержанная схема аудиосценариев")
+    if not 1 <= len(data["scenarios"]) <= 100:
+        raise Blocked("Нужен непустой набор: не более 100 сценариев")
+    seen = set()
+    for case in data["scenarios"]:
+        key = case.get("id", "")
+        if not ID.fullmatch(key) or len(key) > 40 or key in seen:
+            raise Blocked("Неверный или повторяющийся ID сценария")
+        seen.add(key)
+        turns = case.get("turns")
+        if not isinstance(turns, list) or not 1 <= len(turns) <= 10:
+            raise Blocked("В сценарии должно быть 1–10 ходов")
+        for turn in turns:
+            if set(turn) - {"text", "signal", "expect"}:
+                raise Blocked("Неизвестное поле аудиохода")
+            if ("text" in turn) == ("signal" in turn):
+                raise Blocked("Укажи текст синтеза ИЛИ тестовый сигнал")
+            if "text" in turn and (
+                not isinstance(turn["text"], str) or not 1 <= len(turn["text"]) <= 500
+            ):
+                raise Blocked("Неверный текст аудиохода")
+            if "signal" in turn and turn["signal"] not in {"silence", "noise"}:
+                raise Blocked("Неподдержанный тестовый сигнал")
+            expect = turn.get("expect")
+            if (
+                not isinstance(expect, dict)
+                or not {"actions", "pending"} <= expect.keys()
+            ):
+                raise Blocked("Нужны ожидания actions/pending для каждого хода")
+            if set(expect) - {
+                "actions",
+                "pending",
+                "reply_contains",
+                "speech",
+                "handled",
+            }:
+                raise Blocked("Неизвестное поле ожидания")
+            if expect["pending"] not in {None, "target", "time", "unit"}:
+                raise Blocked("Неверный ожидаемый слот")
+            if not isinstance(expect["actions"], list):
+                raise Blocked("actions должен быть списком")
+            for action in expect["actions"]:
+                if not isinstance(action, dict) or action.get("action") not in {
+                    "open",
+                    "timer",
+                }:
+                    raise Blocked("Неподдержанное ожидаемое действие")
+            for flag in ("speech", "handled"):
+                if flag in expect and not isinstance(expect[flag], bool):
+                    raise Blocked("speech/handled должны быть bool")
+            if not isinstance(expect.get("reply_contains", ""), str):
+                raise Blocked("reply_contains должен быть строкой")
+    return data, fingerprint(raw)
+
+
+def load_corpus(directory, suite, suite_hash):
+    root = Path(directory)
+    path = root / "corpus.json"
+    if not path.is_file():
+        raise Blocked("Корпус не подготовлен. Сначала запусти prepare")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if data.get("schema") != SCHEMA or data.get("suite_sha256") != suite_hash:
+        raise Blocked("Сценарии изменились или корпус несовместим: повтори prepare")
+    records = data.get("cases")
+    if not isinstance(records, list) or not 1 <= len(records) <= 1200:
+        raise Blocked("В корпусе нет кейсов")
+    expected = {s["id"]: s for s in suite["scenarios"]}
+    ids, covered = set(), set()
+    for case in records:
+        key = case.get("id", "")
+        if not ID.fullmatch(key) or key in ids or case.get("scenario") not in expected:
+            raise Blocked("Неверный/повторяющийся ID кейса корпуса")
+        ids.add(key)
+        covered.add(case["scenario"])
+        turns = case.get("turns", [])
+        if len(turns) != len(expected[case["scenario"]]["turns"]):
+            raise Blocked("Число записей не совпадает с числом ходов")
+        for turn in turns:
+            wav = safe_file(root, turn.get("wav"))
+            if not wav.is_file() or wav.stat().st_size > 4_000_000:
+                raise Blocked("Нет WAV или превышен предел 4 МБ")
+            if fingerprint(wav.read_bytes()) != turn.get("sha256"):
+                raise Blocked("WAV изменён/повреждён: повтори prepare")
+    if covered != set(expected):
+        raise Blocked("Корпус покрывает не все сценарии")
+    return records
+```
+
 ### `tests/conftest.py`
 
 ```python
@@ -24957,6 +26063,567 @@ if __name__ == "__main__":
     main()
 ```
 
+### `tests/test_audio_regression.py`
+
+```python
+"""Fast contracts only: fake decoders are NOT an audio quality measurement."""
+
+import json
+import socket
+import threading
+from copy import deepcopy
+from types import SimpleNamespace as NS
+from unittest.mock import Mock
+
+import numpy as np
+import pytest
+
+from jarvis import stt
+from jarvis.audio_output import encode_wav
+from jarvis.matching import wake_score
+from jarvis.recognition import Quality
+from tests.audio import corpus, runner, runtime
+from tests.audio.suite import Blocked, load_corpus, load_suite, safe_file
+from tests.test_recognition_quality import method
+
+
+class FakeRec:
+    def __init__(self):
+        self.accept = False
+        self.calls = []
+        self.resets = 0
+        self.result = {"text": "феникс открой", "result": [{"conf": 0.99}]}
+
+    def SetWords(self, enabled):
+        self.words = enabled
+
+    def AcceptWaveform(self, data):
+        self.calls.append(data)
+        return self.accept
+
+    def Result(self):
+        return json.dumps(self.result)
+
+    def Reset(self):
+        self.resets += 1
+
+    def FinalResult(self):
+        raise AssertionError("Forced endpoint is forbidden")
+
+
+@pytest.fixture
+def listener(monkeypatch):
+    rec = FakeRec()
+    monkeypatch.setattr(stt, "Model", lambda p: object())
+    monkeypatch.setattr(stt, "KaldiRecognizer", lambda *a: rec)
+    monkeypatch.setattr(stt, "SetLogLevel", lambda *a: None)
+    # Any accidental microphone/device access fails, including device discovery.
+    monkeypatch.setattr(stt, "sd", None)
+    return stt.Listener("unused", config={"vad_enabled": False}, file_mode=True)
+
+
+def test_file_feed_uses_callback_and_real_endpoint_path(listener):
+    block = np.full(listener._block_size, 600, dtype="<i2").tobytes()
+    assert listener.feed_pcm(block) == []
+    assert listener.current_rms == 600
+    assert listener._rec.words
+    listener._rec.accept = True
+    [(text, audio)] = listener.feed_pcm(block)
+    assert text == "феникс открой"
+    assert audio == block * 2
+    assert listener.last_quality.accepted
+    assert listener._utt_len == 0
+    assert listener.utterances == 1
+
+
+def test_reset_clears_audio_and_previous_quality(listener):
+    listener.feed_pcm(b"\0\0" * 512)
+    listener.last_quality = Quality(True, "old")
+    listener.file_vad_errors = 1
+    listener.reset_file_input()
+    assert listener.last_quality is None
+    assert listener.file_vad_errors == 0
+    assert listener._rec.resets == 1
+    assert not listener._utt_buf
+    assert listener._audio.empty()
+
+
+@pytest.mark.parametrize("pcm", [b"x", b"\0" * 4098], ids=["odd", "large"])
+def test_invalid_pcm_blocks(listener, pcm):
+    with pytest.raises(ValueError):
+        listener.feed_pcm(pcm)
+    assert not listener._rec.calls
+
+
+def test_empty_and_silent_endpoint_dont_invent_phrase(listener):
+    assert listener.feed_pcm(b"") == []
+    listener._rec.accept = True
+    listener._rec.result = {"text": ""}
+    assert listener.feed_pcm(b"\0\0" * 512) == []
+    assert not listener.last_quality.accepted
+
+
+def test_file_mode_cannot_open_microphone(listener):
+    with pytest.raises(RuntimeError):
+        next(listener.phrases(threading.Event()))
+
+
+def test_live_mode_cannot_be_fed_externally(listener):
+    listener._file_mode = False
+    with pytest.raises(RuntimeError):
+        listener.feed_pcm(b"\0\0")
+    with pytest.raises(RuntimeError):
+        listener.reset_file_input()
+
+
+def test_audio_buffer_is_bounded(listener):
+    block = b"\0\0" * listener._block_size
+    for _ in range(500):
+        listener.feed_pcm(block)
+    assert listener._utt_len <= 16000 * 2 * 30
+
+
+def test_callback_vad_fault_is_visible_to_runner(listener):
+    listener.vad = NS(is_speech=Mock(side_effect=RuntimeError("vad")))
+    listener.feed_pcm(b"\0\0" * 512)
+    assert listener.file_vad_errors == 1
+    e = runtime.Engine.__new__(runtime.Engine)
+    e.listener, e.no_vad = listener, True
+    with pytest.raises(Blocked, match="callback"):
+        e._require_vad()
+
+
+class Synth:
+    name = "Fake unit-test voice"
+
+    def __init__(self, voice):
+        pass
+
+    def __call__(self, text):
+        # Units test only corpus plumbing, never recognition.
+        x = np.sin(np.arange(8000) * 0.13).astype(np.float32) * 0.1
+        return encode_wav(x[:, None], 16000)
+
+
+@pytest.fixture
+def prepared(tmp_path):
+    suite, sha = load_suite()
+    data = corpus.prepare(suite, sha, tmp_path, synth_factory=Synth)
+    return tmp_path, suite, sha, data
+
+
+def test_default_corpus_counts_and_hashes(prepared):
+    directory, suite, sha, data = prepared
+    assert len(data["cases"]) == 27
+    assert sum(len(c["turns"]) for c in data["cases"]) == 51
+    assert load_corpus(directory, suite, sha) == data["cases"]
+    assert all(c["source"] == "synthetic" for c in data["cases"])
+
+
+@pytest.mark.parametrize("variant", ["clean", "quiet", "noise"])
+def test_transforms_are_deterministic_and_do_not_mutate(variant):
+    x = np.sin(np.arange(16000) * 0.1).astype(np.float32) * 0.1
+    original = x.copy()
+    y = corpus.transform(x, variant)
+    np.testing.assert_array_equal(x, original)
+    np.testing.assert_array_equal(y, corpus.transform(x, variant))
+    if variant == "quiet":
+        assert np.sqrt(np.mean(y**2)) / np.sqrt(np.mean(x**2)) == pytest.approx(
+            10 ** (-12 / 20)
+        )
+    if variant == "noise":
+        assert np.sqrt(np.mean((y - x) ** 2)) / np.sqrt(np.mean(x**2)) == pytest.approx(
+            0.1, rel=0.001
+        )
+
+
+def test_stereo_resampled_and_framed():
+    wav = encode_wav(np.full((24000, 2), 0.1, dtype=np.float32), 48000)
+    x = corpus.mono16k(wav)
+    assert len(x) == 8000
+    assert np.mean(x) == pytest.approx(0.1, abs=0.001)
+    pcm = corpus.framed_pcm(x)
+    assert len(pcm) == (8000 + 8192 + 36864) * 2
+    assert pcm == corpus.framed_pcm(x)
+
+
+@pytest.mark.parametrize("path", ["../evil.wav", "/tmp/evil.wav", "a\\evil.wav"])
+def test_paths_cannot_escape(tmp_path, path):
+    with pytest.raises(Blocked):
+        safe_file(tmp_path, path)
+
+
+def test_symlink_escape(tmp_path):
+    other = tmp_path.parent / (tmp_path.name + "-outside")
+    other.mkdir(exist_ok=True)
+    try:
+        (tmp_path / "out").symlink_to(other, target_is_directory=True)
+    except OSError:
+        pytest.skip("Creating symlinks is not permitted on this Windows installation")
+    with pytest.raises(Blocked):
+        safe_file(tmp_path, "out/a.wav")
+
+
+@pytest.mark.parametrize(
+    "fault", ["hash", "empty", "duplicate", "suite", "missing", "turns"]
+)
+def test_invalid_corpus_is_blocked(prepared, fault):
+    directory, suite, sha, data = prepared
+    if fault == "hash":
+        safe_file(directory, data["cases"][0]["turns"][0]["wav"]).write_bytes(b"bad")
+    elif fault == "empty":
+        data["cases"] = []
+    elif fault == "duplicate":
+        data["cases"].append(deepcopy(data["cases"][0]))
+    elif fault == "suite":
+        data["suite_sha256"] = "wrong"
+    elif fault == "missing":
+        data["cases"] = data["cases"][3:]
+    else:
+        data["cases"][0]["turns"] = []
+    corpus.write_json(directory / "corpus.json", data)
+    with pytest.raises(Blocked):
+        load_corpus(directory, suite, sha)
+
+
+@pytest.mark.parametrize(
+    "fault", ["duplicate", "flag", "unknown", "two_sources", "empty"]
+)
+def test_invalid_suite_is_blocked(tmp_path, fault):
+    suite, _ = load_suite()
+    if fault == "duplicate":
+        suite["scenarios"].append(deepcopy(suite["scenarios"][0]))
+    elif fault == "flag":
+        suite["scenarios"][0]["turns"][0]["expect"]["speech"] = "yes"
+    elif fault == "unknown":
+        suite["scenarios"][0]["turns"][0]["bogus"] = True
+    elif fault == "two_sources":
+        suite["scenarios"][0]["turns"][0]["signal"] = "noise"
+    else:
+        suite["scenarios"] = []
+    corpus.write_json(tmp_path / "suite.json", suite)
+    with pytest.raises(Blocked):
+        load_suite(tmp_path / "suite.json")
+
+
+def test_failed_prepare_keeps_previous_manifest(prepared):
+    directory, suite, sha, _ = prepared
+    before = (directory / "corpus.json").read_bytes()
+    with pytest.raises(Blocked, match="Нет записи"):
+        corpus.prepare(suite, sha, directory, recordings=directory / "missing")
+    assert (directory / "corpus.json").read_bytes() == before
+    load_corpus(directory, suite, sha)
+
+
+def test_recordings_are_never_replaced_with_synthetic(tmp_path):
+    suite, sha = load_suite()
+    for scenario in suite["scenarios"]:
+        for i, turn in enumerate(scenario["turns"], 1):
+            if "text" in turn:
+                p = tmp_path / "input" / scenario["id"] / f"{i:02d}.wav"
+                p.parent.mkdir(parents=True, exist_ok=True)
+                p.write_bytes(Synth("")(turn["text"]))
+    data = corpus.prepare(
+        suite,
+        sha,
+        tmp_path / "out",
+        recordings=tmp_path / "input",
+        synth_factory=Mock(side_effect=AssertionError("no synthesis")),
+    )
+    assert all(c["source"] == "recorded" for c in data["cases"])
+
+
+class App:
+    # Existing AST helper allows real method bodies without importing Windows GUI.
+    _process = method("jarvis/main.py", "Jarvis", "_process")
+    _extract_command = method("jarvis/main.py", "Jarvis", "_extract_command")
+    _is_wake = method("jarvis/main.py", "Jarvis", "_is_wake", wake_score=wake_score)
+    _request_repeat = method("jarvis/main.py", "Jarvis", "_request_repeat")
+
+
+def test_manifest_command_expectations_match_production_methods():
+    suite, _ = load_suite()
+    listener = NS(last_quality=Quality(True, "fixture"), recent_phrases=[])
+    # No decoded text comes from this path in the REAL engine. This is a textual
+    # contract test to catch wrong expected actions before expensive ASR runs.
+    for case in suite["scenarios"]:
+        with runtime.Sandbox(listener, app_class=App) as s:
+            for turn in case["turns"]:
+                before = getattr(s.handler, "_last_timings", None)
+                ne, nr = len(s.events), len(s.replies)
+                if "text" in turn:
+                    s.process(turn["text"], b"")
+                actual = s.snapshot(ne, nr, before)
+                assert (
+                    runtime.check_expected(actual, turn["expect"], int("text" in turn))
+                    == []
+                ), (case["id"], actual)
+
+
+def test_sandbox_restores_side_effect_functions():
+    from jarvis import timers
+
+    add = timers.add
+    with runtime.Sandbox(NS(), app_class=App):
+        assert timers.add is not add
+    assert timers.add is add
+
+
+@pytest.mark.parametrize(
+    "fault", ["endpoint", "noise_endpoint", "action", "pending", "routing", "reply"]
+)
+def test_expectations_cannot_silently_pass(fault):
+    actual = {"actions": [], "pending": None, "handled": False, "replies": []}
+    expect = {"actions": [], "pending": None}
+    endpoints = 1
+    if fault == "endpoint":
+        endpoints = 0
+    elif fault == "noise_endpoint":
+        expect["speech"] = False
+    elif fault == "action":
+        actual["actions"] = [{"action": "open", "target": "unexpected"}]
+    elif fault == "pending":
+        actual["pending"] = "unit"
+    elif fault == "routing":
+        expect["handled"] = True
+    else:
+        expect["reply_contains"] = "question"
+    assert runtime.check_expected(actual, expect, endpoints)
+
+
+def test_missing_corpus_exits_blocked_not_pass(tmp_path):
+    assert runner.main(["run", "--workdir", str(tmp_path)]) == 2
+    data = json.loads((tmp_path / "reports/latest.json").read_text(encoding="utf-8"))
+    assert data["status"] == "blocked"
+    assert data["passed"] == 0
+
+
+def test_network_guard_is_reversible():
+    connect = socket.socket.connect
+    with (
+        runtime.patch.object(socket.socket, "connect", runtime.deny_network),
+        socket.socket() as s,
+        pytest.raises(Blocked),
+    ):
+        s.connect(("127.0.0.1", 80))
+    assert socket.socket.connect is connect
+
+
+def test_filter_cannot_produce_empty_pass(prepared):
+    directory, suite, sha, _ = prepared
+    with pytest.raises(Blocked, match="Фильтр"):
+        runner.run(suite, sha, directory, selected="not-a-case")
+
+
+def test_vad_fallback_never_counts_as_full_pass(listener):
+    e = runtime.Engine.__new__(runtime.Engine)
+    e.listener, e.no_vad = listener, False
+    for v in [
+        None,
+        NS(is_available=lambda: False),
+        NS(is_available=lambda: True, fault=True),
+        NS(is_available=lambda: True, _auto_off=True),
+    ]:
+        listener.vad = v
+        with pytest.raises(Blocked):
+            e._require_vad()
+
+
+class ResultEngine:
+    """A runner-only fake: queued outputs, no claim of real ASR."""
+
+    def __init__(self, models, **kwargs):
+        self.values = iter(models)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        pass
+
+    def new_case(self):
+        return self
+
+    def replay(self, pcm, sandbox, **kwargs):
+        assert isinstance(pcm, bytes) and pcm
+        return next(self.values)
+
+
+def expected_outputs(suite, *, mismatch=False):
+    turns = suite["scenarios"][0]["turns"]
+    outputs = []
+    for t in turns:
+        e = t["expect"]
+        outputs.append(
+            {
+                "actions": e["actions"],
+                "pending": e["pending"],
+                "replies": [e.get("reply_contains", "private-test-reply")],
+                "handled": True,
+                "endpoints": [{"quality": "test"}],
+                "wall_ms": 1,
+                "audio_ms": 100,
+                "whisper_calls": 0,
+            }
+        )
+    if mismatch:
+        outputs[0]["endpoints"] = []
+    return outputs
+
+
+@pytest.mark.parametrize("mismatch", [False, True], ids=["pass", "fail"])
+def test_runner_reports_real_checks_and_redacts_speech(prepared, mismatch):
+    directory, suite, sha, _ = prepared
+    result = runner.run(
+        suite,
+        sha,
+        directory,
+        selected="open_app--auto--clean",
+        models=expected_outputs(suite, mismatch=mismatch),
+        engine_factory=ResultEngine,
+        asr="vosk",
+        no_vad=True,
+    )
+    assert result["status"] == ("fail" if mismatch else "pass")
+    assert result["selected_cases"] == 1 and result["total_cases"] == 27
+    assert result["coverage"]["vad"] is False
+    assert result["coverage"]["whisper"] is False
+    assert result["failed"] == int(mismatch)
+    text = json.dumps(result)
+    assert "private-test-reply" not in text
+    if not mismatch:
+        assert result["cases"][0]["turns"][1]["actions"] == [{"action": "open"}]
+
+
+def test_transcripts_are_explicit_opt_in(prepared):
+    directory, suite, sha, _ = prepared
+    result = runner.run(
+        suite,
+        sha,
+        directory,
+        selected="open_app--auto--clean",
+        models=expected_outputs(suite),
+        engine_factory=ResultEngine,
+        include_transcripts=True,
+    )
+    assert result["cases"][0]["turns"][1]["replies"] == ["private-test-reply"]
+    assert result["cases"][0]["turns"][1]["actions"][0]["target"] == "блокнот"
+
+
+def test_engine_failure_restores_network_patch(monkeypatch):
+    connect = socket.socket.connect
+    monkeypatch.setattr(stt, "Listener", Mock(side_effect=RuntimeError("load failed")))
+    with pytest.raises(RuntimeError, match="load failed"):
+        runtime.Engine({"vosk": "unused"}, asr="vosk", no_vad=True)
+    assert socket.socket.connect is connect
+
+
+def test_strict_vad_survives_reload_and_whisper_fault_is_blocked(monkeypatch, listener):
+    from jarvis import vad
+
+    base_vad = vad.VAD
+
+    class FakeVAD:
+        def __init__(self, *a, **kw):
+            pass
+
+        def is_available(self):
+            return True
+
+        def is_model_pending(self):
+            return False
+
+        def _max_prob(self, samples):
+            raise RuntimeError("inference failed")
+
+    class FakeWhisper:
+        def __init__(self, *a, **kw):
+            assert kw["local_files_only"] is True
+
+        def transcribe(self, *a, **kw):
+            raise RuntimeError("decode failed")
+
+    monkeypatch.setattr(vad, "VAD", FakeVAD)
+    monkeypatch.setattr(stt, "WhisperTranscriber", FakeWhisper)
+    listener.vad_enabled = True
+    listener.vad = FakeVAD()
+    monkeypatch.setattr(stt, "Listener", lambda *a, **kw: listener)
+    with runtime.Engine({"vosk": "unused", "whisper": "unused"}) as e:
+        # Reload imports VAD inside set_vad_enabled, not from stt global.
+        listener.reload_vad()
+        with pytest.raises(RuntimeError):
+            listener.vad._max_prob([])
+        with pytest.raises(Blocked):
+            e._require_vad()
+        with pytest.raises(RuntimeError):
+            e.whisper.transcribe(b"test")
+        assert e.whisper.fault and e.whisper.calls == 1
+    assert vad.VAD is FakeVAD
+    monkeypatch.setattr(vad, "VAD", base_vad)
+
+
+def test_audio_regression_ignored_by_snapshot():
+    import snapshot
+
+    assert {"audio-regression", ".audio-regression"} <= snapshot.EXCLUDE_DIRS
+
+
+def test_cli_failure_code_one_and_blocked_two(prepared, monkeypatch):
+    directory, _, _, _ = prepared
+    monkeypatch.setattr(runner, "preflight", lambda *a, **kw: {})
+    monkeypatch.setattr(
+        runner,
+        "run",
+        lambda *a, **kw: {
+            "status": "fail",
+            "passed": 0,
+            "failed": 1,
+            "selected_cases": 1,
+            "total_cases": 27,
+            "cases": [],
+        },
+    )
+    assert runner.main(["run", "--workdir", str(directory)]) == 1
+    monkeypatch.setattr(runner, "preflight", Mock(side_effect=Blocked("missing model")))
+    assert runner.main(["run", "--workdir", str(directory)]) == 2
+
+
+@pytest.mark.parametrize(
+    "local_only", [False, True], ids=["live-default", "replay-offline"]
+)
+def test_whisper_loader_forwards_offline_flag(monkeypatch, tmp_path, local_only):
+    import sys
+
+    from jarvis import paths
+
+    calls = []
+
+    def make_model(name, **kwargs):
+        calls.append((name, kwargs))
+        return object()
+
+    monkeypatch.setitem(sys.modules, "ctranslate2", NS(get_cuda_device_count=lambda: 0))
+    monkeypatch.setitem(sys.modules, "faster_whisper", NS(WhisperModel=make_model))
+    monkeypatch.setattr(paths, "program_whisper_cache_dir", lambda: tmp_path)
+    monkeypatch.setattr(stt, "_enable_cuda_dlls", lambda: None)
+    instance = stt.WhisperTranscriber(
+        "local-test-model", device="cpu", local_files_only=local_only
+    )
+    assert instance.is_ready()
+    assert calls == [
+        (
+            "local-test-model",
+            {"device": "cpu", "compute_type": "int8", "local_files_only": local_only},
+        )
+    ]
+
+
+def test_missing_vosk_fails_explicitly(monkeypatch):
+    monkeypatch.setattr(stt, "Model", None)
+    with pytest.raises(RuntimeError, match="Vosk"):
+        stt.Listener("unused", file_mode=True)
+```
+
 ### `tests/test_audit_regressions.py`
 
 ```python
@@ -25204,6 +26871,12 @@ def test_stt_does_not_retain_sensitive_recognition(caplog):
     })
     audio = queue.Queue();audio.put(b'\0\0')
     listener = SimpleNamespace(_sample_rate=16000,_block_size=2048,_device=None,_callback=Mock(),device_name='fake',_audio=audio,_utt_buf=[],_utt_len=0,_rec=Mock(),utterances=0,recent_phrases=deque(),sensitive_input=lambda:True)
+    # phrases delegates endpoint parsing to the shared live/file consumer.
+    listener._file_mode = False
+    consume = source_method('jarvis/stt.py', 'Listener', '_consume_audio', {
+        'json': json, 'log': logging.getLogger('audit.stt'),
+    })
+    listener._consume_audio = lambda data: consume(listener, data)
     listener._rec.AcceptWaveform.return_value=True
     listener._rec.Result.return_value=json.dumps({'text':'пароль 1234'})
     gen=method(listener,threading.Event())
@@ -30349,7 +32022,7 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-AUDIO_TESTS = ["tests/test_recognition_quality.py", "tests/test_nonverbal.py"]
+AUDIO_TESTS = ["tests/test_recognition_quality.py", "tests/test_nonverbal.py", "tests/test_audio_regression.py"]
 
 
 def test_audio_case_ids_are_short_without_dumping_pcm():
@@ -34221,6 +35894,7 @@ EXCLUDE_DIRS = {
     "voices",
     "profiles",       # личные данные - не в снимок
     "sounds",
+    ".audio-regression", "audio-regression",  # локальные WAV/транскрипты
     "graphify-out",   # артефакты graphify (.gitignore) - не в снимок и не в CI
 }
 
@@ -36306,10 +37980,12 @@ pymorphy3>=2.0.3,<3
 
 ## 5. Документация (только оглавления)
 
-#### `tests/README.md` — 10 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `tests/README.md` — 12 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Тесты Феникса
   - Карта
+  - Автоматический аудиопрогон
+    - Проверка реализации аудиопрогона
   - Уточнения команд: актуальная проверка
   - Регрессии последних изменений
     - Ручная приёмка Non-verbal
@@ -36319,6 +37995,16 @@ pymorphy3>=2.0.3,<3
   - Логи
   - См. также
 
+#### `tests/audio/README.md` — 7 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Аудиорегрессии Феникса
+  - Быстрый старт — Windows, активная .venv311
+  - Модели — уже установленные, без сетевых скачиваний
+  - Корпус: синтез и собственный голос
+  - Что именно проверяется
+  - Результат и приватность
+  - Границы и следующий этап
+
 #### `.github/workflows/README.md` — 5 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Workflows
@@ -36327,7 +38013,7 @@ pymorphy3>=2.0.3,<3
   - Обновление 15.10.2026: язык, память, Non-verbal
   - Как добавить новый workflow
 
-#### `AGENTS.md` — 6 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `AGENTS.md` — 7 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - AGENTS.md — навигация для помощника по «Феникс»
   - Среда и запуск
@@ -36335,8 +38021,9 @@ pymorphy3>=2.0.3,<3
   - Контракты, которые легко сломать
   - Конвенции и безопасность
   - После правки
+  - Аудиорегрессии
 
-#### `ARCHITECTURE.md` — 47 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `ARCHITECTURE.md` — 48 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - 🏗 Архитектура «Феникс»
   - 📑 Содержание
@@ -36345,6 +38032,7 @@ pymorphy3>=2.0.3,<3
     - В `USER_DIR` также живут
   - 🗺 Карта модулей
   - 🔄 Поток обработки фразы
+    - Файловый аудиопрогон (opt-in, не runtime UI)
   - 🎓 Онбординг (первый запуск)
   - 👁 Observer (фоновое извлечение фактов)
   - 🧠 Векторная память фактов (RAG)
@@ -36377,14 +38065,14 @@ pymorphy3>=2.0.3,<3
     - Git
     - `commit.bat`
   - 📦 Сборка и установка
-    - `scripts/make_icon.py`
 
-#### `CHANGELOG.md` — 79 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 80 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
   - 📑 Содержание
   - 🚧 [Unreleased]
     - 📅 Сессия 15.10.2026
+      - Локальные аудиорегрессии и следующая очередь
       - Ядро Феникса: первый блок уточнений
       - Переносимость аудиотестов на Windows
       - Уточнение README и восстановление модулей пароля
@@ -36420,15 +38108,15 @@ pymorphy3>=2.0.3,<3
         - ⚡ Запуск: ~7.3 с → ~1.3 с до появления окна
       - 🆕 Добавлено и исправлено (продолжение сессии)
         - 🧰 Модель VAD качается сама
-        - ⏱ Блок аудио 500 мс → 128 мс (минус ~500 мс к ответу)
 
-#### `CI.md` — 14 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CI.md` — 15 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - CI — что это и как с ним жить
   - 🎯 Что такое CI
   - 📁 Где лежит
   - 🔍 Что делает
   - Новые регрессии и границы проверки
+  - 🎧 Отдельный аудиопрогон
   - 🚀 Как смотреть результат
   - 🔧 Если упало
   - 📦 requirements-ci.txt
@@ -36475,16 +38163,18 @@ pymorphy3>=2.0.3,<3
   - 🤝 Как задавать вопросы
   - 🎯 Философия
 
-#### `PLAN.md` — 14 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `PLAN.md` — 16 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - 📋 План развития «Феникс»
   - 🎯 Курс: сначала сам Феникс
   - 📊 Статусы
   - Что уже есть
-  - А. 🚧 Уточнения и незавершённая команда — текущий блок
+  - А. 🚧 Уточнения и незавершённая команда — реализовано, приёмка Windows
     - Реализовано в первом ограниченном наборе
     - Приёмка на Windows
-  - Б. ⏭ Контекст исправлений и расширение слотов
+  - 🎧 🚧 Аудиорегрессии — текущая приёмка
+  - 🖼 ⏭ GUI — следующий блок после аудиопрогона
+  - Б. Контекст исправлений и расширение слотов — после GUI
   - В. ⏭ Управляемое самообучение приложения
   - Г. ⏭ Качество памяти и разговора
   - Д. ⏭ Производительность по измерениям
@@ -36522,7 +38212,7 @@ pymorphy3>=2.0.3,<3
   - 🛠 Как чинить баги
   - 📎 БЫСТРЫЕ ССЫЛКИ
 
-#### `README.md` — 63 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `README.md` — 64 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - 🦅 Феникс
   - 📑 Содержание
@@ -36573,4 +38263,4 @@ pymorphy3>=2.0.3,<3
 
 ---
 
-_Итого по категориям — code: 159, data: 22, doc: 12, pack: 5. Режим `lean`._
+_Итого по категориям — code: 166, data: 23, doc: 13, pack: 5. Режим `lean`._

@@ -18,8 +18,15 @@ from collections import deque
 from pathlib import Path
 
 import numpy as np
-import sounddevice as sd
-from vosk import KaldiRecognizer, Model, SetLogLevel
+# File replay/Whisper must not require an installed audio device or PortAudio.
+try:
+    import sounddevice as sd
+except (ImportError, OSError):
+    sd = None
+try:
+    from vosk import KaldiRecognizer, Model, SetLogLevel
+except ImportError:
+    KaldiRecognizer = Model = SetLogLevel = None
 
 from jarvis.vad import DEFAULT_HANGOVER_MS, SpeechHangover, VAD
 
@@ -64,7 +71,14 @@ def _enable_cuda_dlls():
 
 
 class Listener:
-    def __init__(self, model_dir, sample_rate=16000, device=None, config=None):
+    def __init__(self, model_dir, sample_rate=16000, device=None, config=None,
+                 *, file_mode=False):
+        if Model is None:
+            raise RuntimeError("Vosk не установлен: требуется пакет vosk")
+        if not file_mode and sd is None:
+            raise RuntimeError("Микрофон недоступен: требуется sounddevice/PortAudio")
+        self._file_mode = bool(file_mode)
+        self.file_vad_errors = 0
         SetLogLevel(-1)
         self._model = Model(str(model_dir))
         self._rec = KaldiRecognizer(self._model, sample_rate)
@@ -72,8 +86,8 @@ class Listener:
         self.last_quality = None
         self._sample_rate = sample_rate
         self._config = config
-        self._device = self.resolve_device(device)
-        self.device_name = self._current_device_name()
+        self._device = None if file_mode else self.resolve_device(device)
+        self.device_name = "WAV replay (без микрофона)" if file_mode else self._current_device_name()
         self._audio = queue.Queue()
         self._utt_buf = []
         self._utt_len = 0
@@ -295,6 +309,7 @@ class Listener:
             try:
                 speech = self.vad.is_speech(raw)
             except Exception:
+                self.file_vad_errors = getattr(self, "file_vad_errors", 0) + 1
                 log.exception("VAD.is_speech упал — пропускаю чанк как есть")
                 speech = True
             if self._vad_gate is not None and not self._vad_gate.feed(speech):
@@ -446,8 +461,62 @@ class Listener:
         self.utterances = 0
         log.info("Listener: статистика сброшена")
 
-    def phrases(self, stop_event):
+    def _consume_audio(self, data):
+        """Один и тот же endpoint/quality путь для микрофона и WAV replay."""
         max_buf = self._sample_rate * 2 * 30
+        self._utt_buf.append(data)
+        self._utt_len += len(data)
+        while self._utt_len > max_buf and len(self._utt_buf) > 1:
+            self._utt_len -= len(self._utt_buf.pop(0))
+        if not self._rec.AcceptWaveform(data):
+            return None
+        from jarvis.recognition import assess_vosk
+        result = json.loads(self._rec.Result())
+        text = result.get("text", "").strip()
+        self.last_quality = assess_vosk(result, getattr(self, "_config", None))
+        audio = b"".join(self._utt_buf)
+        self._utt_buf.clear()
+        self._utt_len = 0
+        if text:
+            self.utterances += 1
+            log.info("Распознана фраза (vosk)")
+            return text, audio
+        return None
+
+    def reset_file_input(self):
+        """Only replay owns its recognizer; never reset the live listener externally."""
+        if not self._file_mode:
+            raise RuntimeError("reset_file_input разрешён только для file_mode")
+        self.flush()
+        self._rec.Reset()
+        self.last_quality = None
+        self.file_vad_errors = 0
+
+    def feed_pcm(self, pcm):
+        """Feed one PCM block without opening a device or forcing FinalResult()."""
+        if not self._file_mode:
+            raise RuntimeError("feed_pcm разрешён только для file_mode")
+        if len(pcm) % 2:
+            raise ValueError("PCM int16 должен содержать целое число сэмплов")
+        if len(pcm) > self._block_size * 2:
+            raise ValueError("Подавай PCM блоками Listener._block_size")
+        if not pcm:
+            return []
+        self._callback(pcm, len(pcm) // 2, None, None)
+        phrases = []
+        while True:
+            try:
+                data = self._audio.get_nowait()
+            except queue.Empty:
+                break
+            phrase = self._consume_audio(data)
+            if phrase is not None:
+                phrases.append(phrase)
+        return phrases
+
+    def phrases(self, stop_event):
+        if self._file_mode:
+            raise RuntimeError("WAV replay не может открывать микрофон")
         # Внешний while — смена микрофона на лету. set_input_device()
         # ставит _device_reload; здесь мы выходим из `with` (PortAudio
         # закрывает поток в своём же потоке — так безопасно) и
@@ -483,23 +552,9 @@ class Listener:
                         data = self._audio.get(timeout=0.2)
                     except queue.Empty:
                         continue
-                    self._utt_buf.append(data)
-                    self._utt_len += len(data)
-                    while self._utt_len > max_buf and len(self._utt_buf) > 1:
-                        self._utt_len -= len(self._utt_buf.pop(0))
-                    if self._rec.AcceptWaveform(data):
-                        from jarvis.recognition import assess_vosk
-                        result = json.loads(self._rec.Result())
-                        text = result.get("text", "").strip()
-                        self.last_quality = assess_vosk(result, getattr(self, "_config", None))
-                        audio = b"".join(self._utt_buf)
-                        self._utt_buf.clear()
-                        self._utt_len = 0
-                        if text:
-                            self.utterances += 1
-                            # Историю пополняет main только после окончательной проверки.
-                            log.info("Распознана фраза (vosk)")
-                            yield text, audio
+                    phrase = self._consume_audio(data)
+                    if phrase is not None:
+                        yield phrase
             finally:
                 # Закрываем поток в своём же потоке (PortAudio-безопасно).
                 for closer in (stream.stop, stream.close):
@@ -536,7 +591,8 @@ class WhisperTranscriber:
     transcribe() просто дожидается её окончания.
     """
 
-    def __init__(self, model_name="auto", device="auto", lazy=False, config=None):
+    def __init__(self, model_name="auto", device="auto", lazy=False, config=None,
+                 *, local_files_only=False):
         self._model = None
         self._load_error: Exception | None = None
         self._loading = False
@@ -546,6 +602,7 @@ class WhisperTranscriber:
         self.last_quality = None
         self._model_name = model_name
         self._device = device
+        self._local_files_only = bool(local_files_only)
 
         if lazy:
             self.preload_async()
@@ -632,7 +689,8 @@ class WhisperTranscriber:
                 try:
                     log.info("Загрузка Whisper (%s) на GPU...", name)
                     self._model = WhisperModel(
-                        name, device="cuda", compute_type="int8_float16"
+                        name, device="cuda", compute_type="int8_float16",
+                        local_files_only=self._local_files_only,
                     )
                     log.info("Whisper готов (GPU)")
                 except Exception:
@@ -642,7 +700,8 @@ class WhisperTranscriber:
                 name = "small" if model_name == "auto" else model_name
                 log.info("Загрузка Whisper (%s) на CPU...", name)
                 self._model = WhisperModel(
-                    name, device="cpu", compute_type="int8"
+                    name, device="cpu", compute_type="int8",
+                    local_files_only=self._local_files_only,
                 )
                 log.info("Whisper готов (CPU)")
         finally:

@@ -7,7 +7,7 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-AUDIO_TESTS = ["tests/test_recognition_quality.py", "tests/test_nonverbal.py"]
+AUDIO_TESTS = ["tests/test_recognition_quality.py", "tests/test_nonverbal.py", "tests/test_audio_regression.py"]
 
 
 def test_audio_case_ids_are_short_without_dumping_pcm():

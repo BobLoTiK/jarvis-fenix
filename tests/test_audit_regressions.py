@@ -242,6 +242,12 @@ def test_stt_does_not_retain_sensitive_recognition(caplog):
     })
     audio = queue.Queue();audio.put(b'\0\0')
     listener = SimpleNamespace(_sample_rate=16000,_block_size=2048,_device=None,_callback=Mock(),device_name='fake',_audio=audio,_utt_buf=[],_utt_len=0,_rec=Mock(),utterances=0,recent_phrases=deque(),sensitive_input=lambda:True)
+    # phrases delegates endpoint parsing to the shared live/file consumer.
+    listener._file_mode = False
+    consume = source_method('jarvis/stt.py', 'Listener', '_consume_audio', {
+        'json': json, 'log': logging.getLogger('audit.stt'),
+    })
+    listener._consume_audio = lambda data: consume(listener, data)
     listener._rec.AcceptWaveform.return_value=True
     listener._rec.Result.return_value=json.dumps({'text':'пароль 1234'})
     gen=method(listener,threading.Event())

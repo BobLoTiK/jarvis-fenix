@@ -79,7 +79,8 @@ Stop-token per-call; `wait_end` возвращает bool. UIA STA/COM под lo
 Обновить соответствующие руководства и PROJECT/PLAN/CHANGELOG, затем сгенерировать
 SNAPSHOT. README оставлять витриной проекта: не вставлять в начало датированные
 обновления/отчёты; возможности описывать в тематических разделах, историю — в CHANGELOG. Внешний graphify-отчёт без запуска graphify не объявлять пересобранным.
-Один фокус за раз: ядро Феникса — уточнения → проверенные исправления/самообучение
+Один фокус за раз: аудиорегрессии → GUI (функции/удобство → оформление)
+→ проверенные исправления/самообучение
 → память → измеряемая оптимизация. Облако/Telegram/Hermes/MCP/VLM — дальний бэклог.
 `intents/clarification.py` использует существующий `_pending_question`: target/time/unit,
 30 с по monotonic, три неудачных ответа. Не считать это универсальным диалоговым
@@ -88,3 +89,14 @@ custom/password остаются обязательными. Pipeline: cancel �
 → correction → password → memory → clipboard → modes → compound → clarification
 → fast → llm. Ответы на слоты не направлять в Observer. Метрики handler/stages
 не включают STT/генерацию стрима/TTS и не содержат текст или пароль.
+
+
+## Аудиорегрессии
+
+Отдельный opt-in CLI `scripts/audio_regression.py prepare|run`, инструкции в
+`tests/audio/README.md`. Обычный pytest не запускает модели/микрофон/TTS.
+File-mode Listener и микрофон используют один `_consume_audio`; не подменять
+ASR ожидаемым текстом сценария, не форсировать FinalResult ради зелёного теста.
+Hybrid/VAD fallback или отсутствующая модель = BLOCKED/2, а не pass/skip.
+Не расширять ограниченный sandbox до выполнения реальных действий. Не включать
+WAV/транскрипты/модели в ZIP/Git/snapshot. GUI — следующий отдельный блок, ещё не сделан.

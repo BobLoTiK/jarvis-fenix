@@ -199,6 +199,11 @@ def program_whisper_cache_dir() -> Path:
     return d
 
 
+def audio_regression_dir() -> Path:
+    """Локальные тестовые WAV/отчёты, отдельно от профилей и исходников."""
+    return user_dir() / "audio-regression"
+
+
 def logs_dir() -> Path:
     """Логи — в USER_DIR (кириллица ок)."""
     d = user_dir() / "logs"

@@ -221,6 +221,24 @@ tts.Speaker → tts_engines: Silero / Piper / WinRT / SAPI
 Точный поиск custom вынесен в чистый `find_custom`, его приоритет сохраняется.
 Метрики handler/stages не содержат входного текста и не измеряют STT/TTS/stream.
 
+### Файловый аудиопрогон (opt-in, не runtime UI)
+
+`prepare` → системный русский WinRT или локальные записи → PCM16/mono/16kHz
+→ варианты clean / −12 dB / шум 20 dB SNR → WAV + SHA256 + hash сценариев.
+`run` → `Listener(file_mode=True).feed_pcm()` → тот же callback/VAD/hangover/
+`_consume_audio`, что в микрофонном пути → endpoint Vosk → `_process`/
+Whisper/ASR gate → ограниченный cancel/pending/compound/clarification/fast pipeline.
+Для open/timer — журнал в памяти вместо действий; memory/mood записи выключены,
+нет Observer, индексации приложений, загрузки профиля, LLM, GUI или Speaker.
+
+`tests/audio/runtime.py` блокирует сетевые соединения; local_files_only для Whisper,
+VAD без auto_download. Отслеживаются ошибки и fallback VAD/Whisper: они не могут
+стать full-pass. Начало/хвост записи известны, FinalResult искусственно не вызывается.
+`audio_ms` — позиция на шкале WAV, `wall_ms` — вычисления, не mouth-to-ear latency.
+Корпус и отчёты локальны в USER_DIR/audio-regression; транскрипты/ответы/текст действий
+сохраняются только при явном --include-transcripts. Fast-контракты идут в CI;
+реальные модели и качество голоса — отдельный запуск. См. tests/audio/README.md.
+
 ## 🎓 Онбординг (первый запуск)
 
 > **Не сценарии.** LLM ведёт **живой диалог**.

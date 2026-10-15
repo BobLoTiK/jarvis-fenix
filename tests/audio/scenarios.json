@@ -1,0 +1,217 @@
+{
+  "schema": 1,
+  "scenarios": [
+    {
+      "id": "open_app",
+      "turns": [
+        {
+          "text": "Феникс открой",
+          "expect": {
+            "actions": [],
+            "pending": "target",
+            "speech": true,
+            "reply_contains": "приложение"
+          }
+        },
+        {
+          "text": "Блокнот",
+          "expect": {
+            "actions": [
+              {
+                "action": "open",
+                "target": "блокнот"
+              }
+            ],
+            "pending": null,
+            "speech": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "timer_units",
+      "turns": [
+        {
+          "text": "Феникс поставь таймер",
+          "expect": {
+            "actions": [],
+            "pending": "time",
+            "speech": true
+          }
+        },
+        {
+          "text": "На десять",
+          "expect": {
+            "actions": [],
+            "pending": "unit",
+            "speech": true
+          }
+        },
+        {
+          "text": "Минут",
+          "expect": {
+            "actions": [
+              {
+                "action": "timer",
+                "seconds": 600,
+                "text": ""
+              }
+            ],
+            "pending": null,
+            "speech": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "timer_correction",
+      "turns": [
+        {
+          "text": "Феникс поставь таймер",
+          "expect": {
+            "actions": [],
+            "pending": "time",
+            "speech": true
+          }
+        },
+        {
+          "text": "На десять нет на пятнадцать минут",
+          "expect": {
+            "actions": [
+              {
+                "action": "timer",
+                "seconds": 900,
+                "text": ""
+              }
+            ],
+            "pending": null,
+            "speech": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "reminder_text",
+      "turns": [
+        {
+          "text": "Феникс напомни выпить чай",
+          "expect": {
+            "actions": [],
+            "pending": "time",
+            "speech": true
+          }
+        },
+        {
+          "text": "Через пять минут",
+          "expect": {
+            "actions": [
+              {
+                "action": "timer",
+                "seconds": 300,
+                "text": "выпить чай"
+              }
+            ],
+            "pending": null,
+            "speech": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "cancel",
+      "turns": [
+        {
+          "text": "Феникс открой",
+          "expect": {
+            "actions": [],
+            "pending": "target",
+            "speech": true
+          }
+        },
+        {
+          "text": "Отмена",
+          "expect": {
+            "actions": [],
+            "pending": null,
+            "speech": true
+          }
+        },
+        {
+          "text": "Блокнот",
+          "expect": {
+            "actions": [],
+            "pending": null,
+            "speech": true,
+            "handled": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "no_wake",
+      "turns": [
+        {
+          "text": "Открой блокнот",
+          "expect": {
+            "actions": [],
+            "pending": null,
+            "speech": true,
+            "handled": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "new_command",
+      "turns": [
+        {
+          "text": "Феникс поставь таймер",
+          "expect": {
+            "actions": [],
+            "pending": "time",
+            "speech": true
+          }
+        },
+        {
+          "text": "Открой блокнот",
+          "expect": {
+            "actions": [
+              {
+                "action": "open",
+                "target": "блокнот"
+              }
+            ],
+            "pending": null,
+            "speech": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "silence",
+      "turns": [
+        {
+          "signal": "silence",
+          "expect": {
+            "actions": [],
+            "pending": null,
+            "speech": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "noise",
+      "turns": [
+        {
+          "signal": "noise",
+          "expect": {
+            "actions": [],
+            "pending": null,
+            "speech": false
+          }
+        }
+      ]
+    }
+  ]
+}

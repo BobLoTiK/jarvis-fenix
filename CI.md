@@ -50,6 +50,28 @@ Flet и numpy — в CI, чтобы вкладки и PCM-микшер пров�
 Результат headless/mock-прогона не объявлять результатом Windows CI.
 
 
+## 🎧 Отдельный аудиопрогон
+
+`tests/test_audio_regression.py` входит в обычный pytest: fake-декодер проверяет
+подачу блоков/сброс/endpoint, схемы и хеши корпуса, изоляцию действий,
+privacy отчёта, коды отказа и строгий контроль VAD/Whisper. Ни WinRT, ни модели,
+ни аудиоустройства при collection/быстрых тестах не нужны. Длинные PCM node IDs
+запрещены; новый файл включён в guard переноса на Windows.
+
+Настоящий запуск — отдельно, в установленном runtime-окружении Windows:
+
+```powershell
+python scripts/audio_regression.py prepare
+python scripts/audio_regression.py run
+```
+
+Это opt-in, не шаг default workflow и не часть `check_all.py`:
+requirements-ci не содержит тяжёлых ASR/VAD/WinRT-зависимостей и моделей.
+Нет модели/падение backend — BLOCKED/2, несовпадение — FAIL/1, все выбранные
+кейсы реально прошли — PASS/0. Сокращённые профили и фильтр отражаются в отчёте.
+Инструкции и ограничения: tests/audio/README.md. Настоящий Windows-аудиопрогон
+в среде разработки этих правок не запускался; зелёные fast-тесты его не заменяют.
+
 ## 🚀 Как смотреть результат
 
 1. Открой репозиторий на GitHub.
