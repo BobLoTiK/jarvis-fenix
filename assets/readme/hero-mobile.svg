@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="280" viewBox="0 0 600 280" role="img" aria-labelledby="title desc">
+<title id="title">Феникс — голос, который рядом</title><desc id="desc">Компактная обложка локального голосового ассистента для Windows.</desc>
+<rect width="600" height="280" rx="18" fill="#101b2b"/>
+<path d="M420 0V280M0 230H600" stroke="#23364e"/>
+<text x="32" y="126" font-family="Arial,sans-serif" font-size="76" font-weight="700" letter-spacing="-2" fill="#fff">Феникс</text>
+<text x="32" y="191" font-family="Arial,sans-serif" font-size="30" fill="#b8cbe2">Голос, который рядом.</text>
+<g stroke="#5e9fe8" stroke-width="9" stroke-linecap="round"><path d="M444 99V141M470 73V167M496 51V189M522 88V152M548 106V134"/></g>
+</svg>
