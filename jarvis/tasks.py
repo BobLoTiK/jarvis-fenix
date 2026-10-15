@@ -80,6 +80,7 @@ def _save(tasks: list) -> None:
             raise
     except Exception:
         log.exception("Не удалось сохранить %s", path)
+        raise
 
 
 # ---------------------------------------------------------------
@@ -204,6 +205,14 @@ def is_clear_command(cmd: str) -> bool:
 
 
 def handle_task_command(cmd: str) -> str | None:
+    """Не подтверждает изменение, если запись на диск не удалась."""
+    try:
+        return _handle_task_command(cmd)
+    except OSError:
+        return "Не удалось сохранить список задач. Изменения не подтверждены."
+
+
+def _handle_task_command(cmd: str) -> str | None:
     """Разбирает команды списка задач. Возвращает ответ или None."""
 
     # показать список

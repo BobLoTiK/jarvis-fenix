@@ -379,7 +379,7 @@ def check_dependencies(project_dir: Path, logger) -> bool:
         return False
     try:
         result = subprocess.run(
-            [str(python), "-c", "import flet, vosk; print('ok')"],
+            [str(python), "-c", "import flet, vosk, pymorphy3, num2words; print('ok')"],
             capture_output=True,
             text=True,
             timeout=15,

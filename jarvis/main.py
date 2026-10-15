@@ -36,6 +36,7 @@ log = logging.getLogger("jarvis")
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 _REJECT = object()
+_UNCERTAIN = object()
 
 
 class Jarvis:
@@ -55,6 +56,9 @@ class Jarvis:
         self.barge_enabled = bool(config.get("barge_enabled", True))
         if self.listener is not None:
             self.listener.barge_enabled = self.barge_enabled
+            self.listener.sensitive_input = lambda: bool(
+                getattr(self.handler, "_pending_password", None)
+            )
         self._barge_just_happened = False
 
         # Wake-слово обязательно по умолчанию.
@@ -246,33 +250,60 @@ class Jarvis:
                 try:
                     self._process(phrase, audio)
                 except Exception:
-                    log.exception("Ошибка обработки фразы %r", phrase)
+                    log.exception("Ошибка обработки голосовой команды")
         except Exception:
             log.exception("Аудиопоток упал")
             self.say(Reply(text="Проблема с микрофоном. Проверьте журнал."))
 
     def _process(self, phrase: str, audio: bytes) -> None:
         awaiting = time.time() < self._awaiting_until
-        cmd = self._extract_command(normalize(phrase))
+        sensitive = bool(getattr(self.handler, "_pending_password", None))
         pending = getattr(self.handler, "_pending_question", None)
         if pending and time.time() < pending.get("expires_at", 0):
             awaiting = True
+            self._awaiting_until = max(self._awaiting_until, pending["expires_at"])
+        if sensitive:
+            # Ввод пароля не зависит от окна wake и сохраняет исходный текст.
+            tokens = phrase.strip().split(maxsplit=1)
+            cmd = phrase.strip()
+            if tokens and self._is_wake(normalize(tokens[0])):
+                cmd = tokens[1] if len(tokens) > 1 else ""
+        else:
+            cmd = self._extract_command(phrase)
         if cmd is None:
             return
+        if audio:
+            from jarvis.recognition import assess_pcm, transcripts_agree
+            quality = assess_pcm(audio, self.config.get("sample_rate", 16000))
+            if not quality.accepted:
+                self._request_repeat()
+                return
+            primary = getattr(getattr(self, "listener", None), "last_quality", None)
+            if self.whisper is not None and not sensitive:
+                refined = self._refine(audio, awaiting)
+                if refined is _REJECT:
+                    return  # Не подтвердилось обращение к ассистенту.
+                if refined is _UNCERTAIN:
+                    self._request_repeat()
+                    return
+                if refined is not None:
+                    if primary is not None and primary.accepted and not transcripts_agree(cmd, refined):
+                        self._request_repeat()
+                        return
+                    cmd = refined
+                elif primary is None or not primary.accepted:
+                    # Ошибка Whisper — не повод безусловно доверять Vosk.
+                    self._request_repeat()
+                    return
+            elif primary is None or not primary.accepted:
+                self._request_repeat()
+                return
         if cmd == "":
             self.say(Reply(text="Слушаю."))
             self._awaiting_until = time.time() + self.config["command_window_sec"]
             return
-        if self.whisper is not None and audio:
-            refined = self._refine(audio, awaiting)
-            if refined is _REJECT:
-                log.info("Whisper не подтвердил wake-слово — игнорирую (ложное срабатывание)")
-                return
-            if refined:
-                cmd = refined
 
         if self.gui is not None:
-            self.gui.add_message("user", cmd)
             self.gui.set_state("listening")
 
         # Prosody: эмоция из тона голоса ДО обработки текста.
@@ -288,16 +319,21 @@ class Jarvis:
             except Exception:
                 log.exception("Prosody: ошибка анализа")
 
-        # Observer: запоминаем фразу юзера.
-        if getattr(self, "observer", None) is not None:
-            try:
-                self.observer.observe("user", cmd)
-            except Exception:
-                log.exception("Observer.observe (user) упал")
-
-        # Сериализация с GUI: пока GUI не отдаст cmd_lock,
-        # голосовой поток ждёт. И наоборот.
+        # Проверяем чувствительный ввод под тем же локом, что и handle().
         with self.cmd_lock:
+            sensitive = sensitive or bool(getattr(self.handler, "_pending_password", None))
+            if self.gui is not None:
+                self.gui.add_message("user", "[Ввод пароля скрыт]" if sensitive else cmd)
+            if not sensitive:
+                recent = getattr(getattr(self, "listener", None), "recent_phrases", None)
+                if recent is not None:
+                    recent.append(cmd)
+            if not sensitive and getattr(self, "observer", None) is not None:
+                try:
+                    self.observer.observe("user", cmd)
+                except Exception:
+                    log.exception("Observer.observe (user) упал")
+
             reply = self.handler.handle(cmd)
 
             if self.gui is not None and not reply.is_stream:
@@ -330,22 +366,38 @@ class Jarvis:
                 self._awaiting_until = time.time() + float(
                     self.config.get("dialog_window_sec", 8))
 
+    def _request_repeat(self):
+        """Уточнение без записи сомнительной расшифровки в историю/память."""
+        now = time.monotonic()
+        if now - getattr(self, "_last_repeat_at", float("-inf")) < 3.0:
+            return
+        self._last_repeat_at = now
+        reply = Reply(text="Не расслышал. Повтори, пожалуйста.")
+        if self.gui is not None:
+            self.gui.add_message("assistant", reply.text)
+        self.say(reply)
+        self._awaiting_until = time.time() + float(self.config.get("command_window_sec", 6))
+
     def _refine(self, audio: bytes, awaiting: bool):
         try:
-            text = normalize(self.whisper.transcribe(audio))
+            text = self.whisper.transcribe(
+                audio, sample_rate=self.config.get("sample_rate", 16000)
+            ).strip()
         except Exception:
-            log.exception("Whisper не справился, использую текст Vosk")
+            log.exception("Whisper не справился; Vosk допустим только при достаточной уверенности")
             return None
+        quality = getattr(self.whisper, "last_quality", None)
+        if quality is None or not quality.accepted:
+            return _UNCERTAIN
         if not text:
-            return _REJECT
-        tokens = text.split()
-        for i, tok in enumerate(tokens):
-            if self._is_wake(tok):
-                return " ".join(tokens[i + 1:])
-        if awaiting:
+            return _UNCERTAIN
+        import re
+        tokens = list(re.finditer(r"\S+", text))
+        for token in tokens:
+            if self._is_wake(normalize(token.group())):
+                return text[token.end():].lstrip(" ,.!?:;—")
+        if awaiting or not self._wake_word_required:
             return text
-        if tokens and wake_score(tokens[0], self._wake_words[0]) >= 0.5:
-            return " ".join(tokens[1:])
         return _REJECT
 
     def _extract_command(self, text: str) -> str | None:
@@ -365,10 +417,11 @@ class Jarvis:
         if not self._wake_word_required:
             return text.strip() or None
 
-        tokens = text.split()
-        for i, tok in enumerate(tokens):
-            if self._is_wake(tok):
-                return " ".join(tokens[i + 1:])
+        import re
+        tokens = list(re.finditer(r"\S+", text))
+        for token in tokens:
+            if self._is_wake(normalize(token.group())):
+                return text[token.end():].lstrip(" ,.!?:;—")
         if time.time() < self._awaiting_until:
             return text
         return None
@@ -615,6 +668,7 @@ def main() -> None:
                 config.get("whisper_model", "auto"),
                 config.get("whisper_device", "auto"),
                 lazy=True,
+                config=config,
             )
             whisper.preload_async()
         except Exception:

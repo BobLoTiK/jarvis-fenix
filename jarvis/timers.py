@@ -92,71 +92,26 @@ def _save(timers: list) -> None:
 # Разбор времени из фразы
 # ---------------------------------------------------------------
 
-_NUM_WORDS = {
-    "один": 1, "одну": 1, "одна": 1, "два": 2, "две": 2, "три": 3, "четыре": 4,
-    "пять": 5, "шесть": 6, "семь": 7, "восемь": 8, "девять": 9, "десять": 10,
-    "пятнадцать": 15, "двадцать": 20, "тридцать": 30, "сорок": 40, "пятьдесят": 50,
-    "полтора": 1.5,
-}
+from jarvis.language.time import parse_duration
+
+_ABSOLUTE_TIME_RE = re.compile(r"\bв\s+(\d{1,2})(?:[:.]|\s+)(\d{2})\b")
+_ABSOLUTE_HOUR_RE = re.compile(r"\bв\s+(\d{1,2})\s+час\w*\b")
 
 
 def _parse_duration(text: str) -> int | None:
-    """«через 10 минут» → 600 секунд. Возвращает int или None."""
-    # «через X единица»
-    m = re.search(r"через\s+(\d+|[а-яё]+)\s*(секунд|мин|минут|час|часов|ч|с|м)?", text)
-    if not m:
-        # «на X минут» / «таймер на X»
-        m = re.search(r"(?:на|таймер)\s+(\d+|[а-яё]+)\s*(секунд|мин|минут|час|часов|ч|с|м)",
-                      text)
-    if not m:
-        # «полчаса», «час», «минуту»
-        if "полчаса" in text or "пол часа" in text:
-            return 30 * 60
-        if re.search(r"\bчас\b", text):
-            return 60 * 60
-        if re.search(r"\bминуту\b", text):
-            return 60
+    duration = parse_duration(text)
+    if duration is None or duration.issue or duration.seconds != duration.seconds.to_integral_value():
         return None
-
-    raw = m.group(1).lower()
-    unit = m.group(2) or ""
-
-    # число или слово-числительное
-    if raw.isdigit():
-        num = int(raw)
-    elif raw in _NUM_WORDS:
-        num = _NUM_WORDS[raw]
-    # само слово — единица времени: «через час», «через минуту», «через полчаса»
-    elif raw in ("час", "часа", "часов"):
-        num, unit = 1, unit or "час"
-    elif raw in ("минуту", "минута", "минутку", "минуты"):
-        num, unit = 1, unit or "мин"
-    elif raw in ("секунду", "секунда", "секунды"):
-        num, unit = 1, unit or "сек"
-    elif raw in ("полчаса", "пол часа"):
-        return 30 * 60
-    else:
-        return None
-
-    # единица
-    if not unit:
-        unit = "мин"
-    if unit.startswith("сек") or unit == "с":
-        return int(num)
-    if unit.startswith("мин") or unit == "м":
-        return int(num * 60)
-    if unit.startswith("час") or unit == "ч":
-        return int(num * 3600)
-    return int(num * 60)
+    return int(duration.seconds)
 
 
 def _parse_absolute_time(text: str) -> float | None:
     """«в 18:30» → timestamp. Возвращает float (unix) или None."""
-    m = re.search(r"\bв\s+(\d{1,2})[:.](\d{2})", text)
+    m = _ABSOLUTE_TIME_RE.search(text)
     if m:
         hour, minute = int(m.group(1)), int(m.group(2))
     else:
-        m = re.search(r"\bв\s+(\d{1,2})\s+час", text)
+        m = _ABSOLUTE_HOUR_RE.search(text)
         if not m:
             return None
         hour, minute = int(m.group(1)), 0
@@ -173,17 +128,18 @@ def _parse_absolute_time(text: str) -> float | None:
 
 
 def _extract_reminder_text(cmd: str) -> str:
-    """Вырезает из фразы текст напоминания (после времени)."""
-    # убираем всё до времени (включительно)
-    text = re.sub(r"^.*?(?:напомни|напоминание|таймер)\s*", "", cmd, count=1)
-    text = re.sub(r"через\s+(\d+|[а-яё]+)\s*\S+", "", text, count=1)
-    text = re.sub(r"\bв\s+\d{1,2}[:.]\d{2}", "", text, count=1)
-    text = re.sub(r"\bв\s+\d{1,2}\s+час\w*", "", text, count=1)
-    # «таймер на 5 минут» → текст пустой, а не «на 5 минут»
-    text = re.sub(r"^на\s+(\d+|[а-яё]+)\s*(секунд\w*|мин\w*|час\w*|ч|с|м)\b",
-                  "", text, count=1)
-    text = text.strip(" ,.:!?")
-    return text
+    """Удаляет только первый распознанный диапазон времени, а не текст после него."""
+    text = re.sub(r"^.*?(?:напоминай|напомни|напоминание|таймер)\b\s*",
+                  "", cmd, count=1)
+    duration = parse_duration(text)
+    matches = [pattern.search(text) for pattern in (_ABSOLUTE_TIME_RE, _ABSOLUTE_HOUR_RE)]
+    ranges = [(m.start(), m.end()) for m in matches if m is not None]
+    if duration is not None:
+        ranges.append((duration.start, duration.end))
+    if ranges:
+        first, last = min(ranges)
+        text = text[:first] + text[last:]
+    return text.strip(" ,.:!?")
 
 
 # ---------------------------------------------------------------

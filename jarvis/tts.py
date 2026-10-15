@@ -23,6 +23,7 @@ import threading
 from typing import Iterator
 
 from jarvis.tts_engines import get_engine, list_engines
+from jarvis.text_utils import prepare_text
 
 log = logging.getLogger("jarvis.tts")
 
@@ -214,6 +215,7 @@ class Speaker:
         """Синхронная озвучка (для тестов и скриптов)."""
         if not text:
             return
+        text = prepare_text(text)
         if not self._ensure_engine():
             return
         token = self._new_token()
@@ -236,6 +238,7 @@ class Speaker:
         """Асинхронная озвучка одного текста."""
         if not text:
             return
+        text = prepare_text(text)
         if not self._ensure_engine():
             return
 

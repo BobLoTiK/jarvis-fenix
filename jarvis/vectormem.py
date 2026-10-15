@@ -568,10 +568,11 @@ def _confident(hits: list) -> bool:
     return (hits[0]["score"] - hits[1]["score"]) >= _margin()
 
 
-def build_prompt_block(query: str, k: int = None) -> str:
+def build_prompt_block(query: str, k: int = None, allowed_keys=None) -> str:
     """Блок фактов для system-промпта. "" — если отбирать нечего или не уверены.
 
-    Пустая строка означает «добавь все факты как раньше» (learning.build_context).
+    Пустая строка НЕ разрешает добавлять все факты. allowed_keys ограничивает
+    выдачу фактами, допустимыми по политике текущего запроса.
     """
     if not _enabled():
         return ""
@@ -583,14 +584,17 @@ def build_prompt_block(query: str, k: int = None) -> str:
         return ""
     k = _top_k() if k is None else max(1, int(k))
     if len(facts) <= k:
-        # Отбирать не из чего — brain возьмёт все факты.
+        # Малый набор: brain применит детерминированный отбор по запросу.
         return ""
 
-    hits = search(q, k=k)
+    hits = search(q, k=max(k, len(facts)) if allowed_keys is not None else k)
+    if allowed_keys is not None:
+        hits = [hit for hit in hits if hit.get("key") in allowed_keys]
+    hits = hits[:k]
     if not hits:
         return ""
     if not _confident(hits):
-        # Явного победителя нет — не рискуем: пусть brain возьмёт все факты.
+        # Нет явного победителя — используется ограниченный контекст запроса.
         return ""
     lines = [f"- {h['key']}: {h['value']}" for h in hits]
     return ("Факты о пользователе (отобраны по смыслу запроса):\n"

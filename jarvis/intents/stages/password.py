@@ -22,17 +22,16 @@ class PasswordStage(Stage):
     def handle(self, ctx):
         h = ctx.handler
 
-        # 1. Проверяем «удали профиль X» — это всегда до fast.
-        reply = self._maybe_delete_profile(ctx)
-        if reply is not None:
-            return reply
-
-        # 2. Если ждём ввода пароля — обрабатываем.
+        # Ввод пароля имеет приоритет над всеми другими командами.
         if h._pending_password:
             if time.time() >= h._pending_password.get("expires_at", 0):
                 h._pending_password = None
-            else:
-                return self._handle_answer(ctx)
+                return "Время ввода пароля истекло. Повторите команду."
+            return self._handle_answer(ctx)
+
+        reply = self._maybe_delete_profile(ctx)
+        if reply is not None:
+            return reply
 
         # 3. Опасные fast-команды («очисти список», «отмени все напоминания»):
         # fast-реестр идёт после этой стадии, а проверка is_danger живёт
@@ -83,10 +82,14 @@ class PasswordStage(Stage):
         h._pending_password = None
 
         if ctx.cmd in CANCEL:
+            h._pending_question = None
+            h._reset_requested = True
             return "Жду обращение, сэр."
 
         # Убираем «пароль», «код», «пин», если сказали.
-        candidate = re.sub(r"^(?:пароль|код|пин)\s*", "", ctx.cmd).strip()
+        raw = ctx.original_cmd or ctx.cmd
+        candidate = re.sub(r"^(?:пароль|код|пин)\s+", "", raw.strip(),
+                           count=1, flags=re.IGNORECASE).strip()
 
         stored = str(h.config.get("danger_password") or "").strip()
         if not verify_password(candidate, stored):
@@ -96,7 +99,12 @@ class PasswordStage(Stage):
         from jarvis.intents.execute import execute_intent, execute_steps
 
         intent = pending.get("intent") or {}
-        if isinstance(intent.get("steps"), list):
+        if intent.get("action") == "custom_command":
+            from jarvis.intents.fast.custom import execute_custom
+            result = execute_custom(h, intent["spec"],
+                                    intent.get("reply", "Выполняю."),
+                                    authorized=True)
+        elif isinstance(intent.get("steps"), list):
             result = execute_steps(h, intent["steps"])
         else:
             result = execute_intent(h, intent)

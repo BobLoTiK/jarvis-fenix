@@ -2226,10 +2226,11 @@ class FenixGUI:
         def _run():
             try:
                 self.set_state("listening")
-                self.add_message("user", cmd)
                 self.jarvis.speaker.stop()
                 self.jarvis.speaker.wait_end(timeout=1.0)
                 with self.jarvis.cmd_lock:
+                    sensitive = bool(getattr(self.jarvis.handler, "_pending_password", None))
+                    self.add_message("user", "[Ввод пароля скрыт]" if sensitive else cmd)
                     reply = self.jarvis.handler.handle(cmd)
                     if not reply.is_stream:
                         self.add_message("assistant", reply.text or "")
@@ -2238,7 +2239,7 @@ class FenixGUI:
                 # из текстового поля завершалась, а индикатор — нет.
                 self.set_state("idle")
             except Exception:
-                log.exception("Ошибка команды %r", cmd)
+                log.exception("Ошибка команды из GUI")
                 self.set_state("error")
 
         threading.Thread(target=_run, daemon=True, name="gui-cmd").start()

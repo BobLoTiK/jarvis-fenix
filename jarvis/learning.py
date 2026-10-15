@@ -151,41 +151,28 @@ def forget_correction(wrong: str) -> bool:
 # Сборка контекста для промпта
 # ---------------------------------------------------------------
 
-def build_context(include_facts: bool = True) -> str:
-    """Собирает блок для промпта из профиля, фактов и коррекций.
+def select_context(query=None):
+    """Профиль и факты, действительно нужные текущему запросу."""
+    from jarvis.memory_context import select_memory
+    return select_memory(query, {
+        "name": profile.get("name"),
+        "default_city": profile.get("default_city"),
+    }, all_facts())
 
-    include_facts=False — когда релевантные факты уже отобрала векторная
-    память (vectormem): иначе они попадут в промпт дважды.
 
-    Возвращает пустую строку, если нечего добавить.
+def build_context(include_facts: bool = True, *, query=None) -> str:
+    """Контекст по запросу. Нет запроса/релевантности — нет личных данных.
+
+    Коррекции команд применяет pipeline; они не становятся инструкциями
+    для свободного диалога. Сохранённые данные на диске не удаляются.
     """
+    selection = select_context(query)
     parts = []
-
-    # Базовые поля профиля — name, default_city.
-    # Без них LLM не знает, как зовут пользователя и где он живёт,
-    # хотя _small_talk и профиль-команды это знают.
-    name = profile.get("name")
-    city = profile.get("default_city")
-    profile_lines = []
-    if name:
-        profile_lines.append(f"- Имя пользователя: {name}")
-    if city:
-        profile_lines.append(f"- Город по умолчанию: {city}")
-    if profile_lines:
-        parts.append("Данные профиля пользователя:\n" + "\n".join(profile_lines))
-
-    facts = all_facts() if include_facts else {}
-    if facts:
-        lines = [f"- {k}: {v}" for k, v in facts.items()]
-        parts.append("Известные факты о пользователе:\n" + "\n".join(lines))
-
-    corrections = all_corrections()
-    if corrections:
-        lines = [f"- «{wrong}» → «{right}»" for wrong, right in corrections.items()]
-        parts.append("Известные исправления (если пользователь говорит первое, делай второе):\n"
-                     + "\n".join(lines))
-
-    if not parts:
-        return ""
-
-    return "\n\n" + "\n\n".join(parts) + "\n"
+    labels = {"name": "Имя пользователя", "default_city": "Город по умолчанию"}
+    lines = [f"- {labels[k]}: {v}" for k, v in selection.profile.items()]
+    if lines:
+        parts.append("Сведения профиля, необходимые текущему запросу:\n" + "\n".join(lines))
+    if include_facts and selection.facts:
+        lines = [f"- {k}: {v}" for k, v in selection.facts.items()]
+        parts.append("Сведения, относящиеся к текущему запросу:\n" + "\n".join(lines))
+    return "\n\n" + "\n\n".join(parts) + "\n" if parts else ""

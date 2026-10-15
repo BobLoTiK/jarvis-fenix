@@ -12,7 +12,6 @@ KaldiRecognizer, Model, VAD и SpeechHangover подменены заглушк�
 """
 
 import importlib.util
-import queue
 import time
 from threading import Event, Thread
 
@@ -34,6 +33,10 @@ class FakeRec:
     def __init__(self):
         self.reset_calls = 0
         self.accepted = 0
+        self.words_enabled = False
+
+    def SetWords(self, enabled):
+        self.words_enabled = enabled
 
     def AcceptWaveform(self, data):
         self.accepted += 1
@@ -442,3 +445,7 @@ def test_phrases_keeps_stream_without_device_change(monkeypatch, listener):
     thread.join(timeout=3.0)
 
     assert FakeStream.opened == [None]
+
+
+def test_listener_enables_word_confidence(listener):
+    assert listener._rec.words_enabled

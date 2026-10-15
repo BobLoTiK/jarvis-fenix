@@ -68,7 +68,11 @@ def execute_intent(handler, intent: dict) -> str | None:
     fn = _DISPATCH.get(action)
     if fn is None:
         return None
-    return fn(handler, intent, target, query)
+    try:
+        return fn(handler, intent, target, query)
+    except OSError:
+        actions_log.exception("Ошибка выполнения действия %s", action)
+        return "Не удалось выполнить действие: ошибка доступа или записи данных."
 
 
 def execute_steps(handler, steps: list) -> str | None:

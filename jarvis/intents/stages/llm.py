@@ -60,6 +60,10 @@ class LLMStage(Stage):
             "mode": h.mode, "llm": True,
         }
 
+        if intent and intent.get("action") == "none":
+            # Явный отказ парсера не отдаём второй модели для догадок.
+            return "Не понял, что ты имеешь в виду. Уточни, пожалуйста."
+
         if intent and intent.get("action") not in ("answer", "none"):
             if is_danger(intent, str(h.config.get("danger_password") or "").strip()):
                 return h._ask_password(intent)

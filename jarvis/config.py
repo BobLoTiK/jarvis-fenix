@@ -42,6 +42,11 @@ DEFAULT_CONFIG = {
     "command_window_sec": 8,
     "dialog_window_sec": 20,
     "use_whisper": True,
+    # Пороги принятия ASR; требуют калибровки на реальном микрофоне.
+    "stt_min_word_confidence": 0.65,
+    "stt_min_avg_logprob": -1.0,
+    "stt_max_no_speech_prob": 0.6,
+    "stt_max_compression_ratio": 2.4,
     # Правильная рабочая модель — как в config.example.json.
     # Раньше тут был "coriollon/..." — сломанная репа на HF.
     "whisper_model": "deepdml/faster-whisper-large-v3-turbo-ct2",

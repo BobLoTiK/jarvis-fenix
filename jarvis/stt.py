@@ -27,14 +27,6 @@ log = logging.getLogger("jarvis.stt")
 
 TURBO_MODEL = "deepdml/faster-whisper-large-v3-turbo-ct2"
 
-WHISPER_PROMPT = (
-    "Это русская речь. Пожалуйста, транскрибируй текст на русском языке. "
-    "Имя ассистента — Феникс, второе имя — Джарвис. "
-    "Частые слова: Феникс, Джарвис, открой, закрой, найди, погода, "
-    "напоминание, задача, голос, режим, паки, Нижний Новгород, "
-    "курс доллара."
-)
-
 ECHO_WINDOW_SEC = 0.5
 BARGE_LOG_INTERVAL = 0.5
 
@@ -76,6 +68,8 @@ class Listener:
         SetLogLevel(-1)
         self._model = Model(str(model_dir))
         self._rec = KaldiRecognizer(self._model, sample_rate)
+        self._rec.SetWords(True)
+        self.last_quality = None
         self._sample_rate = sample_rate
         self._config = config
         self._device = self.resolve_device(device)
@@ -494,14 +488,17 @@ class Listener:
                     while self._utt_len > max_buf and len(self._utt_buf) > 1:
                         self._utt_len -= len(self._utt_buf.pop(0))
                     if self._rec.AcceptWaveform(data):
-                        text = json.loads(self._rec.Result()).get("text", "").strip()
+                        from jarvis.recognition import assess_vosk
+                        result = json.loads(self._rec.Result())
+                        text = result.get("text", "").strip()
+                        self.last_quality = assess_vosk(result, getattr(self, "_config", None))
                         audio = b"".join(self._utt_buf)
                         self._utt_buf.clear()
                         self._utt_len = 0
                         if text:
                             self.utterances += 1
-                            self.recent_phrases.append(text)
-                            log.info("Распознано (vosk): %s", text)
+                            # Историю пополняет main только после окончательной проверки.
+                            log.info("Распознана фраза (vosk)")
                             yield text, audio
             finally:
                 # Закрываем поток в своём же потоке (PortAudio-безопасно).
@@ -539,12 +536,14 @@ class WhisperTranscriber:
     transcribe() просто дожидается её окончания.
     """
 
-    def __init__(self, model_name="auto", device="auto", lazy=False):
+    def __init__(self, model_name="auto", device="auto", lazy=False, config=None):
         self._model = None
         self._load_error: Exception | None = None
         self._loading = False
         self._load_lock = threading.Lock()
         self._loaded = threading.Event()
+        self._config = config
+        self.last_quality = None
         self._model_name = model_name
         self._device = device
 
@@ -658,6 +657,12 @@ class WhisperTranscriber:
                 os.environ["HUGGINGFACE_HUB_CACHE"] = _old_hf_cache
 
     def transcribe(self, pcm, sample_rate=16000):
+        from jarvis.recognition import assess_pcm, assess_whisper
+        self.last_quality = assess_pcm(pcm, sample_rate)
+        if not self.last_quality.accepted:
+            return ""
+        # Сброс перед декодированием: исключение не оставляет прошлую уверенность.
+        self.last_quality = None
         self._ensure_loaded()
         audio = np.frombuffer(pcm, dtype=np.int16).astype(np.float32) / 32768.0
         if sample_rate != 16000 and len(audio) > 1:
@@ -667,9 +672,14 @@ class WhisperTranscriber:
                 np.arange(len(audio)), audio
             ).astype(np.float32)
         segments, _ = self._model.transcribe(
-            audio, language="ru", beam_size=2, vad_filter=True,
-            condition_on_previous_text=False, initial_prompt=WHISPER_PROMPT,
+            audio, language="ru", beam_size=5, temperature=0.0, vad_filter=True,
+            condition_on_previous_text=False, initial_prompt=None,
         )
+        segments = list(segments)
+        self.last_quality = assess_whisper(segments, self._config)
+        if not self.last_quality.accepted:
+            log.info("Whisper: фраза требует повтора (%s)", self.last_quality.reason)
+            return ""
         text = " ".join(s.text.strip() for s in segments).strip()
-        log.info("Распознано (whisper): %s", text)
+        log.info("Распознана фраза (whisper)")
         return text

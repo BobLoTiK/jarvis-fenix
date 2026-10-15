@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=3868034ef6bf5ec4` · режим `lean` · файлов `172` · строк `35783` · источник `1527 КБ`
+`sha256=7913cccffcb201b8` · режим `lean` · файлов `186` · строк `38723` · источник `1640 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -266,23 +266,23 @@ README)._
 │   ├── __main__.py  (4 стр)
 │   ├── actions.py  (1483 стр)
 │   ├── apps.py  (114 стр)
-│   ├── brain.py  (857 стр)
+│   ├── brain.py  (868 стр)
 │   ├── celebrations.py  (165 стр)
-│   ├── config.py  (279 стр)
+│   ├── config.py  (284 стр)
 │   ├── config_manager.py  (156 стр)
 │   ├── files.py  (109 стр)
 │   ├── first_run.py  (26 стр)
-│   ├── gui.py  (2244 стр)
+│   ├── gui.py  (2245 стр)
 │   ├── history.py  (75 стр)
 │   ├── installed.py  (51 стр)
 │   ├── intents/
 │   │   ├── __init__.py  (10 стр)
 │   │   ├── context.py  (19 стр)
-│   │   ├── execute.py  (1017 стр)
+│   │   ├── execute.py  (1021 стр)
 │   │   ├── fast/
 │   │   │   ├── __init__.py  (54 стр)
 │   │   │   ├── correction.py  (28 стр)
-│   │   │   ├── custom.py  (72 стр)
+│   │   │   ├── custom.py  (83 стр)
 │   │   │   ├── debug.py  (38 стр)
 │   │   │   ├── memory.py  (57 стр)
 │   │   │   ├── music.py  (38 стр)
@@ -299,47 +299,58 @@ README)._
 │   │   │   ├── undo.py  (67 стр)
 │   │   │   ├── voices.py  (10 стр)
 │   │   │   ├── weather.py  (113 стр)
-│   │   ├── handler.py  (259 стр)
-│   │   ├── password.py  (97 стр)
+│   │   ├── handler.py  (279 стр)
+│   │   ├── password.py  (122 стр)
 │   │   ├── sites.py  (62 стр)
 │   │   ├── stages/
 │   │   │   ├── __init__.py  (44 стр)
 │   │   │   ├── base.py  (19 стр)
 │   │   │   ├── cancel.py  (17 стр)
 │   │   │   ├── clipboard.py  (68 стр)
-│   │   │   ├── compound.py  (65 стр)
+│   │   │   ├── compound.py  (71 стр)
 │   │   │   ├── correction.py  (24 стр)
 │   │   │   ├── fast.py  (29 стр)
-│   │   │   ├── llm.py  (93 стр)
+│   │   │   ├── llm.py  (97 стр)
 │   │   │   ├── memory.py  (21 стр)
 │   │   │   ├── modes.py  (30 стр)
 │   │   │   ├── onboarding.py  (73 стр)
-│   │   │   ├── password.py  (114 стр)
+│   │   │   ├── password.py  (122 стр)
 │   │   │   ├── pending.py  (72 стр)
 │   │   ├── verbs.py  (45 стр)
-│   ├── learning.py  (191 стр)
-│   ├── main.py  (841 стр)
+│   ├── language/
+│   │   ├── __init__.py  (17 стр)
+│   │   ├── context.py  (112 стр)
+│   │   ├── input.py  (241 стр)
+│   │   ├── morphology.py  (90 стр)
+│   │   ├── numbers.py  (326 стр)
+│   │   ├── speech.py  (357 стр)
+│   │   ├── time.py  (84 стр)
+│   │   ├── units.py  (85 стр)
+│   ├── learning.py  (178 стр)
+│   ├── main.py  (895 стр)
 │   ├── matching.py  (118 стр)
 │   ├── memory.py  (147 стр)
+│   ├── memory_context.py  (124 стр)
 │   ├── model.py  (102 стр)
 │   ├── modes.py  (51 стр)
 │   ├── mood.py  (388 стр)
-│   ├── observer.py  (201 стр)
+│   ├── observer.py  (203 стр)
 │   ├── packs.py  (117 стр)
 │   ├── paths.py  (216 стр)
 │   ├── persona.py  (226 стр)
 │   ├── profile.py  (489 стр)
 │   ├── prosody.py  (152 стр)
+│   ├── recognition.py  (154 стр)
 │   ├── recorder.py  (171 стр)
 │   ├── reply.py  (25 стр)
 │   ├── safety.py  (213 стр)
 │   ├── steam.py  (67 стр)
-│   ├── stt.py  (675 стр)
-│   ├── tasks.py  (248 стр)
-│   ├── text_utils.py  (136 стр)
-│   ├── timers.py  (370 стр)
+│   ├── stt.py  (685 стр)
+│   ├── tasks.py  (257 стр)
+│   ├── text_utils.py  (98 стр)
+│   ├── timers.py  (326 стр)
 │   ├── tray.py  (192 стр)
-│   ├── tts.py  (400 стр)
+│   ├── tts.py  (403 стр)
 │   ├── tts_engines/
 │   │   ├── __init__.py  (12 стр)
 │   │   ├── base.py  (62 стр)
@@ -350,7 +361,7 @@ README)._
 │   │   ├── winrt.py  (158 стр)
 │   ├── uia.py  (1027 стр)
 │   ├── vad.py  (584 стр)
-│   ├── vectormem.py  (784 стр)
+│   ├── vectormem.py  (788 стр)
 │   ├── voices.py  (220 стр)
 │   ├── weather.py  (400 стр)
 ├── jarvis-fenix.code-workspace  (8 стр)
@@ -367,9 +378,9 @@ README)._
 ├── PROMPT.md  (509 стр)
 ├── pytest.ini  (20 стр)
 ├── README.md  (1012 стр)
-├── requirements-ci.txt  (32 стр)
+├── requirements-ci.txt  (36 стр)
 ├── requirements-dev.txt  (10 стр)
-├── requirements.txt  (59 стр)
+├── requirements.txt  (63 стр)
 ├── scripts/
 │   ├── __init__.py  (7 стр)
 │   ├── build_exe.py  (78 стр)
@@ -398,7 +409,8 @@ README)._
 │   │   ├── vad_live.py  (41 стр)
 │   ├── README.md  (70 стр)
 │   ├── stress_intents.py  (552 стр)
-│   ├── test_brain_rag.py  (133 стр)
+│   ├── test_audit_regressions.py  (252 стр)
+│   ├── test_brain_rag.py  (125 стр)
 │   ├── test_browser_target.py  (338 стр)
 │   ├── test_build_setup.py  (56 стр)
 │   ├── test_caps.py  (23 стр)
@@ -407,12 +419,15 @@ README)._
 │   ├── test_gui_wiring.py  (548 стр)
 │   ├── test_intents.py  (485 стр)
 │   ├── test_main_wiring.py  (202 стр)
+│   ├── test_memory_scope.py  (132 стр)
 │   ├── test_mood.py  (386 стр)
+│   ├── test_numeric_language.py  (521 стр)
 │   ├── test_persona.py  (155 стр)
 │   ├── test_prosody.py  (83 стр)
+│   ├── test_recognition_quality.py  (356 стр)
 │   ├── test_safety.py  (170 стр)
 │   ├── test_speech_gate.py  (86 стр)
-│   ├── test_stt.py  (444 стр)
+│   ├── test_stt.py  (451 стр)
 │   ├── test_tray.py  (180 стр)
 │   ├── test_tts.py  (243 стр)
 │   ├── test_uia.py  (788 стр)
@@ -697,6 +712,7 @@ README)._
   def load_custom(config)
   def load_packs_as_custom(config)
   def match_custom(handler, cmd: str)
+  def execute_custom(handler, action, reply: str, *, authorized: bool=False)
 ```
 
 **`jarvis/intents/fast/debug.py`**
@@ -833,15 +849,10 @@ README)._
 **`jarvis/intents/password.py`**
 
 ```
-  # Хеширование пароля и действия, требующие пароля.
-  _PASSWORD_PREFIX = ...
-  def hash_password(password: str)
-  def is_hashed(value: str)
-  def verify_password(candidate: str, stored: str)
-  def migrate_password_if_needed(config)
-  DANGER_ACTIONS = ...
-  def is_danger(intent: dict, stored_password: str)
-  ACTION_HUMAN = ...
+  # Ожидание пароля + команда «удали профиль X».
+  class PasswordStage(Stage)
+    def handle(self, ctx)
+  def build_ask_password(intent: dict, expires_sec: int=30)
 ```
 
 **`jarvis/intents/sites.py`**
@@ -969,6 +980,105 @@ README)._
   BROWSER_WORDS = ...
 ```
 
+**`jarvis/language/__init__.py`**
+
+```
+  # Russian numeric understanding and speech normalization.
+  def analyze_command(text)
+  def prepare_speech(text)
+```
+
+**`jarvis/language/context.py`**
+
+```
+  # Local grammatical evidence. Ambiguous sentences are not a full syntax parse.
+  WORDS = ...
+  ORDER_HEADS = ...
+  PREPOSITIONS = ...
+  class Context
+  def context_at(text, start, end, *, force_ordinal=False)
+  def explicit_number_context(text, start)
+```
+
+**`jarvis/language/input.py`**
+
+```
+  # Conservative semantic input adapter. Does not rewrite arbitrary text payloads.
+  ROMANS = ...
+  TIME_COMMAND = ...
+  LEVEL_COMMAND = ...
+  PAYLOAD_COMMAND = ...
+  class Analysis
+  def analyze_command(text)
+```
+
+**`jarvis/language/morphology.py`**
+
+```
+  # Cached Russian morphology. No model downloads or network access.
+  _LOCK = ...
+  def analyzer()
+  def parses(word)
+  def numeral_parse(word, ordinal=False)
+  def noun_parse(word)
+  def inflect(parse, case='nomn', gender=None, number=None, animate=False)
+  def noun_form(lemma, value, case='nomn', *, decimal=False)
+```
+
+**`jarvis/language/numbers.py`**
+
+```
+  # Numeral grammar shared by command understanding and speech rendering.
+  class Number
+  class Lexeme
+  BASES = ...
+  SCALES = ...
+  WORD = ...
+  DIGIT = ...
+  def lexicon()
+  def word_numbers(text)
+  def digit_numbers(text)
+  def cardinal(value, case='nomn', gender='masc', animate=False)
+  def ordinal(value, case='nomn', gender='masc', number='sing', animate=False)
+  def decimal_words(value, case='nomn')
+  _ROMAN = ...
+  def roman_value(token)
+```
+
+**`jarvis/language/speech.py`**
+
+```
+  # Typed text verbalization. Longest semantic forms precede generic numbers.
+  TOKEN = ...
+  MONTHS = ...
+  IDENTIFIER_WORDS = ...
+  SIGNS = ...
+  IDENTIFIER_SIGNS = ...
+  def prepare_speech(text)
+```
+
+**`jarvis/language/time.py`**
+
+```
+  # Duration grammar with source spans. Uses the shared numeral/unit vocabulary.
+  class Duration
+  PREFIX = ...
+  HALF = ...
+  SINGLE = ...
+  def parse_duration(text)
+```
+
+**`jarvis/language/units.py`**
+
+```
+  # Semantic unit lexicon shared by input and output; spelling is data, not phrase patches.
+  class Unit
+  UNITS = ...
+  LEMMA_UNITS = ...
+  TOKEN = ...
+  def unit_at(text, position)
+```
+
 **`jarvis/learning.py`**
 
 ```
@@ -981,7 +1091,8 @@ README)._
   def find_correction(cmd: str, threshold: float=0.85)
   def all_corrections()
   def forget_correction(wrong: str)
-  def build_context(include_facts: bool=True)
+  def select_context(query=None)
+  def build_context(include_facts: bool=True, *, query=None)
 ```
 
 **`jarvis/main.py`**
@@ -990,6 +1101,7 @@ README)._
   # Точка входа: связывает распознавание, интенты, синтез речи и GUI.
   BASE_DIR = ...
   _REJECT = ...
+  _UNCERTAIN = ...
   class Jarvis
     def __init__(self, config, listener, speaker, handler, base_dir: Path, whisper=None, gui=None)
     def say(self, reply: Reply)
@@ -1025,6 +1137,21 @@ README)._
   def clear()
   def describe(messages: list, limit: int=6)
   def handle_memory_command(cmd: str, messages: list)
+```
+
+**`jarvis/memory_context.py`**
+
+```
+  # Query-scoped personal memory. Absence/uncertainty never means 'send everything'.
+  class Selection
+  PERSONAL = ...
+  RECALL = ...
+  RECOMMEND = ...
+  PREFERENCES = ...
+  PROFILE_TOPICS = ...
+  GENERIC = ...
+  def lemmas(text)
+  def select_memory(query, profile_values, facts, limit=5)
 ```
 
 **`jarvis/model.py`**
@@ -1188,6 +1315,17 @@ README)._
   def analyze_prosody(pcm_int16: bytes, sample_rate: int=16000, min_samples: int=3200)
 ```
 
+**`jarvis/recognition.py`**
+
+```
+  # Measurable ASR acceptance policy, not a blacklist of 'strange' words.
+  class Quality
+  def assess_pcm(pcm, sample_rate=16000)
+  def assess_vosk(result, config=None)
+  def assess_whisper(segments, config=None)
+  def transcripts_agree(primary, secondary)
+```
+
 **`jarvis/recorder.py`**
 
 ```
@@ -1237,7 +1375,6 @@ README)._
 ```
   # Распознавание речи.
   TURBO_MODEL = ...
-  WHISPER_PROMPT = ...
   ECHO_WINDOW_SEC = ...
   BARGE_LOG_INTERVAL = ...
   DEFAULT_BLOCK_MS = ...
@@ -1255,7 +1392,7 @@ README)._
     def reset_stats(self)
     def phrases(self, stop_event)
   class WhisperTranscriber
-    def __init__(self, model_name='auto', device='auto', lazy=False)
+    def __init__(self, model_name='auto', device='auto', lazy=False, config=None)
     def is_ready(self)
     def wait_ready(self, timeout: float | None=None)
     def preload_async(self)
@@ -1293,7 +1430,8 @@ README)._
 
 ```
   # Таймеры и напоминания.
-  _NUM_WORDS = ...
+  _ABSOLUTE_TIME_RE = ...
+  _ABSOLUTE_HOUR_RE = ...
   def set_on_fire(callback)
   def add(text: str, fire_at: float)
   def remove_all()
@@ -1527,7 +1665,7 @@ README)._
   def save_index(items: list, dim: int, path=None)
   _TOKEN_RE = ...
   def search(query: str, k: int=3, min_score: float=None, lexical_min: float=None)
-  def build_prompt_block(query: str, k: int=None)
+  def build_prompt_block(query: str, k: int=None, allowed_keys=None)
   def sync(force: bool=False)
   def index_fact(key: str, value: str, source: str='user')
   def forget_fact(key: str)
@@ -1794,19 +1932,45 @@ README)._
   def main()
 ```
 
+**`tests/test_audit_regressions.py`**
+
+```
+  # Regression tests for the six audited bugs and related edge cases.
+  def handler(password='1234')
+  def test_system_pack_shutdown_requires_password()
+  def test_password_not_written_to_dialog()
+  def test_password_retains_case_and_punctuation()
+  def test_absolute_reminder_survives_command_normalization()
+  def test_half_hour_does_not_eat_reminder_text()
+  def test_task_save_failure_must_not_report_success(tmp_path)
+  def test_system_pack_runs_only_after_correct_password(phrase)
+  def test_custom_macro_checks_all_steps_before_execution()
+  def test_sensitive_input_skips_logs_corrections_and_history(answer, caplog)
+  def test_expired_password_is_not_executed_or_recorded()
+  def test_raw_password_values(password)
+  def test_reminder_time_formats_end_to_end(time_text)
+  def test_duration_and_reminder_text(phrase, seconds, text)
+  def test_task_command_reports_persistence_error(tmp_path)
+  def test_task_intent_reports_persistence_error(tmp_path)
+  def source_method(filename, classname, method, namespace)
+  def test_voice_input_redacts_gui_and_skips_observer()
+  def test_gui_input_redacts_history()
+  def test_stt_does_not_retain_sensitive_recognition(caplog)
+```
+
 **`tests/test_brain_rag.py`**
 
 ```
-  # Отбор фактов в system-промпт (jarvis.brain._system_with_context).
+  # Query-scoped memory: unavailable retrieval never means send all facts.
   FACTS = ...
   def cfg(tmp_path)
   def brain(cfg, monkeypatch)
-  def test_disabled_keeps_all_facts(brain, cfg)
-  def test_no_query_keeps_all_facts(brain)
-  def test_rag_block_replaces_full_fact_list(brain, cfg, monkeypatch)
+  def test_generic_queries_do_not_inject_personal_facts(brain, query)
+  def test_disabled_memory_keeps_only_requested_facts(brain)
+  def test_rag_block_replaces_selected_fact_list(brain, cfg, monkeypatch)
   def test_facts_are_not_duplicated(brain, cfg, monkeypatch)
-  def test_build_context_include_facts_flag(cfg)
-  def test_broken_memory_does_not_break_prompt(brain, cfg, monkeypatch)
+  def test_build_context_include_facts_flag(brain)
+  def test_failed_or_empty_rag_never_sends_everything(brain, cfg, monkeypatch, broken)
 ```
 
 **`tests/test_browser_target.py`**
@@ -2001,6 +2165,23 @@ README)._
   def test_missing_listener_is_safe(wiring)
 ```
 
+**`tests/test_memory_scope.py`**
+
+```
+  # Personalization should serve a question, not choose its topic.
+  PROFILE = ...
+  FACTS = ...
+  def test_no_unsolicited_personalization(query)
+  def test_profile_is_scoped(query, key)
+  def test_recommendations_do_not_leak_unrelated_preferences()
+  def test_explicit_memory_overview_is_bounded()
+  def test_observer_does_not_feed_its_own_answers_into_extraction()
+  def test_assistant_only_batch_is_not_extracted()
+  def test_rag_cannot_reintroduce_disallowed_keys(monkeypatch)
+  def test_generic_context_neither_exposes_nor_deletes_profile(tmp_path, monkeypatch)
+  def test_generic_query_never_calls_vector_retriever(monkeypatch)
+```
+
 **`tests/test_mood.py`**
 
 ```
@@ -2036,6 +2217,42 @@ README)._
   def test_handle_mood_command_none()
 ```
 
+**`tests/test_numeric_language.py`**
+
+```
+  # Executable Russian language corpus: understanding, morphology and speech.
+  def plain(text)
+  def test_speech_corpus(source, expected)
+  def test_non_numeric_names_are_not_roman_numbers(text)
+  def test_roman_validation(token, value)
+  def test_numeric_lexicon(text, value, kind)
+  def test_cardinal_roundtrip(value, case)
+  def test_input_corpus(source, expected)
+  def test_payloads_are_not_rewritten(text)
+  def test_invalid_or_ambiguous_commands_require_clarification(text)
+  def test_shared_duration_parser(text, seconds, body)
+  def test_duration_not_taken_from_arbitrary_reminder_body()
+  def make_handler()
+  def test_spoken_duration_reaches_real_handler_and_preserves_history()
+  def test_spoken_level_reaches_action()
+  def test_password_never_enters_numeric_language_layer()
+  def load_method(filename, classname, name, namespace)
+  def test_wake_extraction_preserves_original_numeric_punctuation()
+  def test_whisper_refinement_preserves_original_numeric_punctuation()
+  def test_speaker_direct_path_uses_same_preparation()
+  def test_additional_speech_cases(source, expected)
+  def test_malformed_quantities_do_not_partially_execute(source)
+  def test_entities_include_contextual_roman_value()
+  def test_cardinal_does_not_cross_punctuation()
+  def test_large_numbers_do_not_break_tts()
+  def test_speaker_async_path_uses_same_preparation()
+  def test_all_streaming_engines_use_shared_preparation(engine)
+  def test_written_and_spoken_roman_queries_match()
+  def test_spoken_clock_reaches_real_timer_handler()
+  def test_compound_commands_preserve_decimal_comma()
+  def test_standalone_negative_survives_wake_extraction()
+```
+
 **`tests/test_persona.py`**
 
 ```
@@ -2067,6 +2284,41 @@ README)._
   def test_prosody_result_keys()
   def test_prosody_emotion_in_states()
   def test_prosody_rms_reasonable()
+```
+
+**`tests/test_recognition_quality.py`**
+
+```
+  # Recognition policy and integration tested without a microphone or model weights.
+  GOOD = ...
+  BAD = ...
+  PCM = ...
+  def method(filename, classname, name, **extra)
+  def segment(**kw)
+  def test_invalid_silent_or_clipped_audio_rejected(pcm)
+  def test_signal_is_not_claimed_to_be_speech()
+  def test_vosk_word_confidence(scores, accepted)
+  def test_missing_vosk_evidence_is_not_confident(result)
+  def test_whisper_evidence_not_vocabulary_blacklist(changes, accepted)
+  def test_whole_utterance_rejected_if_one_fragment_unclear()
+  def test_thresholds_are_configurable_and_invalid_settings_safe()
+  def test_critical_disagreements(a, b, agrees)
+  def app(primary=GOOD, refined='открой блокнот', whisper=True)
+  def test_uncertain_never_reaches_commands_gui_or_learning(refined)
+  def test_silence_cannot_trigger_actions_even_with_confident_text()
+  def test_vosk_only_requires_evidence(primary)
+  def test_stronger_whisper_can_rescue_vosk()
+  def test_failed_whisper_may_fall_back_only_to_confident_vosk()
+  def test_reliable_but_disagreeing_commands_require_repeat()
+  def test_unconfirmed_wake_is_ignored_not_answered()
+  def test_repeat_prompt_is_rate_limited()
+  def test_refine_requires_fresh_evidence(quality, text, expected)
+  def test_no_weak_wake_guess(required, awaiting, expected)
+  def test_transcriber_checks_segments_and_has_no_content_priming()
+  def test_parser_abstention_is_clarification_not_second_guess()
+  def test_transcription_error_does_not_keep_old_quality()
+  def test_uncertain_password_never_reaches_handler_or_history()
+  def test_pending_question_opens_window_before_extracting_answer()
 ```
 
 **`tests/test_safety.py`**
@@ -2114,6 +2366,7 @@ README)._
   # stt.Listener: живое применение настроек (то, что раньше не работало).
   class FakeRec
     def __init__(self)
+    def SetWords(self, enabled)
     def AcceptWaveform(self, data)
     def Result(self)
     def FinalResult(self)
@@ -2163,6 +2416,7 @@ README)._
   def test_flush_clears_queue(listener)
   def test_phrases_reopens_stream_on_device_change(monkeypatch, listener)
   def test_phrases_keeps_stream_without_device_change(monkeypatch, listener)
+  def test_listener_enables_word_confidence(listener)
 ```
 
 **`tests/test_tray.py`**
@@ -2561,21 +2815,21 @@ README)._
 | `jarvis/__main__.py` | 4 | code |  |
 | `jarvis/actions.py` | 1483 | code | Действия: запуск приложений, открытие сайтов, скриншоты, медиа, печать |
 | `jarvis/apps.py` | 114 | code | Каталог известных приложений: как их зовут голосом, как открыть и как  |
-| `jarvis/brain.py` | 857 | code | LLM-фолбэк: локальная нейронка (Ollama) разбирает команду в структурны |
+| `jarvis/brain.py` | 868 | code | LLM-фолбэк: локальная нейронка (Ollama) разбирает команду в структурны |
 | `jarvis/celebrations.py` | 165 | code | Праздничные триггеры — поздравление с ДР + двойной салют. |
-| `jarvis/config.py` | 279 | code | Загрузка конфигурации и объект Config в памяти. |
+| `jarvis/config.py` | 284 | code | Загрузка конфигурации и объект Config в памяти. |
 | `jarvis/config_manager.py` | 156 | code | Единый менеджер записи в config.json. |
 | `jarvis/files.py` | 109 | code | Файлы и папки: открыть, посмотреть содержимое, создать. |
 | `jarvis/first_run.py` | 26 | code | Первый запуск — знакомство через LLM-диалог. |
-| `jarvis/gui.py` | 2244 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
+| `jarvis/gui.py` | 2245 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
 | `jarvis/history.py` | 75 | code | История последних действий для отмены («стоп, не то»). |
 | `jarvis/installed.py` | 51 | code | Индекс установленных программ по ярлыкам меню «Пуск». |
 | `jarvis/intents/__init__.py` | 10 | code | Разбор команд Феникса — пакет. |
 | `jarvis/intents/context.py` | 19 | code | Контекст, который передаётся между стадиями pipeline. |
-| `jarvis/intents/execute.py` | 1017 | code | Dispatch: action → функция-обработчик. |
+| `jarvis/intents/execute.py` | 1021 | code | Dispatch: action → функция-обработчик. |
 | `jarvis/intents/fast/__init__.py` | 54 | code | Реестр быстрых обработчиков. |
 | `jarvis/intents/fast/correction.py` | 28 | code | Коррекция: «это не то, я сказал логи». |
-| `jarvis/intents/fast/custom.py` | 72 | code | Пользовательские команды: из config.json и из паков. |
+| `jarvis/intents/fast/custom.py` | 83 | code | Пользовательские команды: из config.json и из паков. |
 | `jarvis/intents/fast/debug.py` | 38 | code | Диагностика: «что ты слышал», «почему не понял». |
 | `jarvis/intents/fast/memory.py` | 57 | code | Управление памятью диалога. |
 | `jarvis/intents/fast/music.py` | 38 | code | Музыка — ДО open_fast. |
@@ -2592,46 +2846,56 @@ README)._
 | `jarvis/intents/fast/undo.py` | 67 | code | Отмена последнего действия («не то», «отмени»). |
 | `jarvis/intents/fast/voices.py` | 10 | code | Голоса Piper — обёртка над модулем `voices`. |
 | `jarvis/intents/fast/weather.py` | 113 | code | Простые правила для погоды и курса — без LLM. |
-| `jarvis/intents/handler.py` | 259 | code | IntentHandler — оркестрация. |
-| `jarvis/intents/password.py` | 97 | code | Хеширование пароля и действия, требующие пароля. |
+| `jarvis/intents/handler.py` | 279 | code | IntentHandler — оркестрация. |
+| `jarvis/intents/password.py` | 122 | code | Ожидание пароля + команда «удали профиль X». |
 | `jarvis/intents/sites.py` | 62 | code | Сайты для открытия голосом — ленивая загрузка из packs/sites.json. |
 | `jarvis/intents/stages/__init__.py` | 44 | code | Стадии обработки команды. Порядок = приоритет. |
 | `jarvis/intents/stages/base.py` | 19 | code | Базовая стадия pipeline. |
 | `jarvis/intents/stages/cancel.py` | 17 | code | «Стоп», «хватит», «отбой» — самый первый этап. |
 | `jarvis/intents/stages/clipboard.py` | 68 | code | 4 команды буфера обмена. Все — до LLM. |
-| `jarvis/intents/stages/compound.py` | 65 | code | Многослойные команды: «открой стим и запусти доту». |
+| `jarvis/intents/stages/compound.py` | 71 | code | Многослойные команды: «открой стим и запусти доту». |
 | `jarvis/intents/stages/correction.py` | 24 | code | Применение коррекции «это не то» перед разбором команды. |
 | `jarvis/intents/stages/fast.py` | 29 | code | Вызов реестра быстрых обработчиков. |
-| `jarvis/intents/stages/llm.py` | 93 | code | LLM — последний шанс разобрать команду. |
+| `jarvis/intents/stages/llm.py` | 97 | code | LLM — последний шанс разобрать команду. |
 | `jarvis/intents/stages/memory.py` | 21 | code | Команды памяти диалога. |
 | `jarvis/intents/stages/modes.py` | 30 | code | Режимы работы: commands / llm / combo. |
 | `jarvis/intents/stages/onboarding.py` | 73 | code | Первый запуск — знакомство через LLM-диалог. |
-| `jarvis/intents/stages/password.py` | 114 | code | Ожидание пароля + команда «удали профиль X». |
+| `jarvis/intents/stages/password.py` | 122 | code | Ожидание пароля + команда «удали профиль X». |
 | `jarvis/intents/stages/pending.py` | 72 | code | Ожидание уточнения (pending_question). |
 | `jarvis/intents/verbs.py` | 45 | code | Константы глаголов и слов — единый источник истины. |
-| `jarvis/learning.py` | 191 | code | Самообучение Феникса: факты и коррекции. |
-| `jarvis/main.py` | 841 | code | Точка входа: связывает распознавание, интенты, синтез речи и GUI. |
+| `jarvis/language/__init__.py` | 17 | code | Russian numeric understanding and speech normalization. |
+| `jarvis/language/context.py` | 112 | code | Local grammatical evidence. Ambiguous sentences are not a full syntax  |
+| `jarvis/language/input.py` | 241 | code | Conservative semantic input adapter. Does not rewrite arbitrary text p |
+| `jarvis/language/morphology.py` | 90 | code | Cached Russian morphology. No model downloads or network access. |
+| `jarvis/language/numbers.py` | 326 | code | Numeral grammar shared by command understanding and speech rendering. |
+| `jarvis/language/speech.py` | 357 | code | Typed text verbalization. Longest semantic forms precede generic numbe |
+| `jarvis/language/time.py` | 84 | code | Duration grammar with source spans. Uses the shared numeral/unit vocab |
+| `jarvis/language/units.py` | 85 | code | Semantic unit lexicon shared by input and output; spelling is data, no |
+| `jarvis/learning.py` | 178 | code | Самообучение Феникса: факты и коррекции. |
+| `jarvis/main.py` | 895 | code | Точка входа: связывает распознавание, интенты, синтез речи и GUI. |
 | `jarvis/matching.py` | 118 | code | Нечёткое сопоставление речи с названиями: транслитерация + difflib. |
 | `jarvis/memory.py` | 147 | code | Память диалога — на профиль. |
+| `jarvis/memory_context.py` | 124 | code | Query-scoped personal memory. Absence/uncertainty never means 'send ev |
 | `jarvis/model.py` | 102 | code | Скачивание и распаковка модели Vosk для русского языка (~45 МБ). |
 | `jarvis/modes.py` | 51 | code | Режимы работы Феникса: commands, llm, combo. |
 | `jarvis/mood.py` | 388 | code | Mood — эмоциональное состояние ассистента. |
-| `jarvis/observer.py` | 201 | code | Observer — фоновое наблюдение за диалогом. |
+| `jarvis/observer.py` | 203 | code | Observer — фоновое наблюдение за диалогом. |
 | `jarvis/packs.py` | 117 | code | Загрузка и выгрузка паков команд из папки packs/. |
 | `jarvis/paths.py` | 216 | code | Централизованное определение путей Феникса. |
 | `jarvis/persona.py` | 226 | code | Персона ассистента — стиль общения, черты, backstory, tone. |
 | `jarvis/profile.py` | 489 | code | Профиль пользователя — мультипрофиль. |
 | `jarvis/prosody.py` | 152 | code | Prosody — эмоции из голоса (RMS + pitch + ZCR). |
+| `jarvis/recognition.py` | 154 | code | Measurable ASR acceptance policy, not a blacklist of 'strange' words. |
 | `jarvis/recorder.py` | 171 | code | Запись действий: клавиши, клики, паузы. |
 | `jarvis/reply.py` | 25 | code | Reply — результат IntentHandler.handle(). |
 | `jarvis/safety.py` | 213 | code | Постфильтр ответов LLM — вторая линия «красной черты». |
 | `jarvis/steam.py` | 67 | code | Индекс установленных игр Steam: appmanifest -> (название, appid). |
-| `jarvis/stt.py` | 675 | code | Распознавание речи. |
-| `jarvis/tasks.py` | 248 | code | Списки задач. |
-| `jarvis/text_utils.py` | 136 | code | Общие текстовые утилиты для Феникса. |
-| `jarvis/timers.py` | 370 | code | Таймеры и напоминания. |
+| `jarvis/stt.py` | 685 | code | Распознавание речи. |
+| `jarvis/tasks.py` | 257 | code | Списки задач. |
+| `jarvis/text_utils.py` | 98 | code | Общие текстовые утилиты для Феникса. |
+| `jarvis/timers.py` | 326 | code | Таймеры и напоминания. |
 | `jarvis/tray.py` | 192 | code | Иконка в системном трее (pystray). |
-| `jarvis/tts.py` | 400 | code | Синтез речи — фасад над tts_engines. |
+| `jarvis/tts.py` | 403 | code | Синтез речи — фасад над tts_engines. |
 | `jarvis/tts_engines/__init__.py` | 12 | code | TTS-движки Феникса — абстракция над Piper, Silero, WinRT, SAPI. |
 | `jarvis/tts_engines/base.py` | 62 | code | Базовый класс TTS-движка. |
 | `jarvis/tts_engines/factory.py` | 159 | code | Фабрика TTS-движков. |
@@ -2641,7 +2905,7 @@ README)._
 | `jarvis/tts_engines/winrt.py` | 158 | code | WinRT TTS — системный синтез Windows, без внешних моделей. |
 | `jarvis/uia.py` | 1027 | code | UI Automation — видим окна и элементы интерфейса. |
 | `jarvis/vad.py` | 584 | code | Silero VAD — детекция речи в аудио-потоке с адаптивным порогом. |
-| `jarvis/vectormem.py` | 784 | code | Векторная память фактов (RAG) — на профиль. |
+| `jarvis/vectormem.py` | 788 | code | Векторная память фактов (RAG) — на профиль. |
 | `jarvis/voices.py` | 220 | code | Управление голосами TTS — работает через tts_engines. |
 | `jarvis/weather.py` | 400 | code | Погода и курс валют. |
 | `scripts/__init__.py` | 7 | code | Пакет scripts: утилиты разработчика. |
@@ -2665,7 +2929,8 @@ README)._
 | `tests/manual/vad_debug.py` | 61 | code | Отладка Silero VAD — прогон на синтетике. |
 | `tests/manual/vad_live.py` | 41 | code | Живой тест VAD: пишет 5 сек с микрофона, показывает prob. |
 | `tests/stress_intents.py` | 552 | code | Стресс-тест Феникса: ровно 102 разных ситуаций без микрофона и сети. |
-| `tests/test_brain_rag.py` | 133 | code | Отбор фактов в system-промпт (jarvis.brain._system_with_context). |
+| `tests/test_audit_regressions.py` | 252 | code | Regression tests for the six audited bugs and related edge cases. |
+| `tests/test_brain_rag.py` | 125 | code | Query-scoped memory: unavailable retrieval never means send all facts. |
 | `tests/test_browser_target.py` | 338 | code | №1: Феникс работает в том браузере, в котором сидит пользователь. |
 | `tests/test_build_setup.py` | 56 | code | Тесты scripts.build_setup — версия установщика и мягкий пропуск шага c |
 | `tests/test_caps.py` | 23 | code | Тесты check_caps: структура system_caps.json. |
@@ -2674,12 +2939,15 @@ README)._
 | `tests/test_gui_wiring.py` | 548 | code | GUI → config: каждый элемент окна реально отсылает изменение. |
 | `tests/test_intents.py` | 485 | code | Автотест Феникса без микрофона. |
 | `tests/test_main_wiring.py` | 202 | code | config → живое ядро: подписчик make_config_listener. |
+| `tests/test_memory_scope.py` | 132 | code | Personalization should serve a question, not choose its topic. |
 | `tests/test_mood.py` | 386 | code | Тесты jarvis.mood — состояние, детекция, decay, влияние. |
+| `tests/test_numeric_language.py` | 521 | code | Executable Russian language corpus: understanding, morphology and spee |
 | `tests/test_persona.py` | 155 | code | Тесты jarvis.persona — стиль, tone, prompt-блок. |
 | `tests/test_prosody.py` | 83 | code | Тесты jarvis.prosody — эмоции из голоса (эвристика). |
+| `tests/test_recognition_quality.py` | 356 | code | Recognition policy and integration tested without a microphone or mode |
 | `tests/test_safety.py` | 170 | code | Тесты jarvis.safety — постфильтр «красной черты». |
 | `tests/test_speech_gate.py` | 86 | code | Тесты jarvis.vad.SpeechHangover — «хвост» тишины после речи. |
-| `tests/test_stt.py` | 444 | code | stt.Listener: живое применение настроек (то, что раньше не работало). |
+| `tests/test_stt.py` | 451 | code | stt.Listener: живое применение настроек (то, что раньше не работало). |
 | `tests/test_tray.py` | 180 | code | Трей (jarvis.tray): пункты меню реально дёргают ядро и GUI. |
 | `tests/test_tts.py` | 243 | code | Тесты jarvis.tts_engines — движки и фабрика. С моками. |
 | `tests/test_uia.py` | 788 | code | Тесты jarvis.uia — логика обёртки. С моками. |
@@ -4630,7 +4898,7 @@ CHAT_SYSTEM = (
     "Ты НЕ автоответчик. Ты — живой собеседник с характером.\n\n"
 
     "=== ХАРАКТЕР ===\n"
-    "Сарказм, лёгкая ирония, чувство юмора. Обращаешься по имени, если знаешь. "
+    "Сарказм, лёгкая ирония, чувство юмора. Имя используй редко, когда уместно. "
     "Если не знаешь — просто «ты». Отвечай коротко (1–3 предложения), живо, "
     "без канцелярита и пустых фраз.\n\n"
 
@@ -4658,6 +4926,14 @@ CHAT_SYSTEM = (
     "Если не знаешь факт — СКАЖИ ЧЕСТНО: «Не знаю такого», «Хз кто это». "
     "НЕ выдумывай. НЕ говори «отличный выбор», «классная игра», "
     "«прекрасно» — это пустышка.\n\n"
+
+    "=== ПАМЯТЬ И НЕОПРЕДЕЛЁННОСТЬ ===\n"
+    "Сохранённые сведения используй только когда они нужны текущему вопросу. "
+    "Не упоминай без необходимости, что что-то помнишь или записал. "
+    "Общую просьбу рассказать что-нибудь не превращай в рассказ о городе, "
+    "работе или предпочтениях пользователя. Выбери самостоятельную тему. "
+    "Не повторяй имя в каждом ответе. Если фраза непонятна, попроси "
+    "повторить или уточнить. Не придумывай, какое слово пользователь якобы сказал.\n\n"
 
     "=== ФОРМАТ ===\n"
     "Без списков, без markdown, без эмодзи — ответ озвучивается. "
@@ -4758,7 +5034,7 @@ class Brain:
             return json.loads(r.read())["message"]["content"]
 
     def _system_with_context(self, base: str, query: str = None) -> str:
-        """Добавляет к промпту персону + mood + факты + corrections. ... [5 строк]"""
+        """Добавляет персону, настроение и необходимые запросу личные сведения. ... [4 строк]"""
         parts = []
 
         try:
@@ -4780,13 +5056,15 @@ class Brain:
         rag = ""
         try:
             from jarvis import vectormem
-            rag = vectormem.build_prompt_block(query)
+            selection = learning.select_context(query)
+            if selection.facts:
+                rag = vectormem.build_prompt_block(query, allowed_keys=set(selection.facts))
         except Exception:
             log.exception("Не удалось собрать блок векторной памяти")
 
         try:
             # rag непустой — факты уже отобраны по смыслу, второй раз их не шлём.
-            extra = learning.build_context(include_facts=not rag)
+            extra = learning.build_context(include_facts=not rag, query=query)
             if extra:
                 parts.append(extra)
         except Exception:
@@ -4803,7 +5081,9 @@ class Brain:
         # Для JSON-разбора команды — БЕЗ контекста обучения.
         # Факты и коррекции нужны в диалоге (chat / chat_stream),
         # но в parse() они только путают модель.
-        return self._request([{"role": "system", "content": self.system_prompt},
+        return self._request([{"role": "system", "content": self.system_prompt +
+                                  "\nЕсли фраза обрывочна или непонятна, верни "
+                                  '{"action":"none"}. Не угадывай действие или target.'},
                               {"role": "user", "content": cmd}], timeout,
                              num_predict=300)
 
@@ -5237,6 +5517,11 @@ DEFAULT_CONFIG = {
     "command_window_sec": 8,
     "dialog_window_sec": 20,
     "use_whisper": True,
+    # Пороги принятия ASR; требуют калибровки на реальном микрофоне.
+    "stt_min_word_confidence": 0.65,
+    "stt_min_avg_logprob": -1.0,
+    "stt_max_no_speech_prob": 0.6,
+    "stt_max_compression_ratio": 2.4,
     # Правильная рабочая модель — как в config.example.json.
     # Раньше тут был "coriollon/..." — сломанная репа на HF.
     "whisper_model": "deepdml/faster-whisper-large-v3-turbo-ct2",
@@ -7885,10 +8170,11 @@ class FenixGUI:
         def _run():
             try:
                 self.set_state("listening")
-                self.add_message("user", cmd)
                 self.jarvis.speaker.stop()
                 self.jarvis.speaker.wait_end(timeout=1.0)
                 with self.jarvis.cmd_lock:
+                    sensitive = bool(getattr(self.jarvis.handler, "_pending_password", None))
+                    self.add_message("user", "[Ввод пароля скрыт]" if sensitive else cmd)
                     reply = self.jarvis.handler.handle(cmd)
                     if not reply.is_stream:
                         self.add_message("assistant", reply.text or "")
@@ -7897,7 +8183,7 @@ class FenixGUI:
                 # из текстового поля завершалась, а индикатор — нет.
                 self.set_state("idle")
             except Exception:
-                log.exception("Ошибка команды %r", cmd)
+                log.exception("Ошибка команды из GUI")
                 self.set_state("error")
 
         threading.Thread(target=_run, daemon=True, name="gui-cmd").start()
@@ -8097,7 +8383,11 @@ def execute_intent(handler, intent: dict) -> str | None:
     fn = _DISPATCH.get(action)
     if fn is None:
         return None
-    return fn(handler, intent, target, query)
+    try:
+        return fn(handler, intent, target, query)
+    except OSError:
+        actions_log.exception("Ошибка выполнения действия %s", action)
+        return "Не удалось выполнить действие: ошибка доступа или записи данных."
 
 
 def execute_steps(handler, steps: list) -> str | None:
@@ -9162,17 +9452,11 @@ def load_packs_as_custom(config) -> list:
 
 def match_custom(handler, cmd: str) -> str | None:
     """Точное совпадение или нечёткое (>=0.85, обе фразы >=12 символов)."""
-    from jarvis import actions
-    from jarvis.intents.execute import execute_steps
-
     for phrases, action, reply in handler.custom:
         for phrase in phrases:
             if cmd == phrase:
                 log.info("Custom (точно): %r → %r, action=%r", cmd, phrase, action)
-                if isinstance(action, list):
-                    return execute_steps(handler, action) or reply
-                actions.run_spec(actions.spec_from_string(action))
-                return reply
+                return execute_custom(handler, action, reply)
 
             # Нечёткий матч — только для длинных фраз.
             # Короткие («вк», «отк») слишком легко путаются.
@@ -9181,11 +9465,28 @@ def match_custom(handler, cmd: str) -> str | None:
                 if ratio >= 0.85:
                     log.info("Custom (нечётко %.2f): %r → %r, action=%r",
                              ratio, cmd, phrase, action)
-                    if isinstance(action, list):
-                        return execute_steps(handler, action) or reply
-                    actions.run_spec(actions.spec_from_string(action))
-                    return reply
+                    return execute_custom(handler, action, reply)
     return None
+
+
+def execute_custom(handler, action, reply: str, *, authorized: bool = False) -> str:
+    """Проверяет весь сценарий ДО первого шага, включая строковые команды."""
+    from jarvis import actions
+    from jarvis.intents.execute import execute_steps
+    from jarvis.intents.password import is_danger
+
+    intent = ({"steps": action} if isinstance(action, list)
+              else {"action": "open_app", "target": action})
+    stored = str(handler.config.get("danger_password") or "").strip()
+    if not authorized and is_danger(intent, stored):
+        return handler._ask_password({
+            "action": "custom_command", "spec": action, "reply": reply,
+        })
+    if isinstance(action, list):
+        return execute_steps(handler, action) or reply
+    if not actions.run_spec(actions.spec_from_string(action)):
+        return "Не удалось выполнить команду."
+    return reply
 ```
 
 ### `jarvis/intents/fast/debug.py`
@@ -10418,8 +10719,28 @@ class IntentHandler:
         """Возвращает Reply: либо text, либо stream."""
         self.last_was_chat = False
 
+        # Ответ на пароль не проходит через коррекции, историю или логи.
+        if self._pending_password:
+            from jarvis.intents.context import Ctx
+            from jarvis.intents.stages.password import PasswordStage
+
+            self._raw_cmd = ""
+            try:
+                result = PasswordStage().handle(
+                    Ctx(cmd=normalize(cmd), original_cmd=cmd, handler=self)
+                )
+                self._last_reply = result or "Действие отменено."
+                return Reply(text=self._last_reply)
+            finally:
+                self._raw_cmd = ""
+
         self._raw_cmd = cmd
-        cmd = normalize(cmd)
+        from jarvis.language import analyze_command
+        analysis = analyze_command(cmd)
+        self._number_analysis = analysis
+        if analysis.issue:
+            return Reply(text=analysis.issue)
+        cmd = normalize(analysis.command)
         actions_log.info("Команда: %r (режим: %s)", cmd, self.mode)
         self._recent_phrases.append(cmd)
 
@@ -10441,7 +10762,7 @@ class IntentHandler:
         except Exception:
             log.exception("mood.apply_from_text упал на %r", cmd)
 
-        user_msg = {"role": "user", "content": cmd}
+        user_msg = {"role": "user", "content": self._raw_cmd}
         self.dialog.append(user_msg)
         memory.append(user_msg)
 
@@ -10533,90 +10854,124 @@ class IntentHandler:
 ### `jarvis/intents/password.py`
 
 ```python
-"""Хеширование пароля и действия, требующие пароля. ... [4 строк]"""
+"""Ожидание пароля + команда «удали профиль X». ... [4 строк]"""
 
-import hashlib
-import hmac
 import logging
+import re
+import time
+
+from jarvis import profile
+from jarvis.intents.password import ACTION_HUMAN, verify_password
+from jarvis.intents.stages.base import Stage
+from jarvis.intents.verbs import CANCEL
 
 log = logging.getLogger("jarvis.intents")
 
 
-_PASSWORD_PREFIX = "sha256:"
+class PasswordStage(Stage):
+    name = "password"
+
+    def handle(self, ctx):
+        h = ctx.handler
+
+        # Ввод пароля имеет приоритет над всеми другими командами.
+        if h._pending_password:
+            if time.time() >= h._pending_password.get("expires_at", 0):
+                h._pending_password = None
+                return "Время ввода пароля истекло. Повторите команду."
+            return self._handle_answer(ctx)
+
+        reply = self._maybe_delete_profile(ctx)
+        if reply is not None:
+            return reply
+
+        # 3. Опасные fast-команды («очисти список», «отмени все напоминания»):
+        # fast-реестр идёт после этой стадии, а проверка is_danger живёт
+        # только в LLMStage — без гейта здесь такие команды выполнялись
+        # без пароля, хотя входят в DANGER_ACTIONS.
+        return self._maybe_gate_fast_danger(ctx)
+
+    # ----------------------------------------------------------------
+
+    def _maybe_gate_fast_danger(self, ctx) -> str | None:
+        """Пароль для опасных fast-команд (clear_tasks / cancel_timers)."""
+        h = ctx.handler
+        if not h._danger_password():
+            return None
+        from jarvis import tasks as _tasks
+        from jarvis import timers as _timers
+        if _tasks.is_clear_command(ctx.cmd):
+            return h._ask_password({"action": "clear_tasks"})
+        if _timers.is_cancel_all_command(ctx.cmd):
+            return h._ask_password({"action": "cancel_timers"})
+        return None
+
+    # ----------------------------------------------------------------
+
+    def _maybe_delete_profile(self, ctx) -> str | None:
+        """«удали профиль X» → пароль или удаление."""
+        h = ctx.handler
+        m = re.match(r"^удали\s+профиль\s+(\S+)$", ctx.cmd)
+        if not m:
+            return None
+
+        name = m.group(1)
+
+        if h._danger_password():
+            # Пароль задан — спрашиваем.
+            return h._ask_password({"action": "delete_profile", "target": name})
+
+        # Пароля нет — удаляем сразу.
+        if profile.delete(name):
+            return f"Профиль {name} удалён."
+        return f"Профиль {name} не найден или активен."
+
+    # ----------------------------------------------------------------
+
+    def _handle_answer(self, ctx) -> str:
+        h = ctx.handler
+        pending = h._pending_password
+        h._pending_password = None
+
+        if ctx.cmd in CANCEL:
+            h._pending_question = None
+            h._reset_requested = True
+            return "Жду обращение, сэр."
+
+        # Убираем «пароль», «код», «пин», если сказали.
+        raw = ctx.original_cmd or ctx.cmd
+        candidate = re.sub(r"^(?:пароль|код|пин)\s+", "", raw.strip(),
+                           count=1, flags=re.IGNORECASE).strip()
+
+        stored = str(h.config.get("danger_password") or "").strip()
+        if not verify_password(candidate, stored):
+            log.warning("Пароль неверный")
+            return "Пароль неверный. Действие отменено."
+
+        from jarvis.intents.execute import execute_intent, execute_steps
+
+        intent = pending.get("intent") or {}
+        if intent.get("action") == "custom_command":
+            from jarvis.intents.fast.custom import execute_custom
+            result = execute_custom(h, intent["spec"],
+                                    intent.get("reply", "Выполняю."),
+                                    authorized=True)
+        elif isinstance(intent.get("steps"), list):
+            result = execute_steps(h, intent["steps"])
+        else:
+            result = execute_intent(h, intent)
+        return result or "Готово."
 
 
-def hash_password(password: str) -> str:
-    """SHA-256 с префиксом. Префикс отличает хеш от legacy-plaintext."""
-    digest = hashlib.sha256(password.encode("utf-8")).hexdigest()
-    return f"{_PASSWORD_PREFIX}{digest}"
-
-
-def is_hashed(value: str) -> bool:
-    """Уже захеширован?"""
-    return bool(value) and value.startswith(_PASSWORD_PREFIX)
-
-
-def verify_password(candidate: str, stored: str) -> bool:
-    """Сравнивает введённый пароль с сохранённым. ... [4 строк]"""
-    if not stored:
-        return False
-    if is_hashed(stored):
-        # compare_digest — постоянное по времени сравнение.
-        # Обычный == утекает длиной совпавшего префикса.
-        return hmac.compare_digest(hash_password(candidate), stored)
-    # Legacy plaintext — мигрируется в sha256 при старте.
-    return hmac.compare_digest(candidate, stored)
-
-
-def migrate_password_if_needed(config) -> None:
-    """Если danger_password в plaintext — захешировать (№81)."""
-    raw = str(config.get("danger_password") or "").strip()
-    if not raw or is_hashed(raw):
-        return
-    config.set("danger_password", hash_password(raw))
-    log.info("Пароль миграции: plaintext → sha256")
-
-
-# Действия, требующие пароля (если danger_password задан).
-DANGER_ACTIONS = frozenset({
-    "shutdown_pc", "reboot_pc", "kill_process",
-    "clear_tasks", "cancel_timers", "delete_profile",
-})
-
-
-def _action_is_danger(action, target) -> bool:
-    if action in DANGER_ACTIONS:
-        return True
-    if action == "open_app":
-        t = str(target or "").lower()
-        if "shutdown" in t or "выключ" in t or "перезагруз" in t:
-            return True
-    return False
-
-
-def is_danger(intent: dict, stored_password: str) -> bool:
-    """Проверяет, опасно ли действие. ... [5 строк]"""
-    if not stored_password:
-        return False
-    if _action_is_danger(intent.get("action"), intent.get("target")):
-        return True
-    for step in intent.get("steps") or []:
-        if isinstance(step, dict) and _action_is_danger(step.get("action"),
-                                                        step.get("target")):
-            return True
-    return False
-
-
-# Человеческие названия для озвучки — при запросе пароля.
-ACTION_HUMAN = {
-    "shutdown_pc": "выключение компьютера",
-    "reboot_pc": "перезагрузку",
-    "kill_process": "закрытие процесса",
-    "clear_tasks": "очистку списка задач",
-    "cancel_timers": "отмену напоминаний",
-    "delete_profile": "удаление профиля",
-    "open_app": "это действие",
-}
+def build_ask_password(intent: dict, expires_sec: int = 30) -> tuple[dict, str]:
+    """Готовит данные для _pending_password и текст запроса."""
+    pending = {
+        "intent": intent,
+        "expires_at": time.time() + expires_sec,
+    }
+    action = intent.get("action")
+    human = ACTION_HUMAN.get(action, "это действие")
+    return pending, f"Для этого нужен пароль ({human}). Назовите пароль."
 ```
 
 ### `jarvis/intents/sites.py`
@@ -10851,7 +11206,11 @@ class CompoundStage(Stage):
 
         replies = []
         for part in parts:
-            sub = ctx.handler._handle_single(part)
+            from jarvis.language import analyze_command
+            analysis = analyze_command(part)
+            if analysis.issue:
+                return analysis.issue
+            sub = ctx.handler._handle_single(normalize(analysis.command))
             if isinstance(sub, str) and sub.strip():
                 replies.append(sub.strip())
             # Если sub — генератор (chat_stream) — пропускаем.
@@ -10861,23 +11220,25 @@ class CompoundStage(Stage):
         return None
 
     def _split(self, ctx) -> list[str] | None:
-        """Возвращает нормализованные части или None, если не compound. ... [5 строк]"""
+        """Возвращает исходные части или None, если не compound. ... [5 строк]"""
         h = ctx.handler
         raw = getattr(h, "_raw_cmd", "") or ""
         # Сырую фразу берём только на верхнем уровне: в рекурсии ctx.cmd —
         # это уже часть, и повторный split по всему raw зациклил бы разбор.
-        source = raw if normalize(raw) == ctx.cmd else ctx.cmd
+        from jarvis.language import analyze_command
+        source = raw if normalize(analyze_command(raw).command) == ctx.cmd else ctx.cmd
 
-        parts = re.split(r"\s+и\s+|,\s*", source)
+        parts = re.split(r"\s+и\s+|(?<!\d),\s*|,(?!\d)\s*", source)
         if len(parts) < 2:
             return None
 
-        parts = [normalize(p) for p in parts if p.strip()]
+        parts = [p.strip() for p in parts if p.strip()]
         if len(parts) < 2:
             return None
 
         for part in parts:
-            first = part.split()[0] if part.split() else ""
+            tokens = normalize(part).split()
+            first = tokens[0] if tokens else ""
             if first not in COMMAND_VERBS:
                 return None
 
@@ -10987,6 +11348,10 @@ class LLMStage(Stage):
             "cmd": cmd, "intent": intent,
             "mode": h.mode, "llm": True,
         }
+
+        if intent and intent.get("action") == "none":
+            # Явный отказ парсера не отдаём второй модели для догадок.
+            return "Не понял, что ты имеешь в виду. Уточни, пожалуйста."
 
         if intent and intent.get("action") not in ("answer", "none"):
             if is_danger(intent, str(h.config.get("danger_password") or "").strip()):
@@ -11168,17 +11533,16 @@ class PasswordStage(Stage):
     def handle(self, ctx):
         h = ctx.handler
 
-        # 1. Проверяем «удали профиль X» — это всегда до fast.
-        reply = self._maybe_delete_profile(ctx)
-        if reply is not None:
-            return reply
-
-        # 2. Если ждём ввода пароля — обрабатываем.
+        # Ввод пароля имеет приоритет над всеми другими командами.
         if h._pending_password:
             if time.time() >= h._pending_password.get("expires_at", 0):
                 h._pending_password = None
-            else:
-                return self._handle_answer(ctx)
+                return "Время ввода пароля истекло. Повторите команду."
+            return self._handle_answer(ctx)
+
+        reply = self._maybe_delete_profile(ctx)
+        if reply is not None:
+            return reply
 
         # 3. Опасные fast-команды («очисти список», «отмени все напоминания»):
         # fast-реестр идёт после этой стадии, а проверка is_danger живёт
@@ -11229,10 +11593,14 @@ class PasswordStage(Stage):
         h._pending_password = None
 
         if ctx.cmd in CANCEL:
+            h._pending_question = None
+            h._reset_requested = True
             return "Жду обращение, сэр."
 
         # Убираем «пароль», «код», «пин», если сказали.
-        candidate = re.sub(r"^(?:пароль|код|пин)\s*", "", ctx.cmd).strip()
+        raw = ctx.original_cmd or ctx.cmd
+        candidate = re.sub(r"^(?:пароль|код|пин)\s+", "", raw.strip(),
+                           count=1, flags=re.IGNORECASE).strip()
 
         stored = str(h.config.get("danger_password") or "").strip()
         if not verify_password(candidate, stored):
@@ -11242,7 +11610,12 @@ class PasswordStage(Stage):
         from jarvis.intents.execute import execute_intent, execute_steps
 
         intent = pending.get("intent") or {}
-        if isinstance(intent.get("steps"), list):
+        if intent.get("action") == "custom_command":
+            from jarvis.intents.fast.custom import execute_custom
+            result = execute_custom(h, intent["spec"],
+                                    intent.get("reply", "Выполняю."),
+                                    authorized=True)
+        elif isinstance(intent.get("steps"), list):
             result = execute_steps(h, intent["steps"])
         else:
             result = execute_intent(h, intent)
@@ -11375,6 +11748,1347 @@ BROWSER_WORDS = frozenset({
 })
 ```
 
+### `jarvis/language/__init__.py`
+
+```python
+"""Russian numeric understanding and speech normalization. ... [4 строк]"""
+
+
+def analyze_command(text):
+    from .input import analyze_command as analyze
+
+    return analyze(text)
+
+
+def prepare_speech(text):
+    from .speech import prepare_speech as prepare
+
+    return prepare(text)
+```
+
+### `jarvis/language/context.py`
+
+```python
+"""Local grammatical evidence. Ambiguous sentences are not a full syntax parse."""
+
+from dataclasses import dataclass
+import re
+from .morphology import noun_parse
+
+WORDS = re.compile(r"[А-Яа-яЁё]+")
+ORDER_HEADS = frozenset(
+    (
+        "век",
+        "глава",
+        "часть",
+        "том",
+        "раздел",
+        "пункт",
+        "этап",
+        "класс",
+        "акт",
+        "степень",
+        "курс",
+    )
+)
+PREPOSITIONS = {
+    "к": "datv",
+    "ко": "datv",
+    "до": "gent",
+    "от": "gent",
+    "ото": "gent",
+    "из": "gent",
+    "без": "gent",
+    "около": "gent",
+    "после": "gent",
+    "для": "gent",
+    "перед": "ablt",
+    "над": "ablt",
+    "между": "ablt",
+    "о": "loct",
+    "об": "loct",
+    "обо": "loct",
+    "при": "loct",
+}
+
+
+@dataclass(frozen=True)
+class Context:
+    case: str = "nomn"
+    gender: str = "masc"
+    number: str = "sing"
+    animate: bool = False
+    ordinal: bool = False
+    head: str = ""
+
+
+def context_at(text, start, end, *, force_ordinal=False):
+    before = list(WORDS.finditer(re.split(r"[.!?;:\n]", text[:start])[-1]))
+    after = (
+        WORDS.match(text, end)
+        if end < len(text) and text[end].isalpha()
+        else re.match(r"\s*([А-Яа-яЁё]+)", text[end:])
+    )
+    next_word = (
+        after.group(1) if after and after.lastindex else after.group() if after else ""
+    )
+    prev_word = before[-1].group() if before else ""
+    next_noun = noun_parse(next_word) if next_word else None
+    prev_noun = noun_parse(prev_word) if prev_word else None
+    next_is_order = next_noun and next_noun.normal_form in ORDER_HEADS
+    prev_is_order = prev_noun and (
+        prev_noun.normal_form in ORDER_HEADS or "Name" in prev_noun.tag
+    )
+    is_order = force_ordinal or bool(next_is_order or prev_is_order)
+    noun = next_noun
+    if is_order and prev_is_order and not next_is_order:
+        noun = prev_noun
+    # A non-order noun in a distant sentence is not evidence for Roman numbers.
+    prep = None
+    for token in reversed(before[-4:]):
+        w = token.group().lower().replace("ё", "е")
+        if w in PREPOSITIONS or w in ("в", "во", "на", "с", "со", "через"):
+            prep = w
+            break
+    case = PREPOSITIONS.get(prep, "nomn")
+    if prep in ("в", "во", "на"):
+        case = "loct" if noun and noun.tag.case in ("loct", "loc2") else "accs"
+    elif prep in ("с", "со"):
+        case = "gent" if noun and noun.tag.case == "gent" else "ablt"
+    elif prep == "через":
+        case = "accs"
+    elif prep is None and noun and noun.tag.case in ("datv", "ablt", "loct"):
+        case = noun.tag.case
+    if is_order and noun and noun.tag.case in ("gent", "datv", "ablt", "loct", "accs"):
+        # Actual head form is stronger evidence than a distant preposition.
+        case = "loct" if noun.tag.case == "loc2" else noun.tag.case
+    gender = noun.tag.gender if noun and noun.tag.gender else "masc"
+    return Context(
+        case,
+        gender,
+        noun.tag.number or "sing" if noun else "sing",
+        bool(noun and noun.tag.animacy == "anim"),
+        is_order,
+        noun.normal_form if noun else "",
+    )
+
+
+def explicit_number_context(text, start):
+    return bool(
+        re.search(
+            r"(?:римск\w*\s+(?:числ\w*|цифр\w*)|число|номер)\s*$",
+            text[:start],
+            re.I,
+        )
+    )
+```
+
+### `jarvis/language/input.py`
+
+```python
+"""Conservative semantic input adapter. Does not rewrite arbitrary text payloads."""
+
+from dataclasses import dataclass
+from decimal import Decimal
+import re
+from .numbers import Number, word_numbers, digit_numbers, roman_value, ordinal, cardinal
+from .context import context_at, explicit_number_context
+from .time import parse_duration
+
+ROMANS = re.compile(r"(?<![\w])[IVXLCDM\u2160-\u216F]+(?![\w])")
+TIME_COMMAND = re.compile(
+    r"^\s*(?:(?:поставь|установи)\s+)?(?:напомни|напоминай|напоминание|таймер)\b", re.I
+)
+LEVEL_COMMAND = re.compile(
+    r"\b(?:громкость|яркость|потише|тише|погромче|громче)\b", re.I
+)
+PAYLOAD_COMMAND = re.compile(
+    r"^\s*(?:добавь|запиши|внеси|напечатай|напиши|запомни|найди|поищи|открой|запусти)\b",
+    re.I,
+)
+
+
+@dataclass(frozen=True)
+class Analysis:
+    original: str
+    command: str
+    numbers: tuple[Number, ...] = ()
+    issue: str | None = None
+
+
+def _apply(text, replacements):
+    for start, end, value in sorted(replacements, reverse=True):
+        text = text[:start] + value + text[end:]
+    return text
+
+
+def _digits(value):
+    return format(value.normalize(), "f")
+
+
+def analyze_command(text):
+    numbers = tuple(
+        sorted((*word_numbers(text), *digit_numbers(text)), key=lambda n: n.start)
+    )
+    replacements = []
+    time_command = TIME_COMMAND.search(text)
+    level_command = LEVEL_COMMAND.search(text)
+    # Payloads (a task, filename, search text) are not executable numeric slots.
+    if PAYLOAD_COMMAND.match(text):
+        return Analysis(text, text, numbers)
+    if level_command:
+        # Only a number adjacent to the level word/delta construction is a parameter.
+        for n in numbers:
+            gap = (
+                text[level_command.end() : n.start].strip().lower()
+                if n.start >= level_command.end()
+                else None
+            )
+            delta = re.search(r"\bна\s*$", text[: n.start], re.I) and re.match(
+                r"\s*(?:потише|тише|погромче|громче)\b", text[n.end :], re.I
+            )
+            if gap not in ("", "на") and not delta:
+                continue
+            if any(
+                other.start > n.end and text[n.end : other.start].isspace()
+                for other in numbers
+            ):
+                return Analysis(
+                    text,
+                    text,
+                    numbers,
+                    "Не удалось однозначно разобрать число. Повтори значение.",
+                )
+            if (
+                n.kind != "cardinal"
+                or n.value != n.value.to_integral_value()
+                or not 0 <= n.value <= 100
+            ):
+                return Analysis(
+                    text,
+                    text,
+                    numbers,
+                    "Для громкости и яркости нужно целое число от нуля до ста.",
+                )
+            replacements.append((n.start, n.end, _digits(n.value)))
+    if time_command:
+        # Only the time specification, never the reminder body.
+        prefix = text[time_command.end() :]
+        spec = re.match(r"\s*(?:через|на|в)?\s*", prefix, re.I)
+        position = time_command.end() + spec.end()
+        clock = re.match(r"\d{1,2}[:.]\d{2}\b", text[position:])
+        if clock:
+            hh, mm = map(int, re.split(r"[:.]", clock.group()))
+            if not 0 <= hh < 24 or not 0 <= mm < 60:
+                return Analysis(
+                    text,
+                    text,
+                    numbers,
+                    "Время вне диапазона: укажи часы от 0 до 23 и минуты от 0 до 59.",
+                )
+        candidate = (
+            None if clock else next((n for n in numbers if n.start == position), None)
+        )
+        if candidate:
+            # Spoken hour: «в восемнадцать часов тридцать минут».
+            if re.search(r"\bв\s*$", text[: candidate.start], re.I):
+                following = next(
+                    (
+                        n
+                        for n in numbers
+                        if n.start > candidate.end
+                        and re.fullmatch(
+                            r"\s*(?:час(?:а|ов)?)?\s*",
+                            text[candidate.end : n.start],
+                            re.I,
+                        )
+                    ),
+                    None,
+                )
+                hour = (
+                    int(candidate.value)
+                    if candidate.value == candidate.value.to_integral_value()
+                    else -1
+                )
+                minute = (
+                    int(following.value)
+                    if following
+                    and following.value == following.value.to_integral_value()
+                    else 0
+                )
+                ending = following.end if following else candidate.end
+                suffix = (
+                    re.match(r"\s*минут\w*\b", text[ending:], re.I)
+                    if following
+                    else re.match(r"\s*час\w*\b", text[ending:], re.I)
+                )
+                if suffix:
+                    ending += suffix.end()
+                period = re.match(r"\s*(утра|дня|вечера|ночи)\b", text[ending:], re.I)
+                if period:
+                    if period.group(1).lower() in ("дня", "вечера") and 1 <= hour < 12:
+                        hour += 12
+                    elif period.group(1).lower() in ("утра", "ночи") and hour == 12:
+                        hour = 0
+                    ending += period.end()
+                if not 0 <= hour < 24 or not 0 <= minute < 60:
+                    return Analysis(
+                        text,
+                        text,
+                        numbers,
+                        "Не удалось определить время. Укажи часы от нуля до двадцати трёх и минуты от нуля до пятидесяти девяти.",
+                    )
+                replacements = [
+                    r for r in replacements if not candidate.start <= r[0] < ending
+                ]
+                replacements.append(
+                    (candidate.start, ending, f"{hour:02d}:{minute:02d}")
+                )
+        half = re.search(r"\bв\s+(?:половине|пол)\s*", text[time_command.end() :], re.I)
+        if half:
+            pos = time_command.end() + half.end()
+            n = next(
+                (n for n in numbers if n.start == pos and n.kind == "ordinal"), None
+            )
+            if n and 1 <= n.value <= 12:
+                suffix = re.match(r"\s*(утра|дня|вечера|ночи)\b", text[n.end :], re.I)
+                if suffix:
+                    hour = (int(n.value) - 1) % 12
+                    if suffix.group(1).lower() in ("дня", "вечера"):
+                        hour += 12
+                    replacements.append(
+                        (
+                            time_command.end() + half.start(),
+                            n.end + suffix.end(),
+                            f"в {hour:02d}:30",
+                        )
+                    )
+                else:
+                    return Analysis(
+                        text, text, numbers, "Уточни время: утром или вечером?"
+                    )
+    if time_command and not re.search(r"\bв\s+", text[time_command.end() :]):
+        duration = parse_duration(text[time_command.end() :].lstrip())
+        if duration:
+            if duration.issue:
+                return Analysis(text, text, numbers, duration.issue)
+            offset = (
+                time_command.end()
+                + len(text[time_command.end() :])
+                - len(text[time_command.end() :].lstrip())
+            )
+            if (
+                duration.seconds <= 0
+                or duration.seconds != duration.seconds.to_integral_value()
+            ):
+                return Analysis(
+                    text,
+                    text,
+                    numbers,
+                    "Укажи положительную длительность с точностью до секунды.",
+                )
+            replacements.append(
+                (
+                    offset + duration.start,
+                    offset + duration.end,
+                    "через " + _digits(duration.seconds) + " секунд",
+                )
+            )
+    # A Roman token is ordinal only with a grammatical head (century/chapter/person).
+    for m in ROMANS.finditer(text):
+        value = roman_value(m.group())
+        ctx = context_at(text, m.start(), m.end())
+        if value is not None and (
+            ctx.ordinal or explicit_number_context(text, m.start())
+        ):
+            spoken = (
+                ordinal(value, ctx.case, ctx.gender, ctx.number, ctx.animate)
+                if ctx.ordinal
+                else cardinal(value)
+            )
+            replacements.append((m.start(), m.end(), spoken))
+    roman_entities = tuple(
+        Number(
+            m.start(),
+            m.end(),
+            Decimal(roman_value(m.group())),
+            "ordinal" if context_at(text, m.start(), m.end()).ordinal else "cardinal",
+            m.group(),
+        )
+        for m in ROMANS.finditer(text)
+        if roman_value(m.group()) is not None
+        and (
+            context_at(text, m.start(), m.end()).ordinal
+            or explicit_number_context(text, m.start())
+        )
+    )
+    return Analysis(
+        text,
+        _apply(text, replacements),
+        tuple(sorted((*numbers, *roman_entities), key=lambda n: n.start)),
+    )
+```
+
+### `jarvis/language/morphology.py`
+
+```python
+"""Cached Russian morphology. No model downloads or network access."""
+
+from functools import lru_cache
+from threading import RLock
+
+_LOCK = RLock()
+
+
+@lru_cache(maxsize=1)
+def analyzer():
+    import pymorphy3
+
+    return pymorphy3.MorphAnalyzer()
+
+
+@lru_cache(maxsize=8192)
+def parses(word):
+    with _LOCK:
+        return tuple(analyzer().parse(word.lower().replace("ё", "е")))
+
+
+def numeral_parse(word, ordinal=False):
+    candidates = [
+        p
+        for p in parses(word)
+        if ("Anum" in p.tag if ordinal else p.tag.POS == "NUMR" or "Anum" in p.tag)
+    ]
+    return next(
+        (
+            p
+            for p in candidates
+            if p.tag.case == "nomn" and p.tag.gender in (None, "masc")
+        ),
+        candidates[0] if candidates else parses(word)[0],
+    )
+
+
+def noun_parse(word):
+    return next((p for p in parses(word) if p.tag.POS == "NOUN"), None)
+
+
+def inflect(parse, case="nomn", gender=None, number=None, animate=False):
+    tags = {case}
+    if parse.tag.POS in ("ADJF", "PRTF"):
+        tags.add(number or "sing")
+        if number != "plur":
+            tags.add(gender or "masc")
+        if case == "accs" and (number == "plur" or gender in (None, "masc")):
+            tags.add("anim" if animate else "inan")
+    elif parse.tag.POS == "NOUN":
+        if number:
+            tags.add(number)
+    elif parse.tag.POS == "NUMR" and parse.normal_form == "два":
+        if gender == "femn":
+            tags.add("femn")
+        elif gender in ("masc", "neut"):
+            tags.add("masc")
+        if case == "accs" and animate:
+            tags.add("anim")
+    form = parse.inflect(tags) or parse.inflect({case})
+    if form and "Coun" in form.tag:
+        form = next(
+            (
+                p
+                for p in parse.lexeme
+                if tags <= set(p.tag.grammemes) and "Coun" not in p.tag
+            ),
+            form,
+        )
+    return form.word if form else parse.word
+
+
+def noun_form(lemma, value, case="nomn", *, decimal=False):
+    p = noun_parse(lemma)
+    if p is None:
+        return lemma
+    if decimal:
+        return inflect(p, "gent", number="sing")
+    n = abs(int(value))
+    if case in ("nomn", "accs"):
+        last, hundred = n % 10, n % 100
+        if last == 1 and hundred != 11:
+            return inflect(p, case, number="sing")
+        if case == "accs" and p.tag.animacy == "anim":
+            return inflect(p, "gent", number="plur")
+        if last in (2, 3, 4) and hundred not in (12, 13, 14):
+            return inflect(p, "gent", number="sing")
+        return inflect(p, "gent", number="plur")
+    singular = n % 10 == 1 and n % 100 != 11
+    return inflect(p, case, number="sing" if singular else "plur")
+```
+
+### `jarvis/language/numbers.py`
+
+```python
+"""Numeral grammar shared by command understanding and speech rendering. ... [4 строк]"""
+
+from dataclasses import dataclass
+from decimal import Decimal
+from functools import lru_cache
+import re
+
+from num2words import num2words
+from .morphology import numeral_parse, parses, inflect, noun_parse
+
+
+@dataclass(frozen=True)
+class Number:
+    start: int
+    end: int
+    value: Decimal
+    kind: str = "cardinal"
+    source: str = ""
+
+
+@dataclass(frozen=True)
+class Lexeme:
+    value: int
+    kind: str
+
+
+BASES = tuple(range(20)) + tuple(range(20, 100, 10)) + tuple(range(100, 1000, 100))
+SCALES = (1000, 1000000, 1000000000, 1000000000000)
+WORD = re.compile(r"[А-Яа-яЁё]+")
+DIGIT = re.compile(r"(?<![\w])[-+−]?\d+(?:[.,]\d+)?(?![\dA-Za-z_])")
+
+
+@lru_cache(maxsize=1)
+def lexicon():
+    result = {}
+    seeds = tuple(
+        sorted(
+            set(
+                BASES
+                + SCALES
+                + tuple(
+                    n * s
+                    for n in BASES
+                    if n > 1
+                    for s in (1000, 1000000, 1000000000)
+                    if n * s < 10**12
+                )
+            )
+        )
+    )
+    for value in seeds:
+        for kind in (
+            ("cardinal", "ordinal") if value in BASES + SCALES else ("ordinal",)
+        ):
+            word = num2words(value, lang="ru", to=kind).split()[-1]
+            p = (
+                numeral_parse(word, ordinal=True)
+                if kind == "ordinal"
+                else (noun_parse(word) if value in SCALES else numeral_parse(word))
+            )
+            if p is None:
+                continue
+            for form in p.lexeme:
+                result.setdefault(form.word.replace("ё", "е"), Lexeme(value, kind))
+    return result
+
+
+def _group(tokens, index, text, allow_ordinal=True):
+    """Longest valid integer/ordinal phrase starting at token index."""
+    total = group = 0
+    last_rank, last_scale = 1000, 10**15
+    end = index
+    previous = None
+    for j in range(index, min(len(tokens), index + 32)):
+        if (
+            previous is not None
+            and not text[previous.end() : tokens[j].start()].isspace()
+        ):
+            break
+        item = lexicon().get(tokens[j].group().lower().replace("ё", "е"))
+        if item is None:
+            break
+        n = item.value
+        if item.kind == "ordinal":
+            if not allow_ordinal:
+                break
+            if n < 1000 and (100 if n >= 100 else 10 if n >= 20 else 1) >= last_rank:
+                break
+            return total + group + n, "ordinal", j + 1
+        if n >= 1000:
+            if n >= last_scale:
+                break
+            total += (group or 1) * n
+            group, last_rank, last_scale = 0, 1000, n
+        else:
+            rank = 100 if n >= 100 else 10 if n >= 20 else 1
+            if rank >= last_rank or (n == 0 and (group or total)):
+                break
+            group += n
+            last_rank = rank
+        end, previous = j + 1, tokens[j]
+    return (total + group, "cardinal", end) if end > index else None
+
+
+def word_numbers(text):
+    tokens = list(WORD.finditer(text))
+    i = 0
+    while i < len(tokens):
+        token = tokens[i]
+        word = token.group().lower().replace("ё", "е")
+        if word in ("полтора", "полторы"):
+            yield Number(
+                token.start(), token.end(), Decimal("1.5"), source=token.group()
+            )
+            i += 1
+            continue
+        sign, first = 1, i
+        if (
+            word == "минус"
+            and i + 1 < len(tokens)
+            and text[token.end() : tokens[i + 1].start()].isspace()
+        ):
+            sign, i = -1, i + 1
+        parsed = _group(tokens, i, text)
+        if parsed is None:
+            i = max(i + 1, first + 1)
+            continue
+        value, kind, end = parsed
+        value = Decimal(value)
+        # Rational decimal: «три целых пять десятых», with exact Decimal arithmetic.
+        if (
+            kind == "cardinal"
+            and end < len(tokens)
+            and any(p.normal_form == "целый" for p in parses(tokens[end].group()))
+        ):
+            fraction = _group(tokens, end + 1, text, allow_ordinal=False)
+            if fraction and fraction[1] == "cardinal" and fraction[2] < len(tokens):
+                denom = lexicon().get(
+                    tokens[fraction[2]].group().lower().replace("ё", "е")
+                )
+                if (
+                    denom
+                    and denom.kind == "ordinal"
+                    and denom.value in (10, 100, 1000, 1000000)
+                    and fraction[0] < denom.value
+                ):
+                    value += Decimal(fraction[0]) / Decimal(denom.value)
+                    end = fraction[2] + 1
+        last = tokens[end - 1].end()
+        yield Number(
+            tokens[first].start(),
+            last,
+            sign * value,
+            kind,
+            text[tokens[first].start() : last],
+        )
+        i = end
+
+
+def digit_numbers(text):
+    for m in DIGIT.finditer(text):
+        yield Number(
+            m.start(),
+            m.end(),
+            Decimal(m.group().replace("−", "-").replace(",", ".")),
+            source=m.group(),
+        )
+
+
+def cardinal(value, case="nomn", gender="masc", animate=False):
+    value = Decimal(str(value))
+    if not value.is_finite():
+        raise ValueError("Expected a finite number")
+    if value != value.to_integral_value():
+        return decimal_words(value, case)
+    n = int(value)
+    if abs(n) >= 10**15:
+        # Keep identifiers/very long integers unambiguous instead of guessing a scale.
+        return " ".join(
+            num2words(int(ch), lang="ru") if ch.isdigit() else "минус" for ch in str(n)
+        )
+    words = num2words(abs(n), lang="ru").split()
+    rendered = []
+    # Every triad agrees with its own scale; the final triad with the target noun.
+    for i, word in enumerate(words):
+        scale = next(
+            (
+                k
+                for k in range(i, len(words))
+                if any(
+                    p.normal_form in ("тысяча", "миллион", "миллиард", "триллион")
+                    for p in parses(words[k])
+                )
+            ),
+            None,
+        )
+        local_gender = gender
+        if scale is not None:
+            local_gender = (
+                "femn"
+                if any(p.normal_form == "тысяча" for p in parses(words[scale]))
+                else "masc"
+            )
+        p = next(
+            (
+                p
+                for p in parses(word)
+                if p.normal_form in ("тысяча", "миллион", "миллиард", "триллион")
+            ),
+            None,
+        )
+        if p is not None:
+            if case in ("nomn", "accs"):
+                rendered.append(word)
+            else:
+                scale_value = {
+                    "тысяча": 1000,
+                    "миллион": 10**6,
+                    "миллиард": 10**9,
+                    "триллион": 10**12,
+                }[p.normal_form]
+                triad = abs(n) // scale_value % 1000
+                singular = triad % 10 == 1 and triad % 100 != 11
+                rendered.append(inflect(p, case, number="sing" if singular else "plur"))
+        else:
+            rendered.append(
+                inflect(numeral_parse(word), case, local_gender, animate=animate)
+            )
+    return ("минус " if n < 0 else "") + " ".join(rendered)
+
+
+def ordinal(value, case="nomn", gender="masc", number="sing", animate=False):
+    n = int(value)
+    if n < 0 or n >= 10**12:
+        raise ValueError("Ordinal outside supported range")
+    words = num2words(n, lang="ru", to="ordinal").split()
+    words[-1] = inflect(
+        numeral_parse(words[-1], ordinal=True), case, gender, number, animate
+    )
+    return " ".join(words)
+
+
+def decimal_words(value, case="nomn"):
+    value = Decimal(str(value))
+    sign = "минус " if value < 0 else ""
+    raw = format(abs(value).normalize(), "f")
+    if "." not in raw:
+        return cardinal(value, case)
+    whole, frac = raw.split(".")
+    if len(frac) > 6:
+        return (
+            sign
+            + cardinal(int(whole), case)
+            + " запятая "
+            + " ".join(cardinal(int(c)) for c in frac)
+        )
+    numerator, denominator = int(frac), 10 ** len(frac)
+    adjective = "целая" if int(whole) % 10 == 1 and int(whole) % 100 != 11 else "целых"
+    # Decimal grammatical agreement is feminine, independent of the measured noun.
+    whole_form = (
+        inflect(
+            numeral_parse(adjective, ordinal=True),
+            case,
+            "femn",
+            "sing" if adjective == "целая" else "plur",
+        )
+        if case not in ("nomn", "accs")
+        else adjective
+    )
+    denom_case = (
+        case
+        if case not in ("nomn", "accs") or numerator % 10 == 1 and numerator % 100 != 11
+        else "gent"
+    )
+    denom_number = "sing" if numerator % 10 == 1 and numerator % 100 != 11 else "plur"
+    return (
+        sign
+        + cardinal(int(whole), case, "femn")
+        + " "
+        + whole_form
+        + " "
+        + cardinal(numerator, case, "femn")
+        + " "
+        + ordinal(denominator, denom_case, "femn", denom_number)
+    )
+
+
+_ROMAN = (
+    (1000, "M"),
+    (900, "CM"),
+    (500, "D"),
+    (400, "CD"),
+    (100, "C"),
+    (90, "XC"),
+    (50, "L"),
+    (40, "XL"),
+    (10, "X"),
+    (9, "IX"),
+    (5, "V"),
+    (4, "IV"),
+    (1, "I"),
+)
+
+
+def roman_value(token):
+    import unicodedata
+
+    token = unicodedata.normalize("NFKC", token)
+    if not token or not re.fullmatch("[IVXLCDM]+", token):
+        return None
+    total, remaining = 0, token
+    for value, symbol in _ROMAN:
+        while remaining.startswith(symbol):
+            total += value
+            remaining = remaining[len(symbol) :]
+    if remaining or not 0 < total < 4000:
+        return None
+    canonical, n = "", total
+    for value, symbol in _ROMAN:
+        count, n = divmod(n, value)
+        canonical += symbol * count
+    return total if canonical == token else None
+```
+
+### `jarvis/language/speech.py`
+
+````python
+"""Typed text verbalization. Longest semantic forms precede generic numbers. ... [3 строк]"""
+
+from datetime import date
+from decimal import Decimal, InvalidOperation
+import re
+from .numbers import cardinal, ordinal, roman_value
+from .context import context_at, explicit_number_context
+from .morphology import noun_form, noun_parse, inflect, numeral_parse
+from .units import unit_at, Unit
+
+TOKEN = re.compile(
+    r"(?P<url>https?://[^\s<>]+)|"
+    r"(?P<email>[\w.+-]+@[\w.-]+\.[A-Za-z]{2,})|"
+    r"(?P<path>[A-Za-z]:[\\/][^\s<>]+)|"
+    r"(?P<date>\b(?:\d{4}-\d{2}-\d{2}|\d{1,2}\.\d{1,2}\.\d{4})\b)|"
+    r"(?P<version>\b\d+(?:\.\d+){2,}\b)|"
+    r"(?P<clock>\b\d{1,2}:\d{2}\b)|"
+    r"(?P<fraction>(?<!\w)\d+\s*/\s*\d+(?!\w))|"
+    r"(?P<range>(?<!\w)\d+\s*[–—]\s*\d+(?!\w))|"
+    r"(?P<ordinal>(?<!\w)\d+-(?:ого|ому|ыми|ыми|ая|ое|ые|ий|ый|ой|го|му|ми|й|я|е|м|х)\b)|"
+    r"(?P<roman>(?<!\w)[IVXLCDM\u2160-\u216F]+(?!\w))|"
+    r"(?P<number>(?<!\w)[−+\-]?(?:\d{1,3}(?:[ \u00a0\u202f]\d{3})+|\d+)(?:[.,]\d+)?(?![\dA-Za-z_]))"
+)
+MONTHS = (
+    "января",
+    "февраля",
+    "марта",
+    "апреля",
+    "мая",
+    "июня",
+    "июля",
+    "августа",
+    "сентября",
+    "октября",
+    "ноября",
+    "декабря",
+)
+IDENTIFIER_WORDS = re.compile(
+    r"(?:верси[яию]|сборк[аи]|код|пин|артикул|телефон|id|ip)\s*$", re.I
+)
+SIGNS = {
+    "+": "плюс",
+    "−": "минус",
+    "=": "равно",
+    "≠": "не равно",
+    "≥": "больше или равно",
+    "≤": "меньше или равно",
+    ">": "больше чем",
+    "<": "меньше чем",
+    "≈": "примерно",
+    "±": "плюс-минус",
+    "×": "умножить на",
+    "÷": "разделить на",
+    "→": "стрелка вправо",
+    "←": "стрелка влево",
+    "↔": "двунаправленная стрелка",
+    "∞": "бесконечность",
+    "√": "корень из",
+    "π": "пи",
+    "©": "знак авторского права",
+    "®": "зарегистрированный товарный знак",
+    "™": "товарный знак",
+    "²": "в квадрате",
+    "³": "в кубе",
+    "^": "в степени",
+    "~": "примерно",
+    "#": "решётка",
+    "°": "градус",
+    "%": "процент",
+    "‰": "промилле",
+    "№": "номер",
+    "@": "собака",
+    "&": "и",
+    "§": "параграф",
+}
+IDENTIFIER_SIGNS = {
+    ".": "точка",
+    "/": "косая черта",
+    "\\": "обратная косая черта",
+    ":": "двоеточие",
+    "@": "собака",
+    "-": "дефис",
+    "_": "нижнее подчёркивание",
+    "+": "плюс",
+    "?": "вопросительный знак",
+    "=": "равно",
+    "&": "амперсанд",
+    "#": "решётка",
+}
+
+
+def _verbalize_identifier(text):
+    # Keep letter groups intact; digit groups are unambiguous sequences, not quantities.
+    return re.sub(
+        r"\d+|[./\\:@_+?=&#-]",
+        lambda m: (
+            " "
+            + (
+                " ".join(cardinal(int(c)) for c in m.group())
+                if m.group().isdigit()
+                else IDENTIFIER_SIGNS[m.group()]
+            )
+            + " "
+        ),
+        text,
+    )
+
+
+def _quantity(value, unit, case):
+    modifier, _, noun = unit.lemma.rpartition(" ")
+    noun = noun or unit.lemma
+    p = noun_parse(noun)
+    gender = p.tag.gender if p and p.tag.gender else "masc"
+    words = cardinal(value, case, gender)
+    noun_words = noun_form(
+        noun, value, case, decimal=value != value.to_integral_value()
+    )
+    if modifier:
+        n = abs(int(value))
+        singular = n % 10 == 1 and n % 100 != 11
+        is_decimal = value != value.to_integral_value()
+        adj_case = (
+            "gent"
+            if is_decimal
+            else case
+            if singular or case not in ("nomn", "accs")
+            else "gent"
+        )
+        adj = inflect(
+            numeral_parse(modifier, ordinal=True),
+            adj_case,
+            gender,
+            "sing" if singular or is_decimal else "plur",
+        )
+        noun_words = adj + " " + noun_words
+    return " ".join(part for part in (words, noun_words, unit.tail) if part)
+
+
+def _money(value, unit, case):
+    if abs(value.as_tuple().exponent) > 2:
+        return _quantity(value, unit, case)
+    absolute = abs(value)
+    whole = int(absolute)
+    cents = int((absolute - whole) * 100)
+    main = _quantity(Decimal(whole), unit, case)
+    if cents:
+        minor = "копейка" if unit.lemma == "рубль" else "цент"
+        main += (
+            " "
+            + cardinal(cents, case, "femn" if minor == "копейка" else "masc")
+            + " "
+            + noun_form(minor, cents, case)
+        )
+    return ("минус " if value < 0 else "") + main
+
+
+def _date(token, ctx):
+    try:
+        if "-" in token:
+            year, month, day = map(int, token.split("-"))
+        else:
+            day, month, year = map(int, token.split("."))
+        date(year, month, day)
+    except ValueError:
+        return _verbalize_identifier(token)
+    case = ctx.case if ctx.case not in ("nomn", "accs") else "nomn"
+    return (
+        f"{ordinal(day, case, 'neut')} {MONTHS[month - 1]} {ordinal(year, 'gent')} года"
+    )
+
+
+def _ordinal_suffix(token, ctx):
+    raw, suffix = token.split("-")
+    forms = {
+        "й": ("nomn", "masc"),
+        "ий": ("nomn", "masc"),
+        "ый": ("nomn", "masc"),
+        "ой": ("nomn", "masc"),
+        "я": ("nomn", "femn"),
+        "ая": ("nomn", "femn"),
+        "е": ("nomn", "neut"),
+        "ое": ("nomn", "neut"),
+        "го": ("gent", "masc"),
+        "ого": ("gent", "masc"),
+        "му": ("datv", "masc"),
+        "ому": ("datv", "masc"),
+        "м": ("loct" if ctx.case == "loct" or ctx.case == "accs" else "ablt", "masc"),
+        "ые": ("nomn", "masc"),
+        "ми": ("ablt", "masc"),
+        "ыми": ("ablt", "masc"),
+        "х": ("gent", "masc"),
+    }
+    case, gender = forms.get(suffix, (ctx.case, ctx.gender))
+    return (
+        ordinal(
+            int(raw),
+            case,
+            gender,
+            "plur" if suffix in ("ые", "ми", "ыми", "х") else "sing",
+        )
+        if int(raw) < 10**12
+        else "порядковый номер " + cardinal(Decimal(raw))
+    )
+
+
+def prepare_speech(text):
+    if not text:
+        return text
+    # Markup is structural, never spoken as arithmetic.
+    text = re.sub(r"```[\s\S]*?```", " Фрагмент кода. ", text)
+    text = re.sub(r"\[([^\]]+)\]\([^\s)]+\)", r"\1", text)
+    text = re.sub(r"(?m)^\s*(?:#{1,6}\s+|[-*•]\s+)", "", text)
+    text = re.sub(
+        r"\*\*([^*]+)\*\*|__([^_]+)__", lambda m: m.group(1) or m.group(2), text
+    )
+    parts = []
+    position = 0
+    for m in TOKEN.finditer(text):
+        if m.start() < position:
+            continue
+        parts.append(text[position : m.start()])
+        token = m.group()
+        kind = m.lastgroup
+        end = m.end()
+        ctx = context_at(text, m.start(), end)
+        if kind in ("url", "email", "path", "version"):
+            spoken = _verbalize_identifier(token)
+        elif kind == "date":
+            spoken = _date(token, ctx)
+        elif kind == "clock":
+            hour, minute = map(int, token.split(":"))
+            spoken = (
+                (
+                    _quantity(Decimal(hour), Unit("час", "duration"), ctx.case)
+                    + " "
+                    + _quantity(Decimal(minute), Unit("минута", "duration"), ctx.case)
+                )
+                if hour < 24 and minute < 60
+                else _verbalize_identifier(token)
+            )
+        elif kind == "fraction":
+            numerator, denominator = map(int, re.split(r"\s*/\s*", token))
+            if denominator >= 10**12:
+                spoken = (
+                    "числитель "
+                    + cardinal(numerator)
+                    + " знаменатель "
+                    + cardinal(denominator)
+                )
+            elif denominator == 0:
+                spoken = cardinal(numerator) + " разделить на ноль"
+            else:
+                spoken = (
+                    cardinal(numerator, ctx.case, "femn")
+                    + " "
+                    + ordinal(
+                        denominator,
+                        ctx.case if numerator == 1 else "gent",
+                        "femn",
+                        "sing" if numerator == 1 else "plur",
+                    )
+                )
+        elif kind == "range":
+            left, right = map(int, re.split(r"\s*[–—]\s*", token))
+            spoken = "от " + cardinal(left, "gent") + " до " + cardinal(right, "gent")
+        elif kind == "roman":
+            value = roman_value(token)
+            explicit = explicit_number_context(text, m.start())
+            spoken = (
+                (
+                    ordinal(value, ctx.case, ctx.gender, ctx.number, ctx.animate)
+                    if ctx.ordinal
+                    else cardinal(value)
+                    if explicit
+                    else token
+                )
+                if value is not None
+                else token
+            )
+        elif kind == "ordinal":
+            spoken = _ordinal_suffix(token, ctx)
+        else:
+            raw = (
+                re.sub(r"[ \u00a0\u202f]", "", token)
+                .replace("−", "-")
+                .replace(",", ".")
+            )
+            try:
+                value = Decimal(raw)
+            except InvalidOperation:
+                parts.append(token)
+                position = end
+                continue
+            unit = unit_at(text, end)
+            year_abbr = re.match(r"\s*г\.(?!\w)", text[end:])
+            if IDENTIFIER_WORDS.search(text[max(0, m.start() - 24) : m.start()]) or (
+                len(raw) > 1 and raw[0] == "0" and "." not in raw
+            ):
+                spoken = _verbalize_identifier(token)
+            elif year_abbr and 1000 <= value <= 9999 and value == int(value):
+                year_case = "loct" if ctx.case in ("loct", "accs") else "gent"
+                spoken = (
+                    ordinal(int(value), year_case)
+                    + " "
+                    + ("году" if year_case == "loct" else "года")
+                )
+                end += year_abbr.end()
+            elif unit:
+                u, end = unit
+                spoken = (
+                    _money(value, u, ctx.case)
+                    if u.dimension == "currency"
+                    else _quantity(value, u, ctx.case)
+                )
+            elif (
+                value == value.to_integral_value()
+                and 0 <= value < 10**12
+                and (ctx.ordinal or (ctx.head == "год" and value >= 1000))
+            ):
+                spoken = ordinal(
+                    int(value), ctx.case, ctx.gender, ctx.number, ctx.animate
+                )
+            elif re.search(r"[A-Za-z]\s*$", text[: m.start()]) and "." in raw:
+                spoken = _verbalize_identifier(token)
+            else:
+                spoken = cardinal(value, ctx.case, ctx.gender, ctx.animate)
+            if token.startswith("+") and not spoken.startswith("плюс "):
+                spoken = "плюс " + spoken
+        parts.append(
+            token if kind == "roman" and spoken == token else " " + spoken + " "
+        )
+        position = end
+    parts.append(text[position:])
+    result = "".join(parts)
+    # Only residual standalone symbols are handled here, after typed expressions.
+    result = re.sub(
+        r"->|<-|>=|<=|!=",
+        lambda m: {
+            "->": " стрелка вправо ",
+            "<-": " стрелка влево ",
+            ">=": " больше или равно ",
+            "<=": " меньше или равно ",
+            "!=": " не равно ",
+        }[m.group()],
+        result,
+    )
+    for symbol, name in SIGNS.items():
+        result = result.replace(symbol, " " + name + " ")
+    result = re.sub(r"(?<=\S)\s*\*\s*(?=\S)", " умножить на ", result)
+    result = re.sub(r"(?<=\S)\s*/\s*(?=\S)", " разделить на ", result)
+    result = re.sub(r"(?<!\w)-(?=\s)", " минус ", result)
+    result = result.replace("`", "")
+    result = re.sub(r"\s+", " ", result).strip()
+    return re.sub(r"\s+([,.!?;:])", r"\1", result)
+````
+
+### `jarvis/language/time.py`
+
+```python
+"""Duration grammar with source spans. Uses the shared numeral/unit vocabulary."""
+
+from dataclasses import dataclass
+from decimal import Decimal
+import re
+from .numbers import word_numbers, digit_numbers
+from .units import unit_at
+
+
+@dataclass(frozen=True)
+class Duration:
+    start: int
+    end: int
+    seconds: Decimal
+    issue: str | None = None
+
+
+PREFIX = re.compile(r"\b(?:через|на|таймер)\s+", re.I)
+HALF = re.compile(r"пол\s*(часа|минуты|секунды)\b", re.I)
+SINGLE = re.compile(r"(?:час(?:а|ов)?|минут(?:у|а|ку|ы)?|секунд(?:у|а|ы)?)\b", re.I)
+
+
+def parse_duration(text):
+    intro = re.match(
+        r"^\s*(?:(?:(?:поставь|установи)\s+)?(?:напомни|напоминай|напоминание|таймер)\b\s*)?",
+        text,
+        re.I,
+    )
+    base = intro.end()
+    prefix = PREFIX.match(text, base)
+    start = prefix.start() if prefix else base
+    position = prefix.end() if prefix else base
+    numbers = tuple(
+        sorted((*word_numbers(text), *digit_numbers(text)), key=lambda n: n.start)
+    )
+    half = HALF.match(text, position)
+    single = SINGLE.match(text, position)
+    n = next((n for n in numbers if n.start == position and n.kind == "cardinal"), None)
+    if half:
+        amount, after = Decimal("0.5"), half.start(1)
+    elif single:
+        amount, after = Decimal(1), position
+    elif n:
+        amount, after = n.value, n.end
+    else:
+        return None
+    total = Decimal(0)
+    end = position
+    issue = None
+    while amount is not None:
+        value = amount
+        if value < 0:
+            issue = "Компоненты длительности не должны быть отрицательными."
+        half_tail = re.match(r"\s+с\s+половиной\b", text[after:], re.I)
+        if half_tail:
+            value += Decimal("0.5")
+            after += half_tail.end()
+        unit = unit_at(text, after)
+        if unit and unit[0].dimension == "duration":
+            multiplier = unit[0].multiplier
+            end = unit[1]
+        elif end == position and prefix:
+            multiplier = 60
+            end = after
+        else:
+            break
+        total += value * multiplier
+        half_tail = re.match(r"\s+с\s+половиной\b", text[end:], re.I)
+        if half_tail:
+            total += Decimal(multiplier) / 2
+            end += half_tail.end()
+        join = re.match(r"\s*(?:и\s+)?", text[end:])
+        pos = end + join.end()
+        n = next(
+            (item for item in numbers if item.start == pos and item.kind == "cardinal"),
+            None,
+        )
+        if n and not unit:
+            issue = "Не удалось однозначно разобрать длительность. Укажи единицу после числа."
+            break
+        if n and not unit_at(text, n.end):
+            break
+        amount, after = (n.value, n.end) if n else (None, end)
+    return Duration(start, end, total, issue) if end > position else None
+```
+
+### `jarvis/language/units.py`
+
+```python
+"""Semantic unit lexicon shared by input and output; spelling is data, not phrase patches."""
+
+from dataclasses import dataclass
+import re
+from .morphology import noun_parse
+
+
+@dataclass(frozen=True)
+class Unit:
+    lemma: str
+    dimension: str
+    multiplier: int = 1
+    tail: str = ""
+
+
+UNITS = {
+    "%": Unit("процент", "percent"),
+    "‰": Unit("промилле", "percent"),
+    "км/ч": Unit("километр", "speed", tail="в час"),
+    "м/с": Unit("метр", "speed", tail="в секунду"),
+    "км/с": Unit("километр", "speed", tail="в секунду"),
+    "°C": Unit("градус", "temperature", tail="Цельсия"),
+    "°С": Unit("градус", "temperature", tail="Цельсия"),
+    "°F": Unit("градус", "temperature", tail="Фаренгейта"),
+    "°": Unit("градус", "temperature"),
+    "кг": Unit("килограмм", "mass"),
+    "мг": Unit("миллиграмм", "mass"),
+    "г": Unit("грамм", "mass"),
+    "см": Unit("сантиметр", "length"),
+    "мм": Unit("миллиметр", "length"),
+    "км": Unit("километр", "length"),
+    "м": Unit("метр", "length"),
+    "м²": Unit("квадратный метр", "area"),
+    "м³": Unit("кубический метр", "volume"),
+    "МБ": Unit("мегабайт", "data"),
+    "ГБ": Unit("гигабайт", "data"),
+    "КБ": Unit("килобайт", "data"),
+    "ТБ": Unit("терабайт", "data"),
+    "Б": Unit("байт", "data"),
+    "сек": Unit("секунда", "duration", 1),
+    "с": Unit("секунда", "duration", 1),
+    "мин": Unit("минута", "duration", 60),
+    "ч": Unit("час", "duration", 3600),
+    "руб": Unit("рубль", "currency"),
+    "₽": Unit("рубль", "currency"),
+    "$": Unit("доллар", "currency"),
+    "€": Unit("евро", "currency"),
+    "№": Unit("номер", "identifier"),
+}
+LEMMA_UNITS = {
+    "секунда": Unit("секунда", "duration", 1),
+    "минута": Unit("минута", "duration", 60),
+    "час": Unit("час", "duration", 3600),
+    "сутки": Unit("сутки", "duration", 86400),
+    "день": Unit("день", "duration", 86400),
+    "неделя": Unit("неделя", "duration", 604800),
+    "процент": Unit("процент", "percent"),
+}
+TOKEN = re.compile(
+    "|".join(re.escape(s) for s in sorted(UNITS, key=len, reverse=True))
+    + r"|[А-Яа-яЁё]+"
+)
+
+
+def unit_at(text, position):
+    m = re.match(r"\s*", text[position:])
+    start = position + m.end()
+    token = TOKEN.match(text, start)
+    if not token:
+        return None
+    spelling = token.group()
+    # A short abbreviation must not consume the beginning of a full word.
+    if spelling in UNITS and (
+        token.end() == len(text) or not text[token.end()].isalpha()
+    ):
+        end = token.end()
+        if end < len(text) and text[end] == "." and spelling in ("сек", "мин", "руб"):
+            end += 1
+        return UNITS[spelling], end
+    word = re.match(r"[А-Яа-яЁё]+", text[start:])
+    if word:
+        p = noun_parse(word.group())
+        if p and p.normal_form in LEMMA_UNITS:
+            return LEMMA_UNITS[p.normal_form], start + word.end()
+    return None
+```
+
 ### `jarvis/learning.py`
 
 ```python
@@ -11505,38 +13219,27 @@ def forget_correction(wrong: str) -> bool:
 # Сборка контекста для промпта
 # ---------------------------------------------------------------
 
-def build_context(include_facts: bool = True) -> str:
-    """Собирает блок для промпта из профиля, фактов и коррекций. ... [6 строк]"""
+def select_context(query=None):
+    """Профиль и факты, действительно нужные текущему запросу."""
+    from jarvis.memory_context import select_memory
+    return select_memory(query, {
+        "name": profile.get("name"),
+        "default_city": profile.get("default_city"),
+    }, all_facts())
+
+
+def build_context(include_facts: bool = True, *, query=None) -> str:
+    """Контекст по запросу. Нет запроса/релевантности — нет личных данных. ... [4 строк]"""
+    selection = select_context(query)
     parts = []
-
-    # Базовые поля профиля — name, default_city.
-    # Без них LLM не знает, как зовут пользователя и где он живёт,
-    # хотя _small_talk и профиль-команды это знают.
-    name = profile.get("name")
-    city = profile.get("default_city")
-    profile_lines = []
-    if name:
-        profile_lines.append(f"- Имя пользователя: {name}")
-    if city:
-        profile_lines.append(f"- Город по умолчанию: {city}")
-    if profile_lines:
-        parts.append("Данные профиля пользователя:\n" + "\n".join(profile_lines))
-
-    facts = all_facts() if include_facts else {}
-    if facts:
-        lines = [f"- {k}: {v}" for k, v in facts.items()]
-        parts.append("Известные факты о пользователе:\n" + "\n".join(lines))
-
-    corrections = all_corrections()
-    if corrections:
-        lines = [f"- «{wrong}» → «{right}»" for wrong, right in corrections.items()]
-        parts.append("Известные исправления (если пользователь говорит первое, делай второе):\n"
-                     + "\n".join(lines))
-
-    if not parts:
-        return ""
-
-    return "\n\n" + "\n\n".join(parts) + "\n"
+    labels = {"name": "Имя пользователя", "default_city": "Город по умолчанию"}
+    lines = [f"- {labels[k]}: {v}" for k, v in selection.profile.items()]
+    if lines:
+        parts.append("Сведения профиля, необходимые текущему запросу:\n" + "\n".join(lines))
+    if include_facts and selection.facts:
+        lines = [f"- {k}: {v}" for k, v in selection.facts.items()]
+        parts.append("Сведения, относящиеся к текущему запросу:\n" + "\n".join(lines))
+    return "\n\n" + "\n\n".join(parts) + "\n" if parts else ""
 ```
 
 ### `jarvis/main.py`
@@ -11569,6 +13272,7 @@ log = logging.getLogger("jarvis")
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 _REJECT = object()
+_UNCERTAIN = object()
 
 
 class Jarvis:
@@ -11588,6 +13292,9 @@ class Jarvis:
         self.barge_enabled = bool(config.get("barge_enabled", True))
         if self.listener is not None:
             self.listener.barge_enabled = self.barge_enabled
+            self.listener.sensitive_input = lambda: bool(
+                getattr(self.handler, "_pending_password", None)
+            )
         self._barge_just_happened = False
 
         # Wake-слово обязательно по умолчанию.
@@ -11765,33 +13472,60 @@ class Jarvis:
                 try:
                     self._process(phrase, audio)
                 except Exception:
-                    log.exception("Ошибка обработки фразы %r", phrase)
+                    log.exception("Ошибка обработки голосовой команды")
         except Exception:
             log.exception("Аудиопоток упал")
             self.say(Reply(text="Проблема с микрофоном. Проверьте журнал."))
 
     def _process(self, phrase: str, audio: bytes) -> None:
         awaiting = time.time() < self._awaiting_until
-        cmd = self._extract_command(normalize(phrase))
+        sensitive = bool(getattr(self.handler, "_pending_password", None))
         pending = getattr(self.handler, "_pending_question", None)
         if pending and time.time() < pending.get("expires_at", 0):
             awaiting = True
+            self._awaiting_until = max(self._awaiting_until, pending["expires_at"])
+        if sensitive:
+            # Ввод пароля не зависит от окна wake и сохраняет исходный текст.
+            tokens = phrase.strip().split(maxsplit=1)
+            cmd = phrase.strip()
+            if tokens and self._is_wake(normalize(tokens[0])):
+                cmd = tokens[1] if len(tokens) > 1 else ""
+        else:
+            cmd = self._extract_command(phrase)
         if cmd is None:
             return
+        if audio:
+            from jarvis.recognition import assess_pcm, transcripts_agree
+            quality = assess_pcm(audio, self.config.get("sample_rate", 16000))
+            if not quality.accepted:
+                self._request_repeat()
+                return
+            primary = getattr(getattr(self, "listener", None), "last_quality", None)
+            if self.whisper is not None and not sensitive:
+                refined = self._refine(audio, awaiting)
+                if refined is _REJECT:
+                    return  # Не подтвердилось обращение к ассистенту.
+                if refined is _UNCERTAIN:
+                    self._request_repeat()
+                    return
+                if refined is not None:
+                    if primary is not None and primary.accepted and not transcripts_agree(cmd, refined):
+                        self._request_repeat()
+                        return
+                    cmd = refined
+                elif primary is None or not primary.accepted:
+                    # Ошибка Whisper — не повод безусловно доверять Vosk.
+                    self._request_repeat()
+                    return
+            elif primary is None or not primary.accepted:
+                self._request_repeat()
+                return
         if cmd == "":
             self.say(Reply(text="Слушаю."))
             self._awaiting_until = time.time() + self.config["command_window_sec"]
             return
-        if self.whisper is not None and audio:
-            refined = self._refine(audio, awaiting)
-            if refined is _REJECT:
-                log.info("Whisper не подтвердил wake-слово — игнорирую (ложное срабатывание)")
-                return
-            if refined:
-                cmd = refined
 
         if self.gui is not None:
-            self.gui.add_message("user", cmd)
             self.gui.set_state("listening")
 
         # Prosody: эмоция из тона голоса ДО обработки текста.
@@ -11807,16 +13541,21 @@ class Jarvis:
             except Exception:
                 log.exception("Prosody: ошибка анализа")
 
-        # Observer: запоминаем фразу юзера.
-        if getattr(self, "observer", None) is not None:
-            try:
-                self.observer.observe("user", cmd)
-            except Exception:
-                log.exception("Observer.observe (user) упал")
-
-        # Сериализация с GUI: пока GUI не отдаст cmd_lock,
-        # голосовой поток ждёт. И наоборот.
+        # Проверяем чувствительный ввод под тем же локом, что и handle().
         with self.cmd_lock:
+            sensitive = sensitive or bool(getattr(self.handler, "_pending_password", None))
+            if self.gui is not None:
+                self.gui.add_message("user", "[Ввод пароля скрыт]" if sensitive else cmd)
+            if not sensitive:
+                recent = getattr(getattr(self, "listener", None), "recent_phrases", None)
+                if recent is not None:
+                    recent.append(cmd)
+            if not sensitive and getattr(self, "observer", None) is not None:
+                try:
+                    self.observer.observe("user", cmd)
+                except Exception:
+                    log.exception("Observer.observe (user) упал")
+
             reply = self.handler.handle(cmd)
 
             if self.gui is not None and not reply.is_stream:
@@ -11849,22 +13588,38 @@ class Jarvis:
                 self._awaiting_until = time.time() + float(
                     self.config.get("dialog_window_sec", 8))
 
+    def _request_repeat(self):
+        """Уточнение без записи сомнительной расшифровки в историю/память."""
+        now = time.monotonic()
+        if now - getattr(self, "_last_repeat_at", float("-inf")) < 3.0:
+            return
+        self._last_repeat_at = now
+        reply = Reply(text="Не расслышал. Повтори, пожалуйста.")
+        if self.gui is not None:
+            self.gui.add_message("assistant", reply.text)
+        self.say(reply)
+        self._awaiting_until = time.time() + float(self.config.get("command_window_sec", 6))
+
     def _refine(self, audio: bytes, awaiting: bool):
         try:
-            text = normalize(self.whisper.transcribe(audio))
+            text = self.whisper.transcribe(
+                audio, sample_rate=self.config.get("sample_rate", 16000)
+            ).strip()
         except Exception:
-            log.exception("Whisper не справился, использую текст Vosk")
+            log.exception("Whisper не справился; Vosk допустим только при достаточной уверенности")
             return None
+        quality = getattr(self.whisper, "last_quality", None)
+        if quality is None or not quality.accepted:
+            return _UNCERTAIN
         if not text:
-            return _REJECT
-        tokens = text.split()
-        for i, tok in enumerate(tokens):
-            if self._is_wake(tok):
-                return " ".join(tokens[i + 1:])
-        if awaiting:
+            return _UNCERTAIN
+        import re
+        tokens = list(re.finditer(r"\S+", text))
+        for token in tokens:
+            if self._is_wake(normalize(token.group())):
+                return text[token.end():].lstrip(" ,.!?:;—")
+        if awaiting or not self._wake_word_required:
             return text
-        if tokens and wake_score(tokens[0], self._wake_words[0]) >= 0.5:
-            return " ".join(tokens[1:])
         return _REJECT
 
     def _extract_command(self, text: str) -> str | None:
@@ -11873,10 +13628,11 @@ class Jarvis:
         if not self._wake_word_required:
             return text.strip() or None
 
-        tokens = text.split()
-        for i, tok in enumerate(tokens):
-            if self._is_wake(tok):
-                return " ".join(tokens[i + 1:])
+        import re
+        tokens = list(re.finditer(r"\S+", text))
+        for token in tokens:
+            if self._is_wake(normalize(token.group())):
+                return text[token.end():].lstrip(" ,.!?:;—")
         if time.time() < self._awaiting_until:
             return text
         return None
@@ -12106,6 +13862,7 @@ def main() -> None:
                 config.get("whisper_model", "auto"),
                 config.get("whisper_device", "auto"),
                 lazy=True,
+                config=config,
             )
             whisper.preload_async()
         except Exception:
@@ -12561,6 +14318,135 @@ def handle_memory_command(cmd: str, messages: list) -> tuple[str | None, bool]:
         return "Память сохраняется автоматически.", False
 
     return None, False
+```
+
+### `jarvis/memory_context.py`
+
+```python
+"""Query-scoped personal memory. Absence/uncertainty never means 'send everything'."""
+
+from dataclasses import dataclass
+import re
+
+from jarvis.language.morphology import parses
+
+
+@dataclass(frozen=True)
+class Selection:
+    profile: dict
+    facts: dict
+
+
+PERSONAL = frozenset(("я", "мой", "свой", "себя"))
+RECALL = frozenset(("помнить", "запомнить", "сохранить", "упоминать"))
+RECOMMEND = frozenset(("посоветовать", "порекомендовать", "подобрать", "рекомендовать"))
+PREFERENCES = frozenset(
+    ("интерес", "предпочтение", "увлечение", "любимый", "нравиться")
+)
+PROFILE_TOPICS = {
+    "name": frozenset(("имя", "звать", "называться")),
+    "default_city": frozenset(("город", "жить", "проживать", "местоположение")),
+}
+# Function words are not evidence that two memories share a topic.
+GENERIC = frozenset(
+    (
+        "я",
+        "мой",
+        "свой",
+        "себя",
+        "ты",
+        "мы",
+        "он",
+        "она",
+        "оно",
+        "они",
+        "что",
+        "кто",
+        "какой",
+        "который",
+        "чей",
+        "где",
+        "как",
+        "когда",
+        "сколько",
+        "это",
+        "тот",
+        "этот",
+        "весь",
+        "быть",
+        "мочь",
+        "хотеть",
+        "сказать",
+        "рассказать",
+        "знать",
+        "помнить",
+        "запомнить",
+        "сохранить",
+        "упоминать",
+        "посоветовать",
+        "порекомендовать",
+        "подобрать",
+        "рекомендовать",
+        "любимый",
+        "нравиться",
+        "интерес",
+        "предпочтение",
+        "увлечение",
+        "пожалуйста",
+        "что-нибудь",
+        "нибудь",
+    )
+)
+
+
+def lemmas(text):
+    return frozenset(
+        p.normal_form.replace("ё", "е")
+        for w in re.findall(r"[А-Яа-яЁё]+", text.lower())
+        for p in parses(w)[:1]
+        if p.tag.POS not in ("PREP", "CONJ", "PRCL", "INTJ")
+    )
+
+
+def select_memory(query, profile_values, facts, limit=5):
+    if not isinstance(query, str) or not query.strip():
+        return Selection({}, {})
+    words = lemmas(query)
+    personal = bool(words & PERSONAL)
+    recall = bool(words & RECALL)
+    preference_request = bool(words & RECOMMEND) and (
+        personal or bool(words & PREFERENCES)
+    )
+    nearby = "рядом" in words and personal
+    # A standalone «расскажи что-нибудь» (even «мне») is not a memory request.
+    if not (personal or recall or preference_request or nearby):
+        return Selection({}, {})
+    topics = words - GENERIC
+    overview = recall and not topics
+    selected_profile = {}
+    for key, cues in PROFILE_TOPICS.items():
+        if profile_values.get(key) and (
+            overview
+            or personal
+            and bool(words & cues)
+            or key == "default_city"
+            and nearby
+        ):
+            selected_profile[key] = profile_values[key]
+    selected_facts = {}
+    for key, value in facts.items():
+        if not isinstance(key, str) or not isinstance(value, str):
+            continue
+        key_words = lemmas(key)
+        related = bool(topics & (key_words - GENERIC))
+        preference = preference_request and not topics and bool(key_words & PREFERENCES)
+        if overview or related or preference:
+            if value in selected_profile.values():
+                continue
+            selected_facts[key] = value
+            if len(selected_facts) >= limit:
+                break
+    return Selection(selected_profile, selected_facts)
 ```
 
 ### `jarvis/model.py`
@@ -13088,7 +14974,7 @@ log = logging.getLogger("jarvis.observer")
 
 
 EXTRACT_PROMPT = """Ты — анализатор диалога. На вход даётся история сообщений.
-Извлеки ЛЮБЫЕ факты о пользователе, которые упомянуты в диалоге.
+Извлеки только прямые утверждения пользователя о себе. Вопросы, цитаты, предположения и ответы ассистента не являются фактами о пользователе.
 
 Верни ТОЛЬКО JSON:
 {
@@ -13196,8 +15082,10 @@ class DialogObserver:
 
         lines = []
         for msg in history[-self.batch_size:]:
-            role = "Пользователь" if msg["role"] == "user" else "Феникс"
-            lines.append(f"{role}: {msg['text']}")
+            if msg.get("role") == "user":
+                lines.append(f"Пользователь: {msg['text']}")
+        if not lines:
+            return
         dialog = "\n".join(lines)
 
         log.debug("Observer: извлекаю факты из %d сообщений", len(history))
@@ -14368,6 +16256,160 @@ def analyze_prosody(pcm_int16: bytes, sample_rate: int = 16000,
     return result
 ```
 
+### `jarvis/recognition.py`
+
+```python
+"""Measurable ASR acceptance policy, not a blacklist of 'strange' words. ... [5 строк]"""
+
+from array import array
+from dataclasses import dataclass
+from math import isfinite, sqrt
+import sys
+
+
+@dataclass(frozen=True)
+class Quality:
+    accepted: bool
+    reason: str
+    score: float | None = None
+    metrics: tuple = ()
+
+
+def _setting(config, key, default, low, high):
+    try:
+        value = float(config.get(key, default)) if config is not None else default
+        return min(high, max(low, value)) if isfinite(value) else default
+    except (TypeError, ValueError):
+        return default
+
+
+def assess_pcm(pcm, sample_rate=16000):
+    if (
+        not isinstance(sample_rate, (int, float))
+        or not isfinite(sample_rate)
+        or sample_rate <= 0
+    ):
+        return Quality(False, "invalid_sample_rate")
+    if not pcm or len(pcm) % 2:
+        return Quality(False, "invalid_audio")
+    samples = array("h")
+    samples.frombytes(pcm)
+    if sys.byteorder != "little":
+        samples.byteswap()
+    if len(samples) / sample_rate < 0.12:
+        return Quality(False, "audio_too_short")
+    rms = sqrt(sum(v * v for v in samples) / len(samples))
+    clipped = sum(abs(v) >= 32760 for v in samples) / len(samples)
+    metrics = (("rms", rms), ("clipped_fraction", clipped))
+    if rms < 8:
+        return Quality(False, "near_silence", metrics=metrics)
+    if clipped > 0.25:
+        return Quality(False, "severe_clipping", metrics=metrics)
+    return Quality(True, "signal_present", metrics=metrics)
+
+
+def assess_vosk(result, config=None):
+    if (
+        not isinstance(result, dict)
+        or not isinstance(result.get("text"), str)
+        or not result["text"].strip()
+    ):
+        return Quality(False, "empty_transcript")
+    words = result.get("result")
+    if not isinstance(words, list) or not words:
+        return Quality(False, "missing_word_confidence")
+    try:
+        scores = [float(word["conf"]) for word in words]
+    except (KeyError, TypeError, ValueError):
+        return Quality(False, "missing_word_confidence")
+    if any(not isfinite(v) or not 0 <= v <= 1 for v in scores):
+        return Quality(False, "invalid_word_confidence")
+    mean = sum(scores) / len(scores)
+    minimum = min(scores)
+    threshold = _setting(config, "stt_min_word_confidence", 0.65, 0, 1)
+    metrics = (("mean_word_confidence", mean), ("min_word_confidence", minimum))
+    if mean < threshold or minimum < max(0, threshold - 0.15):
+        return Quality(False, "uncertain_words", mean, metrics)
+    return Quality(True, "reliable_words", mean, metrics)
+
+
+def assess_whisper(segments, config=None):
+    if not segments:
+        return Quality(False, "empty_transcript")
+    low = _setting(config, "stt_min_avg_logprob", -1.0, -5, 0)
+    silence = _setting(config, "stt_max_no_speech_prob", 0.6, 0, 1)
+    compression = _setting(config, "stt_max_compression_ratio", 2.4, 1, 10)
+    probabilities = []
+    for segment in segments:
+        if not getattr(segment, "text", "").strip():
+            continue
+        try:
+            logprob = float(segment.avg_logprob)
+            no_speech = float(segment.no_speech_prob)
+            ratio = float(segment.compression_ratio)
+        except (AttributeError, TypeError, ValueError):
+            return Quality(False, "missing_segment_confidence")
+        if (
+            not all(isfinite(v) for v in (logprob, no_speech, ratio))
+            or not 0 <= no_speech <= 1
+        ):
+            return Quality(False, "invalid_segment_confidence")
+        probabilities.append(logprob)
+        # Never remove just a low-confidence fragment: it may contain «не» or a number.
+        if no_speech > silence:
+            return Quality(False, "likely_non_speech", logprob)
+        if logprob < low:
+            return Quality(False, "uncertain_segment", logprob)
+        if ratio > compression:
+            return Quality(False, "repetitive_decoding", logprob)
+    if not probabilities:
+        return Quality(False, "empty_transcript")
+    return Quality(True, "reliable_segments", sum(probabilities) / len(probabilities))
+
+
+def transcripts_agree(primary, secondary):
+    """Corroborate critical command details; don't require identical ASR spelling."""
+    from jarvis.language import analyze_command
+    from jarvis.text_utils import normalize
+    from jarvis.matching import match_score
+
+    a, b = analyze_command(primary), analyze_command(secondary)
+    if a.issue or b.issue:
+        return False
+    av = [n.value for n in analyze_command(a.command).numbers]
+    bv = [n.value for n in analyze_command(b.command).numbers]
+    if av != bv:
+        return False
+    left, right = normalize(a.command).split(), normalize(b.command).split()
+    if ("не" in left) != ("не" in right):
+        return False
+    families = {
+        **dict.fromkeys(("открой", "открывай", "запусти", "включи", "врубай"), "open"),
+        **dict.fromkeys(("закрой", "закрывай", "выключи"), "close"),
+        "сверни": "minimize",
+        "разверни": "maximize",
+        "удали": "delete",
+        "очисти": "clear",
+    }
+
+    def action(tokens):
+        return next(
+            ((i, families[t]) for i, t in enumerate(tokens[:3]) if t in families), None
+        )
+
+    first, second = action(left), action(right)
+    if first or second:
+        if not first or not second or first[1] != second[1]:
+            return False
+        target_a = " ".join(left[first[0] + 1 :])
+        target_b = " ".join(right[second[0] + 1 :])
+        if bool(target_a) != bool(target_b):
+            return False
+        if target_a and match_score(target_a, target_b) < 0.6:
+            return False
+    return True
+```
+
 ### `jarvis/recorder.py`
 
 ```python
@@ -14833,14 +16875,6 @@ log = logging.getLogger("jarvis.stt")
 
 TURBO_MODEL = "deepdml/faster-whisper-large-v3-turbo-ct2"
 
-WHISPER_PROMPT = (
-    "Это русская речь. Пожалуйста, транскрибируй текст на русском языке. "
-    "Имя ассистента — Феникс, второе имя — Джарвис. "
-    "Частые слова: Феникс, Джарвис, открой, закрой, найди, погода, "
-    "напоминание, задача, голос, режим, паки, Нижний Новгород, "
-    "курс доллара."
-)
-
 ECHO_WINDOW_SEC = 0.5
 BARGE_LOG_INTERVAL = 0.5
 
@@ -14879,6 +16913,8 @@ class Listener:
         SetLogLevel(-1)
         self._model = Model(str(model_dir))
         self._rec = KaldiRecognizer(self._model, sample_rate)
+        self._rec.SetWords(True)
+        self.last_quality = None
         self._sample_rate = sample_rate
         self._config = config
         self._device = self.resolve_device(device)
@@ -15265,14 +17301,17 @@ class Listener:
                     while self._utt_len > max_buf and len(self._utt_buf) > 1:
                         self._utt_len -= len(self._utt_buf.pop(0))
                     if self._rec.AcceptWaveform(data):
-                        text = json.loads(self._rec.Result()).get("text", "").strip()
+                        from jarvis.recognition import assess_vosk
+                        result = json.loads(self._rec.Result())
+                        text = result.get("text", "").strip()
+                        self.last_quality = assess_vosk(result, getattr(self, "_config", None))
                         audio = b"".join(self._utt_buf)
                         self._utt_buf.clear()
                         self._utt_len = 0
                         if text:
                             self.utterances += 1
-                            self.recent_phrases.append(text)
-                            log.info("Распознано (vosk): %s", text)
+                            # Историю пополняет main только после окончательной проверки.
+                            log.info("Распознана фраза (vosk)")
                             yield text, audio
             finally:
                 # Закрываем поток в своём же потоке (PortAudio-безопасно).
@@ -15303,12 +17342,14 @@ class Listener:
 class WhisperTranscriber:
     """faster-whisper с ленивой (фоновой) загрузкой модели. ... [7 строк]"""
 
-    def __init__(self, model_name="auto", device="auto", lazy=False):
+    def __init__(self, model_name="auto", device="auto", lazy=False, config=None):
         self._model = None
         self._load_error: Exception | None = None
         self._loading = False
         self._load_lock = threading.Lock()
         self._loaded = threading.Event()
+        self._config = config
+        self.last_quality = None
         self._model_name = model_name
         self._device = device
 
@@ -15422,6 +17463,12 @@ class WhisperTranscriber:
                 os.environ["HUGGINGFACE_HUB_CACHE"] = _old_hf_cache
 
     def transcribe(self, pcm, sample_rate=16000):
+        from jarvis.recognition import assess_pcm, assess_whisper
+        self.last_quality = assess_pcm(pcm, sample_rate)
+        if not self.last_quality.accepted:
+            return ""
+        # Сброс перед декодированием: исключение не оставляет прошлую уверенность.
+        self.last_quality = None
         self._ensure_loaded()
         audio = np.frombuffer(pcm, dtype=np.int16).astype(np.float32) / 32768.0
         if sample_rate != 16000 and len(audio) > 1:
@@ -15431,11 +17478,16 @@ class WhisperTranscriber:
                 np.arange(len(audio)), audio
             ).astype(np.float32)
         segments, _ = self._model.transcribe(
-            audio, language="ru", beam_size=2, vad_filter=True,
-            condition_on_previous_text=False, initial_prompt=WHISPER_PROMPT,
+            audio, language="ru", beam_size=5, temperature=0.0, vad_filter=True,
+            condition_on_previous_text=False, initial_prompt=None,
         )
+        segments = list(segments)
+        self.last_quality = assess_whisper(segments, self._config)
+        if not self.last_quality.accepted:
+            log.info("Whisper: фраза требует повтора (%s)", self.last_quality.reason)
+            return ""
         text = " ".join(s.text.strip() for s in segments).strip()
-        log.info("Распознано (whisper): %s", text)
+        log.info("Распознана фраза (whisper)")
         return text
 ```
 
@@ -15504,6 +17556,7 @@ def _save(tasks: list) -> None:
             raise
     except Exception:
         log.exception("Не удалось сохранить %s", path)
+        raise
 
 
 # ---------------------------------------------------------------
@@ -15619,6 +17672,14 @@ def is_clear_command(cmd: str) -> bool:
 
 
 def handle_task_command(cmd: str) -> str | None:
+    """Не подтверждает изменение, если запись на диск не удалась."""
+    try:
+        return _handle_task_command(cmd)
+    except OSError:
+        return "Не удалось сохранить список задач. Изменения не подтверждены."
+
+
+def _handle_task_command(cmd: str) -> str | None:
     """Разбирает команды списка задач. Возвращает ответ или None."""
 
     # показать список
@@ -15718,50 +17779,13 @@ def normalize(text: str) -> str:
 # ---------------------------------------------------------------
 
 _REPLACEMENTS = [
-    (r"\bм/с\b", " метров в секунду"),
-    (r"\bкм/ч\b", " километров в час"),
-    (r"\bкм/с\b", " километров в секунду"),
-    (r"\bм/c\b", " метров в секунду"),
-    (r"\bкм/ч\.", " километров в час"),
-    (r"([+-]?\d+)\s*°\s*[CFЦ]?\b", r"\1 градусов"),
-    (r"°\s*[CFЦ]?\b", " градусов"),
-    (r"(\d+)\s*%", r"\1 процентов"),
-    (r"\bт\.\s*д\.", " так далее"),
-    (r"\bт\.\s*е\.", " то есть"),
-    (r"\bт\.\s*к\.", " так как"),
-    (r"\bт\.\s*п\.", " тому подобное"),
-    (r"\bдр\.", " другие"),
-    (r"\bг\.", " год"),
-    (r"\bгг\.", " годы"),
-    (r"\bруб\.", " рублей"),
-    (r"\bкоп\.", " копеек"),
-    (r"\bтыс\.", " тысяч"),
-    (r"\bмлн\.", " миллионов"),
-    (r"\bмлрд\.", " миллиардов"),
-    (r"\b(\d+)\s*см\b", r"\1 сантиметров"),
-    (r"\b(\d+)\s*мм\b", r"\1 миллиметров"),
-    (r"\b(\d+)\s*км\b", r"\1 километров"),
-    (r"\b(\d+)\s*кг\b", r"\1 килограммов"),
-    (r"\b(\d+)\s*мг\b", r"\1 миллиграммов"),
-    (r"\b(\d+)\s*МБ\b", r"\1 мегабайт"),
-    (r"\b(\d+)\s*ГБ\b", r"\1 гигабайт"),
-    (r"\b(\d+)\s*КБ\b", r"\1 килобайт"),
-    (r"\b(\d+)\s*м\b", r"\1 метров"),
-    (r"\b(\d+)\s*г\b", r"\1 граммов"),
-    (r"→", " стремится к "),
-    (r"←", " из "),
-    (r"≈", " примерно "),
-    (r"≥", " больше или равно "),
-    (r"≤", " меньше или равно "),
-    (r"≠", " не равно "),
-    (r"&", " и "),
-    (r"\+", " плюс "),
-    (r"(?<!\w)-(?!\w)", " минус "),
-    (r"\*+", ""),
-    (r"_+", ""),
-    (r"#+\s*", ""),
-    (r"`+", ""),
-    (r"^\s*[-•]\s+", ""),
+    (r"\bт\.\s*д\.", "так далее"),
+    (r"\bт\.\s*е\.", "то есть"),
+    (r"\bт\.\s*к\.", "так как"),
+    (r"\bт\.\s*п\.", "тому подобное"),
+    (r"\bтыс\.", "тысяч"),
+    (r"\bмлн\.", "миллионов"),
+    (r"\bмлрд\.", "миллиардов"),
 ]
 
 _RE_COMPILED = [(re.compile(pat), repl) for pat, repl in _REPLACEMENTS]
@@ -15774,9 +17798,8 @@ def prepare_text(text: str) -> str:
     text = CJK_RE.sub(" ", text)
     for pattern, repl in _RE_COMPILED:
         text = pattern.sub(repl, text)
-    text = re.sub(r"\s+", " ", text).strip()
-    text = re.sub(r"\s+([,.!?;:])", r"\1", text)
-    return text
+    from jarvis.language import prepare_speech
+    return prepare_speech(text)
 ```
 
 ### `jarvis/timers.py`
@@ -15854,71 +17877,26 @@ def _save(timers: list) -> None:
 # Разбор времени из фразы
 # ---------------------------------------------------------------
 
-_NUM_WORDS = {
-    "один": 1, "одну": 1, "одна": 1, "два": 2, "две": 2, "три": 3, "четыре": 4,
-    "пять": 5, "шесть": 6, "семь": 7, "восемь": 8, "девять": 9, "десять": 10,
-    "пятнадцать": 15, "двадцать": 20, "тридцать": 30, "сорок": 40, "пятьдесят": 50,
-    "полтора": 1.5,
-}
+from jarvis.language.time import parse_duration
+
+_ABSOLUTE_TIME_RE = re.compile(r"\bв\s+(\d{1,2})(?:[:.]|\s+)(\d{2})\b")
+_ABSOLUTE_HOUR_RE = re.compile(r"\bв\s+(\d{1,2})\s+час\w*\b")
 
 
 def _parse_duration(text: str) -> int | None:
-    """«через 10 минут» → 600 секунд. Возвращает int или None."""
-    # «через X единица»
-    m = re.search(r"через\s+(\d+|[а-яё]+)\s*(секунд|мин|минут|час|часов|ч|с|м)?", text)
-    if not m:
-        # «на X минут» / «таймер на X»
-        m = re.search(r"(?:на|таймер)\s+(\d+|[а-яё]+)\s*(секунд|мин|минут|час|часов|ч|с|м)",
-                      text)
-    if not m:
-        # «полчаса», «час», «минуту»
-        if "полчаса" in text or "пол часа" in text:
-            return 30 * 60
-        if re.search(r"\bчас\b", text):
-            return 60 * 60
-        if re.search(r"\bминуту\b", text):
-            return 60
+    duration = parse_duration(text)
+    if duration is None or duration.issue or duration.seconds != duration.seconds.to_integral_value():
         return None
-
-    raw = m.group(1).lower()
-    unit = m.group(2) or ""
-
-    # число или слово-числительное
-    if raw.isdigit():
-        num = int(raw)
-    elif raw in _NUM_WORDS:
-        num = _NUM_WORDS[raw]
-    # само слово — единица времени: «через час», «через минуту», «через полчаса»
-    elif raw in ("час", "часа", "часов"):
-        num, unit = 1, unit or "час"
-    elif raw in ("минуту", "минута", "минутку", "минуты"):
-        num, unit = 1, unit or "мин"
-    elif raw in ("секунду", "секунда", "секунды"):
-        num, unit = 1, unit or "сек"
-    elif raw in ("полчаса", "пол часа"):
-        return 30 * 60
-    else:
-        return None
-
-    # единица
-    if not unit:
-        unit = "мин"
-    if unit.startswith("сек") or unit == "с":
-        return int(num)
-    if unit.startswith("мин") or unit == "м":
-        return int(num * 60)
-    if unit.startswith("час") or unit == "ч":
-        return int(num * 3600)
-    return int(num * 60)
+    return int(duration.seconds)
 
 
 def _parse_absolute_time(text: str) -> float | None:
     """«в 18:30» → timestamp. Возвращает float (unix) или None."""
-    m = re.search(r"\bв\s+(\d{1,2})[:.](\d{2})", text)
+    m = _ABSOLUTE_TIME_RE.search(text)
     if m:
         hour, minute = int(m.group(1)), int(m.group(2))
     else:
-        m = re.search(r"\bв\s+(\d{1,2})\s+час", text)
+        m = _ABSOLUTE_HOUR_RE.search(text)
         if not m:
             return None
         hour, minute = int(m.group(1)), 0
@@ -15935,17 +17913,18 @@ def _parse_absolute_time(text: str) -> float | None:
 
 
 def _extract_reminder_text(cmd: str) -> str:
-    """Вырезает из фразы текст напоминания (после времени)."""
-    # убираем всё до времени (включительно)
-    text = re.sub(r"^.*?(?:напомни|напоминание|таймер)\s*", "", cmd, count=1)
-    text = re.sub(r"через\s+(\d+|[а-яё]+)\s*\S+", "", text, count=1)
-    text = re.sub(r"\bв\s+\d{1,2}[:.]\d{2}", "", text, count=1)
-    text = re.sub(r"\bв\s+\d{1,2}\s+час\w*", "", text, count=1)
-    # «таймер на 5 минут» → текст пустой, а не «на 5 минут»
-    text = re.sub(r"^на\s+(\d+|[а-яё]+)\s*(секунд\w*|мин\w*|час\w*|ч|с|м)\b",
-                  "", text, count=1)
-    text = text.strip(" ,.:!?")
-    return text
+    """Удаляет только первый распознанный диапазон времени, а не текст после него."""
+    text = re.sub(r"^.*?(?:напоминай|напомни|напоминание|таймер)\b\s*",
+                  "", cmd, count=1)
+    duration = parse_duration(text)
+    matches = [pattern.search(text) for pattern in (_ABSOLUTE_TIME_RE, _ABSOLUTE_HOUR_RE)]
+    ranges = [(m.start(), m.end()) for m in matches if m is not None]
+    if duration is not None:
+        ranges.append((duration.start, duration.end))
+    if ranges:
+        first, last = min(ranges)
+        text = text[:first] + text[last:]
+    return text.strip(" ,.:!?")
 
 
 # ---------------------------------------------------------------
@@ -16310,6 +18289,7 @@ import threading
 from typing import Iterator
 
 from jarvis.tts_engines import get_engine, list_engines
+from jarvis.text_utils import prepare_text
 
 log = logging.getLogger("jarvis.tts")
 
@@ -16493,6 +18473,7 @@ class Speaker:
         """Синхронная озвучка (для тестов и скриптов)."""
         if not text:
             return
+        text = prepare_text(text)
         if not self._ensure_engine():
             return
         token = self._new_token()
@@ -16515,6 +18496,7 @@ class Speaker:
         """Асинхронная озвучка одного текста."""
         if not text:
             return
+        text = prepare_text(text)
         if not self._ensure_engine():
             return
 
@@ -19439,8 +21421,8 @@ def _confident(hits: list) -> bool:
     return (hits[0]["score"] - hits[1]["score"]) >= _margin()
 
 
-def build_prompt_block(query: str, k: int = None) -> str:
-    """Блок фактов для system-промпта. "" — если отбирать нечего или не уверены. ... [3 строк]"""
+def build_prompt_block(query: str, k: int = None, allowed_keys=None) -> str:
+    """Блок фактов для system-промпта. "" — если отбирать нечего или не уверены. ... [4 строк]"""
     if not _enabled():
         return ""
     q = (query or "").strip()
@@ -19451,14 +21433,17 @@ def build_prompt_block(query: str, k: int = None) -> str:
         return ""
     k = _top_k() if k is None else max(1, int(k))
     if len(facts) <= k:
-        # Отбирать не из чего — brain возьмёт все факты.
+        # Малый набор: brain применит детерминированный отбор по запросу.
         return ""
 
-    hits = search(q, k=k)
+    hits = search(q, k=max(k, len(facts)) if allowed_keys is not None else k)
+    if allowed_keys is not None:
+        hits = [hit for hit in hits if hit.get("key") in allowed_keys]
+    hits = hits[:k]
     if not hits:
         return ""
     if not _confident(hits):
-        # Явного победителя нет — не рискуем: пусть brain возьмёт все факты.
+        # Нет явного победителя — используется ограниченный контекст запроса.
         return ""
     lines = [f"- {h['key']}: {h['value']}" for h in hits]
     return ("Факты о пользователе (отобраны по смыслу запроса):\n"
@@ -22243,10 +24228,267 @@ if __name__ == "__main__":
     main()
 ```
 
+### `tests/test_audit_regressions.py`
+
+```python
+"""Regression tests for the six audited bugs and related edge cases.
+No real system commands, user data, or timers are used.
+"""
+from collections import deque
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
+import time
+import ast
+import json
+import logging
+import queue
+import threading
+from pathlib import Path
+
+import pytest
+
+from jarvis import timers, tasks, actions, memory, mood
+from jarvis.intents.handler import IntentHandler
+from jarvis.intents.context import Ctx
+from jarvis.intents.password import hash_password
+from jarvis.intents.stages.password import PasswordStage
+from jarvis.intents.stages.fast import FastHandlersStage
+from jarvis.intents.fast.custom import load_custom, match_custom
+from jarvis.intents.fast.timers import timers_fast
+from jarvis.text_utils import normalize
+
+
+def handler(password='1234'):
+    h = IntentHandler.__new__(IntentHandler)
+    h.config = {'danger_password': hash_password(password)}
+    h.mode = 'combo'
+    h._pending_password = None
+    h._pipeline = [PasswordStage(), FastHandlersStage()]
+    h._fast_handlers_cache = []
+    h._recent_phrases = deque(maxlen=10)
+    h.dialog = deque(maxlen=100)
+    return h
+
+
+def test_system_pack_shutdown_requires_password():
+    h = handler()
+    h.custom = load_custom({'active_packs': ['system']})
+    h._fast_handlers_cache = [('custom', lambda cmd: match_custom(h, cmd))]
+    with patch.object(actions, 'run_spec') as run, patch.object(memory, 'append'), patch.object(mood, 'apply_from_text'):
+        h.handle('выключи компьютер')
+    run.assert_not_called()
+    assert h._pending_password is not None
+
+
+def test_password_not_written_to_dialog():
+    h = handler()
+    h._ask_password({'action': 'clear_tasks'})
+    with patch('jarvis.intents.execute.execute_intent', return_value='Готово.'), patch.object(memory, 'append') as append, patch.object(mood, 'apply_from_text'):
+        h.handle('пароль 1234')
+    assert not any('1234' in str(call) for call in append.call_args_list)
+    assert not any('1234' in msg['content'] for msg in h.dialog)
+
+
+def test_password_retains_case_and_punctuation():
+    h = handler('AbC-42!')
+    h._ask_password({'action': 'clear_tasks'})
+    with patch('jarvis.intents.execute.execute_intent', return_value='Готово.') as execute, patch.object(memory, 'append'), patch.object(mood, 'apply_from_text'):
+        reply = h.handle('пароль AbC-42!')
+    execute.assert_called_once()
+    assert reply.text == 'Готово.'
+
+
+def test_absolute_reminder_survives_command_normalization():
+    h = handler()
+    with patch.object(timers, 'add', return_value={}) as add:
+        reply = timers_fast(h, normalize('напомни в 18:30 позвонить маме'))
+    add.assert_called_once()
+    assert '18:30' in reply
+
+
+def test_half_hour_does_not_eat_reminder_text():
+    assert timers._parse_duration('напомни через полчаса выпить чай') == 1800
+    assert timers._extract_reminder_text('напомни через полчаса выпить чай') == 'выпить чай'
+
+
+def test_task_save_failure_must_not_report_success(tmp_path):
+    with patch.object(tasks, '_tasks_file', return_value=tmp_path/'tasks.json'), patch.object(tasks.os, 'replace', side_effect=PermissionError('simulated locked file')):
+        try:
+            result = tasks.add('купить хлеб')
+        except OSError:
+            return
+    assert result is None or result is False, 'Task returned as added although persistence failed'
+
+
+@pytest.mark.parametrize('phrase', ['выключи компьютер', 'перезагрузи компьютер'])
+def test_system_pack_runs_only_after_correct_password(phrase):
+    h = handler()
+    h.custom = load_custom({'active_packs': ['system']})
+    h._fast_handlers_cache = [('custom', lambda cmd: match_custom(h, cmd))]
+    with patch.object(actions, 'run_spec', return_value=True) as run, patch.object(memory, 'append'), patch.object(mood, 'apply_from_text'):
+        h.handle(phrase)
+        run.assert_not_called()
+        h.handle('пароль 1234')
+        run.assert_called_once()
+    assert h._pending_password is None
+
+
+def test_custom_macro_checks_all_steps_before_execution():
+    h = handler()
+    h.custom = [(['рабочий сценарий'], [{'action':'screenshot'}, {'action':'clear_tasks'}], 'Готово.')]
+    h._fast_handlers_cache = [('custom', lambda cmd: match_custom(h, cmd))]
+    with patch('jarvis.intents.execute.execute_steps', return_value='Готово.') as execute, patch.object(memory, 'append'), patch.object(mood, 'apply_from_text'):
+        h.handle('рабочий сценарий')
+        execute.assert_not_called()
+        h.handle('пароль 1234')
+        execute.assert_called_once()
+
+
+@pytest.mark.parametrize('answer', ['пароль 9999', 'стоп', 'пароль 1234'])
+def test_sensitive_input_skips_logs_corrections_and_history(answer, caplog):
+    h = handler()
+    h._ask_password({'action': 'clear_tasks'})
+    with caplog.at_level(logging.DEBUG), patch('jarvis.intents.execute.execute_intent', return_value='Готово.'), patch.object(h, '_handle_single') as pipeline, patch.object(memory, 'append') as append:
+        h.handle(answer)
+    pipeline.assert_not_called()
+    append.assert_not_called()
+    assert not h.dialog and not h._recent_phrases
+    assert h._raw_cmd == ''
+    assert answer not in caplog.text
+
+
+def test_expired_password_is_not_executed_or_recorded():
+    h = handler()
+    h._ask_password({'action': 'clear_tasks'})
+    h._pending_password['expires_at'] = time.time() - 1
+    with patch('jarvis.intents.execute.execute_intent') as execute, patch.object(memory, 'append') as append:
+        result = h.handle('пароль 1234')
+    execute.assert_not_called()
+    append.assert_not_called()
+    assert 'истекло' in result.text
+    assert h._pending_password is None
+
+
+@pytest.mark.parametrize('password', ['AbC-42!', 'ёжик_ЁЖ', 'парольник', '1234'])
+def test_raw_password_values(password):
+    h = handler(password)
+    h._ask_password({'action': 'clear_tasks'})
+    with patch('jarvis.intents.execute.execute_intent', return_value='Готово.') as execute:
+        result = h.handle('Пароль ' + password)
+    execute.assert_called_once()
+    assert result.text == 'Готово.'
+
+
+@pytest.mark.parametrize('time_text', ['18:30', '18.30', '18 30'])
+def test_reminder_time_formats_end_to_end(time_text):
+    h = handler()
+    h._fast_handlers_cache = [('timers', lambda cmd: timers_fast(h, cmd))]
+    with patch.object(timers, 'add', return_value={}) as add, patch.object(memory, 'append'), patch.object(mood, 'apply_from_text'):
+        reply = h.handle(f'напомни в {time_text} позвонить маме')
+    add.assert_called_once()
+    assert add.call_args.args[0] == 'позвонить маме'
+    assert '18:30' in reply.text
+
+
+@pytest.mark.parametrize('phrase,seconds,text', [
+    ('напомни через полчаса выпить чай', 1800, 'выпить чай'),
+    ('напомни через пол часа выпить чай', 1800, 'выпить чай'),
+    ('напомни через час позвонить маме', 3600, 'позвонить маме'),
+    ('напомни через минуту проверить чай', 60, 'проверить чай'),
+    ('напомни через 10 минут выпить чай', 600, 'выпить чай'),
+    ('напомни через пять минут выпить чай', 300, 'выпить чай'),
+    ('напомни через 5 выпить чай', 300, 'выпить чай'),
+    ('таймер на полчаса', 1800, ''),
+    ('таймер на 5 минут', 300, ''),
+    ('напомни через 5 минут проверить таймер через полчаса', 300, 'проверить таймер через полчаса'),
+])
+def test_duration_and_reminder_text(phrase, seconds, text):
+    assert timers._parse_duration(phrase) == seconds
+    assert timers._extract_reminder_text(phrase) == text
+
+
+def test_task_command_reports_persistence_error(tmp_path):
+    with patch.object(tasks, '_tasks_file', return_value=tmp_path/'tasks.json'), patch.object(tasks.os, 'replace', side_effect=PermissionError('locked')):
+        reply = tasks.handle_task_command('добавь в список купить хлеб')
+    assert 'Не удалось сохранить' in reply
+    assert not (tmp_path/'tasks.json').exists()
+
+
+def test_task_intent_reports_persistence_error(tmp_path):
+    from jarvis.intents.execute import execute_intent
+    with patch.object(tasks, '_tasks_file', return_value=tmp_path/'tasks.json'), patch.object(tasks.os, 'replace', side_effect=PermissionError('locked')):
+        reply = execute_intent(handler(), {'action':'add_task', 'text':'купить хлеб'})
+    assert 'Не удалось выполнить' in reply
+
+
+def source_method(filename, classname, method, namespace):
+    """Run actual method source without importing Windows/audio/GUI dependencies.
+    This is a component test, not a substitute for desktop integration tests.
+    """
+    source = Path(__file__).resolve().parents[1] / filename
+    tree = ast.parse(source.read_text(encoding='utf-8'))
+    cls = next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == classname)
+    fn = next(node for node in cls.body if isinstance(node, ast.FunctionDef) and node.name == method)
+    module = ast.Module(body=[fn], type_ignores=[])
+    exec(compile(module, str(source), 'exec'), namespace)
+    return namespace[method]
+
+
+def test_voice_input_redacts_gui_and_skips_observer():
+    from jarvis.reply import Reply
+    process = source_method('jarvis/main.py', 'Jarvis', '_process', {
+        'time':time, 'normalize':normalize, 'log':logging.getLogger('audit.voice'), 'Reply':Reply,
+    })
+    h = handler('AbC-42!')
+    h._ask_password({'action':'clear_tasks'})
+    app = SimpleNamespace(handler=h, _awaiting_until=0, _is_wake=lambda word:word=='феникс', config={'prosody_enabled':False}, whisper=None, gui=Mock(), observer=Mock(), cmd_lock=threading.Lock(), speaker=Mock(), say=Mock(return_value=False))
+    with patch('jarvis.intents.execute.execute_intent', return_value='Готово.') as execute:
+        process(app, 'феникс пароль AbC-42!', b'')
+    execute.assert_called_once()
+    app.gui.add_message.assert_any_call('user','[Ввод пароля скрыт]')
+    assert 'AbC-42!' not in str(app.gui.mock_calls)
+    assert 'AbC-42!' not in str(app.observer.mock_calls)
+    assert all(call.args[0] != 'user' for call in app.observer.observe.call_args_list)
+
+
+def test_gui_input_redacts_history():
+    class ImmediateThread:
+        def __init__(self, *, target, **kwargs): self.target = target
+        def start(self): self.target()
+    run = source_method('jarvis/gui.py', 'FenixGUI', '_run_command', {
+        'threading':SimpleNamespace(Thread=ImmediateThread), 'log':logging.getLogger('audit.gui'),
+    })
+    h = handler('AbC-42!')
+    h._ask_password({'action':'clear_tasks'})
+    app = SimpleNamespace(jarvis=SimpleNamespace(handler=h,speaker=Mock(),cmd_lock=threading.Lock(),say=Mock()),set_state=Mock(),add_message=Mock())
+    with patch('jarvis.intents.execute.execute_intent',return_value='Готово.') as execute:
+        run(app,'пароль AbC-42!')
+    execute.assert_called_once()
+    app.add_message.assert_any_call('user','[Ввод пароля скрыт]')
+    assert 'AbC-42!' not in str(app.add_message.mock_calls)
+
+
+def test_stt_does_not_retain_sensitive_recognition(caplog):
+    method = source_method('jarvis/stt.py','Listener','phrases', {
+        'sd':SimpleNamespace(RawInputStream=Mock(return_value=Mock())),
+        'queue':queue, 'json':json, 'log':logging.getLogger('audit.stt'),
+    })
+    audio = queue.Queue();audio.put(b'\0\0')
+    listener = SimpleNamespace(_sample_rate=16000,_block_size=2048,_device=None,_callback=Mock(),device_name='fake',_audio=audio,_utt_buf=[],_utt_len=0,_rec=Mock(),utterances=0,recent_phrases=deque(),sensitive_input=lambda:True)
+    listener._rec.AcceptWaveform.return_value=True
+    listener._rec.Result.return_value=json.dumps({'text':'пароль 1234'})
+    gen=method(listener,threading.Event())
+    with caplog.at_level(logging.INFO):
+        assert next(gen)[0]=='пароль 1234'
+        gen.close()
+    assert not listener.recent_phrases
+    assert '1234' not in caplog.text
+```
+
 ### `tests/test_brain_rag.py`
 
 ```python
-"""Отбор фактов в system-промпт (jarvis.brain._system_with_context). ... [11 строк]"""
+"""Query-scoped memory: unavailable retrieval never means send all facts."""
 
 import pytest
 
@@ -22254,8 +24496,12 @@ from jarvis import learning, profile, vectormem
 from jarvis.brain import CHAT_SYSTEM, Brain
 from jarvis.config import Config
 
-FACTS = {"город": "Казань", "работа": "программист",
-         "любимая игра": "Дота", "любимый фильм": "Матрица"}
+FACTS = {
+    "город": "Казань",
+    "работа": "программист",
+    "любимая игра": "Дота",
+    "любимый фильм": "Матрица",
+}
 
 
 @pytest.fixture(autouse=True)
@@ -22291,83 +24537,82 @@ def brain(cfg, monkeypatch):
     return b
 
 
-def test_disabled_keeps_all_facts(brain, cfg):
-    """Фича выключена (дефолт) — промпт не отличается от того, что был до неё."""
+@pytest.mark.parametrize(
+    "query",
+    [
+        None,
+        "Расскажи что-нибудь",
+        "Расскажи мне что-нибудь",
+        "Почему небо голубое?",
+        "Расскажи о Казани",
+    ],
+)
+def test_generic_queries_do_not_inject_personal_facts(brain, query):
+    prompt = brain._system_with_context(CHAT_SYSTEM, query)
+    assert all(value not in prompt for value in FACTS.values())
+
+
+def test_disabled_memory_keeps_only_requested_facts(brain):
     prompt = brain._system_with_context(CHAT_SYSTEM, "какой у меня город")
-
-    for value in FACTS.values():
-        assert value in prompt
-
-
-def test_no_query_keeps_all_facts(brain):
-    """Запроса нет (онбординг, разбор команды) — отбирать нечего."""
-    prompt = brain._system_with_context(CHAT_SYSTEM)
-
-    for value in FACTS.values():
-        assert value in prompt
+    assert "Казань" in prompt
+    assert all(value not in prompt for key, value in FACTS.items() if key != "город")
 
 
-def test_rag_block_replaces_full_fact_list(brain, cfg, monkeypatch):
-    """Память отобрала факты — остальные в промпт не идут."""
+def test_rag_block_replaces_selected_fact_list(brain, cfg, monkeypatch):
     cfg.set("memory_rag_enabled", True)
     seen = {}
 
-    def _fake_block(query, k=None):
-        seen["query"] = query
-        return "Факты о пользователе (отобраны по смыслу запроса):\n- город: Казань\n"
+    def fake(query, k=None, allowed_keys=None):
+        seen["allowed"] = allowed_keys
+        return "Факты о пользователе:\n- город: Казань\n"
 
-    monkeypatch.setattr(vectormem, "build_prompt_block", _fake_block)
-
+    monkeypatch.setattr(vectormem, "build_prompt_block", fake)
     prompt = brain._system_with_context(CHAT_SYSTEM, "какой у меня город")
-
-    assert seen["query"] == "какой у меня город"
-    assert "Казань" in prompt
+    assert seen["allowed"] == {"город"}
+    assert prompt.count("Казань") == 1
     assert "Матрица" not in prompt
-    assert "программист" not in prompt
 
 
 def test_facts_are_not_duplicated(brain, cfg, monkeypatch):
-    """Когда память отобрала факты, build_context их уже не добавляет."""
     cfg.set("memory_rag_enabled", True)
-    monkeypatch.setattr(vectormem, "build_prompt_block",
-                        lambda query, k=None: "Факты о пользователе:\n- город: Казань\n")
-
+    monkeypatch.setattr(
+        vectormem,
+        "build_prompt_block",
+        lambda *a, **kw: "Факты о пользователе:\n- город: Казань\n",
+    )
     calls = []
     original = learning.build_context
-    monkeypatch.setattr(learning, "build_context",
-                        lambda include_facts=True: calls.append(include_facts) or original(include_facts))
 
+    def spy(include_facts=True, **kw):
+        calls.append(include_facts)
+        return original(include_facts, **kw)
+
+    monkeypatch.setattr(learning, "build_context", spy)
     brain._system_with_context(CHAT_SYSTEM, "какой у меня город")
-
     assert calls == [False]
 
 
-def test_build_context_include_facts_flag(cfg):
-    """include_facts=False убирает блок фактов, но профиль и коррекции остаются."""
-    vectormem.set_config(cfg)
-    for key, value in FACTS.items():
-        learning.add_fact(key, value)
-
-    with_facts = learning.build_context()
-    without = learning.build_context(include_facts=False)
-
-    assert "Казань" in with_facts
-    assert "Казань" not in without
+def test_build_context_include_facts_flag(brain):
+    assert "Казань" in learning.build_context(query="какой у меня город")
+    assert "Казань" not in learning.build_context(False, query="какой у меня город")
+    assert learning.build_context() == ""
 
 
-def test_broken_memory_does_not_break_prompt(brain, cfg, monkeypatch):
-    """Падение памяти не должно ломать диалог — факты просто идут как раньше."""
+@pytest.mark.parametrize("broken", [False, True])
+def test_failed_or_empty_rag_never_sends_everything(brain, cfg, monkeypatch, broken):
     cfg.set("memory_rag_enabled", True)
 
-    def _boom(query, k=None):
-        raise RuntimeError("память сломалась")
+    def block(*a, **kw):
+        if broken:
+            raise RuntimeError("unavailable")
+        return ""
 
-    monkeypatch.setattr(vectormem, "build_prompt_block", _boom)
-
+    monkeypatch.setattr(vectormem, "build_prompt_block", block)
     prompt = brain._system_with_context(CHAT_SYSTEM, "какой у меня город")
-
     assert "Казань" in prompt
-    assert "Матрица" in prompt
+    assert "Матрица" not in prompt
+    assert "программист" not in prompt
+    assert learning.all_facts() == FACTS
 ```
 
 ### `tests/test_browser_target.py`
@@ -24093,6 +26338,143 @@ def test_missing_listener_is_safe(wiring):
     assert jarvis.barge_enabled is False
 ```
 
+### `tests/test_memory_scope.py`
+
+```python
+"""Personalization should serve a question, not choose its topic."""
+
+from types import SimpleNamespace
+from unittest.mock import Mock
+
+import pytest
+
+from jarvis.memory_context import select_memory
+from jarvis import learning, profile, vectormem
+from jarvis.observer import DialogObserver
+
+PROFILE = {"name": "Алексей", "default_city": "Нижний Новгород"}
+FACTS = {"любимая игра": "Дота", "любимый фильм": "Матрица", "работа": "разработчик"}
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        None,
+        "",
+        "Расскажи что-нибудь",
+        "Расскажи мне что-нибудь",
+        "Расскажи что-нибудь интересное",
+        "Что нового?",
+        "Сколько будет два плюс два?",
+        "Я не понял",
+        "Мне непонятно",
+        "Какие есть города в России?",
+    ],
+)
+def test_no_unsolicited_personalization(query):
+    s = select_memory(query, PROFILE, FACTS)
+    assert not s.profile and not s.facts
+
+
+@pytest.mark.parametrize(
+    "query,key",
+    [
+        ("Как меня зовут?", "name"),
+        ("Какое у меня имя?", "name"),
+        ("В каком городе я живу?", "default_city"),
+        ("Что есть рядом со мной?", "default_city"),
+    ],
+)
+def test_profile_is_scoped(query, key):
+    assert select_memory(query, PROFILE, FACTS).profile == {key: PROFILE[key]}
+
+
+def test_recommendations_do_not_leak_unrelated_preferences():
+    s = select_memory("Посоветуй мне фильм", PROFILE, FACTS)
+    assert s.facts == {"любимый фильм": "Матрица"}
+    assert not s.profile
+
+
+def test_explicit_memory_overview_is_bounded():
+    facts = {f"факт {i}": f"значение {i}" for i in range(100)}
+    s = select_memory("Что ты запомнил обо мне?", PROFILE, facts)
+    assert s.profile == PROFILE
+    assert len(s.facts) == 5
+    assert len(facts) == 100
+
+
+def test_observer_does_not_feed_its_own_answers_into_extraction():
+    observer = DialogObserver.__new__(DialogObserver)
+    observer.batch_size = 20
+    observer.brain = SimpleNamespace(_request=Mock(return_value="{}"))
+    observer._apply = Mock()
+    observer._extract(
+        [
+            {"role": "user", "text": "Расскажи что-нибудь"},
+            {"role": "assistant", "text": "Ты живёшь в Казани"},
+        ]
+    )
+    dialog = observer.brain._request.call_args.args[0][1]["content"]
+    assert "Расскажи что-нибудь" in dialog
+    assert "Казани" not in dialog
+
+
+def test_assistant_only_batch_is_not_extracted():
+    observer = DialogObserver.__new__(DialogObserver)
+    observer.batch_size = 20
+    observer.brain = SimpleNamespace(_request=Mock())
+    observer._extract([{"role": "assistant", "text": "Ты программист"}])
+    observer.brain._request.assert_not_called()
+
+
+def test_rag_cannot_reintroduce_disallowed_keys(monkeypatch):
+    monkeypatch.setattr(vectormem, "_enabled", lambda: True)
+    monkeypatch.setattr(vectormem, "_facts", lambda: {**FACTS, "город": "Казань"})
+    monkeypatch.setattr(
+        vectormem,
+        "search",
+        lambda *a, **kw: [
+            {"key": "работа", "value": "разработчик", "score": 0.99},
+            {"key": "любимый фильм", "value": "Матрица", "score": 0.95},
+        ],
+    )
+    text = vectormem.build_prompt_block(
+        "посоветуй мне фильм", k=1, allowed_keys={"любимый фильм"}
+    )
+    assert "разработчик" not in text
+    assert "Матрица" in text
+
+
+def test_generic_context_neither_exposes_nor_deletes_profile(tmp_path, monkeypatch):
+    monkeypatch.setattr(profile, "PROFILES_DIR", tmp_path / "profiles")
+    profile._cache_invalidate()
+    try:
+        profile.set("name", PROFILE["name"])
+        profile.set("default_city", PROFILE["default_city"])
+        learning.add_fact("работа", "разработчик")
+        learning.add_correction("слава", "открой браузер")
+        assert learning.build_context(query="Расскажи мне что-нибудь") == ""
+        assert profile.get("default_city") == PROFILE["default_city"]
+        assert learning.all_facts()["работа"] == "разработчик"
+        assert learning.find_correction("слава") == "открой браузер"
+    finally:
+        profile._cache_invalidate()
+
+
+def test_generic_query_never_calls_vector_retriever(monkeypatch):
+    from jarvis.brain import Brain, CHAT_SYSTEM
+
+    b = Brain.__new__(Brain)
+    monkeypatch.setattr(learning, "all_facts", lambda: FACTS)
+    monkeypatch.setattr(profile, "get", lambda k, *a: PROFILE.get(k))
+    retrieve = Mock(side_effect=AssertionError("retrieval was not requested"))
+    monkeypatch.setattr(vectormem, "build_prompt_block", retrieve)
+    text = b._system_with_context(CHAT_SYSTEM, "Расскажи мне что-нибудь")
+    retrieve.assert_not_called()
+    assert "Нижний Новгород" not in text
+    assert "Матрица" not in text
+```
+
 ### `tests/test_mood.py`
 
 ```python
@@ -24484,6 +26866,528 @@ def test_handle_mood_command_none():
     assert mood.handle_mood_command("какая погода") is None
 ```
 
+### `tests/test_numeric_language.py`
+
+```python
+"""Executable Russian language corpus: understanding, morphology and speech. ... [4 строк]"""
+
+from collections import deque
+from decimal import Decimal
+from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
+import ast
+import re
+import time
+
+import pytest
+
+from jarvis.language import analyze_command
+from jarvis.language.numbers import cardinal, roman_value, word_numbers
+from jarvis.language.time import parse_duration
+from jarvis.text_utils import prepare_text, normalize
+from jarvis import memory, mood, timers
+from jarvis.intents.handler import IntentHandler
+from jarvis.intents.stages.fast import FastHandlersStage
+from jarvis.intents.fast.timers import timers_fast
+from jarvis.intents.fast.system import system_fast
+
+
+def plain(text):
+    return re.sub(r"\s+", " ", text.replace("ё", "е")).strip()
+
+
+@pytest.mark.parametrize(
+    "source,expected",
+    [
+        ("0", "ноль"),
+        ("21 метр", "двадцать один метр"),
+        ("с 21 метром", "с двадцатью одним метром"),
+        ("к 21 участнику", "к двадцати одному участнику"),
+        ("до 142 метров", "до ста сорока двух метров"),
+        ("над 51 мостом", "над пятьюдесятью одним мостом"),
+        ("1 мин", "одна минута"),
+        ("2 мин", "две минуты"),
+        ("5 мин", "пять минут"),
+        ("5кг", "пять килограммов"),
+        ("1 кг", "один килограмм"),
+        ("2 кг", "два килограмма"),
+        ("к 5 кг", "к пяти килограммам"),
+        ("с 2026 метрами", "с двумя тысячами двадцатью шестью метрами"),
+        ("1%", "один процент"),
+        ("2%", "два процента"),
+        ("5%", "пять процентов"),
+        ("11%", "одиннадцать процентов"),
+        ("21%", "двадцать один процент"),
+        ("к 5%", "к пяти процентам"),
+        ("1,5 кг", "одна целая пять десятых килограмма"),
+        ("−3,5 °C", "минус три целых пять десятых градуса Цельсия"),
+        ("к 3,5 кг", "к трем целым пяти десятым килограмма"),
+        ("1 м²", "один квадратный метр"),
+        ("2 м²", "два квадратных метра"),
+        ("5 м³", "пять кубических метров"),
+        ("5 м/с", "пять метров в секунду"),
+        ("1 км/ч", "один километр в час"),
+        ("2 МБ", "два мегабайта"),
+        ("1234,50 ₽", "одна тысяча двести тридцать четыре рубля пятьдесят копеек"),
+        ("2 руб.", "два рубля"),
+        ("0,50 ₽", "ноль рублей пятьдесят копеек"),
+        ("1/2", "одна вторая"),
+        ("3/4", "три четвертых"),
+        ("2+2=4", "два плюс два равно четыре"),
+        ("3×4", "три умножить на четыре"),
+        ("2 < 5", "два меньше чем пять"),
+        ("5–7", "от пяти до семи"),
+        ("в XXI веке", "в двадцать первом веке"),
+        ("к XXI веку", "к двадцать первому веку"),
+        ("Пётр I", "Петр первый"),
+        ("о Петре I", "о Петре первом"),
+        ("при Екатерине II", "при Екатерине второй"),
+        ("в главе IV", "в главе четвертой"),
+        ("в ⅩⅩⅠ веке", "в двадцать первом веке"),
+        ("римское число XIV", "римское число четырнадцать"),
+        ("к 21-му участнику", "к двадцать первому участнику"),
+        ("в 21-м веке", "в двадцать первом веке"),
+        ("15.10.2026", "пятнадцатое октября две тысячи двадцать шестого года"),
+        ("до 15.10.2026", "до пятнадцатого октября две тысячи двадцать шестого года"),
+        ("2026-10-15", "пятнадцатое октября две тысячи двадцать шестого года"),
+        ("в 2026 году", "в две тысячи двадцать шестом году"),
+        ("в 2026 г.", "в две тысячи двадцать шестом году"),
+        ("в 18:30", "в восемнадцать часов тридцать минут"),
+        ("в 1:01", "в один час одну минуту"),
+        ("код 0012", "код ноль ноль один два"),
+        ("Python 3.11", "Python три точка один один"),
+        ("версия 1.2.3", "версия один точка два точка три"),
+        ("## Ответ\n**5 кг**", "Ответ пять килограммов"),
+        ("[сайт](https://example.org)", "сайт"),
+        ("Я к Петру. 21 метр", "Я к Петру. двадцать один метр"),
+    ],
+)
+def test_speech_corpus(source, expected):
+    assert plain(prepare_text(source)) == plain(expected)
+    assert plain(prepare_text(prepare_text(source))) == plain(expected)
+
+
+@pytest.mark.parametrize(
+    "text", ["MIX", "CIVIL", "VS Code", "Final Fantasy VII", "USB-C", "README.md"]
+)
+def test_non_numeric_names_are_not_roman_numbers(text):
+    assert prepare_text(text) == text
+
+
+@pytest.mark.parametrize(
+    "token,value",
+    [
+        ("I", 1),
+        ("IV", 4),
+        ("XIV", 14),
+        ("MCMXCIV", 1994),
+        ("MMMCMXCIX", 3999),
+        ("ⅩⅩⅠ", 21),
+        ("IIII", None),
+        ("IC", None),
+        ("CIVIL", None),
+        ("mix", None),
+    ],
+)
+def test_roman_validation(token, value):
+    assert roman_value(token) == value
+
+
+@pytest.mark.parametrize(
+    "text,value,kind",
+    [
+        ("двадцать одна", 21, "cardinal"),
+        ("двадцатью одним", 21, "cardinal"),
+        ("ста сорока двух", 142, "cardinal"),
+        ("двести пятьдесят шесть", 256, "cardinal"),
+        ("две тысячи двадцать шестого", 2026, "ordinal"),
+        ("двухтысячного", 2000, "ordinal"),
+        ("минус пять", -5, "cardinal"),
+        ("три целых пять десятых", Decimal("3.5"), "cardinal"),
+        ("ноль целых пять сотых", Decimal("0.05"), "cardinal"),
+        ("полтора", Decimal("1.5"), "cardinal"),
+    ],
+)
+def test_numeric_lexicon(text, value, kind):
+    entities = list(word_numbers(text))
+    assert len(entities) == 1
+    n = entities[0]
+    assert (n.value, n.kind, n.source) == (Decimal(value), kind, text)
+    assert text[n.start : n.end] == text
+
+
+@pytest.mark.parametrize("case", ["nomn", "gent", "datv", "accs", "ablt", "loct"])
+@pytest.mark.parametrize("value", [0, 1, 2, 21, 42, 101, 142, 999, 1000, 2026, 120034])
+def test_cardinal_roundtrip(value, case):
+    spoken = cardinal(value, case)
+    entities = list(word_numbers(spoken))
+    assert len(entities) == 1 and entities[0].value == value
+
+
+@pytest.mark.parametrize(
+    "source,expected",
+    [
+        ("громкость пятьдесят пять процентов", "громкость 55 процентов"),
+        ("яркость на девяносто девять", "яркость на 99"),
+        ("сделай на двадцать пять потише", "сделай на 25 потише"),
+        (
+            "напомни через двадцать одну минуту выпить чай",
+            "напомни через 1260 секунд выпить чай",
+        ),
+        (
+            "напомни через полтора часа выпить чай",
+            "напомни через 5400 секунд выпить чай",
+        ),
+        ("напомни через 1,5 часа выпить чай", "напомни через 5400 секунд выпить чай"),
+        ("таймер на один час и тридцать минут", "таймер через 5400 секунд"),
+        (
+            "напомни в половине седьмого вечера позвонить маме",
+            "напомни в 18:30 позвонить маме",
+        ),
+        (
+            "напомни в восемнадцать часов тридцать минут позвонить маме",
+            "напомни в 18:30 позвонить маме",
+        ),
+        ("напомни в семь вечера позвонить маме", "напомни в 19:00 позвонить маме"),
+        ("напомни в 18:30 позвонить маме", "напомни в 18:30 позвонить маме"),
+        ("расскажи о Петре I", "расскажи о Петре первом"),
+    ],
+)
+def test_input_corpus(source, expected):
+    result = analyze_command(source)
+    assert result.issue is None
+    assert result.command == expected
+    assert result.original == source
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Первый канал",
+        "открой Первый канал",
+        "открой Final Fantasy VII",
+        "добавь в список купить двадцать один метр кабеля",
+        "напиши три плюс пять",
+        "запомни код двадцать один",
+        "добавь в список купить таймер на двадцать минут",
+    ],
+)
+def test_payloads_are_not_rewritten(text):
+    assert analyze_command(text).command == text
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "громкость минус пять",
+        "яркость сто один",
+        "громкость 3,5",
+        "громкость три целых пять десятых процента",
+        "напомни через минус пять минут",
+        "таймер на ноль секунд",
+        "напомни в половине седьмого позвонить маме",
+        "напомни в двадцать пять часов позвонить маме",
+        "напомни в 25:99 позвонить маме",
+    ],
+)
+def test_invalid_or_ambiguous_commands_require_clarification(text):
+    assert analyze_command(text).issue
+
+
+@pytest.mark.parametrize(
+    "text,seconds,body",
+    [
+        ("напомни через двадцать одну минуту выпить чай", 1260, "выпить чай"),
+        ("напомни через две с половиной минуты проверить чай", 150, "проверить чай"),
+        ("напомни через час с половиной проверить чай", 5400, "проверить чай"),
+        ("таймер на один час и тридцать минут", 5400, ""),
+        ("напомни через полчаса выпить чай", 1800, "выпить чай"),
+        (
+            "напомни через 5 минут проверить таймер через полчаса",
+            300,
+            "проверить таймер через полчаса",
+        ),
+    ],
+)
+def test_shared_duration_parser(text, seconds, body):
+    assert timers._parse_duration(text) == seconds
+    assert timers._extract_reminder_text(text) == body
+
+
+def test_duration_not_taken_from_arbitrary_reminder_body():
+    assert parse_duration("завтра зайти на 5 этаж") is None
+
+
+def make_handler():
+    h = IntentHandler.__new__(IntentHandler)
+    h._pending_password = None
+    h._pending_question = None
+    h.mode = "combo"
+    h._recent_phrases = deque(maxlen=10)
+    h.dialog = deque(maxlen=100)
+    h.config = {}
+    h._pipeline = [FastHandlersStage()]
+    h._fast_handlers_cache = [
+        ("timer", lambda cmd: timers_fast(h, cmd)),
+        ("system", lambda cmd: system_fast(h, cmd)),
+    ]
+    return h
+
+
+def test_spoken_duration_reaches_real_handler_and_preserves_history():
+    h = make_handler()
+    source = "напомни через двадцать одну минуту выпить чай"
+    with (
+        patch.object(timers, "add", return_value={}) as add,
+        patch.object(memory, "append"),
+        patch.object(mood, "apply_from_text"),
+    ):
+        before = time.time()
+        result = h.handle(source)
+    text, fire_at = add.call_args.args
+    assert text == "выпить чай"
+    assert abs(fire_at - before - 1260) < 1
+    assert h._raw_cmd == source
+    assert h.dialog[0]["content"] == source
+    assert result.text
+
+
+def test_spoken_level_reaches_action():
+    from jarvis import actions, history
+
+    h = make_handler()
+    with (
+        patch.object(actions, "get_volume", return_value=20),
+        patch.object(actions, "set_volume", return_value=True) as set_volume,
+        patch.object(history, "push"),
+        patch.object(memory, "append"),
+        patch.object(mood, "apply_from_text"),
+    ):
+        h.handle("громкость пятьдесят пять процентов")
+    set_volume.assert_called_once_with(55)
+
+
+def test_password_never_enters_numeric_language_layer():
+    h = make_handler()
+    h.config = {"danger_password": "***"}
+    h._pending_password = {"intent": {}, "expires_at": time.time() + 30}
+    with patch("jarvis.language.analyze_command") as analyze:
+        h.handle("неверный пароль")
+    analyze.assert_not_called()
+
+
+def load_method(filename, classname, name, namespace):
+    path = Path(__file__).resolve().parents[1] / filename
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    cls = next(
+        n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == classname
+    )
+    fn = next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == name)
+    exec(compile(ast.Module(body=[fn], type_ignores=[]), str(path), "exec"), namespace)
+    return namespace[name]
+
+
+def test_wake_extraction_preserves_original_numeric_punctuation():
+    method = load_method(
+        "jarvis/main.py",
+        "Jarvis",
+        "_extract_command",
+        {"time": time, "normalize": normalize},
+    )
+    app = SimpleNamespace(
+        _wake_word_required=True, _awaiting_until=0, _is_wake=lambda s: s == "феникс"
+    )
+    assert method(app, "Феникс, напомни через 1,5 часа") == "напомни через 1,5 часа"
+
+
+def test_whisper_refinement_preserves_original_numeric_punctuation():
+    method = load_method(
+        "jarvis/main.py",
+        "Jarvis",
+        "_refine",
+        {"normalize": normalize, "log": Mock(), "_REJECT": object()},
+    )
+    app = SimpleNamespace(
+        whisper=SimpleNamespace(
+            transcribe=lambda _, **kw: "Феникс, напомни в 18:30",
+            last_quality=SimpleNamespace(accepted=True),
+        ),
+        config={},
+        _is_wake=lambda s: s == "феникс",
+    )
+    assert method(app, b"", True) == "напомни в 18:30"
+
+
+def test_speaker_direct_path_uses_same_preparation():
+    from jarvis.tts import Speaker
+
+    speaker = Speaker.__new__(Speaker)
+    speaker._ensure_engine = Mock(return_value=True)
+    speaker._new_token = Mock(return_value=Mock())
+    speaker._engine_name = "piper"
+    speaker._engine = Mock()
+    speaker._engine.synthesize.return_value = b""
+    speaker.voice = "ruslan"
+    speaker.rate = 1.0
+    speaker.speak("в XXI веке")
+    assert (
+        plain(speaker._engine.synthesize.call_args.args[0]) == "в двадцать первом веке"
+    )
+
+
+@pytest.mark.parametrize(
+    "source,expected",
+    [
+        ("при петре I", "при петре первом"),
+        ("1,5 м²", "одна целая пять десятых квадратного метра"),
+        ("±5 °C", "плюс-минус пять градусов Цельсия"),
+        ("№ 21", "номер двадцать один"),
+    ],
+)
+def test_additional_speech_cases(source, expected):
+    assert plain(prepare_text(source)) == plain(expected)
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "громкость пятьдесят двадцать",
+        "напомни через двадцать тридцать минут",
+        "напомни через один час и минус тридцать минут",
+    ],
+)
+def test_malformed_quantities_do_not_partially_execute(source):
+    assert analyze_command(source).issue
+
+
+def test_entities_include_contextual_roman_value():
+    result = analyze_command("расскажи о Петре I")
+    n = result.numbers[-1]
+    assert n.kind == "ordinal" and n.value == 1 and n.source == "I"
+
+
+def test_cardinal_does_not_cross_punctuation():
+    values = list(word_numbers("двадцать, один"))
+    assert [n.value for n in values] == [20, 1]
+
+
+def test_large_numbers_do_not_break_tts():
+    assert prepare_text("в 9999999999999999 веке")
+
+
+def test_speaker_async_path_uses_same_preparation():
+    from jarvis.tts import Speaker
+
+    class ThreadNow:
+        def __init__(self, target, **kwargs):
+            self.target = target
+
+        def start(self):
+            self.target()
+
+    speaker = Speaker.__new__(Speaker)
+    speaker._ensure_engine = Mock(return_value=True)
+    speaker._new_token = Mock(return_value=SimpleNamespace(is_set=lambda: False))
+    speaker.stop = Mock()
+    speaker.wait_end = Mock(return_value=True)
+    import threading
+
+    speaker._play_lock = threading.Lock()
+    speaker._playing = False
+    speaker._engine_name = "piper"
+    speaker._engine = Mock()
+    speaker._engine.synthesize.return_value = b""
+    speaker.voice = "ruslan"
+    speaker.rate = 1.0
+    with patch("jarvis.tts.threading.Thread", ThreadNow):
+        speaker.play_async("в XXI веке")
+    assert (
+        plain(speaker._engine.synthesize.call_args.args[0]) == "в двадцать первом веке"
+    )
+
+
+@pytest.mark.parametrize("engine", ["piper", "silero", "winrt", "sapi"])
+def test_all_streaming_engines_use_shared_preparation(engine):
+    path = (
+        Path(__file__).resolve().parents[1]
+        / "jarvis"
+        / "tts_engines"
+        / (engine + ".py")
+    )
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    play = next(
+        n
+        for n in ast.walk(tree)
+        if isinstance(n, ast.FunctionDef)
+        and n.name == ("_say" if engine == "sapi" else "_play")
+    )
+    assert any(
+        isinstance(n, ast.Call)
+        and isinstance(n.func, ast.Name)
+        and n.func.id == "prepare_text"
+        for n in ast.walk(play)
+    )
+
+
+def test_written_and_spoken_roman_queries_match():
+    assert normalize(analyze_command("расскажи о Петре I").command) == normalize(
+        analyze_command("расскажи о Петре первом").command
+    )
+    result = analyze_command("римское число XIV")
+    assert result.command == "римское число четырнадцать"
+    assert result.numbers[-1].kind == "cardinal"
+
+
+def test_spoken_clock_reaches_real_timer_handler():
+    h = make_handler()
+    with (
+        patch.object(timers, "add", return_value={}) as add,
+        patch.object(memory, "append"),
+        patch.object(mood, "apply_from_text"),
+    ):
+        h.handle("напомни в половине седьмого вечера позвонить маме")
+    text, fire_at = add.call_args.args
+    import datetime
+
+    clock = datetime.datetime.fromtimestamp(fire_at)
+    assert (clock.hour, clock.minute, text) == (18, 30, "позвонить маме")
+
+
+def test_compound_commands_preserve_decimal_comma():
+    from jarvis import actions, history
+    from jarvis.intents.stages.compound import CompoundStage
+
+    h = make_handler()
+    h._pipeline = [CompoundStage(), FastHandlersStage()]
+    with (
+        patch.object(actions, "get_volume", return_value=10),
+        patch.object(actions, "set_volume", return_value=True) as set_volume,
+        patch.object(history, "push"),
+        patch.object(timers, "add", return_value={}) as add,
+        patch.object(memory, "append"),
+        patch.object(mood, "apply_from_text"),
+    ):
+        before = time.time()
+        h.handle("поставь громкость двадцать, напомни через 1,5 часа выпить чай")
+    set_volume.assert_called_once_with(20)
+    assert add.call_args.args[0] == "выпить чай"
+    assert abs(add.call_args.args[1] - before - 5400) < 1
+
+
+def test_standalone_negative_survives_wake_extraction():
+    method = load_method(
+        "jarvis/main.py",
+        "Jarvis",
+        "_extract_command",
+        {"time": time, "normalize": normalize},
+    )
+    app = SimpleNamespace(
+        _wake_word_required=True, _awaiting_until=0, _is_wake=lambda s: s == "феникс"
+    )
+    assert method(app, "Феникс, -5") == "-5"
+```
+
 ### `tests/test_persona.py`
 
 ```python
@@ -24730,6 +27634,367 @@ def test_prosody_rms_reasonable():
     result = prosody.analyze_prosody(pcm, 16000)
     assert result is not None
     assert result["rms"] > 0
+```
+
+### `tests/test_recognition_quality.py`
+
+```python
+"""Recognition policy and integration tested without a microphone or model weights."""
+
+import ast
+from array import array
+from collections import deque
+import logging
+from pathlib import Path
+import threading
+import time
+from types import SimpleNamespace as NS
+from unittest.mock import Mock
+
+import pytest
+
+from jarvis.recognition import (
+    Quality,
+    assess_pcm,
+    assess_vosk,
+    assess_whisper,
+    transcripts_agree,
+)
+from jarvis.reply import Reply
+from jarvis.text_utils import normalize
+
+GOOD = Quality(True, "test")
+BAD = Quality(False, "test")
+PCM = array("h", [500, -500] * 4000).tobytes()
+REJECT, UNCERTAIN = object(), object()
+
+
+def method(filename, classname, name, **extra):
+    path = Path(__file__).resolve().parents[1] / filename
+    tree = ast.parse(path.read_text())
+    cls = next(
+        n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == classname
+    )
+    fn = next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == name)
+    env = {
+        "time": time,
+        "normalize": normalize,
+        "Reply": Reply,
+        "log": logging.getLogger("test.asr"),
+        "_REJECT": REJECT,
+        "_UNCERTAIN": UNCERTAIN,
+        **extra,
+    }
+    exec(compile(ast.Module(body=[fn], type_ignores=[]), str(path), "exec"), env)
+    return env[name]
+
+
+def segment(**kw):
+    return NS(
+        **{
+            "text": "Открой блокнот",
+            "avg_logprob": -0.2,
+            "no_speech_prob": 0.02,
+            "compression_ratio": 1.1,
+            **kw,
+        }
+    )
+
+
+@pytest.mark.parametrize(
+    "pcm",
+    [
+        b"",
+        b"\0",
+        b"\0\0" * 8000,
+        array("h", [1] * 8000).tobytes(),
+        array("h", [32767] * 8000).tobytes(),
+        array("h", [1000] * 10).tobytes(),
+    ],
+)
+def test_invalid_silent_or_clipped_audio_rejected(pcm):
+    assert not assess_pcm(pcm).accepted
+
+
+def test_signal_is_not_claimed_to_be_speech():
+    q = assess_pcm(PCM)
+    assert q.accepted and q.reason == "signal_present"
+    assert not assess_pcm(PCM, 0).accepted
+
+
+@pytest.mark.parametrize(
+    "scores,accepted",
+    [
+        ([0.9, 0.85], True),
+        ([0.8, 0.49], False),
+        ([0.64, 0.64], False),
+        ([0.95], True),
+        ([], False),
+        ([float("nan")], False),
+        ([1.01], False),
+    ],
+)
+def test_vosk_word_confidence(scores, accepted):
+    q = assess_vosk({"text": "Феникс открой", "result": [{"conf": v} for v in scores]})
+    assert q.accepted == accepted
+    assert "Феникс" not in str(q)
+
+
+@pytest.mark.parametrize(
+    "result",
+    [
+        {},
+        {"text": "да"},
+        {"text": "", "result": [{"conf": 0.99}]},
+        {"text": "нет", "result": [{}]},
+        {"text": "нет", "result": [{"conf": "invalid"}]},
+    ],
+)
+def test_missing_vosk_evidence_is_not_confident(result):
+    assert not assess_vosk(result).accepted
+
+
+@pytest.mark.parametrize(
+    "changes,accepted",
+    [
+        ({}, True),
+        ({"avg_logprob": -1.2}, False),
+        ({"no_speech_prob": 0.9}, False),
+        ({"compression_ratio": 3}, False),
+        ({"avg_logprob": float("nan")}, False),
+        ({"no_speech_prob": -1}, False),
+        ({"text": ""}, False),
+        ({"text": "Квантовый Кракозябр"}, True),
+    ],
+)
+def test_whisper_evidence_not_vocabulary_blacklist(changes, accepted):
+    assert assess_whisper([segment(**changes)]).accepted == accepted
+
+
+def test_whole_utterance_rejected_if_one_fragment_unclear():
+    assert not assess_whisper([segment(), segment(text="не", avg_logprob=-2)]).accepted
+    assert not assess_whisper([NS(text="да")]).accepted
+    assert not assess_whisper([]).accepted
+
+
+def test_thresholds_are_configurable_and_invalid_settings_safe():
+    result = {"text": "да", "result": [{"conf": 0.6}]}
+    assert assess_vosk(result, {"stt_min_word_confidence": 0.55}).accepted
+    assert not assess_vosk(result, {"stt_min_word_confidence": float("nan")}).accepted
+    assert assess_whisper(
+        [segment(avg_logprob=-1.1)], {"stt_min_avg_logprob": -1.3}
+    ).accepted
+
+
+@pytest.mark.parametrize(
+    "a,b,agrees",
+    [
+        ("открой блокнот", "закрой блокнот", False),
+        ("включи звук", "не включи звук", False),
+        ("громкость 15", "громкость 50", False),
+        ("громкость пятьдесят", "громкость 50", True),
+        ("напомни через 1 час", "напомни через 60 минут", True),
+        ("открой Steam", "открой стим", True),
+        ("открой браузер", "открой блокнот", False),
+        ("открой", "открой блокнот", False),
+        ("Расскажи о космосе", "Расскажи про космос", True),
+    ],
+)
+def test_critical_disagreements(a, b, agrees):
+    assert transcripts_agree(a, b) == agrees
+
+
+def app(primary=GOOD, refined="открой блокнот", whisper=True):
+    a = NS(
+        config={
+            "sample_rate": 16000,
+            "prosody_enabled": False,
+            "command_window_sec": 6,
+        },
+        handler=NS(handle=Mock(return_value=Reply(text="Готово"))),
+        gui=Mock(),
+        observer=Mock(),
+        cmd_lock=threading.Lock(),
+        speaker=Mock(),
+        say=Mock(return_value=False),
+        listener=NS(last_quality=primary, recent_phrases=deque(maxlen=10)),
+        _awaiting_until=time.time() + 30,
+        _extract_command=lambda s: s,
+        _refine=Mock(return_value=refined),
+        whisper=object() if whisper else None,
+    )
+    a._request_repeat = lambda: method("jarvis/main.py", "Jarvis", "_request_repeat")(a)
+    return a
+
+
+@pytest.mark.parametrize("refined", [UNCERTAIN, None])
+def test_uncertain_never_reaches_commands_gui_or_learning(refined):
+    a = app(primary=BAD, refined=refined)
+    method("jarvis/main.py", "Jarvis", "_process")(a, "открой блокнот", PCM)
+    a.handler.handle.assert_not_called()
+    a.observer.observe.assert_not_called()
+    assert all(call.args[0] != "user" for call in a.gui.add_message.call_args_list)
+    assert "открой блокнот" not in str(a.gui.add_message.mock_calls)
+    assert not a.listener.recent_phrases
+    assert "Повтори" in a.say.call_args.args[0].text
+
+
+def test_silence_cannot_trigger_actions_even_with_confident_text():
+    a = app()
+    method("jarvis/main.py", "Jarvis", "_process")(a, "открой блокнот", b"\0\0" * 8000)
+    a.handler.handle.assert_not_called()
+    a._refine.assert_not_called()
+
+
+@pytest.mark.parametrize("primary", [None, BAD])
+def test_vosk_only_requires_evidence(primary):
+    a = app(primary=primary, whisper=False)
+    method("jarvis/main.py", "Jarvis", "_process")(a, "открой блокнот", PCM)
+    a.handler.handle.assert_not_called()
+
+
+def test_stronger_whisper_can_rescue_vosk():
+    a = app(primary=BAD)
+    method("jarvis/main.py", "Jarvis", "_process")(a, "открой что-то", PCM)
+    a.handler.handle.assert_called_once_with("открой блокнот")
+    assert list(a.listener.recent_phrases) == ["открой блокнот"]
+
+
+def test_failed_whisper_may_fall_back_only_to_confident_vosk():
+    a = app(refined=None)
+    method("jarvis/main.py", "Jarvis", "_process")(a, "открой блокнот", PCM)
+    a.handler.handle.assert_called_once_with("открой блокнот")
+
+
+def test_reliable_but_disagreeing_commands_require_repeat():
+    a = app(refined="закрой блокнот")
+    method("jarvis/main.py", "Jarvis", "_process")(a, "открой блокнот", PCM)
+    a.handler.handle.assert_not_called()
+    assert not a.listener.recent_phrases
+
+
+def test_unconfirmed_wake_is_ignored_not_answered():
+    a = app(refined=REJECT)
+    method("jarvis/main.py", "Jarvis", "_process")(a, "открой блокнот", PCM)
+    a.handler.handle.assert_not_called()
+    a.say.assert_not_called()
+
+
+def test_repeat_prompt_is_rate_limited():
+    a = app()
+    a._request_repeat()
+    a._request_repeat()
+    a.say.assert_called_once()
+    assert a._awaiting_until > time.time()
+
+
+@pytest.mark.parametrize(
+    "quality,text,expected",
+    [
+        (BAD, "выдумка", UNCERTAIN),
+        (None, "выдумка", UNCERTAIN),
+        (GOOD, "", UNCERTAIN),
+        (GOOD, "Феникс, громкость 15", "громкость 15"),
+    ],
+)
+def test_refine_requires_fresh_evidence(quality, text, expected):
+    a = NS(
+        whisper=NS(transcribe=Mock(return_value=text), last_quality=quality),
+        config={},
+        _wake_word_required=True,
+        _is_wake=lambda s: s == "феникс",
+    )
+    assert method("jarvis/main.py", "Jarvis", "_refine")(a, PCM, True) == expected
+
+
+@pytest.mark.parametrize(
+    "required,awaiting,expected",
+    [
+        (True, False, REJECT),
+        (False, False, "закрой блокнот"),
+        (True, True, "закрой блокнот"),
+    ],
+)
+def test_no_weak_wake_guess(required, awaiting, expected):
+    a = NS(
+        whisper=NS(transcribe=Mock(return_value="закрой блокнот"), last_quality=GOOD),
+        config={},
+        _wake_word_required=required,
+        _is_wake=lambda s: False,
+    )
+    assert method("jarvis/main.py", "Jarvis", "_refine")(a, PCM, awaiting) == expected
+
+
+def test_transcriber_checks_segments_and_has_no_content_priming():
+    np = pytest.importorskip("numpy")
+    transcribe = method("jarvis/stt.py", "WhisperTranscriber", "transcribe", np=np)
+    a = NS(
+        _ensure_loaded=Mock(),
+        _config={},
+        _model=NS(transcribe=Mock(return_value=(iter([segment()]), None))),
+    )
+    assert transcribe(a, PCM) == "Открой блокнот"
+    kw = a._model.transcribe.call_args.kwargs
+    assert kw["initial_prompt"] is None
+    assert kw["condition_on_previous_text"] is False
+    assert kw["temperature"] == 0
+    assert a.last_quality.accepted
+    a._model.transcribe.return_value = (iter([segment(no_speech_prob=0.99)]), None)
+    assert transcribe(a, PCM) == ""
+    assert not a.last_quality.accepted
+    a._model.transcribe.reset_mock()
+    assert transcribe(a, b"\0\0" * 8000) == ""
+    a._model.transcribe.assert_not_called()
+
+
+def test_parser_abstention_is_clarification_not_second_guess():
+    from jarvis.intents.context import Ctx
+    from jarvis.intents.stages.llm import LLMStage
+
+    h = NS(
+        mode="combo",
+        brain=NS(available=True, parse=Mock(return_value={"action": "none"})),
+        _chat_stream=Mock(),
+    )
+    reply = LLMStage().handle(Ctx(cmd="открой эту штуку", handler=h))
+    assert "Уточни" in reply
+    h._chat_stream.assert_not_called()
+
+
+def test_transcription_error_does_not_keep_old_quality():
+    np = pytest.importorskip("numpy")
+    transcribe = method("jarvis/stt.py", "WhisperTranscriber", "transcribe", np=np)
+    a = NS(
+        last_quality=GOOD, _ensure_loaded=Mock(side_effect=RuntimeError("not loaded"))
+    )
+    with pytest.raises(RuntimeError):
+        transcribe(a, PCM)
+    assert a.last_quality is None
+
+
+def test_uncertain_password_never_reaches_handler_or_history():
+    a = app(primary=BAD)
+    a.handler._pending_password = {"expires_at": time.time() + 20}
+    a._is_wake = lambda s: s == "феникс"
+    method("jarvis/main.py", "Jarvis", "_process")(a, "пароль секрет", PCM)
+    a.handler.handle.assert_not_called()
+    a._refine.assert_not_called()
+    a.observer.observe.assert_not_called()
+    assert "секрет" not in str(a.gui.mock_calls)
+    assert not a.listener.recent_phrases
+
+
+def test_pending_question_opens_window_before_extracting_answer():
+    a = app(whisper=False)
+    a.handler._pending_question = {"expires_at": time.time() + 20}
+    a._awaiting_until = 0
+    a._wake_word_required = True
+    a._is_wake = lambda s: False
+    a._extract_command = lambda s: method(
+        "jarvis/main.py", "Jarvis", "_extract_command"
+    )(a, s)
+    method("jarvis/main.py", "Jarvis", "_process")(a, "второй вариант", PCM)
+    a.handler.handle.assert_called_once_with("второй вариант")
 ```
 
 ### `tests/test_safety.py`
@@ -24982,7 +28247,6 @@ def test_max_blocks_property():
 """stt.Listener: живое применение настроек (то, что раньше не работало). ... [11 строк]"""
 
 import importlib.util
-import queue
 import time
 from threading import Event, Thread
 
@@ -25004,6 +28268,10 @@ class FakeRec:
     def __init__(self):
         self.reset_calls = 0
         self.accepted = 0
+        self.words_enabled = False
+
+    def SetWords(self, enabled):
+        self.words_enabled = enabled
 
     def AcceptWaveform(self, data):
         self.accepted += 1
@@ -25402,6 +28670,10 @@ def test_phrases_keeps_stream_without_device_change(monkeypatch, listener):
     thread.join(timeout=3.0)
 
     assert FakeStream.opened == [None]
+
+
+def test_listener_enables_word_confidence(listener):
+    assert listener._rec.words_enabled
 ```
 
 ### `tests/test_tray.py`
@@ -28862,7 +32134,7 @@ def check_dependencies(project_dir: Path, logger) -> bool:
         return False
     try:
         result = subprocess.run(
-            [str(python), "-c", "import flet, vosk; print('ok')"],
+            [str(python), "-c", "import flet, vosk, pymorphy3, num2words; print('ok')"],
             capture_output=True,
             text=True,
             timeout=15,
@@ -31115,6 +34387,10 @@ flet>=1.0.3
 # --- Тесты ---
 pytest>=8.0
 pytest-asyncio>=0.23
+
+# --- Языковой слой: формы чисел и русская морфология (офлайн) ---
+num2words>=0.5.14,<0.6
+pymorphy3>=2.0.3,<3
 ```
 
 ### `requirements-dev.txt`
@@ -31194,6 +34470,10 @@ silero>=0.4
 
 # === VAD ===
 onnxruntime>=1.17
+
+# --- Языковой слой: формы чисел и русская морфология (офлайн) ---
+num2words>=0.5.14,<0.6
+pymorphy3>=2.0.3,<3
 ```
 
 ## 5. Документация (только оглавления)
@@ -31481,4 +34761,4 @@ onnxruntime>=1.17
 
 ---
 
-_Итого по категориям — code: 136, data: 20, doc: 11, pack: 5. Режим `lean`._
+_Итого по категориям — code: 150, data: 20, doc: 11, pack: 5. Режим `lean`._

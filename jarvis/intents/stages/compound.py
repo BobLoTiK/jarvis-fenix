@@ -27,7 +27,11 @@ class CompoundStage(Stage):
 
         replies = []
         for part in parts:
-            sub = ctx.handler._handle_single(part)
+            from jarvis.language import analyze_command
+            analysis = analyze_command(part)
+            if analysis.issue:
+                return analysis.issue
+            sub = ctx.handler._handle_single(normalize(analysis.command))
             if isinstance(sub, str) and sub.strip():
                 replies.append(sub.strip())
             # Если sub — генератор (chat_stream) — пропускаем.
@@ -37,7 +41,7 @@ class CompoundStage(Stage):
         return None
 
     def _split(self, ctx) -> list[str] | None:
-        """Возвращает нормализованные части или None, если не compound.
+        """Возвращает исходные части или None, если не compound.
 
         Режем СЫРУЮ фразу (handler._raw_cmd): normalize() удаляет запятые,
         поэтому split по «, » на нормализованном тексте никогда не срабатывал
@@ -47,18 +51,20 @@ class CompoundStage(Stage):
         raw = getattr(h, "_raw_cmd", "") or ""
         # Сырую фразу берём только на верхнем уровне: в рекурсии ctx.cmd —
         # это уже часть, и повторный split по всему raw зациклил бы разбор.
-        source = raw if normalize(raw) == ctx.cmd else ctx.cmd
+        from jarvis.language import analyze_command
+        source = raw if normalize(analyze_command(raw).command) == ctx.cmd else ctx.cmd
 
-        parts = re.split(r"\s+и\s+|,\s*", source)
+        parts = re.split(r"\s+и\s+|(?<!\d),\s*|,(?!\d)\s*", source)
         if len(parts) < 2:
             return None
 
-        parts = [normalize(p) for p in parts if p.strip()]
+        parts = [p.strip() for p in parts if p.strip()]
         if len(parts) < 2:
             return None
 
         for part in parts:
-            first = part.split()[0] if part.split() else ""
+            tokens = normalize(part).split()
+            first = tokens[0] if tokens else ""
             if first not in COMMAND_VERBS:
                 return None
 

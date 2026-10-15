@@ -147,8 +147,28 @@ class IntentHandler:
         """Возвращает Reply: либо text, либо stream."""
         self.last_was_chat = False
 
+        # Ответ на пароль не проходит через коррекции, историю или логи.
+        if self._pending_password:
+            from jarvis.intents.context import Ctx
+            from jarvis.intents.stages.password import PasswordStage
+
+            self._raw_cmd = ""
+            try:
+                result = PasswordStage().handle(
+                    Ctx(cmd=normalize(cmd), original_cmd=cmd, handler=self)
+                )
+                self._last_reply = result or "Действие отменено."
+                return Reply(text=self._last_reply)
+            finally:
+                self._raw_cmd = ""
+
         self._raw_cmd = cmd
-        cmd = normalize(cmd)
+        from jarvis.language import analyze_command
+        analysis = analyze_command(cmd)
+        self._number_analysis = analysis
+        if analysis.issue:
+            return Reply(text=analysis.issue)
+        cmd = normalize(analysis.command)
         actions_log.info("Команда: %r (режим: %s)", cmd, self.mode)
         self._recent_phrases.append(cmd)
 
@@ -170,7 +190,7 @@ class IntentHandler:
         except Exception:
             log.exception("mood.apply_from_text упал на %r", cmd)
 
-        user_msg = {"role": "user", "content": cmd}
+        user_msg = {"role": "user", "content": self._raw_cmd}
         self.dialog.append(user_msg)
         memory.append(user_msg)
 

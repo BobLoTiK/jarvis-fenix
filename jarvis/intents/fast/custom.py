@@ -46,17 +46,11 @@ def load_packs_as_custom(config) -> list:
 
 def match_custom(handler, cmd: str) -> str | None:
     """Точное совпадение или нечёткое (>=0.85, обе фразы >=12 символов)."""
-    from jarvis import actions
-    from jarvis.intents.execute import execute_steps
-
     for phrases, action, reply in handler.custom:
         for phrase in phrases:
             if cmd == phrase:
                 log.info("Custom (точно): %r → %r, action=%r", cmd, phrase, action)
-                if isinstance(action, list):
-                    return execute_steps(handler, action) or reply
-                actions.run_spec(actions.spec_from_string(action))
-                return reply
+                return execute_custom(handler, action, reply)
 
             # Нечёткий матч — только для длинных фраз.
             # Короткие («вк», «отк») слишком легко путаются.
@@ -65,8 +59,25 @@ def match_custom(handler, cmd: str) -> str | None:
                 if ratio >= 0.85:
                     log.info("Custom (нечётко %.2f): %r → %r, action=%r",
                              ratio, cmd, phrase, action)
-                    if isinstance(action, list):
-                        return execute_steps(handler, action) or reply
-                    actions.run_spec(actions.spec_from_string(action))
-                    return reply
+                    return execute_custom(handler, action, reply)
     return None
+
+
+def execute_custom(handler, action, reply: str, *, authorized: bool = False) -> str:
+    """Проверяет весь сценарий ДО первого шага, включая строковые команды."""
+    from jarvis import actions
+    from jarvis.intents.execute import execute_steps
+    from jarvis.intents.password import is_danger
+
+    intent = ({"steps": action} if isinstance(action, list)
+              else {"action": "open_app", "target": action})
+    stored = str(handler.config.get("danger_password") or "").strip()
+    if not authorized and is_danger(intent, stored):
+        return handler._ask_password({
+            "action": "custom_command", "spec": action, "reply": reply,
+        })
+    if isinstance(action, list):
+        return execute_steps(handler, action) or reply
+    if not actions.run_spec(actions.spec_from_string(action)):
+        return "Не удалось выполнить команду."
+    return reply

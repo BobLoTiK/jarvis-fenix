@@ -1,15 +1,4 @@
-"""Отбор фактов в system-промпт (jarvis.brain._system_with_context).
-
-Векторная память подмешивает только релевантные запросу факты. Если она
-выключена или не уверена — в промпт идут ВСЕ факты, как раньше: фича не
-должна ухудшать ответы. Проверяем развилку без сети и без Ollama.
-
-Проверяем:
-    - выключено → блок памяти пуст, факты идут целиком (как до фичи);
-    - включено и есть отбор → в промпте только отобранные факты;
-    - build_context получает include_facts=False, чтобы факты не дублировались;
-    - нет запроса (query=None) → отбора нет, факты целиком.
-"""
+"""Query-scoped memory: unavailable retrieval never means send all facts."""
 
 import pytest
 
@@ -17,8 +6,12 @@ from jarvis import learning, profile, vectormem
 from jarvis.brain import CHAT_SYSTEM, Brain
 from jarvis.config import Config
 
-FACTS = {"город": "Казань", "работа": "программист",
-         "любимая игра": "Дота", "любимый фильм": "Матрица"}
+FACTS = {
+    "город": "Казань",
+    "работа": "программист",
+    "любимая игра": "Дота",
+    "любимый фильм": "Матрица",
+}
 
 
 @pytest.fixture(autouse=True)
@@ -54,80 +47,79 @@ def brain(cfg, monkeypatch):
     return b
 
 
-def test_disabled_keeps_all_facts(brain, cfg):
-    """Фича выключена (дефолт) — промпт не отличается от того, что был до неё."""
+@pytest.mark.parametrize(
+    "query",
+    [
+        None,
+        "Расскажи что-нибудь",
+        "Расскажи мне что-нибудь",
+        "Почему небо голубое?",
+        "Расскажи о Казани",
+    ],
+)
+def test_generic_queries_do_not_inject_personal_facts(brain, query):
+    prompt = brain._system_with_context(CHAT_SYSTEM, query)
+    assert all(value not in prompt for value in FACTS.values())
+
+
+def test_disabled_memory_keeps_only_requested_facts(brain):
     prompt = brain._system_with_context(CHAT_SYSTEM, "какой у меня город")
-
-    for value in FACTS.values():
-        assert value in prompt
-
-
-def test_no_query_keeps_all_facts(brain):
-    """Запроса нет (онбординг, разбор команды) — отбирать нечего."""
-    prompt = brain._system_with_context(CHAT_SYSTEM)
-
-    for value in FACTS.values():
-        assert value in prompt
+    assert "Казань" in prompt
+    assert all(value not in prompt for key, value in FACTS.items() if key != "город")
 
 
-def test_rag_block_replaces_full_fact_list(brain, cfg, monkeypatch):
-    """Память отобрала факты — остальные в промпт не идут."""
+def test_rag_block_replaces_selected_fact_list(brain, cfg, monkeypatch):
     cfg.set("memory_rag_enabled", True)
     seen = {}
 
-    def _fake_block(query, k=None):
-        seen["query"] = query
-        return "Факты о пользователе (отобраны по смыслу запроса):\n- город: Казань\n"
+    def fake(query, k=None, allowed_keys=None):
+        seen["allowed"] = allowed_keys
+        return "Факты о пользователе:\n- город: Казань\n"
 
-    monkeypatch.setattr(vectormem, "build_prompt_block", _fake_block)
-
+    monkeypatch.setattr(vectormem, "build_prompt_block", fake)
     prompt = brain._system_with_context(CHAT_SYSTEM, "какой у меня город")
-
-    assert seen["query"] == "какой у меня город"
-    assert "Казань" in prompt
+    assert seen["allowed"] == {"город"}
+    assert prompt.count("Казань") == 1
     assert "Матрица" not in prompt
-    assert "программист" not in prompt
 
 
 def test_facts_are_not_duplicated(brain, cfg, monkeypatch):
-    """Когда память отобрала факты, build_context их уже не добавляет."""
     cfg.set("memory_rag_enabled", True)
-    monkeypatch.setattr(vectormem, "build_prompt_block",
-                        lambda query, k=None: "Факты о пользователе:\n- город: Казань\n")
-
+    monkeypatch.setattr(
+        vectormem,
+        "build_prompt_block",
+        lambda *a, **kw: "Факты о пользователе:\n- город: Казань\n",
+    )
     calls = []
     original = learning.build_context
-    monkeypatch.setattr(learning, "build_context",
-                        lambda include_facts=True: calls.append(include_facts) or original(include_facts))
 
+    def spy(include_facts=True, **kw):
+        calls.append(include_facts)
+        return original(include_facts, **kw)
+
+    monkeypatch.setattr(learning, "build_context", spy)
     brain._system_with_context(CHAT_SYSTEM, "какой у меня город")
-
     assert calls == [False]
 
 
-def test_build_context_include_facts_flag(cfg):
-    """include_facts=False убирает блок фактов, но профиль и коррекции остаются."""
-    vectormem.set_config(cfg)
-    for key, value in FACTS.items():
-        learning.add_fact(key, value)
-
-    with_facts = learning.build_context()
-    without = learning.build_context(include_facts=False)
-
-    assert "Казань" in with_facts
-    assert "Казань" not in without
+def test_build_context_include_facts_flag(brain):
+    assert "Казань" in learning.build_context(query="какой у меня город")
+    assert "Казань" not in learning.build_context(False, query="какой у меня город")
+    assert learning.build_context() == ""
 
 
-def test_broken_memory_does_not_break_prompt(brain, cfg, monkeypatch):
-    """Падение памяти не должно ломать диалог — факты просто идут как раньше."""
+@pytest.mark.parametrize("broken", [False, True])
+def test_failed_or_empty_rag_never_sends_everything(brain, cfg, monkeypatch, broken):
     cfg.set("memory_rag_enabled", True)
 
-    def _boom(query, k=None):
-        raise RuntimeError("память сломалась")
+    def block(*a, **kw):
+        if broken:
+            raise RuntimeError("unavailable")
+        return ""
 
-    monkeypatch.setattr(vectormem, "build_prompt_block", _boom)
-
+    monkeypatch.setattr(vectormem, "build_prompt_block", block)
     prompt = brain._system_with_context(CHAT_SYSTEM, "какой у меня город")
-
     assert "Казань" in prompt
-    assert "Матрица" in prompt
+    assert "Матрица" not in prompt
+    assert "программист" not in prompt
+    assert learning.all_facts() == FACTS
