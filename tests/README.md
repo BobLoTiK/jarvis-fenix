@@ -15,6 +15,24 @@
 | Локальная аудиорегрессия | `tests/audio/` | `python scripts/audio_regression.py prepare`, затем `run` |
 | Ручные прогоны | `tests/manual/` | вручную: микрофон / браузер / ONNX |
 
+## Локальная гигиена Git
+
+`test_git_hygiene.py`: настоящие временные репозитории/индексы без создания
+коммитов. Проверяются stale staged snapshot и свежий unstaged, частичный staging,
+конфликты индекса, пути с пробелами/кириллицей, запрет symlink-входа, локальный лог,
+сохранность индекса/чужих hooks/core.hooksPath, установка и реальный запуск hook,
+Windows-подобное преобразование CRLF с отдельным LF-правилом для shell-template.
+Никаких изменений Git рабочего проекта. Установка добровольная:
+`python scripts/install_git_hooks.py`; подробности — CONTRIBUTING.md.
+
+Проверка этого шага: **18 новых тестов** Git/hook, без создания коммитов.
+Linux/Python 3.13: **842 passed, 5 skipped** с чистыми requirements-ci и
+эмуляцией Windows-лимита окружения (browser/window модули исключены только здесь);
+**945 passed, 14 skipped** в дополнительном полном headless-прогоне с внешними
+подменами Windows-реестра/аудиотранспорта/os.startfile. Это не Windows CI.
+Синтаксис 169 Python-файлов проверен также grammar Python 3.11; настоящий
+Windows/Python 3.11 и пользовательский локальный hook ещё требуют целевой приёмки.
+
 ## Автоматический аудиопрогон
 
 Инструкции — [audio/README.md](audio/README.md). По умолчанию 27 кейсов / 51 ход:

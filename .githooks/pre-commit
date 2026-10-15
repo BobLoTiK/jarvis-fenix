@@ -1,0 +1,18 @@
+#!/bin/sh
+# fenix-snapshot-pre-commit-v1
+set -eu
+root=$(git rev-parse --show-toplevel) || exit 2
+cd "$root" || exit 2
+for py in .venv311/Scripts/python.exe .venv311/bin/python .venv/Scripts/python.exe .venv/bin/python; do
+    if [ -f "$py" ]; then
+        exec "$py" -X utf8 scripts/check_staged_snapshot.py
+    fi
+done
+if command -v python >/dev/null 2>&1; then
+    exec python -X utf8 scripts/check_staged_snapshot.py
+fi
+if command -v python3 >/dev/null 2>&1; then
+    exec python3 -X utf8 scripts/check_staged_snapshot.py
+fi
+printf '%s\n' 'Snapshot hook: Python not found; activate .venv311.' >&2
+exit 2

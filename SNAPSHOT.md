@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=42f55bb87ab1402a` · режим `lean` · файлов `207` · строк `41683` · источник `1786 КБ`
+`sha256=111788644d75a387` · режим `lean` · файлов `211` · строк `42348` · источник `1818 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -200,6 +200,19 @@ Windows CI, живой микрофон, COM, установщик и просл
 не закрывать блоками обновлений. Датированные изменения — в CHANGELOG, описание
 возможностей — в соответствующих разделах README. Старые записи CHANGELOG и graphify-отчёт — история, не текущая карта.
 
+### Локальная проверка подготовленного коммита
+
+Одноразово: `python scripts/install_git_hooks.py`. Установка добровольная, только
+одного `.git/hooks/pre-commit`; существующий hook и core.hooksPath сохраняются,
+при конфликте установка отказывается и предлагает ручную интеграцию.
+`scripts/check_staged_snapshot.py` читает индекс Git и проверяет staged-версию
+snapshot.py/SNAPSHOT.md на временном дереве только подготовленных файлов.
+Не делает git add/commit/push, не переписывает рабочие файлы или индекс. Частичный
+staging учитывается: свежий рабочий SNAPSHOT не маскирует старый в индексе.
+Конфликт индекса/симлинк входного файла/нет снимка — отказ, не успешный пропуск.
+`pytest-log.txt` исключён из Git/Cline/snapshot; уже tracked-файл нужно отдельно
+убрать из индекса через git rm --cached, не удаляя локально. См. CONTRIBUTING.md.
+
 ### Отдельная аудиорегрессия
 
 `scripts/audio_regression.py prepare` синтезирует версионированный корпус;
@@ -215,6 +228,7 @@ WAV/отчёты: `paths.audio_regression_dir()` → USER_DIR/audio-regression.
 
 ## 9. Дальше
 
+Vosk сохраняем; замену/удаление и сравнение альтернатив ASR не планируем.
 Текущий курс — развитие самого Феникса, см. PLAN.md: приёмка аудиорегрессий,
 затем GUI (удобство/функции → оформление), далее контекст исправлений, подтверждаемое самообучение поверх существующего learning,
 качество памяти и измеряемая оптимизация. Облако, Telegram/веб, Hermes, MCP,
@@ -230,30 +244,33 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 
 ```
 ./
-├── .clineignore  (48 стр)
+├── .clineignore  (53 стр)
 ├── .clinerules  (44 стр)
+├── .gitattributes  (2 стр)
+├── .githooks/
+│   ├── pre-commit  (18 стр)
 ├── .github/
 │   ├── workflows/
 │   │   ├── README.md  (74 стр)
 │   │   ├── release.yml  (114 стр)
 │   │   ├── test.yml  (71 стр)
-├── AGENTS.md  (102 стр)
+├── AGENTS.md  (118 стр)
 ├── ARCHITECTURE.md  (1042 стр)
 ├── assets/
 │   ├── nonverbal/
 │   │   ├── README.md  (40 стр)
 │   │   ├── sources.json  (53 стр)
-├── CHANGELOG.md  (1254 стр)
+├── CHANGELOG.md  (1272 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
 ├── check_syntax.py  (60 стр)
-├── CI.md  (288 стр)
+├── CI.md  (304 стр)
 ├── cmds/
 │   ├── open_terminal.bat  (3 стр)
 │   ├── show_ip.bat  (3 стр)
 ├── config.example.json  (85 стр)
-├── CONTRIBUTING.md  (400 стр)
+├── CONTRIBUTING.md  (438 стр)
 ├── create_shortcut.bat  (51 стр)
 ├── install.bat  (411 стр)
 ├── installer.iss  (119 стр)
@@ -373,12 +390,11 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── sites.json  (22 стр)
 │   ├── system.json  (17 стр)
 │   ├── work.json  (11 стр)
-├── PLAN.md  (193 стр)
-├── PROJECT.md  (211 стр)
-├── PROMPT.md  (506 стр)
-├── pytest-log.txt  (27 стр)
+├── PLAN.md  (216 стр)
+├── PROJECT.md  (225 стр)
+├── PROMPT.md  (511 стр)
 ├── pytest.ini  (20 стр)
-├── README.md  (1110 стр)
+├── README.md  (1112 стр)
 ├── requirements-ci.txt  (36 стр)
 ├── requirements-dev.txt  (10 стр)
 ├── requirements.txt  (63 стр)
@@ -388,6 +404,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── build_exe.py  (78 стр)
 │   ├── build_setup.py  (208 стр)
 │   ├── check_caps.py  (174 стр)
+│   ├── check_staged_snapshot.py  (149 стр)
+│   ├── install_git_hooks.py  (82 стр)
 │   ├── make_icon.py  (80 стр)
 │   ├── make_installer_images.py  (121 стр)
 │   ├── mics.py  (52 стр)
@@ -397,7 +415,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── vadbench.py  (185 стр)
 │   ├── voicedemo.py  (41 стр)
 │   ├── wakebench.py  (88 стр)
-├── snapshot.py  (712 стр)
+├── snapshot.py  (713 стр)
 ├── start_fenix.bat  (6 стр)
 ├── start_fenix_debug.bat  (15 стр)
 ├── tests/
@@ -418,7 +436,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── uia_manual.py  (61 стр)
 │   │   ├── vad_debug.py  (61 стр)
 │   │   ├── vad_live.py  (41 стр)
-│   ├── README.md  (201 стр)
+│   ├── README.md  (219 стр)
 │   ├── stress_intents.py  (552 стр)
 │   ├── test_audio_regression.py  (556 стр)
 │   ├── test_audit_regressions.py  (258 стр)
@@ -429,6 +447,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_clarification.py  (411 стр)
 │   ├── test_config_manager.py  (47 стр)
 │   ├── test_engine_probe.py  (100 стр)
+│   ├── test_git_hygiene.py  (285 стр)
 │   ├── test_gui_wiring.py  (548 стр)
 │   ├── test_intents.py  (485 стр)
 │   ├── test_main_wiring.py  (202 стр)
@@ -1836,6 +1855,29 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def main()
 ```
 
+**`scripts/check_staged_snapshot.py`**
+
+```
+  # Check the Git index, not an unstaged working-tree snapshot; never stage files.
+  ROOT = ...
+  class CheckError(RuntimeError)
+  def git(root, *args, data=None)
+  def staged_files(root)
+  def checkout(root, target, names)
+  def check_staged(root)
+  def main(argv=None)
+```
+
+**`scripts/install_git_hooks.py`**
+
+```
+  # Opt-in install of one local pre-commit hook; preserve all existing hooks/config.
+  ROOT = ...
+  def git(root, *args)
+  def install(root)
+  def main(argv=None)
+```
+
 **`scripts/make_icon.py`**
 
 ```
@@ -2290,6 +2332,38 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_probe_result_is_cached(monkeypatch)
   def test_real_voice_does_not_use_probe(monkeypatch)
   def test_list_engines_matches_probes()
+```
+
+**`tests/test_git_hygiene.py`**
+
+```
+  # Exercise real temporary Git indexes/hooks; never commit or alter the user's repo.
+  ROOT = ...
+  CHECKER = ...
+  INSTALLER = ...
+  def repo(tmp_path, monkeypatch)
+  def git(root, *args, data=None)
+  def snapshot(root)
+  def check(root)
+  def install(root)
+  def test_staged_snapshot_passes_without_writes(repo)
+  def test_stale_staged_snapshot_fails(repo)
+  def test_fresh_unstaged_snapshot_cannot_hide_stale_index(repo)
+  def test_unstaged_edits_do_not_block_consistent_prepared_commit(repo)
+  def test_missing_staged_snapshot_blocks(repo)
+  def test_tracked_log_requires_explicit_untracking(repo)
+  def test_test_log_is_ignored_and_does_not_change_snapshot(repo)
+  def test_staged_doc_change_is_checked(repo)
+  def test_spaces_and_unicode_paths(repo)
+  def test_index_symlink_input_is_rejected_without_creating_symlink(repo)
+  def test_unmerged_index_is_rejected(repo)
+  def test_install_is_opt_in_idempotent_and_preserves_other_hooks(repo)
+  def test_existing_pre_commit_is_never_overwritten(repo)
+  def test_existing_hooks_path_is_never_changed(repo)
+  def test_installed_hook_runs_actual_checker(repo)
+  def test_not_a_repository_fails_clearly(tmp_path)
+  def test_clinerules_numbering_and_ignore_files_are_consistent()
+  def test_windows_checkout_line_endings_with_lf_hook(repo)
 ```
 
 **`tests/test_gui_wiring.py`**
@@ -3219,6 +3293,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `scripts/build_exe.py` | 78 | code | Сборка Феникс.exe (лёгкий лаунчер). |
 | `scripts/build_setup.py` | 208 | code | Полная сборка Феникса: Феникс.exe + Феникс_Setup.exe — одной командой. |
 | `scripts/check_caps.py` | 174 | code | Проверка возможностей системы — запускается из install.bat. |
+| `scripts/check_staged_snapshot.py` | 149 | code | Check the Git index, not an unstaged working-tree snapshot; never stag |
+| `scripts/install_git_hooks.py` | 82 | code | Opt-in install of one local pre-commit hook; preserve all existing hoo |
 | `scripts/make_icon.py` | 80 | code | Генерация иконки Феникса (jarvis/icon.ico). |
 | `scripts/make_installer_images.py` | 121 | code | Генерация картинок для Inno Setup установщика Феникса. |
 | `scripts/mics.py` | 52 | code | Подбор микрофона: показывает устройства ввода и уровень сигнала. |
@@ -3251,6 +3327,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_clarification.py` | 411 | code | Slot filling uses real handler/pipeline, no devices, models or private |
 | `tests/test_config_manager.py` | 47 | code | Тесты config_manager: параллельная запись не рвёт файл. |
 | `tests/test_engine_probe.py` | 100 | code | Заглушка движка TTS (factory._probe_engine). |
+| `tests/test_git_hygiene.py` | 285 | code | Exercise real temporary Git indexes/hooks; never commit or alter the u |
 | `tests/test_gui_wiring.py` | 548 | code | GUI → config: каждый элемент окна реально отсылает изменение. |
 | `tests/test_intents.py` | 485 | code | Автотест Феникса без микрофона. |
 | `tests/test_main_wiring.py` | 202 | code | config → живое ядро: подписчик make_config_listener. |
@@ -3278,7 +3355,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `check_all.py` | 170 | code | Единый прогон всех проверок Феникса — движок для check_all.bat. |
 | `check_syntax.py` | 60 | code | Проверяет синтаксис всех .py файлов в проекте. |
 | `launcher.py` | 702 | code | Лаунчер Феникса — полный автозапуск. |
-| `snapshot.py` | 712 | code | Собирает снимок проекта в один SNAPSHOT.md. |
+| `snapshot.py` | 713 | code | Собирает снимок проекта в один SNAPSHOT.md. |
 
 ---
 
@@ -23275,6 +23352,247 @@ if __name__ == "__main__":
     sys.exit(main())
 ```
 
+### `scripts/check_staged_snapshot.py`
+
+```python
+"""Check the Git index, not an unstaged working-tree snapshot; never stage files."""
+
+import argparse
+import importlib.util
+import os
+import subprocess
+import sys
+import tempfile
+from pathlib import Path, PurePosixPath
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+class CheckError(RuntimeError):
+    """The prepared commit cannot be checked safely."""
+
+
+def git(root, *args, data=None):
+    result = subprocess.run(
+        ["git", "-C", str(root), *args], input=data, capture_output=True, check=False
+    )
+    if result.returncode:
+        raise CheckError(result.stderr.decode("utf-8", errors="replace").strip()[:500])
+    return result.stdout
+
+
+def staged_files(root):
+    records = []
+    for entry in git(root, "ls-files", "--stage", "-z").split(b"\0"):
+        if not entry:
+            continue
+        meta, raw_path = entry.split(b"\t", 1)
+        mode, oid, stage = meta.decode("ascii").split()
+        name = os.fsdecode(raw_path)
+        path = PurePosixPath(name)
+        if stage != "0":
+            raise CheckError("Resolve index conflicts before committing")
+        if (
+            path.is_absolute()
+            or ".." in path.parts
+            or "\\" in name
+            or ".git" in path.parts
+        ):
+            raise CheckError("Unsafe index path")
+        records.append((name, mode, oid))
+    return records
+
+
+def checkout(root, target, names):
+    if names:
+        git(
+            root,
+            "checkout-index",
+            "--force",
+            "--prefix=" + target.as_posix().rstrip("/") + "/",
+            "-z",
+            "--stdin",
+            data=b"\0".join(os.fsencode(n) for n in names) + b"\0",
+        )
+
+
+def check_staged(root):
+    root = Path(os.fsdecode(git(root, "rev-parse", "--show-toplevel")).strip())
+    records = staged_files(root)
+    by_name = {name: (mode, oid) for name, mode, oid in records}
+    for required in ("snapshot.py", "SNAPSHOT.md"):
+        if required not in by_name or by_name[required][0] not in {"100644", "100755"}:
+            raise CheckError(f"Stage a regular {required} file before committing")
+    if "pytest-log.txt" in by_name:
+        raise CheckError(
+            "pytest-log.txt is tracked. Keep it locally: git rm --cached -- pytest-log.txt"
+        )
+    with tempfile.TemporaryDirectory(prefix="fenix-index-") as name:
+        target = Path(name)
+        checkout(root, target, ["snapshot.py"])
+        spec = importlib.util.spec_from_file_location(
+            "fenix_staged_snapshot", target / "snapshot.py"
+        )
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        # Apply the STAGED generator's exclusions, not unstaged local edits.
+        needed = []
+        for path, mode, oid in records:
+            parts = PurePosixPath(path).parts
+            if path == "SNAPSHOT.md":
+                needed.append((path, oid))
+                continue
+            if any(part in module.EXCLUDE_DIRS for part in parts):
+                continue
+            if (
+                parts[-1] in module.EXCLUDE_FILES
+                or Path(path).suffix.lower() in module.EXCLUDE_EXT
+            ):
+                continue
+            if mode not in {"100644", "100755"}:
+                raise CheckError("Snapshot input is not a regular file: " + path)
+            needed.append((path, oid))
+        # Do not materialize large tracked assets just to discover their size.
+        sizes = git(
+            root,
+            "cat-file",
+            "--batch-check=%(objectsize)",
+            data="".join(oid + "\n" for _, oid in needed).encode("ascii"),
+        ).splitlines()
+        if len(sizes) != len(needed) or any(not size.isdigit() for size in sizes):
+            raise CheckError("Cannot read staged blob sizes")
+        names = [
+            path
+            for (path, _), size in zip(needed, sizes)
+            if path == "SNAPSHOT.md" or int(size) <= module.MAX_FILE_SIZE
+        ]
+        # snapshot.py was copied already; checkout-index safely replaces it in temp only.
+        checkout(root, target, names)
+        result = subprocess.run(
+            [sys.executable, "-X", "utf8", str(target / "snapshot.py"), "--check"],
+            cwd=target,
+            capture_output=True,
+            check=False,
+        )
+        if result.returncode:
+            print(
+                (result.stdout + result.stderr).decode("utf-8", errors="replace")[
+                    -1800:
+                ]
+            )
+            print(
+                "Snapshot differs from the staged commit. Run python snapshot.py, then stage the intended files and SNAPSHOT.md."
+            )
+            return 1
+    print("SNAPSHOT: staged files are consistent; index/worktree unchanged")
+    return 0
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--repo", type=Path, default=ROOT)
+    args = parser.parse_args(argv)
+    try:
+        return check_staged(args.repo)
+    except Exception as error:  # noqa: BLE001 -- fail closed at the CLI boundary
+        print(
+            f"Snapshot check BLOCKED: {type(error).__name__}: {str(error)[:600]}",
+            file=sys.stderr,
+        )
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+```
+
+### `scripts/install_git_hooks.py`
+
+```python
+"""Opt-in install of one local pre-commit hook; preserve all existing hooks/config."""
+
+import argparse
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def git(root, *args):
+    return subprocess.run(
+        ["git", "-C", str(root), *args],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
+
+
+def install(root):
+    result = git(root, "rev-parse", "--show-toplevel")
+    if result.returncode:
+        raise RuntimeError(
+            "Not a Git working tree; initialize/open the project repository first"
+        )
+    root = Path(result.stdout.strip())
+    configured = git(root, "config", "--get", "core.hooksPath")
+    if configured.returncode not in (0, 1):
+        raise RuntimeError("Cannot read core.hooksPath")
+    if configured.returncode == 0:
+        raise RuntimeError(
+            "core.hooksPath is already configured; integrate scripts/check_staged_snapshot.py into your existing hook manually"
+        )
+    result = git(root, "rev-parse", "--git-path", "hooks")
+    if result.returncode:
+        raise RuntimeError("Cannot locate Git hooks directory")
+    hooks = Path(result.stdout.strip())
+    if not hooks.is_absolute():
+        hooks = root / hooks
+    template = (root / ".githooks/pre-commit").read_bytes().replace(b"\r\n", b"\n")
+    if (
+        not template.startswith(b"#!/bin/sh\n")
+        or b"fenix-snapshot-pre-commit-v1" not in template
+    ):
+        raise RuntimeError("Hook template is missing or incompatible")
+    if not (root / "scripts/check_staged_snapshot.py").is_file():
+        raise RuntimeError("Staged snapshot checker is missing")
+    destination = hooks / "pre-commit"
+    if destination.is_symlink():
+        raise RuntimeError("Existing symlink hook will not be replaced")
+    if destination.exists():
+        if destination.read_bytes() != template:
+            raise RuntimeError(
+                "Existing pre-commit hook preserved; integrate the checker manually"
+            )
+    else:
+        hooks.mkdir(parents=True, exist_ok=True)
+        # Exclusive creation: never clobber an existing hook, including a race.
+        with destination.open("xb") as stream:
+            stream.write(template)
+    destination.chmod(destination.stat().st_mode | 0o111)
+    print(
+        "Installed local snapshot pre-commit check; no git add/commit/push or hooksPath changes"
+    )
+    return 0
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--repo", type=Path, default=ROOT)
+    args = parser.parse_args(argv)
+    try:
+        return install(args.repo)
+    except (OSError, RuntimeError) as error:
+        print("Hook not installed: " + str(error), file=sys.stderr)
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+```
+
 ### `scripts/make_icon.py`
 
 ```python
@@ -27996,6 +28314,296 @@ def test_list_engines_matches_probes():
     expected = [name for name in ("silero", "piper", "winrt", "sapi")
                 if factory._probe_engine(name) is not None]
     assert engines == expected
+```
+
+### `tests/test_git_hygiene.py`
+
+```python
+"""Exercise real temporary Git indexes/hooks; never commit or alter the user's repo."""
+
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+import pytest
+
+ROOT = Path(__file__).resolve().parents[1]
+CHECKER = ROOT / "scripts/check_staged_snapshot.py"
+INSTALLER = ROOT / "scripts/install_git_hooks.py"
+
+
+@pytest.fixture
+def repo(tmp_path, monkeypatch):
+    if not shutil.which("git"):
+        pytest.skip("Git is required for temporary-index tests")
+    # Do not inherit an active outer git-commit index or personal Git config.
+    for name in list(os.environ):
+        if name.startswith("GIT_"):
+            monkeypatch.delenv(name, raising=False)
+    global_config = tmp_path / "git-global"
+    global_config.write_text("", encoding="utf-8")
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(global_config))
+    monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
+    monkeypatch.setenv("PYTHONUTF8", "1")
+    root = tmp_path / "project with space"
+    root.mkdir()
+    git(root, "init", "-q")
+    git(root, "config", "core.autocrlf", "false")
+    for name in [
+        "snapshot.py",
+        ".gitignore",
+        ".gitattributes",
+        ".githooks/pre-commit",
+        "scripts/check_staged_snapshot.py",
+    ]:
+        target = root / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes((ROOT / name).read_bytes())
+    (root / "example.py").write_text("value = 1\n", encoding="utf-8")
+    snapshot(root)
+    git(root, "add", ".")
+    return root
+
+
+def git(root, *args, data=None):
+    result = subprocess.run(
+        ["git", "-C", str(root), *args], input=data, capture_output=True, check=False
+    )
+    assert result.returncode == 0, result.stderr.decode("utf-8", errors="replace")
+    return result.stdout
+
+
+def snapshot(root):
+    result = subprocess.run(
+        [sys.executable, "-X", "utf8", str(root / "snapshot.py")],
+        cwd=root,
+        capture_output=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+
+
+def check(root):
+    return subprocess.run(
+        [sys.executable, "-X", "utf8", str(CHECKER), "--repo", str(root)],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
+
+
+def install(root):
+    return subprocess.run(
+        [sys.executable, "-X", "utf8", str(INSTALLER), "--repo", str(root)],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
+
+
+def test_staged_snapshot_passes_without_writes(repo):
+    before = git(repo, "ls-files", "--stage", "-z")
+    index = (repo / ".git/index").read_bytes()
+    snap = (repo / "SNAPSHOT.md").read_bytes()
+    result = check(repo)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert git(repo, "ls-files", "--stage", "-z") == before
+    assert (repo / "SNAPSHOT.md").read_bytes() == snap
+    assert (repo / ".git/index").read_bytes() == index
+
+
+def test_stale_staged_snapshot_fails(repo):
+    (repo / "example.py").write_text("value = 2\n", encoding="utf-8")
+    git(repo, "add", "example.py")
+    before = git(repo, "ls-files", "--stage", "-z")
+    assert check(repo).returncode == 1
+    assert git(repo, "ls-files", "--stage", "-z") == before
+
+
+def test_fresh_unstaged_snapshot_cannot_hide_stale_index(repo):
+    (repo / "example.py").write_text("value = 3\n", encoding="utf-8")
+    git(repo, "add", "example.py")
+    snapshot(repo)  # Deliberately NOT staged: a naive worktree --check would pass.
+    assert check(repo).returncode == 1
+
+
+def test_unstaged_edits_do_not_block_consistent_prepared_commit(repo):
+    (repo / "example.py").write_text("value = 99\n", encoding="utf-8")
+    snapshot(repo)
+    assert check(repo).returncode == 0
+    assert "99" in (repo / "example.py").read_text(encoding="utf-8")
+
+
+def test_missing_staged_snapshot_blocks(repo):
+    git(repo, "rm", "--cached", "SNAPSHOT.md")
+    assert check(repo).returncode == 2
+    assert (repo / "SNAPSHOT.md").exists()
+
+
+def test_tracked_log_requires_explicit_untracking(repo):
+    log = repo / "pytest-log.txt"
+    log.write_text("private local test output\n", encoding="utf-8")
+    git(repo, "add", "--force", "pytest-log.txt")
+    result = check(repo)
+    assert result.returncode == 2
+    assert "git rm --cached" in result.stderr
+    assert log.exists() and b"pytest-log.txt" in git(repo, "ls-files", "-z")
+    git(repo, "rm", "--cached", "pytest-log.txt")
+    assert check(repo).returncode == 0
+    assert log.exists()
+
+
+def test_test_log_is_ignored_and_does_not_change_snapshot(repo):
+    before = (repo / "SNAPSHOT.md").read_bytes()
+    (repo / "pytest-log.txt").write_text("829 passed\n", encoding="utf-8")
+    assert git(repo, "check-ignore", "pytest-log.txt").strip() == b"pytest-log.txt"
+    snapshot(repo)
+    assert (repo / "SNAPSHOT.md").read_bytes() == before
+    assert check(repo).returncode == 0
+
+
+def test_staged_doc_change_is_checked(repo):
+    (repo / "GUIDE.md").write_text("# Test guide\n", encoding="utf-8")
+    git(repo, "add", "GUIDE.md")
+    assert check(repo).returncode == 1
+    snapshot(repo)
+    git(repo, "add", "SNAPSHOT.md")
+    assert check(repo).returncode == 0
+
+
+def test_spaces_and_unicode_paths(repo):
+    p = repo / "tests" / "имя с пробелом.py"
+    p.parent.mkdir()
+    p.write_text("answer = 42\n", encoding="utf-8")
+    snapshot(repo)
+    git(repo, "add", ".")
+    assert check(repo).returncode == 0
+
+
+def test_index_symlink_input_is_rejected_without_creating_symlink(repo):
+    oid = (
+        git(repo, "hash-object", "-w", "--stdin", data=b"../outside")
+        .strip()
+        .decode("ascii")
+    )
+    git(repo, "update-index", "--add", "--cacheinfo", f"120000,{oid},link.py")
+    result = check(repo)
+    assert result.returncode == 2
+    assert "not a regular file" in result.stderr
+
+
+def test_unmerged_index_is_rejected(repo):
+    oid = git(repo, "hash-object", "-w", "--stdin", data=b"value=1\n").strip()
+    records = (
+        b"0 "
+        + b"0" * len(oid)
+        + b"\texample.py\n"
+        + b"100644 "
+        + oid
+        + b" 2\texample.py\n"
+        + b"100644 "
+        + oid
+        + b" 3\texample.py\n"
+    )
+    git(repo, "update-index", "--index-info", data=records)
+    assert check(repo).returncode == 2
+
+
+def test_install_is_opt_in_idempotent_and_preserves_other_hooks(repo):
+    other = repo / ".git/hooks/commit-msg"
+    other.write_bytes(b"#!/bin/sh\nexit 0\n")
+    config = (repo / ".git/config").read_bytes()
+    before = git(repo, "ls-files", "--stage", "-z")
+    assert install(repo).returncode == 0
+    hook = repo / ".git/hooks/pre-commit"
+    assert b"\r" not in hook.read_bytes()
+    assert install(repo).returncode == 0
+    assert other.read_bytes() == b"#!/bin/sh\nexit 0\n"
+    assert (repo / ".git/config").read_bytes() == config
+    assert git(repo, "ls-files", "--stage", "-z") == before
+
+
+def test_existing_pre_commit_is_never_overwritten(repo):
+    hook = repo / ".git/hooks/pre-commit"
+    hook.write_bytes(b"custom hook\n")
+    assert install(repo).returncode == 2
+    assert hook.read_bytes() == b"custom hook\n"
+
+
+def test_existing_hooks_path_is_never_changed(repo):
+    git(repo, "config", "core.hooksPath", "custom-hooks")
+    assert install(repo).returncode == 2
+    assert git(repo, "config", "--get", "core.hooksPath").strip() == b"custom-hooks"
+    assert not (repo / ".git/hooks/pre-commit").exists()
+
+
+def test_installed_hook_runs_actual_checker(repo):
+    assert install(repo).returncode == 0
+    result = subprocess.run(
+        ["git", "-C", str(repo), "hook", "run", "pre-commit"],
+        capture_output=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    (repo / "example.py").write_text("value = 4\n", encoding="utf-8")
+    git(repo, "add", "example.py")
+    result = subprocess.run(
+        ["git", "-C", str(repo), "hook", "run", "pre-commit"],
+        capture_output=True,
+        check=False,
+    )
+    assert result.returncode != 0
+    # No commit was made, even in this disposable test repository.
+    result = subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", "--verify", "HEAD"],
+        capture_output=True,
+        check=False,
+    )
+    assert result.returncode != 0
+
+
+def test_not_a_repository_fails_clearly(tmp_path):
+    assert check(tmp_path).returncode == 2
+    assert install(tmp_path).returncode == 2
+
+
+def test_clinerules_numbering_and_ignore_files_are_consistent():
+    import re
+
+    text = (ROOT / ".clinerules").read_text(encoding="utf-8")
+    numbers = [int(n) for n in re.findall(r"^(\d+)\.", text, flags=re.MULTILINE)]
+    assert numbers == list(range(1, len(numbers) + 1))
+    for name in (".gitignore", ".clineignore"):
+        assert (
+            "/pytest-log.txt" in (ROOT / name).read_text(encoding="utf-8").splitlines()
+        )
+    lines = (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
+    for pattern in ("graphify-out/", ".audio-regression/", "audio-regression/"):
+        assert lines.count(pattern) == 1
+
+
+def test_windows_checkout_line_endings_with_lf_hook(repo):
+    # Emulate Git-for-Windows checkout conversion without claiming Windows execution.
+    git(repo, "config", "core.autocrlf", "true")
+    for path in repo.rglob("*"):
+        if path.is_file() and ".git" not in path.parts and path.name != "SNAPSHOT.md":
+            text = path.read_text(encoding="utf-8")
+            data = (
+                text
+                if path == repo / ".githooks/pre-commit"
+                else text.replace("\n", "\r\n")
+            )
+            path.write_bytes(data.encode("utf-8"))
+    snapshot(repo)
+    git(repo, "add", "--renormalize", ".")
+    git(repo, "add", "SNAPSHOT.md")
+    result = check(repo)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert b"\r" not in (repo / ".githooks/pre-commit").read_bytes()
 ```
 
 ### `tests/test_gui_wiring.py`
@@ -35911,6 +36519,7 @@ EXCLUDE_FILES = {
     "user_profile.json.lock",
     "profile.json.lock",
     "PROJECT.md.orig",
+    "pytest-log.txt",   # локальный результат pytest, не исходник
 }
 
 EXCLUDE_EXT = {
@@ -36694,8 +37303,8 @@ jobs:
         run: python check_syntax.py
 
       # snapshot.py --check возвращает 1, если SNAPSHOT.md на диске
-      # разошёлся с кодом. Локально снимок обновляет commit.bat,
-      # но если коммит делали руками — CI напомнит: python snapshot.py
+      # разошёлся с кодом. Локально opt-in pre-commit проверяет Git index;
+      # сам снимок обновляется явно: python snapshot.py, затем staging.
       - name: Snapshot is up to date (SNAPSHOT.md)
         run: python snapshot.py --check
 
@@ -37707,11 +38316,16 @@ build/
 
 # Разовые логи, бэкапы и личные данные
 *.log
+/pytest-log.txt
 *.bak
 *.bak*
 dialog.json
 system_caps.json
 user_profile.json
+
+# Локальные аудиопрогоны
+.audio-regression/
+audio-regression/
 ```
 
 ### `.clinerules`
@@ -37736,31 +38350,61 @@ user_profile.json
 5. Не коммитить без разрешения пользователя
 ## Вывод и проверки
 
-5. Вывод команд обрезать: `| Select-Object -Last 15`, `-q`, `--stat`, `| Measure-Object`.
+6. Вывод команд обрезать: `| Select-Object -Last 15`, `-q`, `--stat`, `| Measure-Object`.
    Полные логи/диффы/дампы — в файл, в чат — 3 строки.
-6. Тесты (`pytest`, `check_all.py`) — только если менялся код, и в ответ — **итоговую строку**.
-7. После правки файл не перечитывать. Верификация: `git --no-pager diff -- <файл>`
+7. Тесты (`pytest`, `check_all.py`) — только если менялся код, и в ответ — **итоговую строку**.
+8. После правки файл не перечитывать. Верификация: `git --no-pager diff -- <файл>`
    либо `--stat` + `check_syntax.py`.
-8. Код в чат не дублировать — писать через редактор прямо в файл.
-9. Скриншоты и картинки — только если без них задача не решается (это дорого).
+9. Код в чат не дублировать — писать через редактор прямо в файл.
+10. Скриншоты и картинки — только если без них задача не решается (это дорого).
 
 ## Ответы
 
-10. Итог — **до 5 строк**: что сделано, где, результат проверки. Подробности — по запросу.
-11. Не пересказывать задачу и не подтверждать понимание абзацами.
-12. Планы и отчёты длиннее 10 строк — в файл, не в чат.
+11. Итог — **до 5 строк**: что сделано, где, результат проверки. Подробности — по запросу.
+12. Не пересказывать задачу и не подтверждать понимание абзацами.
+13. Планы и отчёты длиннее 10 строк — в файл, не в чат.
 
 ## Конвенции (детали — в AGENTS.md)
 
-13. Сохранять UTF-8 без BOM и CRLF.
-14. Пути — через `jarvis/paths.py`; `PROGRAM_DIR` — только ASCII.
-15. Новые зависимости — только по явной просьбе.
-16. Добавил/удалил файл или поменял код — пересобрать `SNAPSHOT.md`
+14. Сохранять UTF-8 без BOM и CRLF.
+15. Пути — через `jarvis/paths.py`; `PROGRAM_DIR` — только ASCII.
+16. Новые зависимости — только по явной просьбе.
+17. Добавил/удалил файл или поменял код — пересобрать `SNAPSHOT.md`
     (`.\.venv311\Scripts\python.exe snapshot.py`).
 
 ## Для человека
 
 Одна задача = одна сессия. Закрыл задачу — новый чат, не продолжай в раздутой истории.
+```
+
+### `.gitattributes`
+
+```
+# Git-for-Windows must not turn the shell hook template into CRLF.
+.githooks/pre-commit text eol=lf
+```
+
+### `.githooks/pre-commit`
+
+```
+#!/bin/sh
+# fenix-snapshot-pre-commit-v1
+set -eu
+root=$(git rev-parse --show-toplevel) || exit 2
+cd "$root" || exit 2
+for py in .venv311/Scripts/python.exe .venv311/bin/python .venv/Scripts/python.exe .venv/bin/python; do
+    if [ -f "$py" ]; then
+        exec "$py" -X utf8 scripts/check_staged_snapshot.py
+    fi
+done
+if command -v python >/dev/null 2>&1; then
+    exec python -X utf8 scripts/check_staged_snapshot.py
+fi
+if command -v python3 >/dev/null 2>&1; then
+    exec python3 -X utf8 scripts/check_staged_snapshot.py
+fi
+printf '%s\n' 'Snapshot hook: Python not found; activate .venv311.' >&2
+exit 2
 ```
 
 ### `LICENSE`
@@ -37796,38 +38440,6 @@ SOFTWARE.
 ### `jarvis-fenix.code-workspace`
 
 _Нетекстовый файл: .code-workspace_
-
-### `pytest-log.txt`
-
-```
-яю. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .   [     8 % ] 
- 
- . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .   [   1 7 % ] 
- 
- . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .   [   2 6 % ] 
- 
- . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .   [   3 4 % ] 
- 
- . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .   [   4 3 % ] 
- 
- . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .   [   5 2 % ] 
- 
- . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .   [   6 0 % ] 
- 
- . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .   [   6 9 % ] 
- 
- . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .   [   7 8 % ] 
- 
- . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .   [   8 6 % ] 
- 
- . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .   [   9 5 % ] 
- 
- . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .                                                                         [ 1 0 0 % ] 
- 
- 8 2 9   p a s s e d   i n   9 . 8 0 s 
- 
- 
-```
 
 ### `pytest.ini`
 
@@ -37980,10 +38592,11 @@ pymorphy3>=2.0.3,<3
 
 ## 5. Документация (только оглавления)
 
-#### `tests/README.md` — 12 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `tests/README.md` — 13 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Тесты Феникса
   - Карта
+  - Локальная гигиена Git
   - Автоматический аудиопрогон
     - Проверка реализации аудиопрогона
   - Уточнения команд: актуальная проверка
@@ -38013,15 +38626,17 @@ pymorphy3>=2.0.3,<3
   - Обновление 15.10.2026: язык, память, Non-verbal
   - Как добавить новый workflow
 
-#### `AGENTS.md` — 7 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `AGENTS.md` — 9 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - AGENTS.md — навигация для помощника по «Феникс»
   - Среда и запуск
   - Карта
   - Контракты, которые легко сломать
+  - Зафиксированный выбор ASR
   - Конвенции и безопасность
   - После правки
   - Аудиорегрессии
+  - Перед коммитом
 
 #### `ARCHITECTURE.md` — 48 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -38066,12 +38681,13 @@ pymorphy3>=2.0.3,<3
     - `commit.bat`
   - 📦 Сборка и установка
 
-#### `CHANGELOG.md` — 80 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 81 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
   - 📑 Содержание
   - 🚧 [Unreleased]
     - 📅 Сессия 15.10.2026
+      - Гигиена репозитория и локальная проверка коммита
       - Локальные аудиорегрессии и следующая очередь
       - Ядро Феникса: первый блок уточнений
       - Переносимость аудиотестов на Windows
@@ -38107,14 +38723,14 @@ pymorphy3>=2.0.3,<3
         - 🖥 GUI — что не доходило до ядра
         - ⚡ Запуск: ~7.3 с → ~1.3 с до появления окна
       - 🆕 Добавлено и исправлено (продолжение сессии)
-        - 🧰 Модель VAD качается сама
 
-#### `CI.md` — 15 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CI.md` — 16 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - CI — что это и как с ним жить
   - 🎯 Что такое CI
   - 📁 Где лежит
   - 🔍 Что делает
+  - Локальный pre-commit: раньше CI
   - Новые регрессии и границы проверки
   - 🎧 Отдельный аудиопрогон
   - 🚀 Как смотреть результат
@@ -38163,11 +38779,12 @@ pymorphy3>=2.0.3,<3
   - 🤝 Как задавать вопросы
   - 🎯 Философия
 
-#### `PLAN.md` — 16 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `PLAN.md` — 17 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - 📋 План развития «Феникс»
   - 🎯 Курс: сначала сам Феникс
   - 📊 Статусы
+  - Приоритеты и ближайшие milestones
   - Что уже есть
   - А. 🚧 Уточнения и незавершённая команда — реализовано, приёмка Windows
     - Реализовано в первом ограниченном наборе
@@ -38177,7 +38794,7 @@ pymorphy3>=2.0.3,<3
   - Б. Контекст исправлений и расширение слотов — после GUI
   - В. ⏭ Управляемое самообучение приложения
   - Г. ⏭ Качество памяти и разговора
-  - Д. ⏭ Производительность по измерениям
+  - Д. P1 / M3 — Производительность по измерениям после GUI
   - Е. Сквозная проверка качества и стабильности
   - 💤 Дальний бэклог — не текущий план разработки
   - Правила завершения шага
@@ -38263,4 +38880,4 @@ pymorphy3>=2.0.3,<3
 
 ---
 
-_Итого по категориям — code: 166, data: 23, doc: 13, pack: 5. Режим `lean`._
+_Итого по категориям — code: 169, data: 24, doc: 13, pack: 5. Режим `lean`._

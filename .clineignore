@@ -41,8 +41,13 @@ build/
 
 # Разовые логи, бэкапы и личные данные
 *.log
+/pytest-log.txt
 *.bak
 *.bak*
 dialog.json
 system_caps.json
 user_profile.json
+
+# Локальные аудиопрогоны
+.audio-regression/
+audio-regression/

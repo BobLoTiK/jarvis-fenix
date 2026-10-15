@@ -79,6 +79,7 @@ EXCLUDE_FILES = {
     "user_profile.json.lock",
     "profile.json.lock",
     "PROJECT.md.orig",
+    "pytest-log.txt",   # локальный результат pytest, не исходник
 }
 
 EXCLUDE_EXT = {

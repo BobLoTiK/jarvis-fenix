@@ -1,0 +1,2 @@
+# Git-for-Windows must not turn the shell hook template into CRLF.
+.githooks/pre-commit text eol=lf

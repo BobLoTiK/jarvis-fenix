@@ -49,6 +49,7 @@ profiles/
 logs/
 system_caps.json
 *.log
+/pytest-log.txt
 
 # === Артефакты UIA (uiautomation пишет рядом со скриптом) ===
 @AutomationLog.txt
@@ -59,10 +60,6 @@ new *
 Untitled*
 (новый)*
 без имени*
-graphify-out/
-.audio-regression/
-audio-regression/
-
 graphify-out/
 .audio-regression/
 audio-regression/

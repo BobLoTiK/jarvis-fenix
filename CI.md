@@ -28,6 +28,22 @@ GitHub запускает их сам.
 
 `PYTHONUTF8=1` — глобально на весь job, страховка от cp1252.
 
+## Локальный pre-commit: раньше CI
+
+Одноразово и добровольно: `python scripts/install_git_hooks.py`.
+Новый pre-commit запускает `scripts/check_staged_snapshot.py`: временное дерево
+из Git index + staged snapshot.py → --check. Учитывает частичный git add;
+не делает add/commit/push, не меняет рабочие файлы и не заменяет чужие hooks.
+Ошибку исправляет разработчик: генерация snapshot, затем явный staging.
+`pytest-log.txt` не входит в Git/Cline/snapshot; уже tracked-файл нужно убрать
+через `git rm --cached -- pytest-log.txt`, локальный вывод останется.
+
+`tests/test_git_hygiene.py` проверяет настоящие временные Git-индексы, установку
+и запуск hook, конфликты, staged/unstaged snapshot и сохранность чужих hooks.
+Ни один тест не создаёт коммит и не меняет Git-конфигурацию рабочего проекта.
+CI --check сохраняется: установленный локальный hook не гарантирован у всех.
+Подробный рабочий процесс — CONTRIBUTING.md.
+
 ## Новые регрессии и границы проверки
 
 `test_clarification.py` проходит реальный handler/pipeline на синтетических

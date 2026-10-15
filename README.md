@@ -987,6 +987,8 @@ Inno перезаписывает только код. Запущенного Ф
 | `start_fenix_debug.bat` | С логами |
 | `check_all.bat` | Всё сразу: синтаксис + pytest + интенты + стресс |
 | `check_syntax.py` | Синтаксис |
+| `scripts/install_git_hooks.py` | Добровольно установить локальную проверку snapshot перед коммитом |
+| `scripts/check_staged_snapshot.py` | Проверить snapshot именно подготовленных Git-файлов, без git add/commit/push |
 | `tests/test_intents.py` | 32 сценария без LLM/сети (всего 39) |
 | `tests/stress_intents.py` | Стресс-тест: 102 ситуации (мусор, инъекции, границы) |
 | `tests/manual/` | Ручные прогоны: микрофон, UIA, ONNX |

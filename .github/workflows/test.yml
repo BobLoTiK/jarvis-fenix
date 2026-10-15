@@ -54,8 +54,8 @@ jobs:
         run: python check_syntax.py
 
       # snapshot.py --check возвращает 1, если SNAPSHOT.md на диске
-      # разошёлся с кодом. Локально снимок обновляет commit.bat,
-      # но если коммит делали руками — CI напомнит: python snapshot.py
+      # разошёлся с кодом. Локально opt-in pre-commit проверяет Git index;
+      # сам снимок обновляется явно: python snapshot.py, затем staging.
       - name: Snapshot is up to date (SNAPSHOT.md)
         run: python snapshot.py --check
 

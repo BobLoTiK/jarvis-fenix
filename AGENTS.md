@@ -60,6 +60,11 @@ TTS: Silero/Piper/WinRT/SAPI. Python 3.13/3.14 не брать для Windows/Vo
   на ответ, общий cooldown. Silero/Piper/WinRT используют один WAV-output callback;
   SAPI остаётся без PCM-реакций. Никаких дополнительных проигрывающих потоков.
 
+## Зафиксированный выбор ASR
+
+Vosk остаётся в проекте. Удаление/замена и A/B альтернатив ASR не являются
+задачами текущего плана. Развиваем существующий VAD/Vosk/Whisper и сохраняем gate.
+
 ## Конвенции и безопасность
 
 UTF-8 без BOM, CRLF. Не менять кодировки всего проекта случайной командой.
@@ -100,3 +105,14 @@ ASR ожидаемым текстом сценария, не форсирова�
 Hybrid/VAD fallback или отсутствующая модель = BLOCKED/2, а не pass/skip.
 Не расширять ограниченный sandbox до выполнения реальных действий. Не включать
 WAV/транскрипты/модели в ZIP/Git/snapshot. GUI — следующий отдельный блок, ещё не сделан.
+
+
+## Перед коммитом
+
+Опциональная одноразовая установка: `python scripts/install_git_hooks.py`.
+Hook проверяет **Git index** через `scripts/check_staged_snapshot.py`, включая
+частичный staging; не запускает git add/commit/push, не меняет рабочие файлы.
+Чужой pre-commit/core.hooksPath не перезаписывается. При устаревшем снимке —
+`python snapshot.py`, затем явно подготовить нужные файлы и SNAPSHOT.md.
+pytest-log.txt исключён из Git/Cline/snapshot; если уже tracked — пользователь
+сам выполняет `git rm --cached -- pytest-log.txt`, локальный лог сохраняется.
