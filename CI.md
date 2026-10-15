@@ -97,6 +97,21 @@ requirements-ci не содержит тяжёлых ASR/VAD/WinRT-зависи�
 
 ## 🔧 Если упало
 
+**`cannot import name 'begin' from partially initialized ... clarification`.**
+Если `jarvis/intents/clarification.py` импортирует `begin` из самого себя,
+основной модуль повреждён/перепутан. В проекте два разных одноимённых файла:
+`jarvis/intents/clarification.py` — реализация begin/resume/pending_alive;
+`jarvis/intents/stages/clarification.py` — короткий ClarificationStage,
+который импортирует begin из первого. Они не взаимозаменяемы. Восстановить оба
+по полным путям, не копировать один поверх другого и не удалять импорт из stage
+наугад. Переустановка зависимостей/отключение Vosk это не исправляет.
+
+`python -m pytest tests/test_clarification_imports.py -q` проверяет структуру
+и настоящие импорты в трёх свежих процессах, без прогретого sys.modules;
+затем `python -m pytest tests/ -q`. При изменениях пересобрать snapshot и явно
+подготовить нужные файлы к коммиту. Само восстановление не является коммитом.
+
+
 **`ValueError: the environment variable is longer than 32767 characters`.**
 Если рядом с ошибкой идут десятки тысяч `\x00`/`\xff`, это автоматическое
 имя параметризованного аудиотеста, а не вывод микрофона. Pytest переносит node ID

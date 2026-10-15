@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=111788644d75a387` · режим `lean` · файлов `211` · строк `42348` · источник `1818 КБ`
+`sha256=324241ab604f1734` · режим `lean` · файлов `212` · строк `42508` · источник `1827 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -260,12 +260,12 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── nonverbal/
 │   │   ├── README.md  (40 стр)
 │   │   ├── sources.json  (53 стр)
-├── CHANGELOG.md  (1272 стр)
+├── CHANGELOG.md  (1287 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
 ├── check_syntax.py  (60 стр)
-├── CI.md  (304 стр)
+├── CI.md  (319 стр)
 ├── cmds/
 │   ├── open_terminal.bat  (3 стр)
 │   ├── show_ip.bat  (3 стр)
@@ -436,7 +436,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── uia_manual.py  (61 стр)
 │   │   ├── vad_debug.py  (61 стр)
 │   │   ├── vad_live.py  (41 стр)
-│   ├── README.md  (219 стр)
+│   ├── README.md  (239 стр)
 │   ├── stress_intents.py  (552 стр)
 │   ├── test_audio_regression.py  (556 стр)
 │   ├── test_audit_regressions.py  (258 стр)
@@ -445,6 +445,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_build_setup.py  (56 стр)
 │   ├── test_caps.py  (23 стр)
 │   ├── test_clarification.py  (411 стр)
+│   ├── test_clarification_imports.py  (110 стр)
 │   ├── test_config_manager.py  (47 стр)
 │   ├── test_engine_probe.py  (100 стр)
 │   ├── test_git_hygiene.py  (285 стр)
@@ -2310,6 +2311,18 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_slot_filling_works_without_local_llm(h)
 ```
 
+**`tests/test_clarification_imports.py`**
+
+```
+  # The slot engine and pipeline stage share a basename, not their contents.
+  ROOT = ...
+  CORE = ...
+  STAGE = ...
+  def test_slot_engine_defines_api_and_does_not_import_itself_or_pipeline()
+  def test_clarification_stage_delegates_to_engine_not_itself()
+  def test_clarification_imports_in_fresh_process(first, tmp_path)
+```
+
 **`tests/test_config_manager.py`**
 
 ```
@@ -3325,6 +3338,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_build_setup.py` | 56 | code | Тесты scripts.build_setup — версия установщика и мягкий пропуск шага c |
 | `tests/test_caps.py` | 23 | code | Тесты check_caps: структура system_caps.json. |
 | `tests/test_clarification.py` | 411 | code | Slot filling uses real handler/pipeline, no devices, models or private |
+| `tests/test_clarification_imports.py` | 110 | code | The slot engine and pipeline stage share a basename, not their content |
 | `tests/test_config_manager.py` | 47 | code | Тесты config_manager: параллельная запись не рвёт файл. |
 | `tests/test_engine_probe.py` | 100 | code | Заглушка движка TTS (factory._probe_engine). |
 | `tests/test_git_hygiene.py` | 285 | code | Exercise real temporary Git indexes/hooks; never commit or alter the u |
@@ -28168,6 +28182,117 @@ def test_slot_filling_works_without_local_llm(h):
     timers.add.assert_called_once()
 ```
 
+### `tests/test_clarification_imports.py`
+
+```python
+"""The slot engine and pipeline stage share a basename, not their contents. ... [4 строк]"""
+
+import ast
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+import pytest
+
+ROOT = Path(__file__).resolve().parents[1]
+CORE = ROOT / "jarvis/intents/clarification.py"
+STAGE = ROOT / "jarvis/intents/stages/clarification.py"
+
+
+def test_slot_engine_defines_api_and_does_not_import_itself_or_pipeline():
+    tree = ast.parse(CORE.read_text(encoding="utf-8"))
+    functions = {node.name for node in tree.body if isinstance(node, ast.FunctionDef)}
+    assert {"begin", "resume", "pending_alive"} <= functions, (
+        "Restore jarvis/intents/clarification.py: it must contain the slot engine, "
+        "not the similarly named stages/clarification.py"
+    )
+    assert not any(
+        isinstance(node, ast.ClassDef) and node.name == "ClarificationStage"
+        for node in tree.body
+    ), "Pipeline stage was placed in the slot-engine file"
+    imports = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom):
+            imports.add(node.module or "")
+        elif isinstance(node, ast.Import):
+            imports.update(alias.name for alias in node.names)
+    assert not any(
+        name in {"jarvis.intents.clarification", "jarvis.intents.handler"}
+        or name == "jarvis.intents.stages"
+        or name.startswith("jarvis.intents.stages.")
+        for name in imports
+    ), "Slot engine must not import itself or the pipeline that imports it"
+
+
+def test_clarification_stage_delegates_to_engine_not_itself():
+    tree = ast.parse(STAGE.read_text(encoding="utf-8"))
+    assert any(
+        isinstance(node, ast.ClassDef) and node.name == "ClarificationStage"
+        for node in tree.body
+    )
+    imports = [node for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)]
+    assert any(
+        node.module == "jarvis.intents.clarification"
+        and "begin" in {alias.name for alias in node.names}
+        for node in imports
+    )
+    assert not any(
+        node.module == "jarvis.intents.stages.clarification" for node in imports
+    )
+    assert CORE.read_bytes() != STAGE.read_bytes()
+
+
+@pytest.mark.parametrize(
+    "first",
+    [
+        "jarvis.intents.clarification",
+        "jarvis.intents.stages.clarification",
+        "jarvis.intents.handler",
+    ],
+    ids=["engine-first", "stage-first", "handler-first"],
+)
+def test_clarification_imports_in_fresh_process(first, tmp_path):
+    code = """
+import importlib
+from pathlib import Path
+import sys
+root = Path(sys.argv[2]).resolve()
+importlib.import_module(sys.argv[1])
+core = importlib.import_module('jarvis.intents.clarification')
+stage = importlib.import_module('jarvis.intents.stages.clarification')
+handler = importlib.import_module('jarvis.intents.handler')
+assert Path(core.__file__).resolve() == root / 'jarvis/intents/clarification.py'
+assert Path(stage.__file__).resolve() == root / 'jarvis/intents/stages/clarification.py'
+assert core is not stage
+assert all(callable(getattr(core, name)) for name in ('begin', 'resume', 'pending_alive'))
+assert stage.begin is core.begin
+assert stage.ClarificationStage.name == 'clarification'
+assert callable(handler.IntentHandler)
+print('Clarification engine, stage and handler: OK')
+"""
+    env = {
+        **os.environ,
+        "PYTHONUTF8": "1",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "APPDATA": str(tmp_path),
+        "PROGRAMDATA": str(tmp_path),
+        "HOME": str(tmp_path),
+    }
+    result = subprocess.run(
+        [sys.executable, "-B", "-c", code, first, str(ROOT)],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=30,
+        check=False,
+    )
+    assert result.returncode == 0, f"{first}:\n{result.stdout}\n{result.stderr}"
+    assert "Clarification engine, stage and handler: OK" in result.stdout
+```
+
 ### `tests/test_config_manager.py`
 
 ```python
@@ -38592,10 +38717,11 @@ pymorphy3>=2.0.3,<3
 
 ## 5. Документация (только оглавления)
 
-#### `tests/README.md` — 13 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `tests/README.md` — 14 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Тесты Феникса
   - Карта
+  - Граница импортов уточнений
   - Локальная гигиена Git
   - Автоматический аудиопрогон
     - Проверка реализации аудиопрогона
@@ -38681,12 +38807,13 @@ pymorphy3>=2.0.3,<3
     - `commit.bat`
   - 📦 Сборка и установка
 
-#### `CHANGELOG.md` — 81 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 82 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
   - 📑 Содержание
   - 🚧 [Unreleased]
     - 📅 Сессия 15.10.2026
+      - Восстановление границы импортов clarification
       - Гигиена репозитория и локальная проверка коммита
       - Локальные аудиорегрессии и следующая очередь
       - Ядро Феникса: первый блок уточнений
@@ -38722,7 +38849,6 @@ pymorphy3>=2.0.3,<3
         - ⏱ VAD тормозил ответ — Vosk не видел тишину
         - 🖥 GUI — что не доходило до ядра
         - ⚡ Запуск: ~7.3 с → ~1.3 с до появления окна
-      - 🆕 Добавлено и исправлено (продолжение сессии)
 
 #### `CI.md` — 16 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -38880,4 +39006,4 @@ pymorphy3>=2.0.3,<3
 
 ---
 
-_Итого по категориям — code: 169, data: 24, doc: 13, pack: 5. Режим `lean`._
+_Итого по категориям — code: 170, data: 24, doc: 13, pack: 5. Режим `lean`._
