@@ -6,6 +6,9 @@ from jarvis import actions, history
 
 
 def system_fast(handler, cmd: str) -> str | None:
+    if cmd in ("отмени выключение", "отмена выключения", "отмени перезагрузку"):
+        from jarvis.intents.execute import execute_intent
+        return execute_intent(handler, {"action": "cancel_shutdown"})
     reply = _layout(cmd)
     if reply:
         return reply

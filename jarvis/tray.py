@@ -28,16 +28,12 @@ ICON_NAME = "jarvis"
 
 
 def _make_icon_image():
-    """Иконка трея: кольцо + стилизованная «J» (рисуется через PIL)."""
-    from PIL import Image, ImageDraw
-
-    img = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-    d.ellipse((2, 2, 62, 62), fill=(18, 32, 58, 255), outline=(86, 156, 255, 255), width=3)
-    # стилизованная «J»
-    d.line((38, 16, 38, 42), fill=(86, 156, 255, 255), width=6)
-    d.arc((20, 30, 42, 52), start=20, end=180, fill=(86, 156, 255, 255), width=6)
-    return img
+    """Same phoenix mark as the desktop app, not the old J fallback."""
+    from pathlib import Path
+    from PIL import Image
+    path = Path(__file__).resolve().parent / "assets" / "brand" / "tray.png"
+    with Image.open(path) as image:
+        return image.convert("RGBA")
 
 
 def build_menu(jarvis):

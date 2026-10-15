@@ -22,6 +22,5 @@ def packs_fast(handler, cmd: str) -> str | None:
 
 def _reload_packs(handler) -> None:
     """Пересобрать handler.custom после смены активных паков."""
-    from jarvis.intents.fast.custom import load_packs_as_custom
-    handler.custom = (list(handler._config_custom_original)
-                      + load_packs_as_custom(handler.config))
+    from jarvis.intents.fast.custom import reload_custom
+    reload_custom(handler)

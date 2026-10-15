@@ -17,6 +17,7 @@ launch_mode=tray:
 """
 
 import asyncio
+from functools import lru_cache
 import logging
 import queue
 import threading
@@ -32,27 +33,31 @@ log = logging.getLogger("jarvis.gui")
 
 PALETTES = {
     "dark": {
-        "bg_main": "#0e1116",
-        "bg_card": "#161b22",
-        "bg_bubble_user": "#1f6feb",
-        "bg_bubble_ai": "#21262d",
-        "accent": "#58a6ff",
-        "text": "#e6edf3",
-        "text_dim": "#8b949e",
-        "border": "#30363d",
+        "sidebar": "#10161e", "selected": "#263447",
+        "brand": "#e7ad7b", "composer": "#17212d",
+        "bg_main": "#0b1016",
+        "bg_card": "#131c26",
+        "bg_bubble_user": "#23364b",
+        "bg_bubble_ai": "#17212d",
+        "accent": "#8bb7ee",
+        "text": "#eaf0f6",
+        "text_dim": "#a1b0c1",
+        "border": "#3f5266",
         "error": "#f85149",
         "success": "#3fb950",
         "warning": "#d29922",
     },
     "light": {
-        "bg_main": "#f6f8fa",
+        "sidebar": "#eeeae4", "selected": "#dce5f0",
+        "brand": "#8b512a", "composer": "#ffffff",
+        "bg_main": "#f5f3ef",
         "bg_card": "#ffffff",
-        "bg_bubble_user": "#0969da",
-        "bg_bubble_ai": "#eaeef2",
-        "accent": "#0969da",
-        "text": "#1f2328",
-        "text_dim": "#656d76",
-        "border": "#d0d7de",
+        "bg_bubble_user": "#e4eaf0",
+        "bg_bubble_ai": "#eeeae4",
+        "accent": "#245d99",
+        "text": "#23272f",
+        "text_dim": "#606b78",
+        "border": "#b6b0a6",
         "error": "#cf222e",
         "success": "#1a7f37",
         "warning": "#9a6700",
@@ -86,13 +91,13 @@ class _Palette:
 
 P = _Palette()
 
-BG_DARK = "#0e1116"
-BG_CARD = "#161b22"
-BG_BUBBLE_USER = "#1f6feb"
-BG_BUBBLE_AI = "#21262d"
-ACCENT = "#58a6ff"
-TEXT = "#e6edf3"
-TEXT_DIM = "#8b949e"
+BG_DARK = "#0b1016"
+BG_CARD = "#131c26"
+BG_BUBBLE_USER = "#23364b"
+BG_BUBBLE_AI = "#17212d"
+ACCENT = "#8bb7ee"
+TEXT = "#eaf0f6"
+TEXT_DIM = "#a1b0c1"
 
 
 def _apply_palette(name: str) -> None:
@@ -108,10 +113,14 @@ def _apply_palette(name: str) -> None:
 
 
 STATES = {
-    "idle":      ("#484f58", "Спит",   "Жду «Феникс»"),
-    "listening": ("#d29922", "Слушаю", "Слушаю команду"),
-    "speaking":  ("#3fb950", "Говорю", "Отвечаю"),
-    "error":     ("#f85149", "Ошибка", "Проверь логи"),
+    "idle": ("#8bb7ee", "Готов", "Скажите «Феникс» или напишите сообщение"),
+    "listening": ("#d29922", "Слушаю", "Можно говорить"),
+    "recognizing": ("#d29922", "Распознаю", "Проверяю услышанное"),
+    "thinking": ("#8bb7ee", "Обрабатываю", "Ответ появится здесь"),
+    "speaking": ("#3fb950", "Говорю", "Озвучку можно остановить"),
+    "awaiting": ("#d29922", "Жду уточнения", "Ответьте на вопрос или напишите «отмена»"),
+    "password": ("#d29922", "Нужен пароль", "Ввод скрыт и не попадёт в чат"),
+    "error": ("#f85149", "Ошибка", "Подробности — в сообщении об ошибке"),
 }
 
 THEMES = {
@@ -127,6 +136,86 @@ LLM_MODELS = [
 ]
 
 TTS_BACKENDS = ["auto", "piper", "silero", "winrt", "sapi"]
+
+
+@lru_cache(maxsize=32)
+def _brand_bytes(name: str, theme: str) -> bytes:
+    return (Path(__file__).resolve().parent / "assets" / "brand" / f"{name}-{theme}.png").read_bytes()
+
+
+def _brand_image(name: str, size: int, label: str = ""):
+    theme = "light" if P.sidebar == PALETTES["light"]["sidebar"] else "dark"
+    return ft.Image(src=_brand_bytes(name, theme), width=size, height=size,
+                    fit=ft.BoxFit.CONTAIN, filter_quality=ft.FilterQuality.HIGH, anti_alias=True,
+                    semantics_label=label, exclude_from_semantics=not bool(label))
+
+
+NAV_ITEMS = (
+    ("Диалог", ft.Icons.CHAT_BUBBLE_OUTLINE),
+    ("Микрофон", ft.Icons.MIC_NONE),
+    ("Голос и звук", ft.Icons.GRAPHIC_EQ),
+    ("Персона", ft.Icons.PERSON_OUTLINE),
+    ("Настройки", ft.Icons.TUNE),
+    ("Мои команды", ft.Icons.ACCOUNT_TREE_OUTLINED),
+)
+
+
+class _Sidebar(ft.Container):
+    """Native sidebar; selection is shared by mouse navigation and tray actions."""
+
+    def __init__(self, on_select):
+        super().__init__(width=208, padding=16)
+        self._selected_index = 0
+        self._on_select = on_select
+        self.refresh_palette()
+
+    @property
+    def selected_index(self):
+        return self._selected_index
+
+    @selected_index.setter
+    def selected_index(self, value):
+        if not 0 <= value < len(NAV_ITEMS):
+            return
+        self._selected_index = value
+        # Preserve button IDs/focus during quick navigation. Rebuild only for a theme/profile.
+        for index, button in enumerate(self.nav_buttons):
+            active = index == value
+            button.bgcolor = P.selected if active else P.sidebar
+            button.content.controls[1].color = TEXT if active else TEXT_DIM
+            button.content.controls[2].visible = active
+
+    def refresh_palette(self):
+        from jarvis import profile
+        self.bgcolor = P.sidebar
+        self.border = ft.Border(right=ft.BorderSide(1, P.border))
+        self.nav_buttons = []
+        for index, (label, icon) in enumerate(NAV_ITEMS):
+            active = index == self._selected_index
+            self.nav_buttons.append(ft.Button(
+                content=ft.Row([_brand_image(("dialog", "microphone", "audio", "persona", "settings", "commands")[index], 24),
+                                ft.Text(label, size=14, color=TEXT if active else TEXT_DIM,
+                                        expand=True),
+                                ft.Container(width=5, height=5, border_radius=3,
+                                             bgcolor=ACCENT, visible=active)], spacing=10),
+                height=48, bgcolor=P.selected if active else P.sidebar, elevation=0,
+                style=ft.ButtonStyle(padding=10, shape=ft.RoundedRectangleBorder(radius=10)),
+                tooltip=label,
+                on_click=lambda e, i=index: self._on_select(i)))
+        self.content = ft.Column([
+            ft.Container(content=ft.Row([
+                _brand_image("phoenix", 38, "Феникс"),
+                ft.Column([ft.Text("Феникс", size=21, weight=ft.FontWeight.BOLD, color=TEXT),
+                           ft.Text("Локальный ассистент", size=12, color=TEXT_DIM)],
+                          spacing=2, expand=True)], spacing=12), padding=ft.Padding(top=12, bottom=28)),
+            *self.nav_buttons,
+            ft.Container(expand=True),
+            ft.Divider(color=P.border),
+            ft.Container(ft.Column([
+                ft.Text(str(profile.current()), size=14, color=TEXT, max_lines=2),
+                ft.Text("Профиль и настройки", size=12, color=TEXT_DIM)], spacing=4),
+                padding=ft.Padding(top=12, bottom=12)),
+        ], spacing=8, expand=True)
 
 
 class FenixGUI:
@@ -151,6 +240,19 @@ class FenixGUI:
         self._stream_bubble = None
         self._stream_text = ""
         self._stream_label = None
+        self._messages = []
+        self._draft = ""
+        self._follow_chat = True
+        self._command_lock = threading.Lock()
+        self._command_busy = False
+        self._command_thread = None
+        self._send_btn = None
+        self._stop_btn = None
+        self._empty_chat = None
+        self._error_banner = None
+        self._error_text = None
+        self._latest_btn = None
+        self._input_hint = None
 
         # Ссылки на контролы
         self._status_circle = None
@@ -162,6 +264,7 @@ class FenixGUI:
         self._content_area = None
         self._rail = None
         self._tabs = {}
+        self._command_builder = None
 
         # Контролы вкладки «Микрофон»
         self._mic_dropdown = None
@@ -394,43 +497,7 @@ class FenixGUI:
         page.run_task(self._mic_level_loop)
 
     def _build_ui(self, page: ft.Page) -> None:
-        self._rail = ft.NavigationRail(
-            selected_index=0,
-            label_type=ft.NavigationRailLabelType.ALL,
-            min_width=90,
-            min_extended_width=200,
-            bgcolor=BG_CARD,
-            indicator_color=ACCENT,
-            group_alignment=-1.0,
-            destinations=[
-                ft.NavigationRailDestination(
-                    icon=ft.Icons.HOME_OUTLINED,
-                    selected_icon=ft.Icons.HOME,
-                    label="Главная",
-                ),
-                ft.NavigationRailDestination(
-                    icon=ft.Icons.MIC_NONE,
-                    selected_icon=ft.Icons.MIC,
-                    label="Микрофон",
-                ),
-                ft.NavigationRailDestination(
-                    icon=ft.Icons.GRAPHIC_EQ_OUTLINED,
-                    selected_icon=ft.Icons.GRAPHIC_EQ,
-                    label="Аудио",
-                ),
-                ft.NavigationRailDestination(
-                    icon=ft.Icons.FACE_OUTLINED,
-                    selected_icon=ft.Icons.FACE,
-                    label="Персона",
-                ),
-                ft.NavigationRailDestination(
-                    icon=ft.Icons.SETTINGS_OUTLINED,
-                    selected_icon=ft.Icons.SETTINGS,
-                    label="Настройки",
-                ),
-            ],
-            on_change=self._on_nav_change,
-        )
+        self._rail = _Sidebar(self._select_tab)
 
         self._tabs = {
             0: self._build_main_tab(),
@@ -438,6 +505,7 @@ class FenixGUI:
             2: self._build_audio_tab(),
             3: self._build_persona_tab(),
             4: self._build_settings_tab(),
+            5: self._build_commands_tab(),
         }
 
         self._content_area = ft.Container(
@@ -459,188 +527,215 @@ class FenixGUI:
         )
 
     def _build_main_tab(self) -> ft.Control:
-        self._status_circle = ft.Container(
-            width=80,
-            height=80,
-            border_radius=40,
-            bgcolor="#484f58",
-            animate=ft.Animation(300, ft.AnimationCurve.EASE_IN_OUT),
-            shadow=ft.BoxShadow(
-                blur_radius=24,
-                color="#484f58",
-                spread_radius=2,
-            ),
+        self._status_circle = ft.Container(width=6, height=6, border_radius=3, bgcolor=ACCENT)
+        self._status_text = ft.Text(size=13, color=TEXT)
+        self._status_sub = ft.Text(size=12, color=TEXT_DIM)
+        self._mood_text = ft.Text("", size=12, color=TEXT_DIM, visible=False)
+        header = ft.Container(
+            content=ft.Row([
+                ft.Text("Рабочее пространство  /  Диалог", size=14, color=TEXT_DIM, expand=True),
+                ft.Container(ft.Row([self._status_circle, self._status_text], spacing=8),
+                             padding=10, bgcolor=P.sidebar, border_radius=8,
+                             border=ft.Border.all(1, P.border)),
+                ft.IconButton(icon=ft.Icons.INFO_OUTLINE, icon_color=TEXT_DIM,
+                              tooltip="Настройки и диагностика", on_click=lambda e: self._select_tab(4)),
+            ], spacing=12), padding=ft.Padding(left=28, right=24, top=16, bottom=16),
+            border=ft.Border(bottom=ft.BorderSide(1, P.border)))
+        self._error_text = ft.Text("", size=14, color=P.error, selectable=True, expand=True)
+        self._error_banner = ft.Container(
+            content=ft.Row([ft.Icon(ft.Icons.ERROR_OUTLINE, color=P.error), self._error_text,
+                           ft.IconButton(icon=ft.Icons.CLOSE, tooltip="Скрыть сообщение",
+                                         on_click=self._dismiss_error)]),
+            bgcolor=BG_CARD, border=ft.Border.all(1, P.error), border_radius=8,
+            padding=12, margin=ft.Margin(left=24, right=24, top=12), visible=False)
+        self._brand_mark = ft.Container(
+            _brand_image("phoenix", 88, "Феникс — птица"),
+            width=100, height=100, border_radius=24, alignment=ft.Alignment.CENTER,
+            bgcolor=P.sidebar, border=ft.Border.all(1, P.brand))
+        scenarios = (
+            ("Сосредоточиться", "Поставить таймер", ft.Icons.TIMER_OUTLINED, "Поставь таймер"),
+            ("Открыть приложение", "Перейти к делу", ft.Icons.WINDOW_OUTLINED, "Открой"),
+            ("Просто поговорить", "Начать с интересного", ft.Icons.CHAT_OUTLINED, "Расскажи что-нибудь"),
         )
-
-        self._status_text = ft.Text(
-            "Спит", size=24, weight=ft.FontWeight.BOLD, color=TEXT,
-        )
-        self._status_sub = ft.Text(
-            "Жду «Феникс»", size=13, color=TEXT_DIM,
-        )
-        self._mood_text = ft.Text(
-            "", size=12, color=TEXT_DIM, italic=True,
-        )
-
-        status_bar = ft.Container(
-            content=ft.Row(
-                controls=[
-                    self._status_circle,
-                    ft.Column(
-                        controls=[self._status_text, self._status_sub, self._mood_text],
-                        spacing=2,
-                        alignment=ft.MainAxisAlignment.CENTER,
-                    ),
-                ],
-                spacing=20,
-            ),
-            padding=ft.Padding(left=30, top=25, right=30, bottom=20),
-        )
-
-        controls_bar = self._build_controls()
-
-        self._history_list = ft.ListView(
-            spacing=12,
-            auto_scroll=True,
-            expand=True,
-        )
-        history_container = ft.Container(
-            content=self._history_list,
-            expand=True,
-            padding=ft.Padding(left=30, right=30, top=10, bottom=10),
-        )
-
-        input_bar = self._build_input()
-
-        return ft.Column(
-            controls=[
-                status_bar,
-                controls_bar,
-                history_container,
-                input_bar,
-            ],
-            spacing=0,
-            expand=True,
-        )
+        self._scenario_cards = []
+        for title, subtitle, icon, command in scenarios:
+            self._scenario_cards.append(ft.Button(
+                content=ft.Column([
+                    ft.Row([_brand_image({ft.Icons.TIMER_OUTLINED: "timer", ft.Icons.WINDOW_OUTLINED: "app", ft.Icons.CHAT_OUTLINED: "dialog"}[icon], 24),
+                            ft.Container(expand=True), ft.Icon(ft.Icons.NORTH_EAST, size=16, color=TEXT_DIM)]),
+                    ft.Text(title, size=14, color=TEXT),
+                    ft.Text(subtitle, size=12, color=TEXT_DIM),
+                ], spacing=8, tight=True), expand=True, height=108,
+                bgcolor=BG_CARD, elevation=0,
+                style=ft.ButtonStyle(padding=16, side=ft.BorderSide(1, P.border),
+                                     shape=ft.RoundedRectangleBorder(radius=12)),
+                tooltip=title, on_click=lambda e, text=command: self._fill_input(text)))
+        self._empty_chat = ft.Container(
+            content=ft.Column([
+                self._brand_mark,
+                ft.Text("Твой голос. Начало действия.", size=32, weight=ft.FontWeight.BOLD,
+                        color=TEXT, text_align=ft.TextAlign.CENTER),
+                ft.Container(ft.Text("Открою нужное, помогу с делами или просто побуду собеседником. С чего начнём?",
+                                    size=15, color=TEXT_DIM, text_align=ft.TextAlign.CENTER), width=540),
+                ft.Container(ft.Row(self._scenario_cards, spacing=12), padding=ft.Padding(top=16)),
+            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=20),
+            padding=ft.Padding(left=8, right=8, top=32, bottom=24), alignment=ft.Alignment.CENTER)
+        self._history_list = ft.ListView(spacing=16, auto_scroll=self._follow_chat,
+                                         on_scroll=self._on_chat_scroll, expand=True)
+        self._render_history()
+        self._latest_btn = ft.Button("К последнему сообщению", height=44, visible=not self._follow_chat,
+                                     on_click=self._scroll_latest)
+        body = ft.Container(content=self._history_list, expand=True,
+                            padding=ft.Padding(left=28, right=28, top=12, bottom=8))
+        view = ft.Column([header, self._error_banner, body,
+                          ft.Row([self._latest_btn], alignment=ft.MainAxisAlignment.CENTER),
+                          self._build_controls(), self._build_input()], spacing=0, expand=True)
+        from jarvis import mood as _mood
+        self._apply_mood_color(_mood.get_state())
+        self._apply_state(self._state)
+        self._apply_busy(self._command_busy)
+        return view
 
     def _build_controls(self) -> ft.Container:
-        def _label(text):
-            return ft.Text(text, width=80, color=TEXT_DIM, size=13)
-
-        mode_row = ft.Row(
-            controls=[
-                _label("Режим:"),
-                ft.RadioGroup(
-                    value=self.config.get("mode", "combo"),
-                    on_change=self._on_mode_change,
-                    content=ft.Row(
-                        controls=[
-                            ft.Radio(value="commands", label="Команды", active_color=ACCENT),
-                            ft.Radio(value="llm", label="ИИ", active_color=ACCENT),
-                            ft.Radio(value="combo", label="Комбо", active_color=ACCENT),
-                        ],
-                        spacing=10,
-                    ),
-                ),
-            ],
-            spacing=10,
-        )
-
-        voice_row = ft.Row(
-            controls=[
-                _label("Голос:"),
-                ft.Dropdown(
-                    value=self.config.get("tts_voice", "ruslan"),
-                    options=self._get_voice_options(),
-                    width=160,
-                    border_color="#30363d",
-                    focused_border_color=ACCENT,
-                    text_size=13,
-                    on_select=self._on_voice_change,
-                ),
-                ft.IconButton(
-                    icon=ft.Icons.REFRESH,
-                    icon_color=TEXT_DIM,
-                    icon_size=18,
-                    tooltip="Обновить список голосов",
-                    on_click=self._on_refresh_voices,
-                ),
-            ],
-            spacing=5,
-        )
-
+        mode = ft.Dropdown(
+            label="Режим", value=self.config.get("mode", "combo"), width=110,
+            options=[ft.dropdown.Option("commands", "Команды"), ft.dropdown.Option("llm", "ИИ"),
+                     ft.dropdown.Option("combo", "Комбо")], on_select=self._on_mode_change,
+            text_size=13, dense=True, border_color=P.border, focused_border_color=ACCENT)
+        voice = ft.Dropdown(label="Голос", value=self.config.get("tts_voice", "ruslan"),
+                            options=self._get_voice_options(), width=125, text_size=13, dense=True,
+                            on_select=self._on_voice_change, border_color=P.border,
+                            focused_border_color=ACCENT)
         mm = self.config.get("memory_max", 100)
-        mem_value = {40: "short", 100: "normal", 200: "long"}.get(mm, "normal")
-        mem_row = ft.Row(
-            controls=[
-                _label("Память:"),
-                ft.RadioGroup(
-                    value=mem_value,
-                    on_change=self._on_memory_change,
-                    content=ft.Row(
-                        controls=[
-                            ft.Radio(value="short", label="Короткая", active_color=ACCENT),
-                            ft.Radio(value="normal", label="Обычная", active_color=ACCENT),
-                            ft.Radio(value="long", label="Долгая", active_color=ACCENT),
-                        ],
-                        spacing=10,
-                    ),
-                ),
-            ],
-            spacing=10,
-        )
+        memory = ft.Dropdown(label="История", width=135, dense=True,
+                             value={40: "short", 100: "normal", 200: "long"}.get(mm, "normal"),
+                             options=[ft.dropdown.Option("short", "Короткая"),
+                                      ft.dropdown.Option("normal", "Обычная"),
+                                      ft.dropdown.Option("long", "Долгая")],
+                             on_select=self._on_memory_change, text_size=13,
+                             border_color=P.border, focused_border_color=ACCENT)
+        self._model_label = ft.Text(self._model_caption(), size=12, color=TEXT_DIM,
+                                    max_lines=1, overflow=ft.TextOverflow.ELLIPSIS,
+                                    tooltip="Выбранная модель, не проверка доступности сервера")
+        return ft.Container(content=ft.Row([
+            mode, voice, memory,
+            ft.IconButton(icon=ft.Icons.REFRESH, tooltip="Обновить голоса",
+                          icon_color=TEXT_DIM, on_click=self._on_refresh_voices),
+            ft.Container(content=self._model_label, expand=True, alignment=ft.Alignment.CENTER_RIGHT),
+        ], spacing=8), padding=ft.Padding(left=28, right=28, top=8, bottom=12))
 
-        return ft.Container(
-            content=ft.Column(
-                controls=[mode_row, voice_row, mem_row],
-                spacing=12,
-            ),
-            padding=ft.Padding(left=30, right=30, top=10, bottom=15),
-        )
+    def _model_caption(self) -> str:
+        if self.config.get("mode", "combo") == "commands":
+            return "Команды · без LLM"
+        return "Модель: " + str(self.config.get("llm_model", "не выбрана"))
 
     def _build_input(self) -> ft.Container:
         self._input_field = ft.TextField(
-            hint_text="Напишите команду...",
-            expand=True,
-            border_radius=24,
-            border_color="#30363d",
-            focused_border_color=ACCENT,
-            bgcolor=BG_CARD,
-            text_size=14,
-            content_padding=ft.Padding(left=20, right=20, top=14, bottom=14),
-            on_submit=self._on_send,
-        )
-
-        # Иконка отражает фактическое состояние: после пересборки вкладок
-        # кнопка раньше всегда выглядела «включённой», даже если микрофон
-        # на паузе.
-        _listening = self.jarvis is None or getattr(
-            self.jarvis, "listening_enabled", True)
+            value=self._draft, hint_text="Напиши, что нужно сделать…",
+            multiline=True, min_lines=1, max_lines=4, shift_enter=True,
+            border=ft.InputBorder.NONE, text_size=15, color=TEXT,
+            content_padding=ft.Padding(left=4, right=4, top=8, bottom=8),
+            on_submit=self._on_send, on_change=self._on_input_change)
+        listening = self.jarvis is None or getattr(self.jarvis, "listening_enabled", True)
         self._mic_btn = ft.IconButton(
-            icon=ft.Icons.MIC if _listening else ft.Icons.MIC_OFF,
-            icon_color=TEXT_DIM if _listening else "#f85149",
-            icon_size=24,
-            tooltip="Пауза/возобновить микрофон",
-            on_click=self._on_mic_toggle,
-        )
+            icon=ft.Icons.MIC if listening else ft.Icons.MIC_OFF,
+            icon_color=TEXT_DIM if listening else P.error, icon_size=22,
+            width=44, height=44, tooltip="Приостановить / включить микрофон",
+            on_click=self._on_mic_toggle)
+        self._send_btn = ft.IconButton(icon=ft.Icons.ARROW_UPWARD, icon_color="#241b14",
+                                       bgcolor="#e9ad79", style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=11)),
+                                       width=44, height=44, tooltip="Отправить · Enter", on_click=self._on_send)
+        self._stop_btn = ft.IconButton(icon=ft.Icons.STOP_ROUNDED, icon_color=P.error,
+                                       width=44, height=44, tooltip="Остановить озвучку (не отменяет действие)",
+                                       on_click=self._on_stop_speech)
+        self._input_hint = ft.Text("Enter — отправить · Shift+Enter — новая строка", size=12, color=TEXT_DIM)
+        composer = ft.Container(ft.Column([
+            self._input_field,
+            ft.Row([self._mic_btn, ft.Column([self._status_sub, self._mood_text], spacing=2, expand=True),
+                    self._stop_btn, self._send_btn], spacing=8),
+        ], spacing=4), padding=12, bgcolor=P.composer, border_radius=16,
+            border=ft.Border.all(1, P.border))
+        return ft.Container(content=ft.Column([
+            composer, ft.Row([self._input_hint, ft.Text("Подсказки не запускают действия", size=11, color=TEXT_DIM)],
+                             alignment=ft.MainAxisAlignment.SPACE_BETWEEN, wrap=True),
+        ], spacing=8), padding=ft.Padding(left=28, right=28, top=0, bottom=16))
 
-        return ft.Container(
-            content=ft.Row(
-                controls=[
-                    self._input_field,
-                    ft.IconButton(
-                        icon=ft.Icons.SEND,
-                        icon_color=ACCENT,
-                        icon_size=24,
-                        tooltip="Отправить",
-                        on_click=self._on_send,
-                    ),
-                    self._mic_btn,
-                ],
-                spacing=10,
-            ),
-            padding=ft.Padding(left=30, right=30, top=10, bottom=25),
-        )
+    def _on_input_change(self, e) -> None:
+        self._draft = "" if self._input_field.password else (e.control.value or "")
+
+    def _fill_input(self, text: str) -> None:
+        if self._input_field is not None and not self._input_field.password:
+            self._input_field.value = text
+            if self._page is not None:
+                self._page.update()
+
+    def _dismiss_error(self, e=None) -> None:
+        if self._error_banner is not None:
+            self._error_banner.visible = False
+        if self._state == "error":
+            self._apply_state("idle")
+        if self._page is not None:
+            try:
+                self._page.update()
+            except Exception:
+                log.debug("Страница уже закрыта")
+
+    def _apply_error(self, text: str) -> None:
+        if self._error_text is not None:
+            self._error_text.value = text
+            self._error_banner.visible = True
+        self._apply_state("error")
+
+    def _apply_busy(self, busy: bool) -> None:
+        if self._send_btn is not None:
+            self._send_btn.disabled = busy
+        # Keep a draft editable; do not queue another action behind the current one.
+        if self._stop_btn is not None:
+            self._stop_btn.disabled = self._state != "speaking"
+            self._stop_btn.icon_color = P.error if self._state == "speaking" else TEXT_DIM
+
+    def _on_stop_speech(self, e=None) -> None:
+        if self.jarvis is None:
+            return
+        self.jarvis.speaker.stop()
+        # Do not pretend to cancel handle(), a network request or an OS action.
+        self._show_status("Озвучка остановлена. Выполненные действия не отменяются.")
+
+    def _on_chat_scroll(self, e) -> None:
+        if self._follow_chat:
+            # Layout/auto-scroll updates must not be mistaken for a reader scrolling up.
+            if e.event_type != ft.ScrollType.USER or e.direction != ft.ScrollDirection.FORWARD:
+                return
+            self._follow_chat = False
+        else:
+            self._follow_chat = e.max_scroll_extent - e.pixels < 48
+        self._history_list.auto_scroll = self._follow_chat
+        self._latest_btn.visible = not self._follow_chat
+        if self._page is not None:
+            self._page.update()
+
+    async def _scroll_latest(self, e=None) -> None:
+        self._history_list.auto_scroll = False
+        await self._history_list.scroll_to(offset=-1, duration=0)
+        self._follow_chat = True
+        self._history_list.auto_scroll = True
+        self._latest_btn.visible = False
+        if self._page is not None:
+            self._page.update()
+
+    async def _copy_message(self, record) -> None:
+        try:
+            await ft.Clipboard().set(record["text"])
+            self._show_status("Сообщение скопировано")
+        except Exception:
+            log.exception("Не удалось скопировать сообщение")
+            self._show_status("Не удалось скопировать. Выделите текст вручную.")
+
+    def _build_commands_tab(self):
+        from jarvis.gui_commands import CommandBuilder
+        if self._command_builder is None:
+            self._command_builder = CommandBuilder(self)
+        return self._command_builder.build()
 
     def _build_mic_tab(self) -> ft.Control:
         name = "—"
@@ -666,7 +761,7 @@ class FenixGUI:
             value=current,
             options=[ft.dropdown.Option(d) for d in devices],
             width=400,
-            border_color="#30363d",
+            border_color="#3f5266",
             focused_border_color=ACCENT,
             on_select=self._on_mic_change,
         )
@@ -675,7 +770,7 @@ class FenixGUI:
             value=0.0,
             width=400,
             color=ACCENT,
-            bgcolor="#21262d",
+            bgcolor="#17212d",
         )
         self._mic_level_text = ft.Text("Уровень сигнала: —", size=13, color=TEXT_DIM)
         self._mic_status_text = ft.Text("Статус: ожидание проверки", size=13, color=TEXT_DIM)
@@ -883,7 +978,7 @@ class FenixGUI:
                 ft.dropdown.Option("both", "Оба (голос первым)"),
             ],
             width=400,
-            border_color="#30363d",
+            border_color="#3f5266",
             focused_border_color=ACCENT,
             on_select=self._on_prosody_priority,
         )
@@ -1051,7 +1146,7 @@ class FenixGUI:
             label="Имя пользователя",
             value=self.config.get("name", "") or "",
             width=400,
-            border_color="#30363d",
+            border_color="#3f5266",
             focused_border_color=ACCENT,
             on_submit=self._on_persona_name,
         )
@@ -1060,7 +1155,7 @@ class FenixGUI:
             label="Имя ассистента",
             value=p.get("assistant_name") or "Феникс",
             width=400,
-            border_color="#30363d",
+            border_color="#3f5266",
             focused_border_color=ACCENT,
             on_submit=self._on_persona_assistant_name,
         )
@@ -1075,7 +1170,7 @@ class FenixGUI:
                 ft.dropdown.Option("brief", "Краткий"),
             ],
             width=400,
-            border_color="#30363d",
+            border_color="#3f5266",
             focused_border_color=ACCENT,
             on_select=self._on_persona_style,
         )
@@ -1089,7 +1184,7 @@ class FenixGUI:
                 ft.dropdown.Option("unrestricted", "Без цензуры (если юзер сам)"),
             ],
             width=400,
-            border_color="#30363d",
+            border_color="#3f5266",
             focused_border_color=ACCENT,
             on_select=self._on_persona_tone,
         )
@@ -1105,7 +1200,7 @@ class FenixGUI:
             label="Черты (через запятую)",
             value=", ".join(p.get("traits") or []),
             width=400,
-            border_color="#30363d",
+            border_color="#3f5266",
             focused_border_color=ACCENT,
             on_submit=self._on_persona_traits,
         )
@@ -1117,7 +1212,7 @@ class FenixGUI:
             multiline=True,
             min_lines=3,
             max_lines=6,
-            border_color="#30363d",
+            border_color="#3f5266",
             focused_border_color=ACCENT,
             on_submit=self._on_persona_backstory,
         )
@@ -1341,7 +1436,7 @@ class FenixGUI:
             value=self.config.get("llm_model", "qwen2.5:7b-instruct"),
             options=[ft.dropdown.Option(m) for m in LLM_MODELS],
             width=350,
-            border_color="#30363d",
+            border_color="#3f5266",
             focused_border_color=ACCENT,
             on_select=self._on_llm_change,
         )
@@ -1349,7 +1444,7 @@ class FenixGUI:
         ollama_field = ft.TextField(
             value=self.config.get("ollama_url", "http://127.0.0.1:11434"),
             width=400,
-            border_color="#30363d",
+            border_color="#3f5266",
             focused_border_color=ACCENT,
             on_submit=self._on_ollama_change,
         )
@@ -1358,7 +1453,7 @@ class FenixGUI:
             value=self.config.get("tts_backend", "auto"),
             options=[ft.dropdown.Option(b) for b in TTS_BACKENDS],
             width=250,
-            border_color="#30363d",
+            border_color="#3f5266",
             focused_border_color=ACCENT,
             on_select=self._on_tts_change,
         )
@@ -1377,7 +1472,7 @@ class FenixGUI:
             value=self.config.get("gui_theme", "Системная"),
             options=[ft.dropdown.Option(t) for t in THEMES.keys()],
             width=250,
-            border_color="#30363d",
+            border_color="#3f5266",
             focused_border_color=ACCENT,
             on_select=self._on_theme_change,
         )
@@ -1397,7 +1492,7 @@ class FenixGUI:
                 ft.dropdown.Option("tray", "Только трей — окно скрыто"),
             ],
             width=300,
-            border_color="#30363d",
+            border_color="#3f5266",
             focused_border_color=ACCENT,
             on_select=self._on_launch_mode,
         )
@@ -1551,6 +1646,12 @@ class FenixGUI:
                     break
                 elif kind == "state":
                     self._apply_state(value)
+                elif kind == "busy":
+                    self._apply_busy(self._command_busy)
+                elif kind == "clear_error":
+                    self._dismiss_error()
+                elif kind == "command_error":
+                    self._apply_error(value)
                 elif kind == "message":
                     self._apply_message(*value)
                 elif kind == "stream_chunk":
@@ -1727,6 +1828,8 @@ class FenixGUI:
                 if self._rail and self._rail.selected_index == 1:
                     self._queue.put(("mic_level", None))
 
+                if self._state == "awaiting":
+                    self._queue.put(("state", "idle"))
                 counter += 1
                 if counter >= 25:
                     counter = 0
@@ -1747,171 +1850,109 @@ class FenixGUI:
     def _apply_state(self, state: str) -> None:
         if state not in STATES:
             return
+        if state == "idle":
+            handler = getattr(self.jarvis, "handler", None)
+            if getattr(handler, "_pending_password", None):
+                state = "password"
+            else:
+                from jarvis.intents.clarification import pending_alive
+                if pending_alive(getattr(handler, "_pending_question", None)):
+                    state = "awaiting"
         self._state = state
         color, text, sub = STATES[state]
-
-        size = {"idle": 80, "listening": 90, "speaking": 95, "error": 85}.get(state, 80)
-
-        try:
-            if self._status_circle:
-                self._status_circle.bgcolor = color
-                self._status_circle.width = size
-                self._status_circle.height = size
-                self._status_circle.border_radius = size // 2
-                self._status_circle.shadow = ft.BoxShadow(
-                    blur_radius=32, color=color, spread_radius=3,
-                )
-            if self._status_text:
-                self._status_text.value = text
-            if self._status_sub:
-                self._status_sub.value = sub
-        except Exception:
-            log.exception("Ошибка в _apply_state")
+        if P is not None:
+            color = {"idle": ACCENT, "thinking": ACCENT, "speaking": P.success,
+                     "error": P.error}.get(state, P.warning)
+        if state == "idle" and not getattr(self.jarvis, "listening_enabled", True):
+            text, sub = "Микрофон на паузе", "Текстовый чат доступен"
+        if self._status_circle is not None:
+            self._status_circle.bgcolor = color
+        if self._status_text is not None:
+            self._status_text.value = text
+        if self._status_sub is not None:
+            self._status_sub.value = sub
+        if self._input_field is not None:
+            sensitive = bool(getattr(getattr(self.jarvis, "handler", None), "_pending_password", None))
+            self._input_field.password = sensitive or state == "password"
+            self._input_field.multiline = not self._input_field.password
+            self._input_field.max_lines = 1 if self._input_field.password else 4
+            self._input_field.autocorrect = not self._input_field.password
+            self._input_field.enable_suggestions = not self._input_field.password
+            self._input_field.hint_text = "Пароль (скрыт)" if self._input_field.password else "Напиши, что нужно сделать…"
+            if self._input_hint is not None:
+                self._input_hint.value = ("Пароль скрыт · Enter — подтвердить" if self._input_field.password
+                                          else "Enter — отправить · Shift+Enter — новая строка")
+        if getattr(self, "_brand_mark", None) is not None:
+            self._brand_mark.border = ft.Border.all(1, P.brand if state == "idle" else color)
+        self._apply_busy(self._command_busy)
 
     def _apply_mood_color(self, mood_state: str) -> None:
-        """Обновляет свечение статус-сферы по mood (только в idle)."""
-        try:
-            from jarvis import mood as _mood
-            if self._state != "idle":
-                return  # во время listening/speaking цвет другой
-            color = _mood.color()
-            if self._status_circle:
-                self._status_circle.bgcolor = color
-                self._status_circle.shadow = ft.BoxShadow(
-                    blur_radius=32, color=color, spread_radius=3,
-                )
-            _MOOD_LABELS = {
-                "neutral": "",
-                "happy":   "Настроение: хорошее",
-                "excited": "Настроение: восторженное",
-                "annoyed": "Настроение: раздражённое",
-                "bored":   "Настроение: скучающее",
-                "tired":   "Настроение: уставшее",
-            }
-            if getattr(self, "_mood_text", None):
-                self._mood_text.value = _MOOD_LABELS.get(mood_state, "")
-            log.info("GUI: статус-сфера → mood=%s", mood_state)
-        except Exception:
-            log.exception("_apply_mood_color упал")
+        labels = {"happy": "Настроение: хорошее", "excited": "Настроение: восторженное",
+                  "annoyed": "Настроение: раздражённое", "bored": "Настроение: скучающее",
+                  "tired": "Настроение: уставшее"}
+        if self._mood_text is not None:
+            self._mood_text.value = labels.get(mood_state, "")
+            self._mood_text.visible = bool(self._mood_text.value)
 
-    def _avatar(self, is_user: bool) -> ft.Container:
-        if is_user:
-            bg = BG_BUBBLE_USER
-            icon = ft.Icons.PERSON
-            icon_color = "#ffffff"
-        else:
-            bg = BG_CARD
-            icon = ft.Icons.SMART_TOY
-            icon_color = ACCENT
-
+    def _message_control(self, record) -> ft.Container:
+        is_user = record["role"] == "user"
+        label = ft.Text(record["text"], size=15, color=TEXT, selectable=True)
+        if record is getattr(self, "_stream_record", None):
+            self._stream_label = label
+        async def copy(e):
+            await self._copy_message(record)
+        header = ft.Row([
+            ft.Icon(ft.Icons.PERSON_OUTLINE if is_user else ft.Icons.GRAPHIC_EQ,
+                    size=18, color=ACCENT),
+            ft.Text("Вы" if is_user else "Феникс", size=14,
+                    color=TEXT, weight=ft.FontWeight.W_600),
+            ft.Text(record["time"], size=13, color=TEXT_DIM, expand=True),
+            ft.IconButton(icon=ft.Icons.CONTENT_COPY, icon_size=17,
+                          width=44, height=44, icon_color=TEXT_DIM,
+                          tooltip="Копировать сообщение", on_click=copy),
+        ], spacing=8)
         return ft.Container(
-            content=ft.Icon(icon, size=20, color=icon_color),
-            width=40,
-            height=40,
-            border_radius=20,
-            bgcolor=bg,
-            alignment=ft.Alignment.CENTER,
+            content=ft.Column([header, label], spacing=4),
+            bgcolor=BG_BUBBLE_USER if is_user else BG_CARD,
+            border=ft.Border.all(1, P.border), border_radius=12,
+            padding=ft.Padding(left=16, right=16, top=4, bottom=16),
+            margin=ft.Margin(left=32 if is_user else 0, right=0 if is_user else 32),
         )
 
+    def _render_history(self) -> None:
+        self._history_list.controls = [self._message_control(m) for m in self._messages]
+        if not self._messages:
+            self._history_list.controls = [self._empty_chat]
+        if getattr(self, "_stream_record", None) is not None:
+            self._stream_bubble = self._history_list.controls[-1]
+
     def _apply_message(self, role: str, text: str) -> None:
-        try:
-            ts = datetime.now().strftime("%H:%M")
-            is_user = (role == "user")
-            avatar = self._avatar(is_user)
-
-            text_col = ft.Column(
-                controls=[
-                    ft.Text(
-                        f"{'Вы' if is_user else 'Феникс'} • {ts}",
-                        size=11, color=TEXT_DIM,
-                    ),
-                    ft.Text(text, size=14,
-                            color="#ffffff" if is_user else TEXT,
-                            selectable=True),
-                ],
-                spacing=2, expand=True,
-            )
-
-            bubble = ft.Container(
-                content=ft.Row(
-                    controls=[avatar, text_col] if not is_user else [text_col, avatar],
-                    spacing=12,
-                    vertical_alignment=ft.CrossAxisAlignment.START,
-                ),
-                bgcolor=BG_BUBBLE_USER if is_user else BG_BUBBLE_AI,
-                padding=ft.Padding(left=14, right=14, top=10, bottom=10),
-                border_radius=14,
-                shadow=ft.BoxShadow(
-                    blur_radius=10, color="#000000",
-                    offset=ft.Offset(0, 2),
-                ),
-                animate_opacity=ft.Animation(300, ft.AnimationCurve.EASE_IN),
-                opacity=1.0,
-            )
-
-            wrapper = ft.Container(
-                content=bubble,
-                alignment=ft.Alignment.CENTER_RIGHT if is_user else ft.Alignment.CENTER_LEFT,
-                margin=ft.Margin(
-                    left=80 if is_user else 0,
-                    right=0 if is_user else 80,
-                    top=0, bottom=0,
-                ),
-            )
-
-            self._history_list.controls.append(wrapper)
-        except Exception:
-            log.exception("Ошибка в _apply_message")
+        if not text:
+            return
+        record = {"role": role, "text": text, "time": datetime.now().strftime("%H:%M")}
+        if not self._messages:
+            self._history_list.controls.clear()
+        self._messages.append(record)
+        self._history_list.controls.append(self._message_control(record))
 
     def _apply_stream_chunk(self, chunk: str) -> None:
-        try:
-            if self._stream_bubble is None:
-                ts = datetime.now().strftime("%H:%M")
-                self._stream_text = ""
-                self._stream_label = ft.Text("", size=14, color=TEXT, selectable=True)
-
-                avatar = self._avatar(is_user=False)
-
-                text_col = ft.Column(
-                    controls=[
-                        ft.Text(f"Феникс • {ts}", size=11, color=TEXT_DIM),
-                        self._stream_label,
-                    ],
-                    spacing=2, expand=True,
-                )
-
-                bubble = ft.Container(
-                    content=ft.Row(
-                        controls=[avatar, text_col],
-                        spacing=12,
-                        vertical_alignment=ft.CrossAxisAlignment.START,
-                    ),
-                    bgcolor=BG_BUBBLE_AI,
-                    padding=ft.Padding(left=14, right=14, top=10, bottom=10),
-                    border_radius=14,
-                    shadow=ft.BoxShadow(
-                        blur_radius=10, color="#000000",
-                        offset=ft.Offset(0, 2),
-                    ),
-                )
-
-                wrapper = ft.Container(
-                    content=bubble,
-                    alignment=ft.Alignment.CENTER_LEFT,
-                    margin=ft.Margin(left=0, right=80, top=0, bottom=0),
-                )
-
-                self._stream_bubble = wrapper
-                self._history_list.controls.append(wrapper)
-
-            self._stream_text += chunk
-            self._stream_label.value = self._stream_text
-        except Exception:
-            log.exception("Ошибка в _apply_stream_chunk")
+        if not chunk:
+            return
+        if self._stream_bubble is None:
+            self._stream_record = {"role": "assistant", "text": "", "time": datetime.now().strftime("%H:%M")}
+            if not self._messages:
+                self._history_list.controls.clear()
+            self._messages.append(self._stream_record)
+            self._stream_bubble = self._message_control(self._stream_record)
+            self._history_list.controls.append(self._stream_bubble)
+        self._stream_record["text"] += chunk
+        self._stream_label.value = self._stream_record["text"]
+        self._stream_text = self._stream_record["text"]
 
     def _apply_stream_end(self) -> None:
         self._stream_bubble = None
         self._stream_label = None
+        self._stream_record = None
         self._stream_text = ""
 
     def _open_mic_tab(self) -> None:
@@ -1988,6 +2029,20 @@ class FenixGUI:
     # Действия
     # ---------------------------------------------------------------
 
+    def _select_tab(self, index: int) -> None:
+        if index not in self._tabs:
+            return
+        if self._command_builder is not None:
+            self._command_builder.capture()
+        if index == 5:
+            self._tabs[5] = self._build_commands_tab()
+        self._rail.selected_index = index
+        if index == 0 and getattr(self, "_model_label", None) is not None:
+            self._model_label.value = self._model_caption()
+        self._content_area.content = self._tabs[index]
+        if self._page is not None:
+            self._page.update()
+
     def _on_nav_change(self, e) -> None:
         idx = e.control.selected_index
         log.info("Навигация: %d", idx)
@@ -2007,6 +2062,8 @@ class FenixGUI:
     def _on_mode_change(self, e) -> None:
         mode = e.control.value
         self.config.set("mode", mode)
+        if getattr(self, "_model_label", None) is not None:
+            self._model_label.value = self._model_caption()
         if self.jarvis is not None:
             self.jarvis.handler.mode = mode
 
@@ -2035,26 +2092,12 @@ class FenixGUI:
             return [ft.dropdown.Option("ruslan")]
 
     def _on_refresh_voices(self, e) -> None:
-        """Обновить список голосов после смены backend."""
         try:
             from jarvis import voices as _voices
             _voices.reset_cache()
-            current_idx = self._rail.selected_index if self._rail else 0
-            saved_history = list(self._history_list.controls) if self._history_list else []
-            self._tabs = {
-                0: self._build_main_tab(),
-                1: self._build_mic_tab(),
-                2: self._build_audio_tab(),
-                3: self._build_persona_tab(),
-                4: self._build_settings_tab(),
-            }
-            if saved_history and self._history_list:
-                self._history_list.controls = saved_history
-            if self._content_area:
-                self._content_area.content = self._tabs.get(current_idx, self._tabs[0])
-            if self._page:
+            self._rebuild_ui_for_theme()
+            if self._page is not None:
                 self._page.update()
-            log.info("GUI: список голосов обновлён")
         except Exception:
             log.exception("Не удалось обновить голоса")
 
@@ -2064,8 +2107,8 @@ class FenixGUI:
             if self._page is None:
                 return
             snack = ft.SnackBar(
-                content=ft.Text(text, size=13, color="#e6edf3"),
-                bgcolor="#161b22",
+                content=ft.Text(text, size=13, color="#eaf0f6"),
+                bgcolor="#131c26",
                 duration=10000,
             )
             self._page.overlay.append(snack)
@@ -2084,6 +2127,8 @@ class FenixGUI:
 
     def _on_llm_change(self, e) -> None:
         self.config.set("llm_model", e.control.value)
+        if getattr(self, "_model_label", None) is not None:
+            self._model_label.value = self._model_caption()
 
     def _on_ollama_change(self, e) -> None:
         # Пустое поле раньше сохранялось как есть и роняло старт:
@@ -2120,20 +2165,8 @@ class FenixGUI:
             self._show_status("SAPI: старые системные голоса Windows.")
 
         try:
-            current_idx = self._rail.selected_index if self._rail else 0
-            saved_history = list(self._history_list.controls) if self._history_list else []
-            self._tabs = {
-                0: self._build_main_tab(),
-                1: self._build_mic_tab(),
-                2: self._build_audio_tab(),
-                3: self._build_persona_tab(),
-                4: self._build_settings_tab(),
-            }
-            if saved_history and self._history_list:
-                self._history_list.controls = saved_history
-            if self._content_area:
-                self._content_area.content = self._tabs.get(current_idx, self._tabs[0])
-            if self._page:
+            self._rebuild_ui_for_theme()
+            if self._page is not None:
                 self._page.update()
         except Exception:
             log.exception("Не удалось пересобрать вкладки")
@@ -2177,74 +2210,68 @@ class FenixGUI:
             log.exception("Ошибка в _on_theme_change")
 
     def _rebuild_ui_for_theme(self) -> None:
-        """Пересобирает UI с новой палитрой.
-
-        Вызывается при смене темы И при смене профиля (№92).
-
-        №92-fix: сохраняем историю чата перед пересборкой, чтобы
-        не терять сообщения при смене темы/профиля.
-        """
         current_index = self._rail.selected_index if self._rail else 0
-
-        saved_history = []
-        if self._history_list is not None:
-            saved_history = list(self._history_list.controls)
-
+        if self._command_builder is not None:
+            self._command_builder.capture()
+        if self._input_field is not None:
+            # A password must not become a visible draft after a rebuild.
+            self._draft = "" if self._input_field.password else (self._input_field.value or "")
+        error = self._error_text.value if self._error_banner is not None and self._error_banner.visible else ""
         self._tabs = {
-            0: self._build_main_tab(),
-            1: self._build_mic_tab(),
-            2: self._build_audio_tab(),
-            3: self._build_persona_tab(),
-            4: self._build_settings_tab(),
+            0: self._build_main_tab(), 1: self._build_mic_tab(),
+            2: self._build_audio_tab(), 3: self._build_persona_tab(),
+            4: self._build_settings_tab(), 5: self._build_commands_tab(),
         }
-
-        if saved_history and self._history_list is not None:
-            self._history_list.controls = saved_history
-
+        if error and self._error_text is not None:
+            self._error_text.value = error
+            self._error_banner.visible = True
         if self._content_area is not None:
             self._content_area.bgcolor = BG_DARK
             self._content_area.content = self._tabs.get(current_index, self._tabs[0])
-
         if self._rail is not None:
-            self._rail.bgcolor = BG_CARD
-            self._rail.indicator_color = ACCENT
-
-        log.info("UI пересобран (тема/профиль), история сохранена: %d",
-                 len(saved_history))
+            self._rail.refresh_palette()
 
     def _on_send(self, e) -> None:
-        text = self._input_field.value.strip()
-        if not text:
+        text = (self._input_field.value or "").strip()
+        if not text or self._command_busy:
             return
-        self._input_field.value = ""
-        self._run_command(text)
+        if self._run_command(text) is not False:
+            self._input_field.value = ""
+            self._draft = ""
+        if self._page is not None:
+            self._page.update()
 
     def _on_mic_toggle(self, e) -> None:
         if self.jarvis is None:
             return
         self.jarvis.listening_enabled = not self.jarvis.listening_enabled
         self._mic_btn.icon = ft.Icons.MIC if self.jarvis.listening_enabled else ft.Icons.MIC_OFF
-        self._mic_btn.icon_color = ACCENT if self.jarvis.listening_enabled else "#f85149"
+        self._mic_btn.icon_color = ACCENT if self.jarvis.listening_enabled else P.error
+        if self._state in ("idle", "awaiting", "password"):
+            self._apply_state("idle")
         try:
             self._page.update()
         except Exception:
             pass
 
-    def _run_command(self, cmd: str) -> None:
-        """Запускает команду из GUI (текстовый ввод).
-
-        Берёт тот же cmd_lock, что и голосовой поток — иначе два
-        одновременных handle+say ломают stateful-поля IntentHandler
-        и накладывают TTS.
-        """
+    def _run_command(self, cmd: str) -> bool:
+        """One GUI request at a time; same core lock as voice, UI only via queue."""
         if self.jarvis is None:
-            return
+            self._queue.put(("command_error", "Ядро ещё не готово. Дождитесь запуска и повторите."))
+            return False
+        if not self._command_lock.acquire(blocking=False):
+            return False
+        self._command_busy = True
+        self._apply_busy(True)
+        self._dismiss_error()
+        self._queue.put(("clear_error", None))
 
         def _run():
             try:
-                self.set_state("listening")
+                self.set_state("thinking")
                 self.jarvis.speaker.stop()
-                self.jarvis.speaker.wait_end(timeout=1.0)
+                if self.jarvis.speaker.wait_end(timeout=1.0) is False:
+                    raise RuntimeError("Previous speech has not stopped")
                 with self.jarvis.cmd_lock:
                     sensitive = bool(getattr(self.jarvis.handler, "_pending_password", None))
                     self.add_message("user", "[Ввод пароля скрыт]" if sensitive else cmd)
@@ -2252,11 +2279,23 @@ class FenixGUI:
                     if not reply.is_stream:
                         self.add_message("assistant", reply.text or "")
                     self.jarvis.say(reply)
-                # Раньше статус оставался «Слушаю» навсегда: команда
-                # из текстового поля завершалась, а индикатор — нет.
                 self.set_state("idle")
-            except Exception:
-                log.exception("Ошибка команды из GUI")
-                self.set_state("error")
-
-        threading.Thread(target=_run, daemon=True, name="gui-cmd").start()
+            except Exception as error:
+                # Exception text may contain a password, prompt or server payload.
+                log.error("Ошибка команды из GUI (%s); содержимое запроса не записывается",
+                          type(error).__name__)
+                self._queue.put(("command_error", "Не удалось завершить запрос. Проверьте модель, звук и доступность сервера. Повтор не выполняется автоматически."))
+            finally:
+                self._command_busy = False
+                self._command_lock.release()
+                self._queue.put(("busy", False))
+        try:
+            self._command_thread = threading.Thread(target=_run, daemon=True, name="gui-cmd")
+            self._command_thread.start()
+        except Exception:
+            self._command_busy = False
+            self._command_lock.release()
+            self._queue.put(("command_error", "Не удалось запустить обработку. Сообщение осталось в поле ввода."))
+            self._apply_busy(False)
+            return False
+        return True

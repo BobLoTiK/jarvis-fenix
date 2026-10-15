@@ -218,21 +218,28 @@ def test_voice_input_redacts_gui_and_skips_observer():
     assert all(call.args[0] != 'user' for call in app.observer.observe.call_args_list)
 
 
-def test_gui_input_redacts_history():
-    class ImmediateThread:
-        def __init__(self, *, target, **kwargs): self.target = target
-        def start(self): self.target()
-    run = source_method('jarvis/gui.py', 'FenixGUI', '_run_command', {
-        'threading':SimpleNamespace(Thread=ImmediateThread), 'log':logging.getLogger('audit.gui'),
-    })
+def test_gui_input_redacts_history(tmp_path):
+    # Exercise the imported GUI method, not a copy compiled from AST.
+    pytest.importorskip("flet")
+    from jarvis.gui import FenixGUI
+    from jarvis.config import Config
+    from jarvis import profile, mood
     h = handler('AbC-42!')
     h._ask_password({'action':'clear_tasks'})
-    app = SimpleNamespace(jarvis=SimpleNamespace(handler=h,speaker=Mock(),cmd_lock=threading.Lock(),say=Mock()),set_state=Mock(),add_message=Mock())
-    with patch('jarvis.intents.execute.execute_intent',return_value='Готово.') as execute:
-        run(app,'пароль AbC-42!')
-    execute.assert_called_once()
-    app.add_message.assert_any_call('user','[Ввод пароля скрыт]')
-    assert 'AbC-42!' not in str(app.add_message.mock_calls)
+    app = FenixGUI(SimpleNamespace(handler=h, speaker=Mock(), cmd_lock=threading.Lock(), say=Mock()),
+                   Config(tmp_path / "gui-config.json"))
+    app.add_message = Mock()
+    try:
+        with patch('jarvis.intents.execute.execute_intent', return_value='Готово.') as execute:
+            assert app._run_command('пароль AbC-42!')
+            app._command_thread.join(timeout=5)
+            assert not app._command_thread.is_alive()
+        execute.assert_called_once()
+        app.add_message.assert_any_call('user','[Ввод пароля скрыт]')
+        assert 'AbC-42!' not in str(app.add_message.mock_calls)
+    finally:
+        profile.unsubscribe(app._on_profile_switch)
+        mood.unsubscribe(app._on_mood_change)
 
 
 def test_stt_does_not_retain_sensitive_recognition(caplog):

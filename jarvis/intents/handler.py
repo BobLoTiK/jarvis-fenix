@@ -74,8 +74,8 @@ class IntentHandler:
         migrate_password_if_needed(config)
 
         # Custom-команды.
-        self.custom = load_custom(config)
-        self._config_custom_original = list(self.custom)
+        from jarvis.intents.fast.custom import reload_custom
+        reload_custom(self)
 
         # Реестр быстрых правил.
         self._fast_handlers_cache = build_registry(self)
@@ -270,7 +270,11 @@ class IntentHandler:
     # =================================================================
 
     def _on_config_change(self, key: str, value) -> None:
-        if key == "memory_max":
+        if key in ("custom_commands", "active_packs"):
+            from jarvis.intents.fast.custom import reload_custom
+            reload_custom(self)
+            self.active_packs = list(self.config.get("active_packs", []))
+        elif key == "memory_max":
             try:
                 new_max = int(value)
             except (TypeError, ValueError):

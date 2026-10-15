@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=e92b38a7413b3cc6` · режим `lean` · файлов `215` · строк `42756` · источник `1848 КБ`
+`sha256=5eced322b8cffc2d` · режим `lean` · файлов `239` · строк `44292` · источник `1913 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -181,7 +181,52 @@ Observer выключен без согласия (`observer_enabled=false`); и
 15. Attribution jsys12 сохранять. Не коммитить личные данные, `.venv311`, models, voices,
     dist, build, logs, backups; CC0-активы поставляются с происхождением.
 
-## 8. Проверки и выпуск
+## 8. GUI: диалог и графитово-медная оболочка
+
+Главная использует существующие Flet 1.0.x и очередь GUI. Состояния:
+idle/listening/recognizing/thinking/speaking/awaiting/password/error.
+recognizing и thinking получают сигналы из голосового пути; idle уточняется
+по живому pending-состоянию. Это этапы обработки, не измерение точности/задержки.
+
+- `_Sidebar` и нативные кнопки сценариев поддерживают клавиатуру; три карточки
+  только заполняют поле, не исполняют действие и не меняют пароль.
+- Режим, голос и объём истории — над композером. Тег модели — из Config,
+  не проверка соединения. Нижний блок sidebar показывает текущий профиль.
+- Брендовая медь отделена от функциональных/сигнальных цветов; знак птицы
+  реагирует на состояние, без постоянной анимации и имитации аудиоданных.
+- Enter отправляет, Shift+Enter добавляет строку. Пока GUI-запрос выполняется,
+  следующая отправка блокируется без очереди; черновик остаётся редактируемым.
+- Отдельный _command_lock защищает от повторных GUI-кликов; cmd_lock ядра
+  по-прежнему сериализует голос и GUI. finally освобождает GUI-lock при ошибке.
+- Стоп останавливает только текущую озвучку. Не отменяет HTTP/генерацию LLM,
+  работу handler или уже выполненное системное действие; ожидание не снимается
+  преждевременно. При незавершённой предыдущей озвучке новая GUI-команда не исполняется.
+- _messages — модель отображения текущей GUI-сессии, не новая постоянная память.
+  Пересборка темы/голосов перерисовывает сообщения и сохраняет активный стрим
+  и обычный черновик; парольный черновик очищается, ввод пароля скрыт.
+- Пользовательская прокрутка вверх отключает автоследование; обновление размеров
+  списка само по себе его не отключает. Кнопка возвращает к последнему сообщению.
+- Копирование через штатный Flet Clipboard; ошибка показывается, не скрывается.
+- Ошибка worker отображается через очередь без сырого exception/пароля; повтор
+  действия автоматически не запускается. Микрофон и его pause-состояние сохраняются.
+- Остальные четыре вкладки не переписаны. Минимум native-окна остаётся 900×600.
+  Браузерный Flet-стенд с отключёнными ОС/аудио не заменяет Windows-приёмку.
+
+### Конструктор «Мои команды»
+
+`command_builder.py` — чистая валидация/CRUD существующего custom_commands;
+`gui_commands.py` — Flet-редактор без исполнения. Поддержан builder_version=1,
+стабильный id, enabled, exact, 1–12 фраз и 1–6 типизированных шагов.
+Legacy-записи остаются неизменными и read-only в GUI; паки не дублируются.
+`IntentHandler._on_config_change` перечитывает custom_commands/active_packs,
+публикуя новый список; находящийся в ожидании пароля сценарий хранит свой snapshot.
+Выключение/перезагрузка — типизированный фиксированный argv, не shell-строка;
+требуют настроенного пароля и preflight всех шагов. Параметры фиксированы.
+`find_custom` — без исполнения, сначала точные совпадения, затем legacy fuzzy.
+Значки: SVG/PNG в `jarvis/assets/brand`, общий знак для Flet/icon.ico/tray.png;
+`make_icon.py` воспроизводит ICO/трей из PNG-мастера. Новых зависимостей нет.
+
+## 9. Проверки и выпуск
 
 ```powershell
 .\.venv311\Scripts\python.exe check_all.py
@@ -256,8 +301,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── README.md  (74 стр)
 │   │   ├── release.yml  (114 стр)
 │   │   ├── test.yml  (71 стр)
-├── AGENTS.md  (118 стр)
-├── ARCHITECTURE.md  (1042 стр)
+├── AGENTS.md  (119 стр)
+├── ARCHITECTURE.md  (1075 стр)
 ├── assets/
 │   ├── nonverbal/
 │   │   ├── README.md  (40 стр)
@@ -265,7 +310,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── readme/
 │   │   ├── hero-mobile.svg  (8 стр)
 │   │   ├── hero.svg  (19 стр)
-├── CHANGELOG.md  (1298 стр)
+├── CHANGELOG.md  (1354 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -278,50 +323,73 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ├── CONTRIBUTING.md  (438 стр)
 ├── create_shortcut.bat  (51 стр)
 ├── docs/
-│   ├── USER_GUIDE.md  (820 стр)
+│   ├── USER_GUIDE.md  (890 стр)
 ├── install.bat  (411 стр)
 ├── installer.iss  (119 стр)
 ├── jarvis/
 │   ├── __init__.py  (8 стр)
 │   ├── __main__.py  (4 стр)
-│   ├── actions.py  (1483 стр)
+│   ├── actions.py  (1504 стр)
 │   ├── apps.py  (114 стр)
+│   ├── assets/
+│   │   ├── brand/
+│   │   │   ├── app-dark.svg  (1 стр)
+│   │   │   ├── app-light.svg  (1 стр)
+│   │   │   ├── audio-dark.svg  (1 стр)
+│   │   │   ├── audio-light.svg  (1 стр)
+│   │   │   ├── commands-dark.svg  (1 стр)
+│   │   │   ├── commands-light.svg  (1 стр)
+│   │   │   ├── dialog-dark.svg  (1 стр)
+│   │   │   ├── dialog-light.svg  (1 стр)
+│   │   │   ├── microphone-dark.svg  (1 стр)
+│   │   │   ├── microphone-light.svg  (1 стр)
+│   │   │   ├── persona-dark.svg  (1 стр)
+│   │   │   ├── persona-light.svg  (1 стр)
+│   │   │   ├── phoenix-dark.svg  (10 стр)
+│   │   │   ├── phoenix-light.svg  (10 стр)
+│   │   │   ├── README.md  (13 стр)
+│   │   │   ├── settings-dark.svg  (1 стр)
+│   │   │   ├── settings-light.svg  (1 стр)
+│   │   │   ├── timer-dark.svg  (1 стр)
+│   │   │   ├── timer-light.svg  (1 стр)
 │   ├── audio_output.py  (133 стр)
 │   ├── brain.py  (868 стр)
 │   ├── celebrations.py  (165 стр)
+│   ├── command_builder.py  (152 стр)
 │   ├── config.py  (288 стр)
 │   ├── config_manager.py  (156 стр)
 │   ├── files.py  (109 стр)
 │   ├── first_run.py  (26 стр)
-│   ├── gui.py  (2262 стр)
+│   ├── gui.py  (2301 стр)
+│   ├── gui_commands.py  (305 стр)
 │   ├── history.py  (75 стр)
 │   ├── installed.py  (51 стр)
 │   ├── intents/
 │   │   ├── __init__.py  (10 стр)
 │   │   ├── clarification.py  (262 стр)
 │   │   ├── context.py  (19 стр)
-│   │   ├── execute.py  (1021 стр)
+│   │   ├── execute.py  (1041 стр)
 │   │   ├── fast/
 │   │   │   ├── __init__.py  (54 стр)
 │   │   │   ├── correction.py  (28 стр)
-│   │   │   ├── custom.py  (91 стр)
+│   │   │   ├── custom.py  (114 стр)
 │   │   │   ├── debug.py  (48 стр)
 │   │   │   ├── memory.py  (57 стр)
 │   │   │   ├── music.py  (38 стр)
 │   │   │   ├── open.py  (61 стр)
-│   │   │   ├── packs.py  (27 стр)
+│   │   │   ├── packs.py  (26 стр)
 │   │   │   ├── persona.py  (77 стр)
 │   │   │   ├── profile.py  (191 стр)
 │   │   │   ├── screenshot.py  (26 стр)
 │   │   │   ├── small_talk.py  (74 стр)
-│   │   │   ├── system.py  (130 стр)
+│   │   │   ├── system.py  (133 стр)
 │   │   │   ├── tasks.py  (7 стр)
 │   │   │   ├── timers.py  (7 стр)
 │   │   │   ├── uia.py  (174 стр)
 │   │   │   ├── undo.py  (67 стр)
 │   │   │   ├── voices.py  (10 стр)
 │   │   │   ├── weather.py  (113 стр)
-│   │   ├── handler.py  (303 стр)
+│   │   ├── handler.py  (307 стр)
 │   │   ├── password.py  (99 стр)
 │   │   ├── sites.py  (62 стр)
 │   │   ├── stages/
@@ -350,7 +418,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── time.py  (84 стр)
 │   │   ├── units.py  (85 стр)
 │   ├── learning.py  (178 стр)
-│   ├── main.py  (899 стр)
+│   ├── main.py  (905 стр)
 │   ├── matching.py  (118 стр)
 │   ├── memory.py  (147 стр)
 │   ├── memory_context.py  (124 стр)
@@ -373,7 +441,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── tasks.py  (257 стр)
 │   ├── text_utils.py  (98 стр)
 │   ├── timers.py  (326 стр)
-│   ├── tray.py  (192 стр)
+│   ├── tray.py  (188 стр)
 │   ├── tts.py  (384 стр)
 │   ├── tts_engines/
 │   │   ├── __init__.py  (12 стр)
@@ -397,8 +465,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── sites.json  (22 стр)
 │   ├── system.json  (17 стр)
 │   ├── work.json  (11 стр)
-├── PLAN.md  (216 стр)
-├── PROJECT.md  (227 стр)
+├── PLAN.md  (243 стр)
+├── PROJECT.md  (272 стр)
 ├── PROMPT.md  (511 стр)
 ├── pytest.ini  (20 стр)
 ├── README.md  (249 стр)
@@ -413,7 +481,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── check_caps.py  (174 стр)
 │   ├── check_staged_snapshot.py  (149 стр)
 │   ├── install_git_hooks.py  (82 стр)
-│   ├── make_icon.py  (80 стр)
+│   ├── make_icon.py  (32 стр)
 │   ├── make_installer_images.py  (121 стр)
 │   ├── mics.py  (52 стр)
 │   ├── selftest.py  (49 стр)
@@ -422,7 +490,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── vadbench.py  (185 стр)
 │   ├── voicedemo.py  (41 стр)
 │   ├── wakebench.py  (88 стр)
-├── snapshot.py  (713 стр)
+├── snapshot.py  (727 стр)
 ├── start_fenix.bat  (6 стр)
 ├── start_fenix_debug.bat  (15 стр)
 ├── tests/
@@ -443,19 +511,22 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── uia_manual.py  (61 стр)
 │   │   ├── vad_debug.py  (61 стр)
 │   │   ├── vad_live.py  (41 стр)
-│   ├── README.md  (239 стр)
+│   ├── README.md  (290 стр)
 │   ├── stress_intents.py  (552 стр)
 │   ├── test_audio_regression.py  (556 стр)
-│   ├── test_audit_regressions.py  (258 стр)
+│   ├── test_audit_regressions.py  (265 стр)
 │   ├── test_brain_rag.py  (125 стр)
 │   ├── test_browser_target.py  (338 стр)
 │   ├── test_build_setup.py  (56 стр)
 │   ├── test_caps.py  (23 стр)
 │   ├── test_clarification.py  (411 стр)
 │   ├── test_clarification_imports.py  (110 стр)
+│   ├── test_command_builder.py  (213 стр)
 │   ├── test_config_manager.py  (47 стр)
 │   ├── test_engine_probe.py  (100 стр)
-│   ├── test_git_hygiene.py  (285 стр)
+│   ├── test_git_hygiene.py  (322 стр)
+│   ├── test_gui_chat.py  (287 стр)
+│   ├── test_gui_commands.py  (126 стр)
 │   ├── test_gui_wiring.py  (548 стр)
 │   ├── test_intents.py  (485 стр)
 │   ├── test_main_wiring.py  (202 стр)
@@ -501,6 +572,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   _CMD_VERBS = ...
   def spec_from_string(s: str)
   def run_spec(spec)
+  def run_power_action(flag: str, seconds: int=30)
   def open_path(path, minimized: bool=False)
   def open_in_editor(path, prefer: str='auto')
   _DEFAULT_URL = ...
@@ -602,6 +674,22 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def start_celebration(jarvis, gui)
 ```
 
+**`jarvis/command_builder.py`**
+
+```
+  # Typed custom commands. No execution, model calls or shell parsing in the editor.
+  ACTIONS = ...
+  POWER_ACTIONS = ...
+  RESERVED = ...
+  def clean_phrase(value, wake_words=())
+  def validate_step(step)
+  def validate_entry(entry, wake_words=())
+  def entries(config)
+  def save_entry(config, draft)
+  def delete_entry(config, entry_id)
+  def describe_steps(steps)
+```
+
 **`jarvis/config.py`**
 
 ```
@@ -674,6 +762,12 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   THEMES = ...
   LLM_MODELS = ...
   TTS_BACKENDS = ...
+  NAV_ITEMS = ...
+  class _Sidebar(ft.Container)
+    def __init__(self, on_select)
+    def selected_index(self)
+    def selected_index(self, value)
+    def refresh_palette(self)
   class FenixGUI
     def __init__(self, jarvis, config)
     def start(self)
@@ -690,6 +784,29 @@ Non-verbal/микрофон/установщик по-прежнему треб�
     def set_mic_test_result(self, text: str, color: str)
     def launch_fireworks(self, duration: float=6.0)
   >>> GUI: ft.run(...) - Flet в главном потоке
+```
+
+**`jarvis/gui_commands.py`**
+
+```
+  # Flet editor for the existing custom_commands pipeline. Never executes a preview.
+  class CommandBuilder
+    def __init__(self, gui)
+    def capture(self)
+    def refresh(self)
+    def new(self, template=None)
+    def edit(self, entry)
+    def back(self, e=None)
+    def change_step(self, index, action)
+    def move_step(self, index, direction)
+    def add_step(self, e=None)
+    def remove_step(self, index)
+    def save(self, e=None)
+    def toggle(self, entry, enabled)
+    def delete(self, entry_id, confirmed=False)
+    def check(self, e=None)
+    def set_password(self, e=None)
+    def build(self)
 ```
 
 **`jarvis/history.py`**
@@ -778,8 +895,9 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 
 ```
   # Пользовательские команды: из config.json и из паков.
-  def load_custom(config)
+  def load_custom(config, *, include_packs=True)
   def load_packs_as_custom(config)
+  def reload_custom(handler)
   def match_custom(handler, cmd: str)
   def find_custom(custom: list, cmd: str)
   def execute_custom(handler, action, reply: str, *, authorized: bool=False)
@@ -1897,11 +2015,10 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 **`scripts/make_icon.py`**
 
 ```
-  # Генерация иконки Феникса (jarvis/icon.ico).
+  # Build the Windows/tray phoenix icon from the project's transparent master PNG.
   BASE = ...
   OUTPUT = ...
-  BG_COLOR = ...
-  ACCENT = ...
+  MASTER = ...
   def draw_icon(size: int)
   def main()
 ```
@@ -2210,7 +2327,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_task_intent_reports_persistence_error(tmp_path)
   def source_method(filename, classname, method, namespace)
   def test_voice_input_redacts_gui_and_skips_observer()
-  def test_gui_input_redacts_history()
+  def test_gui_input_redacts_history(tmp_path)
   def test_stt_does_not_retain_sensitive_recognition(caplog)
 ```
 
@@ -2338,6 +2455,30 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_clarification_imports_in_fresh_process(first, tmp_path)
 ```
 
+**`tests/test_command_builder.py`**
+
+```
+  # Builder persistence, exact matching and runtime protection; no real OS actions.
+  def draft(**changes)
+  def cfg(tmp_path)
+  def test_crud_and_reopen_preserve_unmanaged_commands(cfg)
+  def test_bad_parameters_do_not_save(cfg, step)
+  def test_phrase_validation(cfg, phrases)
+  def test_limit_and_power_last(cfg)
+  def test_duplicate_phrase_rejected_but_disabled_command_allowed(cfg)
+  def test_active_pack_conflict_and_no_pack_duplication(cfg)
+  def test_atomic_save_failure_is_reported(cfg, monkeypatch)
+  def test_exact_only_and_exact_precedes_legacy_fuzzy(cfg, monkeypatch)
+  def test_config_change_updates_live_handler_without_execution(cfg, monkeypatch)
+  def test_missing_password_blocks_whole_scenario_before_first_step(cfg, monkeypatch)
+  def test_password_required_before_first_step_and_cancel_works(cfg, monkeypatch)
+  def test_cancel_power_does_not_depend_on_system_pack(cfg, monkeypatch)
+  def test_invalid_config_not_overwritten(cfg)
+  def test_corrupt_or_future_builder_entries_fail_closed(cfg)
+  def test_power_uses_fixed_argv_and_checks_windows_exit(monkeypatch)
+  def test_power_timeout_is_not_reported_as_success(monkeypatch)
+```
+
 **`tests/test_config_manager.py`**
 
 ```
@@ -2392,6 +2533,50 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_not_a_repository_fails_clearly(tmp_path)
   def test_clinerules_numbering_and_ignore_files_are_consistent()
   def test_windows_checkout_line_endings_with_lf_hook(repo)
+  def test_mixed_svg_lf_and_windows_crlf_checkout(repo)
+  def test_snapshot_text_and_size_are_eol_independent(repo)
+```
+
+**`tests/test_gui_chat.py`**
+
+```
+  # Imported Flet controls + real GUI worker threads; no window, ASR or audio device.
+  def gui(tmp_path, monkeypatch)
+  def finish(gui)
+  def events(gui)
+  def test_real_controls_have_chat_shortcuts_and_stop(gui)
+  def test_duplicate_click_does_not_queue_or_erase_draft(gui)
+  def test_no_core_keeps_input_and_reports_unavailable(gui)
+  def test_exception_is_sanitized_and_worker_unlocks(gui, caplog)
+  def test_failed_thread_start_keeps_input_and_unlocks(gui, monkeypatch)
+  def test_existing_voice_lock_serializes_gui_handler(gui)
+  def test_speech_not_stopped_no_new_action(gui)
+  def test_stop_is_audio_only_and_does_not_fake_cancellation(gui)
+  def test_pending_state_and_password_mask(gui)
+  def test_theme_rebuild_preserves_draft_stream_and_recolors(gui)
+  def test_password_draft_never_revealed_after_rebuild(gui)
+  def test_scroll_up_disables_forced_follow(gui)
+  async def test_copy_stream_uses_current_text(gui, monkeypatch)
+  async def test_scroll_latest_scrolls_before_enabling_follow(gui)
+  def test_all_states_are_visible(gui, state)
+  def test_layout_update_does_not_disable_follow(gui)
+  def test_scenario_cards_prefill_without_execution(gui)
+  def test_sidebar_selects_all_real_tabs_and_keeps_theme_selection(gui)
+  def test_sidebar_profile_and_configured_model_are_not_network_status(gui)
+  def test_monogram_reflects_processing_not_fake_microphone_data(gui)
+```
+
+**`tests/test_gui_commands.py`**
+
+```
+  # Imported native builder controls; no OS actions or real passwords.
+  def editor(tmp_path)
+  def test_sixth_tab_and_unsaved_editor_survive_navigation(editor)
+  def test_editor_create_check_edit_toggle_and_confirm_delete(editor, monkeypatch)
+  def test_editor_step_operations_and_validation(editor)
+  def test_password_never_becomes_editor_draft(editor)
+  def test_brand_assets_and_app_icon_have_no_letter_fallback(editor)
+  def test_theme_rebuild_preserves_unsaved_command_but_not_password(editor, monkeypatch)
 ```
 
 **`tests/test_gui_wiring.py`**
@@ -3204,6 +3389,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def build_tree(files: list[Path], root: Path)
   def section_code(files: list[Path], root: Path, mode: str, budget_kb: float | None, secrets: list[str])
   def section_docs(files: list[Path], root: Path)
+  def snapshot_bytes(path: Path)
   def build_snapshot(mode: str, budget_kb: float | None)
   def parse_args(argv: list[str] | None=None)
   def drift_reason(content: str, path: Path)
@@ -3217,42 +3403,44 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 |---|---:|---|---|
 | `jarvis/__init__.py` | 8 | code | Феникс — локальный голосовой ассистент для Windows. |
 | `jarvis/__main__.py` | 4 | code |  |
-| `jarvis/actions.py` | 1483 | code | Действия: запуск приложений, открытие сайтов, скриншоты, медиа, печать |
+| `jarvis/actions.py` | 1504 | code | Действия: запуск приложений, открытие сайтов, скриншоты, медиа, печать |
 | `jarvis/apps.py` | 114 | code | Каталог известных приложений: как их зовут голосом, как открыть и как  |
 | `jarvis/audio_output.py` | 133 | code | Shared cancellable PCM output for Speaker and the three WAV-based TTS  |
 | `jarvis/brain.py` | 868 | code | LLM-фолбэк: локальная нейронка (Ollama) разбирает команду в структурны |
 | `jarvis/celebrations.py` | 165 | code | Праздничные триггеры — поздравление с ДР + двойной салют. |
+| `jarvis/command_builder.py` | 152 | code | Typed custom commands. No execution, model calls or shell parsing in t |
 | `jarvis/config.py` | 288 | code | Загрузка конфигурации и объект Config в памяти. |
 | `jarvis/config_manager.py` | 156 | code | Единый менеджер записи в config.json. |
 | `jarvis/files.py` | 109 | code | Файлы и папки: открыть, посмотреть содержимое, создать. |
 | `jarvis/first_run.py` | 26 | code | Первый запуск — знакомство через LLM-диалог. |
-| `jarvis/gui.py` | 2262 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
+| `jarvis/gui.py` | 2301 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
+| `jarvis/gui_commands.py` | 305 | code | Flet editor for the existing custom_commands pipeline. Never executes  |
 | `jarvis/history.py` | 75 | code | История последних действий для отмены («стоп, не то»). |
 | `jarvis/installed.py` | 51 | code | Индекс установленных программ по ярлыкам меню «Пуск». |
 | `jarvis/intents/__init__.py` | 10 | code | Разбор команд Феникса — пакет. |
 | `jarvis/intents/clarification.py` | 262 | code | Bounded, session-only slot filling shared by GUI and voice. |
 | `jarvis/intents/context.py` | 19 | code | Контекст, который передаётся между стадиями pipeline. |
-| `jarvis/intents/execute.py` | 1021 | code | Dispatch: action → функция-обработчик. |
+| `jarvis/intents/execute.py` | 1041 | code | Dispatch: action → функция-обработчик. |
 | `jarvis/intents/fast/__init__.py` | 54 | code | Реестр быстрых обработчиков. |
 | `jarvis/intents/fast/correction.py` | 28 | code | Коррекция: «это не то, я сказал логи». |
-| `jarvis/intents/fast/custom.py` | 91 | code | Пользовательские команды: из config.json и из паков. |
+| `jarvis/intents/fast/custom.py` | 114 | code | Пользовательские команды: из config.json и из паков. |
 | `jarvis/intents/fast/debug.py` | 48 | code | Диагностика: «что ты слышал», «почему не понял». |
 | `jarvis/intents/fast/memory.py` | 57 | code | Управление памятью диалога. |
 | `jarvis/intents/fast/music.py` | 38 | code | Музыка — ДО open_fast. |
 | `jarvis/intents/fast/open.py` | 61 | code | Открытие приложений / сайтов / папок / профиля — без LLM. |
-| `jarvis/intents/fast/packs.py` | 27 | code | Паки команд — обёртка с side-effect. |
+| `jarvis/intents/fast/packs.py` | 26 | code | Паки команд — обёртка с side-effect. |
 | `jarvis/intents/fast/persona.py` | 77 | code | Команды персоны: стиль общения, описание, сброс онбординга. |
 | `jarvis/intents/fast/profile.py` | 191 | code | Профиль: смена, список, факты «запомни: X — Y». |
 | `jarvis/intents/fast/screenshot.py` | 26 | code | Скриншот: «сделай скриншот», «открой скриншот». |
 | `jarvis/intents/fast/small_talk.py` | 74 | code | Мелкий разговор: время, дата, «кто ты», праздники. |
-| `jarvis/intents/fast/system.py` | 130 | code | Системные команды: раскладка, громкость, яркость. |
+| `jarvis/intents/fast/system.py` | 133 | code | Системные команды: раскладка, громкость, яркость. |
 | `jarvis/intents/fast/tasks.py` | 7 | code | Задачи — обёртка над `tasks`. |
 | `jarvis/intents/fast/timers.py` | 7 | code | Напоминания — обёртка над `timers`. |
 | `jarvis/intents/fast/uia.py` | 174 | code | UIA-команды голосом: «прочитай окно», «закрой вкладку ютуб», «какой са |
 | `jarvis/intents/fast/undo.py` | 67 | code | Отмена последнего действия («не то», «отмени»). |
 | `jarvis/intents/fast/voices.py` | 10 | code | Голоса Piper — обёртка над модулем `voices`. |
 | `jarvis/intents/fast/weather.py` | 113 | code | Простые правила для погоды и курса — без LLM. |
-| `jarvis/intents/handler.py` | 303 | code | IntentHandler — оркестрация. |
+| `jarvis/intents/handler.py` | 307 | code | IntentHandler — оркестрация. |
 | `jarvis/intents/password.py` | 99 | code | Парольные примитивы: jarvis.intents.password (не стадия pipeline). |
 | `jarvis/intents/sites.py` | 62 | code | Сайты для открытия голосом — ленивая загрузка из packs/sites.json. |
 | `jarvis/intents/stages/__init__.py` | 47 | code | Стадии обработки команды. Порядок = приоритет. |
@@ -3279,7 +3467,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/language/time.py` | 84 | code | Duration grammar with source spans. Uses the shared numeral/unit vocab |
 | `jarvis/language/units.py` | 85 | code | Semantic unit lexicon shared by input and output; spelling is data, no |
 | `jarvis/learning.py` | 178 | code | Самообучение Феникса: факты и коррекции. |
-| `jarvis/main.py` | 899 | code | Точка входа: связывает распознавание, интенты, синтез речи и GUI. |
+| `jarvis/main.py` | 905 | code | Точка входа: связывает распознавание, интенты, синтез речи и GUI. |
 | `jarvis/matching.py` | 118 | code | Нечёткое сопоставление речи с названиями: транслитерация + difflib. |
 | `jarvis/memory.py` | 147 | code | Память диалога — на профиль. |
 | `jarvis/memory_context.py` | 124 | code | Query-scoped personal memory. Absence/uncertainty never means 'send ev |
@@ -3302,7 +3490,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/tasks.py` | 257 | code | Списки задач. |
 | `jarvis/text_utils.py` | 98 | code | Общие текстовые утилиты для Феникса. |
 | `jarvis/timers.py` | 326 | code | Таймеры и напоминания. |
-| `jarvis/tray.py` | 192 | code | Иконка в системном трее (pystray). |
+| `jarvis/tray.py` | 188 | code | Иконка в системном трее (pystray). |
 | `jarvis/tts.py` | 384 | code | Синтез речи — фасад над tts_engines. |
 | `jarvis/tts_engines/__init__.py` | 12 | code | TTS-движки Феникса — абстракция над Piper, Silero, WinRT, SAPI. |
 | `jarvis/tts_engines/base.py` | 73 | code | Базовый класс TTS-движка. |
@@ -3323,7 +3511,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `scripts/check_caps.py` | 174 | code | Проверка возможностей системы — запускается из install.bat. |
 | `scripts/check_staged_snapshot.py` | 149 | code | Check the Git index, not an unstaged working-tree snapshot; never stag |
 | `scripts/install_git_hooks.py` | 82 | code | Opt-in install of one local pre-commit hook; preserve all existing hoo |
-| `scripts/make_icon.py` | 80 | code | Генерация иконки Феникса (jarvis/icon.ico). |
+| `scripts/make_icon.py` | 32 | code | Build the Windows/tray phoenix icon from the project's transparent mas |
 | `scripts/make_installer_images.py` | 121 | code | Генерация картинок для Inno Setup установщика Феникса. |
 | `scripts/mics.py` | 52 | code | Подбор микрофона: показывает устройства ввода и уровень сигнала. |
 | `scripts/selftest.py` | 49 | code | Самопроверка без микрофона: TTS -> Vosk -> разбор команды. |
@@ -3347,16 +3535,19 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/manual/vad_live.py` | 41 | code | Живой тест VAD: пишет 5 сек с микрофона, показывает prob. |
 | `tests/stress_intents.py` | 552 | code | Стресс-тест Феникса: ровно 102 разных ситуаций без микрофона и сети. |
 | `tests/test_audio_regression.py` | 556 | code | Fast contracts only: fake decoders are NOT an audio quality measuremen |
-| `tests/test_audit_regressions.py` | 258 | code | Regression tests for the six audited bugs and related edge cases. |
+| `tests/test_audit_regressions.py` | 265 | code | Regression tests for the six audited bugs and related edge cases. |
 | `tests/test_brain_rag.py` | 125 | code | Query-scoped memory: unavailable retrieval never means send all facts. |
 | `tests/test_browser_target.py` | 338 | code | №1: Феникс работает в том браузере, в котором сидит пользователь. |
 | `tests/test_build_setup.py` | 56 | code | Тесты scripts.build_setup — версия установщика и мягкий пропуск шага c |
 | `tests/test_caps.py` | 23 | code | Тесты check_caps: структура system_caps.json. |
 | `tests/test_clarification.py` | 411 | code | Slot filling uses real handler/pipeline, no devices, models or private |
 | `tests/test_clarification_imports.py` | 110 | code | The slot engine and pipeline stage share a basename, not their content |
+| `tests/test_command_builder.py` | 213 | code | Builder persistence, exact matching and runtime protection; no real OS |
 | `tests/test_config_manager.py` | 47 | code | Тесты config_manager: параллельная запись не рвёт файл. |
 | `tests/test_engine_probe.py` | 100 | code | Заглушка движка TTS (factory._probe_engine). |
-| `tests/test_git_hygiene.py` | 285 | code | Exercise real temporary Git indexes/hooks; never commit or alter the u |
+| `tests/test_git_hygiene.py` | 322 | code | Exercise real temporary Git indexes/hooks; never commit or alter the u |
+| `tests/test_gui_chat.py` | 287 | code | Imported Flet controls + real GUI worker threads; no window, ASR or au |
+| `tests/test_gui_commands.py` | 126 | code | Imported native builder controls; no OS actions or real passwords. |
 | `tests/test_gui_wiring.py` | 548 | code | GUI → config: каждый элемент окна реально отсылает изменение. |
 | `tests/test_intents.py` | 485 | code | Автотест Феникса без микрофона. |
 | `tests/test_main_wiring.py` | 202 | code | config → живое ядро: подписчик make_config_listener. |
@@ -3384,7 +3575,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `check_all.py` | 170 | code | Единый прогон всех проверок Феникса — движок для check_all.bat. |
 | `check_syntax.py` | 60 | code | Проверяет синтаксис всех .py файлов в проекте. |
 | `launcher.py` | 702 | code | Лаунчер Феникса — полный автозапуск. |
-| `snapshot.py` | 713 | code | Собирает снимок проекта в один SNAPSHOT.md. |
+| `snapshot.py` | 727 | code | Собирает снимок проекта в один SNAPSHOT.md. |
 
 ---
 
@@ -3560,6 +3751,27 @@ def run_spec(spec) -> bool:
     except Exception:
         log.exception("run_spec не удался: %s", spec)
     return False
+
+
+
+def run_power_action(flag: str, seconds: int = 30) -> bool:
+    """Fixed Windows power argv; report success only on exit code zero."""
+    if flag not in ("/s", "/r", "/a"):
+        return False
+    if flag != "/a" and (isinstance(seconds, bool) or not isinstance(seconds, int) or not 10 <= seconds <= 600):
+        return False
+    argv = ["shutdown.exe", flag]
+    if flag != "/a":
+        argv += ["/t", str(seconds)]
+    try:
+        result = subprocess.run(argv, capture_output=True, timeout=5, check=False,
+                                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        if result.returncode != 0:
+            log.warning("Windows power command rejected (exit=%s)", result.returncode)
+        return result.returncode == 0
+    except (OSError, subprocess.TimeoutExpired):
+        log.warning("Windows power command failed or timed out")
+        return False
 
 
 def _schedule_activation(name: str, app_title: str | None = None) -> None:
@@ -4903,6 +5115,132 @@ def find_app(apps: list[App], target: str) -> App | None:
     return None
 ```
 
+### `jarvis/assets/brand/app-dark.svg`
+
+```
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="none" stroke="#e7ad7b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11M13 13h4M13 16h2"/></g></svg>
+```
+
+### `jarvis/assets/brand/app-light.svg`
+
+```
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="none" stroke="#93572f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11M13 13h4M13 16h2"/></g></svg>
+```
+
+### `jarvis/assets/brand/audio-dark.svg`
+
+```
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><g fill="none" stroke="#e7ad7b" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h5l6-5v18l-6-5H5zM21 12l2 4-2 4M26 8l3 8-3 8"/></g></svg>
+```
+
+### `jarvis/assets/brand/audio-light.svg`
+
+```
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><g fill="none" stroke="#93572f" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h5l6-5v18l-6-5H5zM21 12l2 4-2 4M26 8l3 8-3 8"/></g></svg>
+```
+
+### `jarvis/assets/brand/commands-dark.svg`
+
+```
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="none" stroke="#e7ad7b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 7h18m-14 3 3 3-3 3M14 16h3"/></g></svg>
+```
+
+### `jarvis/assets/brand/commands-light.svg`
+
+```
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="none" stroke="#93572f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 7h18m-14 3 3 3-3 3M14 16h3"/></g></svg>
+```
+
+### `jarvis/assets/brand/dialog-dark.svg`
+
+```
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="none" stroke="#e7ad7b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a4 4 0 0 1-4 4H7l-4 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z"/><path d="M7 8h10M7 12h6"/></g></svg>
+```
+
+### `jarvis/assets/brand/dialog-light.svg`
+
+```
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="none" stroke="#93572f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a4 4 0 0 1-4 4H7l-4 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z"/><path d="M7 8h10M7 12h6"/></g></svg>
+```
+
+### `jarvis/assets/brand/microphone-dark.svg`
+
+```
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="none" stroke="#e7ad7b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M10 6h4M10 9h4"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/></g></svg>
+```
+
+### `jarvis/assets/brand/microphone-light.svg`
+
+```
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="none" stroke="#93572f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M10 6h4M10 9h4"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/></g></svg>
+```
+
+### `jarvis/assets/brand/persona-dark.svg`
+
+```
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="none" stroke="#e7ad7b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2M9 16l3 2 3-2"/></g></svg>
+```
+
+### `jarvis/assets/brand/persona-light.svg`
+
+```
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="none" stroke="#93572f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2M9 16l3 2 3-2"/></g></svg>
+```
+
+### `jarvis/assets/brand/phoenix-dark.svg`
+
+```
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="120 66 610 512">
+  <path fill="#e7ad7b" d="M174 90 C143 181 194 226 279 282 C353 330 413 384 416 477 C441 426 432 377 396 331 C363 289 315 259 269 227 C218 192 184 157 174 90 Z"/>
+  <path fill="#f3ece3" d="M144 197 C139 272 179 307 247 332 C281 345 309 355 333 371 C319 334 293 314 252 292 C203 266 167 241 144 197 Z"/>
+  <path fill="#e7ad7b" d="M186 331 C201 376 229 389 277 400 C309 407 333 414 354 426 C330 392 308 383 270 370 C231 357 206 347 186 331 Z"/>
+  <path fill="#e7ad7b" d="M680 90 C670 158 621 194 564 234 C535 254 509 274 489 293 L501 346 C530 311 562 292 601 266 C662 226 704 180 680 90 Z"/>
+  <path fill="#f3ece3" d="M706 197 C712 272 669 307 603 332 C570 345 540 356 519 371 C536 335 565 312 601 292 C650 266 687 241 706 197 Z"/>
+  <path fill="#e7ad7b" d="M664 331 C650 375 620 390 575 400 C543 407 520 414 497 426 C521 392 547 381 582 370 C619 358 644 347 664 331 Z"/>
+  <path fill="#e7ad7b" d="M354 182 C384 190 405 179 430 168 C444 161 453 162 465 165 C484 161 498 169 503 184 C480 183 463 193 454 212 C438 244 456 279 468 313 C494 385 481 433 441 484 C458 429 451 392 432 353 C415 316 390 287 370 265 L395 209 C374 208 361 198 354 182 Z"/>
+  <path fill="#cf9369" d="M395 416 C408 443 414 462 416 477 C401 514 376 539 340 554 C379 526 395 481 395 416 Z"/>
+</svg>
+```
+
+### `jarvis/assets/brand/phoenix-light.svg`
+
+```
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="120 66 610 512">
+  <path fill="#93572f" d="M174 90 C143 181 194 226 279 282 C353 330 413 384 416 477 C441 426 432 377 396 331 C363 289 315 259 269 227 C218 192 184 157 174 90 Z"/>
+  <path fill="#263747" d="M144 197 C139 272 179 307 247 332 C281 345 309 355 333 371 C319 334 293 314 252 292 C203 266 167 241 144 197 Z"/>
+  <path fill="#93572f" d="M186 331 C201 376 229 389 277 400 C309 407 333 414 354 426 C330 392 308 383 270 370 C231 357 206 347 186 331 Z"/>
+  <path fill="#93572f" d="M680 90 C670 158 621 194 564 234 C535 254 509 274 489 293 L501 346 C530 311 562 292 601 266 C662 226 704 180 680 90 Z"/>
+  <path fill="#263747" d="M706 197 C712 272 669 307 603 332 C570 345 540 356 519 371 C536 335 565 312 601 292 C650 266 687 241 706 197 Z"/>
+  <path fill="#93572f" d="M664 331 C650 375 620 390 575 400 C543 407 520 414 497 426 C521 392 547 381 582 370 C619 358 644 347 664 331 Z"/>
+  <path fill="#93572f" d="M354 182 C384 190 405 179 430 168 C444 161 453 162 465 165 C484 161 498 169 503 184 C480 183 463 193 454 212 C438 244 456 279 468 313 C494 385 481 433 441 484 C458 429 451 392 432 353 C415 316 390 287 370 265 L395 209 C374 208 361 198 354 182 Z"/>
+  <path fill="#744225" d="M395 416 C408 443 414 462 416 477 C401 514 376 539 340 554 C379 526 395 481 395 416 Z"/>
+</svg>
+```
+
+### `jarvis/assets/brand/settings-dark.svg`
+
+```
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="none" stroke="#e7ad7b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9.5 3-.6 2.3-2 .9-2.2-.6-2 3.5 1.6 1.7v2.4l-1.6 1.7 2 3.5 2.2-.6 2 .9.6 2.3h4.1l.6-2.3 2-.9 2.2.6 2-3.5-1.6-1.7v-2.4l1.6-1.7-2-3.5-2.2.6-2-.9-.6-2.3Z"/><circle cx="11.55" cy="12" r="3"/><circle cx="11.55" cy="12" r=".6" fill="#e7ad7b" stroke="none"/></g></svg>
+```
+
+### `jarvis/assets/brand/settings-light.svg`
+
+```
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="none" stroke="#93572f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9.5 3-.6 2.3-2 .9-2.2-.6-2 3.5 1.6 1.7v2.4l-1.6 1.7 2 3.5 2.2-.6 2 .9.6 2.3h4.1l.6-2.3 2-.9 2.2.6 2-3.5-1.6-1.7v-2.4l1.6-1.7-2-3.5-2.2.6-2-.9-.6-2.3Z"/><circle cx="11.55" cy="12" r="3"/><circle cx="11.55" cy="12" r=".6" fill="#93572f" stroke="none"/></g></svg>
+```
+
+### `jarvis/assets/brand/timer-dark.svg`
+
+```
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="none" stroke="#e7ad7b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="14" r="8"/><path d="M12 14V9M9 2h6M12 2v4M18 5l2 2M6 14h1M17 14h1M12 19v1"/></g></svg>
+```
+
+### `jarvis/assets/brand/timer-light.svg`
+
+```
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="none" stroke="#93572f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="14" r="8"/><path d="M12 14V9M9 2h6M12 2v4M18 5l2 2M6 14h1M17 14h1M12 19v1"/></g></svg>
+```
+
 ### `jarvis/audio_output.py`
 
 ```python
@@ -6040,6 +6378,163 @@ def _play_fireworks_sound() -> None:
         log.exception("Celebration: Beep не сработал")
 ```
 
+### `jarvis/command_builder.py`
+
+```python
+"""Typed custom commands. No execution, model calls or shell parsing in the editor."""
+from copy import deepcopy
+import re
+from urllib.parse import urlsplit
+from uuid import uuid4
+
+from jarvis.text_utils import normalize
+
+ACTIONS = {
+    "open_app": ("Открыть приложение", "Название из меню Пуск", "target"),
+    "open_site": ("Открыть сайт", "https://example.com", "target"),
+    "set_volume": ("Установить громкость", "Проценты: 0–100", "percent"),
+    "set_timer": ("Поставить таймер", "Секунды: 1–86400", "seconds"),
+    "play_pause": ("Музыка: играть / пауза", "", None),
+    "next_track": ("Следующий трек", "", None),
+    "prev_track": ("Предыдущий трек", "", None),
+    "screenshot": ("Сделать скриншот", "", None),
+    "answer": ("Сказать текст", "Что сказать", "reply"),
+    "shutdown_pc": ("Выключить компьютер", "Задержка, секунды: 10–600", "seconds"),
+    "reboot_pc": ("Перезагрузить компьютер", "Задержка, секунды: 10–600", "seconds"),
+    "cancel_shutdown": ("Отменить выключение / перезагрузку", "", None),
+}
+POWER_ACTIONS = frozenset({"shutdown_pc", "reboot_pc"})
+RESERVED = frozenset({"отмена", "отмени", "стоп", "хватит", "выход", "замолчи", "отмени выключение", "отмена выключения", "отмени перезагрузку"})
+
+
+def clean_phrase(value, wake_words=()) -> str:
+    text = normalize(str(value))
+    # The listener removes the address before handing the phrase to the pipeline.
+    for wake in sorted((normalize(str(w)) for w in wake_words), key=len, reverse=True):
+        if wake and (text == wake or text.startswith(wake + " ")):
+            return text[len(wake):].strip()
+    return text
+
+
+def _integer(value, low, high, label):
+    if isinstance(value, bool) or not re.fullmatch(r"\d+", str(value).strip()):
+        raise ValueError(f"{label}: требуется целое число {low}–{high}.")
+    number = int(value)
+    if not low <= number <= high:
+        raise ValueError(f"{label}: допустимо {low}–{high}.")
+    return number
+
+
+def validate_step(step):
+    if not isinstance(step, dict) or step.get("action") not in ACTIONS:
+        raise ValueError("Выбери поддерживаемое действие.")
+    action = step["action"]
+    title, _, field = ACTIONS[action]
+    result = {"action": action}
+    if field:
+        value = str(step.get(field, "")).strip()
+        if action == "set_volume":
+            value = _integer(step.get(field), 0, 100, title)
+        elif action == "set_timer":
+            value = _integer(step.get(field), 1, 86400, title)
+        elif action in POWER_ACTIONS:
+            value = _integer(step.get(field), 10, 600, title)
+        elif not value or len(value) > (2048 if action == "open_site" else 600):
+            raise ValueError(f"{title}: заполни параметр (до 600 символов, URL — до 2048).")
+        elif action == "open_site":
+            try:
+                url = urlsplit(value)
+                valid = url.scheme in ("http", "https") and url.hostname and not url.username and not url.password
+                _ = url.port
+            except ValueError:
+                valid = False
+            if not valid or any(ch.isspace() for ch in value):
+                raise ValueError("Сайт: нужен полный адрес http:// или https:// без логина и пароля.")
+        elif action == "open_app":
+            if (len(value) > 120 or re.search(r'[\\/:;&|<>"\r\n]', value)
+                    or normalize(value).split()[0] in {"shutdown", "cmd", "powershell", "pwsh", "rundll32"}):
+                raise ValueError("Приложение: укажи название из меню Пуск, не shell-команду или путь.")
+        result[field] = value
+    return result
+
+
+def validate_entry(entry, wake_words=()):
+    if not isinstance(entry, dict):
+        raise ValueError("Неверный формат команды.")
+    if not isinstance(entry.get("enabled", True), bool):
+        raise ValueError("Включение команды должно быть true или false.")
+    name = str(entry.get("name", "")).strip()
+    if not name or len(name) > 80:
+        raise ValueError("Название: от 1 до 80 символов.")
+    raw = entry.get("phrases", [])
+    if not isinstance(raw, list) or not 1 <= len(raw) <= 12:
+        raise ValueError("Добавь 1–12 фраз, каждую с новой строки.")
+    phrases = []
+    for phrase in raw:
+        if not isinstance(phrase, str):
+            raise ValueError("Фразы должны быть строками.")
+        text = clean_phrase(phrase, wake_words)
+        if not text or len(text) > 160 or text in RESERVED:
+            raise ValueError("Фраза пустая, слишком длинная или совпадает с командой отмены.")
+        if text in phrases:
+            raise ValueError("Две фразы совпали после нормализации.")
+        phrases.append(text)
+    steps = entry.get("steps")
+    if not isinstance(steps, list) or not 1 <= len(steps) <= 6:
+        raise ValueError("В сценарии должно быть от 1 до 6 действий.")
+    steps = [validate_step(step) for step in steps]
+    if any(s["action"] in POWER_ACTIONS for s in steps[:-1]):
+        raise ValueError("Выключение или перезагрузка должны быть последним действием.")
+    return {"builder_version": 1, "id": str(entry.get("id") or uuid4().hex),
+            "name": name, "enabled": bool(entry.get("enabled", True)),
+            "match": "exact", "phrases": phrases, "steps": steps, "reply": ""}
+
+
+def entries(config):
+    data = config.get("custom_commands", [])
+    if not isinstance(data, list) or any(not isinstance(x, dict) for x in data):
+        raise ValueError("custom_commands повреждён. Исправь формат config.json; данные не перезаписаны.")
+    return deepcopy(data)
+
+
+def save_entry(config, draft):
+    current = entries(config)
+    entry = validate_entry(draft, config.get("wake_words", []))
+    existing = [i for i, x in enumerate(current) if x.get("id") == entry["id"]]
+    if len(existing) > 1:
+        raise ValueError("Повторяющийся ID в конфиге; данные не перезаписаны.")
+    from jarvis import packs
+    others = [x for x in current if x.get("id") != entry["id"]] + packs.load_active(config)
+    if entry["enabled"]:
+        used = {clean_phrase(p, config.get("wake_words", [])) for x in others if x.get("enabled", True)
+                for p in x.get("phrases", []) if isinstance(p, str)}
+        if used.intersection(entry["phrases"]):
+            raise ValueError("Такая фраза уже есть в другой команде или активном паке.")
+    if existing:
+        if current[existing[0]].get("builder_version") != 1:
+            raise ValueError("Старую команду нельзя перезаписывать конструктором.")
+        current[existing[0]] = entry
+    else:
+        current.append(entry)
+    if not config.set("custom_commands", current):
+        raise OSError("Не удалось сохранить config.json. Изменения не применены.")
+    return entry
+
+
+def delete_entry(config, entry_id):
+    current = entries(config)
+    matches = [x for x in current if x.get("id") == entry_id and x.get("builder_version") == 1]
+    if len(matches) != 1:
+        raise ValueError("Команда изменилась или не найдена; обнови список.")
+    if not config.set("custom_commands", [x for x in current if x.get("id") != entry_id]):
+        raise OSError("Не удалось удалить команду. Данные не изменены.")
+
+
+def describe_steps(steps):
+    return " → ".join(ACTIONS.get(s.get("action"), ("Неизвестное действие",))[0]
+                      for s in steps if isinstance(s, dict))
+```
+
 ### `jarvis/config.py`
 
 ```python
@@ -6602,6 +7097,7 @@ def mark_done() -> None:
 """GUI Феникса — интерактивное окно на Flet 1.0.3. ... [16 строк]"""
 
 import asyncio
+from functools import lru_cache
 import logging
 import queue
 import threading
@@ -6617,27 +7113,31 @@ log = logging.getLogger("jarvis.gui")
 
 PALETTES = {
     "dark": {
-        "bg_main": "#0e1116",
-        "bg_card": "#161b22",
-        "bg_bubble_user": "#1f6feb",
-        "bg_bubble_ai": "#21262d",
-        "accent": "#58a6ff",
-        "text": "#e6edf3",
-        "text_dim": "#8b949e",
-        "border": "#30363d",
+        "sidebar": "#10161e", "selected": "#263447",
+        "brand": "#e7ad7b", "composer": "#17212d",
+        "bg_main": "#0b1016",
+        "bg_card": "#131c26",
+        "bg_bubble_user": "#23364b",
+        "bg_bubble_ai": "#17212d",
+        "accent": "#8bb7ee",
+        "text": "#eaf0f6",
+        "text_dim": "#a1b0c1",
+        "border": "#3f5266",
         "error": "#f85149",
         "success": "#3fb950",
         "warning": "#d29922",
     },
     "light": {
-        "bg_main": "#f6f8fa",
+        "sidebar": "#eeeae4", "selected": "#dce5f0",
+        "brand": "#8b512a", "composer": "#ffffff",
+        "bg_main": "#f5f3ef",
         "bg_card": "#ffffff",
-        "bg_bubble_user": "#0969da",
-        "bg_bubble_ai": "#eaeef2",
-        "accent": "#0969da",
-        "text": "#1f2328",
-        "text_dim": "#656d76",
-        "border": "#d0d7de",
+        "bg_bubble_user": "#e4eaf0",
+        "bg_bubble_ai": "#eeeae4",
+        "accent": "#245d99",
+        "text": "#23272f",
+        "text_dim": "#606b78",
+        "border": "#b6b0a6",
         "error": "#cf222e",
         "success": "#1a7f37",
         "warning": "#9a6700",
@@ -6671,13 +7171,13 @@ class _Palette:
 
 P = _Palette()
 
-BG_DARK = "#0e1116"
-BG_CARD = "#161b22"
-BG_BUBBLE_USER = "#1f6feb"
-BG_BUBBLE_AI = "#21262d"
-ACCENT = "#58a6ff"
-TEXT = "#e6edf3"
-TEXT_DIM = "#8b949e"
+BG_DARK = "#0b1016"
+BG_CARD = "#131c26"
+BG_BUBBLE_USER = "#23364b"
+BG_BUBBLE_AI = "#17212d"
+ACCENT = "#8bb7ee"
+TEXT = "#eaf0f6"
+TEXT_DIM = "#a1b0c1"
 
 
 def _apply_palette(name: str) -> None:
@@ -6693,10 +7193,14 @@ def _apply_palette(name: str) -> None:
 
 
 STATES = {
-    "idle":      ("#484f58", "Спит",   "Жду «Феникс»"),
-    "listening": ("#d29922", "Слушаю", "Слушаю команду"),
-    "speaking":  ("#3fb950", "Говорю", "Отвечаю"),
-    "error":     ("#f85149", "Ошибка", "Проверь логи"),
+    "idle": ("#8bb7ee", "Готов", "Скажите «Феникс» или напишите сообщение"),
+    "listening": ("#d29922", "Слушаю", "Можно говорить"),
+    "recognizing": ("#d29922", "Распознаю", "Проверяю услышанное"),
+    "thinking": ("#8bb7ee", "Обрабатываю", "Ответ появится здесь"),
+    "speaking": ("#3fb950", "Говорю", "Озвучку можно остановить"),
+    "awaiting": ("#d29922", "Жду уточнения", "Ответьте на вопрос или напишите «отмена»"),
+    "password": ("#d29922", "Нужен пароль", "Ввод скрыт и не попадёт в чат"),
+    "error": ("#f85149", "Ошибка", "Подробности — в сообщении об ошибке"),
 }
 
 THEMES = {
@@ -6712,6 +7216,86 @@ LLM_MODELS = [
 ]
 
 TTS_BACKENDS = ["auto", "piper", "silero", "winrt", "sapi"]
+
+
+@lru_cache(maxsize=32)
+def _brand_bytes(name: str, theme: str) -> bytes:
+    return (Path(__file__).resolve().parent / "assets" / "brand" / f"{name}-{theme}.png").read_bytes()
+
+
+def _brand_image(name: str, size: int, label: str = ""):
+    theme = "light" if P.sidebar == PALETTES["light"]["sidebar"] else "dark"
+    return ft.Image(src=_brand_bytes(name, theme), width=size, height=size,
+                    fit=ft.BoxFit.CONTAIN, filter_quality=ft.FilterQuality.HIGH, anti_alias=True,
+                    semantics_label=label, exclude_from_semantics=not bool(label))
+
+
+NAV_ITEMS = (
+    ("Диалог", ft.Icons.CHAT_BUBBLE_OUTLINE),
+    ("Микрофон", ft.Icons.MIC_NONE),
+    ("Голос и звук", ft.Icons.GRAPHIC_EQ),
+    ("Персона", ft.Icons.PERSON_OUTLINE),
+    ("Настройки", ft.Icons.TUNE),
+    ("Мои команды", ft.Icons.ACCOUNT_TREE_OUTLINED),
+)
+
+
+class _Sidebar(ft.Container):
+    """Native sidebar; selection is shared by mouse navigation and tray actions."""
+
+    def __init__(self, on_select):
+        super().__init__(width=208, padding=16)
+        self._selected_index = 0
+        self._on_select = on_select
+        self.refresh_palette()
+
+    @property
+    def selected_index(self):
+        return self._selected_index
+
+    @selected_index.setter
+    def selected_index(self, value):
+        if not 0 <= value < len(NAV_ITEMS):
+            return
+        self._selected_index = value
+        # Preserve button IDs/focus during quick navigation. Rebuild only for a theme/profile.
+        for index, button in enumerate(self.nav_buttons):
+            active = index == value
+            button.bgcolor = P.selected if active else P.sidebar
+            button.content.controls[1].color = TEXT if active else TEXT_DIM
+            button.content.controls[2].visible = active
+
+    def refresh_palette(self):
+        from jarvis import profile
+        self.bgcolor = P.sidebar
+        self.border = ft.Border(right=ft.BorderSide(1, P.border))
+        self.nav_buttons = []
+        for index, (label, icon) in enumerate(NAV_ITEMS):
+            active = index == self._selected_index
+            self.nav_buttons.append(ft.Button(
+                content=ft.Row([_brand_image(("dialog", "microphone", "audio", "persona", "settings", "commands")[index], 24),
+                                ft.Text(label, size=14, color=TEXT if active else TEXT_DIM,
+                                        expand=True),
+                                ft.Container(width=5, height=5, border_radius=3,
+                                             bgcolor=ACCENT, visible=active)], spacing=10),
+                height=48, bgcolor=P.selected if active else P.sidebar, elevation=0,
+                style=ft.ButtonStyle(padding=10, shape=ft.RoundedRectangleBorder(radius=10)),
+                tooltip=label,
+                on_click=lambda e, i=index: self._on_select(i)))
+        self.content = ft.Column([
+            ft.Container(content=ft.Row([
+                _brand_image("phoenix", 38, "Феникс"),
+                ft.Column([ft.Text("Феникс", size=21, weight=ft.FontWeight.BOLD, color=TEXT),
+                           ft.Text("Локальный ассистент", size=12, color=TEXT_DIM)],
+                          spacing=2, expand=True)], spacing=12), padding=ft.Padding(top=12, bottom=28)),
+            *self.nav_buttons,
+            ft.Container(expand=True),
+            ft.Divider(color=P.border),
+            ft.Container(ft.Column([
+                ft.Text(str(profile.current()), size=14, color=TEXT, max_lines=2),
+                ft.Text("Профиль и настройки", size=12, color=TEXT_DIM)], spacing=4),
+                padding=ft.Padding(top=12, bottom=12)),
+        ], spacing=8, expand=True)
 
 
 class FenixGUI:
@@ -6736,6 +7320,19 @@ class FenixGUI:
         self._stream_bubble = None
         self._stream_text = ""
         self._stream_label = None
+        self._messages = []
+        self._draft = ""
+        self._follow_chat = True
+        self._command_lock = threading.Lock()
+        self._command_busy = False
+        self._command_thread = None
+        self._send_btn = None
+        self._stop_btn = None
+        self._empty_chat = None
+        self._error_banner = None
+        self._error_text = None
+        self._latest_btn = None
+        self._input_hint = None
 
         # Ссылки на контролы
         self._status_circle = None
@@ -6747,6 +7344,7 @@ class FenixGUI:
         self._content_area = None
         self._rail = None
         self._tabs = {}
+        self._command_builder = None
 
         # Контролы вкладки «Микрофон»
         self._mic_dropdown = None
@@ -6954,43 +7552,7 @@ class FenixGUI:
         page.run_task(self._mic_level_loop)
 
     def _build_ui(self, page: ft.Page) -> None:
-        self._rail = ft.NavigationRail(
-            selected_index=0,
-            label_type=ft.NavigationRailLabelType.ALL,
-            min_width=90,
-            min_extended_width=200,
-            bgcolor=BG_CARD,
-            indicator_color=ACCENT,
-            group_alignment=-1.0,
-            destinations=[
-                ft.NavigationRailDestination(
-                    icon=ft.Icons.HOME_OUTLINED,
-                    selected_icon=ft.Icons.HOME,
-                    label="Главная",
-                ),
-                ft.NavigationRailDestination(
-                    icon=ft.Icons.MIC_NONE,
-                    selected_icon=ft.Icons.MIC,
-                    label="Микрофон",
-                ),
-                ft.NavigationRailDestination(
-                    icon=ft.Icons.GRAPHIC_EQ_OUTLINED,
-                    selected_icon=ft.Icons.GRAPHIC_EQ,
-                    label="Аудио",
-                ),
-                ft.NavigationRailDestination(
-                    icon=ft.Icons.FACE_OUTLINED,
-                    selected_icon=ft.Icons.FACE,
-                    label="Персона",
-                ),
-                ft.NavigationRailDestination(
-                    icon=ft.Icons.SETTINGS_OUTLINED,
-                    selected_icon=ft.Icons.SETTINGS,
-                    label="Настройки",
-                ),
-            ],
-            on_change=self._on_nav_change,
-        )
+        self._rail = _Sidebar(self._select_tab)
 
         self._tabs = {
             0: self._build_main_tab(),
@@ -6998,6 +7560,7 @@ class FenixGUI:
             2: self._build_audio_tab(),
             3: self._build_persona_tab(),
             4: self._build_settings_tab(),
+            5: self._build_commands_tab(),
         }
 
         self._content_area = ft.Container(
@@ -7019,188 +7582,215 @@ class FenixGUI:
         )
 
     def _build_main_tab(self) -> ft.Control:
-        self._status_circle = ft.Container(
-            width=80,
-            height=80,
-            border_radius=40,
-            bgcolor="#484f58",
-            animate=ft.Animation(300, ft.AnimationCurve.EASE_IN_OUT),
-            shadow=ft.BoxShadow(
-                blur_radius=24,
-                color="#484f58",
-                spread_radius=2,
-            ),
+        self._status_circle = ft.Container(width=6, height=6, border_radius=3, bgcolor=ACCENT)
+        self._status_text = ft.Text(size=13, color=TEXT)
+        self._status_sub = ft.Text(size=12, color=TEXT_DIM)
+        self._mood_text = ft.Text("", size=12, color=TEXT_DIM, visible=False)
+        header = ft.Container(
+            content=ft.Row([
+                ft.Text("Рабочее пространство  /  Диалог", size=14, color=TEXT_DIM, expand=True),
+                ft.Container(ft.Row([self._status_circle, self._status_text], spacing=8),
+                             padding=10, bgcolor=P.sidebar, border_radius=8,
+                             border=ft.Border.all(1, P.border)),
+                ft.IconButton(icon=ft.Icons.INFO_OUTLINE, icon_color=TEXT_DIM,
+                              tooltip="Настройки и диагностика", on_click=lambda e: self._select_tab(4)),
+            ], spacing=12), padding=ft.Padding(left=28, right=24, top=16, bottom=16),
+            border=ft.Border(bottom=ft.BorderSide(1, P.border)))
+        self._error_text = ft.Text("", size=14, color=P.error, selectable=True, expand=True)
+        self._error_banner = ft.Container(
+            content=ft.Row([ft.Icon(ft.Icons.ERROR_OUTLINE, color=P.error), self._error_text,
+                           ft.IconButton(icon=ft.Icons.CLOSE, tooltip="Скрыть сообщение",
+                                         on_click=self._dismiss_error)]),
+            bgcolor=BG_CARD, border=ft.Border.all(1, P.error), border_radius=8,
+            padding=12, margin=ft.Margin(left=24, right=24, top=12), visible=False)
+        self._brand_mark = ft.Container(
+            _brand_image("phoenix", 88, "Феникс — птица"),
+            width=100, height=100, border_radius=24, alignment=ft.Alignment.CENTER,
+            bgcolor=P.sidebar, border=ft.Border.all(1, P.brand))
+        scenarios = (
+            ("Сосредоточиться", "Поставить таймер", ft.Icons.TIMER_OUTLINED, "Поставь таймер"),
+            ("Открыть приложение", "Перейти к делу", ft.Icons.WINDOW_OUTLINED, "Открой"),
+            ("Просто поговорить", "Начать с интересного", ft.Icons.CHAT_OUTLINED, "Расскажи что-нибудь"),
         )
-
-        self._status_text = ft.Text(
-            "Спит", size=24, weight=ft.FontWeight.BOLD, color=TEXT,
-        )
-        self._status_sub = ft.Text(
-            "Жду «Феникс»", size=13, color=TEXT_DIM,
-        )
-        self._mood_text = ft.Text(
-            "", size=12, color=TEXT_DIM, italic=True,
-        )
-
-        status_bar = ft.Container(
-            content=ft.Row(
-                controls=[
-                    self._status_circle,
-                    ft.Column(
-                        controls=[self._status_text, self._status_sub, self._mood_text],
-                        spacing=2,
-                        alignment=ft.MainAxisAlignment.CENTER,
-                    ),
-                ],
-                spacing=20,
-            ),
-            padding=ft.Padding(left=30, top=25, right=30, bottom=20),
-        )
-
-        controls_bar = self._build_controls()
-
-        self._history_list = ft.ListView(
-            spacing=12,
-            auto_scroll=True,
-            expand=True,
-        )
-        history_container = ft.Container(
-            content=self._history_list,
-            expand=True,
-            padding=ft.Padding(left=30, right=30, top=10, bottom=10),
-        )
-
-        input_bar = self._build_input()
-
-        return ft.Column(
-            controls=[
-                status_bar,
-                controls_bar,
-                history_container,
-                input_bar,
-            ],
-            spacing=0,
-            expand=True,
-        )
+        self._scenario_cards = []
+        for title, subtitle, icon, command in scenarios:
+            self._scenario_cards.append(ft.Button(
+                content=ft.Column([
+                    ft.Row([_brand_image({ft.Icons.TIMER_OUTLINED: "timer", ft.Icons.WINDOW_OUTLINED: "app", ft.Icons.CHAT_OUTLINED: "dialog"}[icon], 24),
+                            ft.Container(expand=True), ft.Icon(ft.Icons.NORTH_EAST, size=16, color=TEXT_DIM)]),
+                    ft.Text(title, size=14, color=TEXT),
+                    ft.Text(subtitle, size=12, color=TEXT_DIM),
+                ], spacing=8, tight=True), expand=True, height=108,
+                bgcolor=BG_CARD, elevation=0,
+                style=ft.ButtonStyle(padding=16, side=ft.BorderSide(1, P.border),
+                                     shape=ft.RoundedRectangleBorder(radius=12)),
+                tooltip=title, on_click=lambda e, text=command: self._fill_input(text)))
+        self._empty_chat = ft.Container(
+            content=ft.Column([
+                self._brand_mark,
+                ft.Text("Твой голос. Начало действия.", size=32, weight=ft.FontWeight.BOLD,
+                        color=TEXT, text_align=ft.TextAlign.CENTER),
+                ft.Container(ft.Text("Открою нужное, помогу с делами или просто побуду собеседником. С чего начнём?",
+                                    size=15, color=TEXT_DIM, text_align=ft.TextAlign.CENTER), width=540),
+                ft.Container(ft.Row(self._scenario_cards, spacing=12), padding=ft.Padding(top=16)),
+            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=20),
+            padding=ft.Padding(left=8, right=8, top=32, bottom=24), alignment=ft.Alignment.CENTER)
+        self._history_list = ft.ListView(spacing=16, auto_scroll=self._follow_chat,
+                                         on_scroll=self._on_chat_scroll, expand=True)
+        self._render_history()
+        self._latest_btn = ft.Button("К последнему сообщению", height=44, visible=not self._follow_chat,
+                                     on_click=self._scroll_latest)
+        body = ft.Container(content=self._history_list, expand=True,
+                            padding=ft.Padding(left=28, right=28, top=12, bottom=8))
+        view = ft.Column([header, self._error_banner, body,
+                          ft.Row([self._latest_btn], alignment=ft.MainAxisAlignment.CENTER),
+                          self._build_controls(), self._build_input()], spacing=0, expand=True)
+        from jarvis import mood as _mood
+        self._apply_mood_color(_mood.get_state())
+        self._apply_state(self._state)
+        self._apply_busy(self._command_busy)
+        return view
 
     def _build_controls(self) -> ft.Container:
-        def _label(text):
-            return ft.Text(text, width=80, color=TEXT_DIM, size=13)
-
-        mode_row = ft.Row(
-            controls=[
-                _label("Режим:"),
-                ft.RadioGroup(
-                    value=self.config.get("mode", "combo"),
-                    on_change=self._on_mode_change,
-                    content=ft.Row(
-                        controls=[
-                            ft.Radio(value="commands", label="Команды", active_color=ACCENT),
-                            ft.Radio(value="llm", label="ИИ", active_color=ACCENT),
-                            ft.Radio(value="combo", label="Комбо", active_color=ACCENT),
-                        ],
-                        spacing=10,
-                    ),
-                ),
-            ],
-            spacing=10,
-        )
-
-        voice_row = ft.Row(
-            controls=[
-                _label("Голос:"),
-                ft.Dropdown(
-                    value=self.config.get("tts_voice", "ruslan"),
-                    options=self._get_voice_options(),
-                    width=160,
-                    border_color="#30363d",
-                    focused_border_color=ACCENT,
-                    text_size=13,
-                    on_select=self._on_voice_change,
-                ),
-                ft.IconButton(
-                    icon=ft.Icons.REFRESH,
-                    icon_color=TEXT_DIM,
-                    icon_size=18,
-                    tooltip="Обновить список голосов",
-                    on_click=self._on_refresh_voices,
-                ),
-            ],
-            spacing=5,
-        )
-
+        mode = ft.Dropdown(
+            label="Режим", value=self.config.get("mode", "combo"), width=110,
+            options=[ft.dropdown.Option("commands", "Команды"), ft.dropdown.Option("llm", "ИИ"),
+                     ft.dropdown.Option("combo", "Комбо")], on_select=self._on_mode_change,
+            text_size=13, dense=True, border_color=P.border, focused_border_color=ACCENT)
+        voice = ft.Dropdown(label="Голос", value=self.config.get("tts_voice", "ruslan"),
+                            options=self._get_voice_options(), width=125, text_size=13, dense=True,
+                            on_select=self._on_voice_change, border_color=P.border,
+                            focused_border_color=ACCENT)
         mm = self.config.get("memory_max", 100)
-        mem_value = {40: "short", 100: "normal", 200: "long"}.get(mm, "normal")
-        mem_row = ft.Row(
-            controls=[
-                _label("Память:"),
-                ft.RadioGroup(
-                    value=mem_value,
-                    on_change=self._on_memory_change,
-                    content=ft.Row(
-                        controls=[
-                            ft.Radio(value="short", label="Короткая", active_color=ACCENT),
-                            ft.Radio(value="normal", label="Обычная", active_color=ACCENT),
-                            ft.Radio(value="long", label="Долгая", active_color=ACCENT),
-                        ],
-                        spacing=10,
-                    ),
-                ),
-            ],
-            spacing=10,
-        )
+        memory = ft.Dropdown(label="История", width=135, dense=True,
+                             value={40: "short", 100: "normal", 200: "long"}.get(mm, "normal"),
+                             options=[ft.dropdown.Option("short", "Короткая"),
+                                      ft.dropdown.Option("normal", "Обычная"),
+                                      ft.dropdown.Option("long", "Долгая")],
+                             on_select=self._on_memory_change, text_size=13,
+                             border_color=P.border, focused_border_color=ACCENT)
+        self._model_label = ft.Text(self._model_caption(), size=12, color=TEXT_DIM,
+                                    max_lines=1, overflow=ft.TextOverflow.ELLIPSIS,
+                                    tooltip="Выбранная модель, не проверка доступности сервера")
+        return ft.Container(content=ft.Row([
+            mode, voice, memory,
+            ft.IconButton(icon=ft.Icons.REFRESH, tooltip="Обновить голоса",
+                          icon_color=TEXT_DIM, on_click=self._on_refresh_voices),
+            ft.Container(content=self._model_label, expand=True, alignment=ft.Alignment.CENTER_RIGHT),
+        ], spacing=8), padding=ft.Padding(left=28, right=28, top=8, bottom=12))
 
-        return ft.Container(
-            content=ft.Column(
-                controls=[mode_row, voice_row, mem_row],
-                spacing=12,
-            ),
-            padding=ft.Padding(left=30, right=30, top=10, bottom=15),
-        )
+    def _model_caption(self) -> str:
+        if self.config.get("mode", "combo") == "commands":
+            return "Команды · без LLM"
+        return "Модель: " + str(self.config.get("llm_model", "не выбрана"))
 
     def _build_input(self) -> ft.Container:
         self._input_field = ft.TextField(
-            hint_text="Напишите команду...",
-            expand=True,
-            border_radius=24,
-            border_color="#30363d",
-            focused_border_color=ACCENT,
-            bgcolor=BG_CARD,
-            text_size=14,
-            content_padding=ft.Padding(left=20, right=20, top=14, bottom=14),
-            on_submit=self._on_send,
-        )
-
-        # Иконка отражает фактическое состояние: после пересборки вкладок
-        # кнопка раньше всегда выглядела «включённой», даже если микрофон
-        # на паузе.
-        _listening = self.jarvis is None or getattr(
-            self.jarvis, "listening_enabled", True)
+            value=self._draft, hint_text="Напиши, что нужно сделать…",
+            multiline=True, min_lines=1, max_lines=4, shift_enter=True,
+            border=ft.InputBorder.NONE, text_size=15, color=TEXT,
+            content_padding=ft.Padding(left=4, right=4, top=8, bottom=8),
+            on_submit=self._on_send, on_change=self._on_input_change)
+        listening = self.jarvis is None or getattr(self.jarvis, "listening_enabled", True)
         self._mic_btn = ft.IconButton(
-            icon=ft.Icons.MIC if _listening else ft.Icons.MIC_OFF,
-            icon_color=TEXT_DIM if _listening else "#f85149",
-            icon_size=24,
-            tooltip="Пауза/возобновить микрофон",
-            on_click=self._on_mic_toggle,
-        )
+            icon=ft.Icons.MIC if listening else ft.Icons.MIC_OFF,
+            icon_color=TEXT_DIM if listening else P.error, icon_size=22,
+            width=44, height=44, tooltip="Приостановить / включить микрофон",
+            on_click=self._on_mic_toggle)
+        self._send_btn = ft.IconButton(icon=ft.Icons.ARROW_UPWARD, icon_color="#241b14",
+                                       bgcolor="#e9ad79", style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=11)),
+                                       width=44, height=44, tooltip="Отправить · Enter", on_click=self._on_send)
+        self._stop_btn = ft.IconButton(icon=ft.Icons.STOP_ROUNDED, icon_color=P.error,
+                                       width=44, height=44, tooltip="Остановить озвучку (не отменяет действие)",
+                                       on_click=self._on_stop_speech)
+        self._input_hint = ft.Text("Enter — отправить · Shift+Enter — новая строка", size=12, color=TEXT_DIM)
+        composer = ft.Container(ft.Column([
+            self._input_field,
+            ft.Row([self._mic_btn, ft.Column([self._status_sub, self._mood_text], spacing=2, expand=True),
+                    self._stop_btn, self._send_btn], spacing=8),
+        ], spacing=4), padding=12, bgcolor=P.composer, border_radius=16,
+            border=ft.Border.all(1, P.border))
+        return ft.Container(content=ft.Column([
+            composer, ft.Row([self._input_hint, ft.Text("Подсказки не запускают действия", size=11, color=TEXT_DIM)],
+                             alignment=ft.MainAxisAlignment.SPACE_BETWEEN, wrap=True),
+        ], spacing=8), padding=ft.Padding(left=28, right=28, top=0, bottom=16))
 
-        return ft.Container(
-            content=ft.Row(
-                controls=[
-                    self._input_field,
-                    ft.IconButton(
-                        icon=ft.Icons.SEND,
-                        icon_color=ACCENT,
-                        icon_size=24,
-                        tooltip="Отправить",
-                        on_click=self._on_send,
-                    ),
-                    self._mic_btn,
-                ],
-                spacing=10,
-            ),
-            padding=ft.Padding(left=30, right=30, top=10, bottom=25),
-        )
+    def _on_input_change(self, e) -> None:
+        self._draft = "" if self._input_field.password else (e.control.value or "")
+
+    def _fill_input(self, text: str) -> None:
+        if self._input_field is not None and not self._input_field.password:
+            self._input_field.value = text
+            if self._page is not None:
+                self._page.update()
+
+    def _dismiss_error(self, e=None) -> None:
+        if self._error_banner is not None:
+            self._error_banner.visible = False
+        if self._state == "error":
+            self._apply_state("idle")
+        if self._page is not None:
+            try:
+                self._page.update()
+            except Exception:
+                log.debug("Страница уже закрыта")
+
+    def _apply_error(self, text: str) -> None:
+        if self._error_text is not None:
+            self._error_text.value = text
+            self._error_banner.visible = True
+        self._apply_state("error")
+
+    def _apply_busy(self, busy: bool) -> None:
+        if self._send_btn is not None:
+            self._send_btn.disabled = busy
+        # Keep a draft editable; do not queue another action behind the current one.
+        if self._stop_btn is not None:
+            self._stop_btn.disabled = self._state != "speaking"
+            self._stop_btn.icon_color = P.error if self._state == "speaking" else TEXT_DIM
+
+    def _on_stop_speech(self, e=None) -> None:
+        if self.jarvis is None:
+            return
+        self.jarvis.speaker.stop()
+        # Do not pretend to cancel handle(), a network request or an OS action.
+        self._show_status("Озвучка остановлена. Выполненные действия не отменяются.")
+
+    def _on_chat_scroll(self, e) -> None:
+        if self._follow_chat:
+            # Layout/auto-scroll updates must not be mistaken for a reader scrolling up.
+            if e.event_type != ft.ScrollType.USER or e.direction != ft.ScrollDirection.FORWARD:
+                return
+            self._follow_chat = False
+        else:
+            self._follow_chat = e.max_scroll_extent - e.pixels < 48
+        self._history_list.auto_scroll = self._follow_chat
+        self._latest_btn.visible = not self._follow_chat
+        if self._page is not None:
+            self._page.update()
+
+    async def _scroll_latest(self, e=None) -> None:
+        self._history_list.auto_scroll = False
+        await self._history_list.scroll_to(offset=-1, duration=0)
+        self._follow_chat = True
+        self._history_list.auto_scroll = True
+        self._latest_btn.visible = False
+        if self._page is not None:
+            self._page.update()
+
+    async def _copy_message(self, record) -> None:
+        try:
+            await ft.Clipboard().set(record["text"])
+            self._show_status("Сообщение скопировано")
+        except Exception:
+            log.exception("Не удалось скопировать сообщение")
+            self._show_status("Не удалось скопировать. Выделите текст вручную.")
+
+    def _build_commands_tab(self):
+        from jarvis.gui_commands import CommandBuilder
+        if self._command_builder is None:
+            self._command_builder = CommandBuilder(self)
+        return self._command_builder.build()
 
     def _build_mic_tab(self) -> ft.Control:
         name = "—"
@@ -7226,7 +7816,7 @@ class FenixGUI:
             value=current,
             options=[ft.dropdown.Option(d) for d in devices],
             width=400,
-            border_color="#30363d",
+            border_color="#3f5266",
             focused_border_color=ACCENT,
             on_select=self._on_mic_change,
         )
@@ -7235,7 +7825,7 @@ class FenixGUI:
             value=0.0,
             width=400,
             color=ACCENT,
-            bgcolor="#21262d",
+            bgcolor="#17212d",
         )
         self._mic_level_text = ft.Text("Уровень сигнала: —", size=13, color=TEXT_DIM)
         self._mic_status_text = ft.Text("Статус: ожидание проверки", size=13, color=TEXT_DIM)
@@ -7432,7 +8022,7 @@ class FenixGUI:
                 ft.dropdown.Option("both", "Оба (голос первым)"),
             ],
             width=400,
-            border_color="#30363d",
+            border_color="#3f5266",
             focused_border_color=ACCENT,
             on_select=self._on_prosody_priority,
         )
@@ -7600,7 +8190,7 @@ class FenixGUI:
             label="Имя пользователя",
             value=self.config.get("name", "") or "",
             width=400,
-            border_color="#30363d",
+            border_color="#3f5266",
             focused_border_color=ACCENT,
             on_submit=self._on_persona_name,
         )
@@ -7609,7 +8199,7 @@ class FenixGUI:
             label="Имя ассистента",
             value=p.get("assistant_name") or "Феникс",
             width=400,
-            border_color="#30363d",
+            border_color="#3f5266",
             focused_border_color=ACCENT,
             on_submit=self._on_persona_assistant_name,
         )
@@ -7624,7 +8214,7 @@ class FenixGUI:
                 ft.dropdown.Option("brief", "Краткий"),
             ],
             width=400,
-            border_color="#30363d",
+            border_color="#3f5266",
             focused_border_color=ACCENT,
             on_select=self._on_persona_style,
         )
@@ -7638,7 +8228,7 @@ class FenixGUI:
                 ft.dropdown.Option("unrestricted", "Без цензуры (если юзер сам)"),
             ],
             width=400,
-            border_color="#30363d",
+            border_color="#3f5266",
             focused_border_color=ACCENT,
             on_select=self._on_persona_tone,
         )
@@ -7654,7 +8244,7 @@ class FenixGUI:
             label="Черты (через запятую)",
             value=", ".join(p.get("traits") or []),
             width=400,
-            border_color="#30363d",
+            border_color="#3f5266",
             focused_border_color=ACCENT,
             on_submit=self._on_persona_traits,
         )
@@ -7666,7 +8256,7 @@ class FenixGUI:
             multiline=True,
             min_lines=3,
             max_lines=6,
-            border_color="#30363d",
+            border_color="#3f5266",
             focused_border_color=ACCENT,
             on_submit=self._on_persona_backstory,
         )
@@ -7881,7 +8471,7 @@ class FenixGUI:
             value=self.config.get("llm_model", "qwen2.5:7b-instruct"),
             options=[ft.dropdown.Option(m) for m in LLM_MODELS],
             width=350,
-            border_color="#30363d",
+            border_color="#3f5266",
             focused_border_color=ACCENT,
             on_select=self._on_llm_change,
         )
@@ -7889,7 +8479,7 @@ class FenixGUI:
         ollama_field = ft.TextField(
             value=self.config.get("ollama_url", "http://127.0.0.1:11434"),
             width=400,
-            border_color="#30363d",
+            border_color="#3f5266",
             focused_border_color=ACCENT,
             on_submit=self._on_ollama_change,
         )
@@ -7898,7 +8488,7 @@ class FenixGUI:
             value=self.config.get("tts_backend", "auto"),
             options=[ft.dropdown.Option(b) for b in TTS_BACKENDS],
             width=250,
-            border_color="#30363d",
+            border_color="#3f5266",
             focused_border_color=ACCENT,
             on_select=self._on_tts_change,
         )
@@ -7917,7 +8507,7 @@ class FenixGUI:
             value=self.config.get("gui_theme", "Системная"),
             options=[ft.dropdown.Option(t) for t in THEMES.keys()],
             width=250,
-            border_color="#30363d",
+            border_color="#3f5266",
             focused_border_color=ACCENT,
             on_select=self._on_theme_change,
         )
@@ -7937,7 +8527,7 @@ class FenixGUI:
                 ft.dropdown.Option("tray", "Только трей — окно скрыто"),
             ],
             width=300,
-            border_color="#30363d",
+            border_color="#3f5266",
             focused_border_color=ACCENT,
             on_select=self._on_launch_mode,
         )
@@ -8091,6 +8681,12 @@ class FenixGUI:
                     break
                 elif kind == "state":
                     self._apply_state(value)
+                elif kind == "busy":
+                    self._apply_busy(self._command_busy)
+                elif kind == "clear_error":
+                    self._dismiss_error()
+                elif kind == "command_error":
+                    self._apply_error(value)
                 elif kind == "message":
                     self._apply_message(*value)
                 elif kind == "stream_chunk":
@@ -8257,6 +8853,8 @@ class FenixGUI:
                 if self._rail and self._rail.selected_index == 1:
                     self._queue.put(("mic_level", None))
 
+                if self._state == "awaiting":
+                    self._queue.put(("state", "idle"))
                 counter += 1
                 if counter >= 25:
                     counter = 0
@@ -8277,171 +8875,109 @@ class FenixGUI:
     def _apply_state(self, state: str) -> None:
         if state not in STATES:
             return
+        if state == "idle":
+            handler = getattr(self.jarvis, "handler", None)
+            if getattr(handler, "_pending_password", None):
+                state = "password"
+            else:
+                from jarvis.intents.clarification import pending_alive
+                if pending_alive(getattr(handler, "_pending_question", None)):
+                    state = "awaiting"
         self._state = state
         color, text, sub = STATES[state]
-
-        size = {"idle": 80, "listening": 90, "speaking": 95, "error": 85}.get(state, 80)
-
-        try:
-            if self._status_circle:
-                self._status_circle.bgcolor = color
-                self._status_circle.width = size
-                self._status_circle.height = size
-                self._status_circle.border_radius = size // 2
-                self._status_circle.shadow = ft.BoxShadow(
-                    blur_radius=32, color=color, spread_radius=3,
-                )
-            if self._status_text:
-                self._status_text.value = text
-            if self._status_sub:
-                self._status_sub.value = sub
-        except Exception:
-            log.exception("Ошибка в _apply_state")
+        if P is not None:
+            color = {"idle": ACCENT, "thinking": ACCENT, "speaking": P.success,
+                     "error": P.error}.get(state, P.warning)
+        if state == "idle" and not getattr(self.jarvis, "listening_enabled", True):
+            text, sub = "Микрофон на паузе", "Текстовый чат доступен"
+        if self._status_circle is not None:
+            self._status_circle.bgcolor = color
+        if self._status_text is not None:
+            self._status_text.value = text
+        if self._status_sub is not None:
+            self._status_sub.value = sub
+        if self._input_field is not None:
+            sensitive = bool(getattr(getattr(self.jarvis, "handler", None), "_pending_password", None))
+            self._input_field.password = sensitive or state == "password"
+            self._input_field.multiline = not self._input_field.password
+            self._input_field.max_lines = 1 if self._input_field.password else 4
+            self._input_field.autocorrect = not self._input_field.password
+            self._input_field.enable_suggestions = not self._input_field.password
+            self._input_field.hint_text = "Пароль (скрыт)" if self._input_field.password else "Напиши, что нужно сделать…"
+            if self._input_hint is not None:
+                self._input_hint.value = ("Пароль скрыт · Enter — подтвердить" if self._input_field.password
+                                          else "Enter — отправить · Shift+Enter — новая строка")
+        if getattr(self, "_brand_mark", None) is not None:
+            self._brand_mark.border = ft.Border.all(1, P.brand if state == "idle" else color)
+        self._apply_busy(self._command_busy)
 
     def _apply_mood_color(self, mood_state: str) -> None:
-        """Обновляет свечение статус-сферы по mood (только в idle)."""
-        try:
-            from jarvis import mood as _mood
-            if self._state != "idle":
-                return  # во время listening/speaking цвет другой
-            color = _mood.color()
-            if self._status_circle:
-                self._status_circle.bgcolor = color
-                self._status_circle.shadow = ft.BoxShadow(
-                    blur_radius=32, color=color, spread_radius=3,
-                )
-            _MOOD_LABELS = {
-                "neutral": "",
-                "happy":   "Настроение: хорошее",
-                "excited": "Настроение: восторженное",
-                "annoyed": "Настроение: раздражённое",
-                "bored":   "Настроение: скучающее",
-                "tired":   "Настроение: уставшее",
-            }
-            if getattr(self, "_mood_text", None):
-                self._mood_text.value = _MOOD_LABELS.get(mood_state, "")
-            log.info("GUI: статус-сфера → mood=%s", mood_state)
-        except Exception:
-            log.exception("_apply_mood_color упал")
+        labels = {"happy": "Настроение: хорошее", "excited": "Настроение: восторженное",
+                  "annoyed": "Настроение: раздражённое", "bored": "Настроение: скучающее",
+                  "tired": "Настроение: уставшее"}
+        if self._mood_text is not None:
+            self._mood_text.value = labels.get(mood_state, "")
+            self._mood_text.visible = bool(self._mood_text.value)
 
-    def _avatar(self, is_user: bool) -> ft.Container:
-        if is_user:
-            bg = BG_BUBBLE_USER
-            icon = ft.Icons.PERSON
-            icon_color = "#ffffff"
-        else:
-            bg = BG_CARD
-            icon = ft.Icons.SMART_TOY
-            icon_color = ACCENT
-
+    def _message_control(self, record) -> ft.Container:
+        is_user = record["role"] == "user"
+        label = ft.Text(record["text"], size=15, color=TEXT, selectable=True)
+        if record is getattr(self, "_stream_record", None):
+            self._stream_label = label
+        async def copy(e):
+            await self._copy_message(record)
+        header = ft.Row([
+            ft.Icon(ft.Icons.PERSON_OUTLINE if is_user else ft.Icons.GRAPHIC_EQ,
+                    size=18, color=ACCENT),
+            ft.Text("Вы" if is_user else "Феникс", size=14,
+                    color=TEXT, weight=ft.FontWeight.W_600),
+            ft.Text(record["time"], size=13, color=TEXT_DIM, expand=True),
+            ft.IconButton(icon=ft.Icons.CONTENT_COPY, icon_size=17,
+                          width=44, height=44, icon_color=TEXT_DIM,
+                          tooltip="Копировать сообщение", on_click=copy),
+        ], spacing=8)
         return ft.Container(
-            content=ft.Icon(icon, size=20, color=icon_color),
-            width=40,
-            height=40,
-            border_radius=20,
-            bgcolor=bg,
-            alignment=ft.Alignment.CENTER,
+            content=ft.Column([header, label], spacing=4),
+            bgcolor=BG_BUBBLE_USER if is_user else BG_CARD,
+            border=ft.Border.all(1, P.border), border_radius=12,
+            padding=ft.Padding(left=16, right=16, top=4, bottom=16),
+            margin=ft.Margin(left=32 if is_user else 0, right=0 if is_user else 32),
         )
 
+    def _render_history(self) -> None:
+        self._history_list.controls = [self._message_control(m) for m in self._messages]
+        if not self._messages:
+            self._history_list.controls = [self._empty_chat]
+        if getattr(self, "_stream_record", None) is not None:
+            self._stream_bubble = self._history_list.controls[-1]
+
     def _apply_message(self, role: str, text: str) -> None:
-        try:
-            ts = datetime.now().strftime("%H:%M")
-            is_user = (role == "user")
-            avatar = self._avatar(is_user)
-
-            text_col = ft.Column(
-                controls=[
-                    ft.Text(
-                        f"{'Вы' if is_user else 'Феникс'} • {ts}",
-                        size=11, color=TEXT_DIM,
-                    ),
-                    ft.Text(text, size=14,
-                            color="#ffffff" if is_user else TEXT,
-                            selectable=True),
-                ],
-                spacing=2, expand=True,
-            )
-
-            bubble = ft.Container(
-                content=ft.Row(
-                    controls=[avatar, text_col] if not is_user else [text_col, avatar],
-                    spacing=12,
-                    vertical_alignment=ft.CrossAxisAlignment.START,
-                ),
-                bgcolor=BG_BUBBLE_USER if is_user else BG_BUBBLE_AI,
-                padding=ft.Padding(left=14, right=14, top=10, bottom=10),
-                border_radius=14,
-                shadow=ft.BoxShadow(
-                    blur_radius=10, color="#000000",
-                    offset=ft.Offset(0, 2),
-                ),
-                animate_opacity=ft.Animation(300, ft.AnimationCurve.EASE_IN),
-                opacity=1.0,
-            )
-
-            wrapper = ft.Container(
-                content=bubble,
-                alignment=ft.Alignment.CENTER_RIGHT if is_user else ft.Alignment.CENTER_LEFT,
-                margin=ft.Margin(
-                    left=80 if is_user else 0,
-                    right=0 if is_user else 80,
-                    top=0, bottom=0,
-                ),
-            )
-
-            self._history_list.controls.append(wrapper)
-        except Exception:
-            log.exception("Ошибка в _apply_message")
+        if not text:
+            return
+        record = {"role": role, "text": text, "time": datetime.now().strftime("%H:%M")}
+        if not self._messages:
+            self._history_list.controls.clear()
+        self._messages.append(record)
+        self._history_list.controls.append(self._message_control(record))
 
     def _apply_stream_chunk(self, chunk: str) -> None:
-        try:
-            if self._stream_bubble is None:
-                ts = datetime.now().strftime("%H:%M")
-                self._stream_text = ""
-                self._stream_label = ft.Text("", size=14, color=TEXT, selectable=True)
-
-                avatar = self._avatar(is_user=False)
-
-                text_col = ft.Column(
-                    controls=[
-                        ft.Text(f"Феникс • {ts}", size=11, color=TEXT_DIM),
-                        self._stream_label,
-                    ],
-                    spacing=2, expand=True,
-                )
-
-                bubble = ft.Container(
-                    content=ft.Row(
-                        controls=[avatar, text_col],
-                        spacing=12,
-                        vertical_alignment=ft.CrossAxisAlignment.START,
-                    ),
-                    bgcolor=BG_BUBBLE_AI,
-                    padding=ft.Padding(left=14, right=14, top=10, bottom=10),
-                    border_radius=14,
-                    shadow=ft.BoxShadow(
-                        blur_radius=10, color="#000000",
-                        offset=ft.Offset(0, 2),
-                    ),
-                )
-
-                wrapper = ft.Container(
-                    content=bubble,
-                    alignment=ft.Alignment.CENTER_LEFT,
-                    margin=ft.Margin(left=0, right=80, top=0, bottom=0),
-                )
-
-                self._stream_bubble = wrapper
-                self._history_list.controls.append(wrapper)
-
-            self._stream_text += chunk
-            self._stream_label.value = self._stream_text
-        except Exception:
-            log.exception("Ошибка в _apply_stream_chunk")
+        if not chunk:
+            return
+        if self._stream_bubble is None:
+            self._stream_record = {"role": "assistant", "text": "", "time": datetime.now().strftime("%H:%M")}
+            if not self._messages:
+                self._history_list.controls.clear()
+            self._messages.append(self._stream_record)
+            self._stream_bubble = self._message_control(self._stream_record)
+            self._history_list.controls.append(self._stream_bubble)
+        self._stream_record["text"] += chunk
+        self._stream_label.value = self._stream_record["text"]
+        self._stream_text = self._stream_record["text"]
 
     def _apply_stream_end(self) -> None:
         self._stream_bubble = None
         self._stream_label = None
+        self._stream_record = None
         self._stream_text = ""
 
     def _open_mic_tab(self) -> None:
@@ -8509,6 +9045,20 @@ class FenixGUI:
     # Действия
     # ---------------------------------------------------------------
 
+    def _select_tab(self, index: int) -> None:
+        if index not in self._tabs:
+            return
+        if self._command_builder is not None:
+            self._command_builder.capture()
+        if index == 5:
+            self._tabs[5] = self._build_commands_tab()
+        self._rail.selected_index = index
+        if index == 0 and getattr(self, "_model_label", None) is not None:
+            self._model_label.value = self._model_caption()
+        self._content_area.content = self._tabs[index]
+        if self._page is not None:
+            self._page.update()
+
     def _on_nav_change(self, e) -> None:
         idx = e.control.selected_index
         log.info("Навигация: %d", idx)
@@ -8528,6 +9078,8 @@ class FenixGUI:
     def _on_mode_change(self, e) -> None:
         mode = e.control.value
         self.config.set("mode", mode)
+        if getattr(self, "_model_label", None) is not None:
+            self._model_label.value = self._model_caption()
         if self.jarvis is not None:
             self.jarvis.handler.mode = mode
 
@@ -8556,26 +9108,12 @@ class FenixGUI:
             return [ft.dropdown.Option("ruslan")]
 
     def _on_refresh_voices(self, e) -> None:
-        """Обновить список голосов после смены backend."""
         try:
             from jarvis import voices as _voices
             _voices.reset_cache()
-            current_idx = self._rail.selected_index if self._rail else 0
-            saved_history = list(self._history_list.controls) if self._history_list else []
-            self._tabs = {
-                0: self._build_main_tab(),
-                1: self._build_mic_tab(),
-                2: self._build_audio_tab(),
-                3: self._build_persona_tab(),
-                4: self._build_settings_tab(),
-            }
-            if saved_history and self._history_list:
-                self._history_list.controls = saved_history
-            if self._content_area:
-                self._content_area.content = self._tabs.get(current_idx, self._tabs[0])
-            if self._page:
+            self._rebuild_ui_for_theme()
+            if self._page is not None:
                 self._page.update()
-            log.info("GUI: список голосов обновлён")
         except Exception:
             log.exception("Не удалось обновить голоса")
 
@@ -8585,8 +9123,8 @@ class FenixGUI:
             if self._page is None:
                 return
             snack = ft.SnackBar(
-                content=ft.Text(text, size=13, color="#e6edf3"),
-                bgcolor="#161b22",
+                content=ft.Text(text, size=13, color="#eaf0f6"),
+                bgcolor="#131c26",
                 duration=10000,
             )
             self._page.overlay.append(snack)
@@ -8605,6 +9143,8 @@ class FenixGUI:
 
     def _on_llm_change(self, e) -> None:
         self.config.set("llm_model", e.control.value)
+        if getattr(self, "_model_label", None) is not None:
+            self._model_label.value = self._model_caption()
 
     def _on_ollama_change(self, e) -> None:
         # Пустое поле раньше сохранялось как есть и роняло старт:
@@ -8641,20 +9181,8 @@ class FenixGUI:
             self._show_status("SAPI: старые системные голоса Windows.")
 
         try:
-            current_idx = self._rail.selected_index if self._rail else 0
-            saved_history = list(self._history_list.controls) if self._history_list else []
-            self._tabs = {
-                0: self._build_main_tab(),
-                1: self._build_mic_tab(),
-                2: self._build_audio_tab(),
-                3: self._build_persona_tab(),
-                4: self._build_settings_tab(),
-            }
-            if saved_history and self._history_list:
-                self._history_list.controls = saved_history
-            if self._content_area:
-                self._content_area.content = self._tabs.get(current_idx, self._tabs[0])
-            if self._page:
+            self._rebuild_ui_for_theme()
+            if self._page is not None:
                 self._page.update()
         except Exception:
             log.exception("Не удалось пересобрать вкладки")
@@ -8698,63 +9226,68 @@ class FenixGUI:
             log.exception("Ошибка в _on_theme_change")
 
     def _rebuild_ui_for_theme(self) -> None:
-        """Пересобирает UI с новой палитрой. ... [6 строк]"""
         current_index = self._rail.selected_index if self._rail else 0
-
-        saved_history = []
-        if self._history_list is not None:
-            saved_history = list(self._history_list.controls)
-
+        if self._command_builder is not None:
+            self._command_builder.capture()
+        if self._input_field is not None:
+            # A password must not become a visible draft after a rebuild.
+            self._draft = "" if self._input_field.password else (self._input_field.value or "")
+        error = self._error_text.value if self._error_banner is not None and self._error_banner.visible else ""
         self._tabs = {
-            0: self._build_main_tab(),
-            1: self._build_mic_tab(),
-            2: self._build_audio_tab(),
-            3: self._build_persona_tab(),
-            4: self._build_settings_tab(),
+            0: self._build_main_tab(), 1: self._build_mic_tab(),
+            2: self._build_audio_tab(), 3: self._build_persona_tab(),
+            4: self._build_settings_tab(), 5: self._build_commands_tab(),
         }
-
-        if saved_history and self._history_list is not None:
-            self._history_list.controls = saved_history
-
+        if error and self._error_text is not None:
+            self._error_text.value = error
+            self._error_banner.visible = True
         if self._content_area is not None:
             self._content_area.bgcolor = BG_DARK
             self._content_area.content = self._tabs.get(current_index, self._tabs[0])
-
         if self._rail is not None:
-            self._rail.bgcolor = BG_CARD
-            self._rail.indicator_color = ACCENT
-
-        log.info("UI пересобран (тема/профиль), история сохранена: %d",
-                 len(saved_history))
+            self._rail.refresh_palette()
 
     def _on_send(self, e) -> None:
-        text = self._input_field.value.strip()
-        if not text:
+        text = (self._input_field.value or "").strip()
+        if not text or self._command_busy:
             return
-        self._input_field.value = ""
-        self._run_command(text)
+        if self._run_command(text) is not False:
+            self._input_field.value = ""
+            self._draft = ""
+        if self._page is not None:
+            self._page.update()
 
     def _on_mic_toggle(self, e) -> None:
         if self.jarvis is None:
             return
         self.jarvis.listening_enabled = not self.jarvis.listening_enabled
         self._mic_btn.icon = ft.Icons.MIC if self.jarvis.listening_enabled else ft.Icons.MIC_OFF
-        self._mic_btn.icon_color = ACCENT if self.jarvis.listening_enabled else "#f85149"
+        self._mic_btn.icon_color = ACCENT if self.jarvis.listening_enabled else P.error
+        if self._state in ("idle", "awaiting", "password"):
+            self._apply_state("idle")
         try:
             self._page.update()
         except Exception:
             pass
 
-    def _run_command(self, cmd: str) -> None:
-        """Запускает команду из GUI (текстовый ввод). ... [5 строк]"""
+    def _run_command(self, cmd: str) -> bool:
+        """One GUI request at a time; same core lock as voice, UI only via queue."""
         if self.jarvis is None:
-            return
+            self._queue.put(("command_error", "Ядро ещё не готово. Дождитесь запуска и повторите."))
+            return False
+        if not self._command_lock.acquire(blocking=False):
+            return False
+        self._command_busy = True
+        self._apply_busy(True)
+        self._dismiss_error()
+        self._queue.put(("clear_error", None))
 
         def _run():
             try:
-                self.set_state("listening")
+                self.set_state("thinking")
                 self.jarvis.speaker.stop()
-                self.jarvis.speaker.wait_end(timeout=1.0)
+                if self.jarvis.speaker.wait_end(timeout=1.0) is False:
+                    raise RuntimeError("Previous speech has not stopped")
                 with self.jarvis.cmd_lock:
                     sensitive = bool(getattr(self.jarvis.handler, "_pending_password", None))
                     self.add_message("user", "[Ввод пароля скрыт]" if sensitive else cmd)
@@ -8762,14 +9295,336 @@ class FenixGUI:
                     if not reply.is_stream:
                         self.add_message("assistant", reply.text or "")
                     self.jarvis.say(reply)
-                # Раньше статус оставался «Слушаю» навсегда: команда
-                # из текстового поля завершалась, а индикатор — нет.
                 self.set_state("idle")
-            except Exception:
-                log.exception("Ошибка команды из GUI")
-                self.set_state("error")
+            except Exception as error:
+                # Exception text may contain a password, prompt or server payload.
+                log.error("Ошибка команды из GUI (%s); содержимое запроса не записывается",
+                          type(error).__name__)
+                self._queue.put(("command_error", "Не удалось завершить запрос. Проверьте модель, звук и доступность сервера. Повтор не выполняется автоматически."))
+            finally:
+                self._command_busy = False
+                self._command_lock.release()
+                self._queue.put(("busy", False))
+        try:
+            self._command_thread = threading.Thread(target=_run, daemon=True, name="gui-cmd")
+            self._command_thread.start()
+        except Exception:
+            self._command_busy = False
+            self._command_lock.release()
+            self._queue.put(("command_error", "Не удалось запустить обработку. Сообщение осталось в поле ввода."))
+            self._apply_busy(False)
+            return False
+        return True
+```
 
-        threading.Thread(target=_run, daemon=True, name="gui-cmd").start()
+### `jarvis/gui_commands.py`
+
+```python
+"""Flet editor for the existing custom_commands pipeline. Never executes a preview."""
+from copy import deepcopy
+import flet as ft
+from jarvis import command_builder as model
+
+
+def _button(*args, **kwargs):
+    from jarvis.gui import P, TEXT
+    kwargs.setdefault("height", 44)
+    kwargs.setdefault("color", TEXT)
+    kwargs.setdefault("bgcolor", P.selected)
+    kwargs.setdefault("elevation", 0)
+    kwargs.setdefault("style", ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8),
+                                             side=ft.BorderSide(1, P.border)))
+    return ft.Button(*args, **kwargs)
+
+
+def _field(*args, **kwargs):
+    # Flet 1.x sends editable values back when the change event is subscribed.
+    kwargs.setdefault("on_change", lambda e: None)
+    return ft.TextField(*args, **kwargs)
+
+
+class CommandBuilder:
+    def __init__(self, gui):
+        self.gui = gui
+        self.draft = None
+        self.fields = None
+        self.step_fields = []
+        self.notice = ""
+        self.confirm_delete = None
+
+    def capture(self):
+        if self.draft is not None and self.fields:
+            self.draft.update(name=self.fields["name"].value or "",
+                              phrases=(self.fields["phrases"].value or "").splitlines(),
+                              enabled=bool(self.fields["enabled"].value))
+            steps = []
+            for action, parameter in self.step_fields:
+                key = model.ACTIONS[action.value][2]
+                step = {"action": action.value}
+                if key:
+                    step[key] = parameter.value or ""
+                steps.append(step)
+            self.draft["steps"] = steps
+
+    def refresh(self):
+        control = self.build()
+        self.gui._tabs[5] = control
+        if self.gui._content_area is not None and self.gui._rail.selected_index == 5:
+            self.gui._content_area.content = control
+        if self.gui._page is not None:
+            self.gui._page.update()
+
+    def new(self, template=None):
+        self.draft = deepcopy(template) if template else {
+            "name": "", "phrases": [], "enabled": True,
+            "steps": [{"action": "open_app", "target": ""}]}
+        self.fields = None
+        self.step_fields = []
+        self.notice = ""
+        self.refresh()
+
+    def edit(self, entry):
+        try:
+            self.draft = model.validate_entry(entry, self.gui.config.get("wake_words", []))
+        except ValueError as error:
+            self.notice = str(error)
+        else:
+            self.fields = None
+            self.step_fields = []
+            self.notice = ""
+        self.refresh()
+
+    def back(self, e=None):
+        self.draft = None
+        self.fields = None
+        self.notice = ""
+        self.refresh()
+
+    def change_step(self, index, action):
+        self.capture()
+        defaults = {"set_volume": 20, "set_timer": 1500, "shutdown_pc": 30, "reboot_pc": 30}
+        key = model.ACTIONS[action][2]
+        self.draft["steps"][index] = {"action": action}
+        if key:
+            self.draft["steps"][index][key] = defaults.get(action, "")
+        self.fields = None
+        self.refresh()
+
+    def move_step(self, index, direction):
+        self.capture()
+        dest = index + direction
+        if 0 <= dest < len(self.draft["steps"]):
+            steps = self.draft["steps"]
+            steps[index], steps[dest] = steps[dest], steps[index]
+        self.fields = None
+        self.refresh()
+
+    def add_step(self, e=None):
+        self.capture()
+        if len(self.draft["steps"]) < 6:
+            self.draft["steps"].append({"action": "open_app", "target": ""})
+        self.fields = None
+        self.refresh()
+
+    def remove_step(self, index):
+        self.capture()
+        if len(self.draft["steps"]) > 1:
+            self.draft["steps"].pop(index)
+        self.fields = None
+        self.refresh()
+
+    def save(self, e=None):
+        self.capture()
+        try:
+            entry = model.save_entry(self.gui.config, self.draft)
+        except (ValueError, OSError) as error:
+            self.notice = str(error)
+            self.fields = None
+        else:
+            self.draft = None
+            self.fields = None
+            self.notice = f'Сохранено: {entry["name"]}. Применяется без перезапуска.'
+        self.refresh()
+
+    def toggle(self, entry, enabled):
+        try:
+            model.save_entry(self.gui.config, {**entry, "enabled": enabled})
+            self.notice = "Команда включена." if enabled else "Команда выключена."
+        except (ValueError, OSError) as error:
+            self.notice = str(error)
+        self.refresh()
+
+    def delete(self, entry_id, confirmed=False):
+        if not confirmed:
+            self.confirm_delete = entry_id
+        else:
+            try:
+                model.delete_entry(self.gui.config, entry_id)
+                self.notice = "Команда удалена."
+            except (ValueError, OSError) as error:
+                self.notice = str(error)
+            self.confirm_delete = None
+        self.refresh()
+
+    def check(self, e=None):
+        self.capture()
+        try:
+            entry = model.validate_entry(self.draft, self.gui.config.get("wake_words", []))
+            text = model.clean_phrase(self.test_field.value or "", self.gui.config.get("wake_words", []))
+            from jarvis.intents.fast.custom import load_custom, find_custom
+            # Same pure matcher as the live pipeline, isolated to this draft.
+            match = find_custom(load_custom({"custom_commands": [entry]}, include_packs=False), text)
+            self.notice = ("Фраза совпала. " + model.describe_steps(entry["steps"]) + ". Ничего не выполнено." if match
+                           else "Точного совпадения нет. Ничего не выполнено.")
+        except ValueError as error:
+            self.notice = str(error)
+        self.fields = None
+        self.refresh()
+
+    def set_password(self, e=None):
+        # Password controls are never captured in draft and are not prefilled from config.
+        value, confirm = self.password_field.value or "", self.password_confirm.value or ""
+        self.password_field.value = self.password_confirm.value = ""
+        self.capture()
+        if len(value) < 4 or len(value) > 128 or value != confirm or value != value.strip():
+            self.notice = "Пароли должны совпадать: 4–128 символов, без пробелов по краям."
+        else:
+            from jarvis.intents.password import hash_password
+            self.notice = ("Пароль сохранён. Системные команды будут запрашивать его перед исполнением."
+                           if self.gui.config.set("danger_password", hash_password(value))
+                           else "Пароль не сохранён: ошибка записи конфигурации.")
+        self.fields = None
+        self.refresh()
+
+    def build(self):
+        from jarvis.gui import P, TEXT, TEXT_DIM, BG_CARD, BG_DARK, ACCENT
+        self.notice_text = ft.Text(self.notice, color=TEXT, size=14, selectable=True)
+        header = ft.Row([
+            ft.Column([ft.Text("Мои команды", size=28, weight=ft.FontWeight.BOLD, color=TEXT),
+                       ft.Text("Своя фраза. Свои действия. Без кода и LLM.", size=14, color=TEXT_DIM)],
+                      expand=True, spacing=6),
+            _button("Новая команда", icon=ft.Icons.ADD, height=44,
+                      on_click=lambda e: self.new()),
+        ], spacing=16)
+        controls = [header]
+        if self.notice and self.draft is None:
+            controls.append(ft.Container(self.notice_text, padding=12, bgcolor=P.selected, border_radius=8))
+        if self.draft is None:
+            try:
+                entries = model.entries(self.gui.config)
+            except ValueError as error:
+                entries = []
+                controls.append(ft.Text(str(error), color=P.error))
+            controls.append(ft.Text("НАЧАТЬ С ПРИМЕРА", size=12, color=P.brand))
+            templates = [
+                ("Фокус · 25 минут", {"name": "Сосредоточиться", "phrases": ["время сосредоточиться"],
+                                      "steps": [{"action": "set_timer", "seconds": 1500}]}),
+                ("Тихий вечер", {"name": "Тихий вечер", "phrases": ["тихий вечер"],
+                                "steps": [{"action": "set_volume", "percent": 20}]}),
+                ("Спокойной ночи", {"name": "Спокойной ночи", "phrases": ["спокойной ночи"],
+                                    "steps": [{"action": "shutdown_pc", "seconds": 30}]}),
+            ]
+            controls.append(ft.Row([_button(label, height=44, on_click=lambda e, t=t: self.new(t))
+                                    for label, t in templates], wrap=True, spacing=8))
+            controls.append(ft.Text(f"Сохранено: {len(entries)} · команды общие для профилей", size=13, color=TEXT_DIM))
+            if not entries:
+                controls.append(ft.Container(ft.Column([
+                    ft.Icon(ft.Icons.ACCOUNT_TREE_OUTLINED, size=32, color=P.brand),
+                    ft.Text("Пусть Феникс понимает твои привычки", size=21, color=TEXT),
+                    ft.Text("Например: «спокойной ночи» — выключить ПК через 30 секунд.\n"
+                            "Выбери пример или создай команду с нуля. Сохранение не запускает действия.",
+                            size=14, color=TEXT_DIM)], spacing=12),
+                    padding=24, bgcolor=BG_CARD, border_radius=12, border=ft.Border.all(1, P.border)))
+            for entry in entries:
+                managed = entry.get("builder_version") == 1
+                title = str(entry.get("name") or "Команда из config.json")
+                phrases = entry.get("phrases", [])
+                description = model.describe_steps(entry.get("steps", [])) if managed else "Старый формат · редактирование в config.json"
+                row = [ft.Column([ft.Text(title, size=17, weight=ft.FontWeight.W_600, color=TEXT),
+                                  ft.Text(" / ".join(str(x) for x in phrases), size=14, color=P.brand),
+                                  ft.Text(description, size=13, color=TEXT_DIM)], spacing=6, expand=True)]
+                if managed:
+                    row += [ft.Switch(value=entry.get("enabled", True), tooltip="Включить команду",
+                                      on_change=lambda e, x=entry: self.toggle(x, e.control.value)),
+                            ft.IconButton(icon_color=TEXT_DIM, icon=ft.Icons.EDIT_OUTLINED, tooltip="Редактировать команду",
+                                          on_click=lambda e, x=entry: self.edit(x)),
+                            ft.IconButton(icon_color=TEXT_DIM, icon=ft.Icons.DELETE_OUTLINE, tooltip="Удалить команду",
+                                          on_click=lambda e, i=entry.get("id"): self.delete(i))]
+                content = [ft.Row(row, spacing=8)]
+                if self.confirm_delete == entry.get("id") and managed:
+                    content.append(ft.Row([ft.Text("Удалить без возможности восстановления?", color=P.warning, expand=True),
+                                           _button("Удалить", on_click=lambda e, i=entry["id"]: self.delete(i, True)),
+                                           _button("Оставить", on_click=lambda e: self._keep())], wrap=True))
+                controls.append(ft.Container(ft.Column(content), padding=16, bgcolor=BG_CARD,
+                                             border=ft.Border.all(1, P.border), border_radius=12))
+        else:
+            controls.append(_button("К списку (без сохранения)", on_click=self.back))
+            name = _field(label="Название", value=self.draft.get("name", ""), expand=True, max_length=80)
+            phrases = _field(expand=True, label="Фразы запуска · каждая с новой строки", multiline=True, min_lines=2, max_lines=5,
+                                   value="\n".join(self.draft.get("phrases", [])),
+                                   helper=ft.Text("Обращение «Феникс» можно не писать. Совпадение точное, без догадок.", color=TEXT_DIM, size=12))
+            enabled = ft.Switch(label="Включена", value=self.draft.get("enabled", True))
+            self.fields = {"name": name, "phrases": phrases, "enabled": enabled}
+            controls += [ft.Row([name, enabled], spacing=16), ft.Row([phrases]),
+                         ft.Text("ДЕЙСТВИЯ · ДО 6 ШАГОВ", size=12, color=P.brand)]
+            self.step_fields = []
+            for index, step in enumerate(self.draft["steps"]):
+                action = step["action"]
+                dropdown = ft.Dropdown(label=f"Шаг {index + 1}", value=action, width=245, text_size=14,
+                                       options=[ft.dropdown.Option(k, v[0]) for k, v in model.ACTIONS.items()],
+                                       on_select=lambda e, i=index: self.change_step(i, e.control.value))
+                _, hint, key = model.ACTIONS[action]
+                parameter = _field(label=hint or "Без параметров", width=245,
+                                         value=str(step.get(key, "")) if key else "", disabled=key is None,
+                                         on_change=lambda e: None)
+                self.step_fields.append((dropdown, parameter))
+                controls.append(ft.Container(ft.Row([
+                    dropdown, parameter,
+                    ft.Row([ft.IconButton(icon_color=TEXT_DIM, icon=ft.Icons.ARROW_UPWARD, tooltip="Выше", disabled=index == 0,
+                                          on_click=lambda e, i=index: self.move_step(i, -1)),
+                            ft.IconButton(icon_color=TEXT_DIM, icon=ft.Icons.ARROW_DOWNWARD, tooltip="Ниже", disabled=index == len(self.draft["steps"])-1,
+                                          on_click=lambda e, i=index: self.move_step(i, 1)),
+                            ft.IconButton(icon_color=TEXT_DIM, icon=ft.Icons.CLOSE, tooltip="Удалить шаг", disabled=len(self.draft["steps"]) == 1,
+                                          on_click=lambda e, i=index: self.remove_step(i))], spacing=0),
+                ], wrap=True, spacing=12, run_spacing=12), padding=16, bgcolor=BG_CARD,
+                    border_radius=12, border=ft.Border.all(1, P.border)))
+            controls.append(_button("Добавить действие", icon=ft.Icons.ADD, height=44,
+                                      disabled=len(self.draft["steps"]) >= 6, on_click=self.add_step))
+            if any(s.get("action") in model.POWER_ACTIONS for s in self.draft["steps"]):
+                controls.append(ft.Text("Системное действие требует пароля перед запуском. Проверяется весь сценарий ДО первого шага.\n"
+                                        "Выключение / перезагрузка — только последним шагом, с задержкой. Отмена: «отмени выключение».",
+                                        color=P.warning, size=14))
+            self.test_field = _field(expand=True, label="Проверить фразу без исполнения", hint_text="Феникс, моя фраза")
+            controls += [ft.Divider(color=P.border), ft.Row([self.test_field]),
+                         ft.Row([_button("Проверить фразу", icon=ft.Icons.RULE, on_click=self.check)], wrap=True),
+                         ft.Text("Параметры фиксированы. Шаги идут по порядку; это не транзакция с откатом.\n"
+                                 "Не назначай существующие встроенные команды: они могут иметь приоритет в pipeline.",
+                                 size=13, color=TEXT_DIM)]
+        # Same protection in both views, so a power-action template is usable without leaving the draft.
+        self.password_field = _field(label="Новый пароль опасных действий", password=True,
+                                           can_reveal_password=False, autocorrect=False, enable_suggestions=False)
+        self.password_confirm = _field(label="Повтори пароль", password=True,
+                                             can_reveal_password=False, autocorrect=False, enable_suggestions=False)
+        controls.append(ft.ExpansionTile(title=ft.Text("Защита системных действий", color=TEXT),
+            subtitle=ft.Text("Пароль задан" if self.gui.config.get("danger_password") else "Пароль не задан · выключение недоступно", color=TEXT_DIM),
+            controls=[ft.Container(ft.Column([self.password_field, self.password_confirm,
+                _button("Сохранить пароль", on_click=self.set_password),
+                ft.Text("Хранится SHA-256, как в существующем механизме. В сценарий и историю пароль не попадает.", size=12, color=TEXT_DIM)], spacing=12), padding=16)]))
+        scroll = ft.Column(controls, spacing=20, scroll=ft.ScrollMode.AUTO, expand=True)
+        body = scroll
+        if self.draft is not None:
+            self.notice_text.max_lines = 3
+            self.notice_text.tooltip = self.notice
+            self.notice_text.visible = bool(self.notice)
+            body = ft.Column([scroll, ft.Divider(color=P.border), self.notice_text,
+                ft.Row([_button("Сохранить команду", icon=ft.Icons.SAVE_OUTLINED,
+                                bgcolor="#e9ad79", color="#241b14", on_click=self.save),
+                        _button("Отменить правки", on_click=self.back)], wrap=True)], spacing=12, expand=True)
+        return ft.Container(body, padding=28, bgcolor=BG_DARK, expand=True)
+
+    def _keep(self):
+        self.confirm_delete = None
+        self.refresh()
 ```
 
 ### `jarvis/history.py`
@@ -9503,7 +10358,7 @@ def _do_get_layout(handler, intent, target, query):
 
 def _do_set_volume(handler, intent, target, query):
     try:
-        pct = int(intent.get("percent") or 50)
+        pct = int(intent.get("percent", 50))
     except (TypeError, ValueError):
         pct = 50
     prev = actions.get_volume()
@@ -9520,7 +10375,7 @@ def _do_get_volume(handler, intent, target, query):
 
 def _do_set_brightness(handler, intent, target, query):
     try:
-        pct = int(intent.get("percent") or 50)
+        pct = int(intent.get("percent", 50))
     except (TypeError, ValueError):
         pct = 50
     prev = actions.get_brightness()
@@ -9836,6 +10691,24 @@ def _do_get_profile(handler, intent, target, query):
     return "Не знаю, что прочитать."
 
 
+def _do_power(handler, intent, target, query):
+    # Typed builder actions: only fixed argv, no arbitrary shell text.
+    if not handler.config.get("danger_password"):
+        return "Для выключения и перезагрузки нужен пароль опасных действий."
+    action = intent.get("action")
+    from jarvis.command_builder import validate_step
+    seconds = validate_step(intent)["seconds"]
+    flag = "/s" if action == "shutdown_pc" else "/r"
+    ok = actions.run_power_action(flag, seconds)
+    return (f"{'Выключение' if flag == '/s' else 'Перезагрузка'} через {seconds} секунд. "
+            "Для отмены скажи «отмени выключение».") if ok else "Не удалось запланировать действие."
+
+
+def _do_cancel_shutdown(handler, intent, target, query):
+    return ("Выключение / перезагрузка отменены." if actions.run_power_action("/a")
+            else "Не удалось отменить выключение / перезагрузку.")
+
+
 def _do_answer(handler, intent, target, query):
     reply = intent.get("reply")
     return str(reply)[:600] if reply else None
@@ -10017,9 +10890,8 @@ def _do_close(handler, target: str) -> str:
 
 
 def _reload_packs(handler) -> None:
-    from jarvis.intents.fast.custom import load_packs_as_custom
-    handler.custom = (list(handler._config_custom_original)
-                      + load_packs_as_custom(handler.config))
+    from jarvis.intents.fast.custom import reload_custom
+    reload_custom(handler)
 
 
 # =================================================================
@@ -10100,6 +10972,9 @@ def _do_uia_menu(handler, intent, target, query):
 # =================================================================
 
 _DISPATCH = {
+    "shutdown_pc": _do_power,
+    "reboot_pc": _do_power,
+    "cancel_shutdown": _do_cancel_shutdown,
     "open_app":           _do_open_app,
     "close_app":          _do_close_app,
     "open_file":          _do_open_file,
@@ -10269,36 +11144,60 @@ from jarvis.text_utils import normalize
 log = logging.getLogger("jarvis.intents")
 
 
-def load_custom(config) -> list:
-    """Собирает custom-команды из config.json + активных паков. ... [3 строк]"""
+def _load_entries(data, wake_words=()) -> list:
+    from jarvis.command_builder import validate_entry
     result = []
-
-    # Из config.json → custom_commands
-    for entry in config.get("custom_commands", []):
-        phrases = [normalize(p) for p in entry.get("phrases", []) if p.strip()]
-        action = entry.get("action", "").strip() or entry.get("steps")
-        if phrases and action:
+    if not isinstance(data, list):
+        return result
+    for entry in data:
+        if not isinstance(entry, dict) or not entry.get("enabled", True):
+            continue
+        if "builder_version" in entry and entry["builder_version"] != 1:
+            log.warning("Неизвестная версия команды конструктора пропущена")
+            continue
+        if entry.get("builder_version") == 1:
+            try:
+                entry = validate_entry(entry, wake_words)
+            except (ValueError, TypeError):
+                log.warning("Повреждённая команда конструктора пропущена")
+                continue
+            result.append((entry["phrases"], entry["steps"], "", {"exact": True}))
+            continue
+        raw = entry.get("phrases", [])
+        phrases = [normalize(p) for p in raw if isinstance(p, str) and p.strip()] if isinstance(raw, list) else []
+        action = entry.get("action", "")
+        action = action.strip() if isinstance(action, str) else ""
+        action = action or entry.get("steps")
+        if phrases and isinstance(action, (str, list)) and action:
             result.append((phrases, action, entry.get("reply", "Выполняю.")))
+    return result
 
-    # Из активных паков
-    result.extend(load_packs_as_custom(config))
+
+def load_custom(config, *, include_packs=True) -> list:
+    """Legacy commands keep their format; builder entries use strict exact matching."""
+    result = _load_entries(config.get("custom_commands", []), config.get("wake_words", []))
+    if include_packs:
+        result.extend(load_packs_as_custom(config))
     return result
 
 
 def load_packs_as_custom(config) -> list:
-    """Только команды из активных паков."""
-    result = []
-    for entry in packs.load_active(config):
-        phrases = [normalize(p) for p in entry.get("phrases", []) if p.strip()]
-        action = entry.get("action", "").strip() or entry.get("steps")
-        if phrases and action:
-            result.append((phrases, action, entry.get("reply", "Выполняю.")))
-    return result
+    return _load_entries(packs.load_active(config), config.get("wake_words", []))
+
+
+def reload_custom(handler):
+    handler._config_custom_original = load_custom(handler.config, include_packs=False)
+    handler.custom = load_custom(handler.config)
 
 
 def match_custom(handler, cmd: str) -> str | None:
     """Тот же matcher используется уточнениями, но исполнение только здесь."""
     matched = find_custom(handler.custom, cmd)
+    if matched is None:
+        # The microphone already removes the address; typed GUI commands may include it.
+        from jarvis.command_builder import clean_phrase
+        typed = [item for item in handler.custom if len(item) > 3 and item[3].get("exact")]
+        matched = find_custom(typed, clean_phrase(cmd, handler.config.get("wake_words", [])))
     if matched is not None:
         return execute_custom(handler, *matched)
     return None
@@ -10306,19 +11205,18 @@ def match_custom(handler, cmd: str) -> str | None:
 
 def find_custom(custom: list, cmd: str) -> tuple | None:
     """Чистый поиск: точное или нечёткое совпадение, без побочных действий."""
-    for phrases, action, reply in custom:
+    # Exact matches across the whole list take precedence over legacy fuzzy ones.
+    for item in custom:
+        phrases, action, reply = item[:3]
+        if cmd in phrases:
+            return action, reply
+    for item in custom:
+        phrases, action, reply = item[:3]
+        if len(item) > 3 and item[3].get("exact"):
+            continue
         for phrase in phrases:
-            if cmd == phrase:
-                log.info("Custom (точно): %r → %r, action=%r", cmd, phrase, action)
-                return action, reply
-
-            # Нечёткий матч — только для длинных фраз.
-            # Короткие («вк», «отк») слишком легко путаются.
             if len(cmd) >= 12 and len(phrase) >= 12:
-                ratio = SequenceMatcher(None, cmd, phrase).ratio()
-                if ratio >= 0.85:
-                    log.info("Custom (нечётко %.2f): %r → %r, action=%r",
-                             ratio, cmd, phrase, action)
+                if SequenceMatcher(None, cmd, phrase).ratio() >= 0.85:
                     return action, reply
     return None
 
@@ -10332,6 +11230,9 @@ def execute_custom(handler, action, reply: str, *, authorized: bool = False) -> 
     intent = ({"steps": action} if isinstance(action, list)
               else {"action": "open_app", "target": action})
     stored = str(handler.config.get("danger_password") or "").strip()
+    if (isinstance(action, list) and any(isinstance(s, dict) and s.get("action")
+            in {"shutdown_pc", "reboot_pc"} for s in action) and not stored):
+        return "Для этой команды сначала задай пароль опасных действий в разделе «Мои команды»."
     if not authorized and is_danger(intent, stored):
         return handler._ask_password({
             "action": "custom_command", "spec": action, "reply": reply,
@@ -10573,9 +11474,8 @@ def packs_fast(handler, cmd: str) -> str | None:
 
 def _reload_packs(handler) -> None:
     """Пересобрать handler.custom после смены активных паков."""
-    from jarvis.intents.fast.custom import load_packs_as_custom
-    handler.custom = (list(handler._config_custom_original)
-                      + load_packs_as_custom(handler.config))
+    from jarvis.intents.fast.custom import reload_custom
+    reload_custom(handler)
 ```
 
 ### `jarvis/intents/fast/persona.py`
@@ -10951,6 +11851,9 @@ from jarvis import actions, history
 
 
 def system_fast(handler, cmd: str) -> str | None:
+    if cmd in ("отмени выключение", "отмена выключения", "отмени перезагрузку"):
+        from jarvis.intents.execute import execute_intent
+        return execute_intent(handler, {"action": "cancel_shutdown"})
     reply = _layout(cmd)
     if reply:
         return reply
@@ -11510,8 +12413,8 @@ class IntentHandler:
         migrate_password_if_needed(config)
 
         # Custom-команды.
-        self.custom = load_custom(config)
-        self._config_custom_original = list(self.custom)
+        from jarvis.intents.fast.custom import reload_custom
+        reload_custom(self)
 
         # Реестр быстрых правил.
         self._fast_handlers_cache = build_registry(self)
@@ -11706,7 +12609,11 @@ class IntentHandler:
     # =================================================================
 
     def _on_config_change(self, key: str, value) -> None:
-        if key == "memory_max":
+        if key in ("custom_commands", "active_packs"):
+            from jarvis.intents.fast.custom import reload_custom
+            reload_custom(self)
+            self.active_packs = list(self.config.get("active_packs", []))
+        elif key == "memory_max":
             try:
                 new_max = int(value)
             except (TypeError, ValueError):
@@ -14384,6 +15291,8 @@ class Jarvis:
         if cmd is None:
             return
         if audio:
+            if self.gui is not None:
+                self.gui.set_state("recognizing")
             from jarvis.recognition import assess_pcm, transcripts_agree
             quality = assess_pcm(audio, self.config.get("sample_rate", 16000))
             if not quality.accepted:
@@ -14393,6 +15302,8 @@ class Jarvis:
             if self.whisper is not None and not sensitive:
                 refined = self._refine(audio, awaiting)
                 if refined is _REJECT:
+                    if self.gui is not None:
+                        self.gui.set_state("idle")
                     return  # Не подтвердилось обращение к ассистенту.
                 if refined is _UNCERTAIN:
                     self._request_repeat()
@@ -14447,6 +15358,8 @@ class Jarvis:
                 except Exception:
                     log.exception("Observer.observe (user) упал")
 
+            if self.gui is not None:
+                self.gui.set_state("thinking")
             reply = self.handler.handle(cmd)
 
             if self.gui is not None and not reply.is_stream:
@@ -19197,16 +20110,12 @@ ICON_NAME = "jarvis"
 
 
 def _make_icon_image():
-    """Иконка трея: кольцо + стилизованная «J» (рисуется через PIL)."""
-    from PIL import Image, ImageDraw
-
-    img = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-    d.ellipse((2, 2, 62, 62), fill=(18, 32, 58, 255), outline=(86, 156, 255, 255), width=3)
-    # стилизованная «J»
-    d.line((38, 16, 38, 42), fill=(86, 156, 255, 255), width=6)
-    d.arc((20, 30, 42, 52), start=20, end=180, fill=(86, 156, 255, 255), width=6)
-    return img
+    """Same phoenix mark as the desktop app, not the old J fallback."""
+    from pathlib import Path
+    from PIL import Image
+    path = Path(__file__).resolve().parent / "assets" / "brand" / "tray.png"
+    with Image.open(path) as image:
+        return image.convert("RGBA")
 
 
 def build_menu(jarvis):
@@ -23872,73 +24781,38 @@ if __name__ == "__main__":
 ### `scripts/make_icon.py`
 
 ```python
-"""Генерация иконки Феникса (jarvis/icon.ico). ... [10 строк]"""
-
-import sys
+"""Build the Windows/tray phoenix icon from the project's transparent master PNG."""
 from pathlib import Path
-
 from PIL import Image, ImageDraw
 
 BASE = Path(__file__).resolve().parent.parent
 OUTPUT = BASE / "jarvis" / "icon.ico"
-
-# Цвета — те же, что в tray.py
-BG_COLOR = (18, 32, 58, 255)       # тёмно-синий фон
-ACCENT = (86, 156, 255, 255)       # акцентный синий
+MASTER = BASE / "jarvis" / "assets" / "brand" / "phoenix-dark.png"
 
 
 def draw_icon(size: int) -> Image.Image:
-    """Рисует иконку заданного размера. ... [3 строк]"""
-    k = size / 64
-    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-
-    # Круг
-    d.ellipse(
-        (2 * k, 2 * k, 62 * k, 62 * k),
-        fill=BG_COLOR,
-        outline=ACCENT,
-        width=max(1, int(3 * k)),
-    )
-
-    # Вертикальная линия буквы «J»
-    d.line(
-        (38 * k, 16 * k, 38 * k, 42 * k),
-        fill=ACCENT,
-        width=max(1, int(6 * k)),
-    )
-
-    # Дуга буквы «J» — нижний загиб
-    d.arc(
-        (20 * k, 30 * k, 42 * k, 52 * k),
-        start=20,
-        end=180,
-        fill=ACCENT,
-        width=max(1, int(6 * k)),
-    )
-
-    return img
+    # Use the same reference-matched silhouette at every size; no letter fallback.
+    image = Image.new("RGBA", (size, size))
+    draw = ImageDraw.Draw(image)
+    draw.rounded_rectangle((0, 0, size - 1, size - 1), radius=size // 5, fill="#10161e")
+    with Image.open(MASTER) as source:
+        mark = source.convert("RGBA")
+        mark.thumbnail((max(1, int(size * .94)), max(1, int(size * .94))), Image.Resampling.LANCZOS)
+        image.alpha_composite(mark, ((size - mark.width) // 2, (size - mark.height) // 2))
+    return image
 
 
 def main() -> int:
-    print("Генерация иконки...")
-
-    # Базовый размер 256×256 — качественный исходник
-    base = draw_icon(256)
-
-    # Все стандартные размеры Windows
-    sizes = [(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)]
-
+    image = draw_icon(256)
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    base.save(OUTPUT, format="ICO", sizes=sizes)
-
-    print(f"Готово: {OUTPUT}")
-    print(f"Размеры: {', '.join(f'{w}x{h}' for w, h in sizes)}")
+    image.save(OUTPUT, format="ICO", sizes=[(s, s) for s in (16, 24, 32, 48, 64, 128, 256)])
+    draw_icon(64).save(MASTER.parent / "tray.png")
+    print("Феникс: icon.ico (16–256 px), tray.png (64 px)")
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    raise SystemExit(main())
 ```
 
 ### `scripts/make_installer_images.py`
@@ -27441,21 +28315,28 @@ def test_voice_input_redacts_gui_and_skips_observer():
     assert all(call.args[0] != 'user' for call in app.observer.observe.call_args_list)
 
 
-def test_gui_input_redacts_history():
-    class ImmediateThread:
-        def __init__(self, *, target, **kwargs): self.target = target
-        def start(self): self.target()
-    run = source_method('jarvis/gui.py', 'FenixGUI', '_run_command', {
-        'threading':SimpleNamespace(Thread=ImmediateThread), 'log':logging.getLogger('audit.gui'),
-    })
+def test_gui_input_redacts_history(tmp_path):
+    # Exercise the imported GUI method, not a copy compiled from AST.
+    pytest.importorskip("flet")
+    from jarvis.gui import FenixGUI
+    from jarvis.config import Config
+    from jarvis import profile, mood
     h = handler('AbC-42!')
     h._ask_password({'action':'clear_tasks'})
-    app = SimpleNamespace(jarvis=SimpleNamespace(handler=h,speaker=Mock(),cmd_lock=threading.Lock(),say=Mock()),set_state=Mock(),add_message=Mock())
-    with patch('jarvis.intents.execute.execute_intent',return_value='Готово.') as execute:
-        run(app,'пароль AbC-42!')
-    execute.assert_called_once()
-    app.add_message.assert_any_call('user','[Ввод пароля скрыт]')
-    assert 'AbC-42!' not in str(app.add_message.mock_calls)
+    app = FenixGUI(SimpleNamespace(handler=h, speaker=Mock(), cmd_lock=threading.Lock(), say=Mock()),
+                   Config(tmp_path / "gui-config.json"))
+    app.add_message = Mock()
+    try:
+        with patch('jarvis.intents.execute.execute_intent', return_value='Готово.') as execute:
+            assert app._run_command('пароль AbC-42!')
+            app._command_thread.join(timeout=5)
+            assert not app._command_thread.is_alive()
+        execute.assert_called_once()
+        app.add_message.assert_any_call('user','[Ввод пароля скрыт]')
+        assert 'AbC-42!' not in str(app.add_message.mock_calls)
+    finally:
+        profile.unsubscribe(app._on_profile_switch)
+        mood.unsubscribe(app._on_mood_change)
 
 
 def test_stt_does_not_retain_sensitive_recognition(caplog):
@@ -28555,6 +29436,224 @@ print('Clarification engine, stage and handler: OK')
     assert "Clarification engine, stage and handler: OK" in result.stdout
 ```
 
+### `tests/test_command_builder.py`
+
+```python
+"""Builder persistence, exact matching and runtime protection; no real OS actions."""
+from copy import deepcopy
+from collections import deque
+from types import SimpleNamespace as NS
+from unittest.mock import Mock
+import pytest
+from jarvis import command_builder as builder
+from jarvis.config import Config
+from jarvis.intents.fast.custom import load_custom, find_custom, execute_custom, reload_custom
+from jarvis.intents.handler import IntentHandler
+from jarvis.intents.password import hash_password
+
+
+def draft(**changes):
+    return {"name": "Ночь", "phrases": ["Феникс, спокойной ночи"],
+            "steps": [{"action": "shutdown_pc", "seconds": 30}], **changes}
+
+
+@pytest.fixture
+def cfg(tmp_path):
+    return Config(tmp_path / "config.json")
+
+
+def test_crud_and_reopen_preserve_unmanaged_commands(cfg):
+    old = {"phrases": ["мой блокнот"], "action": "notepad.exe", "extra": {"keep": 1}}
+    cfg.set("custom_commands", [old])
+    entry = builder.save_entry(cfg, draft())
+    assert entry["phrases"] == ["спокойной ночи"]
+    assert Config(cfg.path).get("custom_commands")[0] == old
+    entry["steps"] = [{"action": "set_volume", "percent": 0}]
+    builder.save_entry(cfg, entry)
+    assert len(cfg.get("custom_commands")) == 2
+    assert cfg.get("custom_commands")[1]["steps"][0]["percent"] == 0
+    builder.delete_entry(cfg, entry["id"])
+    assert cfg.get("custom_commands") == [old]
+
+
+@pytest.mark.parametrize("step", [
+    {"action": "run_shell", "target": "whoami"}, {"action": "set_volume", "percent": -1},
+    {"action": "set_volume", "percent": 101}, {"action": "set_volume", "percent": True},
+    {"action": "set_timer", "seconds": 0}, {"action": "set_timer", "seconds": "nan"},
+    {"action": "shutdown_pc", "seconds": 0}, {"action": "reboot_pc", "seconds": 601},
+    {"action": "open_site", "target": "file:///C:/windows"},
+    {"action": "open_site", "target": "https://login:secret@example.com"},
+    {"action": "open_site", "target": "https://example.com bad"},
+    {"action": "open_app", "target": "shutdown /s /t 0"},
+    {"action": "open_app", "target": "powershell.exe"},
+    {"action": "open_app", "target": "notepad & shutdown"},
+    {"action": "answer", "reply": ""},
+])
+def test_bad_parameters_do_not_save(cfg, step):
+    before = deepcopy(cfg.get("custom_commands"))
+    with pytest.raises(ValueError):
+        builder.save_entry(cfg, draft(steps=[step]))
+    assert cfg.get("custom_commands") == before
+
+
+@pytest.mark.parametrize("phrases", [["Феникс"], ["отмена"], ["Ёлка", "елка"], [""], []])
+def test_phrase_validation(cfg, phrases):
+    with pytest.raises(ValueError):
+        builder.save_entry(cfg, draft(phrases=phrases))
+
+
+def test_limit_and_power_last(cfg):
+    with pytest.raises(ValueError):
+        builder.save_entry(cfg, draft(steps=[{"action": "screenshot"}] * 7))
+    with pytest.raises(ValueError):
+        builder.save_entry(cfg, draft(steps=[{"action": "shutdown_pc", "seconds": 30}, {"action": "screenshot"}]))
+
+
+def test_duplicate_phrase_rejected_but_disabled_command_allowed(cfg):
+    builder.save_entry(cfg, draft())
+    with pytest.raises(ValueError):
+        builder.save_entry(cfg, draft())
+    other = builder.save_entry(cfg, draft(enabled=False))
+    assert not other["enabled"]
+    assert len(load_custom(cfg)) == 1
+
+
+def test_active_pack_conflict_and_no_pack_duplication(cfg):
+    cfg.set("active_packs", ["system"])
+    with pytest.raises(ValueError):
+        builder.save_entry(cfg, draft(phrases=["выключи компьютер"]))
+    h = NS(config=cfg)
+    reload_custom(h)
+    count = len(h.custom)
+    assert count > 0 and h._config_custom_original == []
+    for _ in range(3):
+        from jarvis.intents.fast.packs import _reload_packs
+        _reload_packs(h)
+    assert len(h.custom) == count
+
+
+def test_atomic_save_failure_is_reported(cfg, monkeypatch):
+    before = deepcopy(cfg.get("custom_commands"))
+    monkeypatch.setattr("jarvis.config_manager.save", lambda *a, **k: False)
+    with pytest.raises(OSError):
+        builder.save_entry(cfg, draft())
+    assert cfg.get("custom_commands") == before
+
+
+def test_exact_only_and_exact_precedes_legacy_fuzzy(cfg, monkeypatch):
+    entry = builder.save_entry(cfg, draft())
+    custom = load_custom(cfg)
+    assert find_custom(custom, "спокойной ночи") is not None
+    assert find_custom(custom, "спокойной ночи!") is None
+    assert find_custom(custom, "спокойной ночи дорогой") is None
+    fuzzy = (["спокойной ночи друг"], "notepad.exe", "legacy")
+    assert find_custom([fuzzy] + custom, "спокойной ночи")[0] == entry["steps"]
+    execute = Mock(return_value="checked without execution")
+    monkeypatch.setattr("jarvis.intents.fast.custom.execute_custom", execute)
+    from jarvis.intents.fast.custom import match_custom
+    assert match_custom(NS(config=cfg, custom=custom), "феникс спокойной ночи") == "checked without execution"
+    execute.assert_called_once()
+
+
+
+def test_config_change_updates_live_handler_without_execution(cfg, monkeypatch):
+    h = IntentHandler.__new__(IntentHandler)
+    h.config = cfg
+    reload_custom(h)
+    cfg.subscribe(h._on_config_change)
+    entry = builder.save_entry(cfg, draft())
+    assert find_custom(h.custom, "спокойной ночи") is not None
+    builder.save_entry(cfg, {**entry, "enabled": False})
+    assert find_custom(h.custom, "спокойной ночи") is None
+
+
+def test_missing_password_blocks_whole_scenario_before_first_step(cfg, monkeypatch):
+    steps = [{"action": "screenshot"}, {"action": "shutdown_pc", "seconds": 30}]
+    h = NS(config=cfg, _ask_password=Mock())
+    execute = Mock()
+    monkeypatch.setattr("jarvis.intents.execute.execute_steps", execute)
+    assert "пароль" in execute_custom(h, steps, "")
+    execute.assert_not_called()
+    h._ask_password.assert_not_called()
+
+
+def test_password_required_before_first_step_and_cancel_works(cfg, monkeypatch):
+    from jarvis import actions, memory, mood
+    from jarvis.intents.stages.password import PasswordStage
+    from jarvis.intents.stages.fast import FastHandlersStage
+    from jarvis.intents.fast.custom import match_custom
+    cfg.set("danger_password", hash_password("A-b42!"))
+    builder.save_entry(cfg, draft(steps=[{"action": "set_volume", "percent": 0}, {"action": "shutdown_pc", "seconds": 30}]))
+    h = IntentHandler.__new__(IntentHandler)
+    h.config = cfg; h.mode = "commands"; h._pending_password = None
+    h._pipeline = [PasswordStage(), FastHandlersStage()]
+    reload_custom(h); h._fast_handlers_cache = [("custom", lambda cmd: match_custom(h, cmd))]
+    h._recent_phrases = deque(maxlen=10); h.dialog = deque(maxlen=100)
+    run = Mock(return_value=True); volume = Mock(return_value=True)
+    monkeypatch.setattr(actions, "run_power_action", run)
+    monkeypatch.setattr(actions, "set_volume", volume)
+    monkeypatch.setattr(actions, "get_volume", lambda: 50)
+    monkeypatch.setattr(memory, "append", Mock())
+    monkeypatch.setattr(mood, "apply_from_text", Mock())
+    h.handle("спокойной ночи")
+    volume.assert_not_called(); run.assert_not_called()
+    assert h._pending_password
+    h.handle("отмена")
+    run.assert_not_called(); volume.assert_not_called()
+    h.handle("спокойной ночи"); h.handle("wrong-code")
+    run.assert_not_called(); volume.assert_not_called()
+    h.handle("спокойной ночи"); h.handle("A-b42!")
+    volume.assert_called_once_with(0)
+    run.assert_called_once_with("/s", 30)
+    assert not h._pending_password
+
+
+def test_cancel_power_does_not_depend_on_system_pack(cfg, monkeypatch):
+    from jarvis.intents.fast.system import system_fast
+    run = Mock(return_value=True)
+    monkeypatch.setattr("jarvis.actions.run_power_action", run)
+    assert system_fast(NS(config=cfg), "отмени выключение")
+    run.assert_called_once_with("/a")
+
+
+def test_invalid_config_not_overwritten(cfg):
+    cfg.set("custom_commands", {"broken": "preserve"})
+    with pytest.raises(ValueError):
+        builder.save_entry(cfg, draft())
+    assert cfg.get("custom_commands") == {"broken": "preserve"}
+    assert load_custom(cfg) == []
+
+
+def test_corrupt_or_future_builder_entries_fail_closed(cfg):
+    entry = builder.validate_entry(draft(phrases=["спокойной ночи"]))
+    for changed in ({"builder_version": 9}, {"enabled": "false"}, {"phrases": [None]},
+                    {"steps": [{"action": "shutdown_pc", "seconds": 0}]}):
+        cfg.set("custom_commands", [{**entry, **changed}])
+        assert load_custom(cfg) == []
+
+
+def test_power_uses_fixed_argv_and_checks_windows_exit(monkeypatch):
+    from jarvis import actions
+    run = Mock(return_value=NS(returncode=0))
+    monkeypatch.setattr(actions.subprocess, "run", run)
+    assert actions.run_power_action("/s", 30)
+    assert run.call_args.args[0] == ["shutdown.exe", "/s", "/t", "30"]
+    run.return_value.returncode = 1116  # No shutdown is scheduled.
+    assert not actions.run_power_action("/a")
+    assert run.call_args.args[0] == ["shutdown.exe", "/a"]
+    run.reset_mock()
+    assert not actions.run_power_action("/s & whoami", 30)
+    assert not actions.run_power_action("/s", -1)
+    run.assert_not_called()
+
+
+def test_power_timeout_is_not_reported_as_success(monkeypatch):
+    from jarvis import actions
+    import subprocess
+    monkeypatch.setattr(actions.subprocess, "run", Mock(side_effect=subprocess.TimeoutExpired("test-only", 5)))
+    assert not actions.run_power_action("/r", 30)
+```
+
 ### `tests/test_config_manager.py`
 
 ```python
@@ -28991,6 +30090,463 @@ def test_windows_checkout_line_endings_with_lf_hook(repo):
     result = check(repo)
     assert result.returncode == 0, result.stdout + result.stderr
     assert b"\r" not in (repo / ".githooks/pre-commit").read_bytes()
+
+
+def test_mixed_svg_lf_and_windows_crlf_checkout(repo):
+    """New LF assets stay LF locally; checkout-index converts them to CRLF."""
+    git(repo, "config", "core.autocrlf", "true")
+    for path in repo.rglob("*"):
+        if path.is_file() and ".git" not in path.parts and path.name != "SNAPSHOT.md":
+            data = path.read_bytes().replace(b"\r\n", b"\n")
+            if path != repo / ".githooks/pre-commit":
+                data = data.replace(b"\n", b"\r\n")
+            path.write_bytes(data)
+    asset = repo / "jarvis/assets/brand/dialog-dark.svg"
+    asset.parent.mkdir(parents=True)
+    asset.write_bytes(b'<svg xmlns="http://www.w3.org/2000/svg">\n</svg>\n')
+    snapshot(repo)
+    git(repo, "add", "-A")
+    before = git(repo, "ls-files", "--stage", "-z")
+    result = check(repo)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert asset.read_bytes().endswith(b"</svg>\n")
+    assert git(repo, "ls-files", "--stage", "-z") == before
+
+
+def test_snapshot_text_and_size_are_eol_independent(repo):
+    asset = repo / "picture.svg"
+    asset.write_bytes(b'<svg>\n<!-- text -->\n</svg>\n')
+    snapshot(repo)
+    before = (repo / "SNAPSHOT.md").read_text(encoding="utf-8")
+    for path in repo.rglob("*"):
+        if path.is_file() and ".git" not in path.parts and path.name != "SNAPSHOT.md":
+            data = path.read_bytes().replace(b"\r\n", b"\n")
+            path.write_bytes(data.replace(b"\n", b"\r\n"))
+    snapshot(repo)
+    assert (repo / "SNAPSHOT.md").read_text(encoding="utf-8") == before
+    asset.write_bytes(b'<svg>\n<!-- actual change -->\n</svg>\n')
+    snapshot(repo)
+    assert (repo / "SNAPSHOT.md").read_text(encoding="utf-8") != before
+```
+
+### `tests/test_gui_chat.py`
+
+```python
+"""Imported Flet controls + real GUI worker threads; no window, ASR or audio device. ... [3 строк]"""
+import queue
+import threading
+import time
+from types import SimpleNamespace
+from unittest.mock import Mock
+
+import pytest
+
+ft = pytest.importorskip("flet")
+from jarvis import gui as module, mood, profile  # noqa: E402
+from jarvis.config import Config  # noqa: E402
+from jarvis.reply import Reply  # noqa: E402
+
+
+@pytest.fixture
+def gui(tmp_path, monkeypatch):
+    config = Config(tmp_path / "config.json")
+    core = SimpleNamespace(
+        handler=SimpleNamespace(_pending_question=None, _pending_password=None,
+                                handle=Mock(return_value=Reply(text="Готово."))),
+        speaker=SimpleNamespace(stop=Mock(), wait_end=Mock(return_value=True)),
+        cmd_lock=threading.Lock(), say=Mock(), listener=None, listening_enabled=True,
+    )
+    window = module.FenixGUI(core, config)
+    monkeypatch.setattr(window, "_get_voice_options", lambda: [ft.dropdown.Option("ruslan")])
+    window._build_main_tab()
+    yield window
+    if window._command_thread is not None:
+        window._command_thread.join(timeout=5)
+    profile.unsubscribe(window._on_profile_switch)
+    mood.unsubscribe(window._on_mood_change)
+    module._apply_palette("dark")
+
+
+def finish(gui):
+    gui._command_thread.join(timeout=5)
+    assert not gui._command_thread.is_alive()
+    assert not gui._command_busy
+
+
+def events(gui):
+    values = []
+    while True:
+        try:
+            values.append(gui._queue.get_nowait())
+        except queue.Empty:
+            return values
+
+
+def test_real_controls_have_chat_shortcuts_and_stop(gui):
+    assert gui._input_field.multiline and gui._input_field.shift_enter
+    assert gui._input_field.max_lines == 4
+    assert gui._history_list.controls == [gui._empty_chat]
+    assert gui._stop_btn.disabled
+    gui._fill_input("Который час?")
+    assert gui._input_field.value == "Который час?"
+    gui.jarvis.handler.handle.assert_not_called()
+
+
+def test_duplicate_click_does_not_queue_or_erase_draft(gui):
+    entered, release = threading.Event(), threading.Event()
+    def handle(cmd):
+        entered.set()
+        assert release.wait(3)
+        return Reply(text="Готово.")
+    gui.jarvis.handler.handle = Mock(side_effect=handle)
+    gui._input_field.value = "первая"
+    gui._on_send(None)
+    try:
+        assert entered.wait(2)
+        assert gui._send_btn.disabled
+        gui._input_field.value = "вторая"
+        gui._on_send(None)
+        assert gui._input_field.value == "вторая"
+        assert gui._run_command("третья") is False
+        assert gui.jarvis.handler.handle.call_count == 1
+    finally:
+        release.set()
+        finish(gui)
+    gui._apply_busy(False)
+    assert not gui._send_btn.disabled
+    assert gui._command_lock.acquire(blocking=False)
+    gui._command_lock.release()
+
+
+def test_no_core_keeps_input_and_reports_unavailable(gui):
+    gui.jarvis = None
+    gui._input_field.value = "команда"
+    gui._on_send(None)
+    assert gui._input_field.value == "команда"
+    assert events(gui)[0][0] == "command_error"
+
+
+def test_exception_is_sanitized_and_worker_unlocks(gui, caplog):
+    gui.jarvis.handler.handle.side_effect = RuntimeError("private-password-or-server-payload")
+    assert gui._run_command("секретная фраза")
+    finish(gui)
+    emitted = events(gui)
+    assert any(k == "command_error" for k, _ in emitted)
+    assert "private-password" not in repr(emitted)
+    assert "private-password" not in caplog.text
+    assert emitted[-1] == ("busy", False)
+    gui._apply_error(next(v for k, v in emitted if k == "command_error"))
+    assert gui._error_banner.visible and gui._state == "error"
+
+
+def test_failed_thread_start_keeps_input_and_unlocks(gui, monkeypatch):
+    class BrokenThread:
+        def __init__(self, **kwargs): pass
+        def start(self): raise RuntimeError("failed")
+    monkeypatch.setattr(module.threading, "Thread", BrokenThread)
+    gui._input_field.value = "команда"
+    gui._on_send(None)
+    assert gui._input_field.value == "команда"
+    assert not gui._command_busy
+    assert gui._command_lock.acquire(blocking=False)
+    gui._command_lock.release()
+    gui._command_thread = None
+
+
+def test_existing_voice_lock_serializes_gui_handler(gui):
+    gui.jarvis.cmd_lock.acquire()
+    try:
+        assert gui._run_command("время")
+        gui.jarvis.handler.handle.assert_not_called()
+    finally:
+        gui.jarvis.cmd_lock.release()
+    finish(gui)
+    gui.jarvis.handler.handle.assert_called_once_with("время")
+
+
+def test_speech_not_stopped_no_new_action(gui):
+    gui.jarvis.speaker.wait_end.return_value = False
+    assert gui._run_command("время")
+    finish(gui)
+    gui.jarvis.handler.handle.assert_not_called()
+    gui.jarvis.say.assert_not_called()
+    assert any(k == "command_error" for k, _ in events(gui))
+
+
+def test_stop_is_audio_only_and_does_not_fake_cancellation(gui):
+    gui._apply_state("speaking")
+    assert not gui._stop_btn.disabled
+    gui._on_stop_speech(None)
+    gui.jarvis.speaker.stop.assert_called_once()
+    assert gui._state == "speaking"  # caller finishes normally; don't unlock a live request
+    gui.jarvis.handler.handle.assert_not_called()
+
+
+def test_pending_state_and_password_mask(gui):
+    gui.jarvis.handler._pending_question = {"type": "command_slot", "deadline": time.monotonic()+10}
+    gui._apply_state("idle")
+    assert gui._state == "awaiting"
+    gui.jarvis.handler._pending_password = {"action": "delete_profile"}
+    gui._apply_state("idle")
+    assert gui._state == "password" and gui._input_field.password
+    gui._apply_state("thinking")
+    assert gui._input_field.password
+    assert not gui._input_field.multiline and gui._input_field.max_lines == 1
+    assert not gui._input_field.autocorrect and not gui._input_field.enable_suggestions
+    gui.jarvis.handler._pending_password = None
+    gui.jarvis.handler._pending_question["deadline"] = 0
+    gui._apply_state("idle")
+    assert gui._state == "idle" and not gui._input_field.password
+
+
+def test_theme_rebuild_preserves_draft_stream_and_recolors(gui):
+    gui._apply_message("user", "Привет")
+    gui._apply_stream_chunk("Здравствуйте")
+    gui._input_field.value = "черновик"
+    module._apply_palette("light")
+    gui._rebuild_ui_for_theme()
+    gui._apply_stream_chunk("!")
+    assert len(gui._messages) == 2
+    assert gui._stream_label.value == "Здравствуйте!"
+    assert gui._input_field.value == "черновик"
+    assert gui._history_list.controls[0].bgcolor == module.PALETTES["light"]["bg_bubble_user"]
+    gui._apply_stream_end()
+    assert gui._messages[-1]["text"] == "Здравствуйте!"
+    assert gui._stream_bubble is None
+
+
+def test_password_draft_never_revealed_after_rebuild(gui):
+    gui.jarvis.handler._pending_password = {"action": "shutdown"}
+    gui._apply_state("idle")
+    gui._input_field.value = "not-a-real-password"
+    gui.jarvis.handler._pending_password = None
+    gui._rebuild_ui_for_theme()
+    assert gui._input_field.value == ""
+    assert gui._draft == ""
+
+
+def test_scroll_up_disables_forced_follow(gui):
+    gui._on_chat_scroll(SimpleNamespace(max_scroll_extent=1000, pixels=100, event_type=ft.ScrollType.USER, direction=ft.ScrollDirection.FORWARD))
+    assert not gui._history_list.auto_scroll and gui._latest_btn.visible
+    gui._apply_message("assistant", "Новое сообщение")
+    assert not gui._history_list.auto_scroll
+    gui._on_chat_scroll(SimpleNamespace(max_scroll_extent=1000, pixels=990, event_type=ft.ScrollType.UPDATE, direction=None))
+    assert gui._history_list.auto_scroll and not gui._latest_btn.visible
+
+
+@pytest.mark.asyncio
+async def test_copy_stream_uses_current_text(gui, monkeypatch):
+    from unittest.mock import AsyncMock
+    clipboard = SimpleNamespace(set=AsyncMock())
+    monkeypatch.setattr(module.ft, "Clipboard", lambda: clipboard)
+    gui._apply_stream_chunk("Один")
+    record = gui._stream_record
+    gui._apply_stream_chunk(" два")
+    await gui._copy_message(record)
+    clipboard.set.assert_awaited_once_with("Один два")
+
+
+@pytest.mark.asyncio
+async def test_scroll_latest_scrolls_before_enabling_follow(gui):
+    from unittest.mock import AsyncMock
+    gui._history_list.scroll_to = AsyncMock()
+    gui._follow_chat = False
+    await gui._scroll_latest()
+    gui._history_list.scroll_to.assert_awaited_once_with(offset=-1, duration=0)
+    assert gui._follow_chat and gui._history_list.auto_scroll
+
+
+@pytest.mark.parametrize("state", list(module.STATES))
+def test_all_states_are_visible(gui, state):
+    gui._apply_state(state)
+    assert gui._status_text.value
+    assert gui._status_sub.value
+
+
+def test_layout_update_does_not_disable_follow(gui):
+    gui._on_chat_scroll(SimpleNamespace(max_scroll_extent=1000, pixels=0,
+                                        event_type=ft.ScrollType.UPDATE, direction=None))
+    assert gui._follow_chat and gui._history_list.auto_scroll
+    assert not gui._latest_btn.visible
+
+
+def test_scenario_cards_prefill_without_execution(gui):
+    for card, text in zip(gui._scenario_cards,
+                          ("Поставь таймер", "Открой", "Расскажи что-нибудь")):
+        card.on_click(None)
+        assert gui._input_field.value == text
+    gui.jarvis.handler.handle.assert_not_called()
+    gui.jarvis.speaker.stop.assert_not_called()
+    gui._apply_state("password")
+    gui._input_field.value = ""
+    gui._scenario_cards[0].on_click(None)
+    assert gui._input_field.value == ""
+
+
+def test_sidebar_selects_all_real_tabs_and_keeps_theme_selection(gui):
+    gui._page = SimpleNamespace(update=Mock())
+    gui._rail = module._Sidebar(gui._select_tab)
+    gui._tabs = {i: ft.Text(label) for i, (label, _) in enumerate(module.NAV_ITEMS)}
+    gui._content_area = ft.Container()
+    for index in range(5):
+        gui._rail.nav_buttons[index].on_click(None)
+        assert gui._rail.selected_index == index
+        assert gui._content_area.content is gui._tabs[index]
+    module._apply_palette("light")
+    gui._rail.refresh_palette()
+    assert gui._rail.selected_index == 4
+    assert gui._rail.bgcolor == module.P.sidebar
+    assert gui._rail.nav_buttons[4].bgcolor == module.P.selected
+    gui._select_tab(99)
+    assert gui._rail.selected_index == 4
+
+
+def test_sidebar_profile_and_configured_model_are_not_network_status(gui):
+    sidebar = module._Sidebar(lambda i: None)
+    assert sidebar.content.controls[-1].content.controls[0].value == profile.current()
+    gui._on_llm_change(SimpleNamespace(control=SimpleNamespace(value="my-local-model:latest")))
+    assert gui._model_label.value == "Модель: my-local-model:latest"
+    assert gui._model_caption() == "Модель: my-local-model:latest"
+    gui.config.set("mode", "commands")
+    assert gui._model_caption() == "Команды · без LLM"
+
+
+def test_monogram_reflects_processing_not_fake_microphone_data(gui):
+    gui._apply_state("thinking")
+    assert gui._brand_mark.border.top.color == module.ACCENT
+    gui._apply_state("idle")
+    assert gui._brand_mark.border.top.color == module.P.brand
+```
+
+### `tests/test_gui_commands.py`
+
+```python
+"""Imported native builder controls; no OS actions or real passwords."""
+from types import SimpleNamespace as NS
+from unittest.mock import Mock
+import pytest
+ft = pytest.importorskip("flet")
+from jarvis import gui as module, profile, mood
+from jarvis.config import Config
+from jarvis.gui_commands import CommandBuilder
+
+
+@pytest.fixture
+def editor(tmp_path):
+    cfg = Config(tmp_path / "config.json")
+    gui = module.FenixGUI(None, cfg)
+    gui._rail = module._Sidebar(gui._select_tab)
+    gui._content_area = ft.Container()
+    gui._tabs = {i: ft.Text(str(i)) for i in range(5)}
+    gui._command_builder = CommandBuilder(gui)
+    gui._tabs[5] = gui._build_commands_tab()
+    gui._select_tab(5)
+    yield gui._command_builder
+    profile.unsubscribe(gui._on_profile_switch)
+    mood.unsubscribe(gui._on_mood_change)
+    module._apply_palette("dark")
+
+
+def test_sixth_tab_and_unsaved_editor_survive_navigation(editor):
+    gui = editor.gui
+    assert len(module.NAV_ITEMS) == 6
+    assert gui._rail.selected_index == 5
+    editor.new()
+    assert editor.fields["name"].on_change is not None
+    assert editor.fields["phrases"].on_change is not None
+    editor.fields["name"].value = "Личный запуск"
+    editor.fields["phrases"].value = "моя фраза"
+    button_ids = [id(x) for x in gui._rail.nav_buttons]
+    gui._select_tab(0); gui._select_tab(5)
+    assert [id(x) for x in gui._rail.nav_buttons] == button_ids
+    assert editor.fields["name"].value == "Личный запуск"
+    assert editor.fields["phrases"].value == "моя фраза"
+    assert gui.config.get("custom_commands") == []
+
+
+def test_editor_create_check_edit_toggle_and_confirm_delete(editor, monkeypatch):
+    execute = Mock()
+    monkeypatch.setattr("jarvis.intents.fast.custom.execute_custom", execute)
+    editor.new({"name": "Тихо", "phrases": ["тихий вечер"], "steps": [{"action": "set_volume", "percent": 0}]})
+    editor.test_field.value = "Феникс, тихий вечер"
+    editor.check()
+    assert "совпала" in editor.notice
+    execute.assert_not_called()
+    editor.save()
+    entry = editor.gui.config.get("custom_commands")[0]
+    assert entry["steps"][0]["percent"] == 0
+    editor.edit(entry)
+    editor.fields["name"].value = "Тише"
+    editor.save()
+    entry = editor.gui.config.get("custom_commands")[0]
+    assert entry["name"] == "Тише"
+    editor.toggle(entry, False)
+    assert not editor.gui.config.get("custom_commands")[0]["enabled"]
+    editor.delete(entry["id"])
+    assert len(editor.gui.config.get("custom_commands")) == 1
+    editor.delete(entry["id"], True)
+    assert editor.gui.config.get("custom_commands") == []
+
+
+def test_editor_step_operations_and_validation(editor):
+    editor.new()
+    editor.add_step()
+    editor.change_step(1, "set_volume")
+    editor.step_fields[1][1].value = "35"
+    editor.move_step(1, -1)
+    assert editor.draft["steps"][0] == {"action": "set_volume", "percent": "35"}
+    editor.remove_step(1)
+    editor.save()
+    assert "Название" in editor.notice
+    assert not editor.gui.config.get("custom_commands")
+
+
+def test_password_never_becomes_editor_draft(editor):
+    editor.new()
+    editor.password_field.value = "Test-42!"
+    editor.password_confirm.value = "Test-42!"
+    editor.set_password()
+    assert editor.gui.config.get("danger_password").startswith("sha256:")
+    assert "Test-42!" not in repr(editor.draft)
+    assert not editor.password_field.value
+    assert not editor.password_confirm.value
+    assert "Test-42!" not in editor.notice
+    stored = editor.gui.config.get("danger_password")
+    editor.password_field.value = editor.password_confirm.value = " bad-password"
+    editor.set_password()
+    assert editor.gui.config.get("danger_password") == stored
+
+
+def test_brand_assets_and_app_icon_have_no_letter_fallback(editor):
+    from pathlib import Path
+    from PIL import Image
+    for theme in ("dark", "light"):
+        for name in ("phoenix", "dialog", "microphone", "audio", "persona", "settings", "commands"):
+            from io import BytesIO
+            data = module._brand_bytes(name, theme)
+            assert data.startswith(b"\x89PNG")
+            with Image.open(BytesIO(data)) as asset:
+                assert asset.convert("RGBA").getchannel("A").getextrema()[1] > 0
+    path = Path(module.__file__).parent / "icon.ico"
+    with Image.open(path) as image:
+        assert (16, 16) in image.ico.sizes()
+        assert (256, 256) in image.ico.sizes()
+
+
+def test_theme_rebuild_preserves_unsaved_command_but_not_password(editor, monkeypatch):
+    gui = editor.gui
+    editor.new({"name": "Черновик", "phrases": ["моя фраза"],
+                "steps": [{"action": "set_timer", "seconds": 60}]})
+    editor.fields["name"].value = "Мой черновик"
+    editor.password_field.value = "Never-store-42"
+    for name in ("_build_main_tab", "_build_mic_tab", "_build_audio_tab", "_build_persona_tab", "_build_settings_tab"):
+        monkeypatch.setattr(gui, name, lambda: ft.Text("tab"))
+    module._apply_palette("light")
+    gui._rebuild_ui_for_theme()
+    assert gui._rail.selected_index == 5
+    assert editor.fields["name"].value == "Мой черновик"
+    assert not editor.password_field.value
+    assert "Never-store-42" not in repr(editor.draft)
 ```
 
 ### `tests/test_gui_wiring.py`
@@ -36919,7 +38475,7 @@ EXCLUDE_EXT = {
 TEXT_EXT = {
     ".py", ".md", ".txt", ".json", ".bat", ".cmd", ".cfg", ".ini",
     ".yaml", ".yml", ".toml", ".html", ".css", ".js", ".ts",
-    ".ps1", ".sh", ".env", ".gitignore", ".iss",
+    ".ps1", ".sh", ".env", ".gitignore", ".iss", ".svg",
 }
 
 MAX_FILE_SIZE = 200 * 1024
@@ -37305,6 +38861,15 @@ def section_docs(files: list[Path], root: Path) -> list[str]:
 
 
 
+def snapshot_bytes(path: Path) -> bytes:
+    """Canonical text bytes for hashing/size, independent of Git checkout EOLs. ... [4 строк]"""
+    data = path.read_bytes()
+    if path.suffix.lower() in TEXT_EXT or not path.suffix:
+        if b"\0" not in data:
+            return data.replace(b"\r\n", b"\n")
+    return data
+
+
 def build_snapshot(mode: str, budget_kb: float | None) -> tuple[str, list[str]]:
     """Собирает весь текст снимка. Возвращает (текст, найденные секреты)."""
     files = collect_files(BASE)
@@ -37318,8 +38883,9 @@ def build_snapshot(mode: str, budget_kb: float | None) -> tuple[str, list[str]]:
         digest.update(p.relative_to(BASE).as_posix().encode())
         digest.update(b"\0")
         try:
-            digest.update(p.read_bytes())
-            total_bytes += p.stat().st_size
+            data = snapshot_bytes(p)
+            digest.update(data)
+            total_bytes += len(data)
         except OSError:
             pass
         total_lines += count_lines(p)
@@ -38826,11 +40392,40 @@ SOFTWARE.
 
 ### `assets/readme/hero-mobile.svg`
 
-_Нетекстовый файл: .svg_
+```
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="280" viewBox="0 0 600 280" role="img" aria-labelledby="title desc">
+<title id="title">Феникс — голос, который рядом</title><desc id="desc">Компактная обложка локального голосового ассистента для Windows.</desc>
+<rect width="600" height="280" rx="18" fill="#101b2b"/>
+<path d="M420 0V280M0 230H600" stroke="#23364e"/>
+<text x="32" y="126" font-family="Arial,sans-serif" font-size="76" font-weight="700" letter-spacing="-2" fill="#fff">Феникс</text>
+<text x="32" y="191" font-family="Arial,sans-serif" font-size="30" fill="#b8cbe2">Голос, который рядом.</text>
+<g stroke="#5e9fe8" stroke-width="9" stroke-linecap="round"><path d="M444 99V141M470 73V167M496 51V189M522 88V152M548 106V134"/></g>
+</svg>
+```
 
 ### `assets/readme/hero.svg`
 
-_Нетекстовый файл: .svg_
+```
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="400" viewBox="0 0 1200 400" role="img" aria-labelledby="title desc">
+<title id="title">Феникс — голос, который рядом</title>
+<desc id="desc">Локальный голосовой ассистент для Windows. Типографическая обложка с монограммой Ф и звуковым сигналом.</desc>
+<rect width="1200" height="400" rx="24" fill="#101b2b"/>
+<path d="M830 0V400M1010 0V400M0 328H1200" stroke="#23364e" stroke-width="1"/>
+<rect x="56" y="48" width="54" height="54" rx="14" fill="#2783de"/>
+<text x="83" y="87" text-anchor="middle" font-family="Arial,sans-serif" font-size="36" font-weight="700" fill="#fff">Ф</text>
+<text x="128" y="82" font-family="Arial,sans-serif" font-size="18" letter-spacing="3" fill="#a7bdd7">LOCAL VOICE ASSISTANT</text>
+<text x="52" y="208" font-family="Arial,sans-serif" font-size="92" font-weight="700" letter-spacing="-3" fill="#fff">Феникс</text>
+<text x="56" y="267" font-family="Arial,sans-serif" font-size="32" fill="#b8cbe2">Голос, который рядом.</text>
+<text x="56" y="371" font-family="Arial,sans-serif" font-size="19" fill="#9cb4d0">WINDOWS</text>
+<circle cx="179" cy="364" r="3" fill="#5e9fe8"/>
+<text x="200" y="371" font-family="Arial,sans-serif" font-size="19" fill="#9cb4d0">PYTHON</text>
+<circle cx="314" cy="364" r="3" fill="#5e9fe8"/>
+<text x="335" y="371" font-family="Arial,sans-serif" font-size="19" fill="#9cb4d0">OLLAMA</text>
+<g stroke="#5e9fe8" stroke-width="10" stroke-linecap="round">
+<path d="M848 176V224M876 148V252M904 181V219M932 119V281M960 150V250M988 166V234M1016 98V302M1044 144V256M1072 173V227M1100 159V241M1128 183V217"/>
+</g>
+</svg>
+```
 
 ### `jarvis-fenix.code-workspace`
 
@@ -38987,10 +40582,16 @@ pymorphy3>=2.0.3,<3
 
 ## 5. Документация (только оглавления)
 
-#### `tests/README.md` — 14 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `jarvis/assets/brand/README.md` — 1 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Фирменные ресурсы Феникса
+
+#### `tests/README.md` — 16 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Тесты Феникса
   - Карта
+  - Главная GUI
+    - Проверка GUI с конструктором команд
   - Граница импортов уточнений
   - Локальная гигиена Git
   - Автоматический аудиопрогон
@@ -39034,7 +40635,7 @@ pymorphy3>=2.0.3,<3
   - Аудиорегрессии
   - Перед коммитом
 
-#### `ARCHITECTURE.md` — 48 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `ARCHITECTURE.md` — 50 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - 🏗 Архитектура «Феникс»
   - 📑 Содержание
@@ -39054,6 +40655,8 @@ pymorphy3>=2.0.3,<3
   - ⚡ Реестр быстрых обработчиков
   - 👤 Универсальный профиль (`set_profile` / `get_profile`)
   - 🖼 GUI (Flet 1.0.3)
+    - Конструктор команд
+    - Главная: состояния, ввод и история
     - Режим запуска
     - Трей
     - Темы GUI
@@ -39074,15 +40677,17 @@ pymorphy3>=2.0.3,<3
   - 🏗 Инфраструктура
     - `.venv311`
     - Git
-    - `commit.bat`
-  - 📦 Сборка и установка
 
-#### `CHANGELOG.md` — 83 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 87 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
   - 📑 Содержание
   - 🚧 [Unreleased]
     - 📅 Сессия 15.10.2026
+      - SNAPSHOT: смешанные переносы строк Windows/Git
+      - GUI: птица и конструктор «Мои команды»
+      - GUI: графитово-медный Диалог
+      - GUI: обновление Главной
       - Новая главная страница и пользовательское руководство
       - Восстановление границы импортов clarification
       - Гигиена репозитория и локальная проверка коммита
@@ -39115,10 +40720,6 @@ pymorphy3>=2.0.3,<3
       - 🧭 Документация — план приведён к фактам
       - ⚖️ Vosk остаётся: замер вместо переписывания
     - 📅 Сессия 12.10.2026
-      - 🐛 Исправлено
-        - 🔊 VAD (Silero) — починен и сделан адаптивным
-        - ⏱ VAD тормозил ответ — Vosk не видел тишину
-        - 🖥 GUI — что не доходило до ядра
 
 #### `CI.md` — 16 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -39175,7 +40776,7 @@ pymorphy3>=2.0.3,<3
   - 🤝 Как задавать вопросы
   - 🎯 Философия
 
-#### `PLAN.md` — 17 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `PLAN.md` — 18 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - 📋 План развития «Феникс»
   - 🎯 Курс: сначала сам Феникс
@@ -39186,7 +40787,8 @@ pymorphy3>=2.0.3,<3
     - Реализовано в первом ограниченном наборе
     - Приёмка на Windows
   - 🎧 🚧 Аудиорегрессии — текущая приёмка
-  - 🖼 ⏭ GUI — следующий блок после аудиопрогона
+  - 🖼 🚧 GUI — первый экран реализован, требуется приёмка Windows
+    - Дополнение GUI: свой язык команд
   - Б. Контекст исправлений и расширение слотов — после GUI
   - В. ⏭ Управляемое самообучение приложения
   - Г. ⏭ Качество памяти и разговора
@@ -39246,7 +40848,7 @@ pymorphy3>=2.0.3,<3
   - Ограничения
   - Прослушивание
 
-#### `docs/USER_GUIDE.md` — 42 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `docs/USER_GUIDE.md` — 44 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Руководство пользователя · Феникс
   - Навигация
@@ -39283,12 +40885,12 @@ pymorphy3>=2.0.3,<3
   - 🗣 Команды
   - 💬 Уточнения команд
   - 🛠 Свои команды
+    - Конструктор в GUI
+    - Старый формат и паки
   - 📦 Сборка `.exe` и установщик
   - 🔄 Автозапуск
   - 🧰 Инструменты разработчика
-  - 🔁 CI
-  - 🗺 Что в планах
 
 ---
 
-_Итого по категориям — code: 170, data: 26, doc: 14, pack: 5. Режим `lean`._
+_Итого по категориям — code: 175, data: 44, doc: 15, pack: 5. Режим `lean`._

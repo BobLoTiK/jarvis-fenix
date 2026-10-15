@@ -351,7 +351,7 @@ def _do_get_layout(handler, intent, target, query):
 
 def _do_set_volume(handler, intent, target, query):
     try:
-        pct = int(intent.get("percent") or 50)
+        pct = int(intent.get("percent", 50))
     except (TypeError, ValueError):
         pct = 50
     prev = actions.get_volume()
@@ -368,7 +368,7 @@ def _do_get_volume(handler, intent, target, query):
 
 def _do_set_brightness(handler, intent, target, query):
     try:
-        pct = int(intent.get("percent") or 50)
+        pct = int(intent.get("percent", 50))
     except (TypeError, ValueError):
         pct = 50
     prev = actions.get_brightness()
@@ -684,6 +684,24 @@ def _do_get_profile(handler, intent, target, query):
     return "Не знаю, что прочитать."
 
 
+def _do_power(handler, intent, target, query):
+    # Typed builder actions: only fixed argv, no arbitrary shell text.
+    if not handler.config.get("danger_password"):
+        return "Для выключения и перезагрузки нужен пароль опасных действий."
+    action = intent.get("action")
+    from jarvis.command_builder import validate_step
+    seconds = validate_step(intent)["seconds"]
+    flag = "/s" if action == "shutdown_pc" else "/r"
+    ok = actions.run_power_action(flag, seconds)
+    return (f"{'Выключение' if flag == '/s' else 'Перезагрузка'} через {seconds} секунд. "
+            "Для отмены скажи «отмени выключение».") if ok else "Не удалось запланировать действие."
+
+
+def _do_cancel_shutdown(handler, intent, target, query):
+    return ("Выключение / перезагрузка отменены." if actions.run_power_action("/a")
+            else "Не удалось отменить выключение / перезагрузку.")
+
+
 def _do_answer(handler, intent, target, query):
     reply = intent.get("reply")
     return str(reply)[:600] if reply else None
@@ -865,9 +883,8 @@ def _do_close(handler, target: str) -> str:
 
 
 def _reload_packs(handler) -> None:
-    from jarvis.intents.fast.custom import load_packs_as_custom
-    handler.custom = (list(handler._config_custom_original)
-                      + load_packs_as_custom(handler.config))
+    from jarvis.intents.fast.custom import reload_custom
+    reload_custom(handler)
 
 
 # =================================================================
@@ -948,6 +965,9 @@ def _do_uia_menu(handler, intent, target, query):
 # =================================================================
 
 _DISPATCH = {
+    "shutdown_pc": _do_power,
+    "reboot_pc": _do_power,
+    "cancel_shutdown": _do_cancel_shutdown,
     "open_app":           _do_open_app,
     "close_app":          _do_close_app,
     "open_file":          _do_open_file,

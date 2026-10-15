@@ -161,6 +161,27 @@ def run_spec(spec) -> bool:
     return False
 
 
+
+def run_power_action(flag: str, seconds: int = 30) -> bool:
+    """Fixed Windows power argv; report success only on exit code zero."""
+    if flag not in ("/s", "/r", "/a"):
+        return False
+    if flag != "/a" and (isinstance(seconds, bool) or not isinstance(seconds, int) or not 10 <= seconds <= 600):
+        return False
+    argv = ["shutdown.exe", flag]
+    if flag != "/a":
+        argv += ["/t", str(seconds)]
+    try:
+        result = subprocess.run(argv, capture_output=True, timeout=5, check=False,
+                                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        if result.returncode != 0:
+            log.warning("Windows power command rejected (exit=%s)", result.returncode)
+        return result.returncode == 0
+    except (OSError, subprocess.TimeoutExpired):
+        log.warning("Windows power command failed or timed out")
+        return False
+
+
 def _schedule_activation(name: str, app_title: str | None = None) -> None:
     """Через 2 сек после запуска пытается активировать окно приложения."""
     import threading

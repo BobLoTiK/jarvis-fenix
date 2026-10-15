@@ -275,6 +275,8 @@ class Jarvis:
         if cmd is None:
             return
         if audio:
+            if self.gui is not None:
+                self.gui.set_state("recognizing")
             from jarvis.recognition import assess_pcm, transcripts_agree
             quality = assess_pcm(audio, self.config.get("sample_rate", 16000))
             if not quality.accepted:
@@ -284,6 +286,8 @@ class Jarvis:
             if self.whisper is not None and not sensitive:
                 refined = self._refine(audio, awaiting)
                 if refined is _REJECT:
+                    if self.gui is not None:
+                        self.gui.set_state("idle")
                     return  # Не подтвердилось обращение к ассистенту.
                 if refined is _UNCERTAIN:
                     self._request_repeat()
@@ -338,6 +342,8 @@ class Jarvis:
                 except Exception:
                     log.exception("Observer.observe (user) упал")
 
+            if self.gui is not None:
+                self.gui.set_state("thinking")
             reply = self.handler.handle(cmd)
 
             if self.gui is not None and not reply.is_stream:

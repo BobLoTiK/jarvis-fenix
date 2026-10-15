@@ -1,4 +1,4 @@
-"""Собирает снимок проекта в один SNAPSHOT.md.
+r"""Собирает снимок проекта в один SNAPSHOT.md.
 
 Задача: дать ЛЮБОЙ модели полное понимание проекта без доп. контекста,
 не тратя зря окно. Поэтому снимок — не «комок всех файлов», а слои:
@@ -92,7 +92,7 @@ EXCLUDE_EXT = {
 TEXT_EXT = {
     ".py", ".md", ".txt", ".json", ".bat", ".cmd", ".cfg", ".ini",
     ".yaml", ".yml", ".toml", ".html", ".css", ".js", ".ts",
-    ".ps1", ".sh", ".env", ".gitignore", ".iss",
+    ".ps1", ".sh", ".env", ".gitignore", ".iss", ".svg",
 }
 
 MAX_FILE_SIZE = 200 * 1024
@@ -496,6 +496,19 @@ def section_docs(files: list[Path], root: Path) -> list[str]:
 
 
 
+def snapshot_bytes(path: Path) -> bytes:
+    """Canonical text bytes for hashing/size, independent of Git checkout EOLs.
+
+    Keep binary/unknown formats byte-exact. Text contents are still sensitive
+    to real changes, whitespace, encoding and the presence of a final newline.
+    """
+    data = path.read_bytes()
+    if path.suffix.lower() in TEXT_EXT or not path.suffix:
+        if b"\0" not in data:
+            return data.replace(b"\r\n", b"\n")
+    return data
+
+
 def build_snapshot(mode: str, budget_kb: float | None) -> tuple[str, list[str]]:
     """Собирает весь текст снимка. Возвращает (текст, найденные секреты)."""
     files = collect_files(BASE)
@@ -509,8 +522,9 @@ def build_snapshot(mode: str, budget_kb: float | None) -> tuple[str, list[str]]:
         digest.update(p.relative_to(BASE).as_posix().encode())
         digest.update(b"\0")
         try:
-            digest.update(p.read_bytes())
-            total_bytes += p.stat().st_size
+            data = snapshot_bytes(p)
+            digest.update(data)
+            total_bytes += len(data)
         except OSError:
             pass
         total_lines += count_lines(p)

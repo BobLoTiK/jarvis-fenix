@@ -283,3 +283,40 @@ def test_windows_checkout_line_endings_with_lf_hook(repo):
     result = check(repo)
     assert result.returncode == 0, result.stdout + result.stderr
     assert b"\r" not in (repo / ".githooks/pre-commit").read_bytes()
+
+
+def test_mixed_svg_lf_and_windows_crlf_checkout(repo):
+    """New LF assets stay LF locally; checkout-index converts them to CRLF."""
+    git(repo, "config", "core.autocrlf", "true")
+    for path in repo.rglob("*"):
+        if path.is_file() and ".git" not in path.parts and path.name != "SNAPSHOT.md":
+            data = path.read_bytes().replace(b"\r\n", b"\n")
+            if path != repo / ".githooks/pre-commit":
+                data = data.replace(b"\n", b"\r\n")
+            path.write_bytes(data)
+    asset = repo / "jarvis/assets/brand/dialog-dark.svg"
+    asset.parent.mkdir(parents=True)
+    asset.write_bytes(b'<svg xmlns="http://www.w3.org/2000/svg">\n</svg>\n')
+    snapshot(repo)
+    git(repo, "add", "-A")
+    before = git(repo, "ls-files", "--stage", "-z")
+    result = check(repo)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert asset.read_bytes().endswith(b"</svg>\n")
+    assert git(repo, "ls-files", "--stage", "-z") == before
+
+
+def test_snapshot_text_and_size_are_eol_independent(repo):
+    asset = repo / "picture.svg"
+    asset.write_bytes(b'<svg>\n<!-- text -->\n</svg>\n')
+    snapshot(repo)
+    before = (repo / "SNAPSHOT.md").read_text(encoding="utf-8")
+    for path in repo.rglob("*"):
+        if path.is_file() and ".git" not in path.parts and path.name != "SNAPSHOT.md":
+            data = path.read_bytes().replace(b"\r\n", b"\n")
+            path.write_bytes(data.replace(b"\n", b"\r\n"))
+    snapshot(repo)
+    assert (repo / "SNAPSHOT.md").read_text(encoding="utf-8") == before
+    asset.write_bytes(b'<svg>\n<!-- actual change -->\n</svg>\n')
+    snapshot(repo)
+    assert (repo / "SNAPSHOT.md").read_text(encoding="utf-8") != before

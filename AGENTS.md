@@ -29,7 +29,8 @@ TTS: Silero/Piper/WinRT/SAPI. Python 3.13/3.14 не брать для Windows/Vo
 | Модуль | Роль |
 |---|---|
 | `jarvis/main.py` | голосовой цикл, ASR gate, cmd_lock, _say_lock, barge-in |
-| `jarvis/gui.py` | Flet, вкладки, очередь событий |
+| `jarvis/gui.py`, `gui_commands.py` | Flet, вкладки, конструктор, очередь событий |
+| `jarvis/command_builder.py` | Typed custom_commands, валидация/CRUD без исполнения |
 | `jarvis/intents/` | handler, pipeline, fast-правила, исполнение |
 | `jarvis/language/` | числовые слоты команд, чтение чисел/римских цифр, морфология |
 | `jarvis/recognition.py`, `stt.py`, `vad.py` | уверенность ASR, Vosk/Whisper, VAD |
@@ -104,7 +105,7 @@ File-mode Listener и микрофон используют один `_consume_a
 ASR ожидаемым текстом сценария, не форсировать FinalResult ради зелёного теста.
 Hybrid/VAD fallback или отсутствующая модель = BLOCKED/2, а не pass/skip.
 Не расширять ограниченный sandbox до выполнения реальных действий. Не включать
-WAV/транскрипты/модели в ZIP/Git/snapshot. GUI — следующий отдельный блок, ещё не сделан.
+WAV/транскрипты/модели в ZIP/Git/snapshot. GUI: новый Диалог и «Мои команды» реализованы; native Windows-приёмка остаётся.
 
 
 ## Перед коммитом
