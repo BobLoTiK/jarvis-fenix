@@ -66,7 +66,6 @@
   "llm_timeout": 45.0,
   "app_paths": {},
   "custom_commands": [],
-
   "celebration_enabled": false,
   "celebration_triggers": [],
   "celebration_short_text": "Поздравляю! С днём рождения!",
@@ -74,5 +73,13 @@
   "celebration_sound_1_plays": 2,
   "celebration_sound_2_plays": 3,
   "celebration_duration_1": 6.0,
-  "celebration_duration_2": 10.0
+  "celebration_duration_2": 10.0,
+  "nonverbal_enabled": false,
+  "nonverbal_cooldown_sec": 45.0,
+  "nonverbal_gain_db": -15.0,
+  "nonverbal_probability": 0.2,
+  "stt_min_word_confidence": 0.65,
+  "stt_min_avg_logprob": -1.0,
+  "stt_max_no_speech_prob": 0.6,
+  "stt_max_compression_ratio": 2.4
 }

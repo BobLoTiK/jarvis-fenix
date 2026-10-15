@@ -5,6 +5,23 @@
 
 ---
 
+## Актуальные контракты — 15.10.2026
+
+Сначала читать нужные разделы `PROJECT.md` и `AGENTS.md`; история ниже не заменяет код.
+`language.analyze_command()` обрабатывает числовые слоты до удаления пунктуации,
+`prepare_text()` готовит числа/римские цифры/единицы для TTS. Num2words/pymorphy3
+уже согласованы; новые зависимости без отдельного согласования не добавлять.
+Сомнительную ASR-расшифровку не выполнять и не сохранять, попросить повторить.
+При `action=none` — уточнение, не второй заход в чат за догадкой.
+
+Личные сведения — только по текущему запросу (`memory_context.py`). Отказ RAG
+не возвращает все факты в system prompt. Observer не учится на ответах ассистента.
+Non-verbal opt-in: `Reply.allow_nonverbal`, политика в Speaker, один PCM-поток,
+общий stop-token; Silero/Piper/WinRT, не SAPI. Четыре CC0-сэмпла, 45 с/−15 дБ/20%
+по умолчанию. Кашель отложен; тембр записей может отличаться от голоса.
+Текущий шаг — ручная приёмка реакций на Windows, затем облако по PLAN.
+
+
 ## 🎯 Контекст
 
 **«Феникс»** — локальный голосовой ассистент для Windows.
@@ -86,7 +103,7 @@
 
 - **`Config.subscribe`** для реакции на изменения.
 - **Разделение ответственности** — один модуль = одна задача.
-- **Тесты** — `pytest` + `tests/test_intents.py` + `tests/stress_intents.py` (100 ситуаций).
+- **Тесты** — `pytest` + `tests/test_intents.py` + `tests/stress_intents.py` (102 ситуации).
 - **Логи** — `jarvis.log`, `actions.log`, `errors.log`.
 - **Реестр `fast/__init__.py`** — новые быстрые правила туда.
 - **Пакеты вместо монолитов** — `intents/` — пример.
@@ -242,14 +259,14 @@ jarvis/
 
 ~~~~
 Микрофон → Vosk (wake) → Whisper → Jarvis._process
-   → IntentHandler.handle(cmd)  ← normalize(cmd)
+   → ASR-quality gate → IntentHandler.handle(raw) → language → normalize
    → mood.apply_from_text(cmd)
    → Pipeline (11 стадий):
        cancel → onboarding → correction → password
        → memory → pending → clipboard → modes
        → compound → fast (реестр) → llm
    → Reply (text | stream)
-   → Jarvis.say(reply)  ← cmd_lock
+   → Jarvis.say(reply)  ← _say_lock; cmd_lock защищает обработку
 ~~~~
 
 ### Mood
@@ -357,10 +374,10 @@ Jarvis._process → mood.apply_from_text(cmd)
 - №147–148 — PyInstaller (20–30 ч).
 - №121 — GitHub Actions ✅ (авторелиз по тегу, `release.yml`).
 - №123 — тест на виртуалке.
-- Этап 1.13.6 — Non-verbal (смех, вздохи).
+- Этап 1.13.6 — ручная приёмка четырёх Non-verbal реакций (код/тесты готовы).
 - Этап 2 — Облако.
-- Этап 3 — Управление приложениями.
-- Этап 4 — Vector memory.
+- Этап 3 — Управление приложениями ✅ (проверки Windows остаются отдельными).
+- Этап 4 — Vector memory ✅; актуальная политика отбирает факты по запросу.
 - Этап 5 — MCP заготовки.
 - Этап 6 — Telegram.
 - Этап 7 — Визуализация + Спрайт.
@@ -371,7 +388,7 @@ Jarvis._process → mood.apply_from_text(cmd)
 ## 🎯 ПОРЯДОК РАБОТЫ
 
 1. Этап 1 — Баги — ✅
-2. Этап 1.5 — Документация — 🚧
+2. Этап 1.5 — Документация — ✅ актуализирована 15.10.2026; поддерживать вместе с кодом
 3. Этап 1.6 — UI/UX — ✅ (трей ✅ — daemon-поток, 12.10.2026)
 4. Этап 1.7 — Красивый установщик — ✅
 5. Этап 1.8 — Знакомство + Персона + Observer — ✅
@@ -383,10 +400,10 @@ Jarvis._process → mood.apply_from_text(cmd)
 11. Этап 1.13 — Tone (adaptive) — ✅
 12. Этап 1.13.5 — Инсталлятор (Inno Setup) + сборка одной командой — ✅ (13.10.2026)
 13. CI-авторелиз по тегу (`release.yml`) — ✅ (13.10.2026)
-14. Этап 1.13.6 — Non-verbal — ❌ (в планах, будущее)
+14. Этап 1.13.6 — Non-verbal — 🚧 код/тесты готовы, ручная приёмка
 15. Этап 2 — Облако — ❌
-16. Этап 3 — Управление приложениями — ❌
-17. Этап 4 — Vector memory — ❌
+16. Этап 3 — Управление приложениями — ✅
+17. Этап 4 — Vector memory — ✅ (контекстный отбор исправлен)
 18. Этап 5 — MCP (заготовки) — ❌
 19. Этап 6 — Telegram + веб — ❌
 20. Этап 7 — Визуализация + Спрайт — ❌
@@ -402,9 +419,9 @@ Jarvis._process → mood.apply_from_text(cmd)
 1. `Config` — источник истины.
 2. Не плоди `_atomic_write`. `config_manager.save()`.
 3. Не плоди глобальное состояние.
-4. Нормализация — задача LLM.
+4. Семантические числовые слоты — `language`; свободные сущности — отдельно от `normalize()`.
 5. `check_all.bat` — после правок.
-6. `normalize(cmd)` в `handle()`.
+6. `language.analyze_command(raw)` до `normalize()`; пароль до обоих.
 7. Per-call stop-token в `tts.py`.
 8. `PALETTES` в `gui.py`.
 9. `ft.Button` вместо `ElevatedButton`.
@@ -424,7 +441,7 @@ Jarvis._process → mood.apply_from_text(cmd)
 22. Атомарная запись везде: `mkstemp` + `os.replace`.
 23. Zip Slip защита при распаковке.
 24. **Онбординг — через LLM.** `stages/onboarding.py` + `brain.onboarding_chat()`.
-25. **Observer — фоновое извлечение фактов.** Не блокирует.
+25. **Observer — opt-in извлечение только утверждений пользователя.** Ответы ассистента не источник фактов.
 26. **Персона — в system prompt.** `persona.build_prompt_block()`.
 27. **Mood — в system prompt и TTS.** `mood.build_prompt_block()` +
     `mood.effective_rate()`.

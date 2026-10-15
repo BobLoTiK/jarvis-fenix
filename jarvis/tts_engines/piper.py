@@ -5,6 +5,8 @@
 
 import io
 import logging
+
+from jarvis.tts_engines.base import BaseEngine
 import re
 import wave
 
@@ -15,7 +17,7 @@ PIPER_REPO = "rhasspy/piper-voices"
 _SENTENCE_END = re.compile(r"[.!?…]+\s+")
 
 
-class PiperEngine:
+class PiperEngine(BaseEngine):
     name = "piper"
 
     voices = {
@@ -178,7 +180,6 @@ class PiperEngine:
 
     def _play(self, sentence: str, token):
         from jarvis.text_utils import prepare_text
-        import numpy as np
 
         text = prepare_text(sentence)
         if not text.strip().strip("\u200b\u200c\u200d\ufeff\u00ad"):
@@ -186,25 +187,4 @@ class PiperEngine:
         wav = self.synthesize(text)
         if not wav or token.is_set():
             return
-        try:
-            import sounddevice as sd
-            with wave.open(io.BytesIO(wav)) as wf:
-                rate_hz = wf.getframerate()
-                channels = wf.getnchannels()
-                width = wf.getsampwidth()
-                frames = wf.readframes(wf.getnframes())
-
-            dtype = {1: "int8", 2: "int16", 4: "int32"}.get(width, "int16")
-            audio = np.frombuffer(frames, dtype=dtype)
-            if channels > 1:
-                audio = audio.reshape(-1, channels)
-
-            chunk = int(rate_hz * 0.05)
-            with sd.OutputStream(samplerate=rate_hz, channels=channels,
-                                 dtype=dtype) as stream:
-                for i in range(0, len(audio), chunk):
-                    if token.is_set():
-                        break
-                    stream.write(audio[i:i + chunk])
-        except Exception:
-            log.exception("Piper: ошибка воспроизведения")
+        self._output_wav(wav, token)

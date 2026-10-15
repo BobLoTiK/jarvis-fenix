@@ -30,6 +30,8 @@ log = logging.getLogger("jarvis.tts")
 
 class Speaker:
     def __init__(self, config, lazy: bool = False):
+        from jarvis.nonverbal import Nonverbal
+        self._nonverbal = Nonverbal(config if hasattr(config, "get") else {})
         self._config = config
         cfg = config if hasattr(config, "get") else {}
 
@@ -113,6 +115,8 @@ class Speaker:
         if engine is None:
             log.error("TTS: ни один движок не доступен")
             return
+        if hasattr(engine, "set_wav_player"):
+            engine.set_wav_player(self._play_wav)
         self._engine = engine
         self._engine_name = engine.name
         log.info("TTS: движок %s, голос %s, скорость %.2f",
@@ -162,6 +166,8 @@ class Speaker:
         if engine is None:
             log.warning("TTS: не удалось пересоздать движок %s", self._backend)
             return False
+        if hasattr(engine, "set_wav_player"):
+            engine.set_wav_player(self._play_wav)
         with self._init_lock:
             self._engine = engine
             self._engine_name = engine.name
@@ -198,9 +204,12 @@ class Speaker:
     # Stop-token
     # ------------------------------------------------------------------
 
-    def _new_token(self) -> threading.Event:
+    def _new_token(self, allow_nonverbal=False) -> threading.Event:
         with self._token_lock:
             self._current_token = threading.Event()
+            policy = getattr(self, "_nonverbal", None)
+            if policy is not None:
+                policy.begin(self._current_token, allow_nonverbal)
             return self._current_token
 
     def _current_stop(self) -> threading.Event:
@@ -211,14 +220,14 @@ class Speaker:
     # Публичный API
     # ------------------------------------------------------------------
 
-    def speak(self, text: str) -> None:
+    def speak(self, text: str, *, allow_nonverbal=False) -> None:
         """Синхронная озвучка (для тестов и скриптов)."""
         if not text:
             return
         text = prepare_text(text)
         if not self._ensure_engine():
             return
-        token = self._new_token()
+        token = self._new_token(allow_nonverbal)
         try:
             if self._engine_name == "sapi":
                 # SAPI играет сам, через стриминг с одним куском.
@@ -234,7 +243,7 @@ class Speaker:
         except Exception:
             log.exception("TTS: ошибка в speak()")
 
-    def play_async(self, text: str) -> None:
+    def play_async(self, text: str, *, allow_nonverbal=False) -> None:
         """Асинхронная озвучка одного текста."""
         if not text:
             return
@@ -251,7 +260,7 @@ class Speaker:
             )
             return
 
-        token = self._new_token()
+        token = self._new_token(allow_nonverbal)
         with self._play_lock:
             self._playing = True
 
@@ -277,7 +286,7 @@ class Speaker:
         self._play_thread.start()
 
     def speak_stream(self, text_iter: Iterator[str],
-                     timeout: float = 30.0) -> str:
+                     timeout: float = 30.0, *, allow_nonverbal=False) -> str:
         """Стриминг: озвучивает по предложениям.
 
         Возвращает полный озвученный текст.
@@ -289,7 +298,7 @@ class Speaker:
         self.stop()
         self.wait_end(timeout=1.0)
 
-        token = self._new_token()
+        token = self._new_token(allow_nonverbal)
         with self._play_lock:
             self._playing = True
             # Публикуем поток: иначе is_playing()/wait_end() во время
@@ -350,44 +359,16 @@ class Speaker:
     # ------------------------------------------------------------------
 
     def _play_wav(self, wav_bytes: bytes, token: threading.Event) -> None:
-        """Играет WAV-байты через sounddevice с проверкой токена."""
-        import io
-        import wave
-
-        import numpy as np
-
-        try:
-            import sounddevice as sd
-        except ImportError:
-            log.warning("TTS: sounddevice недоступен, играю через winsound")
-            import winsound
-            winsound.PlaySound(wav_bytes, winsound.SND_MEMORY)
-            return
-
-        with wave.open(io.BytesIO(wav_bytes)) as wf:
-            rate = wf.getframerate()
-            channels = wf.getnchannels()
-            width = wf.getsampwidth()
-            frames = wf.readframes(wf.getnframes())
-
-        dtype = {1: "int8", 2: "int16", 4: "int32"}.get(width, "int16")
-        audio = np.frombuffer(frames, dtype=dtype)
-        if channels > 1:
-            audio = audio.reshape(-1, channels)
-
-        chunk = int(rate * 0.05)
-        try:
-            with sd.OutputStream(samplerate=rate, channels=channels,
-                                 dtype=dtype) as stream:
-                for i in range(0, len(audio), chunk):
-                    if token.is_set():
-                        log.info("TTS: воспроизведение прервано")
-                        break
-                    stream.write(audio[i:i + chunk])
-        except Exception:
-            log.exception("TTS: sounddevice упал, fallback winsound")
-            import winsound
-            winsound.PlaySound(wav_bytes, winsound.SND_MEMORY)
+        """Единый микшер для прямой и потоковой PCM-озвучки."""
+        from jarvis.audio_output import play_wav
+        policy = getattr(self, "_nonverbal", None)
+        reaction = None
+        if policy is not None:
+            try:
+                reaction = policy.take(token)
+            except Exception:
+                log.exception("Non-verbal: ошибка необязательной реакции; продолжаю речь")
+        play_wav(wav_bytes, token, reaction)
 
 
 # Список доступных движков — для GUI/CLI

@@ -854,8 +854,18 @@ class FenixGUI:
             log.exception("_update_mic_level упал")
 
     def _build_audio_tab(self) -> ft.Control:
-        """Вкладка «Аудио» — VAD + Prosody."""
-        from jarvis import persona  # для общего стиля label
+        """Вкладка «Аудио» — Non-verbal, VAD и Prosody."""
+
+        nonverbal_enabled = ft.Checkbox(
+            label="Звуковые реакции (смех, вздохи, хм, зевок)",
+            value=bool(self.config.get("nonverbal_enabled", False)),
+            on_change=self._on_nonverbal_enabled,
+        )
+        nonverbal_hint = ft.Text(
+            "Только в диалоге, не чаще раза в 45 секунд по умолчанию. "
+            "Тише речи на 15 дБ. Silero, Piper и WinRT; SAPI — без реакций.",
+            size=11, color=TEXT_DIM,
+        )
 
         # === Prosody ===
         prosody_enabled = ft.Checkbox(
@@ -990,6 +1000,10 @@ class FenixGUI:
                     ft.Text("Аудио", size=26, weight=ft.FontWeight.BOLD, color=TEXT),
                     ft.Container(height=20),
 
+                    _section("Звуковые реакции"),
+                    nonverbal_enabled,
+                    nonverbal_hint,
+                    ft.Container(height=25),
                     _section("Эмоции из голоса (Prosody)"),
                     prosody_enabled,
                     prosody_hint,
@@ -1201,6 +1215,9 @@ class FenixGUI:
             self._page.update()
         except Exception:
             log.exception("Не удалось показать SnackBar")
+
+    def _on_nonverbal_enabled(self, e) -> None:
+        self.config.set("nonverbal_enabled", bool(e.control.value))
 
     def _on_prosody_enabled(self, e) -> None:
         value = bool(e.control.value)

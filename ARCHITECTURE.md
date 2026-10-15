@@ -134,6 +134,11 @@ jarvis/
 ├── stt.py            — Vosk (wake) + Whisper, HF_HOME временно
 ├── vad.py            — Silero VAD ONNX + SpeechHangover
 ├── tts.py            — фасад над tts_engines, per-call token
+├── nonverbal.py      — политика звуковых реакций
+├── audio_output.py   — общий PCM-плеер/микшер
+├── recognition.py    — ASR evidence и сверка критичных деталей
+├── language/         — числа, морфология, единицы, время
+├── memory_context.py — отбор личного контекста по запросу
 ├── tts_engines/      — BaseEngine + Silero / Piper / WinRT / SAPI
 ├── modes.py          — commands / llm / combo
 ├── voices.py         — смена голоса активного движка
@@ -172,13 +177,13 @@ jarvis/
 ~~~~
 Микрофон
    ↓
-stt.Listener (Vosk) — ловит wake-слово
+stt.Listener (Vosk) — текст + word confidence
    ↓
 stt.WhisperTranscriber — уточняет (HF_HOME временно → ASCII)
    ↓
-main.Jarvis._process → извлекает команду (без wake)
+main.Jarvis._process → обращение/окно диалога + PCM/ASR gate; сомнение → повтор
    ↓
-intents.IntentHandler.handle(cmd)   ← normalize(cmd)
+intents.IntentHandler.handle(raw) → password ветка или language.analyze_command → normalize
    ↓
 Pipeline (11 стадий, порядок важен):
    ├── cancel       — «стой», «хватит»
@@ -193,15 +198,16 @@ Pipeline (11 стадий, порядок важен):
    ├── fast         — реестр быстрых правил
    └── llm          — brain.parse + chat_stream
    ↓
-main.Jarvis.say(reply) ← cmd_lock
+main.Jarvis.say(reply) ← _say_lock (обработку команды защищает cmd_lock)
    ├── если text → speaker.play_async()
    └── если stream → speaker.speak_stream() + tee → gui.add_stream_chunk()
    ↓
 tts.Speaker → tts_engines: Silero / Piper / WinRT / SAPI
 ~~~~
 
-**Плюс:** в `handle` **до** pipeline идёт `mood.apply_from_text(cmd)` —
-детекция эмоции из текста.
+**Порядок:** `mood.apply_from_text(cmd)` вызывается в handler после разбора
+результата. Просодия применяется в голосовом `_process` до handler.
+Сомнительная расшифровка не доходит до этих шагов.
 
 ---
 
@@ -247,7 +253,9 @@ stages/onboarding.py
 
 ## 👁 Observer (фоновое извлечение фактов)
 
-> **Не спрашивает — слушает.** Раз в 30 сек отправляет **историю диалога** в LLM.
+> **Не спрашивает — слушает.** При согласии пользователя анализирует только
+> его сообщения. Ответы Феникса исключаются перед запросом в LLM; вопросы,
+> цитаты и предположения не должны становиться фактами.
 
 ~~~~
 Jarvis._process → observer.observe("user", cmd)
@@ -257,7 +265,7 @@ DialogObserver._loop (раз в 5 сек)
    ├── if len(history) < batch_size (6) → ждём
    ├── if now - last_extract < min_interval (30) → ждём
    ├── history = list(self._history)
-   ├── LLM: EXTRACT_PROMPT
+   ├── только role=user → LLM: EXTRACT_PROMPT
    │   → {"name": ..., "city": ..., "age": ..., "style": ..., "facts": {...}}
    └── _apply(data)
        ├── profile.set("name", ...) если пусто
@@ -290,22 +298,23 @@ vectormem._worker_loop (daemon «vectormem-index»)
    ↓
 диалог: brain.chat_stream(cmd)
    └── _system_with_context(CHAT_SYSTEM, cmd)
-       ├── vectormem.build_prompt_block(cmd) → top-K фактов по косинусу
-       └── learning.build_context(include_facts=not rag) — без дублей
+       ├── memory_context.select_memory(cmd) → допустимые профиль/ключи фактов
+       ├── vectormem.build_prompt_block(cmd, allowed_keys=...) → разрешённые top-K
+       └── learning.build_context(query=cmd, include_facts=not rag) — без дублей
 ~~~~
 
 **Правило трёх уровней:** эмбеддинги живы → top-K по косинусу (L1);
 эмбеддингов нет → лексический поиск по словам (L2); ничего выше порога —
-блок пустой (L3), и brain берёт **все** факты, как до фичи. Гарантия:
-без Ollama и без модели поведение не хуже прежнего.
+блок пустой (L3), и brain использует только детерминированный контекст
+текущего запроса. Без запроса или релевантности личных данных в system prompt нет.
 
 **Отбор — только при явном лидере.** Замер на живых nomic-embed-text
 (14.10.2026, 5 фактов): релевантное совпадение 0.66–0.74, случайный факт
 0.58–0.63 — шкалы **перекрываются**, одного порога мало. Поэтому блок
 добавляется, только если лидер выше `min_score` (0.6) и отрывается от
 второго места на `margin` (0.04); одинокому хиту планка выше (0.64).
-Нет явного лидера — блок пуст, brain берёт все факты. Фича физически
-не может сделать промпт хуже, чем он был без неё.
+Нет явного лидера — блок пуст, brain остаётся в ограниченном по запросу
+контексте. Ошибка/отключение RAG и малое число фактов не возвращают полный профиль.
 
 **Ключевое:** индексация — только в фоне, голосовой цикл её не ждёт
 (горячий таймаут 2.5 с, фоновый 60 с: первый вызов грузит модель ~20 с).
@@ -324,6 +333,37 @@ vectormem._worker_loop (daemon «vectormem-index»)
 `memory_rag_lexical_fallback: true`.
 
 ---
+
+## Язык, ASR quality gate и PCM-реакции
+
+`jarvis/language/`: `Analysis(original, command, numbers, issue)` сохраняет исходный
+текст, разбирает только известные числовые слоты и сообщает неоднозначность.
+`text_utils.prepare_text()` применяет общую речь/морфологию для прямого и streaming TTS.
+`recognition.py` отделяет качество сигнала от уверенности текста; метрики не содержат
+саму расшифровку. Whisper не получает список ожидаемых команд/города в initial_prompt.
+Проверяются все непустые сегменты; сомнительный фрагмент нельзя просто выкинуть
+(он мог содержать число или «не»). Отказ — до user GUI-message/Observer/handler.
+
+`Reply.allow_nonverbal` — явное разрешение диалогового ответа, default false.
+Speaker создаёт per-call token и регистрирует его в своей политике Nonverbal.
+`BaseEngine.set_wav_player(Speaker._play_wav)` направляет прямую и streaming-озвучку
+Silero/Piper/WinRT в один `audio_output.play_wav`. Самостоятельно созданный движок
+пользуется тем же PCM-плеером без реакции.
+
+`Nonverbal.take(token)` атомарно делает максимум одну попытку на ответ: opt-in,
+вероятность, монотонный cooldown, mood → доступный CC0-сэмпл. Настройки читаются
+на лету. Слабые ссылки на токены не копят старые диалоги.
+Микшер ресэмплирует mono-сэмпл под TTS, копирует его в каналы речи, ставит −15 дБ
+относительно RMS активной речи и ограничивает пик. При короткой речи хвост сэмпла
+доигрывается тем же потоком; barge-in обрывает оба одним token.
+Отдельного плеера/потока реакций и разбора LLM-тегов нет.
+
+SAPI играет нативно, реакция пропускается без нарушения озвучки. Кашель не
+автоматизирован. Плохой/пропавший сэмпл не блокирует речь. Windows-fallback на
+winsound применяется до вывода первого PCM-блока, не переигрывает частично
+прозвучавший ответ; временный WAV удаляется после остановки.
+Дефолты/границы и включение — в README/PROJECT, происхождение — в assets/nonverbal.
+
 
 ## 🎭 Персона
 
@@ -829,8 +869,8 @@ actions.spec_from_string(s)
 
 | Файл | Что тестирует |
 |---|---|
-| `tests/test_intents.py` | 32 сценария без LLM/сети (всего 39) |
-| `tests/stress_intents.py` | Стресс-тест: 100 ситуаций (интенты + мусор + враждебный ввод) |
+| `tests/test_intents.py` | 34 сценария без LLM/сети (всего 41) |
+| `tests/stress_intents.py` | Стресс-тест: 102 ситуации (интенты + мусор + враждебный ввод) |
 | `tests/test_config_manager.py` | параллельная запись |
 | `tests/test_weather.py` | погода/курс с моками |
 | `tests/test_caps.py` | структура `system_caps.json` |
@@ -838,11 +878,16 @@ actions.spec_from_string(s)
 | `tests/test_uia.py` | UIA: логика обёртки с моками, сопоставление имён, закрытие вкладки, единый список браузеров, «нет библиотеки» (49 тестов) |
 | `tests/test_uia_fast.py` | UIA-команды: отказ без библиотеки, Ctrl+W-фолбэк, формы записи фраз (17 тестов) |
 
-Полный набор — `tests/` (**317 тестов**); `tests/manual/` — ручные прогоны. Интент-скрипт — `tests/test_intents.py` (**32** без LLM/сети, всего **39**); стресс-тест — `tests/stress_intents.py` (**100** ситуаций; ситуации `uia_*` подстраиваются под окружение — в CI нет `uiautomation`, там они проверяют понятный отказ).
+Полный набор — `tests/`; фактический результат зависит от платформы и зависимостей.
+`tests/test_nonverbal.py` проверяет политику, PCM, cooldown, остановку, eligibility,
+источники и установщик без реального звука. Новые языковые/ASR/память-регрессии —
+`test_numeric_language.py`, `test_recognition_quality.py`, `test_memory_scope.py`,
+`test_brain_rag.py`, `test_audit_regressions.py`.
 
-**CI:** `.github/workflows/test.yml` — `check_syntax.py` + `pytest tests/` + `tests/test_intents.py` + `tests/stress_intents.py`.
-
-**`requirements-ci.txt`** — лёгкие зависимости, без звука и Windows-специфики.
+**CI:** `check_syntax.py` → `snapshot.py --check` → pytest → 41 интент-сценарий
+(34 без LLM/сети) → 102 стресс-сценария. `requirements-ci.txt` содержит Flet,
+numpy, num2words и pymorphy3, без весов ASR/TTS и Windows-аудиозависимостей.
+Ручные проверки — в `tests/manual/`; актуальные результаты/ограничения в tests/README.
 
 ---
 

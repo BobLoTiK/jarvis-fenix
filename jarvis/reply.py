@@ -15,6 +15,7 @@ from typing import Iterator, Optional
 class Reply:
     text: Optional[str] = None
     stream: Optional[Iterator[str]] = None
+    allow_nonverbal: bool = False
 
     def __post_init__(self) -> None:
         if (self.text is None) == (self.stream is None):

@@ -108,9 +108,9 @@ class Jarvis:
         barge_happened = False
         try:
             if reply.is_stream:
-                self._say_stream(reply.stream)
+                self._say_stream(reply.stream, allow_nonverbal=reply.allow_nonverbal)
             else:
-                self._say_text(reply.text)
+                self._say_text(reply.text, allow_nonverbal=reply.allow_nonverbal)
             barge_happened = (
                 self.barge_enabled
                 and self.listener is not None
@@ -127,7 +127,7 @@ class Jarvis:
                 self.gui.set_state("idle")
         return barge_happened
 
-    def _say_text(self, text: str) -> None:
+    def _say_text(self, text: str, *, allow_nonverbal=False) -> None:
         # Постфильтр «красной черты»: промпт в brain.py её только просит.
         ok, reason = safety.check_response(text)
         if not ok:
@@ -136,7 +136,7 @@ class Jarvis:
                 reason,
             )
             text = safety.SAFE_REPLY
-        self.speaker.play_async(text)
+        self.speaker.play_async(text, allow_nonverbal=allow_nonverbal and ok)
         while self.speaker.is_playing():
             if self.barge_enabled and self.listener is not None and self.listener.barge_flag:
                 log.info("Barge-in сработал — прерываю TTS")
@@ -145,7 +145,7 @@ class Jarvis:
             time.sleep(0.05)
         self.speaker.wait_end(timeout=30.0)
 
-    def _say_stream(self, gen) -> None:
+    def _say_stream(self, gen, *, allow_nonverbal=False) -> None:
         """Озвучивает стрим и показывает чанки в GUI.
 
         №73: end_stream вызывается ВСЕГДА (try/finally) — иначе при
@@ -170,7 +170,8 @@ class Jarvis:
             try:
                 # Постфильтр: начало стрима придерживается до проверки.
                 self.speaker.speak_stream(
-                    _tee(safety.guard_stream(gen, guard))
+                    _tee(safety.guard_stream(gen, guard)),
+                    allow_nonverbal=allow_nonverbal,
                 )
             except Exception:
                 log.exception("Ошибка в speak_stream")

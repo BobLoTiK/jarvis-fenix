@@ -203,10 +203,10 @@ class IntentHandler:
             memory.append(assistant_msg)
             actions_log.info("Ответ: %r", result[:120])
             self._last_reply = result
-            return Reply(text=result)
+            return Reply(text=result, allow_nonverbal=self.last_was_chat)
 
         # result — генератор (chat_stream)
-        return Reply(stream=result)
+        return Reply(stream=result, allow_nonverbal=self.last_was_chat)
 
     def finalize_stream(self, full_text: str) -> None:
         if not full_text:

@@ -1,109 +1,81 @@
-# AGENTS.md — шпаргалка для AI-агентов
+# AGENTS.md — навигация для помощника по «Феникс»
 
-> **Начинай с ЭТОГО файла.** `README.md` (967 стр), `PLAN.md` (1005),
-> `ARCHITECTURE.md` (919), `CHANGELOG.md` (916), `PROJECT.md` (219) и особенно
-> `SNAPSHOT.md` (≈1 МБ, ≈28 тыс. стр) — **не читать целиком**: всё прочитанное висит
-> в контексте и переотправляется на каждом следующем шаге.
-> Нужен факт — искать `grep`/`search_codebase`, затем читать 20–40 строк вокруг.
-> Источник правды по инвариантам и правилам кода — `PROJECT.md` (по разделам, не целиком).
+Актуализировано 15.10.2026. Сначала нужный раздел `PROJECT.md`, затем поиск
+по файлам и чтение небольшого диапазона. Не загружать целиком `SNAPSHOT.md`:
+это генерируемый контекст, а не место правки кода. Историю не выдавать за текущий статус.
 
-## Проект
+## Среда и запуск
 
-Феникс — локальный голосовой ассистент для Windows, форк `jsys12/jarvis`.
-GUI — Flet, STT — Vosk/Whisper, TTS — несколько движков, LLM — Ollama (локально),
-семантика/интенты — собственный пакет `jarvis/intents/`.
-
-- Python **3.11.9**, окружение — **`.venv311`** (только оно).
-- Корень проекта: `c:\jarvis`, пакет — `jarvis/` (40 модулей + `intents/`, `sounds/`, `tts_engines/`).
-- `jarvis/intents/` — 39 модулей: `handler.py` (IntentHandler), `execute.py`
-  (исполнитель команд), `stages/`, `fast/` (быстрые обработчики).
-
-## Команды (PowerShell, из `c:\jarvis`)
+Windows, Python 3.11.9, `.venv311`, Flet 1.0.x, Vosk + Whisper, Ollama.
+TTS: Silero/Piper/WinRT/SAPI. Python 3.13/3.14 не брать для Windows/Vosk-runtime.
 
 ```powershell
-.\.venv311\Scripts\python.exe check_all.py            # 4 шага + компактный итог (лучший вариант)
-.\.venv311\Scripts\python.exe -m pytest tests/ -q     # юнит-тесты: 430
-.\.venv311\Scripts\python.exe tests/test_intents.py   # интент-тесты: 41 кейс (7 — только с --llm/--network)
-.\.venv311\Scripts\python.exe tests/stress_intents.py # стресс: 102 ситуаций
-.\.venv311\Scripts\python.exe check_syntax.py         # синтаксис всех .py (131 файл)
-.\.venv311\Scripts\python.exe snapshot.py             # пересобрать SNAPSHOT.md
-.\.venv311\Scripts\python.exe snapshot.py --check     # проверка актуальности снимка
-.\.venv311\Scripts\python.exe launcher.py             # автозапуск приложения
+.\.venv311\Scripts\python.exe check_all.py
+.\.venv311\Scripts\python.exe -m pytest tests/ -q
+.\.venv311\Scripts\python.exe tests/test_intents.py
+.\.venv311\Scripts\python.exe tests/stress_intents.py
+.\.venv311\Scripts\python.exe check_syntax.py
+.\.venv311\Scripts\python.exe snapshot.py
+.\.venv311\Scripts\python.exe snapshot.py --check
+.\.venv311\Scripts\python.exe launcher.py
 ```
 
-CI (`.github/workflows/test.yml`): `check_syntax.py` → `snapshot.py --check` →
-`pytest -q` → `test_intents.py` → `stress_intents.py`. Снимок устарел — CI
-красный: локально `python snapshot.py`. В `requirements-ci.txt` есть `flet`
-(иначе `tests/test_gui_wiring.py` скипается и ~500 строк GUI-проверок не бегут).
+41 интент-сценарий (34 без LLM/сети), 102 стресс-сценария.
+Число pytest не фиксировать как вечную константу; свежая проверка — `tests/README.md`.
+`check_all` — четыре шага; workflow CI отдельно требует актуальный snapshot.
 
-Ожидаемые длины вывода в консоль обрезать: `| Select-Object -Last 15`.
+## Карта
 
-## Правила чтения (главная экономия)
-
-| Не читать целиком | Чем заменить |
+| Модуль | Роль |
 |---|---|
-| `SNAPSHOT.md` (1 МБ) | ничем — он в `.clineignore`, все ключевые факты есть здесь |
-| `CHANGELOG.md`, `PLAN.md`, `ARCHITECTURE.md`, `CI.md` | `search_codebase` → чтение диапазона строк |
-| `README.md`, `PROJECT.md`, `PROMPT.md`, `CONTRIBUTING.md` | только `start_line`/`end_line` |
-| любой `.py` длиннее 400 строк | сначала поиск, потом один диапазон |
-| `logs/*` (≈1 МБ) | `Select-String` / `Get-Content -Tail 20` |
+| `jarvis/main.py` | голосовой цикл, ASR gate, cmd_lock, _say_lock, barge-in |
+| `jarvis/gui.py` | Flet, вкладки, очередь событий |
+| `jarvis/intents/` | handler, pipeline, fast-правила, исполнение |
+| `jarvis/language/` | числовые слоты команд, чтение чисел/римских цифр, морфология |
+| `jarvis/recognition.py`, `stt.py`, `vad.py` | уверенность ASR, Vosk/Whisper, VAD |
+| `jarvis/brain.py` | Ollama parse/chat, системные правила |
+| `jarvis/memory_context.py`, `learning.py`, `vectormem.py` | отбор личных фактов и RAG |
+| `jarvis/observer.py` | извлечение прямых утверждений пользователя; opt-in |
+| `jarvis/tts.py`, `tts_engines/` | Speaker и движки, per-call token |
+| `jarvis/audio_output.py`, `nonverbal.py` | единый PCM-микшер и политика реакций |
+| `assets/nonverbal/` | четыре CC0 WAV + источники/лицензия/хеши |
+| `jarvis/mood.py`, `prosody.py`, `persona.py` | состояние, эвристика голоса, стиль |
+| `jarvis/safety.py` | фильтр ответов перед TTS/историей стрима |
+| `jarvis/uia.py`, `actions.py` | COM, окна, браузеры, системные действия |
+| `jarvis/paths.py`, `config.py`, `profile.py` | пути, настройки, профили/кэш |
+| `snapshot.py`, `check_all.py`, `scripts/build_setup.py` | снимок, проверки, выпуск |
 
-Порядок всегда один: **поиск → точный диапазон**. Не «прочитаю файл, чтобы понять».
-Перед правкой файла — прочитать только тот участок, который меняется.
+## Контракты, которые легко сломать
 
-## Конвенции кода
+- `IntentHandler.handle(raw)` → `Reply(text | stream, allow_nonverbal=False)`.
+  Для стрима вызвать `finalize_stream()` после завершения безопасной озвучки.
+- Не удалять исходную пунктуацию до `language.analyze_command()`.
+  `normalize()` не заменяет семантический разбор чисел; пароли проходят раньше.
+- Сомнительную расшифровку не передавать handler/Observer/истории; запросить повтор.
+  Отказ JSON-parser (`none`) не отправлять в чат на вторую догадку.
+- `learning.build_context(query=...)` и `memory_context.select_memory()` ограничивают
+  личные факты. Пустой/сломанный RAG не означает «отправь всё».
+- Observer не учится на репликах ассистента, выключен без согласия.
+- Nonverbal принадлежит Speaker: opt-in, только помеченный диалог, одна попытка
+  на ответ, общий cooldown. Silero/Piper/WinRT используют один WAV-output callback;
+  SAPI остаётся без PCM-реакций. Никаких дополнительных проигрывающих потоков.
 
-- Файлы — **UTF-8 без BOM, CRLF**. Правки не должны менять ни то, ни другое.
-- Пути — **только через `jarvis/paths.py`**: `USER_DIR` (настройки, логи, профили —
-  кириллица допустима), `PROGRAM_DIR` (**только ASCII** — там модели Vosk/Whisper,
-  Vosk падает на не-ASCII пути).
-- Запись файлов — **атомарная**; данные пользователя — в `USER_DIR`, не в папку кода.
-- **Никаких новых зависимостей** без явной просьбы (CI ставит `requirements*.txt`).
-- Flet 1.x: кнопка — **`ft.Button`** (`ElevatedButton`/`TextButton` удалены).
-- Атрибуция: оригинальный код — собственность `jsys12` (см. `LICENSE`, `PROJECT.md`).
-- Личные данные (`config.json`, `profiles/`, `dialog.json`) — не в git и не в контекст.
+## Конвенции и безопасность
 
-## Карта кода
+UTF-8 без BOM, CRLF. Не менять кодировки всего проекта случайной командой.
+Config читать через `get`, писать через `set`/config_manager, данные — атомарно.
+Пути только через `paths.py`: ASCII PROGRAM_DIR для моделей, USER_DIR для личного.
+Flet главный поток; cmd_lock и _say_lock сохранять; Vosk только listener-поток.
+Stop-token per-call; `wait_end` возвращает bool. UIA STA/COM под lock.
+Опасность custom/pack-макроса проверять до первого шага. Пароли не логировать.
+Личные JSON, модели, окружения, логи, build/dist не коммитить.
+Новые зависимости не добавлять без согласования; `num2words`/`pymorphy3` уже согласованы.
+Лицензию/attribution jsys12 не удалять. CC0-активы хранить вместе с происхождением.
 
-| Файл | Строк | О чём |
-|---|---|---|
-| `jarvis/main.py` | 779 | точка входа: конфиг → GUI → голосовой цикл |
-| `jarvis/gui.py` | 2196 | Flet GUI, палитры, вкладки, анимации |
-| `jarvis/actions.py` | 1160 | низкоуровневые действия ОС (запуск, окна, звук) |
-| `jarvis/intents/` | 253+877 | `handler.py` — `IntentHandler`, `execute.py` — исполнитель, `stages/`, `fast/` |
-| `jarvis/uia.py` | 969 | UI Automation: окна, вкладки браузеров |
-| `jarvis/brain.py` | 831 | LLM (Ollama) + системные промпты |
-| `jarvis/safety.py` | 197 | постфильтр ответов LLM («красная черта») перед TTS |
-| `jarvis/stt.py` / `vad.py` / `tts.py` / `tts_engines/` | 651 / 567 / 367 | распознавание, VAD, синтез |
-| `jarvis/profile.py` / `config.py` / `paths.py` | 451 / 257 / 216 | данные, настройки, пути |
-| `jarvis/memory.py` / `learning.py` / `vectormem.py` | 137 / 180 / 691 | память: диалог / факты / векторный индекс фактов (RAG) |
-| `jarvis/installed.py` / `steam.py` / `apps.py` | 51 / 67 / 114 | индексы «Пуска» и Steam |
-| `jarvis/mood.py` / `prosody.py` / `persona.py` / `observer.py` | 388 / 152 / 219 / 201 | «личность» и эмоции; observer по умолчанию ВЫКЛ |
-| `jarvis/timers.py` / `tasks.py` / `weather.py` / `tray.py` | 340 / 236 / 394 / 176 | таймеры, задачи, погода, трей |
-| `launcher.py` / `snapshot.py` / `check_all.py` | 693 / 698 / 170 | автозапуск / снимок / проверки |
-| `tests/` | — | `test_*.py` (pytest, 430 тестов), `test_intents.py`, `stress_intents.py`, `manual/` |
+## После правки
 
-## Ключевые API
-
-- `from jarvis.intents import IntentHandler`; `IntentHandler(config, apps, jarvis)`.
-- `handler.handle(cmd)` → `Reply`; если `reply.is_stream` — собрать поток и вызвать
-  `handler.finalize_stream(text)`.
-- `handler.installed` — dict «имя → путь к .exe», `handler.steam_games` — list.
-  Оба — **ленивые свойства**: индекс собирается в фоновом потоке при старте
-  (`jarvis/intents/handler.py`, `_warm_indexes`), первый доступ дожидается потока.
-- `jarvis/packs.py` + `jarvis/packs/*.json` — паки команд (apps, games, sites, system, work).
-- `jarvis/config.py` — `load_config()`, `subscribe()` (дефолты — через `jarvis/paths.py`).
-- `jarvis/safety.py` — `check_response(text)` → `(ok, reason)`, `guard_stream(chunks, state)`;
-  вызывается из `Jarvis._say_text` / `_say_stream`: заблокированное не озвучивается.
-- `jarvis/vectormem.py` — векторная память фактов (RAG), **выключена по умолчанию**
-  (`memory_rag_enabled`): эмбеддинги через Ollama (`/api/embed`), косинус на numpy,
-  индекс — `profiles/<профиль>/memory_index.json`. Без модели/Ollama — лексический
-  поиск, дальше brain берёт все факты, как раньше. `build_prompt_block(query)` —
-  блок для промпта (пустая строка = «факты не отбирались»).
-
-## Экономия (обязательно к исполнению)
-
-Полный список — в `.clinerules`. Коротко: **батчить** независимые вызовы в один ответ,
-читать **диапазонами**, выводить **итоговыми строками**, не перечитывать файл после правки
-(вместо этого `git --no-pager diff -- <файл>`), ответ — **до 5 строк**.
-
+Добавить регрессии, прогнать доступные проверки, явно назвать пропуски и платформу.
+Не называть mock/headless-проверку живым Windows-аудиотестом.
+Обновить соответствующие руководства и PROJECT/PLAN/CHANGELOG, затем сгенерировать
+SNAPSHOT. Внешний graphify-отчёт без запуска graphify не объявлять пересобранным.
+Один фокус разработки за раз; текущий шаг — ручная приёмка Non-verbal, затем облако.

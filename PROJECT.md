@@ -1,220 +1,172 @@
-# PROJECT.md — единственный источник правды о «Феникс»
+# PROJECT.md — источник правды о «Феникс»
 
-> **Курируемый файл. Не генерируется.** Пишется руками, правится при смене поведения.
->
-> **Зачем:** `README.md`, `ARCHITECTURE.md`, `PROMPT.md`, `CONTRIBUTING.md` и `PLAN.md`
-> дублируют друг друга (карта модулей есть в четырёх, список правил — в трёх),
-> причём местами расходятся. `snapshot.py` печатает **этот** файл вместо тех пяти.
-> Если факт ниже устарел — правь **здесь**, а не в пяти местах.
->
-> Снапшот = этот файл + карта + смысл из кода + весь код. Этого хватает,
-> чтобы вникнуть в проект без интернета и без доп. контекста.
+Курируемый документ. Обновлён 15.10.2026. `snapshot.py` включает его целиком;
+остальные руководства раскрывают пользовательские и технические детали.
+История версий — в `CHANGELOG.md`, порядок развития — в `PLAN.md`.
 
----
+## 1. Назначение и стек
 
-## 1. Что это
+Локальный голосовой ассистент для Windows, форк [jsys12/jarvis](https://github.com/jsys12/jarvis).
+MIT и attribution оригинального автора сохраняются; см. `LICENSE`.
+Основной запуск — Python 3.11.9 в `.venv311`; Windows-аудиостек с Vosk не переносить
+на Python 3.13/3.14 без отдельной проверки совместимости DLL.
 
-Локальный голосовой ассистент для Windows. Форк [jsys12/jarvis](https://github.com/jsys12/jarvis),
-MIT + attribution (не удалять).
+- GUI: Flet 1.0.x в главном потоке.
+- STT: Vosk + faster-whisper; VAD: Silero ONNX.
+- TTS: `auto` выбирает Silero → Piper → WinRT → SAPI.
+- LLM и эмбеддинги: Ollama, опционально; по умолчанию локальный адрес.
+- Язык: `num2words` + `pymorphy3`, офлайн после установки зависимостей.
+- Сборка: `scripts/build_exe.py` собирает лёгкий launcher, не автономный Python-runtime.
+  `scripts/build_setup.py` + Inno Setup собирают установщик. Тег `v*` запускает release workflow.
+- Погода и валюты используют сеть; первичная загрузка моделей/зависимостей тоже требует сети.
+  Облачные TTS/LLM-провайдеры пока не реализованы.
 
-Цепочка: **микрофон → Vosk (wake) → Whisper (уточнение) → разбор команды → TTS-ответ.**
-Офлайн всё, кроме погоды и курса валют (с кэшем). LLM (Ollama) опциональна —
-без неё ассистент работает на правилах.
+## 2. Пути и пользовательские данные
 
----
-
-## 2. Стек (фактические версии из `.venv311`)
-
-| Слой | Решение |
-|---|---|
-| Python | **3.11.9**, только `.venv311` |
-| Wake-слово | Vosk `vosk-model-small-ru-0.22` (~45 МБ) |
-| Уточнение | faster-whisper `large-v3-turbo-ct2` (CUDA, иначе CPU+`small`) |
-| Синтез | `auto`: Silero → Piper → WinRT → SAPI (движки в `tts_engines/`) |
-| Мозг | Ollama `qwen2.5` (в наличии 1.5b / 7b / 14b) |
-| GUI | Flet 1.0.x, **главный поток** |
-| Окна | `uiautomation` (20+ браузеров по PID) |
-| Сборка | PyInstaller → `Феникс.exe`; Inno Setup → установщик (одной командой: `python scripts\build_setup.py`) |
-| Авторелиз | Тег `v*` → GitHub Actions собирает и публикует `Феникс_Setup.exe` (`.github/workflows/release.yml`) |
-
-**Python 3.13/3.14 не использовать** — `libvosk.dll` падает с access violation.
-
----
-
-## 3. Инвариант №1 — два корня путей
-
-```
-PROGRAM_DIR  C:\ProgramData\Phoenix    ASCII. Модели Vosk, кэш Whisper.
-USER_DIR     %APPDATA%\Phoenix         config, profiles, logs, timers, tasks.
+```text
+PROGRAM_DIR  C:\ProgramData\Phoenix    модели Vosk/Whisper и кэши, ASCII
+USER_DIR     %APPDATA%\Phoenix         config, profiles, logs, timers, tasks
 ```
 
-**Почему:** Vosk — C++ на Kaldi, ломается на путях с кириллицей
-(`Failed to create a model`). Личные данные в ASCII-корне не нужны.
+Все пути определяет `jarvis/paths.py`. Пользовательские пути могут содержать кириллицу;
+модели Vosk обязаны находиться в ASCII-пути. `Path.home()` — только внутри `paths.py`.
+`HF_HOME` на время загрузки Whisper восстанавливается в `finally`.
+`paths.nonverbal_dir()` — read-only `assets/nonverbal/` рядом с пакетом
+(либо в frozen resource root). Сэмплы не записываются в профиль.
+`paths.temporary_audio_file()` создаёт временный WAV только для winsound-fallback
+и удаляет его после остановки/окончания звука.
 
-- Все пути — через `jarvis/paths.py`. Больше **нигде**.
-- `Path.home()` в коде запрещён: есть `paths.user_home()`.
-- `HF_HOME` для Whisper ставится **временно**, сбрасывается в `finally`
-  (иначе Piper уходит в degraded mode без symlink'ов).
+Личные `config.json`, `profiles/`, `dialog.json`, `system_caps.json`, пароли,
+модели и артефакты сборки не коммитить и не включать в документацию/снимок.
+Настройки-пример — только `config.example.json` без личных значений.
 
----
+## 3. Поток обработки
 
-## 4. Правила, которые нельзя нарушать
-
-**Конфиг**
-
-1. Не читать и не писать `config.json` напрямую — только `config.get()` / `Config.set()`
-   / `config_manager.save()`. `Config` живёт в памяти, подписки рассылают изменения.
-2. Глобальное состояние — только `Config._GLOBAL`. Новых модульных синглтонов не заводить
-   (`profile._cache` — последнее исключение, и оно под локом).
-
-**Запись на диск**
-
-3. Всюду атомарно: `tempfile.mkstemp` + `os.replace`, плюс `FileLock` per-path.
-   Две параллельные записи (голос + GUI) рвут JSON.
-4. `os.replace` на Windows ловит `PermissionError` от антивируса — нужен retry.
-
-**Потоки**
-
-5. Flet — **только главный поток**. Связь GUI ↔ Jarvis через `queue.Queue()`.
-6. `cmd_lock` в `Jarvis` сериализует `handle()`; `_say_lock` — `say()`.
-   Таймеры, `mic_watchdog` и `celebrations` зовут `say()` из своих потоков —
-   **без `_say_lock` они режут текущую речь** через `speaker.stop()`.
-7. Vosk API — **только из listener-потока**. `flush()` не должен трогать Vosk
-   (иначе `libvosk.dll` → `0xc0000015`).
-8. TTS — per-call stop-token, а не общий флаг: иначе 2-3 голоса накладываются.
-9. UIA требует STA: первый вызов в потоке инициализирует COM сам, поэтому
-   все вызовы идут под `_lock` (голосовой поток + GUI-поток).
-
-**Безопасность**
-
-10. Распаковка архивов — проверка `is_relative_to` (Zip Slip).
-11. Мьютекс `Local\`, не `Global\` — иначе нужны права админа.
-12. Пароль — sha256 с префиксом, сравнение через `hmac.compare_digest`.
-13. Личное (имя, город, CPU, GPU, ОС) — только в `config.json`, `profiles/`,
-    `system_caps.json`, и все три в `.gitignore`.
-
-**Прочее**
-
-14. Pack-команды с аргументами (`shutdown /s /t 10`) — через `_looks_like_cmd`
-    + `shlex`, а не `os.startfile`.
-15. Нормализация (`normalize`) — **одна** точка, в `IntentHandler.handle()`.
-    Она вырезает пунктуацию: для доменов берите **сырой** `intent["target"]`.
-16. Attribution `jsys12` не удалять.
----
-
-## 5. Архитектура в одном экране
-
-```
-Jarvis (main.py) — cmd_lock, _say_lock, barge-in, стриминг
-  └─ IntentHandler.handle(cmd)          ← normalize() единожды
-       └─ mood.apply_from_text(cmd)
-       └─ Pipeline, 11 стадий, порядок = приоритет:
-            cancel → onboarding → correction → password → memory
-            → pending → clipboard → modes → compound → fast → llm
-       └─ Reply(text | stream)
-            └─ Jarvis.say() ← _say_lock → tts.Speaker
+```text
+микрофон → VAD → Vosk (слова + conf) → извлечение обращения/окна диалога
+  → PCM quality gate → Whisper (если включён) → проверка сегментов/расхождений
+  → при сомнении: повторить; без исполнения и записи сомнительной расшифровки
+  → IntentHandler.handle(raw text)
+      ├─ pending_password: отдельная защищённая ветка до истории и коррекций
+      ├─ language.analyze_command: числовые слоты + исходный текст
+      ├─ normalize → pipeline
+      └─ Reply(text | stream, allow_nonverbal=False по умолчанию)
+  → Jarvis.say (_say_lock) → Speaker → TTS
+      └─ PCM-движки: audio_output + необязательная Nonverbal-реакция
 ```
 
-**Реестр `fast/`** (порядок = приоритет, специфичное выше общего):
-`custom → small_talk → music → screenshot → uia → open_profile → open →
-voices → packs → timers → tasks → persona → profile → memory → system →
-debug → correction → undo → weather_currency`
+Pipeline, порядок важен:
+`cancel → onboarding → correction → password → memory → pending → clipboard → modes → compound → fast → llm`.
+Реестр `fast/`: специфичные правила выше общих; `custom` и `open_profile` не
+перемещать ниже общих обработчиков. Ошибка одного обработчика логируется, не роняет цикл.
+`mood.apply_from_text()` в `handle()` вызывается после разбора результата; просодия
+применяется в голосовом `_process()` до обработчика. Не выдавать эвристику эмоций
+или ASR-confidence за измеренную точность понимания.
 
-Исключение внутри обработчика логируется, но **не роняет** команду.
+## 4. Числа и неопределённость
 
-**Модули ядра:** `brain.py` (LLM), `stt.py` (Vosk+Whisper), `tts.py` (Piper),
-`gui.py` (Flet), `profile.py` (профили+кэш), `persona.py` (стиль),
-`mood.py` (настроение), `observer.py` (факты фоном), `uia.py` (окна),
-`history.py` (отмена), `learning.py` (факты+коррекции).
+- `jarvis/language/` — единый словарь/грамматика чисел, единиц и длительностей.
+  `prepare_text()` использует его для TTS, включая контекстные римские цифры и падежи.
+- Исходная фраза сохраняется отдельно от нормализованной команды. Не удалять
+  пунктуацию/дробную запятую/двоеточие до семантического числового разбора.
+- Меняются только распознанные командные слоты; произвольный текст задачи,
+  пароли, имена и неоднозначные последовательности не исправляются догадками.
+- `recognition.py`: PCM-проверка, Vosk word confidence, Whisper avg_logprob,
+  no_speech_prob и compression_ratio; проверка каждого непустого сегмента.
+- Низкая уверенность вызывает уточнение до GUI user-message, Observer и handler.
+  Сильный Whisper может восстановить слабый Vosk; при ошибке Whisper fallback
+  допустим только на достаточно уверенный Vosk. Числа/отрицания/поддержанные
+  действия двух уверенных расшифровок сверяются дополнительно.
+- Пороги `stt_min_word_confidence=0.65`, `stt_min_avg_logprob=-1.0`,
+  `stt_max_no_speech_prob=0.6`, `stt_max_compression_ratio=2.4` — начальные,
+  не откалиброванные под каждый микрофон вероятности.
+- Parser `action=none` означает уточнение, не повторную попытку придумать команду.
 
-**Профиль читается через кэш в памяти** (`profile._cache`, инвалидация в
-`set`/`forget`/`switch`/`delete`). Раньше каждый `get()` лез на диск —
-`mood.effective_rate()` дёргается на **каждом** синтезируемом предложении.
+## 5. Память и обучение
 
----
+Источник фактов — `profile.json`, индекс `memory_index.json` производный и
+восстанавливаемый. История диалога — отдельно, в `dialog.json`.
+`memory_context.select_memory()` сначала определяет допустимые сведения по запросу.
+`learning.build_context(query=...)` без запроса/релевантности не передаёт личные данные.
+RAG (`memory_rag_enabled=false` по умолчанию) ищет только в разрешённых ключах.
+Ошибка, пустой результат или малый набор фактов **не разрешают добавлять все факты**.
+Общая просьба рассказать что-нибудь не получает имя, город, работу или предпочтения.
 
-## 6. Известные баги
+Коррекции применяются pipeline, а не становятся системными инструкциями для чата.
+Observer выключен без согласия (`observer_enabled=false`); извлекает только прямые
+утверждения пользователя. Ответы ассистента не источник фактов. Это сбор контекста,
+а не тренировка весов LLM/ASR/TTS. Защитные фильтры не гарантируют безошибочную модель.
 
-Закрыты в этой же сессии: арность `finalize_stream` в тестах, дыра в харнесе
-(`expected=[]` маскировал исключения), отсутствующий `_on_profile_switch` в GUI,
-потеря вкладки «Персона» при смене темы, хардкод `C:\jarvis` в `packs/work.json`,
-`normalize()` ломавший домены (`gismeteoru.ru`), `say()` без лока, `Path.home()`,
-`num2words`, мусор в `EXCLUDE_FILES`, дрейф `config.example.json`.
+## 6. Non-verbal, этап 1.13.6
 
-**Осталось (требует живого приложения или отдельной задачи):**
+Реализованы четыре коротких CC0-реакции: laugh, sigh, hmm, yawn.
+Происхождение и SHA-256 — `assets/nonverbal/sources.json`; пояснения — README рядом.
+Выключатель во вкладке «Аудио» применяется сразу через общий Config.
 
-| Что | Где | Почему не сделано |
-|---|---|---|
-| Мёртвые `debug_*` в LLM-промптах | `brain.py` SYSTEM_* | правка промптов меняет поведение LLM, нужен прогон |
-| Трей отдельным процессом | `tray.py` (daemon-поток) | ✅ иконка поднимается до `ft.run`; схема `tray_runner.py` не нужна — отложена |
-| GUI: 4 вкладки после смены темы | `gui.py` | **проверить руками** |
+- `nonverbal_enabled=false`, `nonverbal_cooldown_sec=45.0` (10–3600),
+  `nonverbal_gain_db=-15.0` (−18…−12), `nonverbal_probability=0.2` (0–1).
+- Только явное `Reply.allow_nonverbal=True` от диалогового ответа. Команды,
+  пароль, таймеры и уточнения используют default false.
+- Выбор по актуальному mood; mood уже учитывает prosody согласно её приоритету.
+  happy/excited → laugh; neutral/bored → hmm; tired → sigh или yawn;
+  annoyed/неизвестное состояние → без реакции. Это эвристика, не ML-классификатор.
+- Максимум одна попытка на ответ, не на предложение; общий cooldown между ответами.
+- `BaseEngine.set_wav_player()` направляет WAV из Silero/Piper/WinRT в Speaker;
+  `audio_output.py` декодирует/ресэмплирует/микширует PCM и выводит одним потоком.
+- Уровень относительно RMS активной речи, ресэмплинг под частоту TTS, защита от
+  клиппинга. Один stop-token обрывает речь и реакцию; реакция не создаёт второй плеер.
+- Отсутствующий/повреждённый сэмпл оставляет обычную речь. SAPI — нативная озвучка
+  без микширования. Кашель отложен, случайно изображать болезнь не требуется.
+- Фиксированные записи не совпадают автоматически с тембром выбранного TTS.
+  Windows-аудиоприёмка и прослушивание остаются ручными.
 
----
+## 7. Неприкосновенные правила
 
-## 7. Ошибки, которые уже делались (не повторять)
+1. Config — в памяти, чтение через `get`, запись через `Config.set`/`config_manager`;
+   не читать/писать пользовательский JSON напрямую.
+2. Запись пользовательских данных — атомарная, `mkstemp` + `os.replace`, FileLock
+   per-path; учитывать PermissionError антивируса Windows.
+3. Не заводить новые глобальные синглтоны. Политика реакций принадлежит Speaker;
+   сессии хранят слабые ссылки, собственные блокировки и монотонное время.
+4. Flet — главный поток, из фоновых потоков взаимодействовать через GUI-очередь.
+5. `cmd_lock` сериализует GUI/голосовые команды; `_say_lock` — голос/таймеры/уведомления.
+6. Vosk API только из listener-потока. `flush()` не трогает recognizer.
+7. Per-call TTS stop-token; `wait_end()` возвращает bool. Не наслаивать новый поток
+   при незавершённом старом. Barge-in не должен оставлять хвост реакции.
+8. UIA — STA/COM и общий lock. Браузеры определяются через единый список и PID в `uia.py`.
+   Ctrl+W fallback допустим только при непрочитанных вкладках, не при не найденном имени.
+9. Опасность проверять до custom/pack-исполнения, включая все шаги макроса.
+   Пароль — SHA-256 с префиксом + `hmac.compare_digest`; не логировать/запоминать ввод.
+10. Ошибка записи задачи не превращается в «готово». ZIP — защита от Zip Slip.
+11. Системные команды с аргументами — `_looks_like_cmd`/shlex/subprocess, не os.startfile.
+12. Flet 1.x: `ft.Button`, не удалённые ElevatedButton/TextButton; COM/GUI/аудио проверять
+    отдельно на Windows. `prevent_close` + `on_event` не считать рабочей связкой в 1.0.3.
+13. PowerShell 5.1: не использовать `&&`; файлы — UTF-8 без BOM, CRLF.
+14. Новые зависимости — только после согласования; числовые библиотеки уже согласованы.
+15. Attribution jsys12 сохранять. Не коммитить личные данные, `.venv311`, models, voices,
+    dist, build, logs, backups; CC0-активы поставляются с происхождением.
 
-1. `&&` в PowerShell 5.1 **не работает** — только `;`.
-2. Правки в терминале портят UTF-8 и BOM. **Только в VS Code.**
-   `files.encoding: utf8`, `files.autoGuessEncoding: false`.
-3. `ft.ElevatedButton` / `ft.TextButton` удалены в Flet 1.x → `ft.Button`.
-4. `FindAll` не существует у `WindowControl` → `EditControl(searchFromControl=...)`,
-   `ToolBarControl(searchFromControl=..., Name="Вкладки")`.
-5. `uia.ControlTypeName` — не то; сравнивать со строками `"TabItemControl"`.
-6. `prevent_close` + `on_event` в Flet 1.0.3 не работает.
-7. `sys.stdout is None` под `pythonw.exe` — проверять.
-8. `thread.join()` на нестартованном потоке → `RuntimeError`. Проверять `is_alive()`.
-9. `wait_end` должна возвращать bool, иначе TTS накладывается.
-10. `chat_stream` терял последний чанк — `append` **до** проверки токена.
-11. `_small_talk` перехватывал «привет» / «как дела» — отдано LLM.
-12. Голое `я ` в regex профиля ловило «я хочу спать». Тире обязательно.
-13. `_do_open_folder` передавал `explicit=True`, и «открой музыку» открывала
-    папку Music вместо плеера.
-14. `snapshot.py` без проверки длины fence ломал markdown: файл, внутри которого
-    есть ```` ``` ````, нельзя заворачивать в ```` ```markdown ````.
-15. `timers.py` / `tasks.py` писали в папку кода вместо `USER_DIR`.
-16. Коммитить `.venv311`, `config.json`, `profiles/`, `system_caps.json`,
-    `timers.json`, `tasks.json`, `models/`, `voices/`, `dist/`, `build/`.
+## 8. Проверки и выпуск
 
----
-
-## 8. Контракт проверки
-
-```bat
-check_all.bat                     :: всё сразу: 4 шага + компактный итог
-python check_syntax.py            :: синтаксис всех .py, включая tests/
-python -m pytest tests\ -q        :: 317 тестов
-python tests\test_intents.py      :: 32 сценария без LLM/сети (ИТОГ: 32 / 32)
-python tests\stress_intents.py    :: 100 ситуаций (ИТОГ: 100 / 100)
-python tests\test_intents.py --llm --network   :: + LLM (3-8 мин) и погода/курс
+```powershell
+.\.venv311\Scripts\python.exe check_all.py
+.\.venv311\Scripts\python.exe snapshot.py
+.\.venv311\Scripts\python.exe snapshot.py --check
 ```
 
-Все шаги зелёные → CI пройдёт. Логи: `%APPDATA%\Phoenix\logs\`
-(`jarvis.log`, `actions.log`, `errors.log`, `launcher.log`).
+`check_all.py`: синтаксис → pytest → `test_intents.py` → `stress_intents.py`.
+Интенты: 41 сценарий, 34 без LLM/сети; стресс: 102. Число pytest зависит от
+доступных библиотек и платформы; актуальные результаты/ограничения — `tests/README.md`.
+CI дополнительно проверяет snapshot. Зелёный ограниченный Linux-прогон не заменяет
+Windows CI, живой микрофон, COM, установщик и прослушивание.
 
-**Тесты и CI — святое.** Красный CI = стоп всему. Не тестировать: GUI (нужно окно),
-звук (нет карты на CI), сеть без флага `--network`.
+Перед коммитом обновить изменённые руководства и затем сгенерировать SNAPSHOT.md
+тем же коммитом. Старые записи CHANGELOG и graphify-отчёт — история, не текущая карта.
 
----
+## 9. Дальше
 
-## 9. Что дальше
-
-По `PLAN.md` (порядок работ Фазы 1): управление приложениями ✅ → Vector memory
-✅ (Ollama-эмбеддинги + RAG, без новых пакетов) → Non-verbal → облако
-(Edge TTS / Groq) → MCP-заготовки → Telegram → спрайт-аватар →
-PyInstaller/CI + VLM + Hermes → улучшение мозгов.
-
-Сборка уже автоматизирована: `python scripts\build_setup.py` даёт `Феникс.exe` +
-`dist\Феникс_Setup.exe`. Авторелиз тоже готов (№121 ✅): пуш тега `v*` собирает
-и публикует установщик (`.github/workflows/release.yml`, подробности — `CI.md`).
-
----
-
-_Последняя правка: 13.10.2026, синхронизация с кодом и планом (инсталлятор +
-`build_setup.py`, CI-авторелиз по тегу; все тесты собраны в `tests/`,
-всё гоняется через `check_all.bat`; счётчики: 317 pytest / 32 test_intents /
-100 stress; углублённое управление браузером — единый список браузеров и
-общий запасной ход Ctrl+W на оба пути; `PLAN.md` приведён к фактам: трей ✅
-(daemon-поток), ложные ✅ у «Улучшения мозгов» сняты, составы этапов без
-номеров восстановлены по коду, Non-verbal добавлен, `tone` и трей описаны в
-README)._
-
+Принять Non-verbal на Windows: прямой и streaming TTS, громкость, barge-in,
+выключение на лету и SAPI fallback. Затем по `PLAN.md`: опциональное бесплатное
+облако → чистая виртуалка → MCP-заготовки → Telegram/веб → спрайт → VLM/Hermes →
+улучшение мозгов. Полноценные смысловые уточнения и калибровка ASR остаются
+отдельными задачами; выполненная защитная логика не закрывает их автоматически.

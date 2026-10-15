@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "samples": [
+    {
+      "file": "laugh.wav",
+      "author": "cchenail",
+      "source": "https://freesound.org/people/cchenail/sounds/611480/",
+      "downloaded_preview": "https://cdn.freesound.org/previews/611/611480_7864610-hq.mp3",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "source_start_sec": 2.2,
+      "duration_sec": 0.9500226757369614,
+      "modifications": "CC0 HQ preview excerpt; mono 22050 Hz PCM16; peak -1.94 dBFS; 15 ms fades",
+      "sha256": "b6dde1adc6228f545c9d14d200b61a916ec3667135cd76cd286476bfa4193a6c"
+    },
+    {
+      "file": "sigh.wav",
+      "author": "ValentinPetiteau",
+      "source": "https://freesound.org/people/ValentinPetiteau/sounds/569568/",
+      "downloaded_preview": "https://cdn.freesound.org/previews/569/569568_10443988-hq.mp3",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "source_start_sec": 1.84,
+      "duration_sec": 1.0,
+      "modifications": "CC0 HQ preview excerpt; mono 22050 Hz PCM16; peak -1.94 dBFS; 15 ms fades",
+      "sha256": "59d741ede33a9af4cb56766a7ffbcd3a9c0bf9087aafd56d3e80723c1889ca7f"
+    },
+    {
+      "file": "hmm.wav",
+      "author": "esperar",
+      "source": "https://freesound.org/people/esperar/sounds/170777/",
+      "downloaded_preview": "https://cdn.freesound.org/previews/170/170777_377731-hq.mp3",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "source_start_sec": 1.2,
+      "duration_sec": 0.62,
+      "modifications": "CC0 HQ preview excerpt; mono 22050 Hz PCM16; peak -1.94 dBFS; 15 ms fades",
+      "sha256": "b5d72ca04e108942d8c33251d091710a0137c1f7ba7ca9a7c6307057da4a8d8a"
+    },
+    {
+      "file": "yawn.wav",
+      "author": "OwlStorm",
+      "source": "https://freesound.org/people/OwlStorm/sounds/151240/",
+      "downloaded_preview": "https://cdn.freesound.org/previews/151/151240_140737-hq.mp3",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "source_start_sec": 0.25,
+      "duration_sec": 1.7,
+      "modifications": "CC0 HQ preview excerpt; mono 22050 Hz PCM16; peak -1.94 dBFS; 15 ms fades",
+      "sha256": "810b9e463604876d620aeed0120bad8b612499058d8a6761609aecd03cccfed3"
+    }
+  ]
+}

@@ -49,6 +49,17 @@ class BaseEngine(ABC):
         """
         ...
 
+    def set_wav_player(self, player) -> None:
+        """Speaker supplies one output/mixing path for normal and streamed speech."""
+        self._wav_player = player
+
+    def _output_wav(self, wav_bytes, token) -> None:
+        player = getattr(self, "_wav_player", None)
+        if player is None:
+            from jarvis.audio_output import play_wav
+            player = play_wav
+        player(wav_bytes, token)
+
     def set_voice(self, voice: str) -> None:
         """Сменить голос (переопределяется, если движок поддерживает)."""
         pass

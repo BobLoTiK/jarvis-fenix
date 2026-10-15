@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=7913cccffcb201b8` · режим `lean` · файлов `186` · строк `38723` · источник `1640 КБ`
+`sha256=d344532c5cbe9fe6` · режим `lean` · файлов `192` · строк `39667` · источник `1695 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -10,227 +10,180 @@
 
 ## 0. PROJECT.md — что это, как устроено, чего нельзя делать
 
-`````
-# PROJECT.md — единственный источник правды о «Феникс»
+````
+# PROJECT.md — источник правды о «Феникс»
 
-> **Курируемый файл. Не генерируется.** Пишется руками, правится при смене поведения.
->
-> **Зачем:** `README.md`, `ARCHITECTURE.md`, `PROMPT.md`, `CONTRIBUTING.md` и `PLAN.md`
-> дублируют друг друга (карта модулей есть в четырёх, список правил — в трёх),
-> причём местами расходятся. `snapshot.py` печатает **этот** файл вместо тех пяти.
-> Если факт ниже устарел — правь **здесь**, а не в пяти местах.
->
-> Снапшот = этот файл + карта + смысл из кода + весь код. Этого хватает,
-> чтобы вникнуть в проект без интернета и без доп. контекста.
+Курируемый документ. Обновлён 15.10.2026. `snapshot.py` включает его целиком;
+остальные руководства раскрывают пользовательские и технические детали.
+История версий — в `CHANGELOG.md`, порядок развития — в `PLAN.md`.
 
----
+## 1. Назначение и стек
 
-## 1. Что это
+Локальный голосовой ассистент для Windows, форк [jsys12/jarvis](https://github.com/jsys12/jarvis).
+MIT и attribution оригинального автора сохраняются; см. `LICENSE`.
+Основной запуск — Python 3.11.9 в `.venv311`; Windows-аудиостек с Vosk не переносить
+на Python 3.13/3.14 без отдельной проверки совместимости DLL.
 
-Локальный голосовой ассистент для Windows. Форк [jsys12/jarvis](https://github.com/jsys12/jarvis),
-MIT + attribution (не удалять).
+- GUI: Flet 1.0.x в главном потоке.
+- STT: Vosk + faster-whisper; VAD: Silero ONNX.
+- TTS: `auto` выбирает Silero → Piper → WinRT → SAPI.
+- LLM и эмбеддинги: Ollama, опционально; по умолчанию локальный адрес.
+- Язык: `num2words` + `pymorphy3`, офлайн после установки зависимостей.
+- Сборка: `scripts/build_exe.py` собирает лёгкий launcher, не автономный Python-runtime.
+  `scripts/build_setup.py` + Inno Setup собирают установщик. Тег `v*` запускает release workflow.
+- Погода и валюты используют сеть; первичная загрузка моделей/зависимостей тоже требует сети.
+  Облачные TTS/LLM-провайдеры пока не реализованы.
 
-Цепочка: **микрофон → Vosk (wake) → Whisper (уточнение) → разбор команды → TTS-ответ.**
-Офлайн всё, кроме погоды и курса валют (с кэшем). LLM (Ollama) опциональна —
-без неё ассистент работает на правилах.
+## 2. Пути и пользовательские данные
 
----
-
-## 2. Стек (фактические версии из `.venv311`)
-
-| Слой | Решение |
-|---|---|
-| Python | **3.11.9**, только `.venv311` |
-| Wake-слово | Vosk `vosk-model-small-ru-0.22` (~45 МБ) |
-| Уточнение | faster-whisper `large-v3-turbo-ct2` (CUDA, иначе CPU+`small`) |
-| Синтез | `auto`: Silero → Piper → WinRT → SAPI (движки в `tts_engines/`) |
-| Мозг | Ollama `qwen2.5` (в наличии 1.5b / 7b / 14b) |
-| GUI | Flet 1.0.x, **главный поток** |
-| Окна | `uiautomation` (20+ браузеров по PID) |
-| Сборка | PyInstaller → `Феникс.exe`; Inno Setup → установщик (одной командой: `python scripts\build_setup.py`) |
-| Авторелиз | Тег `v*` → GitHub Actions собирает и публикует `Феникс_Setup.exe` (`.github/workflows/release.yml`) |
-
-**Python 3.13/3.14 не использовать** — `libvosk.dll` падает с access violation.
-
----
-
-## 3. Инвариант №1 — два корня путей
-
-```
-PROGRAM_DIR  C:\ProgramData\Phoenix    ASCII. Модели Vosk, кэш Whisper.
-USER_DIR     %APPDATA%\Phoenix         config, profiles, logs, timers, tasks.
+```text
+PROGRAM_DIR  C:\ProgramData\Phoenix    модели Vosk/Whisper и кэши, ASCII
+USER_DIR     %APPDATA%\Phoenix         config, profiles, logs, timers, tasks
 ```
 
-**Почему:** Vosk — C++ на Kaldi, ломается на путях с кириллицей
-(`Failed to create a model`). Личные данные в ASCII-корне не нужны.
+Все пути определяет `jarvis/paths.py`. Пользовательские пути могут содержать кириллицу;
+модели Vosk обязаны находиться в ASCII-пути. `Path.home()` — только внутри `paths.py`.
+`HF_HOME` на время загрузки Whisper восстанавливается в `finally`.
+`paths.nonverbal_dir()` — read-only `assets/nonverbal/` рядом с пакетом
+(либо в frozen resource root). Сэмплы не записываются в профиль.
+`paths.temporary_audio_file()` создаёт временный WAV только для winsound-fallback
+и удаляет его после остановки/окончания звука.
 
-- Все пути — через `jarvis/paths.py`. Больше **нигде**.
-- `Path.home()` в коде запрещён: есть `paths.user_home()`.
-- `HF_HOME` для Whisper ставится **временно**, сбрасывается в `finally`
-  (иначе Piper уходит в degraded mode без symlink'ов).
+Личные `config.json`, `profiles/`, `dialog.json`, `system_caps.json`, пароли,
+модели и артефакты сборки не коммитить и не включать в документацию/снимок.
+Настройки-пример — только `config.example.json` без личных значений.
 
----
+## 3. Поток обработки
 
-## 4. Правила, которые нельзя нарушать
-
-**Конфиг**
-
-1. Не читать и не писать `config.json` напрямую — только `config.get()` / `Config.set()`
-   / `config_manager.save()`. `Config` живёт в памяти, подписки рассылают изменения.
-2. Глобальное состояние — только `Config._GLOBAL`. Новых модульных синглтонов не заводить
-   (`profile._cache` — последнее исключение, и оно под локом).
-
-**Запись на диск**
-
-3. Всюду атомарно: `tempfile.mkstemp` + `os.replace`, плюс `FileLock` per-path.
-   Две параллельные записи (голос + GUI) рвут JSON.
-4. `os.replace` на Windows ловит `PermissionError` от антивируса — нужен retry.
-
-**Потоки**
-
-5. Flet — **только главный поток**. Связь GUI ↔ Jarvis через `queue.Queue()`.
-6. `cmd_lock` в `Jarvis` сериализует `handle()`; `_say_lock` — `say()`.
-   Таймеры, `mic_watchdog` и `celebrations` зовут `say()` из своих потоков —
-   **без `_say_lock` они режут текущую речь** через `speaker.stop()`.
-7. Vosk API — **только из listener-потока**. `flush()` не должен трогать Vosk
-   (иначе `libvosk.dll` → `0xc0000015`).
-8. TTS — per-call stop-token, а не общий флаг: иначе 2-3 голоса накладываются.
-9. UIA требует STA: первый вызов в потоке инициализирует COM сам, поэтому
-   все вызовы идут под `_lock` (голосовой поток + GUI-поток).
-
-**Безопасность**
-
-10. Распаковка архивов — проверка `is_relative_to` (Zip Slip).
-11. Мьютекс `Local\`, не `Global\` — иначе нужны права админа.
-12. Пароль — sha256 с префиксом, сравнение через `hmac.compare_digest`.
-13. Личное (имя, город, CPU, GPU, ОС) — только в `config.json`, `profiles/`,
-    `system_caps.json`, и все три в `.gitignore`.
-
-**Прочее**
-
-14. Pack-команды с аргументами (`shutdown /s /t 10`) — через `_looks_like_cmd`
-    + `shlex`, а не `os.startfile`.
-15. Нормализация (`normalize`) — **одна** точка, в `IntentHandler.handle()`.
-    Она вырезает пунктуацию: для доменов берите **сырой** `intent["target"]`.
-16. Attribution `jsys12` не удалять.
----
-
-## 5. Архитектура в одном экране
-
-```
-Jarvis (main.py) — cmd_lock, _say_lock, barge-in, стриминг
-  └─ IntentHandler.handle(cmd)          ← normalize() единожды
-       └─ mood.apply_from_text(cmd)
-       └─ Pipeline, 11 стадий, порядок = приоритет:
-            cancel → onboarding → correction → password → memory
-            → pending → clipboard → modes → compound → fast → llm
-       └─ Reply(text | stream)
-            └─ Jarvis.say() ← _say_lock → tts.Speaker
+```text
+микрофон → VAD → Vosk (слова + conf) → извлечение обращения/окна диалога
+  → PCM quality gate → Whisper (если включён) → проверка сегментов/расхождений
+  → при сомнении: повторить; без исполнения и записи сомнительной расшифровки
+  → IntentHandler.handle(raw text)
+      ├─ pending_password: отдельная защищённая ветка до истории и коррекций
+      ├─ language.analyze_command: числовые слоты + исходный текст
+      ├─ normalize → pipeline
+      └─ Reply(text | stream, allow_nonverbal=False по умолчанию)
+  → Jarvis.say (_say_lock) → Speaker → TTS
+      └─ PCM-движки: audio_output + необязательная Nonverbal-реакция
 ```
 
-**Реестр `fast/`** (порядок = приоритет, специфичное выше общего):
-`custom → small_talk → music → screenshot → uia → open_profile → open →
-voices → packs → timers → tasks → persona → profile → memory → system →
-debug → correction → undo → weather_currency`
+Pipeline, порядок важен:
+`cancel → onboarding → correction → password → memory → pending → clipboard → modes → compound → fast → llm`.
+Реестр `fast/`: специфичные правила выше общих; `custom` и `open_profile` не
+перемещать ниже общих обработчиков. Ошибка одного обработчика логируется, не роняет цикл.
+`mood.apply_from_text()` в `handle()` вызывается после разбора результата; просодия
+применяется в голосовом `_process()` до обработчика. Не выдавать эвристику эмоций
+или ASR-confidence за измеренную точность понимания.
 
-Исключение внутри обработчика логируется, но **не роняет** команду.
+## 4. Числа и неопределённость
 
-**Модули ядра:** `brain.py` (LLM), `stt.py` (Vosk+Whisper), `tts.py` (Piper),
-`gui.py` (Flet), `profile.py` (профили+кэш), `persona.py` (стиль),
-`mood.py` (настроение), `observer.py` (факты фоном), `uia.py` (окна),
-`history.py` (отмена), `learning.py` (факты+коррекции).
+- `jarvis/language/` — единый словарь/грамматика чисел, единиц и длительностей.
+  `prepare_text()` использует его для TTS, включая контекстные римские цифры и падежи.
+- Исходная фраза сохраняется отдельно от нормализованной команды. Не удалять
+  пунктуацию/дробную запятую/двоеточие до семантического числового разбора.
+- Меняются только распознанные командные слоты; произвольный текст задачи,
+  пароли, имена и неоднозначные последовательности не исправляются догадками.
+- `recognition.py`: PCM-проверка, Vosk word confidence, Whisper avg_logprob,
+  no_speech_prob и compression_ratio; проверка каждого непустого сегмента.
+- Низкая уверенность вызывает уточнение до GUI user-message, Observer и handler.
+  Сильный Whisper может восстановить слабый Vosk; при ошибке Whisper fallback
+  допустим только на достаточно уверенный Vosk. Числа/отрицания/поддержанные
+  действия двух уверенных расшифровок сверяются дополнительно.
+- Пороги `stt_min_word_confidence=0.65`, `stt_min_avg_logprob=-1.0`,
+  `stt_max_no_speech_prob=0.6`, `stt_max_compression_ratio=2.4` — начальные,
+  не откалиброванные под каждый микрофон вероятности.
+- Parser `action=none` означает уточнение, не повторную попытку придумать команду.
 
-**Профиль читается через кэш в памяти** (`profile._cache`, инвалидация в
-`set`/`forget`/`switch`/`delete`). Раньше каждый `get()` лез на диск —
-`mood.effective_rate()` дёргается на **каждом** синтезируемом предложении.
+## 5. Память и обучение
 
----
+Источник фактов — `profile.json`, индекс `memory_index.json` производный и
+восстанавливаемый. История диалога — отдельно, в `dialog.json`.
+`memory_context.select_memory()` сначала определяет допустимые сведения по запросу.
+`learning.build_context(query=...)` без запроса/релевантности не передаёт личные данные.
+RAG (`memory_rag_enabled=false` по умолчанию) ищет только в разрешённых ключах.
+Ошибка, пустой результат или малый набор фактов **не разрешают добавлять все факты**.
+Общая просьба рассказать что-нибудь не получает имя, город, работу или предпочтения.
 
-## 6. Известные баги
+Коррекции применяются pipeline, а не становятся системными инструкциями для чата.
+Observer выключен без согласия (`observer_enabled=false`); извлекает только прямые
+утверждения пользователя. Ответы ассистента не источник фактов. Это сбор контекста,
+а не тренировка весов LLM/ASR/TTS. Защитные фильтры не гарантируют безошибочную модель.
 
-Закрыты в этой же сессии: арность `finalize_stream` в тестах, дыра в харнесе
-(`expected=[]` маскировал исключения), отсутствующий `_on_profile_switch` в GUI,
-потеря вкладки «Персона» при смене темы, хардкод `C:\jarvis` в `packs/work.json`,
-`normalize()` ломавший домены (`gismeteoru.ru`), `say()` без лока, `Path.home()`,
-`num2words`, мусор в `EXCLUDE_FILES`, дрейф `config.example.json`.
+## 6. Non-verbal, этап 1.13.6
 
-**Осталось (требует живого приложения или отдельной задачи):**
+Реализованы четыре коротких CC0-реакции: laugh, sigh, hmm, yawn.
+Происхождение и SHA-256 — `assets/nonverbal/sources.json`; пояснения — README рядом.
+Выключатель во вкладке «Аудио» применяется сразу через общий Config.
 
-| Что | Где | Почему не сделано |
-|---|---|---|
-| Мёртвые `debug_*` в LLM-промптах | `brain.py` SYSTEM_* | правка промптов меняет поведение LLM, нужен прогон |
-| Трей отдельным процессом | `tray.py` (daemon-поток) | ✅ иконка поднимается до `ft.run`; схема `tray_runner.py` не нужна — отложена |
-| GUI: 4 вкладки после смены темы | `gui.py` | **проверить руками** |
+- `nonverbal_enabled=false`, `nonverbal_cooldown_sec=45.0` (10–3600),
+  `nonverbal_gain_db=-15.0` (−18…−12), `nonverbal_probability=0.2` (0–1).
+- Только явное `Reply.allow_nonverbal=True` от диалогового ответа. Команды,
+  пароль, таймеры и уточнения используют default false.
+- Выбор по актуальному mood; mood уже учитывает prosody согласно её приоритету.
+  happy/excited → laugh; neutral/bored → hmm; tired → sigh или yawn;
+  annoyed/неизвестное состояние → без реакции. Это эвристика, не ML-классификатор.
+- Максимум одна попытка на ответ, не на предложение; общий cooldown между ответами.
+- `BaseEngine.set_wav_player()` направляет WAV из Silero/Piper/WinRT в Speaker;
+  `audio_output.py` декодирует/ресэмплирует/микширует PCM и выводит одним потоком.
+- Уровень относительно RMS активной речи, ресэмплинг под частоту TTS, защита от
+  клиппинга. Один stop-token обрывает речь и реакцию; реакция не создаёт второй плеер.
+- Отсутствующий/повреждённый сэмпл оставляет обычную речь. SAPI — нативная озвучка
+  без микширования. Кашель отложен, случайно изображать болезнь не требуется.
+- Фиксированные записи не совпадают автоматически с тембром выбранного TTS.
+  Windows-аудиоприёмка и прослушивание остаются ручными.
 
----
+## 7. Неприкосновенные правила
 
-## 7. Ошибки, которые уже делались (не повторять)
+1. Config — в памяти, чтение через `get`, запись через `Config.set`/`config_manager`;
+   не читать/писать пользовательский JSON напрямую.
+2. Запись пользовательских данных — атомарная, `mkstemp` + `os.replace`, FileLock
+   per-path; учитывать PermissionError антивируса Windows.
+3. Не заводить новые глобальные синглтоны. Политика реакций принадлежит Speaker;
+   сессии хранят слабые ссылки, собственные блокировки и монотонное время.
+4. Flet — главный поток, из фоновых потоков взаимодействовать через GUI-очередь.
+5. `cmd_lock` сериализует GUI/голосовые команды; `_say_lock` — голос/таймеры/уведомления.
+6. Vosk API только из listener-потока. `flush()` не трогает recognizer.
+7. Per-call TTS stop-token; `wait_end()` возвращает bool. Не наслаивать новый поток
+   при незавершённом старом. Barge-in не должен оставлять хвост реакции.
+8. UIA — STA/COM и общий lock. Браузеры определяются через единый список и PID в `uia.py`.
+   Ctrl+W fallback допустим только при непрочитанных вкладках, не при не найденном имени.
+9. Опасность проверять до custom/pack-исполнения, включая все шаги макроса.
+   Пароль — SHA-256 с префиксом + `hmac.compare_digest`; не логировать/запоминать ввод.
+10. Ошибка записи задачи не превращается в «готово». ZIP — защита от Zip Slip.
+11. Системные команды с аргументами — `_looks_like_cmd`/shlex/subprocess, не os.startfile.
+12. Flet 1.x: `ft.Button`, не удалённые ElevatedButton/TextButton; COM/GUI/аудио проверять
+    отдельно на Windows. `prevent_close` + `on_event` не считать рабочей связкой в 1.0.3.
+13. PowerShell 5.1: не использовать `&&`; файлы — UTF-8 без BOM, CRLF.
+14. Новые зависимости — только после согласования; числовые библиотеки уже согласованы.
+15. Attribution jsys12 сохранять. Не коммитить личные данные, `.venv311`, models, voices,
+    dist, build, logs, backups; CC0-активы поставляются с происхождением.
 
-1. `&&` в PowerShell 5.1 **не работает** — только `;`.
-2. Правки в терминале портят UTF-8 и BOM. **Только в VS Code.**
-   `files.encoding: utf8`, `files.autoGuessEncoding: false`.
-3. `ft.ElevatedButton` / `ft.TextButton` удалены в Flet 1.x → `ft.Button`.
-4. `FindAll` не существует у `WindowControl` → `EditControl(searchFromControl=...)`,
-   `ToolBarControl(searchFromControl=..., Name="Вкладки")`.
-5. `uia.ControlTypeName` — не то; сравнивать со строками `"TabItemControl"`.
-6. `prevent_close` + `on_event` в Flet 1.0.3 не работает.
-7. `sys.stdout is None` под `pythonw.exe` — проверять.
-8. `thread.join()` на нестартованном потоке → `RuntimeError`. Проверять `is_alive()`.
-9. `wait_end` должна возвращать bool, иначе TTS накладывается.
-10. `chat_stream` терял последний чанк — `append` **до** проверки токена.
-11. `_small_talk` перехватывал «привет» / «как дела» — отдано LLM.
-12. Голое `я ` в regex профиля ловило «я хочу спать». Тире обязательно.
-13. `_do_open_folder` передавал `explicit=True`, и «открой музыку» открывала
-    папку Music вместо плеера.
-14. `snapshot.py` без проверки длины fence ломал markdown: файл, внутри которого
-    есть ```` ``` ````, нельзя заворачивать в ```` ```markdown ````.
-15. `timers.py` / `tasks.py` писали в папку кода вместо `USER_DIR`.
-16. Коммитить `.venv311`, `config.json`, `profiles/`, `system_caps.json`,
-    `timers.json`, `tasks.json`, `models/`, `voices/`, `dist/`, `build/`.
+## 8. Проверки и выпуск
 
----
-
-## 8. Контракт проверки
-
-```bat
-check_all.bat                     :: всё сразу: 4 шага + компактный итог
-python check_syntax.py            :: синтаксис всех .py, включая tests/
-python -m pytest tests\ -q        :: 317 тестов
-python tests\test_intents.py      :: 32 сценария без LLM/сети (ИТОГ: 32 / 32)
-python tests\stress_intents.py    :: 100 ситуаций (ИТОГ: 100 / 100)
-python tests\test_intents.py --llm --network   :: + LLM (3-8 мин) и погода/курс
+```powershell
+.\.venv311\Scripts\python.exe check_all.py
+.\.venv311\Scripts\python.exe snapshot.py
+.\.venv311\Scripts\python.exe snapshot.py --check
 ```
 
-Все шаги зелёные → CI пройдёт. Логи: `%APPDATA%\Phoenix\logs\`
-(`jarvis.log`, `actions.log`, `errors.log`, `launcher.log`).
+`check_all.py`: синтаксис → pytest → `test_intents.py` → `stress_intents.py`.
+Интенты: 41 сценарий, 34 без LLM/сети; стресс: 102. Число pytest зависит от
+доступных библиотек и платформы; актуальные результаты/ограничения — `tests/README.md`.
+CI дополнительно проверяет snapshot. Зелёный ограниченный Linux-прогон не заменяет
+Windows CI, живой микрофон, COM, установщик и прослушивание.
 
-**Тесты и CI — святое.** Красный CI = стоп всему. Не тестировать: GUI (нужно окно),
-звук (нет карты на CI), сеть без флага `--network`.
+Перед коммитом обновить изменённые руководства и затем сгенерировать SNAPSHOT.md
+тем же коммитом. Старые записи CHANGELOG и graphify-отчёт — история, не текущая карта.
 
----
+## 9. Дальше
 
-## 9. Что дальше
-
-По `PLAN.md` (порядок работ Фазы 1): управление приложениями ✅ → Vector memory
-✅ (Ollama-эмбеддинги + RAG, без новых пакетов) → Non-verbal → облако
-(Edge TTS / Groq) → MCP-заготовки → Telegram → спрайт-аватар →
-PyInstaller/CI + VLM + Hermes → улучшение мозгов.
-
-Сборка уже автоматизирована: `python scripts\build_setup.py` даёт `Феникс.exe` +
-`dist\Феникс_Setup.exe`. Авторелиз тоже готов (№121 ✅): пуш тега `v*` собирает
-и публикует установщик (`.github/workflows/release.yml`, подробности — `CI.md`).
-
----
-
-_Последняя правка: 13.10.2026, синхронизация с кодом и планом (инсталлятор +
-`build_setup.py`, CI-авторелиз по тегу; все тесты собраны в `tests/`,
-всё гоняется через `check_all.bat`; счётчики: 317 pytest / 32 test_intents /
-100 stress; углублённое управление браузером — единый список браузеров и
-общий запасной ход Ctrl+W на оба пути; `PLAN.md` приведён к фактам: трей ✅
-(daemon-поток), ложные ✅ у «Улучшения мозгов» сняты, составы этапов без
-номеров восстановлены по коду, Non-verbal добавлен, `tone` и трей описаны в
-README)._
-`````
+Принять Non-verbal на Windows: прямой и streaming TTS, громкость, barge-in,
+выключение на лету и SAPI fallback. Затем по `PLAN.md`: опциональное бесплатное
+облако → чистая виртуалка → MCP-заготовки → Telegram/веб → спрайт → VLM/Hermes →
+улучшение мозгов. Полноценные смысловые уточнения и калибровка ASR остаются
+отдельными задачами; выполненная защитная логика не закрывает их автоматически.
+````
 
 ---
 
@@ -242,37 +195,42 @@ README)._
 ├── .clinerules  (44 стр)
 ├── .github/
 │   ├── workflows/
-│   │   ├── README.md  (61 стр)
+│   │   ├── README.md  (74 стр)
 │   │   ├── release.yml  (114 стр)
 │   │   ├── test.yml  (71 стр)
-├── AGENTS.md  (109 стр)
-├── ARCHITECTURE.md  (969 стр)
-├── CHANGELOG.md  (1139 стр)
+├── AGENTS.md  (81 стр)
+├── ARCHITECTURE.md  (1014 стр)
+├── assets/
+│   ├── nonverbal/
+│   │   ├── README.md  (40 стр)
+│   │   ├── sources.json  (53 стр)
+├── CHANGELOG.md  (1184 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
 ├── check_syntax.py  (60 стр)
-├── CI.md  (205 стр)
+├── CI.md  (221 стр)
 ├── cmds/
 │   ├── open_terminal.bat  (3 стр)
 │   ├── show_ip.bat  (3 стр)
-├── config.example.json  (78 стр)
-├── CONTRIBUTING.md  (378 стр)
+├── config.example.json  (85 стр)
+├── CONTRIBUTING.md  (400 стр)
 ├── create_shortcut.bat  (51 стр)
 ├── install.bat  (411 стр)
-├── installer.iss  (117 стр)
+├── installer.iss  (119 стр)
 ├── jarvis/
 │   ├── __init__.py  (8 стр)
 │   ├── __main__.py  (4 стр)
 │   ├── actions.py  (1483 стр)
 │   ├── apps.py  (114 стр)
+│   ├── audio_output.py  (133 стр)
 │   ├── brain.py  (868 стр)
 │   ├── celebrations.py  (165 стр)
-│   ├── config.py  (284 стр)
+│   ├── config.py  (288 стр)
 │   ├── config_manager.py  (156 стр)
 │   ├── files.py  (109 стр)
 │   ├── first_run.py  (26 стр)
-│   ├── gui.py  (2245 стр)
+│   ├── gui.py  (2262 стр)
 │   ├── history.py  (75 стр)
 │   ├── installed.py  (51 стр)
 │   ├── intents/
@@ -327,22 +285,23 @@ README)._
 │   │   ├── time.py  (84 стр)
 │   │   ├── units.py  (85 стр)
 │   ├── learning.py  (178 стр)
-│   ├── main.py  (895 стр)
+│   ├── main.py  (896 стр)
 │   ├── matching.py  (118 стр)
 │   ├── memory.py  (147 стр)
 │   ├── memory_context.py  (124 стр)
 │   ├── model.py  (102 стр)
 │   ├── modes.py  (51 стр)
 │   ├── mood.py  (388 стр)
+│   ├── nonverbal.py  (93 стр)
 │   ├── observer.py  (203 стр)
 │   ├── packs.py  (117 стр)
-│   ├── paths.py  (216 стр)
+│   ├── paths.py  (230 стр)
 │   ├── persona.py  (226 стр)
 │   ├── profile.py  (489 стр)
 │   ├── prosody.py  (152 стр)
 │   ├── recognition.py  (154 стр)
 │   ├── recorder.py  (171 стр)
-│   ├── reply.py  (25 стр)
+│   ├── reply.py  (26 стр)
 │   ├── safety.py  (213 стр)
 │   ├── steam.py  (67 стр)
 │   ├── stt.py  (685 стр)
@@ -350,15 +309,15 @@ README)._
 │   ├── text_utils.py  (98 стр)
 │   ├── timers.py  (326 стр)
 │   ├── tray.py  (192 стр)
-│   ├── tts.py  (403 стр)
+│   ├── tts.py  (384 стр)
 │   ├── tts_engines/
 │   │   ├── __init__.py  (12 стр)
-│   │   ├── base.py  (62 стр)
+│   │   ├── base.py  (73 стр)
 │   │   ├── factory.py  (159 стр)
-│   │   ├── piper.py  (210 стр)
+│   │   ├── piper.py  (190 стр)
 │   │   ├── sapi.py  (118 стр)
-│   │   ├── silero.py  (215 стр)
-│   │   ├── winrt.py  (158 стр)
+│   │   ├── silero.py  (203 стр)
+│   │   ├── winrt.py  (137 стр)
 │   ├── uia.py  (1027 стр)
 │   ├── vad.py  (584 стр)
 │   ├── vectormem.py  (788 стр)
@@ -373,11 +332,11 @@ README)._
 │   ├── sites.json  (22 стр)
 │   ├── system.json  (17 стр)
 │   ├── work.json  (11 стр)
-├── PLAN.md  (1080 стр)
-├── PROJECT.md  (220 стр)
-├── PROMPT.md  (509 стр)
+├── PLAN.md  (1097 стр)
+├── PROJECT.md  (172 стр)
+├── PROMPT.md  (526 стр)
 ├── pytest.ini  (20 стр)
-├── README.md  (1012 стр)
+├── README.md  (1078 стр)
 ├── requirements-ci.txt  (36 стр)
 ├── requirements-dev.txt  (10 стр)
 ├── requirements.txt  (63 стр)
@@ -402,12 +361,13 @@ README)._
 │   ├── __init__.py  (0 стр)
 │   ├── conftest.py  (20 стр)
 │   ├── manual/
+│   │   ├── nonverbal_live.py  (35 стр)
 │   │   ├── uia_close_probe.py  (82 стр)
 │   │   ├── uia_dump.py  (47 стр)
 │   │   ├── uia_manual.py  (61 стр)
 │   │   ├── vad_debug.py  (61 стр)
 │   │   ├── vad_live.py  (41 стр)
-│   ├── README.md  (70 стр)
+│   ├── README.md  (114 стр)
 │   ├── stress_intents.py  (552 стр)
 │   ├── test_audit_regressions.py  (252 стр)
 │   ├── test_brain_rag.py  (125 стр)
@@ -421,6 +381,7 @@ README)._
 │   ├── test_main_wiring.py  (202 стр)
 │   ├── test_memory_scope.py  (132 стр)
 │   ├── test_mood.py  (386 стр)
+│   ├── test_nonverbal.py  (396 стр)
 │   ├── test_numeric_language.py  (521 стр)
 │   ├── test_persona.py  (155 стр)
 │   ├── test_prosody.py  (83 стр)
@@ -519,6 +480,16 @@ README)._
     def resolve_open(self)
   def build_apps(config: dict)
   def find_app(apps: list[App], target: str)
+```
+
+**`jarvis/audio_output.py`**
+
+```
+  # Shared cancellable PCM output for Speaker and the three WAV-based TTS engines.
+  def decode_wav(data)
+  def mix_reaction(audio, rate, reaction)
+  def encode_wav(audio, rate)
+  def play_wav(wav_bytes, token, reaction=None)
 ```
 
 **`jarvis/brain.py`**
@@ -1204,6 +1175,20 @@ README)._
   def handle_mood_command(cmd: str)
 ```
 
+**`jarvis/nonverbal.py`**
+
+```
+  # Optional, bounded reaction policy. No LLM tags, text rewriting or extra audio thread.
+  SAMPLES = ...
+  REACTIONS = ...
+  def setting(config, key, default, lower, upper)
+  class Reaction
+  class Nonverbal
+    def __init__(self, config, *, clock=time.monotonic, rng=None, mood_getter=None)
+    def begin(self, token, allowed=False)
+    def take(self, token)
+```
+
 **`jarvis/observer.py`**
 
 ```
@@ -1246,6 +1231,8 @@ README)._
   def logs_dir()
   def profiles_dir()
   def config_path()
+  def nonverbal_dir()
+  def temporary_audio_file()
 ```
 
 **`jarvis/persona.py`**
@@ -1463,9 +1450,9 @@ README)._
     def set_quality(self, quality: str)
     def set_voice(self, voice: str)
     def set_rate(self, rate: float)
-    def speak(self, text: str)
-    def play_async(self, text: str)
-    def speak_stream(self, text_iter: Iterator[str], timeout: float=30.0)
+    def speak(self, text: str, *, allow_nonverbal=False)
+    def play_async(self, text: str, *, allow_nonverbal=False)
+    def speak_stream(self, text_iter: Iterator[str], timeout: float=30.0, *, allow_nonverbal=False)
     def stop(self)
     def is_playing(self)
     def wait_end(self, timeout: float=30.0)
@@ -1487,6 +1474,7 @@ README)._
     def is_available(self)
     def synthesize(self, text: str, voice: str, rate: float)
     def speak_stream(self, text_iter: Iterator[str], voice: str, rate: float, token)
+    def set_wav_player(self, player)
     def set_voice(self, voice: str)
     def set_rate(self, rate: float)
     def stop(self)
@@ -1513,7 +1501,7 @@ README)._
   # Piper TTS — быстрый, ~60 МБ, 4 голоса для русского.
   PIPER_REPO = ...
   _SENTENCE_END = ...
-  class PiperEngine
+  class PiperEngine(BaseEngine)
     def __init__(self, voice: str='ruslan', quality: str='medium', rate: float=1.15)
     def is_available(self)
     def set_voice(self, voice: str)
@@ -1544,7 +1532,7 @@ README)._
   _SAMPLE_RATE = ...
   _VERSION = ...
   _SENTENCE_END = ...
-  class SileroEngine
+  class SileroEngine(BaseEngine)
     def __init__(self, voice: str='aidar', quality: str='medium', rate: float=1.15)
     def is_available(self)
     def set_voice(self, voice: str)
@@ -1558,7 +1546,7 @@ README)._
 ```
   # WinRT TTS — системный синтез Windows, без внешних моделей.
   _SENTENCE_END = ...
-  class WinRTEngine
+  class WinRTEngine(BaseEngine)
     def __init__(self, voice: str='Pavel', quality: str='medium', rate: float=1.15)
     def is_available(self)
     def set_voice(self, voice: str)
@@ -1863,6 +1851,13 @@ README)._
 
 ```
   # Настройки pytest для папки tests/.
+```
+
+**`tests/manual/nonverbal_live.py`**
+
+```
+  # Manual sample audition; optional --mix <speech.wav>. Opens the audio output device.
+  def main()
 ```
 
 **`tests/manual/uia_close_probe.py`**
@@ -2215,6 +2210,44 @@ README)._
   def test_handle_mood_command_cheer_up()
   def test_handle_mood_command_calm_down()
   def test_handle_mood_command_none()
+```
+
+**`tests/test_nonverbal.py`**
+
+```
+  # Nonverbal policy/mixing: synthetic PCM and fake output, no TTS weights or speakers.
+  def wav(samples=None, rate=16000, channels=1, width=2)
+  def policy(tmp_path, monkeypatch)
+  def take(p, allowed=True)
+  def test_disabled_means_no_profile_or_asset_access(policy)
+  def test_only_explicit_chat_eligible(policy)
+  def test_one_reaction_per_reply_not_per_sentence(policy)
+  def test_cooldown_is_global_across_replies(policy)
+  def test_cancelled_reply_never_takes_sample(policy)
+  def test_mood_policy(policy, state, expected)
+  def test_default_probability_does_not_react_every_time(policy)
+  def test_missing_sample_is_silent_fallback(policy)
+  def test_gain_bounds(policy, gain, expected)
+  def test_thread_race_cannot_schedule_two_reactions(policy)
+  def test_live_disable_and_enable(policy)
+  def test_pcm_decode(width, channels)
+  def test_mix_uses_relative_db_and_preserves_both_channels(tmp_path)
+  def test_sample_resampling_tail_and_clipping(tmp_path)
+  def test_missing_or_bad_or_silent_sample_leaves_speech_intact(tmp_path, data)
+  def test_reaction_never_plays_without_speech(tmp_path)
+  def test_output_uses_single_stream_and_shared_stop_token()
+  def test_cancel_before_play_does_not_open_device()
+  def test_speaker_routes_sample_through_common_player(policy)
+  def test_stream_engines_share_speakers_mixer(module, cls, args)
+  def test_packaged_samples_have_provenance_and_valid_pcm()
+  def test_gui_checkbox_saves_setting_without_restart()
+  def test_device_open_failure_falls_back_before_any_output()
+  def test_partial_write_failure_is_never_replayed()
+  def test_handler_marks_only_chat_replies_eligible(chat, stream)
+  def test_installer_copies_all_nonverbal_resources()
+  def test_token_sessions_are_not_retained_after_reply(policy)
+  def test_optional_policy_error_never_suppresses_speech()
+  def test_windows_fallback_shares_stop_and_removes_temporary_wav(tmp_path, monkeypatch)
 ```
 
 **`tests/test_numeric_language.py`**
@@ -2815,13 +2848,14 @@ README)._
 | `jarvis/__main__.py` | 4 | code |  |
 | `jarvis/actions.py` | 1483 | code | Действия: запуск приложений, открытие сайтов, скриншоты, медиа, печать |
 | `jarvis/apps.py` | 114 | code | Каталог известных приложений: как их зовут голосом, как открыть и как  |
+| `jarvis/audio_output.py` | 133 | code | Shared cancellable PCM output for Speaker and the three WAV-based TTS  |
 | `jarvis/brain.py` | 868 | code | LLM-фолбэк: локальная нейронка (Ollama) разбирает команду в структурны |
 | `jarvis/celebrations.py` | 165 | code | Праздничные триггеры — поздравление с ДР + двойной салют. |
-| `jarvis/config.py` | 284 | code | Загрузка конфигурации и объект Config в памяти. |
+| `jarvis/config.py` | 288 | code | Загрузка конфигурации и объект Config в памяти. |
 | `jarvis/config_manager.py` | 156 | code | Единый менеджер записи в config.json. |
 | `jarvis/files.py` | 109 | code | Файлы и папки: открыть, посмотреть содержимое, создать. |
 | `jarvis/first_run.py` | 26 | code | Первый запуск — знакомство через LLM-диалог. |
-| `jarvis/gui.py` | 2245 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
+| `jarvis/gui.py` | 2262 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
 | `jarvis/history.py` | 75 | code | История последних действий для отмены («стоп, не то»). |
 | `jarvis/installed.py` | 51 | code | Индекс установленных программ по ярлыкам меню «Пуск». |
 | `jarvis/intents/__init__.py` | 10 | code | Разбор команд Феникса — пакет. |
@@ -2872,22 +2906,23 @@ README)._
 | `jarvis/language/time.py` | 84 | code | Duration grammar with source spans. Uses the shared numeral/unit vocab |
 | `jarvis/language/units.py` | 85 | code | Semantic unit lexicon shared by input and output; spelling is data, no |
 | `jarvis/learning.py` | 178 | code | Самообучение Феникса: факты и коррекции. |
-| `jarvis/main.py` | 895 | code | Точка входа: связывает распознавание, интенты, синтез речи и GUI. |
+| `jarvis/main.py` | 896 | code | Точка входа: связывает распознавание, интенты, синтез речи и GUI. |
 | `jarvis/matching.py` | 118 | code | Нечёткое сопоставление речи с названиями: транслитерация + difflib. |
 | `jarvis/memory.py` | 147 | code | Память диалога — на профиль. |
 | `jarvis/memory_context.py` | 124 | code | Query-scoped personal memory. Absence/uncertainty never means 'send ev |
 | `jarvis/model.py` | 102 | code | Скачивание и распаковка модели Vosk для русского языка (~45 МБ). |
 | `jarvis/modes.py` | 51 | code | Режимы работы Феникса: commands, llm, combo. |
 | `jarvis/mood.py` | 388 | code | Mood — эмоциональное состояние ассистента. |
+| `jarvis/nonverbal.py` | 93 | code | Optional, bounded reaction policy. No LLM tags, text rewriting or extr |
 | `jarvis/observer.py` | 203 | code | Observer — фоновое наблюдение за диалогом. |
 | `jarvis/packs.py` | 117 | code | Загрузка и выгрузка паков команд из папки packs/. |
-| `jarvis/paths.py` | 216 | code | Централизованное определение путей Феникса. |
+| `jarvis/paths.py` | 230 | code | Централизованное определение путей Феникса. |
 | `jarvis/persona.py` | 226 | code | Персона ассистента — стиль общения, черты, backstory, tone. |
 | `jarvis/profile.py` | 489 | code | Профиль пользователя — мультипрофиль. |
 | `jarvis/prosody.py` | 152 | code | Prosody — эмоции из голоса (RMS + pitch + ZCR). |
 | `jarvis/recognition.py` | 154 | code | Measurable ASR acceptance policy, not a blacklist of 'strange' words. |
 | `jarvis/recorder.py` | 171 | code | Запись действий: клавиши, клики, паузы. |
-| `jarvis/reply.py` | 25 | code | Reply — результат IntentHandler.handle(). |
+| `jarvis/reply.py` | 26 | code | Reply — результат IntentHandler.handle(). |
 | `jarvis/safety.py` | 213 | code | Постфильтр ответов LLM — вторая линия «красной черты». |
 | `jarvis/steam.py` | 67 | code | Индекс установленных игр Steam: appmanifest -> (название, appid). |
 | `jarvis/stt.py` | 685 | code | Распознавание речи. |
@@ -2895,14 +2930,14 @@ README)._
 | `jarvis/text_utils.py` | 98 | code | Общие текстовые утилиты для Феникса. |
 | `jarvis/timers.py` | 326 | code | Таймеры и напоминания. |
 | `jarvis/tray.py` | 192 | code | Иконка в системном трее (pystray). |
-| `jarvis/tts.py` | 403 | code | Синтез речи — фасад над tts_engines. |
+| `jarvis/tts.py` | 384 | code | Синтез речи — фасад над tts_engines. |
 | `jarvis/tts_engines/__init__.py` | 12 | code | TTS-движки Феникса — абстракция над Piper, Silero, WinRT, SAPI. |
-| `jarvis/tts_engines/base.py` | 62 | code | Базовый класс TTS-движка. |
+| `jarvis/tts_engines/base.py` | 73 | code | Базовый класс TTS-движка. |
 | `jarvis/tts_engines/factory.py` | 159 | code | Фабрика TTS-движков. |
-| `jarvis/tts_engines/piper.py` | 210 | code | Piper TTS — быстрый, ~60 МБ, 4 голоса для русского. |
+| `jarvis/tts_engines/piper.py` | 190 | code | Piper TTS — быстрый, ~60 МБ, 4 голоса для русского. |
 | `jarvis/tts_engines/sapi.py` | 118 | code | SAPI TTS — старый Windows-синтез через pyttsx3. |
-| `jarvis/tts_engines/silero.py` | 215 | code | Silero TTS v5_5 — русский голос, ~150 МБ, требует PyTorch. |
-| `jarvis/tts_engines/winrt.py` | 158 | code | WinRT TTS — системный синтез Windows, без внешних моделей. |
+| `jarvis/tts_engines/silero.py` | 203 | code | Silero TTS v5_5 — русский голос, ~150 МБ, требует PyTorch. |
+| `jarvis/tts_engines/winrt.py` | 137 | code | WinRT TTS — системный синтез Windows, без внешних моделей. |
 | `jarvis/uia.py` | 1027 | code | UI Automation — видим окна и элементы интерфейса. |
 | `jarvis/vad.py` | 584 | code | Silero VAD — детекция речи в аудио-потоке с адаптивным порогом. |
 | `jarvis/vectormem.py` | 788 | code | Векторная память фактов (RAG) — на профиль. |
@@ -2923,6 +2958,7 @@ README)._
 | `scripts/wakebench.py` | 88 | code | Бенчмарк кандидатов в wake-слово: TTS (Pavel) -> Vosk-small -> что усл |
 | `tests/__init__.py` | 0 | code |  |
 | `tests/conftest.py` | 20 | code | Настройки pytest для папки tests/. |
+| `tests/manual/nonverbal_live.py` | 35 | code | Manual sample audition; optional --mix <speech.wav>. Opens the audio o |
 | `tests/manual/uia_close_probe.py` | 82 | code | Живая проверка «закрой вкладку ютуб» (без моков). |
 | `tests/manual/uia_dump.py` | 47 | code | Дамп дерева UIA активного окна браузера. |
 | `tests/manual/uia_manual.py` | 61 | code | Ручная проверка UIA в браузере — без хардкода конкретного браузера. |
@@ -2941,6 +2977,7 @@ README)._
 | `tests/test_main_wiring.py` | 202 | code | config → живое ядро: подписчик make_config_listener. |
 | `tests/test_memory_scope.py` | 132 | code | Personalization should serve a question, not choose its topic. |
 | `tests/test_mood.py` | 386 | code | Тесты jarvis.mood — состояние, детекция, decay, влияние. |
+| `tests/test_nonverbal.py` | 396 | code | Nonverbal policy/mixing: synthetic PCM and fake output, no TTS weights |
 | `tests/test_numeric_language.py` | 521 | code | Executable Russian language corpus: understanding, morphology and spee |
 | `tests/test_persona.py` | 155 | code | Тесты jarvis.persona — стиль, tone, prompt-блок. |
 | `tests/test_prosody.py` | 83 | code | Тесты jarvis.prosody — эмоции из голоса (эвристика). |
@@ -4479,6 +4516,144 @@ def find_app(apps: list[App], target: str) -> App | None:
     return None
 ```
 
+### `jarvis/audio_output.py`
+
+```python
+"""Shared cancellable PCM output for Speaker and the three WAV-based TTS engines."""
+
+import io
+import logging
+import time
+import wave
+
+log = logging.getLogger("jarvis.tts")
+
+
+def decode_wav(data):
+    import numpy as np
+
+    with wave.open(io.BytesIO(data), "rb") as wf:
+        channels, width, rate, frames, compression, _ = wf.getparams()
+        if compression != "NONE" or width not in (1, 2, 3, 4) or not 1 <= channels <= 2:
+            raise ValueError("Unsupported PCM format")
+        if not 8000 <= rate <= 192000 or frames / rate > 600:
+            raise ValueError("Invalid WAV duration or sample rate")
+        raw = wf.readframes(frames)
+    if len(raw) != frames * channels * width:
+        raise ValueError("Truncated PCM data")
+    if width == 1:
+        audio = (np.frombuffer(raw, dtype=np.uint8).astype(np.float32) - 128) / 128
+    elif width == 3:
+        b = np.frombuffer(raw, dtype=np.uint8).reshape(-1, 3).astype(np.int32)
+        x = b[:, 0] | b[:, 1] << 8 | b[:, 2] << 16
+        audio = ((x ^ 0x800000) - 0x800000).astype(np.float32) / 8388608
+    else:
+        audio = np.frombuffer(raw, dtype="<i2" if width == 2 else "<i4").astype(
+            np.float32
+        )
+        audio /= float(2 ** (width * 8 - 1))
+    return audio.reshape(-1, channels), rate
+
+
+def mix_reaction(audio, rate, reaction):
+    """Mix relative to speech RMS, resampling the short sample; never amplify speech."""
+    import numpy as np
+
+    if reaction is None or not len(audio):
+        return audio
+    try:
+        sample, sample_rate = decode_wav(reaction.path.read_bytes())
+        if not len(sample) or len(sample) / sample_rate > 3.0:
+            return audio
+        sample = sample.mean(axis=1)
+        count = max(1, round(len(sample) * rate / sample_rate))
+        sample = np.interp(
+            np.arange(count) * sample_rate / rate, np.arange(len(sample)), sample
+        ).astype(np.float32)
+        active = audio[np.abs(audio) > 0.001]
+        speech_rms = float(np.sqrt(np.mean(active**2))) if len(active) else 0
+        sample_rms = float(np.sqrt(np.mean(sample**2)))
+        if speech_rms <= 0 or sample_rms <= 0:
+            return audio
+        sample *= speech_rms / sample_rms * 10 ** (reaction.gain_db / 20)
+        mixed = np.zeros(
+            (max(len(audio), len(sample)), audio.shape[1]), dtype=np.float32
+        )
+        mixed[: len(audio)] = audio
+        mixed[: len(sample)] += sample[:, None]
+        peak = float(np.max(np.abs(mixed)))
+        if peak > 0.98:
+            mixed *= 0.98 / peak
+        return mixed
+    except (OSError, ValueError, wave.Error, EOFError):
+        log.warning(
+            "Non-verbal: повреждён или недоступен сэмпл, оставляю речь без реакции"
+        )
+        return audio
+
+
+def encode_wav(audio, rate):
+    import numpy as np
+
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as wf:
+        wf.setnchannels(audio.shape[1])
+        wf.setsampwidth(2)
+        wf.setframerate(rate)
+        wf.writeframes((np.clip(audio, -1, 1) * 32767).astype("<i2").tobytes())
+    return buf.getvalue()
+
+
+def play_wav(wav_bytes, token, reaction=None):
+    if token.is_set() or not wav_bytes:
+        return
+    audio, rate = decode_wav(wav_bytes)
+    audio = mix_reaction(audio, rate, reaction)
+    if token.is_set() or not len(audio):
+        return
+    played = False
+    try:
+        import sounddevice as sd
+
+        chunk = max(1, round(rate * 0.05))
+        with sd.OutputStream(
+            samplerate=rate, channels=audio.shape[1], dtype="float32"
+        ) as stream:
+            for i in range(0, len(audio), chunk):
+                if token.is_set():
+                    break
+                # If write fails after consuming some samples, don't replay from the beginning.
+                played = True
+                stream.write(audio[i : i + chunk])
+    except (ImportError, OSError):
+        if token.is_set():
+            return
+        if played:
+            raise
+        _play_windows(audio, rate, token)
+
+
+def _play_windows(audio, rate, token):
+    """Windows fallback only before any PCM was written; shares cancellation token."""
+    from jarvis import paths
+    import winsound
+
+    if token.is_set():
+        return
+    with paths.temporary_audio_file() as path:
+        path.write_bytes(encode_wav(audio, rate))
+        winsound.PlaySound(
+            str(path),
+            winsound.SND_FILENAME | winsound.SND_ASYNC | winsound.SND_NODEFAULT,
+        )
+        try:
+            end = time.monotonic() + len(audio) / rate
+            while time.monotonic() < end and not token.wait(0.05):
+                pass
+        finally:
+            winsound.PlaySound(None, 0)
+```
+
 ### `jarvis/brain.py`
 
 ```python
@@ -5510,6 +5685,10 @@ DEFAULT_CONFIG = {
     "tts_voice": "ruslan",
     "tts_voice_quality": "medium",
     "voice_rate": 1.15,
+    "nonverbal_enabled": False,
+    "nonverbal_cooldown_sec": 45.0,
+    "nonverbal_gain_db": -15.0,
+    "nonverbal_probability": 0.2,
     "sample_rate": 16000,
     "input_device": None,
     "mic_check_sec": 20,
@@ -6837,8 +7016,18 @@ class FenixGUI:
             log.exception("_update_mic_level упал")
 
     def _build_audio_tab(self) -> ft.Control:
-        """Вкладка «Аудио» — VAD + Prosody."""
-        from jarvis import persona  # для общего стиля label
+        """Вкладка «Аудио» — Non-verbal, VAD и Prosody."""
+
+        nonverbal_enabled = ft.Checkbox(
+            label="Звуковые реакции (смех, вздохи, хм, зевок)",
+            value=bool(self.config.get("nonverbal_enabled", False)),
+            on_change=self._on_nonverbal_enabled,
+        )
+        nonverbal_hint = ft.Text(
+            "Только в диалоге, не чаще раза в 45 секунд по умолчанию. "
+            "Тише речи на 15 дБ. Silero, Piper и WinRT; SAPI — без реакций.",
+            size=11, color=TEXT_DIM,
+        )
 
         # === Prosody ===
         prosody_enabled = ft.Checkbox(
@@ -6973,6 +7162,10 @@ class FenixGUI:
                     ft.Text("Аудио", size=26, weight=ft.FontWeight.BOLD, color=TEXT),
                     ft.Container(height=20),
 
+                    _section("Звуковые реакции"),
+                    nonverbal_enabled,
+                    nonverbal_hint,
+                    ft.Container(height=25),
                     _section("Эмоции из голоса (Prosody)"),
                     prosody_enabled,
                     prosody_hint,
@@ -7184,6 +7377,9 @@ class FenixGUI:
             self._page.update()
         except Exception:
             log.exception("Не удалось показать SnackBar")
+
+    def _on_nonverbal_enabled(self, e) -> None:
+        self.config.set("nonverbal_enabled", bool(e.control.value))
 
     def _on_prosody_enabled(self, e) -> None:
         value = bool(e.control.value)
@@ -10775,10 +10971,10 @@ class IntentHandler:
             memory.append(assistant_msg)
             actions_log.info("Ответ: %r", result[:120])
             self._last_reply = result
-            return Reply(text=result)
+            return Reply(text=result, allow_nonverbal=self.last_was_chat)
 
         # result — генератор (chat_stream)
-        return Reply(stream=result)
+        return Reply(stream=result, allow_nonverbal=self.last_was_chat)
 
     def finalize_stream(self, full_text: str) -> None:
         if not full_text:
@@ -13344,9 +13540,9 @@ class Jarvis:
         barge_happened = False
         try:
             if reply.is_stream:
-                self._say_stream(reply.stream)
+                self._say_stream(reply.stream, allow_nonverbal=reply.allow_nonverbal)
             else:
-                self._say_text(reply.text)
+                self._say_text(reply.text, allow_nonverbal=reply.allow_nonverbal)
             barge_happened = (
                 self.barge_enabled
                 and self.listener is not None
@@ -13363,7 +13559,7 @@ class Jarvis:
                 self.gui.set_state("idle")
         return barge_happened
 
-    def _say_text(self, text: str) -> None:
+    def _say_text(self, text: str, *, allow_nonverbal=False) -> None:
         # Постфильтр «красной черты»: промпт в brain.py её только просит.
         ok, reason = safety.check_response(text)
         if not ok:
@@ -13372,7 +13568,7 @@ class Jarvis:
                 reason,
             )
             text = safety.SAFE_REPLY
-        self.speaker.play_async(text)
+        self.speaker.play_async(text, allow_nonverbal=allow_nonverbal and ok)
         while self.speaker.is_playing():
             if self.barge_enabled and self.listener is not None and self.listener.barge_flag:
                 log.info("Barge-in сработал — прерываю TTS")
@@ -13381,7 +13577,7 @@ class Jarvis:
             time.sleep(0.05)
         self.speaker.wait_end(timeout=30.0)
 
-    def _say_stream(self, gen) -> None:
+    def _say_stream(self, gen, *, allow_nonverbal=False) -> None:
         """Озвучивает стрим и показывает чанки в GUI. ... [7 строк]"""
         result = {"text": ""}
         # Состояние постфильтра: safety кладёт сюда весь текст и факт блокировки.
@@ -13399,7 +13595,8 @@ class Jarvis:
             try:
                 # Постфильтр: начало стрима придерживается до проверки.
                 self.speaker.speak_stream(
-                    _tee(safety.guard_stream(gen, guard))
+                    _tee(safety.guard_stream(gen, guard)),
+                    allow_nonverbal=allow_nonverbal,
                 )
             except Exception:
                 log.exception("Ошибка в speak_stream")
@@ -14959,6 +15156,104 @@ def handle_mood_command(cmd: str) -> str | None:
     return None
 ```
 
+### `jarvis/nonverbal.py`
+
+```python
+"""Optional, bounded reaction policy. No LLM tags, text rewriting or extra audio thread."""
+
+from dataclasses import dataclass
+import math
+from pathlib import Path
+import random
+import threading
+import time
+from weakref import WeakKeyDictionary
+
+from jarvis import paths
+
+
+SAMPLES = {
+    "laugh": "laugh.wav",
+    "sigh": "sigh.wav",
+    "hmm": "hmm.wav",
+    "yawn": "yawn.wav",
+}
+# No negative reaction to annoyance, no pretend illness/cough from an emotion.
+REACTIONS = {
+    "happy": ("laugh",),
+    "excited": ("laugh",),
+    "neutral": ("hmm",),
+    "bored": ("hmm",),
+    "tired": ("sigh", "yawn"),
+}
+
+
+def setting(config, key, default, lower, upper):
+    try:
+        value = float(config.get(key, default))
+        return min(upper, max(lower, value)) if math.isfinite(value) else default
+    except (TypeError, ValueError):
+        return default
+
+
+@dataclass(frozen=True)
+class Reaction:
+    path: Path
+    gain_db: float
+
+
+class Nonverbal:
+    """One attempt per reply token; cooldown shared across sentences and replies."""
+
+    def __init__(self, config, *, clock=time.monotonic, rng=None, mood_getter=None):
+        self.config = config
+        self.clock = clock
+        self.rng = rng or random.Random()
+        self.mood_getter = mood_getter
+        self._lock = threading.RLock()
+        self._sessions = WeakKeyDictionary()
+        self._last_at = float("-inf")
+
+    def begin(self, token, allowed=False):
+        with self._lock:
+            self._sessions[token] = bool(allowed)
+
+    def take(self, token):
+        with self._lock:
+            allowed = self._sessions.pop(token, False)
+            if (
+                not allowed
+                or token.is_set()
+                or not self.config.get("nonverbal_enabled", False)
+            ):
+                return None
+            now = self.clock()
+            cooldown = setting(
+                self.config, "nonverbal_cooldown_sec", 45.0, 10.0, 3600.0
+            )
+            if now - self._last_at < cooldown:
+                return None
+            chance = setting(self.config, "nonverbal_probability", 0.2, 0.0, 1.0)
+            if self.rng.random() >= chance:
+                return None
+            if self.mood_getter is None:
+                from jarvis import mood
+
+                state = mood.get_state()  # includes the existing prosody → mood policy
+            else:
+                state = self.mood_getter()
+            choices = REACTIONS.get(state, ())
+            if not choices:
+                return None
+            path = paths.nonverbal_dir() / SAMPLES[self.rng.choice(choices)]
+            if not path.is_file():
+                return None
+            self._last_at = now
+            return Reaction(
+                path, setting(self.config, "nonverbal_gain_db", -15.0, -18.0, -12.0)
+            )
+```
+
 ### `jarvis/observer.py`
 
 ```python
@@ -15290,7 +15585,9 @@ def handle_pack_command(cmd: str, current_active: list[str], config=None) -> tup
 import logging
 import os
 import tempfile
+import sys
 from pathlib import Path
+from contextlib import contextmanager
 
 log = logging.getLogger("jarvis.paths")
 
@@ -15461,6 +15758,18 @@ def profiles_dir() -> Path:
 def config_path() -> Path:
     """config.json — в USER_DIR."""
     return user_dir() / "config.json"
+
+def nonverbal_dir() -> Path:
+    """Read-only bundled CC0 samples; launcher install and optional frozen layout."""
+    root = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent))
+    return root / "assets" / "nonverbal"
+
+
+@contextmanager
+def temporary_audio_file():
+    """Ephemeral mixed speech for winsound fallback; removed when playback stops."""
+    with tempfile.TemporaryDirectory(prefix="fenix-tts-") as temp:
+        yield Path(temp) / "speech.wav"
 ```
 
 ### `jarvis/persona.py`
@@ -16592,6 +16901,7 @@ from typing import Iterator, Optional
 class Reply:
     text: Optional[str] = None
     stream: Optional[Iterator[str]] = None
+    allow_nonverbal: bool = False
 
     def __post_init__(self) -> None:
         if (self.text is None) == (self.stream is None):
@@ -18296,6 +18606,8 @@ log = logging.getLogger("jarvis.tts")
 
 class Speaker:
     def __init__(self, config, lazy: bool = False):
+        from jarvis.nonverbal import Nonverbal
+        self._nonverbal = Nonverbal(config if hasattr(config, "get") else {})
         self._config = config
         cfg = config if hasattr(config, "get") else {}
 
@@ -18375,6 +18687,8 @@ class Speaker:
         if engine is None:
             log.error("TTS: ни один движок не доступен")
             return
+        if hasattr(engine, "set_wav_player"):
+            engine.set_wav_player(self._play_wav)
         self._engine = engine
         self._engine_name = engine.name
         log.info("TTS: движок %s, голос %s, скорость %.2f",
@@ -18420,6 +18734,8 @@ class Speaker:
         if engine is None:
             log.warning("TTS: не удалось пересоздать движок %s", self._backend)
             return False
+        if hasattr(engine, "set_wav_player"):
+            engine.set_wav_player(self._play_wav)
         with self._init_lock:
             self._engine = engine
             self._engine_name = engine.name
@@ -18456,9 +18772,12 @@ class Speaker:
     # Stop-token
     # ------------------------------------------------------------------
 
-    def _new_token(self) -> threading.Event:
+    def _new_token(self, allow_nonverbal=False) -> threading.Event:
         with self._token_lock:
             self._current_token = threading.Event()
+            policy = getattr(self, "_nonverbal", None)
+            if policy is not None:
+                policy.begin(self._current_token, allow_nonverbal)
             return self._current_token
 
     def _current_stop(self) -> threading.Event:
@@ -18469,14 +18788,14 @@ class Speaker:
     # Публичный API
     # ------------------------------------------------------------------
 
-    def speak(self, text: str) -> None:
+    def speak(self, text: str, *, allow_nonverbal=False) -> None:
         """Синхронная озвучка (для тестов и скриптов)."""
         if not text:
             return
         text = prepare_text(text)
         if not self._ensure_engine():
             return
-        token = self._new_token()
+        token = self._new_token(allow_nonverbal)
         try:
             if self._engine_name == "sapi":
                 # SAPI играет сам, через стриминг с одним куском.
@@ -18492,7 +18811,7 @@ class Speaker:
         except Exception:
             log.exception("TTS: ошибка в speak()")
 
-    def play_async(self, text: str) -> None:
+    def play_async(self, text: str, *, allow_nonverbal=False) -> None:
         """Асинхронная озвучка одного текста."""
         if not text:
             return
@@ -18509,7 +18828,7 @@ class Speaker:
             )
             return
 
-        token = self._new_token()
+        token = self._new_token(allow_nonverbal)
         with self._play_lock:
             self._playing = True
 
@@ -18535,7 +18854,7 @@ class Speaker:
         self._play_thread.start()
 
     def speak_stream(self, text_iter: Iterator[str],
-                     timeout: float = 30.0) -> str:
+                     timeout: float = 30.0, *, allow_nonverbal=False) -> str:
         """Стриминг: озвучивает по предложениям. ... [3 строк]"""
         if not self._ensure_engine():
             # Просто вычитываем генератор, чтобы ничего не зависло
@@ -18544,7 +18863,7 @@ class Speaker:
         self.stop()
         self.wait_end(timeout=1.0)
 
-        token = self._new_token()
+        token = self._new_token(allow_nonverbal)
         with self._play_lock:
             self._playing = True
             # Публикуем поток: иначе is_playing()/wait_end() во время
@@ -18605,44 +18924,16 @@ class Speaker:
     # ------------------------------------------------------------------
 
     def _play_wav(self, wav_bytes: bytes, token: threading.Event) -> None:
-        """Играет WAV-байты через sounddevice с проверкой токена."""
-        import io
-        import wave
-
-        import numpy as np
-
-        try:
-            import sounddevice as sd
-        except ImportError:
-            log.warning("TTS: sounddevice недоступен, играю через winsound")
-            import winsound
-            winsound.PlaySound(wav_bytes, winsound.SND_MEMORY)
-            return
-
-        with wave.open(io.BytesIO(wav_bytes)) as wf:
-            rate = wf.getframerate()
-            channels = wf.getnchannels()
-            width = wf.getsampwidth()
-            frames = wf.readframes(wf.getnframes())
-
-        dtype = {1: "int8", 2: "int16", 4: "int32"}.get(width, "int16")
-        audio = np.frombuffer(frames, dtype=dtype)
-        if channels > 1:
-            audio = audio.reshape(-1, channels)
-
-        chunk = int(rate * 0.05)
-        try:
-            with sd.OutputStream(samplerate=rate, channels=channels,
-                                 dtype=dtype) as stream:
-                for i in range(0, len(audio), chunk):
-                    if token.is_set():
-                        log.info("TTS: воспроизведение прервано")
-                        break
-                    stream.write(audio[i:i + chunk])
-        except Exception:
-            log.exception("TTS: sounddevice упал, fallback winsound")
-            import winsound
-            winsound.PlaySound(wav_bytes, winsound.SND_MEMORY)
+        """Единый микшер для прямой и потоковой PCM-озвучки."""
+        from jarvis.audio_output import play_wav
+        policy = getattr(self, "_nonverbal", None)
+        reaction = None
+        if policy is not None:
+            try:
+                reaction = policy.take(token)
+            except Exception:
+                log.exception("Non-verbal: ошибка необязательной реакции; продолжаю речь")
+        play_wav(wav_bytes, token, reaction)
 
 
 # Список доступных движков — для GUI/CLI
@@ -18708,6 +18999,17 @@ class BaseEngine(ABC):
                      rate: float, token) -> str:
         """Стриминг: озвучивает по мере поступления текста. ... [4 строк]"""
         ...
+
+    def set_wav_player(self, player) -> None:
+        """Speaker supplies one output/mixing path for normal and streamed speech."""
+        self._wav_player = player
+
+    def _output_wav(self, wav_bytes, token) -> None:
+        player = getattr(self, "_wav_player", None)
+        if player is None:
+            from jarvis.audio_output import play_wav
+            player = play_wav
+        player(wav_bytes, token)
 
     def set_voice(self, voice: str) -> None:
         """Сменить голос (переопределяется, если движок поддерживает)."""
@@ -18868,6 +19170,8 @@ def list_engines() -> list[str]:
 
 import io
 import logging
+
+from jarvis.tts_engines.base import BaseEngine
 import re
 import wave
 
@@ -18878,7 +19182,7 @@ PIPER_REPO = "rhasspy/piper-voices"
 _SENTENCE_END = re.compile(r"[.!?…]+\s+")
 
 
-class PiperEngine:
+class PiperEngine(BaseEngine):
     name = "piper"
 
     voices = {
@@ -19032,7 +19336,6 @@ class PiperEngine:
 
     def _play(self, sentence: str, token):
         from jarvis.text_utils import prepare_text
-        import numpy as np
 
         text = prepare_text(sentence)
         if not text.strip().strip("\u200b\u200c\u200d\ufeff\u00ad"):
@@ -19040,28 +19343,7 @@ class PiperEngine:
         wav = self.synthesize(text)
         if not wav or token.is_set():
             return
-        try:
-            import sounddevice as sd
-            with wave.open(io.BytesIO(wav)) as wf:
-                rate_hz = wf.getframerate()
-                channels = wf.getnchannels()
-                width = wf.getsampwidth()
-                frames = wf.readframes(wf.getnframes())
-
-            dtype = {1: "int8", 2: "int16", 4: "int32"}.get(width, "int16")
-            audio = np.frombuffer(frames, dtype=dtype)
-            if channels > 1:
-                audio = audio.reshape(-1, channels)
-
-            chunk = int(rate_hz * 0.05)
-            with sd.OutputStream(samplerate=rate_hz, channels=channels,
-                                 dtype=dtype) as stream:
-                for i in range(0, len(audio), chunk):
-                    if token.is_set():
-                        break
-                    stream.write(audio[i:i + chunk])
-        except Exception:
-            log.exception("Piper: ошибка воспроизведения")
+        self._output_wav(wav, token)
 ```
 
 ### `jarvis/tts_engines/sapi.py`
@@ -19191,6 +19473,8 @@ class SAPIEngine:
 
 import io
 import logging
+
+from jarvis.tts_engines.base import BaseEngine
 import os
 import re
 import threading
@@ -19230,7 +19514,7 @@ _VERSION = "v5_5_ru"
 _SENTENCE_END = re.compile(r"[.!?…]+\s+")
 
 
-class SileroEngine:
+class SileroEngine(BaseEngine):
     name = "silero"
 
     voices = {
@@ -19379,21 +19663,7 @@ class SileroEngine:
         if not wav or token.is_set():
             return
 
-        try:
-            import sounddevice as sd
-            with wave.open(io.BytesIO(wav)) as wf:
-                rate_hz = wf.getframerate()
-                frames = wf.readframes(wf.getnframes())
-            audio = np.frombuffer(frames, dtype=np.int16)
-            chunk = int(rate_hz * 0.05)
-            with sd.OutputStream(samplerate=rate_hz, channels=1,
-                                 dtype="int16") as stream:
-                for i in range(0, len(audio), chunk):
-                    if token.is_set():
-                        break
-                    stream.write(audio[i:i + chunk])
-        except Exception:
-            log.exception("Silero: ошибка воспроизведения")
+        self._output_wav(wav, token)
 ```
 
 ### `jarvis/tts_engines/winrt.py`
@@ -19402,17 +19672,17 @@ class SileroEngine:
 """WinRT TTS — системный синтез Windows, без внешних моделей. ... [4 строк]"""
 
 import asyncio
-import io
 import logging
+
+from jarvis.tts_engines.base import BaseEngine
 import re
-import wave
 
 log = logging.getLogger("jarvis.tts")
 
 _SENTENCE_END = re.compile(r"[.!?…]+\s+")
 
 
-class WinRTEngine:
+class WinRTEngine(BaseEngine):
     name = "winrt"
 
     voices = {
@@ -19493,7 +19763,6 @@ class WinRTEngine:
     def speak_stream(self, text_iter, voice: str, rate: float,
                      token) -> str:
         """WinRT стриминг (наивный — по предложениям)."""
-        from jarvis.text_utils import prepare_text
 
         buffer = ""
         full_parts = []
@@ -19525,7 +19794,6 @@ class WinRTEngine:
 
     def _play(self, sentence: str, voice: str, rate: float, token):
         from jarvis.text_utils import prepare_text
-        import numpy as np
 
         text = prepare_text(sentence)
         if not text.strip().strip("\u200b\u200c\u200d\ufeff\u00ad"):
@@ -19533,26 +19801,7 @@ class WinRTEngine:
         wav = self.synthesize(text, voice, rate)
         if not wav or token.is_set():
             return
-        try:
-            import sounddevice as sd
-            with wave.open(io.BytesIO(wav)) as wf:
-                rate_hz = wf.getframerate()
-                channels = wf.getnchannels()
-                width = wf.getsampwidth()
-                frames = wf.readframes(wf.getnframes())
-            dtype = {1: "int8", 2: "int16", 4: "int32"}.get(width, "int16")
-            audio = np.frombuffer(frames, dtype=dtype)
-            if channels > 1:
-                audio = audio.reshape(-1, channels)
-            chunk = int(rate_hz * 0.05)
-            with sd.OutputStream(samplerate=rate_hz, channels=channels,
-                                 dtype=dtype) as stream:
-                for i in range(0, len(audio), chunk):
-                    if token.is_set():
-                        break
-                    stream.write(audio[i:i + chunk])
-        except Exception:
-            log.exception("WinRT: ошибка воспроизведения")
+        self._output_wav(wav, token)
 ```
 
 ### `jarvis/uia.py`
@@ -23431,6 +23680,46 @@ if __name__ == "__main__":
 collect_ignore = ["test_intents.py"]
 ```
 
+### `tests/manual/nonverbal_live.py`
+
+```python
+"""Manual sample audition; optional --mix <speech.wav>. Opens the audio output device."""
+
+import argparse
+from pathlib import Path
+import sys
+import threading
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+
+def main():
+    from jarvis import paths
+    from jarvis.audio_output import decode_wav, encode_wav, play_wav
+    from jarvis.nonverbal import Reaction, SAMPLES
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--kind", choices=sorted(SAMPLES), default="hmm")
+    parser.add_argument(
+        "--mix",
+        type=Path,
+        help="Recorded or synthesized speech WAV, not a live microphone",
+    )
+    args = parser.parse_args()
+    sample = paths.nonverbal_dir() / SAMPLES[args.kind]
+    token = threading.Event()
+    if args.mix:
+        play_wav(args.mix.read_bytes(), token, Reaction(sample, -15))
+    else:
+        audio, rate = decode_wav(sample.read_bytes())
+        play_wav(encode_wav(audio * 10 ** (-15 / 20), rate), token)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+```
+
 ### `tests/manual/uia_close_probe.py`
 
 ```python
@@ -26864,6 +27153,407 @@ def test_handle_mood_command_none():
     """Не наша команда → None."""
     assert mood.handle_mood_command("открой стим") is None
     assert mood.handle_mood_command("какая погода") is None
+```
+
+### `tests/test_nonverbal.py`
+
+```python
+"""Nonverbal policy/mixing: synthetic PCM and fake output, no TTS weights or speakers."""
+
+import ast
+import hashlib
+import io
+import json
+from pathlib import Path
+import sys
+import threading
+from types import SimpleNamespace as NS
+from unittest.mock import Mock, patch
+import wave
+
+import numpy as np
+import pytest
+
+from jarvis import audio_output, paths
+from jarvis.nonverbal import Nonverbal, Reaction, SAMPLES
+from jarvis.reply import Reply
+from jarvis.tts import Speaker
+
+
+def wav(samples=None, rate=16000, channels=1, width=2):
+    samples = np.full((1600, channels), 0.1) if samples is None else samples
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as wf:
+        wf.setnchannels(channels)
+        wf.setsampwidth(width)
+        wf.setframerate(rate)
+        if width == 1:
+            raw = (np.asarray(samples) * 128 + 128).astype("uint8").tobytes()
+        elif width == 3:
+            x = (np.asarray(samples) * 8388607).astype("int32").reshape(-1)
+            raw = (
+                np.stack([x & 255, (x >> 8) & 255, (x >> 16) & 255], axis=1)
+                .astype("uint8")
+                .tobytes()
+            )
+        else:
+            raw = (
+                (np.asarray(samples) * (2 ** (8 * width - 1) - 1))
+                .astype("<i2" if width == 2 else "<i4")
+                .tobytes()
+            )
+        wf.writeframes(raw)
+    return buf.getvalue()
+
+
+@pytest.fixture
+def policy(tmp_path, monkeypatch):
+    for name in SAMPLES.values():
+        (tmp_path / name).write_bytes(wav())
+    monkeypatch.setattr(paths, "nonverbal_dir", lambda: tmp_path)
+    clock = Mock(return_value=100)
+    cfg = {"nonverbal_enabled": True, "nonverbal_probability": 1.0}
+    return Nonverbal(
+        cfg,
+        clock=clock,
+        rng=NS(random=lambda: 0, choice=lambda x: x[0]),
+        mood_getter=lambda: "happy",
+    )
+
+
+def take(p, allowed=True):
+    token = threading.Event()
+    p.begin(token, allowed)
+    return p.take(token)
+
+
+def test_disabled_means_no_profile_or_asset_access(policy):
+    policy.config["nonverbal_enabled"] = False
+    policy.mood_getter = Mock(side_effect=AssertionError("disabled"))
+    assert take(policy) is None
+    policy.mood_getter.assert_not_called()
+
+
+def test_only_explicit_chat_eligible(policy):
+    assert take(policy, False) is None
+    assert take(policy) is not None
+    assert not Reply(text="Пароль?").allow_nonverbal
+    assert not Reply(text="Не расслышал").allow_nonverbal
+
+
+def test_one_reaction_per_reply_not_per_sentence(policy):
+    token = threading.Event()
+    policy.begin(token, True)
+    assert policy.take(token) is not None
+    policy.clock.return_value += 100
+    assert policy.take(token) is None
+
+
+def test_cooldown_is_global_across_replies(policy):
+    assert take(policy)
+    policy.clock.return_value = 144
+    assert take(policy) is None
+    policy.clock.return_value = 145
+    assert take(policy)
+
+
+def test_cancelled_reply_never_takes_sample(policy):
+    token = threading.Event()
+    token.set()
+    policy.begin(token, True)
+    assert policy.take(token) is None
+
+
+@pytest.mark.parametrize(
+    "state,expected",
+    [
+        ("happy", "laugh"),
+        ("excited", "laugh"),
+        ("neutral", "hmm"),
+        ("bored", "hmm"),
+        ("tired", "sigh"),
+        ("annoyed", None),
+        ("unknown", None),
+    ],
+)
+def test_mood_policy(policy, state, expected):
+    policy.mood_getter = lambda: state
+    r = take(policy)
+    assert (r.path.stem if r else None) == expected
+
+
+def test_default_probability_does_not_react_every_time(policy):
+    policy.config.pop("nonverbal_probability")
+    policy.rng = NS(random=lambda: 0.3, choice=lambda x: x[0])
+    assert take(policy) is None
+
+
+def test_missing_sample_is_silent_fallback(policy):
+    policy.mood_getter = lambda: "happy"
+    (paths.nonverbal_dir() / "laugh.wav").unlink()
+    assert take(policy) is None
+
+
+@pytest.mark.parametrize(
+    "gain,expected",
+    [(-100, -18), (100, -12), (-16, -16), ("bad", -15), (float("nan"), -15)],
+)
+def test_gain_bounds(policy, gain, expected):
+    policy.config["nonverbal_gain_db"] = gain
+    assert take(policy).gain_db == expected
+
+
+def test_thread_race_cannot_schedule_two_reactions(policy):
+    results = []
+
+    def worker():
+        results.append(take(policy))
+
+    threads = [threading.Thread(target=worker) for _ in range(10)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert sum(r is not None for r in results) == 1
+
+
+def test_live_disable_and_enable(policy):
+    policy.config["nonverbal_enabled"] = False
+    assert take(policy) is None
+    policy.config["nonverbal_enabled"] = True
+    assert take(policy)
+
+
+@pytest.mark.parametrize("width", [1, 2, 3, 4])
+@pytest.mark.parametrize("channels", [1, 2])
+def test_pcm_decode(width, channels):
+    audio, rate = audio_output.decode_wav(wav(channels=channels, width=width))
+    assert audio.shape == (1600, channels) and rate == 16000
+    assert np.allclose(audio, 0.1, atol=0.01)
+
+
+def test_mix_uses_relative_db_and_preserves_both_channels(tmp_path):
+    speech = np.full((1600, 2), 0.1, dtype="float32")
+    p = tmp_path / "reaction.wav"
+    p.write_bytes(wav())
+    mixed = audio_output.mix_reaction(speech, 16000, Reaction(p, -15))
+    assert np.allclose(mixed, 0.1 + 0.1 * 10 ** (-15 / 20), atol=1e-5)
+    assert np.all(speech == 0.1)
+
+
+def test_sample_resampling_tail_and_clipping(tmp_path):
+    p = tmp_path / "reaction.wav"
+    p.write_bytes(wav(rate=8000))
+    speech = np.full((1000, 1), 0.99, dtype="float32")
+    mixed = audio_output.mix_reaction(speech, 16000, Reaction(p, -12))
+    assert mixed.shape == (3200, 1)
+    assert abs(mixed).max() <= 0.981
+
+
+@pytest.mark.parametrize("data", [b"bad wav", b"", wav(samples=np.zeros((1600, 1)))])
+def test_missing_or_bad_or_silent_sample_leaves_speech_intact(tmp_path, data):
+    p = tmp_path / "reaction.wav"
+    p.write_bytes(data)
+    speech = np.full((1600, 1), 0.1, dtype="float32")
+    assert audio_output.mix_reaction(speech, 16000, Reaction(p, -15)) is speech
+
+
+def test_reaction_never_plays_without_speech(tmp_path):
+    p = tmp_path / "reaction.wav"
+    p.write_bytes(wav())
+    speech = np.zeros((1600, 1), dtype="float32")
+    assert audio_output.mix_reaction(speech, 16000, Reaction(p, -15)) is speech
+
+
+def test_output_uses_single_stream_and_shared_stop_token():
+    token = threading.Event()
+    stream = Mock()
+    stream.__enter__ = Mock(return_value=stream)
+    stream.__exit__ = Mock(return_value=False)
+    stream.write.side_effect = lambda _: token.set()
+    sd = NS(OutputStream=Mock(return_value=stream))
+    with patch.dict(sys.modules, {"sounddevice": sd}):
+        audio_output.play_wav(wav(), token)
+    sd.OutputStream.assert_called_once()
+    stream.write.assert_called_once()
+    assert sd.OutputStream.call_args.kwargs["dtype"] == "float32"
+
+
+def test_cancel_before_play_does_not_open_device():
+    token = threading.Event()
+    token.set()
+    sd = NS(OutputStream=Mock())
+    with patch.dict(sys.modules, {"sounddevice": sd}):
+        audio_output.play_wav(wav(), token)
+    sd.OutputStream.assert_not_called()
+
+
+def test_speaker_routes_sample_through_common_player(policy):
+    speaker = Speaker.__new__(Speaker)
+    speaker._nonverbal = policy
+    token = threading.Event()
+    policy.begin(token, True)
+    with patch("jarvis.audio_output.play_wav") as play:
+        speaker._play_wav(wav(), token)
+    assert play.call_args.args[1] is token
+    assert play.call_args.args[2].path.name == "laugh.wav"
+
+
+@pytest.mark.parametrize(
+    "module,cls,args",
+    [
+        ("piper", "PiperEngine", ("Привет.",)),
+        ("silero", "SileroEngine", ("Привет.", "aidar", 1.0)),
+        ("winrt", "WinRTEngine", ("Привет.", "Pavel", 1.0)),
+    ],
+)
+def test_stream_engines_share_speakers_mixer(module, cls, args):
+    import importlib
+
+    engine_class = getattr(importlib.import_module("jarvis.tts_engines." + module), cls)
+    engine = engine_class.__new__(engine_class)
+    engine.synthesize = Mock(return_value=wav())
+    output = Mock()
+    engine.set_wav_player(output)
+    token = threading.Event()
+    engine._play(*args, token)
+    output.assert_called_once_with(engine.synthesize.return_value, token)
+
+
+def test_packaged_samples_have_provenance_and_valid_pcm():
+    root = Path(__file__).resolve().parents[1] / "assets/nonverbal"
+    rows = json.loads((root / "sources.json").read_text())["samples"]
+    assert {r["file"] for r in rows} == set(SAMPLES.values())
+    for r in rows:
+        data = (root / r["file"]).read_bytes()
+        assert r["license"] == "CC0-1.0" and r["source"].startswith(
+            "https://freesound.org/"
+        )
+        assert hashlib.sha256(data).hexdigest() == r["sha256"]
+        audio, rate = audio_output.decode_wav(data)
+        assert 0 < len(audio) / rate <= 3 and abs(audio).max() > 0.01
+
+
+def test_gui_checkbox_saves_setting_without_restart():
+    source = Path(__file__).resolve().parents[1] / "jarvis/gui.py"
+    tree = ast.parse(source.read_text())
+    cls = next(
+        n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == "FenixGUI"
+    )
+    method = next(
+        n
+        for n in cls.body
+        if isinstance(n, ast.FunctionDef) and n.name == "_on_nonverbal_enabled"
+    )
+    env = {}
+    exec(compile(ast.Module(body=[method], type_ignores=[]), str(source), "exec"), env)
+    gui = NS(config=NS(set=Mock()))
+    env["_on_nonverbal_enabled"](gui, NS(control=NS(value=True)))
+    gui.config.set.assert_called_once_with("nonverbal_enabled", True)
+
+
+def test_device_open_failure_falls_back_before_any_output():
+    sd = NS(OutputStream=Mock(side_effect=OSError("no device")))
+    token = threading.Event()
+    with (
+        patch.dict(sys.modules, {"sounddevice": sd}),
+        patch("jarvis.audio_output._play_windows") as fallback,
+    ):
+        audio_output.play_wav(wav(), token)
+    fallback.assert_called_once()
+    assert fallback.call_args.args[-1] is token
+
+
+def test_partial_write_failure_is_never_replayed():
+    token = threading.Event()
+    stream = Mock()
+    stream.__enter__ = Mock(return_value=stream)
+    stream.__exit__ = Mock(return_value=False)
+    stream.write.side_effect = OSError("device lost")
+    sd = NS(OutputStream=Mock(return_value=stream))
+    with (
+        patch.dict(sys.modules, {"sounddevice": sd}),
+        patch("jarvis.audio_output._play_windows") as fallback,
+    ):
+        with pytest.raises(OSError):
+            audio_output.play_wav(wav(), token)
+    fallback.assert_not_called()
+
+
+@pytest.mark.parametrize("chat", [False, True])
+@pytest.mark.parametrize("stream", [False, True])
+def test_handler_marks_only_chat_replies_eligible(chat, stream):
+    from collections import deque
+    from jarvis.intents.handler import IntentHandler
+
+    h = IntentHandler.__new__(IntentHandler)
+    h._pending_password = None
+    h.mode = "combo"
+    h._recent_phrases = deque()
+    h.dialog = deque()
+
+    def handle(_):
+        h.last_was_chat = chat
+        return iter(["Ответ."]) if stream else "Ответ."
+
+    h._handle_single = handle
+    with patch("jarvis.memory.append"), patch("jarvis.mood.apply_from_text"):
+        reply = h.handle("Расскажи о космосе")
+    assert reply.allow_nonverbal is chat
+
+
+def test_installer_copies_all_nonverbal_resources():
+    installer = Path(__file__).resolve().parents[1] / "installer.iss"
+    text = installer.read_text()
+    assert 'Source: "assets\\nonverbal\\*"' in text
+    assert 'DestDir: "{app}\\assets\\nonverbal"' in text
+
+
+def test_token_sessions_are_not_retained_after_reply(policy):
+    import gc
+
+    token = threading.Event()
+    policy.begin(token, True)
+    assert len(policy._sessions) == 1
+    del token
+    gc.collect()
+    assert not policy._sessions
+
+
+def test_optional_policy_error_never_suppresses_speech():
+    speaker = Speaker.__new__(Speaker)
+    speaker._nonverbal = NS(take=Mock(side_effect=OSError("profile unavailable")))
+    token = threading.Event()
+    data = wav()
+    with patch("jarvis.audio_output.play_wav") as play:
+        speaker._play_wav(data, token)
+    play.assert_called_once_with(data, token, None)
+
+
+def test_windows_fallback_shares_stop_and_removes_temporary_wav(tmp_path, monkeypatch):
+    import tempfile
+
+    token = threading.Event()
+    seen = []
+
+    def play(name, flags):
+        if name is not None:
+            path = Path(name)
+            assert path.is_file()
+            seen.append(path)
+            audio_output.decode_wav(path.read_bytes())
+            token.set()
+
+    winsound = NS(
+        PlaySound=Mock(side_effect=play), SND_FILENAME=1, SND_ASYNC=2, SND_NODEFAULT=4
+    )
+    monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))
+    with patch.dict(sys.modules, {"winsound": winsound}):
+        audio_output._play_windows(
+            np.full((1600, 1), 0.1, dtype="float32"), 16000, token
+        )
+    assert len(seen) == 1 and not seen[0].exists()
+    assert winsound.PlaySound.call_args.args == (None, 0)
 ```
 
 ### `tests/test_numeric_language.py`
@@ -33308,6 +33998,64 @@ jobs:
         run: python tests/stress_intents.py
 ```
 
+### `assets/nonverbal/sources.json`
+
+```json
+{
+  "schema_version": 1,
+  "samples": [
+    {
+      "file": "laugh.wav",
+      "author": "cchenail",
+      "source": "https://freesound.org/people/cchenail/sounds/611480/",
+      "downloaded_preview": "https://cdn.freesound.org/previews/611/611480_7864610-hq.mp3",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "source_start_sec": 2.2,
+      "duration_sec": 0.9500226757369614,
+      "modifications": "CC0 HQ preview excerpt; mono 22050 Hz PCM16; peak -1.94 dBFS; 15 ms fades",
+      "sha256": "b6dde1adc6228f545c9d14d200b61a916ec3667135cd76cd286476bfa4193a6c"
+    },
+    {
+      "file": "sigh.wav",
+      "author": "ValentinPetiteau",
+      "source": "https://freesound.org/people/ValentinPetiteau/sounds/569568/",
+      "downloaded_preview": "https://cdn.freesound.org/previews/569/569568_10443988-hq.mp3",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "source_start_sec": 1.84,
+      "duration_sec": 1.0,
+      "modifications": "CC0 HQ preview excerpt; mono 22050 Hz PCM16; peak -1.94 dBFS; 15 ms fades",
+      "sha256": "59d741ede33a9af4cb56766a7ffbcd3a9c0bf9087aafd56d3e80723c1889ca7f"
+    },
+    {
+      "file": "hmm.wav",
+      "author": "esperar",
+      "source": "https://freesound.org/people/esperar/sounds/170777/",
+      "downloaded_preview": "https://cdn.freesound.org/previews/170/170777_377731-hq.mp3",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "source_start_sec": 1.2,
+      "duration_sec": 0.62,
+      "modifications": "CC0 HQ preview excerpt; mono 22050 Hz PCM16; peak -1.94 dBFS; 15 ms fades",
+      "sha256": "b5d72ca04e108942d8c33251d091710a0137c1f7ba7ca9a7c6307057da4a8d8a"
+    },
+    {
+      "file": "yawn.wav",
+      "author": "OwlStorm",
+      "source": "https://freesound.org/people/OwlStorm/sounds/151240/",
+      "downloaded_preview": "https://cdn.freesound.org/previews/151/151240_140737-hq.mp3",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "source_start_sec": 0.25,
+      "duration_sec": 1.7,
+      "modifications": "CC0 HQ preview excerpt; mono 22050 Hz PCM16; peak -1.94 dBFS; 15 ms fades",
+      "sha256": "810b9e463604876d620aeed0120bad8b612499058d8a6761609aecd03cccfed3"
+    }
+  ]
+}
+```
+
 ### `check_all.bat`
 
 ```batch
@@ -33436,7 +34184,6 @@ pause
   "llm_timeout": 45.0,
   "app_paths": {},
   "custom_commands": [],
-
   "celebration_enabled": false,
   "celebration_triggers": [],
   "celebration_short_text": "Поздравляю! С днём рождения!",
@@ -33444,7 +34191,15 @@ pause
   "celebration_sound_1_plays": 2,
   "celebration_sound_2_plays": 3,
   "celebration_duration_1": 6.0,
-  "celebration_duration_2": 10.0
+  "celebration_duration_2": 10.0,
+  "nonverbal_enabled": false,
+  "nonverbal_cooldown_sec": 45.0,
+  "nonverbal_gain_db": -15.0,
+  "nonverbal_probability": 0.2,
+  "stt_min_word_confidence": 0.65,
+  "stt_min_avg_logprob": -1.0,
+  "stt_max_no_speech_prob": 0.6,
+  "stt_max_compression_ratio": 2.4
 }
 ```
 
@@ -34009,6 +34764,8 @@ Name: "{app}\runtime"
 Source: "Феникс.exe"; DestDir: "{app}"; Flags: ignoreversion
 ; Пакет jarvis (без createallsubdirs — иначе пустые __pycache__ создаются)
 Source: "jarvis\*"; DestDir: "{app}\jarvis"; Flags: ignoreversion recursesubdirs; Excludes: "__pycache__\*,*.pyc,*.pyo"
+; CC0-сэмплы звуковых реакций и сведения об источниках
+Source: "assets\nonverbal\*"; DestDir: "{app}\assets\nonverbal"; Flags: ignoreversion recursesubdirs
 ; Паки
 Source: "packs\*"; DestDir: "{app}\packs"; Flags: ignoreversion recursesubdirs
 ; Скрипты
@@ -34478,35 +35235,36 @@ pymorphy3>=2.0.3,<3
 
 ## 5. Документация (только оглавления)
 
-#### `tests/README.md` — 7 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `tests/README.md` — 9 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Тесты Феникса
   - Карта
+  - Регрессии последних изменений
+    - Ручная приёмка Non-verbal
   - Правила
   - Ручные прогоны (`tests/manual/`)
   - Зависимость от окружения
   - Логи
   - См. также
 
-#### `.github/workflows/README.md` — 4 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `.github/workflows/README.md` — 5 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Workflows
   - test.yml
   - release.yml
+  - Обновление 15.10.2026: язык, память, Non-verbal
   - Как добавить новый workflow
 
-#### `AGENTS.md` — 8 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `AGENTS.md` — 6 заголовков, полный текст не включён (дублирует PROJECT.md)
 
-- AGENTS.md — шпаргалка для AI-агентов
-  - Проект
-  - Команды (PowerShell, из `c:\jarvis`)
-  - Правила чтения (главная экономия)
-  - Конвенции кода
-  - Карта кода
-  - Ключевые API
-  - Экономия (обязательно к исполнению)
+- AGENTS.md — навигация для помощника по «Феникс»
+  - Среда и запуск
+  - Карта
+  - Контракты, которые легко сломать
+  - Конвенции и безопасность
+  - После правки
 
-#### `ARCHITECTURE.md` — 46 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `ARCHITECTURE.md` — 47 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - 🏗 Архитектура «Феникс»
   - 📑 Содержание
@@ -34518,6 +35276,7 @@ pymorphy3>=2.0.3,<3
   - 🎓 Онбординг (первый запуск)
   - 👁 Observer (фоновое извлечение фактов)
   - 🧠 Векторная память фактов (RAG)
+  - Язык, ASR quality gate и PCM-реакции
   - 🎭 Персона
   - 💗 Mood
   - 🖥 UIA
@@ -34547,13 +35306,16 @@ pymorphy3>=2.0.3,<3
     - `commit.bat`
   - 📦 Сборка и установка
     - `scripts/make_icon.py`
-    - `scripts/make_installer_images.py`
 
-#### `CHANGELOG.md` — 72 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 76 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
   - 📑 Содержание
-  - 🚧 [Unreleased] — 0.4.0
+  - 🚧 [Unreleased]
+    - 📅 Сессия 15.10.2026
+      - Добавлено
+      - Исправлено
+      - Документация и проверка
     - 📅 Сессия 14.10.2026 (вечерняя)
       - 🧠 Векторная память фактов — RAG (№51–53) ⭐ AIRI-концепция
       - 🔧 `snapshot.py --check` — почему CI был красным всегда
@@ -34587,17 +35349,14 @@ pymorphy3>=2.0.3,<3
         - 🖥 Трей снова работает (и в нём есть «Выход»)
         - 🔍 Whisper `beam_size`: замерили и оставили как есть
         - 🧪 Тесты больше не лезут в сеть и не портят рабочую модель
-    - 📅 Сессия 10.10.2026
-      - ✨ Добавлено
-        - 🧹 Технический долг (ТД)
-        - 🎭 Mood — эмоциональное состояние ассистента
 
-#### `CI.md` — 13 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CI.md` — 14 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - CI — что это и как с ним жить
   - 🎯 Что такое CI
   - 📁 Где лежит
   - 🔍 Что делает
+  - Новые регрессии и границы проверки
   - 🚀 Как смотреть результат
   - 🔧 Если упало
   - 📦 requirements-ci.txt
@@ -34608,12 +35367,13 @@ pymorphy3>=2.0.3,<3
   - 🚀 Авторелиз — release.yml (13.10.2026)
   - 📌 Полезное
 
-#### `CONTRIBUTING.md` — 32 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CONTRIBUTING.md` — 33 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Как контрибьютить в Феникс
   - 🎯 Главное правило
   - 📁 Структура
   - 📝 Правила кода
+  - Контракты языка, памяти и реакций
   - 🔒 Правила безопасности
   - 🚀 Рабочий процесс
     - 1. Правка
@@ -34643,11 +35403,12 @@ pymorphy3>=2.0.3,<3
   - 🤝 Как задавать вопросы
   - 🎯 Философия
 
-#### `PLAN.md` — 83 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `PLAN.md` — 84 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - 📋 План развития «Феникс»
   - 🎯 ФИЛОСОФИЯ ПРОЕКТА
   - 📊 СВОДКА
+  - Обновление 15.10.2026
   - ✅ СДЕЛАНО — СВОДКА
     - Сессия 14.10.2026 — CI перестал «врать» про устаревший снимок
     - Углублённое управление браузером (13.10.2026)
@@ -34665,7 +35426,7 @@ pymorphy3>=2.0.3,<3
   - 🚧 ФАЗА 1 — НАШИ ФИЧИ
     - 🆕 UI/UX
     - 🆕 Silero TTS
-    - 🆕 Non-verbal — смех, вздохи, кашель (1)
+    - 🆕 Non-verbal — звуковые реакции (1)
     - 🆕 Prosody ML — эмоции из голоса, второй этап
       - Идея A: расширенные акустические признаки (эвристика++)
       - Идея B: ML-фолбэк через audeering/wav2vec2 (гибрид)
@@ -34684,11 +35445,11 @@ pymorphy3>=2.0.3,<3
     - 🆕 Telegram + веб (2)
     - 🆕 Визуализация + Спрайт (4) ⭐ AIRI-концепция
     - 🆕 Сборка в `.exe` (2)
-    - 🆕 CI/релизы (1)
 
-#### `PROMPT.md` — 27 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `PROMPT.md` — 28 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - 🤖 ПРОМПТ для LLM — «Феникс»
+  - Актуальные контракты — 15.10.2026
   - 🎯 Контекст
   - 🎭 Как со мной работать
   - 🚨 Ошибки, которые я уже делал (не повторяй)
@@ -34716,9 +35477,11 @@ pymorphy3>=2.0.3,<3
   - 🛠 Как чинить баги
   - 📎 БЫСТРЫЕ ССЫЛКИ
 
-#### `README.md` — 60 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `README.md` — 62 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - 🦅 Феникс
+  - Обновление: язык, память и звуковые реакции
+    - Звуковые реакции — этап 1.13.6
   - 📑 Содержание
   - 🆕 Что добавлено в форке
     - 🧱 Этап 0 — рефакторинг
@@ -34756,9 +35519,13 @@ pymorphy3>=2.0.3,<3
   - ⚠️ Возможные проблемы
   - 🖼 GUI (Flet)
   - ⚙️ Режимы работы
-  - 🧠 Настройка LLM (Ollama)
-  - 📦 Паки команд
+
+#### `assets/nonverbal/README.md` — 3 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Звуковые реакции: источники и использование
+  - Ограничения
+  - Прослушивание
 
 ---
 
-_Итого по категориям — code: 150, data: 20, doc: 11, pack: 5. Режим `lean`._
+_Итого по категориям — code: 154, data: 21, doc: 12, pack: 5. Режим `lean`._

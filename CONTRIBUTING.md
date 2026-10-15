@@ -31,7 +31,7 @@ jarvis/             — пакет
 
 tests/                  — pytest-тесты
 tests/test_intents.py   — интент-тесты (без микрофона)
-tests/stress_intents.py — стресс-тест (100 ситуаций)
+tests/stress_intents.py — стресс-тест (102 ситуации)
 tests/manual/           — ручные прогоны (микрофон, UIA, ONNX)
 check_all.bat           — всё сразу: 4 шага + компактный итог
 check_syntax.py         — синтаксис всех .py
@@ -52,10 +52,10 @@ scripts/            — утилиты (make_icon, build_exe, mics, ...)
 1. **Не читай `config.json` напрямую** — `config.get()` из объекта `Config`.
 2. **Не пиши в `config.json` напрямую** — только `Config.set()` или `config_manager.save()`.
 3. **Не плоди глобальное состояние** — кроме `Config._GLOBAL`.
-4. **Нормализация (города, валюты, паков) — задача LLM.**
+4. **Числовые слоты — в `jarvis/language/` до normalize; не поручать их угадывание LLM.**
 5. **Логи в `actions.log`** — главный инструмент отладки.
 6. **`check_all.bat`** — первое, что запускаешь после правки `intents/`, `brain.py`, `actions.py` (4 шага, компактный итог).
-7. **`normalize(cmd)` в `IntentHandler.handle()`** — единая точка.
+7. **`language.analyze_command(raw)` → `normalize()`**; исходный текст хранить отдельно, пароль обрабатывать раньше.
 8. **Per-call stop-token в `tts.py`.**
 9. **`PALETTES` в `gui.py`** — две палитры, `_detect_system_theme()` для системной.
 10. **`ft.Button`** вместо `ft.ElevatedButton` / `ft.TextButton` (в Flet 1.x их удалили).
@@ -72,7 +72,29 @@ scripts/            — утилиты (make_icon, build_exe, mics, ...)
 21. **`_say_lock` в Jarvis** — `say()` зовут ещё таймеры, `mic_watchdog`
     и `celebrations`. Без него они режут текущую речь через `speaker.stop()`.
 22. **`PROJECT.md` — источник правды.** Поменялось поведение, инвариант
-    или добавилась грабля — правь **его**, а не пять доков сразу.
+    или добавилась грабля — правь **его** и затронутые разделы руководств;
+    исторические записи CHANGELOG не переписывай под новое поведение.
+
+## Контракты языка, памяти и реакций
+
+- Не добавлять blacklist слов «похожих на шум»: проверять сигнал/метрики ASR,
+  критичные расхождения и покрывать отказ регрессией. Не записывать сомнительную
+  расшифровку в память и не называть confidence откалиброванной вероятностью понимания.
+- Любая персонализация проходит `memory_context`; нет результата RAG ≠ все факты.
+  Observer видит только утверждения пользователя; текст ассистента не учебный факт.
+- Служебные `Reply` оставляют `allow_nonverbal=False`. Реакции разрешать только
+  диалоговому результату, не привязывать к «предыдущий ответ был чатом».
+- Для PCM-движков использовать `BaseEngine._output_wav`, не второй OutputStream
+  для сэмпла. Тот же stop-token, одна попытка на ответ и общий cooldown.
+- Новые WAV — только с проверенной CC0-лицензией, источником, автором,
+  преобразованиями и SHA-256 в `assets/nonverbal/sources.json`.
+- Non-verbal тестировать синтетическим PCM/моками без скачивания голосов и без
+  открытия устройств. Затем отдельная ручная приёмка на Windows.
+
+Проверки последних изменений: `test_numeric_language.py`, `test_recognition_quality.py`,
+`test_memory_scope.py`, `test_brain_rag.py`, `test_audit_regressions.py`, `test_nonverbal.py`.
+Подробности и ограничения прогона — `tests/README.md`.
+
 
 ## 🔒 Правила безопасности
 
@@ -334,7 +356,7 @@ git reset --hard HEAD~1
 
 - [ ] `check_all.bat` — «ВСЁ ОТЛИЧНО» (синтаксис + pytest + интенты + стресс).
 - [ ] `python -m pytest tests/ -q` — все тесты зелёные.
-- [ ] `python tests/test_intents.py` + `python tests/stress_intents.py` — интенты и 100 ситуаций проходят.
+- [ ] `python tests/test_intents.py` + `python tests/stress_intents.py` — интенты и 102 ситуации проходят.
 - [ ] **Не коммичу** `.venv311`, `config.json`, `profiles/`, `system_caps.json`, `timers.json`, `tasks.json`, `models/`, `voices/`, `dist/`, `build/`.
 - [ ] **Проверил** `git status` — нет лишних файлов.
 - [ ] **Личные данные** не попали в публичные файлы.

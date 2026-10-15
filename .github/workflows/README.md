@@ -8,9 +8,10 @@
 1. Windows-виртуалка, Python 3.11, кэш pip.
 2. `pip install -r requirements-ci.txt`.
 3. `python check_syntax.py`.
-4. `python -m pytest tests/ -q`.
-5. `python tests/test_intents.py` (без флагов).
-6. `python tests/stress_intents.py` (100 ситуаций, без LLM/сети; UIA-ситуации
+4. `python snapshot.py --check` — снимок соответствует исходникам/докам.
+5. `python -m pytest tests/ -q`.
+6. `python tests/test_intents.py` — 41 сценарий, 34 без LLM/сети.
+7. `python tests/stress_intents.py` (102 ситуации, без LLM/сети; UIA-ситуации
    в CI проверяют понятный отказ — см. `CI.md`).
 
 **Env:**
@@ -42,6 +43,18 @@
 **Версия:** тег `v1.0.2` → `1.0.2` → `/DMyAppVersion=1.0.2` в `installer.iss`.
 
 **Если упало** — см. `CI.md`, раздел «Авторелиз».
+
+## Обновление 15.10.2026: язык, память, Non-verbal
+
+Workflow-файлы не менялись: новые регрессии подхватывает `pytest tests/`.
+CI-зависимости уже включают num2words/pymorphy3, numpy и Flet. Звуковые реакции
+проверяются на искусственном PCM/моках; весов ASR/TTS для этого не нужно.
+`installer.iss` дополнительно копирует `assets/nonverbal/` с четырьмя WAV и
+происхождением CC0. Отдельный PyInstaller `--add-data` не нужен: exe — launcher,
+пакет и ресурсы устанавливает Inno Setup.
+Сборку/первый запуск и звучание на чистой Windows проверить перед выпуском.
+Актуальные исходники перед коммитом: `python snapshot.py`, затем `--check`.
+
 
 ## Как добавить новый workflow
 

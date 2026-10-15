@@ -84,6 +84,8 @@ Name: "{app}\runtime"
 Source: "Феникс.exe"; DestDir: "{app}"; Flags: ignoreversion
 ; Пакет jarvis (без createallsubdirs — иначе пустые __pycache__ создаются)
 Source: "jarvis\*"; DestDir: "{app}\jarvis"; Flags: ignoreversion recursesubdirs; Excludes: "__pycache__\*,*.pyc,*.pyo"
+; CC0-сэмплы звуковых реакций и сведения об источниках
+Source: "assets\nonverbal\*"; DestDir: "{app}\assets\nonverbal"; Flags: ignoreversion recursesubdirs
 ; Паки
 Source: "packs\*"; DestDir: "{app}\packs"; Flags: ignoreversion recursesubdirs
 ; Скрипты

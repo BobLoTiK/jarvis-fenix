@@ -5,17 +5,17 @@
 """
 
 import asyncio
-import io
 import logging
+
+from jarvis.tts_engines.base import BaseEngine
 import re
-import wave
 
 log = logging.getLogger("jarvis.tts")
 
 _SENTENCE_END = re.compile(r"[.!?…]+\s+")
 
 
-class WinRTEngine:
+class WinRTEngine(BaseEngine):
     name = "winrt"
 
     voices = {
@@ -96,7 +96,6 @@ class WinRTEngine:
     def speak_stream(self, text_iter, voice: str, rate: float,
                      token) -> str:
         """WinRT стриминг (наивный — по предложениям)."""
-        from jarvis.text_utils import prepare_text
 
         buffer = ""
         full_parts = []
@@ -128,7 +127,6 @@ class WinRTEngine:
 
     def _play(self, sentence: str, voice: str, rate: float, token):
         from jarvis.text_utils import prepare_text
-        import numpy as np
 
         text = prepare_text(sentence)
         if not text.strip().strip("\u200b\u200c\u200d\ufeff\u00ad"):
@@ -136,23 +134,4 @@ class WinRTEngine:
         wav = self.synthesize(text, voice, rate)
         if not wav or token.is_set():
             return
-        try:
-            import sounddevice as sd
-            with wave.open(io.BytesIO(wav)) as wf:
-                rate_hz = wf.getframerate()
-                channels = wf.getnchannels()
-                width = wf.getsampwidth()
-                frames = wf.readframes(wf.getnframes())
-            dtype = {1: "int8", 2: "int16", 4: "int32"}.get(width, "int16")
-            audio = np.frombuffer(frames, dtype=dtype)
-            if channels > 1:
-                audio = audio.reshape(-1, channels)
-            chunk = int(rate_hz * 0.05)
-            with sd.OutputStream(samplerate=rate_hz, channels=channels,
-                                 dtype=dtype) as stream:
-                for i in range(0, len(audio), chunk):
-                    if token.is_set():
-                        break
-                    stream.write(audio[i:i + chunk])
-        except Exception:
-            log.exception("WinRT: ошибка воспроизведения")
+        self._output_wav(wav, token)

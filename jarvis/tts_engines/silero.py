@@ -10,6 +10,8 @@
 
 import io
 import logging
+
+from jarvis.tts_engines.base import BaseEngine
 import os
 import re
 import threading
@@ -49,7 +51,7 @@ _VERSION = "v5_5_ru"
 _SENTENCE_END = re.compile(r"[.!?…]+\s+")
 
 
-class SileroEngine:
+class SileroEngine(BaseEngine):
     name = "silero"
 
     voices = {
@@ -198,18 +200,4 @@ class SileroEngine:
         if not wav or token.is_set():
             return
 
-        try:
-            import sounddevice as sd
-            with wave.open(io.BytesIO(wav)) as wf:
-                rate_hz = wf.getframerate()
-                frames = wf.readframes(wf.getnframes())
-            audio = np.frombuffer(frames, dtype=np.int16)
-            chunk = int(rate_hz * 0.05)
-            with sd.OutputStream(samplerate=rate_hz, channels=1,
-                                 dtype="int16") as stream:
-                for i in range(0, len(audio), chunk):
-                    if token.is_set():
-                        break
-                    stream.write(audio[i:i + chunk])
-        except Exception:
-            log.exception("Silero: ошибка воспроизведения")
+        self._output_wav(wav, token)

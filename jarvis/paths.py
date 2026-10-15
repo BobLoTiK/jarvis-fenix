@@ -30,7 +30,9 @@ Fallback для PROGRAM_DIR (все кандидаты проверяются н
 import logging
 import os
 import tempfile
+import sys
 from pathlib import Path
+from contextlib import contextmanager
 
 log = logging.getLogger("jarvis.paths")
 
@@ -214,3 +216,15 @@ def profiles_dir() -> Path:
 def config_path() -> Path:
     """config.json — в USER_DIR."""
     return user_dir() / "config.json"
+
+def nonverbal_dir() -> Path:
+    """Read-only bundled CC0 samples; launcher install and optional frozen layout."""
+    root = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent))
+    return root / "assets" / "nonverbal"
+
+
+@contextmanager
+def temporary_audio_file():
+    """Ephemeral mixed speech for winsound fallback; removed when playback stops."""
+    with tempfile.TemporaryDirectory(prefix="fenix-tts-") as temp:
+        yield Path(temp) / "speech.wav"
