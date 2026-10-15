@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=e3a8e517a799ba2d` · режим `lean` · файлов `193` · строк `39847` · источник `1704 КБ`
+`sha256=4f5a76927ab55f16` · режим `lean` · файлов `195` · строк `39929` · источник `1709 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -206,12 +206,12 @@ Windows CI, живой микрофон, COM, установщик и просл
 │   ├── nonverbal/
 │   │   ├── README.md  (40 стр)
 │   │   ├── sources.json  (53 стр)
-├── CHANGELOG.md  (1203 стр)
+├── CHANGELOG.md  (1217 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
 ├── check_syntax.py  (60 стр)
-├── CI.md  (249 стр)
+├── CI.md  (258 стр)
 ├── cmds/
 │   ├── open_terminal.bat  (3 стр)
 │   ├── show_ip.bat  (3 стр)
@@ -260,7 +260,7 @@ Windows CI, живой микрофон, COM, установщик и просл
 │   │   │   ├── voices.py  (10 стр)
 │   │   │   ├── weather.py  (113 стр)
 │   │   ├── handler.py  (279 стр)
-│   │   ├── password.py  (124 стр)
+│   │   ├── password.py  (99 стр)
 │   │   ├── sites.py  (62 стр)
 │   │   ├── stages/
 │   │   │   ├── __init__.py  (44 стр)
@@ -337,6 +337,7 @@ Windows CI, живой микрофон, COM, установщик и просл
 ├── PLAN.md  (1097 стр)
 ├── PROJECT.md  (174 стр)
 ├── PROMPT.md  (526 стр)
+├── pytest-log.txt  (27 стр)
 ├── pytest.ini  (20 стр)
 ├── README.md  (1065 стр)
 ├── requirements-ci.txt  (36 стр)
@@ -369,7 +370,7 @@ Windows CI, живой микрофон, COM, установщик и просл
 │   │   ├── uia_manual.py  (61 стр)
 │   │   ├── vad_debug.py  (61 стр)
 │   │   ├── vad_live.py  (41 стр)
-│   ├── README.md  (125 стр)
+│   ├── README.md  (133 стр)
 │   ├── stress_intents.py  (552 стр)
 │   ├── test_audit_regressions.py  (252 стр)
 │   ├── test_brain_rag.py  (125 стр)
@@ -383,15 +384,16 @@ Windows CI, живой микрофон, COM, установщик и просл
 │   ├── test_main_wiring.py  (202 стр)
 │   ├── test_memory_scope.py  (132 стр)
 │   ├── test_mood.py  (386 стр)
-│   ├── test_nonverbal.py  (396 стр)
+│   ├── test_nonverbal.py  (400 стр)
 │   ├── test_numeric_language.py  (521 стр)
 │   ├── test_password_imports.py  (109 стр)
 │   ├── test_persona.py  (155 стр)
 │   ├── test_prosody.py  (83 стр)
-│   ├── test_recognition_quality.py  (356 стр)
+│   ├── test_recognition_quality.py  (357 стр)
 │   ├── test_safety.py  (170 стр)
 │   ├── test_speech_gate.py  (86 стр)
 │   ├── test_stt.py  (451 стр)
+│   ├── test_test_portability.py  (44 стр)
 │   ├── test_tray.py  (180 стр)
 │   ├── test_tts.py  (243 стр)
 │   ├── test_uia.py  (788 стр)
@@ -823,10 +825,15 @@ Windows CI, живой микрофон, COM, установщик и просл
 **`jarvis/intents/password.py`**
 
 ```
-  # Стадия pipeline: jarvis.intents.stages.password.
-  class PasswordStage(Stage)
-    def handle(self, ctx)
-  def build_ask_password(intent: dict, expires_sec: int=30)
+  # Парольные примитивы: jarvis.intents.password (не стадия pipeline).
+  _PASSWORD_PREFIX = ...
+  def hash_password(password: str)
+  def is_hashed(value: str)
+  def verify_password(candidate: str, stored: str)
+  def migrate_password_if_needed(config)
+  DANGER_ACTIONS = ...
+  def is_danger(intent: dict, stored_password: str)
+  ACTION_HUMAN = ...
 ```
 
 **`jarvis/intents/sites.py`**
@@ -2465,6 +2472,16 @@ Windows CI, живой микрофон, COM, установщик и просл
   def test_listener_enables_word_confidence(listener)
 ```
 
+**`tests/test_test_portability.py`**
+
+```
+  # Audio fixture contents must never become Windows environment-variable values.
+  ROOT = ...
+  AUDIO_TESTS = ...
+  def test_audio_case_ids_are_short_without_dumping_pcm()
+  def test_audio_source_reads_have_explicit_utf8()
+```
+
 **`tests/test_tray.py`**
 
 ```
@@ -2896,7 +2913,7 @@ Windows CI, живой микрофон, COM, установщик и просл
 | `jarvis/intents/fast/voices.py` | 10 | code | Голоса Piper — обёртка над модулем `voices`. |
 | `jarvis/intents/fast/weather.py` | 113 | code | Простые правила для погоды и курса — без LLM. |
 | `jarvis/intents/handler.py` | 279 | code | IntentHandler — оркестрация. |
-| `jarvis/intents/password.py` | 124 | code | Стадия pipeline: jarvis.intents.stages.password. |
+| `jarvis/intents/password.py` | 99 | code | Парольные примитивы: jarvis.intents.password (не стадия pipeline). |
 | `jarvis/intents/sites.py` | 62 | code | Сайты для открытия голосом — ленивая загрузка из packs/sites.json. |
 | `jarvis/intents/stages/__init__.py` | 44 | code | Стадии обработки команды. Порядок = приоритет. |
 | `jarvis/intents/stages/base.py` | 19 | code | Базовая стадия pipeline. |
@@ -2992,15 +3009,16 @@ Windows CI, живой микрофон, COM, установщик и просл
 | `tests/test_main_wiring.py` | 202 | code | config → живое ядро: подписчик make_config_listener. |
 | `tests/test_memory_scope.py` | 132 | code | Personalization should serve a question, not choose its topic. |
 | `tests/test_mood.py` | 386 | code | Тесты jarvis.mood — состояние, детекция, decay, влияние. |
-| `tests/test_nonverbal.py` | 396 | code | Nonverbal policy/mixing: synthetic PCM and fake output, no TTS weights |
+| `tests/test_nonverbal.py` | 400 | code | Nonverbal policy/mixing: synthetic PCM and fake output, no TTS weights |
 | `tests/test_numeric_language.py` | 521 | code | Executable Russian language corpus: understanding, morphology and spee |
 | `tests/test_password_imports.py` | 109 | code | Import boundaries must work in a fresh interpreter, before any pytest  |
 | `tests/test_persona.py` | 155 | code | Тесты jarvis.persona — стиль, tone, prompt-блок. |
 | `tests/test_prosody.py` | 83 | code | Тесты jarvis.prosody — эмоции из голоса (эвристика). |
-| `tests/test_recognition_quality.py` | 356 | code | Recognition policy and integration tested without a microphone or mode |
+| `tests/test_recognition_quality.py` | 357 | code | Recognition policy and integration tested without a microphone or mode |
 | `tests/test_safety.py` | 170 | code | Тесты jarvis.safety — постфильтр «красной черты». |
 | `tests/test_speech_gate.py` | 86 | code | Тесты jarvis.vad.SpeechHangover — «хвост» тишины после речи. |
 | `tests/test_stt.py` | 451 | code | stt.Listener: живое применение настроек (то, что раньше не работало). |
+| `tests/test_test_portability.py` | 44 | code | Audio fixture contents must never become Windows environment-variable  |
 | `tests/test_tray.py` | 180 | code | Трей (jarvis.tray): пункты меню реально дёргают ядро и GUI. |
 | `tests/test_tts.py` | 243 | code | Тесты jarvis.tts_engines — движки и фабрика. С моками. |
 | `tests/test_uia.py` | 788 | code | Тесты jarvis.uia — логика обёртки. С моками. |
@@ -11066,124 +11084,90 @@ class IntentHandler:
 ### `jarvis/intents/password.py`
 
 ```python
-"""Стадия pipeline: jarvis.intents.stages.password. ... [6 строк]"""
+"""Парольные примитивы: jarvis.intents.password (не стадия pipeline). ... [6 строк]"""
 
+import hashlib
+import hmac
 import logging
-import re
-import time
-
-from jarvis import profile
-from jarvis.intents.password import ACTION_HUMAN, verify_password
-from jarvis.intents.stages.base import Stage
-from jarvis.intents.verbs import CANCEL
 
 log = logging.getLogger("jarvis.intents")
 
 
-class PasswordStage(Stage):
-    name = "password"
-
-    def handle(self, ctx):
-        h = ctx.handler
-
-        # Ввод пароля имеет приоритет над всеми другими командами.
-        if h._pending_password:
-            if time.time() >= h._pending_password.get("expires_at", 0):
-                h._pending_password = None
-                return "Время ввода пароля истекло. Повторите команду."
-            return self._handle_answer(ctx)
-
-        reply = self._maybe_delete_profile(ctx)
-        if reply is not None:
-            return reply
-
-        # 3. Опасные fast-команды («очисти список», «отмени все напоминания»):
-        # fast-реестр идёт после этой стадии, а проверка is_danger живёт
-        # только в LLMStage — без гейта здесь такие команды выполнялись
-        # без пароля, хотя входят в DANGER_ACTIONS.
-        return self._maybe_gate_fast_danger(ctx)
-
-    # ----------------------------------------------------------------
-
-    def _maybe_gate_fast_danger(self, ctx) -> str | None:
-        """Пароль для опасных fast-команд (clear_tasks / cancel_timers)."""
-        h = ctx.handler
-        if not h._danger_password():
-            return None
-        from jarvis import tasks as _tasks
-        from jarvis import timers as _timers
-        if _tasks.is_clear_command(ctx.cmd):
-            return h._ask_password({"action": "clear_tasks"})
-        if _timers.is_cancel_all_command(ctx.cmd):
-            return h._ask_password({"action": "cancel_timers"})
-        return None
-
-    # ----------------------------------------------------------------
-
-    def _maybe_delete_profile(self, ctx) -> str | None:
-        """«удали профиль X» → пароль или удаление."""
-        h = ctx.handler
-        m = re.match(r"^удали\s+профиль\s+(\S+)$", ctx.cmd)
-        if not m:
-            return None
-
-        name = m.group(1)
-
-        if h._danger_password():
-            # Пароль задан — спрашиваем.
-            return h._ask_password({"action": "delete_profile", "target": name})
-
-        # Пароля нет — удаляем сразу.
-        if profile.delete(name):
-            return f"Профиль {name} удалён."
-        return f"Профиль {name} не найден или активен."
-
-    # ----------------------------------------------------------------
-
-    def _handle_answer(self, ctx) -> str:
-        h = ctx.handler
-        pending = h._pending_password
-        h._pending_password = None
-
-        if ctx.cmd in CANCEL:
-            h._pending_question = None
-            h._reset_requested = True
-            return "Жду обращение, сэр."
-
-        # Убираем «пароль», «код», «пин», если сказали.
-        raw = ctx.original_cmd or ctx.cmd
-        candidate = re.sub(r"^(?:пароль|код|пин)\s+", "", raw.strip(),
-                           count=1, flags=re.IGNORECASE).strip()
-
-        stored = str(h.config.get("danger_password") or "").strip()
-        if not verify_password(candidate, stored):
-            log.warning("Пароль неверный")
-            return "Пароль неверный. Действие отменено."
-
-        from jarvis.intents.execute import execute_intent, execute_steps
-
-        intent = pending.get("intent") or {}
-        if intent.get("action") == "custom_command":
-            from jarvis.intents.fast.custom import execute_custom
-            result = execute_custom(h, intent["spec"],
-                                    intent.get("reply", "Выполняю."),
-                                    authorized=True)
-        elif isinstance(intent.get("steps"), list):
-            result = execute_steps(h, intent["steps"])
-        else:
-            result = execute_intent(h, intent)
-        return result or "Готово."
+_PASSWORD_PREFIX = "sha256:"
 
 
-def build_ask_password(intent: dict, expires_sec: int = 30) -> tuple[dict, str]:
-    """Готовит данные для _pending_password и текст запроса."""
-    pending = {
-        "intent": intent,
-        "expires_at": time.time() + expires_sec,
-    }
-    action = intent.get("action")
-    human = ACTION_HUMAN.get(action, "это действие")
-    return pending, f"Для этого нужен пароль ({human}). Назовите пароль."
+def hash_password(password: str) -> str:
+    """SHA-256 с префиксом. Префикс отличает хеш от legacy-plaintext."""
+    digest = hashlib.sha256(password.encode("utf-8")).hexdigest()
+    return f"{_PASSWORD_PREFIX}{digest}"
+
+
+def is_hashed(value: str) -> bool:
+    """Уже захеширован?"""
+    return bool(value) and value.startswith(_PASSWORD_PREFIX)
+
+
+def verify_password(candidate: str, stored: str) -> bool:
+    """Сравнивает введённый пароль с сохранённым. ... [4 строк]"""
+    if not stored:
+        return False
+    if is_hashed(stored):
+        # compare_digest — постоянное по времени сравнение.
+        # Обычный == утекает длиной совпавшего префикса.
+        return hmac.compare_digest(hash_password(candidate), stored)
+    # Legacy plaintext — мигрируется в sha256 при старте.
+    return hmac.compare_digest(candidate.encode("utf-8"), stored.encode("utf-8"))
+
+
+def migrate_password_if_needed(config) -> None:
+    """Если danger_password в plaintext — захешировать (№81)."""
+    raw = str(config.get("danger_password") or "").strip()
+    if not raw or is_hashed(raw):
+        return
+    config.set("danger_password", hash_password(raw))
+    log.info("Пароль миграции: plaintext → sha256")
+
+
+# Действия, требующие пароля (если danger_password задан).
+DANGER_ACTIONS = frozenset({
+    "shutdown_pc", "reboot_pc", "kill_process",
+    "clear_tasks", "cancel_timers", "delete_profile",
+})
+
+
+def _action_is_danger(action, target) -> bool:
+    if action in DANGER_ACTIONS:
+        return True
+    if action == "open_app":
+        t = str(target or "").lower()
+        if any(word in t for word in ("shutdown", "taskkill", "выключ", "перезагруз")):
+            return True
+    return False
+
+
+def is_danger(intent: dict, stored_password: str) -> bool:
+    """Проверяет, опасно ли действие. ... [5 строк]"""
+    if not stored_password:
+        return False
+    if _action_is_danger(intent.get("action"), intent.get("target")):
+        return True
+    for step in intent.get("steps") or []:
+        if isinstance(step, dict) and _action_is_danger(step.get("action"),
+                                                        step.get("target")):
+            return True
+    return False
+
+
+# Человеческие названия для озвучки — при запросе пароля.
+ACTION_HUMAN = {
+    "shutdown_pc": "выключение компьютера",
+    "reboot_pc": "перезагрузку",
+    "kill_process": "закрытие процесса",
+    "clear_tasks": "очистку списка задач",
+    "cancel_timers": "отмену напоминаний",
+    "delete_profile": "удаление профиля",
+    "open_app": "это действие",
+}
 ```
 
 ### `jarvis/intents/sites.py`
@@ -27366,7 +27350,11 @@ def test_sample_resampling_tail_and_clipping(tmp_path):
     assert abs(mixed).max() <= 0.981
 
 
-@pytest.mark.parametrize("data", [b"bad wav", b"", wav(samples=np.zeros((1600, 1)))])
+@pytest.mark.parametrize(
+    "data",
+    [b"bad wav", b"", wav(samples=np.zeros((1600, 1)))],
+    ids=["bad-wav", "empty", "silent-wav"],
+)
 def test_missing_or_bad_or_silent_sample_leaves_speech_intact(tmp_path, data):
     p = tmp_path / "reaction.wav"
     p.write_bytes(data)
@@ -27438,7 +27426,7 @@ def test_stream_engines_share_speakers_mixer(module, cls, args):
 
 def test_packaged_samples_have_provenance_and_valid_pcm():
     root = Path(__file__).resolve().parents[1] / "assets/nonverbal"
-    rows = json.loads((root / "sources.json").read_text())["samples"]
+    rows = json.loads((root / "sources.json").read_text(encoding="utf-8"))["samples"]
     assert {r["file"] for r in rows} == set(SAMPLES.values())
     for r in rows:
         data = (root / r["file"]).read_bytes()
@@ -27452,7 +27440,7 @@ def test_packaged_samples_have_provenance_and_valid_pcm():
 
 def test_gui_checkbox_saves_setting_without_restart():
     source = Path(__file__).resolve().parents[1] / "jarvis/gui.py"
-    tree = ast.parse(source.read_text())
+    tree = ast.parse(source.read_text(encoding="utf-8"))
     cls = next(
         n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == "FenixGUI"
     )
@@ -27520,7 +27508,7 @@ def test_handler_marks_only_chat_replies_eligible(chat, stream):
 
 def test_installer_copies_all_nonverbal_resources():
     installer = Path(__file__).resolve().parents[1] / "installer.iss"
-    text = installer.read_text()
+    text = installer.read_text(encoding="utf-8")
     assert 'Source: "assets\\nonverbal\\*"' in text
     assert 'DestDir: "{app}\\assets\\nonverbal"' in text
 
@@ -28487,7 +28475,7 @@ REJECT, UNCERTAIN = object(), object()
 
 def method(filename, classname, name, **extra):
     path = Path(__file__).resolve().parents[1] / filename
-    tree = ast.parse(path.read_text())
+    tree = ast.parse(path.read_text(encoding="utf-8"))
     cls = next(
         n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == classname
     )
@@ -28527,6 +28515,7 @@ def segment(**kw):
         array("h", [32767] * 8000).tobytes(),
         array("h", [1000] * 10).tobytes(),
     ],
+    ids=["empty", "odd-byte", "silence", "quiet", "clipped", "too-short"],
 )
 def test_invalid_silent_or_clipped_audio_rejected(pcm):
     assert not assess_pcm(pcm).accepted
@@ -29490,6 +29479,55 @@ def test_phrases_keeps_stream_without_device_change(monkeypatch, listener):
 
 def test_listener_enables_word_confidence(listener):
     assert listener._rec.words_enabled
+```
+
+### `tests/test_test_portability.py`
+
+```python
+"""Audio fixture contents must never become Windows environment-variable values."""
+
+import ast
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+AUDIO_TESTS = ["tests/test_recognition_quality.py", "tests/test_nonverbal.py"]
+
+
+def test_audio_case_ids_are_short_without_dumping_pcm():
+    result = subprocess.run(
+        [sys.executable, "-m", "pytest", "--collect-only", "-q", *AUDIO_TESTS],
+        cwd=ROOT,
+        env={**os.environ, "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8"},
+        capture_output=True,
+        encoding="utf-8",
+        timeout=60,
+    )
+    assert result.returncode == 0, (result.stdout + result.stderr)[-4000:]
+    nodes = [line for line in result.stdout.splitlines() if "::test_" in line]
+    assert nodes, "No audio tests collected"
+    assert max(map(len, nodes)) < 512, "PCM data leaked into a pytest node ID"
+    pcm_cases = [
+        n for n in nodes if "::test_invalid_silent_or_clipped_audio_rejected[" in n
+    ]
+    assert len(pcm_cases) == 6
+    assert all("\\x" not in n for n in nodes)
+
+
+def test_audio_source_reads_have_explicit_utf8():
+    for name in AUDIO_TESTS:
+        tree = ast.parse((ROOT / name).read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+                if node.func.attr == "read_text":
+                    assert any(
+                        kw.arg == "encoding"
+                        and isinstance(kw.value, ast.Constant)
+                        and kw.value.value == "utf-8"
+                        for kw in node.keywords
+                    ), f"{name}:{node.lineno} relies on the OS default encoding"
 ```
 
 ### `tests/test_tray.py`
@@ -35229,6 +35267,38 @@ SOFTWARE.
 
 _Нетекстовый файл: .code-workspace_
 
+### `pytest-log.txt`
+
+```
+яю. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .   [     8 % ] 
+ 
+ . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .   [   1 7 % ] 
+ 
+ . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .   [   2 6 % ] 
+ 
+ . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .   [   3 4 % ] 
+ 
+ . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .   [   4 3 % ] 
+ 
+ . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .   [   5 2 % ] 
+ 
+ . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .   [   6 0 % ] 
+ 
+ . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .   [   6 9 % ] 
+ 
+ . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .   [   7 8 % ] 
+ 
+ . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .   [   8 6 % ] 
+ 
+ . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .   [   9 5 % ] 
+ 
+ . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .                                                                         [ 1 0 0 % ] 
+ 
+ 8 2 9   p a s s e d   i n   9 . 8 0 s 
+ 
+ 
+```
+
 ### `pytest.ini`
 
 ```
@@ -35452,12 +35522,13 @@ pymorphy3>=2.0.3,<3
   - 📦 Сборка и установка
     - `scripts/make_icon.py`
 
-#### `CHANGELOG.md` — 77 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 78 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
   - 📑 Содержание
   - 🚧 [Unreleased]
     - 📅 Сессия 15.10.2026
+      - Переносимость аудиотестов на Windows
       - Уточнение README и восстановление модулей пароля
       - Добавлено
       - Исправлено
@@ -35493,7 +35564,6 @@ pymorphy3>=2.0.3,<3
         - 🧰 Модель VAD качается сама
         - ⏱ Блок аудио 500 мс → 128 мс (минус ~500 мс к ответу)
         - 🖥 Трей снова работает (и в нём есть «Выход»)
-        - 🔍 Whisper `beam_size`: замерили и оставили как есть
 
 #### `CI.md` — 14 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -35673,4 +35743,4 @@ pymorphy3>=2.0.3,<3
 
 ---
 
-_Итого по категориям — code: 155, data: 21, doc: 12, pack: 5. Режим `lean`._
+_Итого по категориям — code: 156, data: 22, doc: 12, pack: 5. Режим `lean`._

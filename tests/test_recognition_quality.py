@@ -30,7 +30,7 @@ REJECT, UNCERTAIN = object(), object()
 
 def method(filename, classname, name, **extra):
     path = Path(__file__).resolve().parents[1] / filename
-    tree = ast.parse(path.read_text())
+    tree = ast.parse(path.read_text(encoding="utf-8"))
     cls = next(
         n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == classname
     )
@@ -70,6 +70,7 @@ def segment(**kw):
         array("h", [32767] * 8000).tobytes(),
         array("h", [1000] * 10).tobytes(),
     ],
+    ids=["empty", "odd-byte", "silence", "quiet", "clipped", "too-short"],
 )
 def test_invalid_silent_or_clipped_audio_rejected(pcm):
     assert not assess_pcm(pcm).accepted

@@ -190,7 +190,11 @@ def test_sample_resampling_tail_and_clipping(tmp_path):
     assert abs(mixed).max() <= 0.981
 
 
-@pytest.mark.parametrize("data", [b"bad wav", b"", wav(samples=np.zeros((1600, 1)))])
+@pytest.mark.parametrize(
+    "data",
+    [b"bad wav", b"", wav(samples=np.zeros((1600, 1)))],
+    ids=["bad-wav", "empty", "silent-wav"],
+)
 def test_missing_or_bad_or_silent_sample_leaves_speech_intact(tmp_path, data):
     p = tmp_path / "reaction.wav"
     p.write_bytes(data)
@@ -262,7 +266,7 @@ def test_stream_engines_share_speakers_mixer(module, cls, args):
 
 def test_packaged_samples_have_provenance_and_valid_pcm():
     root = Path(__file__).resolve().parents[1] / "assets/nonverbal"
-    rows = json.loads((root / "sources.json").read_text())["samples"]
+    rows = json.loads((root / "sources.json").read_text(encoding="utf-8"))["samples"]
     assert {r["file"] for r in rows} == set(SAMPLES.values())
     for r in rows:
         data = (root / r["file"]).read_bytes()
@@ -276,7 +280,7 @@ def test_packaged_samples_have_provenance_and_valid_pcm():
 
 def test_gui_checkbox_saves_setting_without_restart():
     source = Path(__file__).resolve().parents[1] / "jarvis/gui.py"
-    tree = ast.parse(source.read_text())
+    tree = ast.parse(source.read_text(encoding="utf-8"))
     cls = next(
         n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == "FenixGUI"
     )
@@ -344,7 +348,7 @@ def test_handler_marks_only_chat_replies_eligible(chat, stream):
 
 def test_installer_copies_all_nonverbal_resources():
     installer = Path(__file__).resolve().parents[1] / "installer.iss"
-    text = installer.read_text()
+    text = installer.read_text(encoding="utf-8")
     assert 'Source: "assets\\nonverbal\\*"' in text
     assert 'DestDir: "{app}\\assets\\nonverbal"' in text
 
