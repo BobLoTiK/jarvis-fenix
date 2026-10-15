@@ -4,6 +4,16 @@ import re
 
 
 def debug_fast(handler, cmd: str) -> str | None:
+    if cmd in {"время обработки", "покажи время обработки"}:
+        timings = getattr(handler, "_previous_timings", {})
+        if not timings:
+            return "Пока нет замера предыдущей команды."
+        stages = timings.get("stages_ms", {})
+        slowest = sorted(stages.items(), key=lambda item: item[1], reverse=True)[:3]
+        parts = [f"Обработка предыдущей команды: {timings['handler_ms']:.1f} мс"]
+        parts.extend(f"{name}: {elapsed:.1f} мс" for name, elapsed in slowest)
+        return ". ".join(parts) + ". Без распознавания, генерации потока и озвучки."
+
     # «что ты слышал»
     if (re.search(r"(что|чё)\s+ты\s+слышал", cmd)
             or cmd in {"что ты слышал", "что слышал", "история"}):

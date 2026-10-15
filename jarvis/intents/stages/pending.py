@@ -1,7 +1,8 @@
 """Ожидание уточнения (pending_question).
 
-Сейчас единственный тип — `city_for_weather`:
-Феникс спросил город, ждём ответа.
+command_slot — ограниченное заполнение target/time/unit через clarification.
+city_for_weather — совместимое существующее уточнение города.
+Новое ожидание не сохраняется как факт или выученная команда.
 """
 
 import logging
@@ -35,8 +36,14 @@ class PendingStage(Stage):
 
     def handle(self, ctx):
         h = ctx.handler
-        if not h._pending_question:
+        if not getattr(h, "_pending_question", None):
             return None
+        if ctx.cmd in {"отмени", "не надо", "не нужно", "нет"}:
+            h._pending_question = None
+            return "Действие отменено."
+        if h._pending_question.get("type") == "command_slot":
+            from jarvis.intents.clarification import resume
+            return resume(ctx)
         if time.time() >= h._pending_question.get("expires_at", 0):
             h._pending_question = None
             return None

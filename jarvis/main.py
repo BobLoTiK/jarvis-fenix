@@ -260,7 +260,8 @@ class Jarvis:
         awaiting = time.time() < self._awaiting_until
         sensitive = bool(getattr(self.handler, "_pending_password", None))
         pending = getattr(self.handler, "_pending_question", None)
-        if pending and time.time() < pending.get("expires_at", 0):
+        from jarvis.intents.clarification import pending_alive
+        if pending_alive(pending):
             awaiting = True
             self._awaiting_until = max(self._awaiting_until, pending["expires_at"])
         if sensitive:
@@ -329,7 +330,9 @@ class Jarvis:
                 recent = getattr(getattr(self, "listener", None), "recent_phrases", None)
                 if recent is not None:
                     recent.append(cmd)
-            if not sensitive and getattr(self, "observer", None) is not None:
+            # Короткий ответ на слот — не постоянный факт о пользователе.
+            answering_slot = pending_alive(getattr(self.handler, "_pending_question", None))
+            if not sensitive and not answering_slot and getattr(self, "observer", None) is not None:
                 try:
                     self.observer.observe("user", cmd)
                 except Exception:

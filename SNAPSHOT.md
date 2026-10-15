@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=4f5a76927ab55f16` · режим `lean` · файлов `195` · строк `39929` · источник `1709 КБ`
+`sha256=2b71dae726af074b` · режим `lean` · файлов `198` · строк `39833` · источник `1703 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -69,7 +69,7 @@ USER_DIR     %APPDATA%\Phoenix         config, profiles, logs, timers, tasks
 ```
 
 Pipeline, порядок важен:
-`cancel → onboarding → correction → password → memory → pending → clipboard → modes → compound → fast → llm`.
+`cancel → pending → onboarding → correction → password → memory → clipboard → modes → compound → clarification → fast → llm`.
 Реестр `fast/`: специфичные правила выше общих; `custom` и `open_profile` не
 перемещать ниже общих обработчиков. Ошибка одного обработчика логируется, не роняет цикл.
 `mood.apply_from_text()` в `handle()` вызывается после разбора результата; просодия
@@ -94,6 +94,28 @@ Pipeline, порядок важен:
   `stt_max_no_speech_prob=0.6`, `stt_max_compression_ratio=2.4` — начальные,
   не откалиброванные под каждый микрофон вероятности.
 - Parser `action=none` означает уточнение, не повторную попытку придумать команду.
+
+### Уточнение незавершённой команды
+
+`intents/clarification.py` расширяет существующий `_pending_question`, а не создаёт
+новый менеджер: target приложения, время таймера, единицы длительности.
+`PendingStage` стоит сразу после cancel; подтверждённый слот меняет `ctx.cmd`
+и идёт дальше через password/custom/fast, без повторного применения fuzzy-коррекции.
+`ClarificationStage` перед fast/LLM задаёт недостающий вопрос, сохраняя приоритет custom.
+Ровно одно ожидание: monotonic-дедлайн 30 с, максимум три непонятных ответа;
+срок не продлевается повторами. При новой поддержанной команде, отмене,
+запросе пароля или смене профиля старое состояние очищается.
+Таймер использует общую числовую грамматику; «на десять» требует единиц.
+Текст напоминания сохраняется. Явная поправка до исполнения заменяет значение.
+Изменение уже созданного таймера, произвольные слоты и автоматическое обучение —
+не часть первого блока. Неизвестный ответ о приложении не угадывается как сайт.
+Compound останавливается на вопросе/пароле; оставшиеся шаги не ставятся в очередь.
+Короткие ответы в голосовом окне уточнения не передаются Observer как факты.
+Существующий city_for_weather остаётся отдельным совместимым типом того же ожидания.
+
+`_last_timings`: только handler_ms/stages_ms, без текста/паролей. Команда
+«покажи время обработки» показывает предыдущий ход. Это время до возврата Reply,
+не end-to-end latency: генерация stream после возврата, STT и TTS не входят.
 
 ## 5. Память и обучение
 
@@ -180,11 +202,13 @@ Windows CI, живой микрофон, COM, установщик и просл
 
 ## 9. Дальше
 
-Принять Non-verbal на Windows: прямой и streaming TTS, громкость, barge-in,
-выключение на лету и SAPI fallback. Затем по `PLAN.md`: опциональное бесплатное
-облако → чистая виртуалка → MCP-заготовки → Telegram/веб → спрайт → VLM/Hermes →
-улучшение мозгов. Полноценные смысловые уточнения и калибровка ASR остаются
-отдельными задачами; выполненная защитная логика не закрывает их автоматически.
+Текущий курс — развитие самого Феникса, см. PLAN.md: приёмка ограниченных уточнений,
+контекст исправлений, подтверждаемое самообучение поверх существующего learning,
+качество памяти и измеряемая оптимизация. Облако, Telegram/веб, Hermes, MCP,
+плагины, VLM и новые интерфейсы — дальний бэклог, не следующий обязательный этап.
+Сначала исправляем поведение приложения; дообучение весов возможно позже,
+для конкретной базовой модели и только на проверенных примерах.
+Non-verbal/микрофон/установщик по-прежнему требуют ручной Windows-приёмки.
 ````
 
 ---
@@ -200,18 +224,18 @@ Windows CI, живой микрофон, COM, установщик и просл
 │   │   ├── README.md  (74 стр)
 │   │   ├── release.yml  (114 стр)
 │   │   ├── test.yml  (71 стр)
-├── AGENTS.md  (82 стр)
-├── ARCHITECTURE.md  (1014 стр)
+├── AGENTS.md  (90 стр)
+├── ARCHITECTURE.md  (1024 стр)
 ├── assets/
 │   ├── nonverbal/
 │   │   ├── README.md  (40 стр)
 │   │   ├── sources.json  (53 стр)
-├── CHANGELOG.md  (1217 стр)
+├── CHANGELOG.md  (1238 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
 ├── check_syntax.py  (60 стр)
-├── CI.md  (258 стр)
+├── CI.md  (266 стр)
 ├── cmds/
 │   ├── open_terminal.bat  (3 стр)
 │   ├── show_ip.bat  (3 стр)
@@ -237,13 +261,14 @@ Windows CI, живой микрофон, COM, установщик и просл
 │   ├── installed.py  (51 стр)
 │   ├── intents/
 │   │   ├── __init__.py  (10 стр)
+│   │   ├── clarification.py  (262 стр)
 │   │   ├── context.py  (19 стр)
 │   │   ├── execute.py  (1021 стр)
 │   │   ├── fast/
 │   │   │   ├── __init__.py  (54 стр)
 │   │   │   ├── correction.py  (28 стр)
-│   │   │   ├── custom.py  (83 стр)
-│   │   │   ├── debug.py  (38 стр)
+│   │   │   ├── custom.py  (91 стр)
+│   │   │   ├── debug.py  (48 стр)
 │   │   │   ├── memory.py  (57 стр)
 │   │   │   ├── music.py  (38 стр)
 │   │   │   ├── open.py  (61 стр)
@@ -259,23 +284,24 @@ Windows CI, живой микрофон, COM, установщик и просл
 │   │   │   ├── undo.py  (67 стр)
 │   │   │   ├── voices.py  (10 стр)
 │   │   │   ├── weather.py  (113 стр)
-│   │   ├── handler.py  (279 стр)
+│   │   ├── handler.py  (303 стр)
 │   │   ├── password.py  (99 стр)
 │   │   ├── sites.py  (62 стр)
 │   │   ├── stages/
-│   │   │   ├── __init__.py  (44 стр)
+│   │   │   ├── __init__.py  (47 стр)
 │   │   │   ├── base.py  (19 стр)
 │   │   │   ├── cancel.py  (17 стр)
+│   │   │   ├── clarification.py  (11 стр)
 │   │   │   ├── clipboard.py  (68 стр)
-│   │   │   ├── compound.py  (71 стр)
-│   │   │   ├── correction.py  (24 стр)
+│   │   │   ├── compound.py  (75 стр)
+│   │   │   ├── correction.py  (27 стр)
 │   │   │   ├── fast.py  (29 стр)
 │   │   │   ├── llm.py  (97 стр)
 │   │   │   ├── memory.py  (21 стр)
 │   │   │   ├── modes.py  (30 стр)
-│   │   │   ├── onboarding.py  (73 стр)
+│   │   │   ├── onboarding.py  (75 стр)
 │   │   │   ├── password.py  (124 стр)
-│   │   │   ├── pending.py  (72 стр)
+│   │   │   ├── pending.py  (79 стр)
 │   │   ├── verbs.py  (45 стр)
 │   ├── language/
 │   │   ├── __init__.py  (17 стр)
@@ -287,7 +313,7 @@ Windows CI, живой микрофон, COM, установщик и просл
 │   │   ├── time.py  (84 стр)
 │   │   ├── units.py  (85 стр)
 │   ├── learning.py  (178 стр)
-│   ├── main.py  (896 стр)
+│   ├── main.py  (899 стр)
 │   ├── matching.py  (118 стр)
 │   ├── memory.py  (147 стр)
 │   ├── memory_context.py  (124 стр)
@@ -334,12 +360,12 @@ Windows CI, живой микрофон, COM, установщик и просл
 │   ├── sites.json  (22 стр)
 │   ├── system.json  (17 стр)
 │   ├── work.json  (11 стр)
-├── PLAN.md  (1097 стр)
-├── PROJECT.md  (174 стр)
-├── PROMPT.md  (526 стр)
+├── PLAN.md  (155 стр)
+├── PROJECT.md  (198 стр)
+├── PROMPT.md  (501 стр)
 ├── pytest-log.txt  (27 стр)
 ├── pytest.ini  (20 стр)
-├── README.md  (1065 стр)
+├── README.md  (1079 стр)
 ├── requirements-ci.txt  (36 стр)
 ├── requirements-dev.txt  (10 стр)
 ├── requirements.txt  (63 стр)
@@ -370,13 +396,14 @@ Windows CI, живой микрофон, COM, установщик и просл
 │   │   ├── uia_manual.py  (61 стр)
 │   │   ├── vad_debug.py  (61 стр)
 │   │   ├── vad_live.py  (41 стр)
-│   ├── README.md  (133 стр)
+│   ├── README.md  (171 стр)
 │   ├── stress_intents.py  (552 стр)
 │   ├── test_audit_regressions.py  (252 стр)
 │   ├── test_brain_rag.py  (125 стр)
 │   ├── test_browser_target.py  (338 стр)
 │   ├── test_build_setup.py  (56 стр)
 │   ├── test_caps.py  (23 стр)
+│   ├── test_clarification.py  (411 стр)
 │   ├── test_config_manager.py  (47 стр)
 │   ├── test_engine_probe.py  (100 стр)
 │   ├── test_gui_wiring.py  (548 стр)
@@ -643,6 +670,22 @@ Windows CI, живой микрофон, COM, установщик и просл
   # Разбор команд Феникса — пакет.
 ```
 
+**`jarvis/intents/clarification.py`**
+
+```
+  # Bounded, session-only slot filling shared by GUI and voice.
+  TIMEOUT = ...
+  MAX_ATTEMPTS = ...
+  OPEN = ...
+  TIMER = ...
+  CORRECTION = ...
+  PROMPTS = ...
+  class TimeSlot
+  def pending_alive(pending)
+  def begin(ctx)
+  def resume(ctx)
+```
+
 **`jarvis/intents/context.py`**
 
 ```
@@ -688,6 +731,7 @@ Windows CI, живой микрофон, COM, установщик и просл
   def load_custom(config)
   def load_packs_as_custom(config)
   def match_custom(handler, cmd: str)
+  def find_custom(custom: list, cmd: str)
   def execute_custom(handler, action, reply: str, *, authorized: bool=False)
 ```
 
@@ -849,7 +893,7 @@ Windows CI, живой микрофон, COM, установщик и просл
 
 ```
   # Стадии обработки команды. Порядок = приоритет.
-  def build_pipeline(handler) -> [CancelStage(), OnboardingStage(), CorrectionStage(), PasswordStage(), MemoryStage(), PendingStage(), ClipboardStage(), ModesStage(), CompoundStage(), FastHandlersStage(), LLMStage()]
+  def build_pipeline(handler) -> [CancelStage(), PendingStage(), OnboardingStage(), CorrectionStage(), PasswordStage(), MemoryStage(), ClipboardStage(), ModesStage(), CompoundStage(), ClarificationStage(), FastHandlersStage(), LLMStage()]
 ```
 
 **`jarvis/intents/stages/base.py`**
@@ -865,6 +909,14 @@ Windows CI, живой микрофон, COM, установщик и просл
 ```
   # «Стоп», «хватит», «отбой» — самый первый этап.
   class CancelStage(Stage)
+    def handle(self, ctx)
+```
+
+**`jarvis/intents/stages/clarification.py`**
+
+```
+  # Запрос недостающего слота до fast/LLM, без выполнения догадок.
+  class ClarificationStage(Stage)
     def handle(self, ctx)
 ```
 
@@ -2031,6 +2083,50 @@ Windows CI, живой микрофон, COM, установщик и просл
   def test_check_layout_structure()
 ```
 
+**`tests/test_clarification.py`**
+
+```
+  # Slot filling uses real handler/pipeline, no devices, models or private data.
+  def h(monkeypatch)
+  def test_missing_target_then_answer(h, start)
+  def test_exact_known_targets(h, target)
+  def test_ambiguous_target_does_not_execute_or_guess_site(h, answer)
+  def test_target_self_correction_before_execution(h)
+  def test_missing_timer_then_duration(h, start)
+  def test_preserve_reminder_body(h)
+  def test_replace_time_before_execution(h, answer)
+  def test_unit_is_required_and_previous_number_retained(h)
+  def test_initial_bare_number_does_not_default_to_minutes(h)
+  def test_unclear_time_never_executes(h, answer)
+  def test_absolute_time_uses_existing_timer_dispatch(h, answer)
+  def test_cancel_discards_state(h, cancel)
+  def test_monotonic_deadline_not_wall_clock(h, monkeypatch)
+  def test_invalid_answer_does_not_extend_deadline_and_attempts_bounded(h)
+  def test_new_command_replaces_pending(h)
+  def test_new_incomplete_command_replaces_slot(h)
+  def test_password_prompt_clears_old_slot_and_password_is_not_history(h, monkeypatch)
+  def test_slot_answer_not_rewritten_by_learned_fuzzy_correction(h)
+  def test_timings_have_no_text_and_no_stream_claim(h)
+  def test_profile_change_clears_transient_state(h, monkeypatch)
+  def test_new_independent_command_does_not_become_app_name(h)
+  def test_compound_stops_at_missing_slot(h)
+  def test_same_utterance_correction_keeps_reminder_payload(h)
+  def test_new_command_still_runs_after_expiry(h)
+  def test_exact_custom_retains_priority_over_missing_slot(h, monkeypatch)
+  def test_low_confidence_slot_answer_is_not_consumed_or_observed(h)
+  def test_confident_slot_answer_not_forwarded_to_observer(h)
+  def test_weather_pending_still_uses_same_stage(h, monkeypatch)
+  def test_previous_command_timing_is_available_without_user_text(h)
+  def test_initial_alternative_times_request_single_value(h)
+  def test_volume_command_replaces_pending_without_becoming_duration(h)
+  def test_answer_does_not_reanalyze_unrelated_original_command(h, monkeypatch)
+  def test_otmeni_without_pending_still_reaches_existing_undo(h)
+  def test_otmeni_pending_does_not_undo_previous_action(h)
+  def test_surrounding_whitespace_does_not_hide_incomplete_timer(h)
+  def test_leading_decimal_separator_does_not_turn_half_into_five(h, answer)
+  def test_slot_filling_works_without_local_llm(h)
+```
+
 **`tests/test_config_manager.py`**
 
 ```
@@ -2891,12 +2987,13 @@ Windows CI, живой микрофон, COM, установщик и просл
 | `jarvis/history.py` | 75 | code | История последних действий для отмены («стоп, не то»). |
 | `jarvis/installed.py` | 51 | code | Индекс установленных программ по ярлыкам меню «Пуск». |
 | `jarvis/intents/__init__.py` | 10 | code | Разбор команд Феникса — пакет. |
+| `jarvis/intents/clarification.py` | 262 | code | Bounded, session-only slot filling shared by GUI and voice. |
 | `jarvis/intents/context.py` | 19 | code | Контекст, который передаётся между стадиями pipeline. |
 | `jarvis/intents/execute.py` | 1021 | code | Dispatch: action → функция-обработчик. |
 | `jarvis/intents/fast/__init__.py` | 54 | code | Реестр быстрых обработчиков. |
 | `jarvis/intents/fast/correction.py` | 28 | code | Коррекция: «это не то, я сказал логи». |
-| `jarvis/intents/fast/custom.py` | 83 | code | Пользовательские команды: из config.json и из паков. |
-| `jarvis/intents/fast/debug.py` | 38 | code | Диагностика: «что ты слышал», «почему не понял». |
+| `jarvis/intents/fast/custom.py` | 91 | code | Пользовательские команды: из config.json и из паков. |
+| `jarvis/intents/fast/debug.py` | 48 | code | Диагностика: «что ты слышал», «почему не понял». |
 | `jarvis/intents/fast/memory.py` | 57 | code | Управление памятью диалога. |
 | `jarvis/intents/fast/music.py` | 38 | code | Музыка — ДО open_fast. |
 | `jarvis/intents/fast/open.py` | 61 | code | Открытие приложений / сайтов / папок / профиля — без LLM. |
@@ -2912,22 +3009,23 @@ Windows CI, живой микрофон, COM, установщик и просл
 | `jarvis/intents/fast/undo.py` | 67 | code | Отмена последнего действия («не то», «отмени»). |
 | `jarvis/intents/fast/voices.py` | 10 | code | Голоса Piper — обёртка над модулем `voices`. |
 | `jarvis/intents/fast/weather.py` | 113 | code | Простые правила для погоды и курса — без LLM. |
-| `jarvis/intents/handler.py` | 279 | code | IntentHandler — оркестрация. |
+| `jarvis/intents/handler.py` | 303 | code | IntentHandler — оркестрация. |
 | `jarvis/intents/password.py` | 99 | code | Парольные примитивы: jarvis.intents.password (не стадия pipeline). |
 | `jarvis/intents/sites.py` | 62 | code | Сайты для открытия голосом — ленивая загрузка из packs/sites.json. |
-| `jarvis/intents/stages/__init__.py` | 44 | code | Стадии обработки команды. Порядок = приоритет. |
+| `jarvis/intents/stages/__init__.py` | 47 | code | Стадии обработки команды. Порядок = приоритет. |
 | `jarvis/intents/stages/base.py` | 19 | code | Базовая стадия pipeline. |
 | `jarvis/intents/stages/cancel.py` | 17 | code | «Стоп», «хватит», «отбой» — самый первый этап. |
+| `jarvis/intents/stages/clarification.py` | 11 | code | Запрос недостающего слота до fast/LLM, без выполнения догадок. |
 | `jarvis/intents/stages/clipboard.py` | 68 | code | 4 команды буфера обмена. Все — до LLM. |
-| `jarvis/intents/stages/compound.py` | 71 | code | Многослойные команды: «открой стим и запусти доту». |
-| `jarvis/intents/stages/correction.py` | 24 | code | Применение коррекции «это не то» перед разбором команды. |
+| `jarvis/intents/stages/compound.py` | 75 | code | Многослойные команды: «открой стим и запусти доту». |
+| `jarvis/intents/stages/correction.py` | 27 | code | Применение коррекции «это не то» перед разбором команды. |
 | `jarvis/intents/stages/fast.py` | 29 | code | Вызов реестра быстрых обработчиков. |
 | `jarvis/intents/stages/llm.py` | 97 | code | LLM — последний шанс разобрать команду. |
 | `jarvis/intents/stages/memory.py` | 21 | code | Команды памяти диалога. |
 | `jarvis/intents/stages/modes.py` | 30 | code | Режимы работы: commands / llm / combo. |
-| `jarvis/intents/stages/onboarding.py` | 73 | code | Первый запуск — знакомство через LLM-диалог. |
+| `jarvis/intents/stages/onboarding.py` | 75 | code | Первый запуск — знакомство через LLM-диалог. |
 | `jarvis/intents/stages/password.py` | 124 | code | Стадия pipeline: jarvis.intents.stages.password. |
-| `jarvis/intents/stages/pending.py` | 72 | code | Ожидание уточнения (pending_question). |
+| `jarvis/intents/stages/pending.py` | 79 | code | Ожидание уточнения (pending_question). |
 | `jarvis/intents/verbs.py` | 45 | code | Константы глаголов и слов — единый источник истины. |
 | `jarvis/language/__init__.py` | 17 | code | Russian numeric understanding and speech normalization. |
 | `jarvis/language/context.py` | 112 | code | Local grammatical evidence. Ambiguous sentences are not a full syntax  |
@@ -2938,7 +3036,7 @@ Windows CI, живой микрофон, COM, установщик и просл
 | `jarvis/language/time.py` | 84 | code | Duration grammar with source spans. Uses the shared numeral/unit vocab |
 | `jarvis/language/units.py` | 85 | code | Semantic unit lexicon shared by input and output; spelling is data, no |
 | `jarvis/learning.py` | 178 | code | Самообучение Феникса: факты и коррекции. |
-| `jarvis/main.py` | 896 | code | Точка входа: связывает распознавание, интенты, синтез речи и GUI. |
+| `jarvis/main.py` | 899 | code | Точка входа: связывает распознавание, интенты, синтез речи и GUI. |
 | `jarvis/matching.py` | 118 | code | Нечёткое сопоставление речи с названиями: транслитерация + difflib. |
 | `jarvis/memory.py` | 147 | code | Память диалога — на профиль. |
 | `jarvis/memory_context.py` | 124 | code | Query-scoped personal memory. Absence/uncertainty never means 'send ev |
@@ -3002,6 +3100,7 @@ Windows CI, живой микрофон, COM, установщик и просл
 | `tests/test_browser_target.py` | 338 | code | №1: Феникс работает в том браузере, в котором сидит пользователь. |
 | `tests/test_build_setup.py` | 56 | code | Тесты scripts.build_setup — версия установщика и мягкий пропуск шага c |
 | `tests/test_caps.py` | 23 | code | Тесты check_caps: структура system_caps.json. |
+| `tests/test_clarification.py` | 411 | code | Slot filling uses real handler/pipeline, no devices, models or private |
 | `tests/test_config_manager.py` | 47 | code | Тесты config_manager: параллельная запись не рвёт файл. |
 | `tests/test_engine_probe.py` | 100 | code | Заглушка движка TTS (factory._probe_engine). |
 | `tests/test_gui_wiring.py` | 548 | code | GUI → config: каждый элемент окна реально отсылает изменение. |
@@ -8543,6 +8642,269 @@ from jarvis.text_utils import normalize
 __all__ = ["IntentHandler", "normalize"]
 ```
 
+### `jarvis/intents/clarification.py`
+
+```python
+"""Bounded, session-only slot filling shared by GUI and voice. ... [4 строк]"""
+
+from dataclasses import dataclass
+import re
+import time
+
+from jarvis.language import analyze_command
+from jarvis.language.numbers import digit_numbers, word_numbers
+from jarvis.language.time import HALF, parse_duration
+from jarvis.language.units import TOKEN, unit_at
+from jarvis.intents.verbs import COMMAND_VERBS
+from jarvis.text_utils import normalize
+
+TIMEOUT = 30.0
+MAX_ATTEMPTS = 3
+OPEN = re.compile(r"^(?:открой|открывай|запусти|включи|врубай)$")
+TIMER = re.compile(
+    r"^(?:(?:поставь|установи)\s+)?(?:таймер|напоминание|напомни|напоминай)\b\s*",
+    re.I,
+)
+CORRECTION = re.compile(r"(?:^|[\s,;.…]+)(?:нет|точнее)\s*[,;:.…]?\s+", re.I)
+PROMPTS = {
+    "target": "Какое приложение открыть? Назови приложение или скажи «отмена».",
+    "time": "На сколько поставить таймер или в какое время напомнить?",
+    "unit": "В каких единицах: секундах, минутах или часах?",
+}
+
+
+@dataclass(frozen=True)
+class TimeSlot:
+    command: str = ""
+    body: str = ""
+    partial: str = ""
+    issue: str = ""
+
+
+def pending_alive(pending):
+    if not isinstance(pending, dict):
+        return False
+    if pending.get("type") == "command_slot":
+        return time.monotonic() < pending.get("deadline", 0)
+    return time.time() < pending.get("expires_at", 0)
+
+
+def _ask(handler, slot, **data):
+    handler._pending_question = {
+        "type": "command_slot",
+        "slot": slot,
+        "deadline": time.monotonic() + TIMEOUT,
+        # Совместимость окна голосового ввода; проверка срока — монотонная.
+        "expires_at": time.time() + TIMEOUT,
+        "attempts": 0,
+        **data,
+    }
+    return PROMPTS[slot]
+
+
+def _retry(handler, pending, prompt):
+    pending["attempts"] += 1
+    if pending["attempts"] >= MAX_ATTEMPTS:
+        handler._pending_question = None
+        return "Не удалось уточнить команду. Действие отменено; скажи команду заново."
+    # Не продлеваем срок при каждом непонятном ответе.
+    return prompt
+
+
+def _last_version(text):
+    return CORRECTION.split(text)[-1].strip().rstrip(" .!?…")
+
+
+def _has_duration_unit(text):
+    if HALF.search(text):
+        return True
+    for token in TOKEN.finditer(text):
+        unit = unit_at(text, token.start())
+        if unit and unit[0].dimension == "duration":
+            return True
+    return False
+
+
+def _time_slot(text):
+    """Use shared numeric grammar; a bare number never defaults to minutes."""
+    text = text.strip().rstrip(" .!?…")
+    if re.match(r"^[.,]\d", text):
+        return TimeSlot(issue="Укажи ноль перед десятичным разделителем.")
+    if not text:
+        return TimeSlot()
+    if re.fullmatch(r"\d{1,2}[:.]\d{2}", text):
+        text = "в " + text
+    if normalize(text).startswith("не "):
+        return TimeSlot(issue="Укажи время без отрицания.")
+    analysis = analyze_command("таймер " + text)
+    if analysis.issue:
+        return TimeSlot(issue=analysis.issue)
+    clock = re.match(r"^в\s+(\d{1,2}:\d{2})\b\s*", analysis.command[7:], re.I)
+    if clock:
+        rest = analysis.command[7:][clock.end() :].strip()
+        return TimeSlot(command="в " + clock[1], body=rest)
+    duration = parse_duration(text)
+    if duration and _has_duration_unit(text[: duration.end]):
+        if duration.issue:
+            return TimeSlot(issue=duration.issue)
+        seconds = duration.seconds
+        if seconds <= 0 or seconds != seconds.to_integral_value():
+            return TimeSlot(issue="Укажи положительное время с точностью до секунды.")
+        return TimeSlot(
+            command=f"через {int(seconds)} секунд",
+            body=text[duration.end :].strip(" ,.!?…"),
+        )
+    number_text = re.sub(r"^(?:на|через)\s+", "", text, flags=re.I)
+    numbers = (*word_numbers(number_text), *digit_numbers(number_text))
+    whole = [n for n in numbers if n.start == 0 and n.end == len(number_text)]
+    if len(whole) == 1 and whole[0].kind == "cardinal" and whole[0].value > 0:
+        return TimeSlot(partial=number_text)
+    return TimeSlot()
+
+
+def _new_turn(cmd):
+    tokens = cmd.split()
+    if not tokens:
+        return False
+    return tokens[0] in COMMAND_VERBS or tokens[0] in {
+        "установи",
+        "таймер",
+        "напоминание",
+        "расскажи",
+        "почему",
+        "зачем",
+        "как",
+        "кто",
+        "что",
+        "какие",
+        "список",
+        "погода",
+        "привет",
+        "спасибо",
+        "режим",
+        "пауза",
+        "продолжи",
+        "следующий",
+        "предыдущий",
+        "отмени",
+        "сбрось",
+        "который",
+        "громкость",
+        "яркость",
+        "плей",
+        "play",
+        "pause",
+        "дальше",
+        "останови",
+    }
+
+
+def _known_target(handler, answer):
+    """Only an exact known name: a slot answer must not guess an arbitrary site."""
+    target = normalize(answer)
+    if not target or len(target) > 100:
+        return None
+    for app in handler.apps:
+        names = (app.key, app.title, *app.aliases)
+        if any(target == normalize(name) for name in names):
+            return normalize(app.aliases[0]) if app.aliases else normalize(app.title)
+    # Installed indexes are already warmed by IntentHandler; no extra scan/cache.
+    for name in handler.installed:
+        if normalize(name) == target:
+            return target
+    for title, _appid in handler.steam_games:
+        if normalize(title) == target:
+            return target
+    return None
+
+
+def begin(ctx):
+    """Start only supported, explicitly incomplete commands; other intents pass."""
+    h = ctx.handler
+    from jarvis.intents.fast.custom import find_custom
+
+    if OPEN.fullmatch(ctx.cmd):
+        if find_custom(getattr(h, "custom", []), ctx.cmd) is not None:
+            return None
+        return _ask(h, "target", action="open")
+    raw = (getattr(h, "_raw_cmd", "") or ctx.cmd).strip()
+    # Reuse analysis already done by handle(); do not parse every command twice.
+    analysis = getattr(h, "_number_analysis", None)
+    if analysis is None or normalize(analysis.command) != ctx.cmd:
+        raw = ctx.cmd
+    match = TIMER.match(raw)
+    if not match:
+        return None
+    if find_custom(getattr(h, "custom", []), ctx.cmd) is not None:
+        return None
+    tail = raw[match.end() :].strip()
+    corrected = _last_version(tail)
+    value = _time_slot(corrected)
+    if value.command:
+        if re.match(r"^(?:или|либо)\b", value.body, re.I):
+            return _ask(h, "time", action="timer", text="") + " Назови одно время."
+        if corrected != tail.strip(" ,.!?…"):
+            # Only an explicit replacement of a time, not "say no" in a reminder.
+            if not value.body:
+                original = _time_slot(CORRECTION.split(tail)[0].strip())
+                body = original.body if original.command else ""
+                ctx.cmd = normalize("таймер " + value.command + " " + body)
+        return None
+    if value.issue:
+        return _ask(h, "time", action="timer", text="") + " " + value.issue
+    if value.partial:
+        return _ask(h, "unit", action="timer", text="", partial=value.partial)
+    # Preserve the payload of an incomplete reminder, but not malformed time.
+    body = tail if tail and not re.match(r"^(?:на|через|в)\b", tail, re.I) else ""
+    return _ask(h, "time", action="timer", text=body)
+
+
+def resume(ctx):
+    h = ctx.handler
+    pending = h._pending_question
+    if not pending_alive(pending):
+        h._pending_question = None
+        # New full commands still work; a stale slot answer never reaches LLM.
+        if _new_turn(ctx.cmd):
+            return None
+        return "Время уточнения истекло. Скажи команду заново."
+    answer = _last_version(getattr(h, "_raw_cmd", "") or ctx.cmd)
+    clean = normalize(answer)
+    if clean in {"нет", "не надо", "не нужно", "отмени"}:
+        h._pending_question = None
+        return "Действие отменено."
+    if _new_turn(clean):
+        h._pending_question = None
+        return None
+    if pending["slot"] == "target":
+        target = _known_target(h, answer)
+        if not target:
+            return _retry(
+                h,
+                pending,
+                "Не нашёл однозначное название приложения. " + PROMPTS["target"],
+            )
+        command = "открой " + target
+    else:
+        if pending["slot"] == "unit":
+            unit = unit_at(answer, 0)
+            if unit and unit[0].dimension == "duration" and unit[1] == len(answer):
+                answer = pending["partial"] + " " + answer
+        value = _time_slot(answer)
+        if value.partial:
+            pending.update(slot="unit", partial=value.partial)
+            return _retry(h, pending, PROMPTS["unit"])
+        if not value.command or value.body:
+            return _retry(h, pending, value.issue or PROMPTS["time"])
+        command = "таймер " + value.command
+        if pending.get("text"):
+            command += " " + pending["text"]
+    h._pending_question = None
+    ctx.cmd = normalize(command)
+    ctx.state["clarification_resumed"] = True
+    return None
+```
+
 ### `jarvis/intents/context.py`
 
 ```python
@@ -9681,12 +10043,20 @@ def load_packs_as_custom(config) -> list:
 
 
 def match_custom(handler, cmd: str) -> str | None:
-    """Точное совпадение или нечёткое (>=0.85, обе фразы >=12 символов)."""
-    for phrases, action, reply in handler.custom:
+    """Тот же matcher используется уточнениями, но исполнение только здесь."""
+    matched = find_custom(handler.custom, cmd)
+    if matched is not None:
+        return execute_custom(handler, *matched)
+    return None
+
+
+def find_custom(custom: list, cmd: str) -> tuple | None:
+    """Чистый поиск: точное или нечёткое совпадение, без побочных действий."""
+    for phrases, action, reply in custom:
         for phrase in phrases:
             if cmd == phrase:
                 log.info("Custom (точно): %r → %r, action=%r", cmd, phrase, action)
-                return execute_custom(handler, action, reply)
+                return action, reply
 
             # Нечёткий матч — только для длинных фраз.
             # Короткие («вк», «отк») слишком легко путаются.
@@ -9695,7 +10065,7 @@ def match_custom(handler, cmd: str) -> str | None:
                 if ratio >= 0.85:
                     log.info("Custom (нечётко %.2f): %r → %r, action=%r",
                              ratio, cmd, phrase, action)
-                    return execute_custom(handler, action, reply)
+                    return action, reply
     return None
 
 
@@ -9728,6 +10098,16 @@ import re
 
 
 def debug_fast(handler, cmd: str) -> str | None:
+    if cmd in {"время обработки", "покажи время обработки"}:
+        timings = getattr(handler, "_previous_timings", {})
+        if not timings:
+            return "Пока нет замера предыдущей команды."
+        stages = timings.get("stages_ms", {})
+        slowest = sorted(stages.items(), key=lambda item: item[1], reverse=True)[:3]
+        parts = [f"Обработка предыдущей команды: {timings['handler_ms']:.1f} мс"]
+        parts.extend(f"{name}: {elapsed:.1f} мс" for name, elapsed in slowest)
+        return ". ".join(parts) + ". Без распознавания, генерации потока и озвучки."
+
     # «что ты слышал»
     if (re.search(r"(что|чё)\s+ты\s+слышал", cmd)
             or cmd in {"что ты слышал", "что слышал", "история"}):
@@ -10946,6 +11326,18 @@ class IntentHandler:
     # =================================================================
 
     def handle(self, cmd: str) -> Reply:
+        """Один ход; метрики содержат только длительности, не текст команды."""
+        started = time.perf_counter()
+        self._previous_timings = getattr(self, "_last_timings", {})
+        self._last_timings = {"stages_ms": {}}
+        try:
+            return self._handle_command(cmd)
+        finally:
+            self._last_timings["handler_ms"] = round(
+                (time.perf_counter() - started) * 1000, 3
+            )
+
+    def _handle_command(self, cmd: str) -> Reply:
         """Возвращает Reply: либо text, либо stream."""
         self.last_was_chat = False
 
@@ -11028,7 +11420,15 @@ class IntentHandler:
 
         ctx = Ctx(cmd=cmd, original_cmd=cmd, handler=self)
         for stage in self._pipeline:
-            result = stage.handle(ctx)
+            started = time.perf_counter()
+            try:
+                result = stage.handle(ctx)
+            finally:
+                timings = getattr(self, "_last_timings", {}).get("stages_ms")
+                if timings is not None:
+                    timings[stage.name] = timings.get(stage.name, 0.0) + round(
+                        (time.perf_counter() - started) * 1000, 3
+                    )
             if result is not None:
                 return result
         return None
@@ -11040,6 +11440,7 @@ class IntentHandler:
     def _ask_password(self, intent: dict) -> str:
         """Запрашивает пароль для опасного действия."""
         pending, msg = build_ask_password(intent)
+        self._pending_question = None
         self._pending_password = pending
         return msg
 
@@ -11072,6 +11473,9 @@ class IntentHandler:
         """Перечитывает dialog при смене профиля."""
         if old_name == new_name:
             return
+        self._pending_question = None
+        self._pending_password = None
+        self._last_cmd = ""
         self.dialog.clear()
         for msg in memory.load(limit=self._memory_max):
             self.dialog.append(msg)
@@ -11236,7 +11640,7 @@ def get_sites() -> dict:
 ### `jarvis/intents/stages/__init__.py`
 
 ```python
-"""Стадии обработки команды. Порядок = приоритет. ... [14 строк]"""
+"""Стадии обработки команды. Порядок = приоритет. ... [15 строк]"""
 
 from jarvis.intents.stages.cancel import CancelStage
 from jarvis.intents.stages.onboarding import OnboardingStage
@@ -11249,20 +11653,22 @@ from jarvis.intents.stages.modes import ModesStage
 from jarvis.intents.stages.compound import CompoundStage
 from jarvis.intents.stages.fast import FastHandlersStage
 from jarvis.intents.stages.llm import LLMStage
+from jarvis.intents.stages.clarification import ClarificationStage
 
 
 def build_pipeline(handler) -> list:
     """Собирает pipeline стадий. Порядок фиксирован."""
     return [
         CancelStage(),
+        PendingStage(),
         OnboardingStage(),
         CorrectionStage(),
         PasswordStage(),
         MemoryStage(),
-        PendingStage(),
         ClipboardStage(),
         ModesStage(),
         CompoundStage(),
+        ClarificationStage(),
         FastHandlersStage(),
         LLMStage(),
     ]
@@ -11306,6 +11712,22 @@ class CancelStage(Stage):
             h._reset_requested = True
             return "Жду обращение, сэр."
         return None
+```
+
+### `jarvis/intents/stages/clarification.py`
+
+```python
+"""Запрос недостающего слота до fast/LLM, без выполнения догадок."""
+
+from jarvis.intents.clarification import begin
+from jarvis.intents.stages.base import Stage
+
+
+class ClarificationStage(Stage):
+    name = "clarification"
+
+    def handle(self, ctx):
+        return begin(ctx)
 ```
 
 ### `jarvis/intents/stages/clipboard.py`
@@ -11409,6 +11831,10 @@ class CompoundStage(Stage):
             sub = ctx.handler._handle_single(normalize(analysis.command))
             if isinstance(sub, str) and sub.strip():
                 replies.append(sub.strip())
+            # Не выполняем следующие части, пока текущая ждёт слот/пароль.
+            if (getattr(ctx.handler, "_pending_question", None)
+                    or getattr(ctx.handler, "_pending_password", None)):
+                break
             # Если sub — генератор (chat_stream) — пропускаем.
 
         if replies:
@@ -11458,6 +11884,9 @@ class CorrectionStage(Stage):
     name = "correction"
 
     def handle(self, ctx):
+        # Ответ на слот не превращаем в сохранённую нечёткую коррекцию.
+        if ctx.state.get("clarification_resumed"):
+            return None
         corrected = learning.find_correction(ctx.cmd)
         if corrected and corrected != ctx.cmd:
             log.info("Применена коррекция: %r → %r", ctx.cmd, corrected)
@@ -11654,6 +12083,8 @@ class OnboardingStage(Stage):
     def handle(self, ctx):
         from jarvis import first_run, persona, profile
 
+        if ctx.state.get("clarification_resumed"):
+            return None
         if not first_run.is_first_run():
             return None
 
@@ -11832,7 +12263,7 @@ def build_ask_password(intent: dict, expires_sec: int = 30) -> tuple[dict, str]:
 ### `jarvis/intents/stages/pending.py`
 
 ```python
-"""Ожидание уточнения (pending_question). ... [4 строк]"""
+"""Ожидание уточнения (pending_question). ... [5 строк]"""
 
 import logging
 import time
@@ -11865,8 +12296,14 @@ class PendingStage(Stage):
 
     def handle(self, ctx):
         h = ctx.handler
-        if not h._pending_question:
+        if not getattr(h, "_pending_question", None):
             return None
+        if ctx.cmd in {"отмени", "не надо", "не нужно", "нет"}:
+            h._pending_question = None
+            return "Действие отменено."
+        if h._pending_question.get("type") == "command_slot":
+            from jarvis.intents.clarification import resume
+            return resume(ctx)
         if time.time() >= h._pending_question.get("expires_at", 0):
             h._pending_question = None
             return None
@@ -13678,7 +14115,8 @@ class Jarvis:
         awaiting = time.time() < self._awaiting_until
         sensitive = bool(getattr(self.handler, "_pending_password", None))
         pending = getattr(self.handler, "_pending_question", None)
-        if pending and time.time() < pending.get("expires_at", 0):
+        from jarvis.intents.clarification import pending_alive
+        if pending_alive(pending):
             awaiting = True
             self._awaiting_until = max(self._awaiting_until, pending["expires_at"])
         if sensitive:
@@ -13747,7 +14185,9 @@ class Jarvis:
                 recent = getattr(getattr(self, "listener", None), "recent_phrases", None)
                 if recent is not None:
                     recent.append(cmd)
-            if not sensitive and getattr(self, "observer", None) is not None:
+            # Короткий ответ на слот — не постоянный факт о пользователе.
+            answering_slot = pending_alive(getattr(self.handler, "_pending_question", None))
+            if not sensitive and not answering_slot and getattr(self, "observer", None) is not None:
                 try:
                     self.observer.observe("user", cmd)
                 except Exception:
@@ -25321,6 +25761,422 @@ def test_check_layout_structure():
     assert "method" in r
 ```
 
+### `tests/test_clarification.py`
+
+```python
+"""Slot filling uses real handler/pipeline, no devices, models or private data."""
+
+from collections import deque
+from pathlib import Path
+from types import SimpleNamespace as NS
+from unittest.mock import Mock
+import time
+
+import pytest
+
+from jarvis import first_run, learning, memory, mood, timers
+from jarvis.intents.handler import IntentHandler
+from jarvis.intents.stages import build_pipeline
+from jarvis.intents.fast.timers import timers_fast
+from jarvis.intents.clarification import pending_alive
+from jarvis.intents.password import hash_password
+
+
+@pytest.fixture
+def h(monkeypatch):
+    monkeypatch.setattr(first_run, "is_first_run", lambda: False)
+    monkeypatch.setattr(memory, "append", Mock())
+    monkeypatch.setattr(memory, "handle_memory_command", lambda *a: (None, False))
+    monkeypatch.setattr(mood, "apply_from_text", Mock())
+    monkeypatch.setattr(learning, "find_correction", Mock(return_value=None))
+    monkeypatch.setattr(learning, "add_correction", Mock())
+    monkeypatch.setattr(timers, "add", Mock(return_value={}))
+    a = IntentHandler.__new__(IntentHandler)
+    a.config = {}
+    a.apps = [
+        NS(key="notepad", title="Блокнот", aliases=["блокнот", "notepad"]),
+        NS(key="steam", title="Стим", aliases=["стим", "steam"]),
+    ]
+    a.brain = NS(available=True, parse=Mock(return_value={"action": "none"}))
+    a.mode = "combo"
+    a.dialog = deque(maxlen=100)
+    a._recent_phrases = deque(maxlen=10)
+    a._pending_password = a._pending_question = None
+    a._installed = {"OBS Studio": Path("test-only.lnk")}
+    a._steam_games = [("Test Game", "123")]
+    a._reset_requested = False
+    a._last_cmd = a._raw_cmd = a._last_reply = ""
+    a._llm_context = 20
+    a.opened = Mock(return_value="Открываю приложение.")
+    a._fast_handlers_cache = [
+        ("open", lambda cmd: a.opened(cmd) if cmd.startswith("открой ") else None),
+        ("timers", lambda cmd: timers_fast(a, cmd)),
+        ("time", lambda cmd: "Сейчас полдень." if cmd == "который час" else None),
+    ]
+    a._pipeline = build_pipeline(a)
+    return a
+
+
+@pytest.mark.parametrize("start", ["открой", "запусти", "включи", "открывай", "врубай"])
+def test_missing_target_then_answer(h, start):
+    assert "приложение" in h.handle(start).text
+    h.opened.assert_not_called()
+    assert not h.handle("Блокнот").allow_nonverbal
+    h.opened.assert_called_once_with("открой блокнот")
+    assert h._pending_question is None
+    h.brain.parse.assert_not_called()
+    learning.add_correction.assert_not_called()
+
+
+@pytest.mark.parametrize("target", ["стим", "steam", "OBS Studio", "Test Game"])
+def test_exact_known_targets(h, target):
+    h.handle("открой")
+    h.handle(target)
+    h.opened.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "answer", ["это", "какая то штука", "не блокнот", "блокнот или стим", "блок"]
+)
+def test_ambiguous_target_does_not_execute_or_guess_site(h, answer):
+    h.handle("открой")
+    h.handle(answer)
+    h.opened.assert_not_called()
+    h.brain.parse.assert_not_called()
+    assert h._pending_question is not None
+
+
+def test_target_self_correction_before_execution(h):
+    h.handle("открой")
+    h.handle("блокнот, нет, стим")
+    h.opened.assert_called_once_with("открой стим")
+
+
+@pytest.mark.parametrize(
+    "start", ["таймер", "поставь таймер", "установи таймер", "напомни"]
+)
+def test_missing_timer_then_duration(h, start):
+    h.handle(start)
+    timers.add.assert_not_called()
+    before = time.time()
+    h.handle("на пятнадцать минут")
+    timers.add.assert_called_once()
+    assert abs(timers.add.call_args.args[1] - before - 900) < 2
+    assert h._pending_question is None
+    h.brain.parse.assert_not_called()
+
+
+def test_preserve_reminder_body(h):
+    h.handle("напомни выпить чай")
+    h.handle("через пять минут")
+    assert timers.add.call_args.args[0] == "выпить чай"
+
+
+@pytest.mark.parametrize(
+    "answer", ["на десять... нет, на пятнадцать минут", "точнее на пятнадцать минут"]
+)
+def test_replace_time_before_execution(h, answer):
+    h.handle("таймер")
+    h.handle(answer)
+    timers.add.assert_called_once()
+    assert abs(timers.add.call_args.args[1] - time.time() - 900) < 2
+
+
+def test_unit_is_required_and_previous_number_retained(h):
+    h.handle("таймер")
+    assert "единицах" in h.handle("на десять").text
+    timers.add.assert_not_called()
+    h.handle("минут")
+    timers.add.assert_called_once()
+    assert abs(timers.add.call_args.args[1] - time.time() - 600) < 2
+
+
+def test_initial_bare_number_does_not_default_to_minutes(h):
+    assert "единицах" in h.handle("поставь таймер на десять").text
+    timers.add.assert_not_called()
+    h.handle("секунд")
+    assert abs(timers.add.call_args.args[1] - time.time() - 10) < 2
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [
+        "не на пять минут",
+        "пять или десять минут",
+        "на ноль минут",
+        "через -5 минут",
+        "в 25:90",
+        "завтра утром",
+        "на пять минут выключи компьютер",
+    ],
+)
+def test_unclear_time_never_executes(h, answer):
+    h.handle("таймер")
+    h.handle(answer)
+    timers.add.assert_not_called()
+    h.brain.parse.assert_not_called()
+
+
+@pytest.mark.parametrize("answer", ["в 18:30", "18:30", "в восемнадцать тридцать"])
+def test_absolute_time_uses_existing_timer_dispatch(h, answer):
+    h.handle("напомни выпить чай")
+    h.handle(answer)
+    timers.add.assert_called_once()
+    assert timers.add.call_args.args[0] == "выпить чай"
+
+
+@pytest.mark.parametrize(
+    "cancel", ["отмена", "отмени", "стоп", "не надо", "не нужно", "нет"]
+)
+def test_cancel_discards_state(h, cancel):
+    h.handle("таймер")
+    h.handle(cancel)
+    assert h._pending_question is None
+    timers.add.assert_not_called()
+
+
+def test_monotonic_deadline_not_wall_clock(h, monkeypatch):
+    h.handle("таймер")
+    state = h._pending_question
+    monkeypatch.setattr(time, "time", lambda: state["expires_at"] + 9999)
+    assert pending_alive(state)
+    monkeypatch.setattr(time, "monotonic", lambda: state["deadline"] + 1)
+    assert not pending_alive(state)
+    assert "истекло" in h.handle("на пять минут").text
+    timers.add.assert_not_called()
+    h.brain.parse.assert_not_called()
+
+
+def test_invalid_answer_does_not_extend_deadline_and_attempts_bounded(h):
+    h.handle("таймер")
+    deadline = h._pending_question["deadline"]
+    for _ in range(2):
+        h.handle("эээ")
+        assert h._pending_question["deadline"] == deadline
+    assert "отменено" in h.handle("эээ").text
+    assert h._pending_question is None
+    h.brain.parse.assert_not_called()
+
+
+def test_new_command_replaces_pending(h):
+    h.handle("таймер")
+    h.handle("открой блокнот")
+    h.opened.assert_called_once_with("открой блокнот")
+    timers.add.assert_not_called()
+    assert h._pending_question is None
+
+
+def test_new_incomplete_command_replaces_slot(h):
+    h.handle("открой")
+    h.handle("таймер")
+    assert h._pending_question["slot"] == "time"
+    h.handle("на пять минут")
+    timers.add.assert_called_once()
+    h.opened.assert_not_called()
+
+
+def test_password_prompt_clears_old_slot_and_password_is_not_history(h, monkeypatch):
+    h.config["danger_password"] = hash_password("AbC-42!")
+    h.handle("открой")
+    h.handle("отмени все таймеры")
+    assert h._pending_question is None
+    assert h._pending_password
+    monkeypatch.setattr(
+        "jarvis.intents.execute.execute_intent", Mock(return_value="Готово.")
+    )
+    h.handle("пароль AbC-42!")
+    assert all("AbC-42!" not in m["content"] for m in h.dialog)
+
+
+def test_slot_answer_not_rewritten_by_learned_fuzzy_correction(h):
+    h.handle("открой")
+    learning.find_correction.reset_mock()
+    h.handle("блокнот")
+    learning.find_correction.assert_not_called()
+
+
+def test_timings_have_no_text_and_no_stream_claim(h):
+    h.handle("открой")
+    timings = h._last_timings
+    assert timings["handler_ms"] >= 0
+    assert timings["stages_ms"]["clarification"] >= 0
+    assert "открой" not in str(timings)
+
+
+def test_profile_change_clears_transient_state(h, monkeypatch):
+    h.handle("таймер")
+    h._memory_max = 100
+    monkeypatch.setattr(memory, "load", lambda **kw: [])
+    raw = h._raw_cmd
+    h._on_profile_switch("old", "new")
+    assert h._raw_cmd == raw  # Don't blank the in-flight history message.
+    assert h._pending_question is None
+    assert h._pending_password is None
+
+
+def test_new_independent_command_does_not_become_app_name(h):
+    h.handle("открой")
+    assert "полдень" in h.handle("который час").text
+    assert h._pending_question is None
+    h.opened.assert_not_called()
+
+
+def test_compound_stops_at_missing_slot(h):
+    h.handle("открой и запусти стим")
+    assert h._pending_question["slot"] == "target"
+    h.opened.assert_not_called()
+    h.handle("блокнот")
+    h.opened.assert_called_once_with("открой блокнот")
+
+
+def test_same_utterance_correction_keeps_reminder_payload(h):
+    h.handle("напомни через пять минут выпить чай, нет, через десять минут")
+    timers.add.assert_called_once()
+    assert timers.add.call_args.args[0] == "выпить чай"
+    assert abs(timers.add.call_args.args[1] - time.time() - 600) < 2
+
+
+def test_new_command_still_runs_after_expiry(h):
+    h.handle("таймер")
+    h._pending_question["deadline"] = 0
+    h.handle("открой блокнот")
+    h.opened.assert_called_once_with("открой блокнот")
+    timers.add.assert_not_called()
+
+
+def test_exact_custom_retains_priority_over_missing_slot(h, monkeypatch):
+    from jarvis.intents.fast.custom import match_custom
+
+    h.custom = [(["таймер"], [{"action": "screenshot"}], "Готово.")]
+    execute = Mock(return_value="Custom выполнена.")
+    monkeypatch.setattr("jarvis.intents.fast.custom.execute_custom", execute)
+    h._fast_handlers_cache.insert(0, ("custom", lambda cmd: match_custom(h, cmd)))
+    assert "Custom" in h.handle("таймер").text
+    assert h._pending_question is None
+    execute.assert_called_once()
+
+
+def test_low_confidence_slot_answer_is_not_consumed_or_observed(h):
+    from tests.test_recognition_quality import app, method, BAD, PCM
+
+    h.handle("таймер")
+    state = h._pending_question.copy()
+    a = app(primary=BAD, whisper=False)
+    a.handler = h
+    method("jarvis/main.py", "Jarvis", "_process")(a, "на пять минут", PCM)
+    assert h._pending_question == state
+    timers.add.assert_not_called()
+    a.observer.observe.assert_not_called()
+
+
+def test_confident_slot_answer_not_forwarded_to_observer(h):
+    from tests.test_recognition_quality import app, method, PCM
+
+    h.handle("таймер")
+    a = app(whisper=False)
+    a.handler = h
+    method("jarvis/main.py", "Jarvis", "_process")(a, "на пять минут", PCM)
+    timers.add.assert_called_once()
+    assert not any(c.args[0] == "user" for c in a.observer.observe.call_args_list)
+
+
+def test_weather_pending_still_uses_same_stage(h, monkeypatch):
+    from jarvis import profile, weather
+
+    h._pending_question = {
+        "type": "city_for_weather",
+        "day": "today",
+        "expires_at": time.time() + 20,
+    }
+    monkeypatch.setattr(profile, "set", Mock(return_value=True))
+    monkeypatch.setattr(weather, "get_weather", Mock(return_value={"test": True}))
+    monkeypatch.setattr(weather, "describe_weather", lambda w: "Погода.")
+    assert "Погода" in h.handle("Москва").text
+    weather.get_weather.assert_called_once_with("москва", day="today")
+
+
+def test_previous_command_timing_is_available_without_user_text(h):
+    from jarvis.intents.fast.debug import debug_fast
+
+    h._fast_handlers_cache.append(("debug", lambda cmd: debug_fast(h, cmd)))
+    h.handle("таймер")
+    reply = h.handle("покажи время обработки").text
+    assert "мс" in reply
+    assert "Без распознавания" in reply
+    assert "таймер" not in reply
+
+
+def test_initial_alternative_times_request_single_value(h):
+    assert "одно время" in h.handle("таймер на пять минут или десять минут").text
+    timers.add.assert_not_called()
+    h.handle("на десять минут")
+    timers.add.assert_called_once()
+
+
+def test_volume_command_replaces_pending_without_becoming_duration(h):
+    h._fast_handlers_cache.append(
+        ("volume", lambda cmd: "Громкость 50." if cmd == "громкость 50" else None)
+    )
+    h.handle("таймер")
+    assert "Громкость" in h.handle("громкость 50").text
+    assert h._pending_question is None
+    timers.add.assert_not_called()
+
+
+def test_answer_does_not_reanalyze_unrelated_original_command(h, monkeypatch):
+    import jarvis.intents.clarification as slots
+
+    h._raw_cmd = "случайная фраза"
+    h._number_analysis = NS(command="случайная фраза")
+    from jarvis.intents.context import Ctx
+
+    # A non-timer stage must not perform a second full numeric parse.
+    monkeypatch.setattr(
+        slots, "analyze_command", Mock(side_effect=AssertionError("duplicate parse"))
+    )
+    assert slots.begin(Ctx(cmd="случайная фраза", handler=h)) is None
+
+
+def test_otmeni_without_pending_still_reaches_existing_undo(h):
+    undo = Mock(return_value="Нечего отменять.")
+    h._fast_handlers_cache.append(
+        ("undo", lambda cmd: undo() if cmd == "отмени" else None)
+    )
+    assert "Нечего" in h.handle("отмени").text
+    undo.assert_called_once()
+
+
+def test_otmeni_pending_does_not_undo_previous_action(h):
+    undo = Mock(return_value="Откатываю.")
+    h._fast_handlers_cache.append(
+        ("undo", lambda cmd: undo() if cmd == "отмени" else None)
+    )
+    h.handle("таймер")
+    assert "отменено" in h.handle("отмени").text
+    undo.assert_not_called()
+    assert h._pending_question is None
+
+
+def test_surrounding_whitespace_does_not_hide_incomplete_timer(h):
+    assert "сколько" in h.handle("   Поставь таймер   ").text
+    h.handle("на пять минут")
+    timers.add.assert_called_once()
+
+
+@pytest.mark.parametrize("answer", [".5 минуты", ",5 минуты"])
+def test_leading_decimal_separator_does_not_turn_half_into_five(h, answer):
+    h.handle("таймер")
+    h.handle(answer)
+    timers.add.assert_not_called()
+
+
+def test_slot_filling_works_without_local_llm(h):
+    h.brain = None
+    h.handle("таймер")
+    h.handle("на пять минут")
+    timers.add.assert_called_once()
+```
+
 ### `tests/test_config_manager.py`
 
 ```python
@@ -35450,10 +36306,11 @@ pymorphy3>=2.0.3,<3
 
 ## 5. Документация (только оглавления)
 
-#### `tests/README.md` — 9 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `tests/README.md` — 10 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Тесты Феникса
   - Карта
+  - Уточнения команд: актуальная проверка
   - Регрессии последних изменений
     - Ручная приёмка Non-verbal
   - Правила
@@ -35522,12 +36379,13 @@ pymorphy3>=2.0.3,<3
   - 📦 Сборка и установка
     - `scripts/make_icon.py`
 
-#### `CHANGELOG.md` — 78 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 79 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
   - 📑 Содержание
   - 🚧 [Unreleased]
     - 📅 Сессия 15.10.2026
+      - Ядро Феникса: первый блок уточнений
       - Переносимость аудиотестов на Windows
       - Уточнение README и восстановление модулей пароля
       - Добавлено
@@ -35563,7 +36421,6 @@ pymorphy3>=2.0.3,<3
       - 🆕 Добавлено и исправлено (продолжение сессии)
         - 🧰 Модель VAD качается сама
         - ⏱ Блок аудио 500 мс → 128 мс (минус ~500 мс к ответу)
-        - 🖥 Трей снова работает (и в нём есть «Выход»)
 
 #### `CI.md` — 14 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -35618,50 +36475,24 @@ pymorphy3>=2.0.3,<3
   - 🤝 Как задавать вопросы
   - 🎯 Философия
 
-#### `PLAN.md` — 84 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `PLAN.md` — 14 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - 📋 План развития «Феникс»
-  - 🎯 ФИЛОСОФИЯ ПРОЕКТА
-  - 📊 СВОДКА
-  - Обновление 15.10.2026
-  - ✅ СДЕЛАНО — СВОДКА
-    - Сессия 14.10.2026 — CI перестал «врать» про устаревший снимок
-    - Углублённое управление браузером (13.10.2026)
-    - Инсталлятор + сборка (13.10.2026)
-    - CI-релизы (13.10.2026)
-    - Трей (12.10.2026)
-    - Prosody (11.10.2026)
-    - Tone (11.10.2026)
-    - VAD (10.10.2026)
-    - Prosody фиксы (10.10.2026)
-    - Mood + UIA + Персона + Observer (09.10.2026)
-    - Аудит Kimi + релиз (08.10.2026)
-    - Релиз v1.0.0 (07.10.2026)
-    - Ранее (06.10.2026 и раньше)
-  - 🚧 ФАЗА 1 — НАШИ ФИЧИ
-    - 🆕 UI/UX
-    - 🆕 Silero TTS
-    - 🆕 Non-verbal — звуковые реакции (1)
-    - 🆕 Prosody ML — эмоции из голоса, второй этап
-      - Идея A: расширенные акустические признаки (эвристика++)
-      - Идея B: ML-фолбэк через audeering/wav2vec2 (гибрид)
-      - Идея C: калибровка порогов под юзера
-      - Идея D: просодия → персона
-      - Идея E: триггеры для опасных команд
-      - Идея F: логирование эмоций
-      - Порядок работ
-      - Антипаттерны
-    - 🆕 Многошаговые сценарии (6)
-    - 🆕 Мои команды и сценарии (12)
-    - 🆕 Бесплатные фичи (13)
-    - 🆕 Управление приложениями (6)
-    - 🆕 Persistent + Vector memory (RAG) (3) ⭐ AIRI-концепция ✅ 14.10.2026
-    - 🆕 MCP + плагины — ЗАГОТОВКИ (2)
-    - 🆕 Telegram + веб (2)
-    - 🆕 Визуализация + Спрайт (4) ⭐ AIRI-концепция
-    - 🆕 Сборка в `.exe` (2)
+  - 🎯 Курс: сначала сам Феникс
+  - 📊 Статусы
+  - Что уже есть
+  - А. 🚧 Уточнения и незавершённая команда — текущий блок
+    - Реализовано в первом ограниченном наборе
+    - Приёмка на Windows
+  - Б. ⏭ Контекст исправлений и расширение слотов
+  - В. ⏭ Управляемое самообучение приложения
+  - Г. ⏭ Качество памяти и разговора
+  - Д. ⏭ Производительность по измерениям
+  - Е. Сквозная проверка качества и стабильности
+  - 💤 Дальний бэклог — не текущий план разработки
+  - Правила завершения шага
 
-#### `PROMPT.md` — 28 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `PROMPT.md` — 27 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - 🤖 ПРОМПТ для LLM — «Феникс»
   - Актуальные контракты — 15.10.2026
@@ -35681,8 +36512,7 @@ pymorphy3>=2.0.3,<3
     - 💎 Premium — ⏸
   - 📊 ТЕКУЩИЙ СТАТУС
     - ✅ Закрыто
-    - 🚧 Осталось
-  - 🎯 ПОРЯДОК РАБОТЫ
+    - 🚧 Активная очередь
   - 🎯 КЛЮЧЕВЫЕ ПРАВИЛА
     - Код
     - GUI
@@ -35692,7 +36522,7 @@ pymorphy3>=2.0.3,<3
   - 🛠 Как чинить баги
   - 📎 БЫСТРЫЕ ССЫЛКИ
 
-#### `README.md` — 62 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `README.md` — 63 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - 🦅 Феникс
   - 📑 Содержание
@@ -35743,4 +36573,4 @@ pymorphy3>=2.0.3,<3
 
 ---
 
-_Итого по категориям — code: 156, data: 22, doc: 12, pack: 5. Режим `lean`._
+_Итого по категориям — code: 159, data: 22, doc: 12, pack: 5. Режим `lean`._

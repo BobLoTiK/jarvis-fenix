@@ -45,12 +45,20 @@ def load_packs_as_custom(config) -> list:
 
 
 def match_custom(handler, cmd: str) -> str | None:
-    """Точное совпадение или нечёткое (>=0.85, обе фразы >=12 символов)."""
-    for phrases, action, reply in handler.custom:
+    """Тот же matcher используется уточнениями, но исполнение только здесь."""
+    matched = find_custom(handler.custom, cmd)
+    if matched is not None:
+        return execute_custom(handler, *matched)
+    return None
+
+
+def find_custom(custom: list, cmd: str) -> tuple | None:
+    """Чистый поиск: точное или нечёткое совпадение, без побочных действий."""
+    for phrases, action, reply in custom:
         for phrase in phrases:
             if cmd == phrase:
                 log.info("Custom (точно): %r → %r, action=%r", cmd, phrase, action)
-                return execute_custom(handler, action, reply)
+                return action, reply
 
             # Нечёткий матч — только для длинных фраз.
             # Короткие («вк», «отк») слишком легко путаются.
@@ -59,7 +67,7 @@ def match_custom(handler, cmd: str) -> str | None:
                 if ratio >= 0.85:
                     log.info("Custom (нечётко %.2f): %r → %r, action=%r",
                              ratio, cmd, phrase, action)
-                    return execute_custom(handler, action, reply)
+                    return action, reply
     return None
 
 

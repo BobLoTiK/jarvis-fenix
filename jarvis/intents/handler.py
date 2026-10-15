@@ -144,6 +144,18 @@ class IntentHandler:
     # =================================================================
 
     def handle(self, cmd: str) -> Reply:
+        """Один ход; метрики содержат только длительности, не текст команды."""
+        started = time.perf_counter()
+        self._previous_timings = getattr(self, "_last_timings", {})
+        self._last_timings = {"stages_ms": {}}
+        try:
+            return self._handle_command(cmd)
+        finally:
+            self._last_timings["handler_ms"] = round(
+                (time.perf_counter() - started) * 1000, 3
+            )
+
+    def _handle_command(self, cmd: str) -> Reply:
         """Возвращает Reply: либо text, либо stream."""
         self.last_was_chat = False
 
@@ -226,7 +238,15 @@ class IntentHandler:
 
         ctx = Ctx(cmd=cmd, original_cmd=cmd, handler=self)
         for stage in self._pipeline:
-            result = stage.handle(ctx)
+            started = time.perf_counter()
+            try:
+                result = stage.handle(ctx)
+            finally:
+                timings = getattr(self, "_last_timings", {}).get("stages_ms")
+                if timings is not None:
+                    timings[stage.name] = timings.get(stage.name, 0.0) + round(
+                        (time.perf_counter() - started) * 1000, 3
+                    )
             if result is not None:
                 return result
         return None
@@ -238,6 +258,7 @@ class IntentHandler:
     def _ask_password(self, intent: dict) -> str:
         """Запрашивает пароль для опасного действия."""
         pending, msg = build_ask_password(intent)
+        self._pending_question = None
         self._pending_password = pending
         return msg
 
@@ -270,6 +291,9 @@ class IntentHandler:
         """Перечитывает dialog при смене профиля."""
         if old_name == new_name:
             return
+        self._pending_question = None
+        self._pending_password = None
+        self._last_cmd = ""
         self.dialog.clear()
         for msg in memory.load(limit=self._memory_max):
             self.dialog.append(msg)

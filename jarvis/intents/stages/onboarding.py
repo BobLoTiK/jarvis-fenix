@@ -21,6 +21,8 @@ class OnboardingStage(Stage):
     def handle(self, ctx):
         from jarvis import first_run, persona, profile
 
+        if ctx.state.get("clarification_resumed"):
+            return None
         if not first_run.is_first_run():
             return None
 

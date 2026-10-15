@@ -105,11 +105,12 @@ jarvis/
 ├── intents/          — пакет (после рефакторинга)
 │   ├── handler.py    — IntentHandler, pipeline, подписки
 │   ├── context.py    — Ctx для стадий
+│   ├── clarification.py — session-only target/time/unit, общий deadline/валидация
 │   ├── verbs.py      — COMMAND_VERBS, CANCEL, SEARCH_VERBS
 │   ├── password.py   — хеш пароля, миграция, DANGER_ACTIONS
 │   ├── sites.py      — SITES из packs/sites.json
 │   ├── execute.py    — dispatch: action → функция + UIA-обработчики
-│   ├── stages/       — 11 стадий pipeline
+│   ├── stages/       — 12 стадий pipeline
 │   │   ├── base.py       — class Stage
 │   │   ├── cancel.py     — «стоп», «хватит»
 │   │   ├── onboarding.py — LLM-диалог + _looks_like_command
@@ -120,6 +121,7 @@ jarvis/
 │   │   ├── clipboard.py  — 4 команды буфера
 │   │   ├── modes.py      — commands/llm/combo
 │   │   ├── compound.py   — «открой стим и запусти доту»
+│   │   ├── clarification.py — вопрос о недостающем слоте
 │   │   ├── fast.py       — вызов реестра
 │   │   └── llm.py        — brain.parse + chat_stream
 │   └── fast/         — 19 быстрых обработчиков (реестр)
@@ -185,18 +187,19 @@ main.Jarvis._process → обращение/окно диалога + PCM/ASR ga
    ↓
 intents.IntentHandler.handle(raw) → password ветка или language.analyze_command → normalize
    ↓
-Pipeline (11 стадий, порядок важен):
-   ├── cancel       — «стой», «хватит»
-   ├── onboarding   — первый запуск, LLM-диалог
-   ├── correction   — «это не то, я сказал …»
-   ├── password     — пароль / «удали профиль X»
-   ├── memory       — «что обсуждали», «забудь всё»
-   ├── pending      — уточнения («в каком городе?»)
-   ├── clipboard    — 4 команды буфера
-   ├── modes        — commands/llm/combo
-   ├── compound     — «открой стим и запусти доту»
-   ├── fast         — реестр быстрых правил
-   └── llm          — brain.parse + chat_stream
+Pipeline (12 стадий, порядок важен):
+   ├── cancel       — отмена
+   ├── pending      — ответ на слот, до онбординга и коррекции
+   ├── onboarding   — первый запуск
+   ├── correction   — сохранённая коррекция (не для заполненного слота)
+   ├── password     — защита опасных действий
+   ├── memory       — память диалога
+   ├── clipboard    — буфер
+   ├── modes        — режим
+   ├── compound     — составные команды; остановка на вопросе/пароле
+   ├── clarification — недостающий target/time/unit
+   ├── fast         — прежний приоритет реестра, включая custom
+   └── llm          — локальный разбор/диалог
    ↓
 main.Jarvis.say(reply) ← _say_lock (обработку команды защищает cmd_lock)
    ├── если text → speaker.play_async()
@@ -210,6 +213,13 @@ tts.Speaker → tts_engines: Silero / Piper / WinRT / SAPI
 Сомнительная расшифровка не доходит до этих шагов.
 
 ---
+
+`intents/clarification.py` использует существующий `_pending_question`.
+Временное состояние не сохраняется в профиль: одно ожидание, 30 с (monotonic),
+три неудачных ответа. Новый поддержанный запрос/отмена/смена профиля очищают его.
+Результат возвращается в pipeline, не вызывает исполнитель в обход защиты.
+Точный поиск custom вынесен в чистый `find_custom`, его приоритет сохраняется.
+Метрики handler/stages не содержат входного текста и не измеряют STT/TTS/stream.
 
 ## 🎓 Онбординг (первый запуск)
 

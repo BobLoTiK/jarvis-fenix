@@ -34,6 +34,10 @@ class CompoundStage(Stage):
             sub = ctx.handler._handle_single(normalize(analysis.command))
             if isinstance(sub, str) and sub.strip():
                 replies.append(sub.strip())
+            # Не выполняем следующие части, пока текущая ждёт слот/пароль.
+            if (getattr(ctx.handler, "_pending_question", None)
+                    or getattr(ctx.handler, "_pending_password", None)):
+                break
             # Если sub — генератор (chat_stream) — пропускаем.
 
         if replies:

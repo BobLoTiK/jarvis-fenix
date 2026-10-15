@@ -79,4 +79,12 @@ Stop-token per-call; `wait_end` возвращает bool. UIA STA/COM под lo
 Обновить соответствующие руководства и PROJECT/PLAN/CHANGELOG, затем сгенерировать
 SNAPSHOT. README оставлять витриной проекта: не вставлять в начало датированные
 обновления/отчёты; возможности описывать в тематических разделах, историю — в CHANGELOG. Внешний graphify-отчёт без запуска graphify не объявлять пересобранным.
-Один фокус разработки за раз; текущий шаг — ручная приёмка Non-verbal, затем облако.
+Один фокус за раз: ядро Феникса — уточнения → проверенные исправления/самообучение
+→ память → измеряемая оптимизация. Облако/Telegram/Hermes/MCP/VLM — дальний бэклог.
+`intents/clarification.py` использует существующий `_pending_question`: target/time/unit,
+30 с по monotonic, три неудачных ответа. Не считать это универсальным диалоговым
+планировщиком или дообучением модели. Проверенный слот возвращается в pipeline;
+custom/password остаются обязательными. Pipeline: cancel → pending → onboarding
+→ correction → password → memory → clipboard → modes → compound → clarification
+→ fast → llm. Ответы на слоты не направлять в Observer. Метрики handler/stages
+не включают STT/генерацию стрима/TTS и не содержат текст или пароль.
