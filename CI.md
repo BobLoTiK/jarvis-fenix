@@ -55,6 +55,34 @@ Flet и numpy — в CI, чтобы вкладки и PCM-микшер пров�
 
 **Шаг `pytest`** — юнит-тест упал. Лог покажет какой.
 
+**Тесты VAD и необязательный backend.** Для проверки состояний загрузки
+`test_vad_model.py` изолирует только импорт `onnxruntime`: модель не скачивается,
+ONNX-сессия не создаётся. Отдельно проверяется поведение без runtime.
+Устанавливать тяжёлый runtime в `requirements-ci.txt` ради этих тестов не нужно.
+
+**`partially initialized module jarvis.intents.password`, `ACTION_HUMAN`** —
+проверить не порядок тестов, а содержимое двух разных файлов с одинаковым именем:
+
+- `jarvis/intents/password.py` — hash/verify/migrate, `ACTION_HUMAN`, `DANGER_ACTIONS`.
+  Он не импортирует сам себя и не содержит `PasswordStage`.
+- `jarvis/intents/stages/password.py` — `PasswordStage` и `build_ask_password`;
+  импортирует примитивы из первого файла.
+
+Если во внешнем `intents/password.py` находится строка
+`from jarvis.intents.password import ACTION_HUMAN, verify_password`, в него попало
+содержимое стадии. Восстановить **оба файла по полным путям**, не переносить файлы
+из `stages/` на уровень выше. Не устранять ошибку пропуском тестов/заглушкой импорта.
+
+```powershell
+.\.venv311\Scripts\python.exe -m pytest tests/test_password_imports.py -q
+.\.venv311\Scripts\python.exe snapshot.py
+.\.venv311\Scripts\python.exe check_all.py
+```
+
+Новый регрессионный тест проверяет разделение исходников и импорт в отдельных
+Python-процессах: результат не зависит от ранее импортированных pytest-модулей.
+
+
 **Шаг `Intent tests`** — интент-тест упал. Логи в артефактах Actions или
 локально `logs/test_intents.log` (в конце вывода — блок «ПРОВАЛЫ»).
 

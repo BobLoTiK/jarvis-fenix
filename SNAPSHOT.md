@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=d344532c5cbe9fe6` · режим `lean` · файлов `192` · строк `39667` · источник `1695 КБ`
+`sha256=e3a8e517a799ba2d` · режим `lean` · файлов `193` · строк `39847` · источник `1704 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -174,7 +174,9 @@ CI дополнительно проверяет snapshot. Зелёный огр
 Windows CI, живой микрофон, COM, установщик и прослушивание.
 
 Перед коммитом обновить изменённые руководства и затем сгенерировать SNAPSHOT.md
-тем же коммитом. Старые записи CHANGELOG и graphify-отчёт — история, не текущая карта.
+тем же коммитом. README — витрина проекта: заголовок, бейджи, описание и оглавление
+не закрывать блоками обновлений. Датированные изменения — в CHANGELOG, описание
+возможностей — в соответствующих разделах README. Старые записи CHANGELOG и graphify-отчёт — история, не текущая карта.
 
 ## 9. Дальше
 
@@ -198,18 +200,18 @@ Windows CI, живой микрофон, COM, установщик и просл
 │   │   ├── README.md  (74 стр)
 │   │   ├── release.yml  (114 стр)
 │   │   ├── test.yml  (71 стр)
-├── AGENTS.md  (81 стр)
+├── AGENTS.md  (82 стр)
 ├── ARCHITECTURE.md  (1014 стр)
 ├── assets/
 │   ├── nonverbal/
 │   │   ├── README.md  (40 стр)
 │   │   ├── sources.json  (53 стр)
-├── CHANGELOG.md  (1184 стр)
+├── CHANGELOG.md  (1203 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
 ├── check_syntax.py  (60 стр)
-├── CI.md  (221 стр)
+├── CI.md  (249 стр)
 ├── cmds/
 │   ├── open_terminal.bat  (3 стр)
 │   ├── show_ip.bat  (3 стр)
@@ -258,7 +260,7 @@ Windows CI, живой микрофон, COM, установщик и просл
 │   │   │   ├── voices.py  (10 стр)
 │   │   │   ├── weather.py  (113 стр)
 │   │   ├── handler.py  (279 стр)
-│   │   ├── password.py  (122 стр)
+│   │   ├── password.py  (124 стр)
 │   │   ├── sites.py  (62 стр)
 │   │   ├── stages/
 │   │   │   ├── __init__.py  (44 стр)
@@ -272,7 +274,7 @@ Windows CI, живой микрофон, COM, установщик и просл
 │   │   │   ├── memory.py  (21 стр)
 │   │   │   ├── modes.py  (30 стр)
 │   │   │   ├── onboarding.py  (73 стр)
-│   │   │   ├── password.py  (122 стр)
+│   │   │   ├── password.py  (124 стр)
 │   │   │   ├── pending.py  (72 стр)
 │   │   ├── verbs.py  (45 стр)
 │   ├── language/
@@ -333,10 +335,10 @@ Windows CI, живой микрофон, COM, установщик и просл
 │   ├── system.json  (17 стр)
 │   ├── work.json  (11 стр)
 ├── PLAN.md  (1097 стр)
-├── PROJECT.md  (172 стр)
+├── PROJECT.md  (174 стр)
 ├── PROMPT.md  (526 стр)
 ├── pytest.ini  (20 стр)
-├── README.md  (1078 стр)
+├── README.md  (1065 стр)
 ├── requirements-ci.txt  (36 стр)
 ├── requirements-dev.txt  (10 стр)
 ├── requirements.txt  (63 стр)
@@ -367,7 +369,7 @@ Windows CI, живой микрофон, COM, установщик и просл
 │   │   ├── uia_manual.py  (61 стр)
 │   │   ├── vad_debug.py  (61 стр)
 │   │   ├── vad_live.py  (41 стр)
-│   ├── README.md  (114 стр)
+│   ├── README.md  (125 стр)
 │   ├── stress_intents.py  (552 стр)
 │   ├── test_audit_regressions.py  (252 стр)
 │   ├── test_brain_rag.py  (125 стр)
@@ -383,6 +385,7 @@ Windows CI, живой микрофон, COM, установщик и просл
 │   ├── test_mood.py  (386 стр)
 │   ├── test_nonverbal.py  (396 стр)
 │   ├── test_numeric_language.py  (521 стр)
+│   ├── test_password_imports.py  (109 стр)
 │   ├── test_persona.py  (155 стр)
 │   ├── test_prosody.py  (83 стр)
 │   ├── test_recognition_quality.py  (356 стр)
@@ -394,7 +397,7 @@ Windows CI, живой микрофон, COM, установщик и просл
 │   ├── test_uia.py  (788 стр)
 │   ├── test_uia_fast.py  (238 стр)
 │   ├── test_vad.py  (333 стр)
-│   ├── test_vad_model.py  (295 стр)
+│   ├── test_vad_model.py  (314 стр)
 │   ├── test_vectormem.py  (405 стр)
 │   ├── test_weather.py  (237 стр)
 │   ├── test_window_targets.py  (294 стр)
@@ -820,7 +823,7 @@ Windows CI, живой микрофон, COM, установщик и просл
 **`jarvis/intents/password.py`**
 
 ```
-  # Ожидание пароля + команда «удали профиль X».
+  # Стадия pipeline: jarvis.intents.stages.password.
   class PasswordStage(Stage)
     def handle(self, ctx)
   def build_ask_password(intent: dict, expires_sec: int=30)
@@ -925,7 +928,7 @@ Windows CI, живой микрофон, COM, установщик и просл
 **`jarvis/intents/stages/password.py`**
 
 ```
-  # Ожидание пароля + команда «удали профиль X».
+  # Стадия pipeline: jarvis.intents.stages.password.
   class PasswordStage(Stage)
     def handle(self, ctx)
   def build_ask_password(intent: dict, expires_sec: int=30)
@@ -2286,6 +2289,16 @@ Windows CI, живой микрофон, COM, установщик и просл
   def test_standalone_negative_survives_wake_extraction()
 ```
 
+**`tests/test_password_imports.py`**
+
+```
+  # Import boundaries must work in a fresh interpreter, before any pytest warmup.
+  ROOT = ...
+  def test_password_primitives_are_not_the_pipeline_stage()
+  def test_password_stage_imports_primitives_not_itself()
+  def test_password_and_handler_import_in_fresh_process(first, tmp_path)
+```
+
 **`tests/test_persona.py`**
 
 ```
@@ -2620,6 +2633,7 @@ Windows CI, живой микрофон, COM, установщик и просл
   # Авто-скачивание модели Silero VAD (jarvis.vad).
   _HAS_ONNXRUNTIME = ...
   REAL_MODEL = ...
+  def pending_backend(monkeypatch)
   def test_model_dirs_first_is_vad_subdir(tmp_path, monkeypatch)
   def test_find_model_finds_file_in_first_dir(tmp_path, monkeypatch)
   def test_download_model_saves_file(tmp_path)
@@ -2629,9 +2643,10 @@ Windows CI, живой микрофон, COM, установщик и просл
   def test_ensure_model_async_calls_back(tmp_path)
   def test_ensure_model_async_is_one_per_process(tmp_path)
   def test_ensure_model_async_callbacks_not_lost(tmp_path)
-  def test_vad_pending_when_model_missing(monkeypatch, tmp_path)
-  def test_vad_no_network_when_auto_download_off(monkeypatch, tmp_path)
-  def test_model_pending_true_when_download_already_running(monkeypatch, tmp_path)
+  def test_vad_pending_when_model_missing(monkeypatch, tmp_path, pending_backend)
+  def test_vad_no_network_when_auto_download_off(monkeypatch, tmp_path, pending_backend)
+  def test_model_pending_true_when_download_already_running(monkeypatch, tmp_path, pending_backend)
+  def test_vad_without_runtime_does_not_start_download(monkeypatch)
   def test_on_model_ready_turns_vad_on(monkeypatch, tmp_path)
   def test_on_model_ready_is_noop_when_already_loaded(monkeypatch, tmp_path)
   def test_load_session_returns_false_for_broken_file(monkeypatch, tmp_path)
@@ -2881,7 +2896,7 @@ Windows CI, живой микрофон, COM, установщик и просл
 | `jarvis/intents/fast/voices.py` | 10 | code | Голоса Piper — обёртка над модулем `voices`. |
 | `jarvis/intents/fast/weather.py` | 113 | code | Простые правила для погоды и курса — без LLM. |
 | `jarvis/intents/handler.py` | 279 | code | IntentHandler — оркестрация. |
-| `jarvis/intents/password.py` | 122 | code | Ожидание пароля + команда «удали профиль X». |
+| `jarvis/intents/password.py` | 124 | code | Стадия pipeline: jarvis.intents.stages.password. |
 | `jarvis/intents/sites.py` | 62 | code | Сайты для открытия голосом — ленивая загрузка из packs/sites.json. |
 | `jarvis/intents/stages/__init__.py` | 44 | code | Стадии обработки команды. Порядок = приоритет. |
 | `jarvis/intents/stages/base.py` | 19 | code | Базовая стадия pipeline. |
@@ -2894,7 +2909,7 @@ Windows CI, живой микрофон, COM, установщик и просл
 | `jarvis/intents/stages/memory.py` | 21 | code | Команды памяти диалога. |
 | `jarvis/intents/stages/modes.py` | 30 | code | Режимы работы: commands / llm / combo. |
 | `jarvis/intents/stages/onboarding.py` | 73 | code | Первый запуск — знакомство через LLM-диалог. |
-| `jarvis/intents/stages/password.py` | 122 | code | Ожидание пароля + команда «удали профиль X». |
+| `jarvis/intents/stages/password.py` | 124 | code | Стадия pipeline: jarvis.intents.stages.password. |
 | `jarvis/intents/stages/pending.py` | 72 | code | Ожидание уточнения (pending_question). |
 | `jarvis/intents/verbs.py` | 45 | code | Константы глаголов и слов — единый источник истины. |
 | `jarvis/language/__init__.py` | 17 | code | Russian numeric understanding and speech normalization. |
@@ -2979,6 +2994,7 @@ Windows CI, живой микрофон, COM, установщик и просл
 | `tests/test_mood.py` | 386 | code | Тесты jarvis.mood — состояние, детекция, decay, влияние. |
 | `tests/test_nonverbal.py` | 396 | code | Nonverbal policy/mixing: synthetic PCM and fake output, no TTS weights |
 | `tests/test_numeric_language.py` | 521 | code | Executable Russian language corpus: understanding, morphology and spee |
+| `tests/test_password_imports.py` | 109 | code | Import boundaries must work in a fresh interpreter, before any pytest  |
 | `tests/test_persona.py` | 155 | code | Тесты jarvis.persona — стиль, tone, prompt-блок. |
 | `tests/test_prosody.py` | 83 | code | Тесты jarvis.prosody — эмоции из голоса (эвристика). |
 | `tests/test_recognition_quality.py` | 356 | code | Recognition policy and integration tested without a microphone or mode |
@@ -2990,7 +3006,7 @@ Windows CI, живой микрофон, COM, установщик и просл
 | `tests/test_uia.py` | 788 | code | Тесты jarvis.uia — логика обёртки. С моками. |
 | `tests/test_uia_fast.py` | 238 | code | Тесты быстрых UIA-команд — `jarvis/intents/fast/uia.py`. |
 | `tests/test_vad.py` | 333 | code | Тесты jarvis.vad — Silero VAD ONNX. |
-| `tests/test_vad_model.py` | 295 | code | Авто-скачивание модели Silero VAD (jarvis.vad). |
+| `tests/test_vad_model.py` | 314 | code | Авто-скачивание модели Silero VAD (jarvis.vad). |
 | `tests/test_vectormem.py` | 405 | code | Векторная память фактов (jarvis.vectormem, №51–53). |
 | `tests/test_weather.py` | 237 | code | Тесты weather: структура ответов, describe_*, geocode с моками. |
 | `tests/test_window_targets.py` | 294 | code | Тесты выбора окна: голосовое имя → процессы → окно. |
@@ -11050,7 +11066,7 @@ class IntentHandler:
 ### `jarvis/intents/password.py`
 
 ```python
-"""Ожидание пароля + команда «удали профиль X». ... [4 строк]"""
+"""Стадия pipeline: jarvis.intents.stages.password. ... [6 строк]"""
 
 import logging
 import re
@@ -11709,7 +11725,7 @@ class OnboardingStage(Stage):
 ### `jarvis/intents/stages/password.py`
 
 ```python
-"""Ожидание пароля + команда «удали профиль X». ... [4 строк]"""
+"""Стадия pipeline: jarvis.intents.stages.password. ... [6 строк]"""
 
 import logging
 import re
@@ -28078,6 +28094,116 @@ def test_standalone_negative_survives_wake_extraction():
     assert method(app, "Феникс, -5") == "-5"
 ```
 
+### `tests/test_password_imports.py`
+
+```python
+"""Import boundaries must work in a fresh interpreter, before any pytest warmup. ... [4 строк]"""
+
+import ast
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+import pytest
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_password_primitives_are_not_the_pipeline_stage():
+    tree = ast.parse((ROOT / "jarvis/intents/password.py").read_text(encoding="utf-8"))
+    functions = {n.name for n in tree.body if isinstance(n, ast.FunctionDef)}
+    assignments = {
+        t.id
+        for n in tree.body
+        if isinstance(n, ast.Assign)
+        for t in n.targets
+        if isinstance(t, ast.Name)
+    }
+    assert {
+        "hash_password",
+        "verify_password",
+        "migrate_password_if_needed",
+        "is_danger",
+    } <= functions
+    assert {"ACTION_HUMAN", "DANGER_ACTIONS"} <= assignments
+    assert not any(
+        isinstance(n, ast.ClassDef) and n.name == "PasswordStage" for n in tree.body
+    ), (
+        "Pipeline stage was saved over jarvis/intents/password.py; restore both modules with their directories"
+    )
+    assert not any(
+        isinstance(n, ast.ImportFrom) and n.module == "jarvis.intents.password"
+        for n in ast.walk(tree)
+    ), "Password primitives must not import themselves"
+
+
+def test_password_stage_imports_primitives_not_itself():
+    tree = ast.parse(
+        (ROOT / "jarvis/intents/stages/password.py").read_text(encoding="utf-8")
+    )
+    assert any(
+        isinstance(n, ast.ClassDef) and n.name == "PasswordStage" for n in tree.body
+    )
+    imports = [n for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)]
+    assert not any(n.module == "jarvis.intents.stages.password" for n in imports)
+    assert any(
+        n.module == "jarvis.intents.password"
+        and {"ACTION_HUMAN", "verify_password"} <= {v.name for v in n.names}
+        for n in imports
+    )
+
+
+@pytest.mark.parametrize(
+    "first",
+    [
+        "jarvis.intents.password",
+        "jarvis.intents.stages.password",
+        "jarvis.intents.handler",
+        "jarvis.intents.execute",
+    ],
+)
+def test_password_and_handler_import_in_fresh_process(first, tmp_path):
+    code = """
+import importlib
+from pathlib import Path
+import sys
+root = Path(sys.argv[2]).resolve()
+importlib.import_module(sys.argv[1])
+core = importlib.import_module('jarvis.intents.password')
+stage = importlib.import_module('jarvis.intents.stages.password')
+handler = importlib.import_module('jarvis.intents.handler')
+assert Path(core.__file__).resolve() == root / 'jarvis/intents/password.py'
+assert Path(stage.__file__).resolve() == root / 'jarvis/intents/stages/password.py'
+assert core is not stage
+assert callable(core.migrate_password_if_needed)
+assert core.ACTION_HUMAN['clear_tasks']
+assert core.verify_password('test-only', core.hash_password('test-only'))
+assert not core.verify_password('wrong', core.hash_password('test-only'))
+assert stage.PasswordStage.name == 'password'
+assert callable(handler.IntentHandler)
+print('Password primitives, stage and handler: OK')
+"""
+    env = {
+        **os.environ,
+        "PYTHONUTF8": "1",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "APPDATA": str(tmp_path),
+        "PROGRAMDATA": str(tmp_path),
+        "HOME": str(tmp_path),
+    }
+    result = subprocess.run(
+        [sys.executable, "-B", "-c", code, first, str(ROOT)],
+        cwd=ROOT,
+        env=env,
+        text=True,
+        capture_output=True,
+        timeout=30,
+    )
+    assert result.returncode == 0, f"{first}:\n{result.stdout}\n{result.stderr}"
+    assert "handler: OK" in result.stdout
+```
+
 ### `tests/test_persona.py`
 
 ```python
@@ -31030,17 +31156,18 @@ def test_vad_debug_from_config():
 
 import importlib.util
 import io
+import sys
 import threading
 from pathlib import Path
+from types import ModuleType
 from unittest.mock import patch
 
 import pytest
 
 from jarvis import vad
 
-# VAD.__init__ без onnxruntime выходит рано (numpy/onnxruntime — необязательные):
-# тесты, которым нужен «живой» VAD без модели, в CI пропускаем.
-# Так же поступает tests/test_vad.py.
+# Только проверка реальной ONNX-сессии требует установленного runtime.
+# Для переходов состояния без модели используем изолированный backend ниже.
 _HAS_ONNXRUNTIME = importlib.util.find_spec("onnxruntime") is not None
 
 # Модель, которая реально лежит на машине разработчика (если ставилась).
@@ -31055,6 +31182,12 @@ def _reset_download_state():
             patch.object(vad, "_download_finished", False), \
             patch.object(vad, "_callbacks", []):
         yield
+
+
+@pytest.fixture
+def pending_backend(monkeypatch):
+    """Только импорт backend: тесты состояния не создают ONNX-сессию."""
+    monkeypatch.setitem(sys.modules, "onnxruntime", ModuleType("onnxruntime"))
 
 
 def _fake_urlopen(payload: bytes):
@@ -31230,9 +31363,7 @@ def test_ensure_model_async_callbacks_not_lost(tmp_path):
 # VAD: модель качается в фоне
 # =================================================================
 
-@pytest.mark.skipif(not _HAS_ONNXRUNTIME,
-                    reason="нет onnxruntime — VAD не инициализируется (CI)")
-def test_vad_pending_when_model_missing(monkeypatch, tmp_path):
+def test_vad_pending_when_model_missing(monkeypatch, tmp_path, pending_backend):
     """Модели нет и качать разрешено: VAD живой, но помечен «качается»."""
     started = []
 
@@ -31250,7 +31381,7 @@ def test_vad_pending_when_model_missing(monkeypatch, tmp_path):
     assert v.is_speech(b"\x00" * 2048) is True
 
 
-def test_vad_no_network_when_auto_download_off(monkeypatch, tmp_path):
+def test_vad_no_network_when_auto_download_off(monkeypatch, tmp_path, pending_backend):
     """vad_auto_download=false — в сеть не идём вообще."""
     monkeypatch.setattr(vad, "_find_model", lambda: None)
     monkeypatch.setattr(vad, "model_dirs", lambda: [tmp_path])
@@ -31262,7 +31393,7 @@ def test_vad_no_network_when_auto_download_off(monkeypatch, tmp_path):
     assert v.is_model_pending() is False
 
 
-def test_model_pending_true_when_download_already_running(monkeypatch, tmp_path):
+def test_model_pending_true_when_download_already_running(monkeypatch, tmp_path, pending_backend):
     """None от ensure_model_async = попытка уже идёт, callback в очереди."""
     monkeypatch.setattr(vad, "_find_model", lambda: None)
     monkeypatch.setattr(vad, "model_dirs", lambda: [tmp_path])
@@ -31273,8 +31404,22 @@ def test_model_pending_true_when_download_already_running(monkeypatch, tmp_path)
     assert v.is_model_pending() is True
 
 
+def test_vad_without_runtime_does_not_start_download(monkeypatch):
+    """Без необязательного backend VAD пропускает речь и не качает модель."""
+    monkeypatch.setitem(sys.modules, "onnxruntime", None)
+    monkeypatch.setattr(vad, "ensure_model_async", _never_called)
+
+    v = vad.VAD(auto_download=True)
+
+    assert v.is_available() is False
+    assert v.is_model_pending() is False
+    assert v.is_speech(b"\x00" * 2048) is True
+
+
 def test_on_model_ready_turns_vad_on(monkeypatch, tmp_path):
     """Модель докачалась — VAD включается на лету, без перезапуска Феникса."""
+    if not _HAS_ONNXRUNTIME:
+        pytest.skip("нет onnxruntime для реальной ONNX-сессии")
     if not REAL_MODEL.exists():
         pytest.skip(f"нет реальной модели {REAL_MODEL}")
 
@@ -35307,12 +35452,13 @@ pymorphy3>=2.0.3,<3
   - 📦 Сборка и установка
     - `scripts/make_icon.py`
 
-#### `CHANGELOG.md` — 76 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 77 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
   - 📑 Содержание
   - 🚧 [Unreleased]
     - 📅 Сессия 15.10.2026
+      - Уточнение README и восстановление модулей пароля
       - Добавлено
       - Исправлено
       - Документация и проверка
@@ -35348,7 +35494,6 @@ pymorphy3>=2.0.3,<3
         - ⏱ Блок аудио 500 мс → 128 мс (минус ~500 мс к ответу)
         - 🖥 Трей снова работает (и в нём есть «Выход»)
         - 🔍 Whisper `beam_size`: замерили и оставили как есть
-        - 🧪 Тесты больше не лезут в сеть и не портят рабочую модель
 
 #### `CI.md` — 14 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -35480,8 +35625,6 @@ pymorphy3>=2.0.3,<3
 #### `README.md` — 62 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - 🦅 Феникс
-  - Обновление: язык, память и звуковые реакции
-    - Звуковые реакции — этап 1.13.6
   - 📑 Содержание
   - 🆕 Что добавлено в форке
     - 🧱 Этап 0 — рефакторинг
@@ -35519,6 +35662,8 @@ pymorphy3>=2.0.3,<3
   - ⚠️ Возможные проблемы
   - 🖼 GUI (Flet)
   - ⚙️ Режимы работы
+  - 🧠 Настройка LLM (Ollama)
+  - 📦 Паки команд
 
 #### `assets/nonverbal/README.md` — 3 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -35528,4 +35673,4 @@ pymorphy3>=2.0.3,<3
 
 ---
 
-_Итого по категориям — code: 154, data: 21, doc: 12, pack: 5. Режим `lean`._
+_Итого по категориям — code: 155, data: 21, doc: 12, pack: 5. Режим `lean`._

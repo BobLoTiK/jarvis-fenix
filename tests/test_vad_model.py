@@ -16,17 +16,18 @@
 
 import importlib.util
 import io
+import sys
 import threading
 from pathlib import Path
+from types import ModuleType
 from unittest.mock import patch
 
 import pytest
 
 from jarvis import vad
 
-# VAD.__init__ без onnxruntime выходит рано (numpy/onnxruntime — необязательные):
-# тесты, которым нужен «живой» VAD без модели, в CI пропускаем.
-# Так же поступает tests/test_vad.py.
+# Только проверка реальной ONNX-сессии требует установленного runtime.
+# Для переходов состояния без модели используем изолированный backend ниже.
 _HAS_ONNXRUNTIME = importlib.util.find_spec("onnxruntime") is not None
 
 # Модель, которая реально лежит на машине разработчика (если ставилась).
@@ -41,6 +42,12 @@ def _reset_download_state():
             patch.object(vad, "_download_finished", False), \
             patch.object(vad, "_callbacks", []):
         yield
+
+
+@pytest.fixture
+def pending_backend(monkeypatch):
+    """Только импорт backend: тесты состояния не создают ONNX-сессию."""
+    monkeypatch.setitem(sys.modules, "onnxruntime", ModuleType("onnxruntime"))
 
 
 def _fake_urlopen(payload: bytes):
@@ -216,9 +223,7 @@ def test_ensure_model_async_callbacks_not_lost(tmp_path):
 # VAD: модель качается в фоне
 # =================================================================
 
-@pytest.mark.skipif(not _HAS_ONNXRUNTIME,
-                    reason="нет onnxruntime — VAD не инициализируется (CI)")
-def test_vad_pending_when_model_missing(monkeypatch, tmp_path):
+def test_vad_pending_when_model_missing(monkeypatch, tmp_path, pending_backend):
     """Модели нет и качать разрешено: VAD живой, но помечен «качается»."""
     started = []
 
@@ -236,7 +241,7 @@ def test_vad_pending_when_model_missing(monkeypatch, tmp_path):
     assert v.is_speech(b"\x00" * 2048) is True
 
 
-def test_vad_no_network_when_auto_download_off(monkeypatch, tmp_path):
+def test_vad_no_network_when_auto_download_off(monkeypatch, tmp_path, pending_backend):
     """vad_auto_download=false — в сеть не идём вообще."""
     monkeypatch.setattr(vad, "_find_model", lambda: None)
     monkeypatch.setattr(vad, "model_dirs", lambda: [tmp_path])
@@ -248,7 +253,7 @@ def test_vad_no_network_when_auto_download_off(monkeypatch, tmp_path):
     assert v.is_model_pending() is False
 
 
-def test_model_pending_true_when_download_already_running(monkeypatch, tmp_path):
+def test_model_pending_true_when_download_already_running(monkeypatch, tmp_path, pending_backend):
     """None от ensure_model_async = попытка уже идёт, callback в очереди."""
     monkeypatch.setattr(vad, "_find_model", lambda: None)
     monkeypatch.setattr(vad, "model_dirs", lambda: [tmp_path])
@@ -259,8 +264,22 @@ def test_model_pending_true_when_download_already_running(monkeypatch, tmp_path)
     assert v.is_model_pending() is True
 
 
+def test_vad_without_runtime_does_not_start_download(monkeypatch):
+    """Без необязательного backend VAD пропускает речь и не качает модель."""
+    monkeypatch.setitem(sys.modules, "onnxruntime", None)
+    monkeypatch.setattr(vad, "ensure_model_async", _never_called)
+
+    v = vad.VAD(auto_download=True)
+
+    assert v.is_available() is False
+    assert v.is_model_pending() is False
+    assert v.is_speech(b"\x00" * 2048) is True
+
+
 def test_on_model_ready_turns_vad_on(monkeypatch, tmp_path):
     """Модель докачалась — VAD включается на лету, без перезапуска Феникса."""
+    if not _HAS_ONNXRUNTIME:
+        pytest.skip("нет onnxruntime для реальной ONNX-сессии")
     if not REAL_MODEL.exists():
         pytest.skip(f"нет реальной модели {REAL_MODEL}")
 
