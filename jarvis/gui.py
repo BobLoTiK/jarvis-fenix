@@ -492,9 +492,12 @@ class FenixGUI:
 
     def _build_home_tab(self) -> ft.Control:
         from jarvis.gui_home import HomeScreen
+        widget_draft = self._home.widgets.capture() if self._home is not None else None
         if self._home is not None:
             self._home.dispose()
         self._home = HomeScreen(self)
+        if widget_draft is not None:
+            self._home.widgets.restore(widget_draft)
         return self._home
 
     def _build_main_tab(self) -> ft.Control:

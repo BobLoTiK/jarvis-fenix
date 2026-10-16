@@ -132,3 +132,10 @@ Ollama inventory — только по кнопке, worker → preferences_resu
 `jarvis/gui_home_actions.py` — конечные переходы и 3 реальных Home-действия.
 Не добавлять frame-loop или поток аудио; сохранять 300px footprint и общий
 hover-мост. Скрытые действия должны быть недоступны для Tab и screen reader.
+
+### Виджеты Главной
+`jarvis/gui_widgets.py`, `tests/test_gui_widgets.py`: opt-in задачи и команды,
+пустой default. Сохранять guards/atomic draft/capture-restore и общий tasks store.
+Рендер проверять Flet-клиентом: unit не ловит Wrap+Expanded и ранний scroll_to.
+Установка/приёмка — docs/GUI_WIDGETS_UPDATE.md; голос — LOCAL_VOICE_OPTIONS.md,
+не выдавать предложения за реализованную модель клонирования.

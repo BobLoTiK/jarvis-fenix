@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=63a622b2b2e75095` · режим `lean` · файлов `262` · строк `48588` · источник `2163 КБ`
+`sha256=cff9698b9bcb7b36` · режим `lean` · файлов `266` · строк `49451` · источник `2211 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -16,6 +16,23 @@
 Курируемый документ. Обновлён 16.10.2026. `snapshot.py` включает его целиком;
 остальные руководства раскрывают пользовательские и технические детали.
 История версий — в `CHANGELOG.md`, порядок развития — в `PLAN.md`.
+
+## Опциональные виджеты Главной
+
+`gui_widgets.py`: WidgetBoard; config gui_home_widgets/gui_home_shortcuts —
+пустые списки по умолчанию. Черновик редактора, atomic Config.update с
+expected_values, адаптивный порядок/ширина, drag handle + стрелки.
+Задачи используют tasks.list_items/set_done по точному ID и общее tasks.json.
+Обновление через существующий Home clock, stat перед чтением; до 100 строк.
+Быстрые действия только по клику вне редактора → Dialog → _run_command;
+guards core/busy/pending-password/question, никаких прямых процессов.
+Смена темы переносит capture/restore, включая текст полей. Удаление карточки
+не удаляет данные. Скрытый/размонтированный board не запускает таймеры.
+Нативные TextField подписаны на on_change для синхронизации; не помещать
+Expanded в Row(wrap=True): Flutter Wrap выдаёт invalid ParentData/серую область.
+При None→AUTO scroll нельзя немедленно вызывать scroll_to до монтажа:
+Flet ScrollableControl ещё отсутствует (Bad state: No element).
+См. docs/GUI_WIDGETS_UPDATE.md и docs/LOCAL_VOICE_OPTIONS.md (только предложения).
 
 ## Кольцо действий Главной
 
@@ -264,9 +281,9 @@ handler. Stop остаётся остановкой речи; completion не д
 ### Минималистичная главная
 
 `gui_home.py` — нативный HomeScreen (Flet), стартовый экран окна.
-Только локальные дата/время, фирменная птица, короткий реальный статус и
-переключение тем. Нет поля ввода, карточек задач, виджетов, фиктивных команд
-или лишних панелей. Виджеты и планы — позже. В покое корона плавно
+По умолчанию только локальные дата/время, фирменная птица, реальный статус
+и темы. Нет композера или автоматического набора карточек. Опциональные
+виджеты задач/быстрых действий описаны в разделе ниже; отдельные Планы — позже. В покое корона плавно
 движется как декоративный элемент, не выдавая это за активность микрофона.
 Центральная солнечная корона вынесена в `gui_home_fx.py`: нативный Canvas,
 одна задача только на видимой Главной: 16 FPS в покое, до 24 FPS при активности.
@@ -451,7 +468,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── README.md  (74 стр)
 │   │   ├── release.yml  (114 стр)
 │   │   ├── test.yml  (71 стр)
-├── AGENTS.md  (134 стр)
+├── AGENTS.md  (141 стр)
 ├── ARCHITECTURE.md  (1085 стр)
 ├── assets/
 │   ├── nonverbal/
@@ -460,7 +477,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── readme/
 │   │   ├── hero-mobile.svg  (8 стр)
 │   │   ├── hero.svg  (19 стр)
-├── CHANGELOG.md  (1531 стр)
+├── CHANGELOG.md  (1542 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -469,7 +486,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ├── cmds/
 │   ├── open_terminal.bat  (3 стр)
 │   ├── show_ip.bat  (3 стр)
-├── config.example.json  (87 стр)
+├── config.example.json  (89 стр)
 ├── CONTRIBUTING.md  (438 стр)
 ├── create_shortcut.bat  (51 стр)
 ├── docs/
@@ -482,7 +499,9 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── GUI_SOLAR_AURA_SMOOTH_UPDATE.md  (32 стр)
 │   ├── GUI_SOLAR_AURA_UPDATE.md  (52 стр)
 │   ├── GUI_STARTUP_TRAY_FIX.md  (55 стр)
-│   ├── USER_GUIDE.md  (978 стр)
+│   ├── GUI_WIDGETS_UPDATE.md  (58 стр)
+│   ├── LOCAL_VOICE_OPTIONS.md  (53 стр)
+│   ├── USER_GUIDE.md  (988 стр)
 ├── install.bat  (411 стр)
 ├── installer.iss  (119 стр)
 ├── jarvis/
@@ -515,18 +534,19 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── brain.py  (868 стр)
 │   ├── celebrations.py  (165 стр)
 │   ├── command_builder.py  (152 стр)
-│   ├── config.py  (267 стр)
+│   ├── config.py  (269 стр)
 │   ├── config_manager.py  (156 стр)
 │   ├── files.py  (109 стр)
 │   ├── first_run.py  (26 стр)
-│   ├── gui.py  (1639 стр)
+│   ├── gui.py  (1642 стр)
 │   ├── gui_audio.py  (378 стр)
 │   ├── gui_commands.py  (305 стр)
-│   ├── gui_home.py  (170 стр)
+│   ├── gui_home.py  (191 стр)
 │   ├── gui_home_actions.py  (225 стр)
 │   ├── gui_home_fx.py  (206 стр)
 │   ├── gui_preferences.py  (602 стр)
 │   ├── gui_sidebar.py  (429 стр)
+│   ├── gui_widgets.py  (373 стр)
 │   ├── history.py  (75 стр)
 │   ├── installed.py  (51 стр)
 │   ├── intents/
@@ -603,7 +623,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── safety.py  (213 стр)
 │   ├── steam.py  (67 стр)
 │   ├── stt.py  (746 стр)
-│   ├── tasks.py  (257 стр)
+│   ├── tasks.py  (278 стр)
 │   ├── text_utils.py  (98 стр)
 │   ├── timers.py  (326 стр)
 │   ├── tray.py  (223 стр)
@@ -630,8 +650,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── sites.json  (22 стр)
 │   ├── system.json  (17 стр)
 │   ├── work.json  (11 стр)
-├── PLAN.md  (291 стр)
-├── PROJECT.md  (422 стр)
+├── PLAN.md  (293 стр)
+├── PROJECT.md  (439 стр)
 ├── PROMPT.md  (511 стр)
 ├── pytest.ini  (20 стр)
 ├── README.md  (249 стр)
@@ -676,7 +696,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── uia_manual.py  (61 стр)
 │   │   ├── vad_debug.py  (61 стр)
 │   │   ├── vad_live.py  (41 стр)
-│   ├── README.md  (449 стр)
+│   ├── README.md  (471 стр)
 │   ├── stress_intents.py  (552 стр)
 │   ├── test_audio_regression.py  (556 стр)
 │   ├── test_audit_regressions.py  (265 стр)
@@ -693,12 +713,13 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_gui_audio.py  (249 стр)
 │   ├── test_gui_chat.py  (287 стр)
 │   ├── test_gui_commands.py  (126 стр)
-│   ├── test_gui_home.py  (152 стр)
+│   ├── test_gui_home.py  (154 стр)
 │   ├── test_gui_home_actions.py  (189 стр)
 │   ├── test_gui_home_fx.py  (261 стр)
 │   ├── test_gui_preferences.py  (503 стр)
 │   ├── test_gui_sidebar.py  (283 стр)
 │   ├── test_gui_startup.py  (105 стр)
+│   ├── test_gui_widgets.py  (259 стр)
 │   ├── test_gui_wiring.py  (542 стр)
 │   ├── test_intents.py  (485 стр)
 │   ├── test_main_wiring.py  (202 стр)
@@ -1006,7 +1027,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 **`jarvis/gui_home.py`**
 
 ```
-  # Minimal native Home: local clock and the real assistant state, no chat/widgets.
+  # Minimal native Home: local clock, real assistant state and opt-in widgets, no chat.
   WEEKDAYS = ...
   MONTHS = ...
   def clock_labels(now)
@@ -1114,6 +1135,38 @@ Non-verbal/микрофон/установщик по-прежнему треб�
     def selected_index(self, value)
     def refresh_palette(self)
     async def on_key(self, e)
+```
+
+**`jarvis/gui_widgets.py`**
+
+```
+  # Opt-in Home widgets: responsive order/size editor, real tasks and guarded shortcuts.
+  KINDS = ...
+  LAYOUT_KEY = ...
+  SHORTCUTS_KEY = ...
+  def normalize_layout(value)
+  def normalize_shortcuts(value)
+  class WidgetBoard(ft.Column)
+    def __init__(self, gui, on_layout)
+    def begin(self)
+    def save(self, e=None)
+    def cancel(self, e=None)
+    def add_widget(self, kind, e=None)
+    def remove_widget(self, kind, e=None)
+    def resize_widget(self, kind, e=None)
+    def move_widget(self, kind, delta)
+    def drop(self, target, e)
+    def add_shortcut(self, e=None)
+    def remove_shortcut(self, index, e=None)
+    def launch(self, index, e=None)
+    def add_task(self, e=None)
+    def set_task_done(self, task_id, e)
+    def refresh_tasks(self, force=False)
+    def capture(self)
+    def restore(self, state)
+    def did_mount(self)
+    def will_unmount(self)
+    def dispose(self)
 ```
 
 **`jarvis/history.py`**
@@ -1933,6 +1986,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ```
   # Списки задач.
   def add(text: str)
+  def list_items()
+  def set_done(task_id: int, done: bool)
   def find(query: str)
   def mark_done(query: str)
   def remove(query: str)
@@ -2922,7 +2977,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def walk(control)
   def gui(tmp_path, monkeypatch)
   def test_startup_is_home_and_chat_ids_do_not_shift(gui)
-  def test_minimal_home_has_no_composer_cards_widgets_or_fake_actions(gui)
+  def test_minimal_home_starts_empty_with_only_widget_entry_and_no_composer(gui)
   def test_local_date_labels_include_midnight_and_new_year()
   def test_clock_only_marks_changes_at_minute_or_date_boundary(gui)
   def test_home_mirrors_real_state_without_auto_opening_chat(gui, state, label)
@@ -3078,6 +3133,45 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def tray_callbacks(gui)
   def test_tray_failure_before_page_restores_startup_intent(gui)
   def test_stale_or_shutdown_tray_callback_does_not_show_window(gui)
+```
+
+**`tests/test_gui_widgets.py`**
+
+```
+  # Opt-in layouts, exact task IDs, safe command path, atomic saves and lifecycle.
+  def gui(tmp_path, monkeypatch)
+  def prepare(gui)
+  def test_layout_normalization_rejects_invalid_shapes(raw)
+  def test_layout_normalizes_order_sizes_and_duplicate_without_mutation()
+  def test_shortcut_schema_rejects_invalid_values(raw)
+  def test_shortcut_limit_and_trim()
+  def test_home_empty_by_default_without_task_disk_reads(gui, monkeypatch)
+  def test_add_resize_reorder_remove_and_cancel_do_not_persist(gui)
+  def test_save_persists_and_new_home_loads_layout(gui)
+  def test_save_failure_and_conflict_keep_editor_and_draft(gui, monkeypatch)
+  def test_conflict_against_real_config_is_detected(gui)
+  def test_drop_order_only_in_edit_and_valid_source(gui)
+  def test_exact_task_ids_and_reversible_checkboxes(gui)
+  def test_exact_task_set_validates_types(gui, id, done)
+  def test_add_task_and_mark_share_voice_store_and_empty_guard(gui)
+  def test_task_write_failure_keeps_input(gui, monkeypatch)
+  def test_remove_widget_never_deletes_tasks(gui)
+  def test_existing_clock_refresh_reads_only_when_file_changed_and_preserves_draft(gui, monkeypatch)
+  def test_shortcut_setup_does_not_execute_and_save_accepts_pending_complete_input(gui)
+  def test_incomplete_shortcut_prevents_silent_data_loss(gui)
+  def shortcut(gui)
+  def test_shortcut_requires_core_and_pending_confirmation_is_not_bypassed(gui)
+  def test_shortcut_uses_chat_pipeline_and_busy_guard(gui)
+  def test_edit_mode_shortcut_click_never_runs(gui)
+  def test_theme_preserves_unsaved_layout_shortcuts_and_task_input(gui)
+  def test_widget_does_not_create_background_task(gui)
+  def test_saved_task_widget_draft_survives_theme_rebuild(gui)
+  def test_large_task_list_caps_rendered_controls(gui, monkeypatch)
+  def test_drop_moves_down_as_well_as_up(gui)
+  def test_editor_toolbar_never_wraps_expanded_children(gui)
+  async def test_open_widgets_does_not_scroll_before_scrollview_exists(gui)
+  def test_native_text_fields_subscribe_for_value_sync(gui)
+  def test_compact_cards_stack_below_large_breakpoint(gui)
 ```
 
 **`tests/test_gui_wiring.py`**
@@ -3922,18 +4016,19 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/brain.py` | 868 | code | LLM-фолбэк: локальная нейронка (Ollama) разбирает команду в структурны |
 | `jarvis/celebrations.py` | 165 | code | Праздничные триггеры — поздравление с ДР + двойной салют. |
 | `jarvis/command_builder.py` | 152 | code | Typed custom commands. No execution, model calls or shell parsing in t |
-| `jarvis/config.py` | 267 | code | Загрузка конфигурации и объект Config в памяти. |
+| `jarvis/config.py` | 269 | code | Загрузка конфигурации и объект Config в памяти. |
 | `jarvis/config_manager.py` | 156 | code | Единый менеджер записи в config.json. |
 | `jarvis/files.py` | 109 | code | Файлы и папки: открыть, посмотреть содержимое, создать. |
 | `jarvis/first_run.py` | 26 | code | Первый запуск — знакомство через LLM-диалог. |
-| `jarvis/gui.py` | 1639 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
+| `jarvis/gui.py` | 1642 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
 | `jarvis/gui_audio.py` | 378 | code | Native sound settings. Diagnostics use the existing listener/Speaker,  |
 | `jarvis/gui_commands.py` | 305 | code | Flet editor for the existing custom_commands pipeline. Never executes  |
-| `jarvis/gui_home.py` | 170 | code | Minimal native Home: local clock and the real assistant state, no chat |
+| `jarvis/gui_home.py` | 191 | code | Minimal native Home: local clock, real assistant state and opt-in widg |
 | `jarvis/gui_home_actions.py` | 225 | code | Three real Home actions. Native controls, finite transitions, no extra |
 | `jarvis/gui_home_fx.py` | 206 | code | Bounded native solar aura. Decorative state motion, never a fake wavef |
 | `jarvis/gui_preferences.py` | 602 | code | Native persona/settings editors. Drafts are not configuration or a sec |
 | `jarvis/gui_sidebar.py` | 429 | code | Native, persistent hover rail. Bounded UI-loop animation; no WebView o |
+| `jarvis/gui_widgets.py` | 373 | code | Opt-in Home widgets: responsive order/size editor, real tasks and guar |
 | `jarvis/history.py` | 75 | code | История последних действий для отмены («стоп, не то»). |
 | `jarvis/installed.py` | 51 | code | Индекс установленных программ по ярлыкам меню «Пуск». |
 | `jarvis/intents/__init__.py` | 10 | code | Разбор команд Феникса — пакет. |
@@ -4006,7 +4101,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/safety.py` | 213 | code | Постфильтр ответов LLM — вторая линия «красной черты». |
 | `jarvis/steam.py` | 67 | code | Индекс установленных игр Steam: appmanifest -> (название, appid). |
 | `jarvis/stt.py` | 746 | code | Распознавание речи. |
-| `jarvis/tasks.py` | 257 | code | Списки задач. |
+| `jarvis/tasks.py` | 278 | code | Списки задач. |
 | `jarvis/text_utils.py` | 98 | code | Общие текстовые утилиты для Феникса. |
 | `jarvis/timers.py` | 326 | code | Таймеры и напоминания. |
 | `jarvis/tray.py` | 223 | code | Иконка в системном трее (pystray). |
@@ -4068,12 +4163,13 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_gui_audio.py` | 249 | code | Native sound settings + real worker boundaries; no microphone or actua |
 | `tests/test_gui_chat.py` | 287 | code | Imported Flet controls + real GUI worker threads; no window, ASR or au |
 | `tests/test_gui_commands.py` | 126 | code | Imported native builder controls; no OS actions or real passwords. |
-| `tests/test_gui_home.py` | 152 | code | Native minimal Home; no OS/model/mic/network. Old navigation IDs stay  |
+| `tests/test_gui_home.py` | 154 | code | Native minimal Home; no OS/model/mic/network. Old navigation IDs stay  |
 | `tests/test_gui_home_actions.py` | 189 | code | Action orbit: real callbacks, continuous hover zone, keyboard and life |
 | `tests/test_gui_home_fx.py` | 261 | code | Native solar aura lifecycle; no audio device, model or Windows session |
 | `tests/test_gui_preferences.py` | 503 | code | Real imported Flet controls / real disk writes / explicit network fake |
 | `tests/test_gui_sidebar.py` | 283 | code | Native controls and bounded asyncio tasks; no desktop, microphone or m |
 | `tests/test_gui_startup.py` | 105 | code | Startup ordering, tray failure recovery, old EXE mutex handoff; no des |
+| `tests/test_gui_widgets.py` | 259 | code | Opt-in layouts, exact task IDs, safe command path, atomic saves and li |
 | `tests/test_gui_wiring.py` | 542 | code | GUI → config: каждый элемент окна реально отсылает изменение. |
 | `tests/test_intents.py` | 485 | code | Автотест Феникса без микрофона. |
 | `tests/test_main_wiring.py` | 202 | code | config → живое ядро: подписчик make_config_listener. |
@@ -7205,6 +7301,8 @@ DEFAULT_CONFIG = {
     "gui_sidebar_pinned": False,
     # False disables sidebar motion even when the OS does not expose accessibility flags.
     "gui_motion_enabled": True,
+    "gui_home_widgets": [],
+    "gui_home_shortcuts": [],
     "gui_x": None,
     "gui_y": None,
     "tray_enabled": True,
@@ -8055,9 +8153,12 @@ class FenixGUI:
 
     def _build_home_tab(self) -> ft.Control:
         from jarvis.gui_home import HomeScreen
+        widget_draft = self._home.widgets.capture() if self._home is not None else None
         if self._home is not None:
             self._home.dispose()
         self._home = HomeScreen(self)
+        if widget_draft is not None:
+            self._home.widgets.restore(widget_draft)
         return self._home
 
     def _build_main_tab(self) -> ft.Control:
@@ -9864,7 +9965,7 @@ class CommandBuilder:
 ### `jarvis/gui_home.py`
 
 ```python
-"""Minimal native Home: local clock and the real assistant state, no chat/widgets."""
+"""Minimal native Home: local clock, real assistant state and opt-in widgets, no chat."""
 import asyncio
 import math
 import time
@@ -9883,6 +9984,7 @@ def clock_labels(now):
 
 from jarvis.gui_home_fx import PhoenixAura
 from jarvis.gui_home_actions import PhoenixActions
+from jarvis.gui_widgets import WidgetBoard
 
 
 class HomeScreen(ft.Column):
@@ -9929,16 +10031,34 @@ class HomeScreen(ft.Column):
                          bgcolor=p.sidebar, border=ft.Border.all(1, ft.Colors.with_opacity(.5, p.border)))
         ], spacing=12), padding=ft.Padding(left=28, right=28, top=16, bottom=16),
             border=ft.Border(bottom=ft.BorderSide(1, ft.Colors.with_opacity(.5, p.border))))
+        self.center_region = ft.Container(ft.Column([self.actions,
+            ft.Row([self.dot, self.status], spacing=8, alignment=ft.MainAxisAlignment.CENTER)
+        ], spacing=4, tight=True, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+            alignment=ft.Alignment.CENTER, expand=True)
+        self.widgets = WidgetBoard(gui, self._layout_widgets)
+        self.workspace = ft.Column([self.center_region, self.widgets], spacing=20, expand=True)
         self.controls = [self.header, ft.Container(ft.Column([
             ft.Row([ft.Row([ft.Icon(ft.Icons.WB_SUNNY_OUTLINED, size=14, color=p.text_dim), self.date], spacing=8),
                     self.clock], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-            ft.Container(ft.Column([self.actions,
-                ft.Row([self.dot, self.status], spacing=8, alignment=ft.MainAxisAlignment.CENTER)
-            ], spacing=4, tight=True, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-                alignment=ft.Alignment.CENTER, expand=True),
-            ft.Text("Просто твоё пространство.", size=10, color=p.text_dim),
+            self.workspace,
+            ft.Row([ft.Text("Просто твоё пространство.", size=10, color=p.text_dim, expand=True),
+                ft.Button("Виджеты",icon=ft.Icons.ADD,tooltip="Настроить Главную",height=32,
+                    on_click=self._open_widgets,color=p.text_dim,
+                    style=ft.ButtonStyle(padding=ft.Padding.symmetric(horizontal=8)))],spacing=8),
         ], expand=True, spacing=20), padding=ft.Padding(left=28, right=28, top=26, bottom=24), expand=True)]
+        self._layout_widgets(update=False)
         self.apply_state(gui._state)
+
+    def _layout_widgets(self, update=True):
+        populated = bool(self.widgets.layout) or self.widgets.editing
+        self.center_region.expand = False if populated else True
+        self.center_region.height = 340 if populated else None
+        self.workspace.scroll = ft.ScrollMode.AUTO if populated else None
+        if update and self._mounted and self._host is not None:
+            self._host.update(self.workspace)
+
+    async def _open_widgets(self, e=None):
+        self.widgets.begin()
 
     def _theme(self, name):
         self.gui._on_theme_change(SimpleNamespace(control=SimpleNamespace(value=name)))
@@ -10017,6 +10137,7 @@ class HomeScreen(ft.Column):
         self.dispose()
 
     def dispose(self):
+        self.widgets.dispose()
         self.actions.dispose()
         self.aura.dispose()
         self._mounted = False
@@ -10028,6 +10149,7 @@ class HomeScreen(ft.Column):
 
     async def _clock_loop(self, epoch):
         while self._mounted and epoch == self._epoch:
+            self.widgets.refresh_tasks()
             if self.refresh_clock():
                 try:
                     self._host.update(self.date, self.clock)
@@ -11507,6 +11629,384 @@ class Sidebar(ft.Container):
     def _stroke_valid(self, index, epoch):
         return (self._mounted and self.motion_enabled and self._hovered == index
                 and epoch == self._epoch)
+```
+
+### `jarvis/gui_widgets.py`
+
+```python
+"""Opt-in Home widgets: responsive order/size editor, real tasks and guarded shortcuts."""
+from copy import deepcopy
+from functools import partial
+
+import flet as ft
+
+KINDS = {"tasks": ("Задачи", ft.Icons.CHECKLIST_ROUNDED),
+         "shortcuts": ("Быстрые действия", ft.Icons.BOLT_OUTLINED)}
+LAYOUT_KEY = "gui_home_widgets"
+SHORTCUTS_KEY = "gui_home_shortcuts"
+
+
+def normalize_layout(value):
+    result = []
+    if isinstance(value, list):
+        for item in value:
+            if not isinstance(item, dict):
+                continue
+            kind = item.get("kind")
+            if isinstance(kind, str) and kind in KINDS and not any(w["kind"] == kind for w in result):
+                result.append({"kind": kind, "size": "wide" if item.get("size") == "wide" else "compact"})
+    return result
+
+
+def normalize_shortcuts(value):
+    result = []
+    if isinstance(value, list):
+        for item in value:
+            if not isinstance(item, dict):
+                continue
+            label, command = item.get("label"), item.get("command")
+            if not isinstance(label, str) or not isinstance(command, str):
+                continue
+            label, command = label.strip()[:40], command.strip()[:300]
+            if label and command and not any(s == {"label": label, "command": command} for s in result):
+                result.append({"label": label, "command": command})
+            if len(result) == 6:
+                break
+    return result
+
+
+class WidgetBoard(ft.Column):
+    """No polling task: task-file changes use the existing Home 1 Hz clock tick."""
+    def __init__(self, gui, on_layout):
+        super().__init__(spacing=12, visible=False)
+        self.gui, self.on_layout = gui, on_layout
+        self.editing = False
+        self._mounted, self._host = False, None
+        self._snapshot = None
+        self._task_stamp = None
+        self._rendering = False
+        self._task_draft = ""
+        self.layout = normalize_layout(gui.config.get(LAYOUT_KEY, []))
+        self.shortcuts = normalize_shortcuts(gui.config.get(SHORTCUTS_KEY, []))
+        self.notice = ft.Text("", size=11, visible=False)
+        self.task_rows = None
+        self.task_summary = None
+        self.task_input = None
+        self.shortcut_label = ft.TextField(label="Название", max_length=40, dense=True, on_change=self._text_changed)
+        self.shortcut_command = ft.TextField(label="Команда Фениксу", max_length=300, dense=True, on_change=self._text_changed,
+            hint_text="Например: открой калькулятор")
+        self._render()
+
+    def _text_changed(self, e):
+        # Subscribe to native TextField changes so Flet syncs values before Save.
+        if e.control is self.task_input:
+            self._task_draft = e.control.value or ""
+
+    def _palette(self):
+        from jarvis import gui
+        return gui.P
+
+    def _update(self):
+        if self._mounted and self._host is not None and not self._rendering:
+            try:
+                self._host.update(self)
+            except RuntimeError:
+                self.dispose()
+
+    def _say(self, message, error=False):
+        p = self._palette()
+        self.notice.value, self.notice.visible = message, True
+        self.notice.color = p.error if error else p.text_dim
+        self._update()
+
+    def begin(self):
+        if self.editing:
+            return
+        self._snapshot = {key: deepcopy(self.gui.config.get(key, [])) for key in (LAYOUT_KEY, SHORTCUTS_KEY)}
+        self.layout = normalize_layout(self._snapshot[LAYOUT_KEY])
+        self.shortcuts = normalize_shortcuts(self._snapshot[SHORTCUTS_KEY])
+        self.editing = True
+        self.notice.visible = False
+        self._render()
+        self.on_layout()
+
+    def save(self, e=None):
+        if not self.editing:
+            return False
+        if (self.shortcut_label.value or "").strip() or (self.shortcut_command.value or "").strip():
+            self.add_shortcut()
+            if (self.shortcut_label.value or "").strip() or (self.shortcut_command.value or "").strip():
+                return False
+        try:
+            ok = self.gui.config.update({LAYOUT_KEY: deepcopy(self.layout), SHORTCUTS_KEY: deepcopy(self.shortcuts)},
+                                        expected_values=self._snapshot)
+        except Exception:
+            ok = False
+        if not ok:
+            self._say("Не удалось сохранить или настройки изменились в другом месте. Черновик сохранён на экране.", True)
+            return False
+        self.editing = False
+        self._snapshot = None
+        self._render()
+        self.on_layout()
+        return True
+
+    def cancel(self, e=None):
+        self.layout = normalize_layout(self.gui.config.get(LAYOUT_KEY, []))
+        self.shortcuts = normalize_shortcuts(self.gui.config.get(SHORTCUTS_KEY, []))
+        self.editing = False
+        self._snapshot = None
+        self.notice.visible = False
+        self.shortcut_label.value = self.shortcut_command.value = ""
+        self._render()
+        self.on_layout()
+
+    def add_widget(self, kind, e=None):
+        if self.editing and kind in KINDS and not any(w["kind"] == kind for w in self.layout):
+            self.layout.append({"kind": kind, "size": "compact"})
+            self._render(); self.on_layout()
+
+    def remove_widget(self, kind, e=None):
+        if self.editing:
+            self.layout = [w for w in self.layout if w["kind"] != kind]
+            self._render(); self.on_layout()  # hiding a widget never deletes its data
+
+    def resize_widget(self, kind, e=None):
+        if not self.editing:
+            return
+        for widget in self.layout:
+            if widget["kind"] == kind:
+                widget["size"] = "compact" if widget["size"] == "wide" else "wide"
+        self._render(); self.on_layout()
+
+    def move_widget(self, kind, delta):
+        if not self.editing:
+            return
+        index = next((i for i,w in enumerate(self.layout) if w["kind"] == kind), -1)
+        dest = index + delta
+        if index >= 0 and 0 <= dest < len(self.layout):
+            self.layout.insert(dest, self.layout.pop(index))
+            self._render(); self.on_layout()
+
+    def drop(self, target, e):
+        source = getattr(getattr(e, "src", None), "data", None)
+        if not self.editing or not isinstance(source, str) or source == target or source not in KINDS:
+            return
+        order = [w["kind"] for w in self.layout]
+        if source not in order or target not in order:
+            return
+        item = self.layout.pop(order.index(source))
+        self.layout.insert(order.index(target), item)
+        self._render(); self.on_layout()
+
+    def add_shortcut(self, e=None):
+        if not self.editing:
+            return
+        label, command = (self.shortcut_label.value or "").strip(), (self.shortcut_command.value or "").strip()
+        if not label or not command or len(label) > 40 or len(command) > 300 or len(self.shortcuts) >= 6:
+            self._say("Укажи название и команду. Можно добавить до 6 действий.", True)
+            return
+        item = {"label": label, "command": command}
+        if item in self.shortcuts:
+            self._say("Такое действие уже есть.", True)
+            return
+        self.shortcuts.append(item)
+        self.shortcut_label.value = self.shortcut_command.value = ""
+        self.notice.visible = False
+        self._render(); self.on_layout()
+
+    def remove_shortcut(self, index, e=None):
+        if self.editing and 0 <= index < len(self.shortcuts):
+            self.shortcuts.pop(index)
+            self._render(); self.on_layout()
+
+    def launch(self, index, e=None):
+        if self.editing or not (0 <= index < len(self.shortcuts)):
+            return False
+        core = self.gui.jarvis
+        if core is None:
+            self._say("Ядро ещё не готово — действие не запущено.", True)
+            return False
+        handler = getattr(core, "handler", None)
+        if getattr(handler, "_pending_password", None) or getattr(handler, "_pending_question", None):
+            self._say("Сначала заверши подтверждение в Диалоге.", True)
+            return False
+        if getattr(self.gui, "_command_busy", False):
+            self._say("Феникс ещё выполняет запрос. Дождись завершения.")
+            return False
+        # Same safety gates/lock/confirmation pipeline as Chat, never shell/exec.
+        self.gui._select_tab(0)
+        return self.gui._run_command(self.shortcuts[index]["command"])
+
+    def add_task(self, e=None):
+        if self.editing or self.task_input is None:
+            return False
+        text = (self.task_input.value or "").strip()
+        if not text or len(text) > 300:
+            self._say("Введи задачу длиной от 1 до 300 символов.", True)
+            return False
+        try:
+            from jarvis import tasks
+            tasks.add(text)
+        except Exception:
+            self._say("Не удалось записать задачу. Текст оставлен в поле.", True)
+            return False
+        self.task_input.value = self._task_draft = ""
+        self.notice.visible = False
+        self.refresh_tasks(force=True)
+        self._update()
+        return True
+
+    def set_task_done(self, task_id, e):
+        if self.editing:
+            return
+        try:
+            from jarvis import tasks
+            if tasks.set_done(task_id, bool(e.control.value)) is None:
+                self._say("Эту задачу уже удалили. Список обновлён.")
+        except Exception:
+            self._say("Не удалось сохранить отметку задачи.", True)
+        self.refresh_tasks(force=True)
+
+    def refresh_tasks(self, force=False):
+        if self.task_rows is None or not any(w["kind"] == "tasks" for w in self.layout):
+            return False
+        from jarvis import tasks
+        try:
+            path = tasks._tasks_file()
+            stat = path.stat() if path.exists() else None
+            stamp = (stat.st_mtime_ns, stat.st_size) if stat else (None, 0)
+            if not force and stamp == self._task_stamp:
+                return False
+            items = tasks.list_items()
+            self._task_stamp = stamp
+            p = self._palette()
+            items = [t for t in items if isinstance(t,dict) and isinstance(t.get("id"),int)
+                     and isinstance(t.get("text"),str)]
+            items.sort(key=lambda t:bool(t.get("done")))
+            self.task_rows.controls = [ft.Checkbox(label=t["text"], value=bool(t.get("done")),
+                disabled=self.editing, on_change=partial(self.set_task_done,t["id"]),
+                label_style=ft.TextStyle(size=13,color=p.text_dim if t.get("done") else p.text)) for t in items[:100]]
+            if not items:
+                self.task_rows.controls = [ft.Text("Пока пусто. Добавь первое дело.",size=12,color=p.text_dim)]
+            done = sum(bool(t.get("done")) for t in items)
+            self.task_summary.value = f"{done} из {len(items)} завершено" if items else "Одно дело за раз."
+            if len(items)>100:
+                self.task_summary.value += " · показаны первые 100"
+            self._update()
+            return True
+        except Exception:
+            self._say("Не удалось прочитать задачи.", True)
+            return False
+
+    def _tasks_card(self, widget):
+        p = self._palette()
+        self.task_rows = ft.Column(spacing=2,scroll=ft.ScrollMode.AUTO)
+        self.task_summary = ft.Text(size=11,color=p.text_dim)
+        self.task_input = ft.TextField(value=self._task_draft,hint_text="Добавить задачу…",max_length=300,dense=True,
+            expand=True,color=p.text,disabled=self.editing,on_submit=self.add_task,on_change=self._text_changed,
+            border_color=p.border,text_size=13)
+        content = ft.Column([self.task_summary,
+            ft.Container(self.task_rows,height=180 if widget["size"]=="compact" else 240),
+            ft.Row([self.task_input,ft.IconButton(icon=ft.Icons.ADD,tooltip="Добавить задачу",
+                icon_color=p.brand,disabled=self.editing,on_click=self.add_task)])],spacing=10)
+        self.refresh_tasks(force=True)
+        return content
+
+    def _shortcuts_card(self):
+        p=self._palette()
+        rows=[]
+        for i, action in enumerate(self.shortcuts):
+            if self.editing:
+                rows.append(ft.Row([ft.Column([ft.Text(action["label"],size=13,color=p.text),
+                    ft.Text(action["command"],size=11,color=p.text_dim,max_lines=2)],expand=True),
+                    ft.IconButton(icon=ft.Icons.CLOSE,tooltip="Убрать действие",icon_color=p.text_dim,
+                                  on_click=partial(self.remove_shortcut,i))]))
+            else:
+                rows.append(ft.Button(action["label"],icon=ft.Icons.NORTH_EAST_ROUNDED,
+                    tooltip=action["command"],on_click=partial(self.launch,i),color=p.text,bgcolor=p.selected,
+                    style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=9)),height=42))
+        if not rows:
+            rows=[ft.Text("Добавь свои команды в режиме настройки.",size=12,color=p.text_dim)]
+        if self.editing:
+            for field in (self.shortcut_label,self.shortcut_command):
+                field.color=p.text;field.border_color=p.border;field.text_size=13
+            rows.extend([self.shortcut_label,self.shortcut_command,
+                ft.Button("Добавить действие",icon=ft.Icons.ADD,on_click=self.add_shortcut,
+                          color=p.brand,disabled=len(self.shortcuts)>=6),
+                ft.Text("Запуск — через Диалог с обычными проверками безопасности.",size=11,color=p.text_dim)])
+        return ft.Column(rows,spacing=10)
+
+    def capture(self):
+        return dict(layout=deepcopy(self.layout), shortcuts=deepcopy(self.shortcuts), editing=self.editing,
+            snapshot=deepcopy(self._snapshot), task_draft=self.task_input.value if self.task_input else self._task_draft,
+            label=self.shortcut_label.value, command=self.shortcut_command.value)
+
+    def restore(self, state):
+        self.layout=normalize_layout(state["layout"])
+        self.shortcuts=normalize_shortcuts(state["shortcuts"])
+        self.editing=bool(state["editing"])
+        self._snapshot=deepcopy(state["snapshot"])
+        self._task_draft=state.get("task_draft") or ""
+        if self.task_input is not None:
+            self.task_input.value=self._task_draft
+        self.shortcut_label.value=state.get("label") or ""
+        self.shortcut_command.value=state.get("command") or ""
+        self._render()
+        self.on_layout()
+
+    def _render(self):
+        self._rendering = True
+        if self.task_input is not None:
+            self._task_draft = self.task_input.value or ""
+        p=self._palette()
+        self.visible = bool(self.layout) or self.editing
+        self.task_rows = None
+        cards=[]
+        for index, widget in enumerate(self.layout):
+            kind=widget["kind"]; title,icon=KINDS[kind]
+            heading=[ft.Icon(icon,size=19,color=p.brand),ft.Text(title,size=15,weight=ft.FontWeight.W_600,color=p.text,expand=True)]
+            if self.editing:
+                handle=ft.Draggable(group="phoenix-home-widgets",data=kind,
+                    content=ft.Icon(ft.Icons.DRAG_INDICATOR,size=19,color=p.text_dim),
+                    content_feedback=ft.Container(ft.Text(title,color=p.text),bgcolor=p.selected,padding=14,border_radius=10))
+                heading.insert(0,handle)
+                heading.extend([ft.IconButton(icon=ft.Icons.ARROW_UPWARD,tooltip="Передвинуть раньше",icon_size=16,
+                    disabled=index==0,on_click=lambda e,k=kind:self.move_widget(k,-1)),
+                    ft.IconButton(icon=ft.Icons.ARROW_DOWNWARD,tooltip="Передвинуть дальше",icon_size=16,
+                    disabled=index==len(self.layout)-1,on_click=lambda e,k=kind:self.move_widget(k,1))])
+            body=self._tasks_card(widget) if kind=="tasks" else self._shortcuts_card()
+            controls=[ft.Row(heading,spacing=7),body]
+            if self.editing:
+                controls.append(ft.Row([
+                    ft.Button("Компактнее" if widget["size"]=="wide" else "Расширить",icon=ft.Icons.ASPECT_RATIO,
+                        on_click=partial(self.resize_widget,kind),color=p.brand),
+                    ft.IconButton(icon=ft.Icons.CLOSE,tooltip="Убрать виджет, не удаляя данные",
+                        icon_color=p.text_dim,on_click=partial(self.remove_widget,kind))],alignment=ft.MainAxisAlignment.SPACE_BETWEEN))
+            card=ft.Container(ft.Column(controls,spacing=16),padding=18,bgcolor=p.bg_card,border_radius=14,
+                border=ft.Border.all(1,p.border))
+            target=ft.DragTarget(content=card,group="phoenix-home-widgets",on_accept=partial(self.drop,kind)) if self.editing else card
+            cards.append(ft.Container(target,col=12 if widget["size"]=="wide" else {"xs":12,"lg":6}))
+        toolbar=[]
+        if self.editing:
+            toolbar=[ft.Row([ft.Text("Твоё пространство",size=17,weight=ft.FontWeight.W_600,color=p.text,expand=True),
+                ft.Button("Отмена",on_click=self.cancel,color=p.text_dim),
+                ft.Button("Сохранить",on_click=self.save,color=p.bg_main,bgcolor=p.brand)]),
+                ft.Text("Добавь виджеты. Перетащи за ручку или поменяй порядок стрелками.",size=12,color=p.text_dim),
+                ft.Row([ft.Button(title,icon=icon,on_click=partial(self.add_widget,kind),color=p.brand,
+                    disabled=any(w["kind"]==kind for w in self.layout)) for kind,(title,icon) in KINDS.items()],wrap=True)]
+        self.controls=[*toolbar,self.notice,ft.ResponsiveRow(cards,spacing=16,run_spacing=16)]
+        self._rendering = False
+        self._update()
+
+    def did_mount(self):
+        self._mounted,self._host=True,self.page
+
+    def will_unmount(self):
+        self.dispose()
+
+    def dispose(self):
+        self._mounted=False;self._host=None
 ```
 
 ### `jarvis/history.py`
@@ -21492,6 +21992,27 @@ def add(text: str) -> dict:
         _save(tasks)
     log.info("Задача добавлена: %s", task["text"])
     return task
+
+
+def list_items() -> list:
+    """Snapshot for GUI; shares voice-command storage and lock, no fuzzy lookup."""
+    from copy import deepcopy
+    with _lock:
+        return deepcopy(_load())
+
+
+def set_done(task_id: int, done: bool) -> dict | None:
+    """Set an exact ID, so duplicate task labels cannot check the wrong item."""
+    if type(task_id) is not int or type(done) is not bool:
+        raise ValueError("Task ID must be an integer and done a boolean")
+    with _lock:
+        items = _load()
+        for task in items:
+            if task.get("id") == task_id:
+                task["done"] = done
+                _save(items)
+                return dict(task)
+    return None
 
 
 def find(query: str) -> dict | None:
@@ -32823,11 +33344,13 @@ def test_startup_is_home_and_chat_ids_do_not_shift(gui):
     assert gui._input_field in list(walk(gui._tabs[0]))
 
 
-def test_minimal_home_has_no_composer_cards_widgets_or_fake_actions(gui):
+def test_minimal_home_starts_empty_with_only_widget_entry_and_no_composer(gui):
     controls = list(walk(gui._home))
     assert not any(isinstance(c, (ft.TextField, ft.Dropdown, ft.ListView)) for c in controls)
     buttons = [c for c in controls if isinstance(c, ft.Button)]
-    assert buttons == gui._home.theme_buttons
+    assert buttons[:2] == gui._home.theme_buttons
+    assert len(buttons) == 3 and buttons[-1].tooltip == "Настроить Главную"
+    assert gui._home.widgets.layout == [] and not gui._home.widgets.visible
     assert not hasattr(gui._home, "on_click") or gui._home.on_click is None
     assert "Модель" not in " ".join(str(getattr(c, "value", "")) for c in controls)
     assert gui._home.status.value == "Ядро ещё не готово"
@@ -34290,6 +34813,270 @@ def test_stale_or_shutdown_tray_callback_does_not_show_window(gui):
     env['jarvis'].stop_event.set()
     env['_tray_failed'](env['tray_holder']['icon'])
     assert gui._queue.empty()
+```
+
+### `tests/test_gui_widgets.py`
+
+```python
+"""Opt-in layouts, exact task IDs, safe command path, atomic saves and lifecycle."""
+from copy import deepcopy
+from types import SimpleNamespace as NS
+from unittest.mock import Mock
+
+import pytest
+from jarvis import gui as ui, tasks, profile, mood
+from jarvis.config import Config
+from jarvis.gui_widgets import normalize_layout, normalize_shortcuts, LAYOUT_KEY, SHORTCUTS_KEY
+
+
+@pytest.fixture
+def gui(tmp_path,monkeypatch):
+    monkeypatch.setattr(tasks,'_tasks_file',lambda:tmp_path/'tasks.json')
+    g=ui.FenixGUI(None,Config(tmp_path/'config.json'))
+    g._page=NS(add=Mock(),update=Mock(),window=NS(visible=True,minimized=False))
+    g._build_ui(g._page)
+    yield g
+    g.stop();g._rail.dispose()
+    profile.unsubscribe(g._on_profile_switch);mood.unsubscribe(g._on_mood_change)
+    ui._apply_palette('dark')
+
+
+def prepare(gui):
+    b=gui._home.widgets;b.begin();b.add_widget('tasks');b.add_widget('shortcuts')
+    return b
+
+
+@pytest.mark.parametrize('raw',[None,False,{},'tasks',42,[None,{}, {'kind':[]}]])
+def test_layout_normalization_rejects_invalid_shapes(raw):
+    assert normalize_layout(raw)==[]
+
+
+def test_layout_normalizes_order_sizes_and_duplicate_without_mutation():
+    raw=[{'kind':'tasks','size':'wide','evil':True},{'kind':'tasks'},{'kind':'shortcuts','size':'x'},{'kind':'unknown'}]
+    copy=deepcopy(raw)
+    assert normalize_layout(raw)==[{'kind':'tasks','size':'wide'},{'kind':'shortcuts','size':'compact'}]
+    assert raw==copy
+
+
+@pytest.mark.parametrize('raw',[None,{},'bad',[None,{}, {'label':3,'command':[]} ]])
+def test_shortcut_schema_rejects_invalid_values(raw):assert normalize_shortcuts(raw)==[]
+
+
+def test_shortcut_limit_and_trim():
+    values=[{'label':f' {i} ','command':' открой калькулятор '} for i in range(10)]
+    assert len(normalize_shortcuts(values))==6
+    assert normalize_shortcuts(values)[0]=={'label':'0','command':'открой калькулятор'}
+
+
+def test_home_empty_by_default_without_task_disk_reads(gui,monkeypatch):
+    b=gui._home.widgets
+    monkeypatch.setattr(tasks,'list_items',Mock(side_effect=AssertionError('should not read')))
+    assert b.layout==[] and not b.visible and not b.editing
+    assert not b.refresh_tasks()
+    assert gui._home.center_region.expand is True and gui._home.workspace.scroll is None
+
+
+def test_add_resize_reorder_remove_and_cancel_do_not_persist(gui):
+    b=prepare(gui)
+    b.resize_widget('tasks');b.move_widget('shortcuts',-1)
+    assert b.layout==[{'kind':'shortcuts','size':'compact'},{'kind':'tasks','size':'wide'}]
+    assert gui.config.get(LAYOUT_KEY)==[]
+    b.remove_widget('tasks');b.cancel()
+    assert not b.layout and not b.visible and not b.editing
+    assert gui._home.center_region.expand is True
+
+
+def test_save_persists_and_new_home_loads_layout(gui):
+    b=prepare(gui);b.resize_widget('tasks');assert b.save()
+    cfg=Config(gui.config.path)
+    assert cfg.get(LAYOUT_KEY)==[{'kind':'tasks','size':'wide'},{'kind':'shortcuts','size':'compact'}]
+    assert not b.editing and b.visible and gui._home.center_region.height==340
+
+
+def test_save_failure_and_conflict_keep_editor_and_draft(gui,monkeypatch):
+    b=prepare(gui)
+    monkeypatch.setattr(gui.config,'update',Mock(return_value=False))
+    assert b.save() is False
+    assert b.editing and len(b.layout)==2 and b.notice.visible
+    assert gui.config.get(LAYOUT_KEY)==[]
+
+
+def test_conflict_against_real_config_is_detected(gui):
+    b=prepare(gui)
+    gui.config.set(LAYOUT_KEY,[{'kind':'shortcuts','size':'wide'}])
+    assert not b.save() and b.editing
+    assert gui.config.get(LAYOUT_KEY)==[{'kind':'shortcuts','size':'wide'}]
+
+
+def test_drop_order_only_in_edit_and_valid_source(gui):
+    b=prepare(gui)
+    b.drop('tasks',NS(src=NS(data='shortcuts')))
+    assert [x['kind'] for x in b.layout]==['shortcuts','tasks']
+    for value in (None,[],{},'foreign'):
+        b.drop('tasks',NS(src=NS(data=value)))
+    b.save();b.drop('shortcuts',NS(src=NS(data='tasks')))
+    assert [x['kind'] for x in b.layout]==['shortcuts','tasks']
+
+
+def test_exact_task_ids_and_reversible_checkboxes(gui):
+    a=tasks.add('одинаково');b=tasks.add('одинаково')
+    tasks.set_done(b['id'],True)
+    assert tasks.list_items()[0]['done'] is False
+    assert tasks.list_items()[1]['done'] is True
+    tasks.set_done(b['id'],False)
+    assert all(not t['done'] for t in tasks.list_items())
+    assert tasks.set_done(999,True) is None
+    snap=tasks.list_items();snap[0]['text']='changed'
+    assert tasks.list_items()[0]['text']=='одинаково'
+
+
+@pytest.mark.parametrize('id,done',[(True,True),(1,1),('1',False),(None,True)])
+def test_exact_task_set_validates_types(gui,id,done):
+    with pytest.raises(ValueError):tasks.set_done(id,done)
+
+
+def test_add_task_and_mark_share_voice_store_and_empty_guard(gui):
+    b=prepare(gui);b.save()
+    b.task_input.value=' Купить хлеб '
+    assert b.add_task()
+    item=tasks.list_items()[0];assert item['text']=='Купить хлеб' and b.task_input.value==''
+    b.set_task_done(item['id'],NS(control=NS(value=True)))
+    assert tasks.find('хлеб')['done'] is True
+    assert not b.add_task()
+
+
+def test_task_write_failure_keeps_input(gui,monkeypatch):
+    b=prepare(gui);b.save();b.task_input.value='не потерять'
+    monkeypatch.setattr(tasks,'add',Mock(side_effect=PermissionError()))
+    assert not b.add_task() and b.task_input.value=='не потерять'
+
+
+def test_remove_widget_never_deletes_tasks(gui):
+    tasks.add('важное')
+    b=prepare(gui);b.remove_widget('tasks');b.save()
+    assert tasks.list_items()[0]['text']=='важное'
+
+
+def test_existing_clock_refresh_reads_only_when_file_changed_and_preserves_draft(gui,monkeypatch):
+    b=prepare(gui);b.save();b.task_input.value='недописанное'
+    read=Mock(wraps=tasks.list_items);monkeypatch.setattr(tasks,'list_items',read)
+    assert not b.refresh_tasks();read.assert_not_called()
+    tasks.add('голосом')
+    assert b.refresh_tasks();read.assert_called_once()
+    assert b.task_input.value=='недописанное'
+    assert not b.refresh_tasks()
+
+
+def test_shortcut_setup_does_not_execute_and_save_accepts_pending_complete_input(gui):
+    b=prepare(gui);gui._run_command=Mock()
+    b.shortcut_label.value='Калькулятор';b.shortcut_command.value='открой калькулятор'
+    assert b.save()
+    gui._run_command.assert_not_called()
+    assert gui.config.get(SHORTCUTS_KEY)==[{'label':'Калькулятор','command':'открой калькулятор'}]
+
+
+def test_incomplete_shortcut_prevents_silent_data_loss(gui):
+    b=prepare(gui);b.shortcut_label.value='Без команды'
+    assert not b.save() and b.editing
+    assert b.shortcut_label.value=='Без команды'
+
+
+def shortcut(gui):
+    b=prepare(gui);b.shortcut_label.value='Тест';b.shortcut_command.value='открой калькулятор';b.save()
+    return b
+
+
+def test_shortcut_requires_core_and_pending_confirmation_is_not_bypassed(gui):
+    b=shortcut(gui);gui._run_command=Mock(return_value=True)
+    assert not b.launch(0);gui._run_command.assert_not_called()
+    gui.jarvis=NS(handler=NS(_pending_password={'action':'clear_tasks'},_pending_question=None))
+    assert not b.launch(0);gui._run_command.assert_not_called()
+    gui.jarvis.handler._pending_password=None;gui.jarvis.handler._pending_question={'text':'yes?'}
+    assert not b.launch(0);gui._run_command.assert_not_called()
+
+
+def test_shortcut_uses_chat_pipeline_and_busy_guard(gui):
+    b=shortcut(gui);gui.jarvis=NS(handler=NS(_pending_password=None,_pending_question=None))
+    gui._run_command=Mock(return_value=True)
+    gui._command_busy=True;assert not b.launch(0);gui._run_command.assert_not_called()
+    gui._command_busy=False
+    assert b.launch(0)
+    assert gui._rail.selected_index==0
+    gui._run_command.assert_called_once_with('открой калькулятор')
+
+
+def test_edit_mode_shortcut_click_never_runs(gui):
+    b=shortcut(gui);b.begin();gui._run_command=Mock()
+    assert not b.launch(0);gui._run_command.assert_not_called()
+
+
+def test_theme_preserves_unsaved_layout_shortcuts_and_task_input(gui):
+    b=prepare(gui);b.task_input.value='черновик дела'
+    b.shortcut_label.value='Браузер';b.shortcut_command.value='открой браузер'
+    b.resize_widget('tasks')
+    gui._home._theme('Светлая')
+    n=gui._home.widgets
+    assert n is not b and n.editing and n.layout[0]['size']=='wide'
+    assert n.task_input.value=='черновик дела'
+    assert n.shortcut_label.value=='Браузер' and n.shortcut_command.value=='открой браузер'
+    assert gui.config.get(LAYOUT_KEY)==[]
+
+
+def test_widget_does_not_create_background_task(gui):
+    b=prepare(gui)
+    assert not hasattr(b,'_future')
+    b.dispose();assert not b._mounted and b._host is None
+
+
+def test_saved_task_widget_draft_survives_theme_rebuild(gui):
+    b=prepare(gui);b.save();b.task_input.value='сохранить черновик'
+    gui._home._theme('Светлая')
+    assert gui._home.widgets.task_input.value=='сохранить черновик'
+
+
+def test_large_task_list_caps_rendered_controls(gui,monkeypatch):
+    b=prepare(gui);b.save()
+    monkeypatch.setattr(tasks,'list_items',lambda:[{'id':i,'text':str(i),'done':False} for i in range(150)])
+    b.refresh_tasks(force=True)
+    assert len(b.task_rows.controls)==100 and 'первые 100' in b.task_summary.value
+
+
+def test_drop_moves_down_as_well_as_up(gui):
+    b=prepare(gui)
+    b.drop('shortcuts',NS(src=NS(data='tasks')))
+    assert [x['kind'] for x in b.layout]==['shortcuts','tasks']
+    b.drop('shortcuts',NS(src=NS(data='tasks')))
+    assert [x['kind'] for x in b.layout]==['tasks','shortcuts']
+
+
+def test_editor_toolbar_never_wraps_expanded_children(gui):
+    # Flutter Wrap cannot own Expanded: invalid ParentData makes the board grey.
+    b=prepare(gui)
+    toolbar=b.controls[0]
+    assert not toolbar.wrap
+
+
+@pytest.mark.asyncio
+async def test_open_widgets_does_not_scroll_before_scrollview_exists(gui):
+    from unittest.mock import AsyncMock
+    home=gui._home
+    home.workspace.scroll_to=AsyncMock()
+    await home._open_widgets()
+    assert home.widgets.editing
+    home.workspace.scroll_to.assert_not_called()
+
+
+def test_native_text_fields_subscribe_for_value_sync(gui):
+    b=prepare(gui)
+    assert all(field.on_change is not None for field in (b.task_input,b.shortcut_label,b.shortcut_command))
+
+
+def test_compact_cards_stack_below_large_breakpoint(gui):
+    b=prepare(gui)
+    row=b.controls[-1]
+    assert all(card.col=={'xs':12,'lg':6} for card in row.controls)
+    b.resize_widget('tasks')
+    assert b.controls[-1].controls[0].col==12
 ```
 
 ### `tests/test_gui_wiring.py`
@@ -43298,6 +44085,8 @@ pause
   "gui_theme": "Системная",
   "gui_sidebar_pinned": false,
   "gui_motion_enabled": true,
+  "gui_home_widgets": [],
+  "gui_home_shortcuts": [],
   "gui_x": null,
   "gui_y": null,
   "tray_enabled": true,
@@ -44440,7 +45229,7 @@ pymorphy3>=2.0.3,<3
 
 - Фирменные ресурсы Феникса
 
-#### `tests/README.md` — 24 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `tests/README.md` — 25 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Тесты Феникса
   - Карта
@@ -44466,6 +45255,7 @@ pymorphy3>=2.0.3,<3
   - Солнечная корона и mic_watchdog
     - Startup/tray regression
     - Кольцо действий Главной
+    - Опциональные виджеты Главной — текущая проверка
 
 #### `tests/audio/README.md` — 7 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -44485,7 +45275,7 @@ pymorphy3>=2.0.3,<3
   - Обновление 15.10.2026: язык, память, Non-verbal
   - Как добавить новый workflow
 
-#### `AGENTS.md` — 11 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `AGENTS.md` — 12 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - AGENTS.md — навигация для помощника по «Феникс»
   - Среда и запуск
@@ -44498,6 +45288,7 @@ pymorphy3>=2.0.3,<3
   - Перед коммитом
   - Персона и Настройки
     - Кольцо Главной
+    - Виджеты Главной
 
 #### `ARCHITECTURE.md` — 51 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -44542,9 +45333,10 @@ pymorphy3>=2.0.3,<3
     - `.venv311`
     - Git
 
-#### `CHANGELOG.md` — 102 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 103 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
+  - Опциональные виджеты Главной
   - Кольцо действий Феникса
   - Надёжный старт окна и трея
   - Плавные переходы и более живые волны
@@ -44583,7 +45375,6 @@ pymorphy3>=2.0.3,<3
       - 🌐 Браузер пользователя: работаем там, где он сидит (№1)
     - 📅 Сессия 13.10.2026
       - 🪟 Окно ищется по процессу, а не по заголовку (№45–№50)
-      - 🔒 Приватность и «красная черта»: Observer выключен, ответы фильтруются
 
 #### `CI.md` — 16 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -44778,7 +45569,23 @@ pymorphy3>=2.0.3,<3
   - Что проверить на своём ПК
   - Проверено на стенде
 
-#### `docs/USER_GUIDE.md` — 46 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `docs/GUI_WIDGETS_UPDATE.md` — 5 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Виджеты Главной: первый набор
+  - Установка
+  - Что появилось
+  - Нагрузка
+  - Что проверить на Windows
+
+#### `docs/LOCAL_VOICE_OPTIONS.md` — 5 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Следующий этап: локальный голос без облака
+  - Лёгкий основной режим
+  - Копирование тембра по небольшому отрывку
+  - Что нужно для выбора
+  - Первоисточники
+
+#### `docs/USER_GUIDE.md` — 47 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Руководство пользователя · Феникс
   - Навигация
@@ -44823,4 +45630,4 @@ pymorphy3>=2.0.3,<3
 
 ---
 
-_Итого по категориям — code: 189, data: 44, doc: 24, pack: 5. Режим `lean`._
+_Итого по категориям — code: 191, data: 44, doc: 26, pack: 5. Режим `lean`._

@@ -103,6 +103,27 @@ def add(text: str) -> dict:
     return task
 
 
+def list_items() -> list:
+    """Snapshot for GUI; shares voice-command storage and lock, no fuzzy lookup."""
+    from copy import deepcopy
+    with _lock:
+        return deepcopy(_load())
+
+
+def set_done(task_id: int, done: bool) -> dict | None:
+    """Set an exact ID, so duplicate task labels cannot check the wrong item."""
+    if type(task_id) is not int or type(done) is not bool:
+        raise ValueError("Task ID must be an integer and done a boolean")
+    with _lock:
+        items = _load()
+        for task in items:
+            if task.get("id") == task_id:
+                task["done"] = done
+                _save(items)
+                return dict(task)
+    return None
+
+
 def find(query: str) -> dict | None:
     """Находит задачу по нечёткому совпадению.
 

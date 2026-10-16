@@ -53,6 +53,8 @@
   "gui_theme": "Системная",
   "gui_sidebar_pinned": false,
   "gui_motion_enabled": true,
+  "gui_home_widgets": [],
+  "gui_home_shortcuts": [],
   "gui_x": null,
   "gui_y": null,
   "tray_enabled": true,

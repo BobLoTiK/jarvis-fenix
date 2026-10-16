@@ -447,3 +447,25 @@ guards при отсутствии ядра/озвучки, тем, reduced moti
 Native Flet web-render: обе темы 900×600, hover-путь птица→кнопки, mic×2,
 stop callback, Tab/Escape, переход в Диалог и hover-push панели.
 Автоматические callbacks на стенде не заменяют Windows-аудиопроверку.
+
+### Опциональные виджеты Главной — текущая проверка
+
+`test_gui_widgets.py`: 41 тест схем/дубликатов, точных ID задач, обратимых
+отметок, отказа записи/конфликта, безопасных shortcuts, editor guards,
+resize/reorder/drag в обе стороны, draft capture/restore, лимита 100 строк,
+отсутствия нового таймера и синхронизации native TextField.
+Регрессии рендера: Expanded не должен оказаться в Row(wrap=True), открытие
+редактора не делает scroll_to до монтажа ScrollableControl.
+
+Linux/Python 3.13/Flet 1.0.4: **1172 passed, 4 skipped**, переносимый набор:
+`PYSTRAY_BACKEND=dummy python -m pytest -q --ignore=tests/test_browser_target.py --ignore=tests/test_window_targets.py`.
+Два файла исключены из-за Windows winreg; полный сбор на Linux без исключений
+останавливается на этих импортах. Это не полный Windows-прогон check_all.
+Отдельно Flet 1.0.3: **340 passed** (test_gui_*.py + tray + mic_watchdog).
+Существующие deprecation warnings InputBorder.NONE относятся к полю чата.
+
+Flet web-render реального Home/WidgetBoard: обе темы, save, задачи add/check/
+uncheck, черновики задачи и редактора через тему, resize/cancel, native drag
+в обе стороны и push панели при 812 px. Нет Flutter-render errors.
+Реальный Windows-трей/физический микрофон/TTS и screen reader требуют ручной
+приёмки. Новая модель голоса не устанавливалась, качество клона не измерялось.

@@ -1,4 +1,4 @@
-"""Minimal native Home: local clock and the real assistant state, no chat/widgets."""
+"""Minimal native Home: local clock, real assistant state and opt-in widgets, no chat."""
 import asyncio
 import math
 import time
@@ -17,6 +17,7 @@ def clock_labels(now):
 
 from jarvis.gui_home_fx import PhoenixAura
 from jarvis.gui_home_actions import PhoenixActions
+from jarvis.gui_widgets import WidgetBoard
 
 
 class HomeScreen(ft.Column):
@@ -63,16 +64,34 @@ class HomeScreen(ft.Column):
                          bgcolor=p.sidebar, border=ft.Border.all(1, ft.Colors.with_opacity(.5, p.border)))
         ], spacing=12), padding=ft.Padding(left=28, right=28, top=16, bottom=16),
             border=ft.Border(bottom=ft.BorderSide(1, ft.Colors.with_opacity(.5, p.border))))
+        self.center_region = ft.Container(ft.Column([self.actions,
+            ft.Row([self.dot, self.status], spacing=8, alignment=ft.MainAxisAlignment.CENTER)
+        ], spacing=4, tight=True, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+            alignment=ft.Alignment.CENTER, expand=True)
+        self.widgets = WidgetBoard(gui, self._layout_widgets)
+        self.workspace = ft.Column([self.center_region, self.widgets], spacing=20, expand=True)
         self.controls = [self.header, ft.Container(ft.Column([
             ft.Row([ft.Row([ft.Icon(ft.Icons.WB_SUNNY_OUTLINED, size=14, color=p.text_dim), self.date], spacing=8),
                     self.clock], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-            ft.Container(ft.Column([self.actions,
-                ft.Row([self.dot, self.status], spacing=8, alignment=ft.MainAxisAlignment.CENTER)
-            ], spacing=4, tight=True, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-                alignment=ft.Alignment.CENTER, expand=True),
-            ft.Text("Просто твоё пространство.", size=10, color=p.text_dim),
+            self.workspace,
+            ft.Row([ft.Text("Просто твоё пространство.", size=10, color=p.text_dim, expand=True),
+                ft.Button("Виджеты",icon=ft.Icons.ADD,tooltip="Настроить Главную",height=32,
+                    on_click=self._open_widgets,color=p.text_dim,
+                    style=ft.ButtonStyle(padding=ft.Padding.symmetric(horizontal=8)))],spacing=8),
         ], expand=True, spacing=20), padding=ft.Padding(left=28, right=28, top=26, bottom=24), expand=True)]
+        self._layout_widgets(update=False)
         self.apply_state(gui._state)
+
+    def _layout_widgets(self, update=True):
+        populated = bool(self.widgets.layout) or self.widgets.editing
+        self.center_region.expand = False if populated else True
+        self.center_region.height = 340 if populated else None
+        self.workspace.scroll = ft.ScrollMode.AUTO if populated else None
+        if update and self._mounted and self._host is not None:
+            self._host.update(self.workspace)
+
+    async def _open_widgets(self, e=None):
+        self.widgets.begin()
 
     def _theme(self, name):
         self.gui._on_theme_change(SimpleNamespace(control=SimpleNamespace(value=name)))
@@ -151,6 +170,7 @@ class HomeScreen(ft.Column):
         self.dispose()
 
     def dispose(self):
+        self.widgets.dispose()
         self.actions.dispose()
         self.aura.dispose()
         self._mounted = False
@@ -162,6 +182,7 @@ class HomeScreen(ft.Column):
 
     async def _clock_loop(self, epoch):
         while self._mounted and epoch == self._epoch:
+            self.widgets.refresh_tasks()
             if self.refresh_clock():
                 try:
                     self._host.update(self.date, self.clock)

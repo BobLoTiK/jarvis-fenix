@@ -146,6 +146,8 @@ DEFAULT_CONFIG = {
     "gui_sidebar_pinned": False,
     # False disables sidebar motion even when the OS does not expose accessibility flags.
     "gui_motion_enabled": True,
+    "gui_home_widgets": [],
+    "gui_home_shortcuts": [],
     "gui_x": None,
     "gui_y": None,
     "tray_enabled": True,

@@ -46,11 +46,13 @@ def test_startup_is_home_and_chat_ids_do_not_shift(gui):
     assert gui._input_field in list(walk(gui._tabs[0]))
 
 
-def test_minimal_home_has_no_composer_cards_widgets_or_fake_actions(gui):
+def test_minimal_home_starts_empty_with_only_widget_entry_and_no_composer(gui):
     controls = list(walk(gui._home))
     assert not any(isinstance(c, (ft.TextField, ft.Dropdown, ft.ListView)) for c in controls)
     buttons = [c for c in controls if isinstance(c, ft.Button)]
-    assert buttons == gui._home.theme_buttons
+    assert buttons[:2] == gui._home.theme_buttons
+    assert len(buttons) == 3 and buttons[-1].tooltip == "Настроить Главную"
+    assert gui._home.widgets.layout == [] and not gui._home.widgets.visible
     assert not hasattr(gui._home, "on_click") or gui._home.on_click is None
     assert "Модель" not in " ".join(str(getattr(c, "value", "")) for c in controls)
     assert gui._home.status.value == "Ядро ещё не готово"
