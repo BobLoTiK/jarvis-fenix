@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=cff9698b9bcb7b36` · режим `lean` · файлов `266` · строк `49451` · источник `2211 КБ`
+`sha256=5098c1d635df42a5` · режим `lean` · файлов `270` · строк `49572` · источник `2233 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -13,9 +13,29 @@
 ````
 # PROJECT.md — источник правды о «Феникс»
 
+
+**Поставка обновлена:** `docs/INSTALLER_UPDATE.md` — curated payload/manifest, Python 3.11/Flet 1.0.x, fingerprint зависимостей, caps в USER_DIR. EXE/Setup здесь не собраны; Windows acceptance обязательна. TTS-оптимизация ещё не реализована.
 Курируемый документ. Обновлён 16.10.2026. `snapshot.py` включает его целиком;
 остальные руководства раскрывают пользовательские и технические детали.
 История версий — в `CHANGELOG.md`, порядок развития — в `PLAN.md`.
+
+## Текущий следующий шаг — лёгкая потоковая озвучка (ещё не реализован)
+
+Продукт распространяется на разные ПК. Не делать железо автора/установленный
+системный голос обязательной базой. Следующий кандидат — пакет Piper;
+системный голос только fallback при наличии. Текущий auto по-прежнему
+Silero → Piper → WinRT → SAPI: его приоритет в этом документационном шаге не менялся.
+Существующий speak_stream уже есть; проверить фактическое чтение генератора,
+первую безопасную фразу/PCM, блокировку на синтезе и воспроизведении.
+Согласована озвучка готовых фраз одновременно с дальнейшей генерацией Ollama,
+маленький bounded buffer/backpressure, ограничение CPU TTS и отмена очереди
+per-call token. Ожидание ВСЕГО ответа перед озвучкой явно отклонено.
+Сохранять safety/finalize_stream, историю, cmd_lock/_say_lock, barge-in и единый
+PCM/nonverbal. Не менять выбор пользователя/параметры Ollama молча.
+Пакеты, CPU-ограничения и новый буфер ещё не реализованы; сначала baseline,
+потом минимальный патч и повторный замер. Silero rate сейчас читается, но не
+применяется: известная неисправленная проблема. Клоны/XTTS/обучение/облако отложены.
+Точный handoff и критерии — PROMPT.md; детали вариантов — LOCAL_VOICE_OPTIONS.md.
 
 ## Опциональные виджеты Главной
 
@@ -49,7 +69,7 @@ Flet ScrollableControl ещё отсутствует (Bad state: No element).
 контрол кольца, а не вся Page. Reduced motion берётся у той же PhoenixAura.
 Home keyboard-dispatch сохраняет обработчик боковой панели; Escape закрывает
 кольцо до обработки Escape панели. Dispose сбрасывает меню и отменяет таймер.
-Виджеты и отдельный раздел Планы в этом обновлении не добавляются.
+Отдельный раздел Планы не реализован; опциональные виджеты описаны выше.
 Инструкция: `docs/GUI_HOME_ACTION_RING.md`.
 
 ## Исправления запуска окна / трея
@@ -466,10 +486,10 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ├── .github/
 │   ├── workflows/
 │   │   ├── README.md  (74 стр)
-│   │   ├── release.yml  (114 стр)
+│   │   ├── release.yml  (125 стр)
 │   │   ├── test.yml  (71 стр)
-├── AGENTS.md  (141 стр)
-├── ARCHITECTURE.md  (1085 стр)
+├── AGENTS.md  (150 стр)
+├── ARCHITECTURE.md  (1091 стр)
 ├── assets/
 │   ├── nonverbal/
 │   │   ├── README.md  (40 стр)
@@ -477,7 +497,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── readme/
 │   │   ├── hero-mobile.svg  (8 стр)
 │   │   ├── hero.svg  (19 стр)
-├── CHANGELOG.md  (1542 стр)
+├── CHANGELOG.md  (1558 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -488,7 +508,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── show_ip.bat  (3 стр)
 ├── config.example.json  (89 стр)
 ├── CONTRIBUTING.md  (438 стр)
-├── create_shortcut.bat  (51 стр)
+├── create_shortcut.bat  (52 стр)
 ├── docs/
 │   ├── GUI_HOME_ACTION_RING.md  (45 стр)
 │   ├── GUI_HOME_UPDATE.md  (47 стр)
@@ -500,10 +520,11 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── GUI_SOLAR_AURA_UPDATE.md  (52 стр)
 │   ├── GUI_STARTUP_TRAY_FIX.md  (55 стр)
 │   ├── GUI_WIDGETS_UPDATE.md  (58 стр)
-│   ├── LOCAL_VOICE_OPTIONS.md  (53 стр)
-│   ├── USER_GUIDE.md  (988 стр)
-├── install.bat  (411 стр)
-├── installer.iss  (119 стр)
+│   ├── INSTALLER_UPDATE.md  (44 стр)
+│   ├── LOCAL_VOICE_OPTIONS.md  (67 стр)
+│   ├── USER_GUIDE.md  (990 стр)
+├── install.bat  (342 стр)
+├── installer.iss  (105 стр)
 ├── jarvis/
 │   ├── __init__.py  (8 стр)
 │   ├── __main__.py  (4 стр)
@@ -538,7 +559,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── config_manager.py  (156 стр)
 │   ├── files.py  (109 стр)
 │   ├── first_run.py  (26 стр)
-│   ├── gui.py  (1642 стр)
+│   ├── gui.py  (1643 стр)
 │   ├── gui_audio.py  (378 стр)
 │   ├── gui_commands.py  (305 стр)
 │   ├── gui_home.py  (191 стр)
@@ -613,7 +634,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── nonverbal.py  (93 стр)
 │   ├── observer.py  (203 стр)
 │   ├── packs.py  (117 стр)
-│   ├── paths.py  (235 стр)
+│   ├── paths.py  (240 стр)
 │   ├── persona.py  (226 стр)
 │   ├── profile.py  (522 стр)
 │   ├── prosody.py  (152 стр)
@@ -642,7 +663,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── voices.py  (220 стр)
 │   ├── weather.py  (400 стр)
 ├── jarvis-fenix.code-workspace  (8 стр)
-├── launcher.py  (707 стр)
+├── launcher.py  (769 стр)
 ├── LICENSE  (25 стр)
 ├── packs/
 │   ├── apps.json  (21 стр)
@@ -650,25 +671,27 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── sites.json  (22 стр)
 │   ├── system.json  (17 стр)
 │   ├── work.json  (11 стр)
-├── PLAN.md  (293 стр)
-├── PROJECT.md  (439 стр)
-├── PROMPT.md  (511 стр)
+├── PLAN.md  (315 стр)
+├── PROJECT.md  (459 стр)
+├── PROMPT.md  (176 стр)
 ├── pytest.ini  (20 стр)
-├── README.md  (249 стр)
+├── README.md  (252 стр)
 ├── requirements-ci.txt  (36 стр)
 ├── requirements-dev.txt  (10 стр)
 ├── requirements.txt  (63 стр)
 ├── scripts/
 │   ├── __init__.py  (7 стр)
 │   ├── audio_regression.py  (11 стр)
-│   ├── build_exe.py  (78 стр)
-│   ├── build_setup.py  (208 стр)
-│   ├── check_caps.py  (174 стр)
+│   ├── build_exe.py  (73 стр)
+│   ├── build_setup.py  (212 стр)
+│   ├── check_caps.py  (205 стр)
 │   ├── check_staged_snapshot.py  (149 стр)
+│   ├── init_user_data.py  (34 стр)
 │   ├── install_git_hooks.py  (82 стр)
 │   ├── make_icon.py  (32 стр)
-│   ├── make_installer_images.py  (121 стр)
+│   ├── make_installer_images.py  (125 стр)
 │   ├── mics.py  (52 стр)
+│   ├── release_payload.py  (85 стр)
 │   ├── selftest.py  (49 стр)
 │   ├── set_llm_model.py  (52 стр)
 │   ├── startup_probe.py  (196 стр)
@@ -676,8 +699,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── voicedemo.py  (41 стр)
 │   ├── wakebench.py  (88 стр)
 ├── snapshot.py  (727 стр)
-├── start_fenix.bat  (6 стр)
-├── start_fenix_debug.bat  (15 стр)
+├── start_fenix.bat  (13 стр)
+├── start_fenix_debug.bat  (16 стр)
 ├── tests/
 │   ├── __init__.py  (0 стр)
 │   ├── audio/
@@ -696,13 +719,13 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── uia_manual.py  (61 стр)
 │   │   ├── vad_debug.py  (61 стр)
 │   │   ├── vad_live.py  (41 стр)
-│   ├── README.md  (471 стр)
+│   ├── README.md  (475 стр)
 │   ├── stress_intents.py  (552 стр)
 │   ├── test_audio_regression.py  (556 стр)
 │   ├── test_audit_regressions.py  (265 стр)
 │   ├── test_brain_rag.py  (125 стр)
 │   ├── test_browser_target.py  (338 стр)
-│   ├── test_build_setup.py  (56 стр)
+│   ├── test_build_setup.py  (52 стр)
 │   ├── test_caps.py  (23 стр)
 │   ├── test_clarification.py  (411 стр)
 │   ├── test_clarification_imports.py  (110 стр)
@@ -726,12 +749,13 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_memory_scope.py  (132 стр)
 │   ├── test_mic_watchdog.py  (36 стр)
 │   ├── test_mood.py  (386 стр)
-│   ├── test_nonverbal.py  (400 стр)
+│   ├── test_nonverbal.py  (403 стр)
 │   ├── test_numeric_language.py  (521 стр)
 │   ├── test_password_imports.py  (109 стр)
 │   ├── test_persona.py  (155 стр)
 │   ├── test_prosody.py  (83 стр)
 │   ├── test_recognition_quality.py  (357 стр)
+│   ├── test_release_payload.py  (159 стр)
 │   ├── test_safety.py  (170 стр)
 │   ├── test_speech_gate.py  (86 стр)
 │   ├── test_stt.py  (451 стр)
@@ -1821,6 +1845,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def audio_regression_dir()
   def logs_dir()
   def profiles_dir()
+  def system_caps_path()
   def config_path()
   def nonverbal_dir()
   def temporary_audio_file()
@@ -2326,7 +2351,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   BASE = ...
   SCRIPTS = ...
   ICON = ...
-  CAPS = ...
+  PAYLOAD = ...
   ISS = ...
   SETUP_EXE = ...
   ISCC_SEARCH_PATHS = ...
@@ -2336,7 +2361,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def include_script(name: str)
   def find_iscc()
   def parse_version(argv: list[str])
-  def caps_available()
+  def validate_version(version)
   def main()
 ```
 
@@ -2350,7 +2375,9 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def check_brightness()
   def check_layout()
   def check_cpu()
-  def main()
+  def write_caps(caps, destination=None)
+  def caps_valid(path)
+  def main(argv=None)
 ```
 
 **`scripts/check_staged_snapshot.py`**
@@ -2363,6 +2390,14 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def staged_files(root)
   def checkout(root, target, names)
   def check_staged(root)
+  def main(argv=None)
+```
+
+**`scripts/init_user_data.py`**
+
+```
+  # Initialize public defaults through Config/paths; never copy config into code root.
+  BASE = ...
   def main(argv=None)
 ```
 
@@ -2399,7 +2434,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   ACCENT = ...
   TEXT_COLOR = ...
   BMP_FORMAT = ...
-  def make_banner()
+  def make_banner(version=None)
   def make_small()
   def main()
 ```
@@ -2411,6 +2446,20 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   BASE = ...
   FS = ...
   def main()
+```
+
+**`scripts/release_payload.py`**
+
+```
+  # Curated installer payload; never recurse over the developer's entire workspace.
+  ROOT_FILES = ...
+  PACKS = ...
+  BRANDS = ...
+  REQUIRED_MODULES = ...
+  BLOCKED_PARTS = ...
+  BLOCKED_NAMES = ...
+  def collect_payload(root, include_exe=True)
+  def stage_payload(root, destination, include_exe=True)
 ```
 
 **`scripts/selftest.py`**
@@ -2743,14 +2792,14 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 **`tests/test_build_setup.py`**
 
 ```
-  # Тесты scripts.build_setup — версия установщика и мягкий пропуск шага caps.
+  # Версии установщика, поиск Inno и совпадение с версией пакета.
   def test_parse_version_space()
   def test_parse_version_equals()
   def test_parse_version_strips_spaces()
   def test_parse_version_absent()
   def test_parse_version_without_value()
-  def test_caps_available_with_modules(monkeypatch)
-  def test_caps_available_without_modules(monkeypatch)
+  def test_inno_override(tmp_path, monkeypatch)
+  def test_versions_reject_injection()
   def test_installer_version_is_overridable_and_matches_package()
 ```
 
@@ -3502,6 +3551,28 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_pending_question_opens_window_before_extracting_answer()
 ```
 
+**`tests/test_release_payload.py`**
+
+```
+  # Public payload, reproducible manifest and bootstrap regression checks.
+  ROOT = ...
+  def release_tree(tmp_path)
+  def test_only_public_files(release_tree)
+  def test_stage_clean_manifest(release_tree)
+  def test_failed_validation_keeps_previous_payload(release_tree)
+  def test_reject_unsafe_destination(release_tree, path)
+  def test_reject_linked_resource(release_tree, tmp_path)
+  def test_no_default_user_widgets(release_tree)
+  def test_preflight_never_compiles(monkeypatch)
+  def test_preflight_requires_installer(monkeypatch, tmp_path)
+  def test_installer_curated_and_both_mutexes()
+  def test_receipt_changed_requirements_and_corrupt_receipt(tmp_path, monkeypatch)
+  def test_caps_atomic_failure_preserves_old(tmp_path, monkeypatch)
+  def test_caps_skip_valid_only(tmp_path, monkeypatch)
+  def test_caps_probe_failure_does_not_block_launch(monkeypatch, tmp_path)
+  def test_cancel_dependencies_has_no_network(tmp_path, monkeypatch)
+```
+
 **`tests/test_safety.py`**
 
 ```
@@ -3957,7 +4028,11 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def run_python_installer(installer: Path, logger)
   def find_venv_pythonw(project_dir: Path, logger)
   def create_venv(project_dir: Path, python_exe: str, logger)
+  DEPENDENCY_PROBE = ...
+  def requirements_digest(project_dir)
+  def record_dependency_receipt(project_dir)
   def check_dependencies(project_dir: Path, logger)
+  def ensure_local_caps(project_dir, logger)
   def install_dependencies(project_dir: Path, logger)
   def check_vosk_model(project_dir: Path, logger)
   def download_vosk_model(project_dir: Path, logger)
@@ -4020,7 +4095,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/config_manager.py` | 156 | code | Единый менеджер записи в config.json. |
 | `jarvis/files.py` | 109 | code | Файлы и папки: открыть, посмотреть содержимое, создать. |
 | `jarvis/first_run.py` | 26 | code | Первый запуск — знакомство через LLM-диалог. |
-| `jarvis/gui.py` | 1642 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
+| `jarvis/gui.py` | 1643 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
 | `jarvis/gui_audio.py` | 378 | code | Native sound settings. Diagnostics use the existing listener/Speaker,  |
 | `jarvis/gui_commands.py` | 305 | code | Flet editor for the existing custom_commands pipeline. Never executes  |
 | `jarvis/gui_home.py` | 191 | code | Minimal native Home: local clock, real assistant state and opt-in widg |
@@ -4091,7 +4166,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/nonverbal.py` | 93 | code | Optional, bounded reaction policy. No LLM tags, text rewriting or extr |
 | `jarvis/observer.py` | 203 | code | Observer — фоновое наблюдение за диалогом. |
 | `jarvis/packs.py` | 117 | code | Загрузка и выгрузка паков команд из папки packs/. |
-| `jarvis/paths.py` | 235 | code | Централизованное определение путей Феникса. |
+| `jarvis/paths.py` | 240 | code | Централизованное определение путей Феникса. |
 | `jarvis/persona.py` | 226 | code | Персона ассистента — стиль общения, черты, backstory, tone. |
 | `jarvis/profile.py` | 522 | code | Профиль пользователя — мультипрофиль. |
 | `jarvis/prosody.py` | 152 | code | Prosody — эмоции из голоса (RMS + pitch + ZCR). |
@@ -4120,14 +4195,16 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/weather.py` | 400 | code | Погода и курс валют. |
 | `scripts/__init__.py` | 7 | code | Пакет scripts: утилиты разработчика. |
 | `scripts/audio_regression.py` | 11 | code | Run optional local audio regression tools; ordinary pytest never loads |
-| `scripts/build_exe.py` | 78 | code | Сборка Феникс.exe (лёгкий лаунчер). |
-| `scripts/build_setup.py` | 208 | code | Полная сборка Феникса: Феникс.exe + Феникс_Setup.exe — одной командой. |
-| `scripts/check_caps.py` | 174 | code | Проверка возможностей системы — запускается из install.bat. |
+| `scripts/build_exe.py` | 73 | code | Сборка Феникс.exe (лёгкий лаунчер). |
+| `scripts/build_setup.py` | 212 | code | Полная сборка Феникса: Феникс.exe + Феникс_Setup.exe — одной командой. |
+| `scripts/check_caps.py` | 205 | code | Проверка возможностей системы — запускается из install.bat. |
 | `scripts/check_staged_snapshot.py` | 149 | code | Check the Git index, not an unstaged working-tree snapshot; never stag |
+| `scripts/init_user_data.py` | 34 | code | Initialize public defaults through Config/paths; never copy config int |
 | `scripts/install_git_hooks.py` | 82 | code | Opt-in install of one local pre-commit hook; preserve all existing hoo |
 | `scripts/make_icon.py` | 32 | code | Build the Windows/tray phoenix icon from the project's transparent mas |
-| `scripts/make_installer_images.py` | 121 | code | Генерация картинок для Inno Setup установщика Феникса. |
+| `scripts/make_installer_images.py` | 125 | code | Генерация картинок для Inno Setup установщика Феникса. |
 | `scripts/mics.py` | 52 | code | Подбор микрофона: показывает устройства ввода и уровень сигнала. |
+| `scripts/release_payload.py` | 85 | code | Curated installer payload; never recurse over the developer's entire w |
 | `scripts/selftest.py` | 49 | code | Самопроверка без микрофона: TTS -> Vosk -> разбор команды. |
 | `scripts/set_llm_model.py` | 52 | code | Устанавливает llm_model в config.json. |
 | `scripts/startup_probe.py` | 196 | code | Замер старта Феникса по этапам — что именно тормозит запуск. |
@@ -4152,7 +4229,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_audit_regressions.py` | 265 | code | Regression tests for the six audited bugs and related edge cases. |
 | `tests/test_brain_rag.py` | 125 | code | Query-scoped memory: unavailable retrieval never means send all facts. |
 | `tests/test_browser_target.py` | 338 | code | №1: Феникс работает в том браузере, в котором сидит пользователь. |
-| `tests/test_build_setup.py` | 56 | code | Тесты scripts.build_setup — версия установщика и мягкий пропуск шага c |
+| `tests/test_build_setup.py` | 52 | code | Версии установщика, поиск Inno и совпадение с версией пакета. |
 | `tests/test_caps.py` | 23 | code | Тесты check_caps: структура system_caps.json. |
 | `tests/test_clarification.py` | 411 | code | Slot filling uses real handler/pipeline, no devices, models or private |
 | `tests/test_clarification_imports.py` | 110 | code | The slot engine and pipeline stage share a basename, not their content |
@@ -4176,12 +4253,13 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_memory_scope.py` | 132 | code | Personalization should serve a question, not choose its topic. |
 | `tests/test_mic_watchdog.py` | 36 | code | Execute the real watchdog method without importing Windows/audio backe |
 | `tests/test_mood.py` | 386 | code | Тесты jarvis.mood — состояние, детекция, decay, влияние. |
-| `tests/test_nonverbal.py` | 400 | code | Nonverbal policy/mixing: synthetic PCM and fake output, no TTS weights |
+| `tests/test_nonverbal.py` | 403 | code | Nonverbal policy/mixing: synthetic PCM and fake output, no TTS weights |
 | `tests/test_numeric_language.py` | 521 | code | Executable Russian language corpus: understanding, morphology and spee |
 | `tests/test_password_imports.py` | 109 | code | Import boundaries must work in a fresh interpreter, before any pytest  |
 | `tests/test_persona.py` | 155 | code | Тесты jarvis.persona — стиль, tone, prompt-блок. |
 | `tests/test_prosody.py` | 83 | code | Тесты jarvis.prosody — эмоции из голоса (эвристика). |
 | `tests/test_recognition_quality.py` | 357 | code | Recognition policy and integration tested without a microphone or mode |
+| `tests/test_release_payload.py` | 159 | code | Public payload, reproducible manifest and bootstrap regression checks. |
 | `tests/test_safety.py` | 170 | code | Тесты jarvis.safety — постфильтр «красной черты». |
 | `tests/test_speech_gate.py` | 86 | code | Тесты jarvis.vad.SpeechHangover — «хвост» тишины после речи. |
 | `tests/test_stt.py` | 451 | code | stt.Listener: живое применение настроек (то, что раньше не работало). |
@@ -4197,7 +4275,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_window_targets.py` | 294 | code | Тесты выбора окна: голосовое имя → процессы → окно. |
 | `check_all.py` | 170 | code | Единый прогон всех проверок Феникса — движок для check_all.bat. |
 | `check_syntax.py` | 60 | code | Проверяет синтаксис всех .py файлов в проекте. |
-| `launcher.py` | 707 | code | Лаунчер Феникса — полный автозапуск. |
+| `launcher.py` | 769 | code | Лаунчер Феникса — полный автозапуск. |
 | `snapshot.py` | 727 | code | Собирает снимок проекта в один SNAPSHOT.md. |
 
 ---
@@ -4243,7 +4321,7 @@ from jarvis import paths as _paths
 log = logging.getLogger("jarvis.actions")
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-_CAPS_FILE = BASE_DIR / "system_caps.json"
+_CAPS_FILE = _paths.system_caps_path()
 _CAPS: dict = {}
 
 
@@ -8541,7 +8619,8 @@ class FenixGUI:
         recommended = "medium"
         try:
             import json
-            caps_path = Path(__file__).resolve().parent.parent / "system_caps.json"
+            from jarvis import paths
+            caps_path = paths.system_caps_path()
             if caps_path.exists():
                 caps = json.loads(caps_path.read_text(encoding="utf-8"))
                 recommended = caps.get("cpu", {}).get("recommended_piper", "medium")
@@ -19770,6 +19849,11 @@ def profiles_dir() -> Path:
     return d
 
 
+def system_caps_path() -> Path:
+    """Capabilities belong to this Windows user/machine, never the release builder."""
+    return user_dir() / "system_caps.json"
+
+
 def config_path() -> Path:
     """config.json — в USER_DIR."""
     return user_dir() / "config.json"
@@ -26620,7 +26704,7 @@ if __name__ == "__main__":
 ### `scripts/build_exe.py`
 
 ```python
-"""Сборка Феникс.exe (лёгкий лаунчер). ... [14 строк]"""
+"""Сборка Феникс.exe (лёгкий лаунчер). ... [13 строк]"""
 
 import subprocess
 import sys
@@ -26632,12 +26716,8 @@ EXE_NAME = "Феникс"
 
 
 def ensure_icon() -> None:
-    """Если иконки нет — генерирует её через make_icon.py."""
-    if ICON.exists():
-        print(f"Иконка: {ICON}")
-        return
-
-    print("Иконка не найдена — генерирую...")
+    """Обновляет иконку через make_icon.py из актуального бренд-ресурса."""
+    print("Обновляю иконку из фирменного master PNG...")
     make_icon = BASE / "scripts" / "make_icon.py"
     if not make_icon.exists():
         print("ОШИБКА: scripts/make_icon.py не найден.")
@@ -26668,7 +26748,7 @@ def build() -> None:
     ]
 
     print("PyInstaller:", " ".join(cmd))
-    subprocess.run(cmd, check=True)
+    subprocess.run(cmd, check=True, cwd=str(BASE))
 
     src = BASE / "dist" / f"{EXE_NAME}.exe"
     dst = BASE / f"{EXE_NAME}.exe"
@@ -26689,17 +26769,22 @@ if __name__ == "__main__":
 ### `scripts/build_setup.py`
 
 ```python
-"""Полная сборка Феникса: Феникс.exe + Феникс_Setup.exe — одной командой. ... [27 строк]"""
+"""Полная сборка Феникса: Феникс.exe + Феникс_Setup.exe — одной командой. ... [28 строк]"""
 
+import re
+import os
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 
+# Direct execution from any cwd, without importing the runtime/audio stack.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 BASE = Path(__file__).resolve().parent.parent
 SCRIPTS = BASE / "scripts"
 ICON = BASE / "jarvis" / "icon.ico"
-CAPS = BASE / "system_caps.json"
+PAYLOAD = BASE / "build" / "release-payload"
 ISS = BASE / "installer.iss"
 SETUP_EXE = BASE / "dist" / "Феникс_Setup.exe"
 
@@ -26707,7 +26792,6 @@ SETUP_EXE = BASE / "dist" / "Феникс_Setup.exe"
 ISCC_SEARCH_PATHS = [
     r"C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
     r"C:\Program Files\Inno Setup 6\ISCC.exe",
-    r"C:\Program Files (x86)\Inno Setup 5\ISCC.exe",
 ]
 
 TOTAL_STEPS = 5
@@ -26744,7 +26828,14 @@ def include_script(name: str) -> None:
 
 
 def find_iscc() -> str:
-    """Ищет ISCC.exe: PATH → INNO_SETUP → стандартные папки."""
+    """Ищет ISCC.exe: INNO_SETUP → PATH → стандартные папки."""
+    override = os.environ.get("INNO_SETUP")
+    if override:
+        candidate = Path(override)
+        if candidate.is_dir():
+            candidate /= "ISCC.exe"
+        if candidate.is_file():
+            return str(candidate)
     found = shutil.which("ISCC")
     if found:
         return found
@@ -26772,18 +26863,30 @@ def parse_version(argv: list[str]) -> str | None:
     return None
 
 
-def caps_available() -> bool:
-    """Есть ли модули, нужные scripts/check_caps.py (pycaw + sbc). ... [5 строк]"""
-    import importlib.util
-
-    return all(
-        importlib.util.find_spec(name)
-        for name in ("pycaw", "screen_brightness_control")
-    )
+def validate_version(version):
+    if version is not None and not re.fullmatch(r"[0-9]+(?:\.[0-9]+){1,3}(?:-[A-Za-z0-9]+(?:[.-][A-Za-z0-9]+)*)?",version):
+        raise ValueError("Версия должна выглядеть как 1.0.2 или 1.0.2-ci.1")
+    return version
 
 
 def main() -> int:
-    version = parse_version(sys.argv)
+    try:
+        version = validate_version(parse_version(sys.argv))
+        if any(arg in ('--version','--version=') for arg in sys.argv) and not version:
+            raise ValueError("После --version требуется значение")
+        from scripts.release_payload import collect_payload, stage_payload
+        files = collect_payload(BASE, include_exe=False)
+        if not ISS.is_file():
+            raise ValueError(f"Missing installer script: {ISS}")
+    except (ValueError, OSError) as exc:
+        print(f"ОШИБКА preflight: {exc}")
+        return 1
+    if '--check' in sys.argv:
+        print(f"Preflight OK: {len(files)} public files; launcher not compiled, Inno not run.")
+        return 0
+    if sys.platform != 'win32':
+        print("Сборка EXE/Setup требует Windows. Для проверки: --check")
+        return 1
 
     print("Феникс — сборка установщика")
     print(f"Корень проекта: {BASE}")
@@ -26796,47 +26899,32 @@ def main() -> int:
 
     # 1. Иконка
     step(1, "Иконка jarvis\\icon.ico")
-    if ICON.exists():
-        print(f"OK: уже есть ({ICON.stat().st_size / 1024:.1f} КБ)")
-    else:
-        include_script("make_icon.py")
+    include_script("make_icon.py")
 
-    # 2. Картинки для Inno Setup
-    step(2, "Баннеры установщика (installer_banner.bmp, installer_small.bmp)")
-    include_script("make_installer_images.py")
+    # Version shown on the banner must match the requested release version.
+    step(2, "Баннеры установщика")
+    banner_cmd = [sys.executable, str(SCRIPTS / "make_installer_images.py")]
+    if version:
+        banner_cmd.extend(["--version", version])
+    run(banner_cmd)
 
-    # 3. Возможности системы — system_caps.json читают actions.py и gui.py
-    step(3, "Возможности системы (system_caps.json)")
-    if CAPS.exists():
-        print(f"OK: уже есть ({CAPS})")
-    elif not caps_available():
-        print("ПРОПУСК: нет pycaw / screen-brightness-control (обычно это CI).")
-        print("Файл необязателен: в installer.iss он с skipifsourcedoesntexist,")
-        print("а код без него считает громкость/яркость недоступными.")
-    else:
-        print("Нет файла — генерирую...")
-        try:
-            include_script("check_caps.py")
-        except SystemExit as exc:
-            # Не критично: в installer.iss у файла skipifsourcedoesntexist
-            print(f"ВНИМАНИЕ: check_caps.py завершился с кодом {exc.code}")
-            print("Установщик соберётся и без system_caps.json")
-        if not CAPS.exists():
-            print("ВНИМАНИЕ: system_caps.json не создан — собираю без него")
-
-    # 4. Феникс.exe (PyInstaller)
-    step(4, "Сборка Феникс.exe (PyInstaller)")
+    step(3, "Сборка Феникс.exe (PyInstaller)")
     include_script("build_exe.py")
+
+    step(4, "Чистый payload и SHA-256 manifest (без данных машины сборщика)")
+    staged = stage_payload(BASE, PAYLOAD)
+    print(f"Подготовлено {len(staged)} файлов: {PAYLOAD}")
 
     # 5. Установщик (Inno Setup)
     step(5, "Компиляция установщика (Inno Setup)")
     iscc = find_iscc()
     print(f"ISCC: {iscc}")
-    cmd: list[str] = [iscc]
+    cmd: list[str] = [iscc, f"/DPayloadDir={PAYLOAD}"]
     if version:
         print(f"Версия установщика: {version} (/DMyAppVersion)")
         cmd.append(f"/DMyAppVersion={version}")
     cmd.append(str(ISS))
+    SETUP_EXE.unlink(missing_ok=True)
     run(cmd)
 
     if not SETUP_EXE.exists():
@@ -26871,6 +26959,9 @@ if __name__ == "__main__":
 
 ```python
 """Проверка возможностей системы — запускается из install.bat. ... [15 строк]"""
+import argparse
+import os
+import tempfile
 import json
 import logging
 import sys
@@ -26878,7 +26969,9 @@ import time
 from pathlib import Path
 
 BASE = Path(__file__).resolve().parent.parent
-OUTPUT = BASE / "system_caps.json"
+sys.path.insert(0, str(BASE))
+from jarvis import paths
+OUTPUT = paths.system_caps_path()
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 log = logging.getLogger("check_caps")
@@ -26959,7 +27052,7 @@ def check_cpu() -> dict:
 
         if cores >= 6 and threads >= 12:
             power = "strong"
-            recommended_piper = "high"
+            recommended_piper = "medium"  # CPU count cannot prove voice/model availability or quality
         elif cores >= 4 and threads >= 8:
             power = "normal"
             recommended_piper = "medium"
@@ -26977,7 +27070,36 @@ def check_cpu() -> dict:
     except Exception as e:
         return {"available": False, "reason": str(e)[:80]}
 
-def main() -> int:
+def write_caps(caps, destination=None):
+    destination = Path(destination or OUTPUT)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    fd, temp = tempfile.mkstemp(prefix="caps-", suffix=".tmp", dir=destination.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as out:
+            json.dump(caps, out, ensure_ascii=False, indent=2)
+            out.flush()
+            os.fsync(out.fileno())
+        os.replace(temp, destination)
+    finally:
+        if os.path.exists(temp):
+            os.unlink(temp)
+
+
+def caps_valid(path):
+    try:
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+        return isinstance(data,dict) and all(isinstance(data.get(k),dict) for k in ('volume','brightness','layout','cpu'))
+    except (OSError, ValueError):
+        return False
+
+
+def main(argv=None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--if-missing", action="store_true")
+    args = parser.parse_args(argv)
+    if args.if_missing and caps_valid(OUTPUT):
+        log.info("Локальная диагностика уже есть: %s", OUTPUT)
+        return 0
     log.info("=" * 60)
     log.info("  Проверка возможностей системы")
     log.info("=" * 60)
@@ -27012,10 +27134,7 @@ def main() -> int:
         reason = f"  ({info.get('reason', '')})" if not info.get("available") else ""
         log.info("%s %-12s %s%s", mark, name, info.get("method", "?"), reason)
 
-    OUTPUT.write_text(
-        json.dumps(caps, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
+    write_caps(caps)
     log.info("")
     log.info("Сохранено: %s", OUTPUT)
     log.info("=" * 60)
@@ -27181,6 +27300,45 @@ if __name__ == "__main__":
     raise SystemExit(main())
 ```
 
+### `scripts/init_user_data.py`
+
+```python
+"""Initialize public defaults through Config/paths; never copy config into code root."""
+import argparse
+import sys
+from pathlib import Path
+
+BASE = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(BASE))
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--record-dependencies', action='store_true')
+    args = parser.parse_args(argv)
+    from jarvis import paths
+    from jarvis.config import Config
+    Config()  # Existing user config/profile data are not reset.
+    paths.logs_dir().mkdir(parents=True, exist_ok=True)
+    paths.program_models_dir().mkdir(parents=True, exist_ok=True)
+    print(f'Конфиг: {paths.config_path()}')
+    print(f'Логи: {paths.logs_dir()}')
+    print(f'Модели: {paths.program_models_dir()}')
+    if args.record_dependencies:
+        import logging
+        from launcher import record_dependency_receipt, _probe_dependencies
+        if not _probe_dependencies(BASE,logging.getLogger('setup')):
+            print('Проверка окружения не прошла; receipt не записан.')
+            return 1
+        if not record_dependency_receipt(BASE):
+            return 1
+    return 0
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())
+```
+
 ### `scripts/install_git_hooks.py`
 
 ```python
@@ -27310,6 +27468,7 @@ if __name__ == "__main__":
 ```python
 """Генерация картинок для Inno Setup установщика Феникса. ... [10 строк]"""
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -27320,9 +27479,9 @@ ICON_PATH = BASE / "jarvis" / "icon.ico"
 BANNER_OUT = BASE / "installer_banner.bmp"
 SMALL_OUT = BASE / "installer_small.bmp"
 
-BG_COLOR = (18, 32, 58)
-ACCENT = (86, 156, 255)
-TEXT_COLOR = (230, 237, 243)
+BG_COLOR = (18, 18, 28)
+ACCENT = (216, 167, 134)
+TEXT_COLOR = (238, 237, 247)
 BMP_FORMAT = "BMP"
 
 
@@ -27350,7 +27509,7 @@ def _load_icon(size: int) -> Image.Image:
     return img.resize((size, size), Image.LANCZOS)
 
 
-def make_banner() -> None:
+def make_banner(version=None) -> None:
     w, h = 164, 314
     img = Image.new("RGB", (w, h), BG_COLOR)
     d = ImageDraw.Draw(img)
@@ -27382,7 +27541,7 @@ def make_banner() -> None:
     try:
         sys.path.insert(0, str(BASE))
         from jarvis import __version__
-        ver_text = f"v{__version__}"
+        ver_text = f"v{version or __version__}"
     except Exception:
         ver_text = "v1.0.0"
 
@@ -27408,7 +27567,10 @@ def main() -> int:
     print("Генерация картинок для Inno Setup...")
     print(f"Источник: {ICON_PATH.name}")
     print()
-    make_banner()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--version")
+    args = parser.parse_args()
+    make_banner(args.version)
     make_small()
     print()
     print("Готово. Теперь используй в installer.iss:")
@@ -27471,6 +27633,96 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+```
+
+### `scripts/release_payload.py`
+
+```python
+"""Curated installer payload; never recurse over the developer's entire workspace."""
+import hashlib
+import json
+import shutil
+import tempfile
+from pathlib import Path
+
+ROOT_FILES = (
+    'launcher.py', 'requirements.txt', 'config.example.json', 'README.md',
+    'ARCHITECTURE.md', 'CHANGELOG.md', 'LICENSE', 'start_fenix.bat',
+    'start_fenix_debug.bat', 'create_shortcut.bat',
+)
+PACKS = ('apps.json', 'games.json', 'sites.json', 'system.json', 'work.json')
+BRANDS = ('app', 'audio', 'commands', 'dialog', 'microphone', 'persona', 'phoenix', 'settings', 'timer')
+REQUIRED_MODULES = ('gui', 'gui_sidebar', 'gui_preferences', 'gui_home',
+                    'gui_home_fx', 'gui_home_actions', 'gui_widgets', 'tasks')
+BLOCKED_PARTS = {'__pycache__', '.venv', '.venv311', 'profiles', 'logs', 'models', 'voices', 'dist', 'build'}
+BLOCKED_NAMES = {'config.json', 'system_caps.json', 'tasks.json', 'timers.json',
+                 'dialog.json', 'user_profile.json'}
+
+
+def collect_payload(root, include_exe=True):
+    """Validate before changing output. Return sorted relative public file paths."""
+    root = Path(root).resolve()
+    paths = set(ROOT_FILES)
+    paths.update(f'packs/{name}' for name in PACKS)
+    paths.update(f'jarvis/{name}.py' for name in REQUIRED_MODULES)
+    for folder in ('jarvis', 'scripts'):
+        paths.update(p.relative_to(root).as_posix() for p in (root/folder).rglob('*.py')
+                     if not any(part in BLOCKED_PARTS for part in p.relative_to(root).parts))
+    for name in BRANDS:
+        for theme in ('dark', 'light'):
+            paths.add(f'jarvis/assets/brand/{name}-{theme}.png')
+            paths.add(f'jarvis/assets/brand/{name}-{theme}.svg')
+    paths.update(('jarvis/icon.ico', 'jarvis/assets/brand/tray.png',
+                  'jarvis/assets/brand/README.md', 'jarvis/sounds/fireworks.wav'))
+    paths.update(f'assets/nonverbal/{name}' for name in
+                 ('README.md', 'sources.json', 'hmm.wav', 'laugh.wav', 'sigh.wav', 'yawn.wav'))
+    paths.update(('assets/readme/hero.svg', 'assets/readme/hero-mobile.svg', 'docs/USER_GUIDE.md'))
+    # Only public Markdown documentation, not screenshots, logs or audio recordings.
+    paths.update(p.relative_to(root).as_posix() for p in (root/'docs').glob('*.md'))
+    if include_exe:
+        paths.add('Феникс.exe')
+    for name in sorted(paths):
+        p = root/name
+        if any(part in BLOCKED_PARTS for part in Path(name).parts) or p.name in BLOCKED_NAMES:
+            raise ValueError(f'Private/generated payload path: {name}')
+        if not p.is_file() or not p.stat().st_size:
+            raise ValueError(f'Missing or empty release resource: {name}')
+        if p.is_symlink() or not p.resolve().is_relative_to(root):
+            raise ValueError(f'Linked/outside release resource: {name}')
+    cfg = json.loads((root/'config.example.json').read_text(encoding='utf-8'))
+    for key in ('gui_home_widgets', 'gui_home_shortcuts'):
+        if cfg.get(key) != []:
+            raise ValueError(f'Public {key} default must be an empty list')
+    return sorted(paths)
+
+
+def stage_payload(root, destination, include_exe=True):
+    """Publish a clean builder-owned directory; no stale files from older builds."""
+    root, destination = Path(root).resolve(), Path(destination)
+    if destination.is_symlink():
+        raise ValueError('Payload destination must not be a symlink')
+    destination = destination.resolve()
+    if destination in (root, root/'build') or not destination.is_relative_to(root/'build'):
+        raise ValueError('Payload destination must be inside the project build directory')
+    files = collect_payload(root, include_exe)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temp = Path(tempfile.mkdtemp(prefix='payload-', dir=destination.parent))
+    try:
+        manifest = []
+        for name in files:
+            target = temp/name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(root/name, target)
+            manifest.append({'path':name, 'sha256':hashlib.sha256(target.read_bytes()).hexdigest()})
+        (temp/'release-manifest.json').write_text(
+            json.dumps({'schema':1, 'files':manifest}, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+        if destination.exists():
+            shutil.rmtree(destination)
+        temp.replace(destination)
+    finally:
+        if temp.exists():
+            shutil.rmtree(temp)
+    return files
 ```
 
 ### `scripts/selftest.py`
@@ -31318,9 +31570,7 @@ def test_do_open_site_in_browser_word(monkeypatch):
 ### `tests/test_build_setup.py`
 
 ```python
-"""Тесты scripts.build_setup — версия установщика и мягкий пропуск шага caps. ... [5 строк]"""
-
-import importlib.util
+"""Версии установщика, поиск Inno и совпадение с версией пакета."""
 
 from scripts import build_setup
 
@@ -31350,16 +31600,19 @@ def test_parse_version_without_value():
     assert build_setup.parse_version(["--version"]) is None
 
 
-def test_caps_available_with_modules(monkeypatch):
-    """pycaw и screen_brightness_control есть (локальная сборка) → True."""
-    monkeypatch.setattr(importlib.util, "find_spec", lambda name: object())
-    assert build_setup.caps_available() is True
+def test_inno_override(tmp_path, monkeypatch):
+    compiler = tmp_path / "ISCC.exe"
+    compiler.write_bytes(b"test")
+    monkeypatch.setenv("INNO_SETUP", str(tmp_path))
+    assert build_setup.find_iscc() == str(compiler)
 
 
-def test_caps_available_without_modules(monkeypatch):
-    """Модулей нет (CI-раннер) → False: шаг system_caps.json пропускается."""
-    monkeypatch.setattr(importlib.util, "find_spec", lambda name: None)
-    assert build_setup.caps_available() is False
+def test_versions_reject_injection():
+    import pytest
+    for value in ('1.0\n/Dfoo', '1.0"', '../1.0', '', 'v1.0'):
+        with pytest.raises(ValueError):
+            build_setup.validate_version(value)
+    assert build_setup.validate_version('1.0.2-ci.1') == '1.0.2-ci.1'
 
 
 def test_installer_version_is_overridable_and_matches_package():
@@ -37154,8 +37407,11 @@ def test_handler_marks_only_chat_replies_eligible(chat, stream):
 def test_installer_copies_all_nonverbal_resources():
     installer = Path(__file__).resolve().parents[1] / "installer.iss"
     text = installer.read_text(encoding="utf-8")
-    assert 'Source: "assets\\nonverbal\\*"' in text
-    assert 'DestDir: "{app}\\assets\\nonverbal"' in text
+    assert 'Source: "{#PayloadDir}\\*"' in text
+    from scripts.release_payload import collect_payload
+    files = collect_payload(installer.parent, include_exe=False)
+    for name in ("hmm.wav", "laugh.wav", "sigh.wav", "yawn.wav", "sources.json"):
+        assert f"assets/nonverbal/{name}" in files
 
 
 def test_token_sessions_are_not_retained_after_reply(policy):
@@ -38445,6 +38701,170 @@ def test_pending_question_opens_window_before_extracting_answer():
     )(a, s)
     method("jarvis/main.py", "Jarvis", "_process")(a, "второй вариант", PCM)
     a.handler.handle.assert_called_once_with("второй вариант")
+```
+
+### `tests/test_release_payload.py`
+
+```python
+"""Public payload, reproducible manifest and bootstrap regression checks."""
+import hashlib
+import json
+import logging
+import shutil
+from pathlib import Path
+
+import pytest
+from scripts import release_payload as rp, build_setup, check_caps
+import launcher
+
+ROOT = Path(__file__).resolve().parents[1]
+
+@pytest.fixture
+def release_tree(tmp_path):
+    root = tmp_path / 'project'
+    for name in rp.collect_payload(ROOT, include_exe=False):
+        target = root/name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(ROOT/name, target)
+    return root
+
+
+def test_only_public_files(release_tree):
+    root = release_tree
+    for name in ('config.json', 'system_caps.json', 'profiles/alice.json',
+                 'jarvis/__pycache__/secret.py', 'models/private.py', 'tasks.json'):
+        p = root/name
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text('private')
+    files = rp.collect_payload(root, False)
+    assert 'jarvis/gui_widgets.py' in files
+    assert 'jarvis/gui_home_actions.py' in files
+    assert not any('private' in p or 'secret' in p or p in ('config.json','system_caps.json','tasks.json') for p in files)
+
+
+def test_stage_clean_manifest(release_tree):
+    root = release_tree
+    dest = root/'build/release-payload'
+    dest.mkdir(parents=True)
+    (dest/'obsolete.txt').write_text('old')
+    files = rp.stage_payload(root, dest, False)
+    assert not (dest/'obsolete.txt').exists()
+    manifest = (dest/'release-manifest.json').read_bytes()
+    for entry in json.loads(manifest)['files']:
+        assert entry['sha256'] == hashlib.sha256((dest/entry['path']).read_bytes()).hexdigest()
+    assert len(files) == len(json.loads(manifest)['files'])
+    rp.stage_payload(root, dest, False)
+    assert (dest/'release-manifest.json').read_bytes() == manifest
+
+
+def test_failed_validation_keeps_previous_payload(release_tree):
+    dest = release_tree/'build/payload'
+    dest.mkdir(parents=True)
+    (dest/'previous').write_text('keep')
+    (release_tree/'jarvis/gui_widgets.py').unlink()
+    with pytest.raises(ValueError, match='Missing'):
+        rp.stage_payload(release_tree, dest, False)
+    assert (dest/'previous').read_text() == 'keep'
+
+
+@pytest.mark.parametrize('path', ['..', '.', 'build', 'profiles/payload'])
+def test_reject_unsafe_destination(release_tree, path):
+    with pytest.raises(ValueError):
+        rp.stage_payload(release_tree, release_tree/path, False)
+
+
+def test_reject_linked_resource(release_tree, tmp_path):
+    p = release_tree/'jarvis/gui_widgets.py'
+    p.unlink()
+    outside = tmp_path/'outside.py'
+    outside.write_text('secret')
+    try:
+        p.symlink_to(outside)
+    except OSError:
+        pytest.skip("Symlink privilege is unavailable")
+    with pytest.raises(ValueError, match='Linked'):
+        rp.collect_payload(release_tree, False)
+
+
+def test_no_default_user_widgets(release_tree):
+    p = release_tree/'config.example.json'
+    cfg = json.loads(p.read_text())
+    cfg['gui_home_widgets'] = ['tasks']
+    p.write_text(json.dumps(cfg))
+    with pytest.raises(ValueError, match='empty list'):
+        rp.collect_payload(release_tree, False)
+
+
+def test_preflight_never_compiles(monkeypatch):
+    monkeypatch.setattr('sys.argv', ['build_setup.py','--check'])
+    monkeypatch.setattr(build_setup, 'run', lambda *_: pytest.fail('external compiler'))
+    assert build_setup.main() == 0
+
+
+def test_preflight_requires_installer(monkeypatch, tmp_path):
+    monkeypatch.setattr('sys.argv', ['build_setup.py','--check'])
+    monkeypatch.setattr(build_setup, 'ISS', tmp_path/'absent.iss')
+    assert build_setup.main() == 1
+
+
+def test_installer_curated_and_both_mutexes():
+    s = (ROOT/'installer.iss').read_text()
+    assert '{#PayloadDir}\\*' in s
+    assert 'AppMutex=Local\\JarvisPhoenixSingleInstance,Local\\JarvisPhoenixLauncherSetup' in s
+    assert 'Source: "system_caps.json"' not in s
+    assert 'Source: "jarvis\\*"' not in s
+
+
+def test_receipt_changed_requirements_and_corrupt_receipt(tmp_path, monkeypatch):
+    (tmp_path/'.venv311').mkdir()
+    req = tmp_path/'requirements.txt'
+    req.write_bytes(b'flet>=1.0.3,<1.1\r\n')
+    assert launcher.record_dependency_receipt(tmp_path)
+    monkeypatch.setattr(launcher, '_probe_dependencies', lambda *_: True)
+    log = logging.getLogger('test')
+    assert launcher.check_dependencies(tmp_path, log)
+    req.write_bytes(b'flet>=1.0.3,<1.1\n')
+    assert launcher.check_dependencies(tmp_path, log)
+    req.write_text('changed')
+    assert not launcher.check_dependencies(tmp_path, log)
+    (tmp_path/'.venv311/phoenix-requirements.sha256').write_bytes(b'\xff')
+    assert not launcher.check_dependencies(tmp_path, log)
+
+
+def test_caps_atomic_failure_preserves_old(tmp_path, monkeypatch):
+    p = tmp_path/'system_caps.json'
+    p.write_text('previous')
+    def fail(*_):
+        raise OSError('disk failure')
+    monkeypatch.setattr(check_caps.os, 'replace', fail)
+    with pytest.raises(OSError):
+        check_caps.write_caps({'cpu':{}}, p)
+    assert p.read_text() == 'previous'
+    assert list(tmp_path.iterdir()) == [p]
+
+
+def test_caps_skip_valid_only(tmp_path, monkeypatch):
+    p = tmp_path/'system_caps.json'
+    p.write_text(json.dumps({k:{} for k in ('volume','brightness','layout','cpu')}))
+    monkeypatch.setattr(check_caps, 'OUTPUT', p)
+    monkeypatch.setattr(check_caps, 'check_cpu', lambda: pytest.fail('must skip valid cache'))
+    assert check_caps.main(['--if-missing']) == 0
+    p.write_text('{broken')
+    assert not check_caps.caps_valid(p)
+
+
+def test_caps_probe_failure_does_not_block_launch(monkeypatch, tmp_path):
+    def fail(*_, **__):
+        raise OSError('no device')
+    monkeypatch.setattr(launcher.subprocess, 'run', fail)
+    launcher.ensure_local_caps(tmp_path, logging.getLogger('test'))
+
+
+def test_cancel_dependencies_has_no_network(tmp_path, monkeypatch):
+    (tmp_path/'requirements.txt').write_text('test')
+    monkeypatch.setattr(launcher, 'msg_box', lambda *_: 2)
+    monkeypatch.setattr(launcher.subprocess, 'run', lambda *_,**__: pytest.fail('network after cancel'))
+    assert not launcher.install_dependencies(tmp_path, logging.getLogger('test'))
 ```
 
 ### `tests/test_safety.py`
@@ -42356,6 +42776,8 @@ else:
 ```python
 """Лаунчер Феникса — полный автозапуск. ... [14 строк]"""
 
+import hashlib
+import tempfile
 import ctypes
 import logging
 import os
@@ -42387,12 +42809,8 @@ OLLAMA_DOWNLOAD_PAGE = "https://ollama.com/download"
 
 # Где искать Python, если py launcher не работает
 PYTHON_SEARCH_PATHS = [
-    r"C:\Python312\python.exe",
     r"C:\Python311\python.exe",
-    r"C:\Python310\python.exe",
-    r"C:\Program Files\Python312\python.exe",
     r"C:\Program Files\Python311\python.exe",
-    r"C:\Program Files\Python310\python.exe",
 ]
 
 # Где искать Ollama
@@ -42402,7 +42820,7 @@ OLLAMA_SEARCH_PATHS = [
 ]
 
 # Какие версии Python подходят
-REQUIRED_PY_VERSIONS = ("3.12", "3.11", "3.10")
+REQUIRED_PY_VERSIONS = ("3.11",)
 
 # MessageBox флаги
 MB_OK = 0x00
@@ -42543,7 +42961,7 @@ def _check_python_version(python_exe: str, logger) -> str | None:
         if out.startswith("Python "):
             version = out[7:].strip()
             for req in REQUIRED_PY_VERSIONS:
-                if version.startswith(req):
+                if version.split(".")[:2] == req.split("."):
                     return version
         return None
     except Exception:
@@ -42551,7 +42969,7 @@ def _check_python_version(python_exe: str, logger) -> str | None:
 
 
 def find_python(logger) -> str | None:
-    """Ищет Python 3.10-3.12. Возвращает путь к python.exe или None."""
+    """Ищет Python 3.11. Возвращает путь к python.exe или None."""
     # 1. py launcher
     for ver in REQUIRED_PY_VERSIONS:
         try:
@@ -42591,7 +43009,7 @@ def find_python(logger) -> str | None:
     # 4. %LOCALAPPDATA%\Programs\Python\PythonXY
     local_appdata = os.environ.get("LOCALAPPDATA")
     if local_appdata:
-        for ver in ("312", "311", "310"):
+        for ver in ("311",):
             cand = Path(local_appdata) / "Programs" / "Python" / f"Python{ver}" / "python.exe"
             if cand.exists():
                 version = _check_python_version(str(cand), logger)
@@ -42599,7 +43017,7 @@ def find_python(logger) -> str | None:
                     logger.info("Python %s найден: %s", version, cand)
                     return str(cand)
 
-    logger.info("Python 3.10-3.12 не найден")
+    logger.info("Python 3.11 не найден")
     return None
 
 
@@ -42665,14 +43083,11 @@ def run_python_installer(installer: Path, logger) -> bool:
 # ============================================================
 
 def find_venv_pythonw(project_dir: Path, logger) -> Path | None:
-    candidates = [
-        project_dir / ".venv311" / "Scripts" / "pythonw.exe",
-        project_dir / ".venv" / "Scripts" / "pythonw.exe",
-    ]
-    for cand in candidates:
-        if cand.exists():
-            logger.info("venv найден: %s", cand)
-            return cand
+    folder = project_dir / ".venv311" / "Scripts"
+    if ((folder/"pythonw.exe").exists() and (folder/"python.exe").exists()
+            and _check_python_version(str(folder/"python.exe"),logger)):
+        logger.info("Python 3.11 venv найден: %s",folder)
+        return folder/"pythonw.exe"
     return None
 
 
@@ -42681,8 +43096,12 @@ def create_venv(project_dir: Path, python_exe: str, logger) -> bool:
     venv_dir = project_dir / ".venv311"
 
     if venv_dir.exists():
-        logger.info("venv уже существует: %s", venv_dir)
-        return True
+        if find_venv_pythonw(project_dir,logger) is not None:
+            return True
+        error("Окружение .venv311 повреждено или использует не Python 3.11.\n"
+              "Закрой Феникс, переименуй эту папку и запусти снова.\n"
+              "Конфиг и профили удалять не нужно.")
+        return False
 
     info(
         "Создаю виртуальное окружение...\n\n"
@@ -42719,22 +43138,78 @@ def create_venv(project_dir: Path, python_exe: str, logger) -> bool:
 # Зависимости: установка
 # ============================================================
 
-def check_dependencies(project_dir: Path, logger) -> bool:
-    """Проверяет, установлены ли ключевые зависимости в venv."""
+DEPENDENCY_PROBE = """
+import sys
+from importlib.metadata import version
+assert sys.version_info[:2] == (3,11)
+import flet, vosk, pymorphy3, num2words, pystray, PIL
+from flet import AppView
+assert hasattr(AppView, 'FLET_APP_HIDDEN')
+v = tuple(int(x) for x in version('flet').split('.')[:3])
+assert (1,0,3) <= v < (1,1,0)
+assert version('flet') == version('flet-desktop')
+print('ok')
+"""
+
+
+def requirements_digest(project_dir):
+    try:
+        data = (project_dir / "requirements.txt").read_bytes()
+        return hashlib.sha256(data.replace(b"\r\n", b"\n")).hexdigest()
+    except OSError:
+        return None
+
+
+def record_dependency_receipt(project_dir):
+    digest = requirements_digest(project_dir)
+    if digest is None:
+        return False
+    destination = project_dir / ".venv311" / "phoenix-requirements.sha256"
+    fd, temp = tempfile.mkstemp(prefix="requirements-", dir=destination.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="ascii") as out:
+            out.write(digest)
+        os.replace(temp, destination)
+    finally:
+        if os.path.exists(temp):
+            os.unlink(temp)
+    return True
+
+
+def _probe_dependencies(project_dir, logger):
     python = project_dir / ".venv311" / "Scripts" / "python.exe"
     if not python.exists():
         return False
     try:
-        result = subprocess.run(
-            [str(python), "-c", "import flet, vosk, pymorphy3, num2words, pystray, PIL; print('ok')"],
-            capture_output=True,
-            text=True,
-            timeout=15,
-            creationflags=CREATE_NO_WINDOW,
-        )
+        result = subprocess.run([str(python), "-c", DEPENDENCY_PROBE],
+            capture_output=True, text=True, timeout=25, creationflags=CREATE_NO_WINDOW)
         return result.returncode == 0
     except Exception:
+        logger.exception("Проверка зависимостей не завершилась")
         return False
+
+
+def check_dependencies(project_dir: Path, logger) -> bool:
+    """A changed manifest or unsupported native Flet must trigger environment repair."""
+    digest = requirements_digest(project_dir)
+    try:
+        receipt = (project_dir/".venv311"/"phoenix-requirements.sha256").read_text(encoding="ascii").strip()
+    except (OSError, UnicodeError):
+        return False
+    return digest is not None and digest == receipt and _probe_dependencies(project_dir,logger)
+
+
+def ensure_local_caps(project_dir, logger):
+    """Probe the customer's machine, not the builder's. Failure is nonfatal."""
+    try:
+        result = subprocess.run([str(project_dir/".venv311"/"Scripts"/"python.exe"),
+            str(project_dir/"scripts"/"check_caps.py"), "--if-missing"],
+            cwd=str(project_dir), capture_output=True, text=True, timeout=30,
+            creationflags=CREATE_NO_WINDOW)
+        if result.returncode:
+            logger.warning("Локальная диагностика завершилась с кодом %s",result.returncode)
+    except Exception:
+        logger.warning("Локальная диагностика недоступна; запуск продолжается",exc_info=True)
 
 
 def install_dependencies(project_dir: Path, logger) -> bool:
@@ -42747,18 +43222,19 @@ def install_dependencies(project_dir: Path, logger) -> bool:
         error("requirements.txt не найден. Феникс установлен неправильно.")
         return False
 
-    info(
-        "Устанавливаю зависимости.\n\n"
-        "Это займёт 5–10 минут (flet, vosk, piper, faster-whisper).\n\n"
-        "Нажми ОК, чтобы начать. После завершения появится ещё одно окно.",
-        "Феникс — установка",
-    )
+    if msg_box(
+        "Нужно установить или обновить зависимости Феникса.\n\n"
+        "Потребуется интернет; загрузка может занять несколько минут.\n"
+        "ОК — продолжить, Отмена — выйти без установки.",
+        "Феникс — установка", MB_OKCANCEL | MB_ICONQUESTION) != IDOK:
+        return False
 
     logger.info("pip install -r requirements.txt")
     try:
         result = subprocess.run(
             [str(python), "-m", "pip", "install", "-r", str(req)],
-            cwd=str(project_dir),
+            cwd=str(project_dir), capture_output=True, text=True,
+            encoding="utf-8", errors="replace", creationflags=CREATE_NO_WINDOW,
         )
         if result.returncode != 0:
             logger.error("pip install упал: returncode=%d", result.returncode)
@@ -42770,7 +43246,12 @@ def install_dependencies(project_dir: Path, logger) -> bool:
                 "Смотри: logs\\launcher.log",
             )
             return False
-        logger.info("Зависимости установлены")
+        if not _probe_dependencies(project_dir,logger):
+            error("Пакеты установлены, но проверка Python/Flet не прошла. См. logs/launcher.log")
+            return False
+        if not record_dependency_receipt(project_dir):
+            return False
+        logger.info("Зависимости установлены и проверены")
         info("Зависимости установлены. OK", "Феникс")
         return True
     except Exception:
@@ -42989,7 +43470,7 @@ def main() -> None:
     if python_exe is None:
         logger.info("Python не найден, предлагаю установить")
         reply = msg_box(
-            "Python 3.10-3.12 не найден.\n\n"
+            "Python 3.11 не найден.\n\n"
             "Фениксу нужен Python 3.11.\n\n"
             "Сейчас будет скачан официальный установщик Python "
             "(~25 МБ). После скачивания откроется окно установки — "
@@ -43040,6 +43521,7 @@ def main() -> None:
         if not download_vosk_model(project_dir, logger):
             return
 
+    ensure_local_caps(project_dir, logger)
     handle_ollama(logger)
 
     run_jarvis(project_dir, pythonw, logger)
@@ -43792,19 +44274,29 @@ jobs:
       - name: Определить версию
         id: ver
         shell: pwsh
+        env:
+          RELEASE_REF_TYPE: ${{ github.ref_type }}
+          RELEASE_REF: ${{ github.ref_name }}
+          RELEASE_INPUT: ${{ inputs.version }}
         run: |
           # На теге v1.0.2 → версия 1.0.2; при ручном запуске — ввод.
-          if ("${{ github.ref_type }}" -eq "tag") {
-            $v = "${{ github.ref_name }}".TrimStart("v")
+          if ($env:RELEASE_REF_TYPE -eq "tag") {
+            $v = $env:RELEASE_REF.TrimStart("v")
           } else {
-            $v = "${{ inputs.version }}"
+            $v = $env:RELEASE_INPUT
           }
           if (-not $v) { $v = "0.0.0-ci" }
+          if ($v -notmatch '^[0-9]+(\.[0-9]+){1,3}(-[A-Za-z0-9]+([.-][A-Za-z0-9]+)*)?$') { throw "Invalid release version" }
           "value=$v" | Out-File -Append -Encoding utf8 $env:GITHUB_OUTPUT
           Write-Host "Версия установщика: $v"
 
       - name: Сборка Феникс.exe + Феникс_Setup.exe
-        run: python scripts/build_setup.py --version "${{ steps.ver.outputs.value }}"
+        env:
+          RELEASE_VERSION: ${{ steps.ver.outputs.value }}
+        run: |
+          python scripts/build_setup.py --check --version "$env:RELEASE_VERSION"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/build_setup.py --version "$env:RELEASE_VERSION"
 
       - name: Проверка артефактов
         shell: pwsh
@@ -43828,11 +44320,12 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
         run: |
-          gh release create "${{ github.ref_name }}" `
+          gh release create "$env:RELEASE_TAG" `
             "dist/Феникс_Setup.exe" `
             "Феникс.exe" `
-            --title "Феникс ${{ github.ref_name }}" `
+            --title "Феникс $env:RELEASE_TAG" `
             --generate-notes
 ```
 
@@ -44125,7 +44618,7 @@ pause
 
 ```batch
 @echo off
-setlocal EnableDelayedExpansion
+setlocal DisableDelayedExpansion
 chcp 65001 >nul
 title Ярлык Феникса
 
@@ -44149,6 +44642,7 @@ if not exist "%TARGET%" (
 )
 
 set "ICON=%TARGET%"
+set "PHOENIX_SHORTCUT_CWD=%~dp0"
 
 echo   Цель:    %TARGET%
 echo   Иконка:  %ICON%
@@ -44157,10 +44651,10 @@ echo.
 powershell -NoProfile -Command ^
     "$ws = New-Object -ComObject WScript.Shell;" ^
     "$sc = $ws.CreateShortcut([System.IO.Path]::Combine([Environment]::GetFolderPath('Desktop'), 'Феникс.lnk'));" ^
-    "$sc.TargetPath = '%TARGET%';" ^
-    "$sc.IconLocation = '%ICON%';" ^
+    "$sc.TargetPath = $env:TARGET;" ^
+    "$sc.IconLocation = $env:ICON;" ^
     "$sc.Description = 'Феникс — голосовой ассистент';" ^
-    "$sc.WorkingDirectory = '%~dp0';" ^
+    "$sc.WorkingDirectory = $env:PHOENIX_SHORTCUT_CWD;" ^
     "$sc.Save()"
 
 if errorlevel 1 (
@@ -44181,7 +44675,7 @@ pause
 
 ```batch
 @echo off
-setlocal EnableDelayedExpansion
+setlocal DisableDelayedExpansion
 chcp 65001 >nul
 title Установка Феникса
 
@@ -44191,11 +44685,12 @@ echo ============================================================
 echo.
 
 cd /d "%~dp0"
+setlocal EnableDelayedExpansion
 
 REM =====================================================================
-REM 1. Проверка Python 3.10-3.12
+REM 1. Проверка Python 3.11
 REM =====================================================================
-echo [1/11] Проверка Python — нужен 3.10-3.12...
+echo [1/11] Проверка Python — нужен 3.11...
 
 where py >nul 2>nul
 if errorlevel 1 (
@@ -44262,6 +44757,12 @@ if errorlevel 1 (
 )
 
 for /f "tokens=2" %%v in ('python --version 2^>^&1') do set VENVVER=%%v
+python -c "import sys; raise SystemExit(0 if sys.version_info[:2] == (3,11) else 1)"
+if errorlevel 1 (
+    echo   ОШИБКА: .venv311 не использует Python 3.11. Сохрани старую папку под другим именем и повтори установку.
+    pause
+    exit /b 1
+)
 echo   Активен Python %VENVVER% из .venv311
 echo.
 
@@ -44297,37 +44798,17 @@ echo   Зависимости установлены.
 echo.
 
 REM =====================================================================
-REM 6. eSpeak NG
+REM 6. Piper package
 REM =====================================================================
-echo [6/11] Проверка eSpeak NG — нужен для Piper TTS...
-where espeak-ng >nul 2>nul
+echo [6/11] Проверка пакета Piper...
+python -c "from importlib.metadata import version; print('Piper:', version('piper-tts'))"
 if errorlevel 1 (
-    if exist "C:\Program Files\eSpeak NG\espeak-ng.exe" (
-        echo   eSpeak NG найден в C:\Program Files\eSpeak NG
-    ) else (
-        echo.
-        echo   eSpeak NG не найден. Без него Piper не заведётся.
-        echo.
-        set /p INSTALL_ESPEAK="Установить eSpeak NG сейчас? y/n: "
-        if /i "!INSTALL_ESPEAK!"=="y" (
-            echo   Устанавливаю через winget...
-            winget install --id eSpeak-NG.eSpeak-NG -e --accept-source-agreements --accept-package-agreements
-            if errorlevel 1 (
-                echo.
-                echo   Не удалось установить автоматически.
-                echo   Скачай вручную: https://github.com/espeak-ng/espeak-ng/releases
-                start https://github.com/espeak-ng/espeak-ng/releases
-                pause
-            ) else (
-                echo   eSpeak NG установлен.
-            )
-        ) else (
-            echo   Пропускаю. Поставишь позже.
-        )
-    )
-) else (
-    echo   eSpeak NG найден.
+    echo   Пакет Piper не установлен. Проверь предыдущий шаг pip.
+    pause
+    exit /b 1
 )
+echo   Голосовые модели не загружаются этим шагом.
+echo   Внешний espeak-ng.exe автоматически не устанавливается.
 echo.
 
 REM =====================================================================
@@ -44338,7 +44819,7 @@ where ollama >nul 2>nul
 if errorlevel 1 (
     echo.
     echo   Ollama не установлена.
-    echo   Без неё Феникс работает только на правилах.
+    echo   Без неё остаются быстрые локальные команды; LLM-диалога не будет.
     echo.
     set /p INSTALL_OLLAMA="Установить Ollama сейчас? y/n: "
     if /i "!INSTALL_OLLAMA!"=="y" (
@@ -44378,7 +44859,7 @@ echo.
 echo   ============================================================
 echo    Ноутбуки с дискретной GPU, 8-16 ГБ VRAM
 echo   ============================================================
-echo     4) qwen2.5:7b      ~5-6 ГБ VRAM  Отличное, рекомендуется
+echo     4) qwen2.5:7b      Размер и скорость зависят от квантования и контекста
 echo     5) qwen2.5:14b     ~10 ГБ VRAM   Максимум для 12 ГБ
 echo.
 echo   ============================================================
@@ -44404,8 +44885,8 @@ echo     Win+R -> dxdiag -> Enter -> вкладка "Экран"
 echo     Смотри "Видеопамять VRAM".
 echo.
 
-set /p LLM_CHOICE="Выбери модель 1-12, по умолчанию 4: "
-if "!LLM_CHOICE!"=="" set LLM_CHOICE=4
+set /p LLM_CHOICE="Выбери модель 1-12, по умолчанию 12 - пропустить: "
+if "!LLM_CHOICE!"=="" set LLM_CHOICE=12
 
 if "!LLM_CHOICE!"=="1"  set LLM_MODEL=qwen2.5:0.5b
 if "!LLM_CHOICE!"=="2"  set LLM_MODEL=qwen2.5:1.5b-instruct
@@ -44421,8 +44902,8 @@ if "!LLM_CHOICE!"=="11" set LLM_MODEL=mistral:7b
 if "!LLM_CHOICE!"=="12" goto skip_model
 
 if not defined LLM_MODEL (
-    echo   Некорректный выбор. Ставлю по умолчанию qwen2.5:7b-instruct.
-    set LLM_MODEL=qwen2.5:7b-instruct
+    echo   Некорректный выбор. Конфиг и модели не меняю.
+    goto skip_model
 )
 
 echo.
@@ -44435,7 +44916,9 @@ if defined ALREADY (
     echo   Скачиваю !LLM_MODEL! ... это займёт несколько минут.
     ollama pull !LLM_MODEL!
     if errorlevel 1 (
-        echo   Не удалось скачать модель. Попробуй позже: ollama pull !LLM_MODEL!
+        echo   Не удалось скачать модель. Конфиг не меняю.
+        echo   Попробуй позже: ollama pull !LLM_MODEL!
+        goto after_model
     ) else (
         echo   Модель !LLM_MODEL! скачана.
     )
@@ -44461,20 +44944,13 @@ REM 9. Конфиг, папки
 REM =====================================================================
 echo [9/11] Настройка конфига и папок...
 
-if not exist "config.json" (
-    if exist "config.example.json" (
-        copy config.example.json config.json >nul
-        echo   Создан config.json из config.example.json
-    ) else (
-        echo   ВНИМАНИЕ: config.example.json не найден.
-    )
-) else (
-    echo   config.json уже существует, оставляю как есть.
+python scripts\init_user_data.py --record-dependencies
+if errorlevel 1 (
+    echo   ОШИБКА: не удалось подготовить данные или проверить окружение.
+    pause
+    exit /b 1
 )
-
-if not exist "logs" mkdir logs
-if not exist "models" mkdir models
-echo   Папки logs/ и models/ готовы.
+echo   Пользовательские данные хранятся в APPDATA, модели - в ASCII-пути.
 echo.
 
 REM =====================================================================
@@ -44488,79 +44964,28 @@ echo.
 REM =====================================================================
 REM 11. Проверка работоспособности
 REM =====================================================================
+if not exist "tests\conftest.py" (
+    echo [11/11] Тестов нет в runtime-поставке. Для разработки используй исходный проект.
+    goto checks_done
+)
 echo [11/11] Проверка работоспособности Феникса.
 echo.
-echo   Сейчас прогонятся:
-echo     - Проверка синтаксиса check_syntax.py
-echo     - Юнит-тесты pytest tests/
-echo     - Интент-тесты tests\test_intents.py
-echo.
-
+echo   Полный прогон: синтаксис, pytest, интенты и стресс-тесты.
 set /p RUN_CHECKS="Запустить проверку сейчас? y/n: "
 if /i "%RUN_CHECKS%"=="n" goto skip_checks
+python -m pip install -r requirements-dev.txt
+if errorlevel 1 goto checks_failed
+python check_all.py
+if errorlevel 1 goto checks_failed
+echo   Проверки прошли.
+goto checks_done
 
-set CHECK_FAILED=0
-
-REM --- Проверка синтаксиса ---
-echo.
-echo   --- Проверка синтаксиса ---
-python check_syntax.py
-if errorlevel 1 (
-    echo   ОШИБКА: синтаксис сломан
-    set CHECK_FAILED=1
-) else (
-    echo   OK: синтаксис в порядке
-)
-
-REM --- pytest ---
-echo.
-echo   --- Юнит-тесты pytest ---
-python -m pytest tests/ -q
-if errorlevel 1 (
-    echo   ОШИБКА: тесты упали
-    set CHECK_FAILED=1
-) else (
-    echo   OK: тесты прошли
-)
-
-REM --- test_intents ---
-echo.
-echo   --- Интент-тесты tests\test_intents.py ---
-echo   Это может занять до 30 секунд.
-python tests\test_intents.py
-if errorlevel 1 (
-    echo   ОШИБКА: интент-тесты упали — смотри logs\test_intents.log
-    set CHECK_FAILED=1
-) else (
-    echo   OK: интент-тесты прошли
-)
-
-echo.
-if "!CHECK_FAILED!"=="1" (
-    echo ============================================================
-    echo   ЕСТЬ ОШИБКИ — смотри выше
-    echo ============================================================
-    echo.
-    echo   Что делать:
-    echo     1. Проверь logs\errors.log
-    echo     2. Проверь logs\test_intents.log
-    echo     3. Скинь эти логи автору
-    echo.
-) else (
-    echo ============================================================
-    echo   ВСЁ РАБОТАЕТ
-    echo ============================================================
-    echo.
-)
+:checks_failed
+echo   Проверки не завершились успешно. Смотри вывод выше и logs\check_all.
 goto checks_done
 
 :skip_checks
-echo   Пропускаю проверку. Запустишь позже вручную:
-echo     check_all.bat
-echo     python -m pytest tests/ -q
-echo     python tests\test_intents.py
-echo     python tests\stress_intents.py
-echo.
+echo   Позже: check_all.bat
 
 :checks_done
 
@@ -44612,7 +45037,7 @@ pause
 ;
 ; Сборка (вручную):
 ;   1. Установи Inno Setup: https://jrsoftware.org/isdl.php
-;   2. python scripts\build_exe.py   (сначала обновить Феникс.exe)
+;   2. python scripts\build_setup.py (подготовить launcher и чистый payload)
 ;   3. Открой installer.iss в Inno Setup Compiler
 ;   4. Нажми Build → Build
 ;
@@ -44631,6 +45056,10 @@ pause
 #define MyAppPublisher "Phoenix Project"
 #define MyAppURL "https://github.com/BobLoTiK/jarvis-fenix"
 #define MyAppExeName "Феникс.exe"
+; Only scripts/build_setup.py publishes this curated directory.
+#ifndef PayloadDir
+  #define PayloadDir "build\release-payload"
+#endif
 
 [Setup]
 AppId={{8E4B3F2A-1A2B-4C5D-9E8F-7A6B5C4D3E2F}
@@ -44654,12 +45083,13 @@ WizardStyle=modern
 WizardImageFile=installer_banner.bmp
 WizardSmallImageFile=installer_small.bmp
 WizardImageStretch=yes
-WizardImageBackColor=$00160E0A
+WizardImageBackColor=$001C1212
 PrivilegesRequired=lowest
+ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
-; Тот же мьютекс, что в launcher.py — Inno попросит закрыть
+; Мьютексы ядра И setup-лаунчера — Inno попросит закрыть
 ; запущенного Феникса перед перезаписью файлов.
-AppMutex=Local\JarvisPhoenixSingleInstance
+AppMutex=Local\JarvisPhoenixSingleInstance,Local\JarvisPhoenixLauncherSetup
 ; При обновлении поверх работающего Феникса — не требовать перезагрузки
 CloseApplications=yes
 RestartApplications=no
@@ -44678,28 +45108,9 @@ Name: "{app}\models"
 Name: "{app}\runtime"
 
 [Files]
-; Главный exe
-Source: "Феникс.exe"; DestDir: "{app}"; Flags: ignoreversion
-; Пакет jarvis (без createallsubdirs — иначе пустые __pycache__ создаются)
-Source: "jarvis\*"; DestDir: "{app}\jarvis"; Flags: ignoreversion recursesubdirs; Excludes: "__pycache__\*,*.pyc,*.pyo"
-; CC0-сэмплы звуковых реакций и сведения об источниках
-Source: "assets\nonverbal\*"; DestDir: "{app}\assets\nonverbal"; Flags: ignoreversion recursesubdirs
-; Паки
-Source: "packs\*"; DestDir: "{app}\packs"; Flags: ignoreversion recursesubdirs
-; Скрипты
-Source: "scripts\*"; DestDir: "{app}\scripts"; Flags: ignoreversion recursesubdirs; Excludes: "__pycache__\*,*.pyc,*.pyo"
-; Конфиг-пример
-Source: "config.example.json"; DestDir: "{app}"; Flags: ignoreversion
-; Зависимости
-Source: "requirements.txt"; DestDir: "{app}"; Flags: ignoreversion
-; Возможности системы (генерируется scripts\check_caps.py;
-; читается actions.py и gui.py — не критичен, поэтому skipifsourcedoesntexist)
-Source: "system_caps.json"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
-; Документация
-Source: "README.md"; DestDir: "{app}"; Flags: ignoreversion
-Source: "ARCHITECTURE.md"; DestDir: "{app}"; Flags: ignoreversion
-Source: "CHANGELOG.md"; DestDir: "{app}"; Flags: ignoreversion
-Source: "LICENSE"; DestDir: "{app}"; Flags: ignoreversion
+; Prepared and validated by scripts/release_payload.py. No developer config,
+; profiles, caches, venv, models or machine-specific system_caps.json.
+Source: "{#PayloadDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 
 [Icons]
 ; Ярлык в меню Пуск
@@ -44839,31 +45250,39 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 
 ```batch
 @echo off
-rem cd /d "%~dp0" — работает из любой папки, куда пользователь распаковал проект.
-rem Раньше был хардкод "cd /d C:\jarvis" — у пользователей с другим путём не работал.
+setlocal
 cd /d "%~dp0"
-start "" pythonw -m jarvis
-exit
+if exist ".venv311\Scripts\pythonw.exe" (
+    start "" "%~dp0.venv311\Scripts\pythonw.exe" "%~dp0launcher.py"
+    exit /b 0
+)
+if exist "Феникс.exe" (
+    start "" "%~dp0Феникс.exe"
+    exit /b 0
+)
+py -3.11 launcher.py
+exit /b %errorlevel%
 ```
 
 ### `start_fenix_debug.bat`
 
 ```batch
 @echo off
-title Феникс
+setlocal
+chcp 65001 >nul
+title Феникс — диагностика
 cd /d "%~dp0"
-echo ============================================
-echo  Феникс запускается...
-echo  Чтобы выключить — нажми Ctrl+C
-echo ============================================
+if not exist ".venv311\Scripts\python.exe" (
+    echo Нет .venv311. Сначала запусти install.bat или Феникс.exe.
+    pause
+    exit /b 1
+)
+"%~dp0.venv311\Scripts\python.exe" -m jarvis
+set "RESULT=%errorlevel%"
 echo.
-python -m jarvis
-echo.
-echo ============================================
-echo  Феникс остановлен.
-echo  Нажми любую клавишу, чтобы закрыть окно.
-echo ============================================
-pause >nul
+echo Феникс завершился с кодом %RESULT%.
+pause
+exit /b %RESULT%
 ```
 
 ### `.clineignore`
@@ -45129,7 +45548,7 @@ numpy>=1.26
 # проверок GUI молча не бегут (сборка вкладок + каждый контрол
 # «дошёл ли до config.json»). Окно на сервере не поднимается —
 # flet-desktop не нужен, хватает самого flet.
-flet>=1.0.3
+flet>=1.0.3,<1.1
 
 # --- Тесты ---
 pytest>=8.0
@@ -45200,8 +45619,8 @@ comtypes>=1.4
 screen-brightness-control>=0.22
 
 # === GUI ===
-flet>=1.0.3
-flet-desktop>=1.0.3
+flet>=1.0.3,<1.1
+flet-desktop>=1.0.3,<1.1
 
 # === Тесты ===
 pytest>=8.0
@@ -45229,7 +45648,7 @@ pymorphy3>=2.0.3,<3
 
 - Фирменные ресурсы Феникса
 
-#### `tests/README.md` — 25 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `tests/README.md` — 26 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Тесты Феникса
   - Карта
@@ -45256,6 +45675,7 @@ pymorphy3>=2.0.3,<3
     - Startup/tray regression
     - Кольцо действий Главной
     - Опциональные виджеты Главной — текущая проверка
+  - Аудит установщика
 
 #### `tests/audio/README.md` — 7 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -45275,7 +45695,7 @@ pymorphy3>=2.0.3,<3
   - Обновление 15.10.2026: язык, память, Non-verbal
   - Как добавить новый workflow
 
-#### `AGENTS.md` — 12 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `AGENTS.md` — 13 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - AGENTS.md — навигация для помощника по «Феникс»
   - Среда и запуск
@@ -45289,8 +45709,9 @@ pymorphy3>=2.0.3,<3
   - Персона и Настройки
     - Кольцо Главной
     - Виджеты Главной
+    - Новый чат / активная озвучка
 
-#### `ARCHITECTURE.md` — 51 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `ARCHITECTURE.md` — 52 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - 🏗 Архитектура «Феникс»
   - 📑 Содержание
@@ -45333,9 +45754,10 @@ pymorphy3>=2.0.3,<3
     - `.venv311`
     - Git
 
-#### `CHANGELOG.md` — 103 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 105 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
+  - Стартовый handoff для нового чата (документация)
   - Опциональные виджеты Главной
   - Кольцо действий Феникса
   - Надёжный старт окна и трея
@@ -45345,6 +45767,7 @@ pymorphy3>=2.0.3,<3
   - Исправление панели после добавления Главной
   - 📑 Содержание
   - 🚧 [Unreleased]
+    - Аудит установки и обновления
     - 📅 Сессия 16.10.2026
       - Минималистичная Главная, отдельный Диалог
       - Плавный сдвиг при раскрытии панели
@@ -45373,8 +45796,6 @@ pymorphy3>=2.0.3,<3
       - 🧠 Векторная память фактов — RAG (№51–53) ⭐ AIRI-концепция
       - 🔧 `snapshot.py --check` — почему CI был красным всегда
       - 🌐 Браузер пользователя: работаем там, где он сидит (№1)
-    - 📅 Сессия 13.10.2026
-      - 🪟 Окно ищется по процессу, а не по заголовку (№45–№50)
 
 #### `CI.md` — 16 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -45431,9 +45852,10 @@ pymorphy3>=2.0.3,<3
   - 🤝 Как задавать вопросы
   - 🎯 Философия
 
-#### `PLAN.md` — 21 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `PLAN.md` — 23 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - 📋 План развития «Феникс»
+  - ⏭ Активная задача: потоковый TTS рядом с Ollama
   - 🎯 Курс: сначала сам Феникс
   - 📊 Статусы
   - Приоритеты и ближайшие milestones
@@ -45454,36 +45876,19 @@ pymorphy3>=2.0.3,<3
   - 💤 Дальний бэклог — не текущий план разработки
   - Правила завершения шага
   - Готово: кольцо действий Главной
+  - Поставка после обновления GUI
 
-#### `PROMPT.md` — 27 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `PROMPT.md` — 9 заголовков, полный текст не включён (дублирует PROJECT.md)
 
-- 🤖 ПРОМПТ для LLM — «Феникс»
-  - Актуальные контракты — 15.10.2026
-  - 🎯 Контекст
-  - 🎭 Как со мной работать
-  - 🚨 Ошибки, которые я уже делал (не повторяй)
-  - 🗂 Пути (главное правило)
-  - 🏗 Архитектура (кратко)
-    - Модули
-    - Поток обработки
-    - Mood
-    - UIA
-  - 📋 Режимы работы
-    - 🏠 Local
-    - 🌐 Hybrid
-    - ☁️ Cloud — 🚧 в планах
-    - 💎 Premium — ⏸
-  - 📊 ТЕКУЩИЙ СТАТУС
-    - ✅ Закрыто
-    - 🚧 Активная очередь
-  - 🎯 КЛЮЧЕВЫЕ ПРАВИЛА
-    - Код
+- Феникс — старт для нового чата
+  - 1. Как войти в проект
+  - 2. Что это за продукт
+  - 3. Что уже работает и что сохранить
     - GUI
-    - Безопасность
-    - Окружение
-    - Git
-  - 🛠 Как чинить баги
-  - 📎 БЫСТРЫЕ ССЫЛКИ
+    - Ядро
+  - 4. Текущая согласованная задача: лёгкая потоковая озвучка
+  - 5. Контракты, которые нельзя сломать
+  - 6. Как проверять и отдавать изменения
 
 #### `README.md` — 12 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -45577,9 +45982,20 @@ pymorphy3>=2.0.3,<3
   - Нагрузка
   - Что проверить на Windows
 
-#### `docs/LOCAL_VOICE_OPTIONS.md` — 5 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `docs/INSTALLER_UPDATE.md` — 6 заголовков, полный текст не включён (дублирует PROJECT.md)
 
-- Следующий этап: локальный голос без облака
+- Поставка и обновление Феникса
+  - Что изменено
+  - Сборка на Windows
+- При необходимости: --version 1.0.2
+  - Что проверить на Windows
+  - Что не менялось
+
+#### `docs/LOCAL_VOICE_OPTIONS.md` — 7 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Локальная озвучка: активный план и отложенные варианты
+  - Действующее решение
+  - Предыдущий обзор — справка, не очередь реализации
   - Лёгкий основной режим
   - Копирование тембра по небольшому отрывку
   - Что нужно для выбора
@@ -45630,4 +46046,4 @@ pymorphy3>=2.0.3,<3
 
 ---
 
-_Итого по категориям — code: 191, data: 44, doc: 26, pack: 5. Режим `lean`._
+_Итого по категориям — code: 194, data: 44, doc: 27, pack: 5. Режим `lean`._

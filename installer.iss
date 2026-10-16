@@ -14,7 +14,7 @@
 ;
 ; Сборка (вручную):
 ;   1. Установи Inno Setup: https://jrsoftware.org/isdl.php
-;   2. python scripts\build_exe.py   (сначала обновить Феникс.exe)
+;   2. python scripts\build_setup.py (подготовить launcher и чистый payload)
 ;   3. Открой installer.iss в Inno Setup Compiler
 ;   4. Нажми Build → Build
 ;
@@ -33,6 +33,10 @@
 #define MyAppPublisher "Phoenix Project"
 #define MyAppURL "https://github.com/BobLoTiK/jarvis-fenix"
 #define MyAppExeName "Феникс.exe"
+; Only scripts/build_setup.py publishes this curated directory.
+#ifndef PayloadDir
+  #define PayloadDir "build\release-payload"
+#endif
 
 [Setup]
 AppId={{8E4B3F2A-1A2B-4C5D-9E8F-7A6B5C4D3E2F}
@@ -56,12 +60,13 @@ WizardStyle=modern
 WizardImageFile=installer_banner.bmp
 WizardSmallImageFile=installer_small.bmp
 WizardImageStretch=yes
-WizardImageBackColor=$00160E0A
+WizardImageBackColor=$001C1212
 PrivilegesRequired=lowest
+ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
-; Тот же мьютекс, что в launcher.py — Inno попросит закрыть
+; Мьютексы ядра И setup-лаунчера — Inno попросит закрыть
 ; запущенного Феникса перед перезаписью файлов.
-AppMutex=Local\JarvisPhoenixSingleInstance
+AppMutex=Local\JarvisPhoenixSingleInstance,Local\JarvisPhoenixLauncherSetup
 ; При обновлении поверх работающего Феникса — не требовать перезагрузки
 CloseApplications=yes
 RestartApplications=no
@@ -80,28 +85,9 @@ Name: "{app}\models"
 Name: "{app}\runtime"
 
 [Files]
-; Главный exe
-Source: "Феникс.exe"; DestDir: "{app}"; Flags: ignoreversion
-; Пакет jarvis (без createallsubdirs — иначе пустые __pycache__ создаются)
-Source: "jarvis\*"; DestDir: "{app}\jarvis"; Flags: ignoreversion recursesubdirs; Excludes: "__pycache__\*,*.pyc,*.pyo"
-; CC0-сэмплы звуковых реакций и сведения об источниках
-Source: "assets\nonverbal\*"; DestDir: "{app}\assets\nonverbal"; Flags: ignoreversion recursesubdirs
-; Паки
-Source: "packs\*"; DestDir: "{app}\packs"; Flags: ignoreversion recursesubdirs
-; Скрипты
-Source: "scripts\*"; DestDir: "{app}\scripts"; Flags: ignoreversion recursesubdirs; Excludes: "__pycache__\*,*.pyc,*.pyo"
-; Конфиг-пример
-Source: "config.example.json"; DestDir: "{app}"; Flags: ignoreversion
-; Зависимости
-Source: "requirements.txt"; DestDir: "{app}"; Flags: ignoreversion
-; Возможности системы (генерируется scripts\check_caps.py;
-; читается actions.py и gui.py — не критичен, поэтому skipifsourcedoesntexist)
-Source: "system_caps.json"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
-; Документация
-Source: "README.md"; DestDir: "{app}"; Flags: ignoreversion
-Source: "ARCHITECTURE.md"; DestDir: "{app}"; Flags: ignoreversion
-Source: "CHANGELOG.md"; DestDir: "{app}"; Flags: ignoreversion
-Source: "LICENSE"; DestDir: "{app}"; Flags: ignoreversion
+; Prepared and validated by scripts/release_payload.py. No developer config,
+; profiles, caches, venv, models or machine-specific system_caps.json.
+Source: "{#PayloadDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 
 [Icons]
 ; Ярлык в меню Пуск

@@ -1,7 +1,7 @@
 """Лаунчер Феникса — полный автозапуск.
 
 Что делает при запуске:
-    1. Ищет Python 3.10-3.12 (py -3.X, where python, типичные пути).
+    1. Ищет Python 3.11 (py -3.X, where python, типичные пути).
     2. Если не нашёл — MessageBox: [Скачать Python 3.11] [Отмена].
        Скачивает python-3.11.9-amd64.exe, запускает installer.
     3. Проверяет .venv311. Если нет — создаёт.
@@ -14,6 +14,8 @@
 Логи — в logs/launcher.log рядом с exe.
 """
 
+import hashlib
+import tempfile
 import ctypes
 import logging
 import os
@@ -45,12 +47,8 @@ OLLAMA_DOWNLOAD_PAGE = "https://ollama.com/download"
 
 # Где искать Python, если py launcher не работает
 PYTHON_SEARCH_PATHS = [
-    r"C:\Python312\python.exe",
     r"C:\Python311\python.exe",
-    r"C:\Python310\python.exe",
-    r"C:\Program Files\Python312\python.exe",
     r"C:\Program Files\Python311\python.exe",
-    r"C:\Program Files\Python310\python.exe",
 ]
 
 # Где искать Ollama
@@ -60,7 +58,7 @@ OLLAMA_SEARCH_PATHS = [
 ]
 
 # Какие версии Python подходят
-REQUIRED_PY_VERSIONS = ("3.12", "3.11", "3.10")
+REQUIRED_PY_VERSIONS = ("3.11",)
 
 # MessageBox флаги
 MB_OK = 0x00
@@ -201,7 +199,7 @@ def _check_python_version(python_exe: str, logger) -> str | None:
         if out.startswith("Python "):
             version = out[7:].strip()
             for req in REQUIRED_PY_VERSIONS:
-                if version.startswith(req):
+                if version.split(".")[:2] == req.split("."):
                     return version
         return None
     except Exception:
@@ -209,7 +207,7 @@ def _check_python_version(python_exe: str, logger) -> str | None:
 
 
 def find_python(logger) -> str | None:
-    """Ищет Python 3.10-3.12. Возвращает путь к python.exe или None."""
+    """Ищет Python 3.11. Возвращает путь к python.exe или None."""
     # 1. py launcher
     for ver in REQUIRED_PY_VERSIONS:
         try:
@@ -249,7 +247,7 @@ def find_python(logger) -> str | None:
     # 4. %LOCALAPPDATA%\Programs\Python\PythonXY
     local_appdata = os.environ.get("LOCALAPPDATA")
     if local_appdata:
-        for ver in ("312", "311", "310"):
+        for ver in ("311",):
             cand = Path(local_appdata) / "Programs" / "Python" / f"Python{ver}" / "python.exe"
             if cand.exists():
                 version = _check_python_version(str(cand), logger)
@@ -257,7 +255,7 @@ def find_python(logger) -> str | None:
                     logger.info("Python %s найден: %s", version, cand)
                     return str(cand)
 
-    logger.info("Python 3.10-3.12 не найден")
+    logger.info("Python 3.11 не найден")
     return None
 
 
@@ -323,14 +321,11 @@ def run_python_installer(installer: Path, logger) -> bool:
 # ============================================================
 
 def find_venv_pythonw(project_dir: Path, logger) -> Path | None:
-    candidates = [
-        project_dir / ".venv311" / "Scripts" / "pythonw.exe",
-        project_dir / ".venv" / "Scripts" / "pythonw.exe",
-    ]
-    for cand in candidates:
-        if cand.exists():
-            logger.info("venv найден: %s", cand)
-            return cand
+    folder = project_dir / ".venv311" / "Scripts"
+    if ((folder/"pythonw.exe").exists() and (folder/"python.exe").exists()
+            and _check_python_version(str(folder/"python.exe"),logger)):
+        logger.info("Python 3.11 venv найден: %s",folder)
+        return folder/"pythonw.exe"
     return None
 
 
@@ -339,8 +334,12 @@ def create_venv(project_dir: Path, python_exe: str, logger) -> bool:
     venv_dir = project_dir / ".venv311"
 
     if venv_dir.exists():
-        logger.info("venv уже существует: %s", venv_dir)
-        return True
+        if find_venv_pythonw(project_dir,logger) is not None:
+            return True
+        error("Окружение .venv311 повреждено или использует не Python 3.11.\n"
+              "Закрой Феникс, переименуй эту папку и запусти снова.\n"
+              "Конфиг и профили удалять не нужно.")
+        return False
 
     info(
         "Создаю виртуальное окружение...\n\n"
@@ -377,22 +376,78 @@ def create_venv(project_dir: Path, python_exe: str, logger) -> bool:
 # Зависимости: установка
 # ============================================================
 
-def check_dependencies(project_dir: Path, logger) -> bool:
-    """Проверяет, установлены ли ключевые зависимости в venv."""
+DEPENDENCY_PROBE = """
+import sys
+from importlib.metadata import version
+assert sys.version_info[:2] == (3,11)
+import flet, vosk, pymorphy3, num2words, pystray, PIL
+from flet import AppView
+assert hasattr(AppView, 'FLET_APP_HIDDEN')
+v = tuple(int(x) for x in version('flet').split('.')[:3])
+assert (1,0,3) <= v < (1,1,0)
+assert version('flet') == version('flet-desktop')
+print('ok')
+"""
+
+
+def requirements_digest(project_dir):
+    try:
+        data = (project_dir / "requirements.txt").read_bytes()
+        return hashlib.sha256(data.replace(b"\r\n", b"\n")).hexdigest()
+    except OSError:
+        return None
+
+
+def record_dependency_receipt(project_dir):
+    digest = requirements_digest(project_dir)
+    if digest is None:
+        return False
+    destination = project_dir / ".venv311" / "phoenix-requirements.sha256"
+    fd, temp = tempfile.mkstemp(prefix="requirements-", dir=destination.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="ascii") as out:
+            out.write(digest)
+        os.replace(temp, destination)
+    finally:
+        if os.path.exists(temp):
+            os.unlink(temp)
+    return True
+
+
+def _probe_dependencies(project_dir, logger):
     python = project_dir / ".venv311" / "Scripts" / "python.exe"
     if not python.exists():
         return False
     try:
-        result = subprocess.run(
-            [str(python), "-c", "import flet, vosk, pymorphy3, num2words, pystray, PIL; print('ok')"],
-            capture_output=True,
-            text=True,
-            timeout=15,
-            creationflags=CREATE_NO_WINDOW,
-        )
+        result = subprocess.run([str(python), "-c", DEPENDENCY_PROBE],
+            capture_output=True, text=True, timeout=25, creationflags=CREATE_NO_WINDOW)
         return result.returncode == 0
     except Exception:
+        logger.exception("Проверка зависимостей не завершилась")
         return False
+
+
+def check_dependencies(project_dir: Path, logger) -> bool:
+    """A changed manifest or unsupported native Flet must trigger environment repair."""
+    digest = requirements_digest(project_dir)
+    try:
+        receipt = (project_dir/".venv311"/"phoenix-requirements.sha256").read_text(encoding="ascii").strip()
+    except (OSError, UnicodeError):
+        return False
+    return digest is not None and digest == receipt and _probe_dependencies(project_dir,logger)
+
+
+def ensure_local_caps(project_dir, logger):
+    """Probe the customer's machine, not the builder's. Failure is nonfatal."""
+    try:
+        result = subprocess.run([str(project_dir/".venv311"/"Scripts"/"python.exe"),
+            str(project_dir/"scripts"/"check_caps.py"), "--if-missing"],
+            cwd=str(project_dir), capture_output=True, text=True, timeout=30,
+            creationflags=CREATE_NO_WINDOW)
+        if result.returncode:
+            logger.warning("Локальная диагностика завершилась с кодом %s",result.returncode)
+    except Exception:
+        logger.warning("Локальная диагностика недоступна; запуск продолжается",exc_info=True)
 
 
 def install_dependencies(project_dir: Path, logger) -> bool:
@@ -405,18 +460,19 @@ def install_dependencies(project_dir: Path, logger) -> bool:
         error("requirements.txt не найден. Феникс установлен неправильно.")
         return False
 
-    info(
-        "Устанавливаю зависимости.\n\n"
-        "Это займёт 5–10 минут (flet, vosk, piper, faster-whisper).\n\n"
-        "Нажми ОК, чтобы начать. После завершения появится ещё одно окно.",
-        "Феникс — установка",
-    )
+    if msg_box(
+        "Нужно установить или обновить зависимости Феникса.\n\n"
+        "Потребуется интернет; загрузка может занять несколько минут.\n"
+        "ОК — продолжить, Отмена — выйти без установки.",
+        "Феникс — установка", MB_OKCANCEL | MB_ICONQUESTION) != IDOK:
+        return False
 
     logger.info("pip install -r requirements.txt")
     try:
         result = subprocess.run(
             [str(python), "-m", "pip", "install", "-r", str(req)],
-            cwd=str(project_dir),
+            cwd=str(project_dir), capture_output=True, text=True,
+            encoding="utf-8", errors="replace", creationflags=CREATE_NO_WINDOW,
         )
         if result.returncode != 0:
             logger.error("pip install упал: returncode=%d", result.returncode)
@@ -428,7 +484,12 @@ def install_dependencies(project_dir: Path, logger) -> bool:
                 "Смотри: logs\\launcher.log",
             )
             return False
-        logger.info("Зависимости установлены")
+        if not _probe_dependencies(project_dir,logger):
+            error("Пакеты установлены, но проверка Python/Flet не прошла. См. logs/launcher.log")
+            return False
+        if not record_dependency_receipt(project_dir):
+            return False
+        logger.info("Зависимости установлены и проверены")
         info("Зависимости установлены. OK", "Феникс")
         return True
     except Exception:
@@ -647,7 +708,7 @@ def main() -> None:
     if python_exe is None:
         logger.info("Python не найден, предлагаю установить")
         reply = msg_box(
-            "Python 3.10-3.12 не найден.\n\n"
+            "Python 3.11 не найден.\n\n"
             "Фениксу нужен Python 3.11.\n\n"
             "Сейчас будет скачан официальный установщик Python "
             "(~25 МБ). После скачивания откроется окно установки — "
@@ -698,6 +759,7 @@ def main() -> None:
         if not download_vosk_model(project_dir, logger):
             return
 
+    ensure_local_caps(project_dir, logger)
     handle_ollama(logger)
 
     run_jarvis(project_dir, pythonw, logger)

@@ -1,14 +1,15 @@
 """Полная сборка Феникса: Феникс.exe + Феникс_Setup.exe — одной командой.
 
 Шаги:
-    1. scripts\\make_icon.py             — jarvis\\icon.ico (если ещё нет)
+    1. scripts\\make_icon.py             — jarvis\\icon.ico (из актуального PNG)
     2. scripts\\make_installer_images.py — BMP-баннеры для Inno Setup
-    3. scripts\\check_caps.py            — system_caps.json (если ещё нет)
-    4. scripts\\build_exe.py             — Феникс.exe (PyInstaller)
+    3. scripts\\build_exe.py             — Феникс.exe (PyInstaller)
+    4. release_payload.py                — чистая поставка + manifest
     5. ISCC.exe installer.iss            — dist\\Феникс_Setup.exe
 
 Запуск:
     python scripts\\build_setup.py
+    python scripts\\build_setup.py --check             (проверить ресурсы без сборки)
     python scripts\\build_setup.py --run               (сразу запустить установщик)
     python scripts\\build_setup.py --version 1.0.2    (версия установщика)
 
@@ -27,15 +28,20 @@
     dist\\Феникс_Setup.exe — установщик (ставит в C:\\ProgramData\\Phoenix)
 """
 
+import re
+import os
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 
+# Direct execution from any cwd, without importing the runtime/audio stack.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 BASE = Path(__file__).resolve().parent.parent
 SCRIPTS = BASE / "scripts"
 ICON = BASE / "jarvis" / "icon.ico"
-CAPS = BASE / "system_caps.json"
+PAYLOAD = BASE / "build" / "release-payload"
 ISS = BASE / "installer.iss"
 SETUP_EXE = BASE / "dist" / "Феникс_Setup.exe"
 
@@ -43,7 +49,6 @@ SETUP_EXE = BASE / "dist" / "Феникс_Setup.exe"
 ISCC_SEARCH_PATHS = [
     r"C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
     r"C:\Program Files\Inno Setup 6\ISCC.exe",
-    r"C:\Program Files (x86)\Inno Setup 5\ISCC.exe",
 ]
 
 TOTAL_STEPS = 5
@@ -80,7 +85,14 @@ def include_script(name: str) -> None:
 
 
 def find_iscc() -> str:
-    """Ищет ISCC.exe: PATH → INNO_SETUP → стандартные папки."""
+    """Ищет ISCC.exe: INNO_SETUP → PATH → стандартные папки."""
+    override = os.environ.get("INNO_SETUP")
+    if override:
+        candidate = Path(override)
+        if candidate.is_dir():
+            candidate /= "ISCC.exe"
+        if candidate.is_file():
+            return str(candidate)
     found = shutil.which("ISCC")
     if found:
         return found
@@ -108,23 +120,30 @@ def parse_version(argv: list[str]) -> str | None:
     return None
 
 
-def caps_available() -> bool:
-    """Есть ли модули, нужные scripts/check_caps.py (pycaw + sbc).
-
-    В CI их нет — тогда шаг с system_caps.json просто пропускается.
-    Файл необязателен: в installer.iss он с skipifsourcedoesntexist,
-    а код без него считает громкость/яркость недоступными.
-    """
-    import importlib.util
-
-    return all(
-        importlib.util.find_spec(name)
-        for name in ("pycaw", "screen_brightness_control")
-    )
+def validate_version(version):
+    if version is not None and not re.fullmatch(r"[0-9]+(?:\.[0-9]+){1,3}(?:-[A-Za-z0-9]+(?:[.-][A-Za-z0-9]+)*)?",version):
+        raise ValueError("Версия должна выглядеть как 1.0.2 или 1.0.2-ci.1")
+    return version
 
 
 def main() -> int:
-    version = parse_version(sys.argv)
+    try:
+        version = validate_version(parse_version(sys.argv))
+        if any(arg in ('--version','--version=') for arg in sys.argv) and not version:
+            raise ValueError("После --version требуется значение")
+        from scripts.release_payload import collect_payload, stage_payload
+        files = collect_payload(BASE, include_exe=False)
+        if not ISS.is_file():
+            raise ValueError(f"Missing installer script: {ISS}")
+    except (ValueError, OSError) as exc:
+        print(f"ОШИБКА preflight: {exc}")
+        return 1
+    if '--check' in sys.argv:
+        print(f"Preflight OK: {len(files)} public files; launcher not compiled, Inno not run.")
+        return 0
+    if sys.platform != 'win32':
+        print("Сборка EXE/Setup требует Windows. Для проверки: --check")
+        return 1
 
     print("Феникс — сборка установщика")
     print(f"Корень проекта: {BASE}")
@@ -137,47 +156,32 @@ def main() -> int:
 
     # 1. Иконка
     step(1, "Иконка jarvis\\icon.ico")
-    if ICON.exists():
-        print(f"OK: уже есть ({ICON.stat().st_size / 1024:.1f} КБ)")
-    else:
-        include_script("make_icon.py")
+    include_script("make_icon.py")
 
-    # 2. Картинки для Inno Setup
-    step(2, "Баннеры установщика (installer_banner.bmp, installer_small.bmp)")
-    include_script("make_installer_images.py")
+    # Version shown on the banner must match the requested release version.
+    step(2, "Баннеры установщика")
+    banner_cmd = [sys.executable, str(SCRIPTS / "make_installer_images.py")]
+    if version:
+        banner_cmd.extend(["--version", version])
+    run(banner_cmd)
 
-    # 3. Возможности системы — system_caps.json читают actions.py и gui.py
-    step(3, "Возможности системы (system_caps.json)")
-    if CAPS.exists():
-        print(f"OK: уже есть ({CAPS})")
-    elif not caps_available():
-        print("ПРОПУСК: нет pycaw / screen-brightness-control (обычно это CI).")
-        print("Файл необязателен: в installer.iss он с skipifsourcedoesntexist,")
-        print("а код без него считает громкость/яркость недоступными.")
-    else:
-        print("Нет файла — генерирую...")
-        try:
-            include_script("check_caps.py")
-        except SystemExit as exc:
-            # Не критично: в installer.iss у файла skipifsourcedoesntexist
-            print(f"ВНИМАНИЕ: check_caps.py завершился с кодом {exc.code}")
-            print("Установщик соберётся и без system_caps.json")
-        if not CAPS.exists():
-            print("ВНИМАНИЕ: system_caps.json не создан — собираю без него")
-
-    # 4. Феникс.exe (PyInstaller)
-    step(4, "Сборка Феникс.exe (PyInstaller)")
+    step(3, "Сборка Феникс.exe (PyInstaller)")
     include_script("build_exe.py")
+
+    step(4, "Чистый payload и SHA-256 manifest (без данных машины сборщика)")
+    staged = stage_payload(BASE, PAYLOAD)
+    print(f"Подготовлено {len(staged)} файлов: {PAYLOAD}")
 
     # 5. Установщик (Inno Setup)
     step(5, "Компиляция установщика (Inno Setup)")
     iscc = find_iscc()
     print(f"ISCC: {iscc}")
-    cmd: list[str] = [iscc]
+    cmd: list[str] = [iscc, f"/DPayloadDir={PAYLOAD}"]
     if version:
         print(f"Версия установщика: {version} (/DMyAppVersion)")
         cmd.append(f"/DMyAppVersion={version}")
     cmd.append(str(ISS))
+    SETUP_EXE.unlink(missing_ok=True)
     run(cmd)
 
     if not SETUP_EXE.exists():

@@ -1,11 +1,4 @@
-"""Тесты scripts.build_setup — версия установщика и мягкий пропуск шага caps.
-
-Проверяем то, от чего зависит CI-релиз (см. .github/workflows/release.yml):
-версия из тега уходит в Inno Setup через /DMyAppVersion, а шаг
-system_caps.json на раннере без pycaw просто пропускается.
-"""
-
-import importlib.util
+"""Версии установщика, поиск Inno и совпадение с версией пакета."""
 
 from scripts import build_setup
 
@@ -35,16 +28,19 @@ def test_parse_version_without_value():
     assert build_setup.parse_version(["--version"]) is None
 
 
-def test_caps_available_with_modules(monkeypatch):
-    """pycaw и screen_brightness_control есть (локальная сборка) → True."""
-    monkeypatch.setattr(importlib.util, "find_spec", lambda name: object())
-    assert build_setup.caps_available() is True
+def test_inno_override(tmp_path, monkeypatch):
+    compiler = tmp_path / "ISCC.exe"
+    compiler.write_bytes(b"test")
+    monkeypatch.setenv("INNO_SETUP", str(tmp_path))
+    assert build_setup.find_iscc() == str(compiler)
 
 
-def test_caps_available_without_modules(monkeypatch):
-    """Модулей нет (CI-раннер) → False: шаг system_caps.json пропускается."""
-    monkeypatch.setattr(importlib.util, "find_spec", lambda name: None)
-    assert build_setup.caps_available() is False
+def test_versions_reject_injection():
+    import pytest
+    for value in ('1.0\n/Dfoo', '1.0"', '../1.0', '', 'v1.0'):
+        with pytest.raises(ValueError):
+            build_setup.validate_version(value)
+    assert build_setup.validate_version('1.0.2-ci.1') == '1.0.2-ci.1'
 
 
 def test_installer_version_is_overridable_and_matches_package():

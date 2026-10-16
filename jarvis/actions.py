@@ -16,7 +16,7 @@ from jarvis import paths as _paths
 log = logging.getLogger("jarvis.actions")
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-_CAPS_FILE = BASE_DIR / "system_caps.json"
+_CAPS_FILE = _paths.system_caps_path()
 _CAPS: dict = {}
 
 

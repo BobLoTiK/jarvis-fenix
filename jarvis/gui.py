@@ -895,7 +895,8 @@ class FenixGUI:
         recommended = "medium"
         try:
             import json
-            caps_path = Path(__file__).resolve().parent.parent / "system_caps.json"
+            from jarvis import paths
+            caps_path = paths.system_caps_path()
             if caps_path.exists():
                 caps = json.loads(caps_path.read_text(encoding="utf-8"))
                 recommended = caps.get("cpu", {}).get("recommended_piper", "medium")

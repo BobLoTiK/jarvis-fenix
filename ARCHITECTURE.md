@@ -641,7 +641,7 @@ GUI использует это для обновления подписи на�
 
 ~~~~
 Flet Main Thread
-   ├── _Sidebar (слева): Диалог / Микрофон / Голос и звук / Персона / Настройки / Мои команды
+   ├── _Sidebar (слева): Главная / Диалог / Микрофон / Голос и звук / Персона / Настройки / Мои команды
    ├── Контент-область (кеш _tabs)
    ├── page.run_task(_process_queue)
    └── page.run_task(_mic_level_loop)
@@ -850,10 +850,11 @@ actions.spec_from_string(s)
 `launcher.py` → `Феникс.exe` (PyInstaller). При запуске:
 
 ~~~~
-1. Ищет Python 3.10–3.12.
+1. Ищет Python 3.11.
 2. Нет → MessageBox: [Скачать Python 3.11] [Отмена].
 3. Проверяет .venv311. Нет → создаёт.
-4. Проверяет зависимости (flet, vosk). Нет → pip install.
+4. Проверяет fingerprint requirements и native Flet 1.0.3–1.0.x. Изменились → pip install после согласия.
+   Диагностика возможностей — на машине пользователя, с кэшем в USER_DIR.
 5. Проверяет Vosk-модель в C:\ProgramData\Phoenix\models.
 6. Проверяет Ollama.
 7. Запускает .venv311\Scripts\pythonw.exe -m jarvis.
@@ -903,7 +904,7 @@ actions.spec_from_string(s)
 | `models/vosk-model-small-ru-0.22/` | `C:\ProgramData\Phoenix\` |
 | `whisper-cache/` | `C:\ProgramData\Phoenix\` |
 | `logs/` | `%APPDATA%\Phoenix\` |
-| `system_caps.json` | `C:\jarvis\` (только dev, в `.gitignore`) |
+| `system_caps.json` | `%APPDATA%\Phoenix\` (локальная диагностика пользователя) |
 
 ---
 
@@ -1071,7 +1072,7 @@ Inno Setup 6.7 → `Феникс_Setup.exe`. Ставит в `C:\ProgramData\Pho
 3. **`PALETTES` в `gui.py`** — две темы.
 4. **`weather_cache_ttl_sec`** — настраиваемый TTL.
 5. **Личные данные — только в `config.json`, `profiles/`, `system_caps.json`.**
-6. **Python 3.10–3.12** — только `.venv311`.
+6. **Python 3.11** — только `.venv311`.
 7. **`snapshot.py`** — исключать `.venv311`, `profiles/`, `system_caps.json`, `*.bak*`.
 
 ### GUI: диагностика входа и проба голоса
@@ -1083,3 +1084,8 @@ Inno Setup 6.7 → `Феникс_Setup.exe`. Ставит в `C:\ProgramData\Pho
 без второго аудиопотока. Прослушивание: фиксированный Reply → Jarvis.say → Speaker;
 nonblocking GUI/core command locks, _say_lock ядра и обычный stop/barge-in сохранены.
 Диагностика не вызывает handler/LLM, не добавляет сообщения или факты в память.
+
+
+### Актуальная поставка
+
+Установщик копирует только curated `build/release-payload`; runtime-лаунчер и Inno используют оба mutex. Подробности и Windows acceptance: [docs/INSTALLER_UPDATE.md](docs/INSTALLER_UPDATE.md). Оптимизация потокового TTS остаётся отдельной задачей; этот аудит её не реализует.

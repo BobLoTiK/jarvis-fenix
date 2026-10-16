@@ -1,15 +1,16 @@
 @echo off
-title Феникс
+setlocal
+chcp 65001 >nul
+title Феникс — диагностика
 cd /d "%~dp0"
-echo ============================================
-echo  Феникс запускается...
-echo  Чтобы выключить — нажми Ctrl+C
-echo ============================================
+if not exist ".venv311\Scripts\python.exe" (
+    echo Нет .venv311. Сначала запусти install.bat или Феникс.exe.
+    pause
+    exit /b 1
+)
+"%~dp0.venv311\Scripts\python.exe" -m jarvis
+set "RESULT=%errorlevel%"
 echo.
-python -m jarvis
-echo.
-echo ============================================
-echo  Феникс остановлен.
-echo  Нажми любую клавишу, чтобы закрыть окно.
-echo ============================================
-pause >nul
+echo Феникс завершился с кодом %RESULT%.
+pause
+exit /b %RESULT%

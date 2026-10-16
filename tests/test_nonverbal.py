@@ -349,8 +349,11 @@ def test_handler_marks_only_chat_replies_eligible(chat, stream):
 def test_installer_copies_all_nonverbal_resources():
     installer = Path(__file__).resolve().parents[1] / "installer.iss"
     text = installer.read_text(encoding="utf-8")
-    assert 'Source: "assets\\nonverbal\\*"' in text
-    assert 'DestDir: "{app}\\assets\\nonverbal"' in text
+    assert 'Source: "{#PayloadDir}\\*"' in text
+    from scripts.release_payload import collect_payload
+    files = collect_payload(installer.parent, include_exe=False)
+    for name in ("hmm.wav", "laugh.wav", "sigh.wav", "yawn.wav", "sources.json"):
+        assert f"assets/nonverbal/{name}" in files
 
 
 def test_token_sessions_are_not_retained_after_reply(policy):

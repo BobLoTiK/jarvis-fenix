@@ -469,3 +469,7 @@ uncheck, черновики задачи и редактора через тем
 в обе стороны и push панели при 812 px. Нет Flutter-render errors.
 Реальный Windows-трей/физический микрофон/TTS и screen reader требуют ручной
 приёмки. Новая модель голоса не устанавливалась, качество клона не измерялось.
+
+## Аудит установщика
+`test_release_payload.py`: исключение личных файлов, manifest, недостающие ресурсы, ссылки/небезопасные назначения, preflight, fingerprint/cancel, атомарный caps и мягкая ошибка диагностики. `test_build_setup.py` — версии/Inno override.
+Linux portable-прогон: 1189 passed, 4 skipped (исключены Windows-only test_browser_target.py/test_window_targets.py; это не Windows-приёмка). Реальная сборка/установка отдельно по docs/INSTALLER_UPDATE.md.

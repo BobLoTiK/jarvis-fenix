@@ -10,8 +10,7 @@
     dist/Феникс.exe       — исходник от PyInstaller
     Феникс.exe            — копия в корне проекта
 
-ВАЖНО: иконка должна существовать: jarvis/icon.ico.
-Если её нет — сначала запусти: python scripts/make_icon.py
+Иконка jarvis/icon.ico обновляется из актуального фирменного PNG через make_icon.py.
 """
 
 import subprocess
@@ -24,12 +23,8 @@ EXE_NAME = "Феникс"
 
 
 def ensure_icon() -> None:
-    """Если иконки нет — генерирует её через make_icon.py."""
-    if ICON.exists():
-        print(f"Иконка: {ICON}")
-        return
-
-    print("Иконка не найдена — генерирую...")
+    """Обновляет иконку через make_icon.py из актуального бренд-ресурса."""
+    print("Обновляю иконку из фирменного master PNG...")
     make_icon = BASE / "scripts" / "make_icon.py"
     if not make_icon.exists():
         print("ОШИБКА: scripts/make_icon.py не найден.")
@@ -60,7 +55,7 @@ def build() -> None:
     ]
 
     print("PyInstaller:", " ".join(cmd))
-    subprocess.run(cmd, check=True)
+    subprocess.run(cmd, check=True, cwd=str(BASE))
 
     src = BASE / "dist" / f"{EXE_NAME}.exe"
     dst = BASE / f"{EXE_NAME}.exe"

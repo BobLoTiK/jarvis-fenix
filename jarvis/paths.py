@@ -218,6 +218,11 @@ def profiles_dir() -> Path:
     return d
 
 
+def system_caps_path() -> Path:
+    """Capabilities belong to this Windows user/machine, never the release builder."""
+    return user_dir() / "system_caps.json"
+
+
 def config_path() -> Path:
     """config.json — в USER_DIR."""
     return user_dir() / "config.json"

@@ -10,6 +10,7 @@
     python scripts/make_installer_images.py
 """
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -20,9 +21,9 @@ ICON_PATH = BASE / "jarvis" / "icon.ico"
 BANNER_OUT = BASE / "installer_banner.bmp"
 SMALL_OUT = BASE / "installer_small.bmp"
 
-BG_COLOR = (18, 32, 58)
-ACCENT = (86, 156, 255)
-TEXT_COLOR = (230, 237, 243)
+BG_COLOR = (18, 18, 28)
+ACCENT = (216, 167, 134)
+TEXT_COLOR = (238, 237, 247)
 BMP_FORMAT = "BMP"
 
 
@@ -50,7 +51,7 @@ def _load_icon(size: int) -> Image.Image:
     return img.resize((size, size), Image.LANCZOS)
 
 
-def make_banner() -> None:
+def make_banner(version=None) -> None:
     w, h = 164, 314
     img = Image.new("RGB", (w, h), BG_COLOR)
     d = ImageDraw.Draw(img)
@@ -82,7 +83,7 @@ def make_banner() -> None:
     try:
         sys.path.insert(0, str(BASE))
         from jarvis import __version__
-        ver_text = f"v{__version__}"
+        ver_text = f"v{version or __version__}"
     except Exception:
         ver_text = "v1.0.0"
 
@@ -108,7 +109,10 @@ def main() -> int:
     print("Генерация картинок для Inno Setup...")
     print(f"Источник: {ICON_PATH.name}")
     print()
-    make_banner()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--version")
+    args = parser.parse_args()
+    make_banner(args.version)
     make_small()
     print()
     print("Готово. Теперь используй в installer.iss:")

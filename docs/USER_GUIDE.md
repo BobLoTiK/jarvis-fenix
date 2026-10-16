@@ -799,6 +799,7 @@ python scripts/audio_regression.py run
 Одна команда собирает всё: иконку, баннеры, `.exe` и установщик.
 
 ~~~~bat
+python scripts\build_setup.py --check            REM ресурсы, без компиляции
 python scripts\build_setup.py
 python scripts\build_setup.py --run              REM + сразу запустить установщик
 python scripts\build_setup.py --version 1.0.2   REM версия установщика
@@ -808,15 +809,16 @@ python scripts\build_setup.py --version 1.0.2   REM версия установ�
 
 | Шаг | Действие |
 |---|---|
-| 1 | `scripts\make_icon.py` — `jarvis\icon.ico` (если ещё нет) |
+| 1 | `scripts\make_icon.py` — `jarvis\icon.ico` (из актуального бренд-ресурса) |
 | 2 | `scripts\make_installer_images.py` — BMP-баннеры для Inno Setup |
-| 3 | `scripts\check_caps.py` — `system_caps.json` (если ещё нет) |
-| 4 | `scripts\build_exe.py` — `Феникс.exe` (PyInstaller) |
+| 3 | `scripts\build_exe.py` — `Феникс.exe` (PyInstaller) |
+| 4 | `scripts/release_payload.py` — чистая поставка и SHA-256 manifest |
 | 5 | `ISCC.exe installer.iss` — `dist\Феникс_Setup.exe` |
 
 **Требуется:** PyInstaller (в `requirements-dev.txt`), Pillow и Inno Setup 6
-([скачать](https://jrsoftware.org/isdl.php)). `ISCC.exe` ищется в `PATH`,
-затем в стандартных папках установки.
+([скачать](https://jrsoftware.org/isdl.php)). `ISCC.exe` ищется через `INNO_SETUP` (путь к EXE или папке), затем `PATH` и стандартные папки Inno Setup 6.
+
+Диагностика `system_caps.json` создаётся на компьютере пользователя в `%APPDATA%\Phoenix`, не на машине сборщика. Состав поставки и проверка обновления — [INSTALLER_UPDATE.md](INSTALLER_UPDATE.md).
 
 **Версия** берётся из `installer.iss` (`MyAppVersion`), а `--version`
 переопределяет её на лету (в ISCC уходит `/DMyAppVersion`). CI подставляет

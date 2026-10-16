@@ -1,5 +1,5 @@
 @echo off
-setlocal EnableDelayedExpansion
+setlocal DisableDelayedExpansion
 chcp 65001 >nul
 title Ярлык Феникса
 
@@ -23,6 +23,7 @@ if not exist "%TARGET%" (
 )
 
 set "ICON=%TARGET%"
+set "PHOENIX_SHORTCUT_CWD=%~dp0"
 
 echo   Цель:    %TARGET%
 echo   Иконка:  %ICON%
@@ -31,10 +32,10 @@ echo.
 powershell -NoProfile -Command ^
     "$ws = New-Object -ComObject WScript.Shell;" ^
     "$sc = $ws.CreateShortcut([System.IO.Path]::Combine([Environment]::GetFolderPath('Desktop'), 'Феникс.lnk'));" ^
-    "$sc.TargetPath = '%TARGET%';" ^
-    "$sc.IconLocation = '%ICON%';" ^
+    "$sc.TargetPath = $env:TARGET;" ^
+    "$sc.IconLocation = $env:ICON;" ^
     "$sc.Description = 'Феникс — голосовой ассистент';" ^
-    "$sc.WorkingDirectory = '%~dp0';" ^
+    "$sc.WorkingDirectory = $env:PHOENIX_SHORTCUT_CWD;" ^
     "$sc.Save()"
 
 if errorlevel 1 (

@@ -1,6 +1,6 @@
 """Проверка возможностей системы — запускается из install.bat.
 
-Пишет system_caps.json:
+Пишет %APPDATA%\\Phoenix\\system_caps.json (не данные сборщика):
     {
         "volume":     {"available": true,  "method": "volume_percent"},
         "brightness": {"available": true,  "method": "sbc"},
@@ -14,6 +14,9 @@
 
 Если что-то не работает — видно сразу при установке.
 """
+import argparse
+import os
+import tempfile
 import json
 import logging
 import sys
@@ -21,7 +24,9 @@ import time
 from pathlib import Path
 
 BASE = Path(__file__).resolve().parent.parent
-OUTPUT = BASE / "system_caps.json"
+sys.path.insert(0, str(BASE))
+from jarvis import paths
+OUTPUT = paths.system_caps_path()
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 log = logging.getLogger("check_caps")
@@ -106,7 +111,7 @@ def check_cpu() -> dict:
 
         if cores >= 6 and threads >= 12:
             power = "strong"
-            recommended_piper = "high"
+            recommended_piper = "medium"  # CPU count cannot prove voice/model availability or quality
         elif cores >= 4 and threads >= 8:
             power = "normal"
             recommended_piper = "medium"
@@ -124,7 +129,36 @@ def check_cpu() -> dict:
     except Exception as e:
         return {"available": False, "reason": str(e)[:80]}
 
-def main() -> int:
+def write_caps(caps, destination=None):
+    destination = Path(destination or OUTPUT)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    fd, temp = tempfile.mkstemp(prefix="caps-", suffix=".tmp", dir=destination.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as out:
+            json.dump(caps, out, ensure_ascii=False, indent=2)
+            out.flush()
+            os.fsync(out.fileno())
+        os.replace(temp, destination)
+    finally:
+        if os.path.exists(temp):
+            os.unlink(temp)
+
+
+def caps_valid(path):
+    try:
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+        return isinstance(data,dict) and all(isinstance(data.get(k),dict) for k in ('volume','brightness','layout','cpu'))
+    except (OSError, ValueError):
+        return False
+
+
+def main(argv=None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--if-missing", action="store_true")
+    args = parser.parse_args(argv)
+    if args.if_missing and caps_valid(OUTPUT):
+        log.info("Локальная диагностика уже есть: %s", OUTPUT)
+        return 0
     log.info("=" * 60)
     log.info("  Проверка возможностей системы")
     log.info("=" * 60)
@@ -159,10 +193,7 @@ def main() -> int:
         reason = f"  ({info.get('reason', '')})" if not info.get("available") else ""
         log.info("%s %-12s %s%s", mark, name, info.get("method", "?"), reason)
 
-    OUTPUT.write_text(
-        json.dumps(caps, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
+    write_caps(caps)
     log.info("")
     log.info("Сохранено: %s", OUTPUT)
     log.info("=" * 60)
