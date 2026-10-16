@@ -358,6 +358,39 @@ def _cache_invalidate(path: Path | None = None) -> None:
             _cache.pop(path, None)
 
 
+def read_fields(*keys: str) -> tuple[str, dict]:
+    """Consistent editor snapshot; values and identity share the profile lock."""
+    with _lock:
+        data = _safe_load()
+        return current(), {key: copy.deepcopy(data.get(key)) for key in keys}
+
+
+def update_fields(data: dict, *, expected_profile: str,
+                  expected_values: dict) -> bool:
+    """Compare-and-save one profile file, without overwriting a newer editor.
+
+    No writes on a switched profile, malformed JSON or concurrent field change.
+    Existing facts and unrelated fields are retained under the same lock.
+    """
+    with _lock:
+        if current() != expected_profile:
+            return False
+        try:
+            current_data = _safe_load()
+        except json.JSONDecodeError:
+            return False
+        if any(current_data.get(key) != value
+               for key, value in expected_values.items()):
+            return False
+        current_data.update(copy.deepcopy(data))
+        current_data.setdefault("created_at", time.time())
+        path = profile_path()
+        if not config_manager.save(current_data, path=path):
+            return False
+        _cache_store(path, current_data)
+        return True
+
+
 def mutate(key: str, func) -> bool:
     """Атомарно меняет ключ: func(копия текущего значения) → новое.
 

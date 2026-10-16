@@ -272,7 +272,7 @@ def test_sidebar_selects_all_real_tabs_and_keeps_theme_selection(gui):
 
 def test_sidebar_profile_and_configured_model_are_not_network_status(gui):
     sidebar = module._Sidebar(lambda i: None)
-    assert sidebar.content.controls[-1].content.controls[0].value == profile.current()
+    assert sidebar.profile_label.value == profile.current()
     gui._on_llm_change(SimpleNamespace(control=SimpleNamespace(value="my-local-model:latest")))
     assert gui._model_label.value == "Модель: my-local-model:latest"
     assert gui._model_caption() == "Модель: my-local-model:latest"

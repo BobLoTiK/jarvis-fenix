@@ -154,20 +154,21 @@ def test_start_tray_runs_in_background(monkeypatch):
     """Иконка поднимается в daemon-потоке: главный поток нужен Flet'у."""
     started = threading.Event()
 
+    stopped = threading.Event()
     class FakePystrayIcon:
         visible = False
-
         def run(self):
+            self.visible = True
             started.set()
-
+            stopped.wait(3)
         def stop(self):
-            pass
+            stopped.set()
 
     monkeypatch.setattr(tray, "build_icon", lambda jarvis: FakePystrayIcon())
-    icon = tray.start_tray(FakeJarvis(), check_after=0.0)
-
-    assert icon is not None
-    assert started.wait(3.0), "icon.run() не запустился в фоновом потоке"
+    icon = tray.start_tray(FakeJarvis(), check_after=1.0)
+    assert icon is not None and icon.visible
+    assert started.is_set()
+    icon.stop()
 
 
 def test_start_tray_without_pystray_is_not_fatal(monkeypatch):
@@ -178,3 +179,71 @@ def test_start_tray_without_pystray_is_not_fatal(monkeypatch):
     monkeypatch.setattr(tray, "build_icon", _boom)
 
     assert tray.start_tray(FakeJarvis()) is None
+
+
+def test_invisible_tray_is_not_returned_as_ready(monkeypatch):
+    stopped = threading.Event()
+    class Invisible:
+        visible = False
+        def run(self):
+            stopped.wait(2)
+        def stop(self):
+            stopped.set()
+    monkeypatch.setattr(tray, 'build_icon', lambda j: Invisible())
+    assert tray.start_tray(FakeJarvis(), check_after=.02) is None
+    assert stopped.wait(1)
+
+
+def test_dead_tray_restores_window_callback(monkeypatch):
+    stopped = threading.Event()
+    called = threading.Event()
+    class Icon:
+        visible = False
+        def run(self):
+            self.visible = True
+            stopped.wait(2)
+        def stop(self):
+            stopped.set()
+    icon = Icon()
+    monkeypatch.setattr(tray, 'build_icon', lambda j: icon)
+    received = []
+    def failed(value):
+        received.append(value)
+        called.set()
+    assert tray.start_tray(FakeJarvis(), on_fail=failed) is icon
+    stopped.set()
+    assert called.wait(1)
+    assert received == [icon]
+
+
+@pytest.mark.parametrize('results,raises', [([True],False), ([False,False,True],False), ([False]*30,True)])
+def test_windows_shell_must_accept_icon(monkeypatch, results, raises):
+    import ctypes
+    from types import SimpleNamespace as NS
+    results = iter(results)
+    clock = [0.0]
+    monkeypatch.setattr(tray.time, 'monotonic', lambda:clock[0])
+    monkeypatch.setattr(tray.time, 'sleep', lambda dt:clock.__setitem__(0,clock[0]+dt))
+    class Payload(ctypes.Structure):
+        _fields_ = []
+        def __init__(self, **kw):
+            self.kw = kw
+    calls = []
+    def shell(code, payload):
+        calls.append((code,payload.kw))
+        return next(results)
+    win32 = NS(NOTIFYICONDATAW=Payload, Shell_NotifyIcon=shell,
+               NIM_ADD=0, NIF_MESSAGE=1,NIF_ICON=2,NIF_TIP=4,WM_NOTIFY=1024)
+    class Base:
+        _hwnd=123; _icon_handle=456; title='Феникс'
+        def _assert_icon_handle(self): pass
+    icon = tray._windows_icon_type(Base,win32)()
+    if raises:
+        with pytest.raises(OSError,match='Windows'):
+            icon._show()
+    else:
+        icon._show()
+    assert calls[0][1]['hWnd'] == 123
+    assert calls[0][1]['hIcon'] == 456
+    assert calls[0][1]['szTip'] == 'Феникс'
+    assert calls[0][1]['uFlags'] == 7

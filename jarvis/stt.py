@@ -94,6 +94,7 @@ class Listener:
         self.peak = 0
         self.utterances = 0
         self.current_rms = 0  # текущий уровень сигнала (для GUI)
+        self.level_updated_at = 0.0  # monotonic heartbeat, not audio content
 
         self.barge_enabled = True
         self.muted = False
@@ -295,6 +296,7 @@ class Listener:
         else:
             rms = 0
             self.current_rms = 0
+        self.level_updated_at = time.monotonic()
         self._process_barge(rms)
 
         if self.muted:

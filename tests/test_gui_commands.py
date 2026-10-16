@@ -26,7 +26,7 @@ def editor(tmp_path):
 
 def test_sixth_tab_and_unsaved_editor_survive_navigation(editor):
     gui = editor.gui
-    assert len(module.NAV_ITEMS) == 6
+    assert len(module.NAV_ITEMS) == 7
     assert gui._rail.selected_index == 5
     editor.new()
     assert editor.fields["name"].on_change is not None

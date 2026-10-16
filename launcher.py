@@ -31,7 +31,7 @@ from pathlib import Path
 
 # Local\ вместо Global\ — работает без прав администратора
 # (Global\ требует SeCreateGlobalPrivilege).
-MUTEX_NAME = "Local\\JarvisPhoenixSingleInstance"
+MUTEX_NAME = "Local\\JarvisPhoenixLauncherSetup"
 _MUTEX_HANDLE = None
 
 PYTHON_INSTALLER_URL = "https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe"
@@ -141,7 +141,12 @@ def already_running(logger) -> bool:
     if _MUTEX_HANDLE is not None:
         return False
 
+    from ctypes import wintypes
     kernel32 = ctypes.windll.kernel32
+    kernel32.CreateMutexW.argtypes = (ctypes.c_void_p, wintypes.BOOL, wintypes.LPCWSTR)
+    kernel32.CreateMutexW.restype = wintypes.HANDLE
+    kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
+    kernel32.CloseHandle.restype = wintypes.BOOL
     handle = kernel32.CreateMutexW(None, False, MUTEX_NAME)
     last_error = kernel32.GetLastError()
 
@@ -379,7 +384,7 @@ def check_dependencies(project_dir: Path, logger) -> bool:
         return False
     try:
         result = subprocess.run(
-            [str(python), "-c", "import flet, vosk, pymorphy3, num2words; print('ok')"],
+            [str(python), "-c", "import flet, vosk, pymorphy3, num2words, pystray, PIL; print('ok')"],
             capture_output=True,
             text=True,
             timeout=15,

@@ -209,13 +209,10 @@ class Jarvis:
         self.stop_event.set()
 
     def mic_watchdog(self) -> None:
-        """Проверяет микрофон ОДИН РАЗ через mic_check_sec.
+        """One passive startup diagnostic in the log; never speak or steal a tab.
 
-        Больше не спамит: если микрофон молчит — предупреждает один раз
-        за сессию. Дальше — тишина, пока пользователь сам не разберётся.
-
-        self.say обёрнут в try/except: если TTS упадёт, watchdog-поток
-        не умрёт молча.
+        Silence alone is not proof of a faulty microphone. Explicit level testing
+        stays available in GUI; real audio-stream errors are handled separately.
         """
         if not self.config.get("mic_watchdog_enabled", True):
             log.info("mic_watchdog выключен в config")
@@ -232,16 +229,7 @@ class Jarvis:
         log.warning("Микрофон молчит (пик %d за %.0f с): %s",
                     self.listener.peak, delay, self.listener.device_name)
 
-        try:
-            self.say(Reply(text="Я не слышу микрофон. Проверьте, включён ли он, "
-                               "или выберите другое устройство в настройках."))
-        except Exception:
-            log.exception("mic_watchdog: не удалось озвучить предупреждение")
-
-        if self.gui is not None:
-            self.gui._queue.put(("open_mic_tab", None))
-
-        log.info("mic_watchdog: предупреждение показано, больше не повторяем")
+        log.info("mic_watchdog: результат только в журнале, без озвучки и переключения GUI")
 
     def run_loop(self) -> None:
         try:
@@ -614,20 +602,34 @@ _MUTEX_HANDLE = None
 def _single_instance() -> bool:
     """Именованный мьютекс на всё время работы процесса.
 
-    Лаунчер свой мьютекс освобождает сразу после DETACHED-старта,
-    поэтому настоящий guard от второго экземпляра — здесь. Имя совпадает
-    с лаунчером и AppMutex инсталлятора.
+    Старый скомпилированный launcher держит то же имя до выхода после Popen:
+    ожидаем его краткую передачу. Новый launcher имеет отдельный setup-mutex.
+    Настоящий guard живёт здесь всё время работы ядра (AppMutex инсталлятора).
     """
     global _MUTEX_HANDLE
     import ctypes
+    from ctypes import wintypes
     kernel32 = ctypes.windll.kernel32
-    _MUTEX_HANDLE = kernel32.CreateMutexW(None, False,
-                                          "Local\\JarvisPhoenixSingleInstance")
-    if kernel32.GetLastError() == 183:  # ERROR_ALREADY_EXISTS
-        kernel32.CloseHandle(_MUTEX_HANDLE)
-        _MUTEX_HANDLE = None
-        return False
-    return True
+    kernel32.CreateMutexW.argtypes = (ctypes.c_void_p, wintypes.BOOL, wintypes.LPCWSTR)
+    kernel32.CreateMutexW.restype = wintypes.HANDLE
+    kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
+    kernel32.CloseHandle.restype = wintypes.BOOL
+    # Older Phoenix.exe holds the SAME mutex until it exits after Popen.
+    # Give that short-lived parent time to exit; a real running core keeps it.
+    deadline = time.monotonic() + 3.0
+    while True:
+        handle = kernel32.CreateMutexW(None, False,
+                                      "Local\\JarvisPhoenixSingleInstance")
+        exists = kernel32.GetLastError() == 183
+        if not handle:
+            raise ctypes.WinError()
+        if not exists:
+            _MUTEX_HANDLE = handle
+            return True
+        kernel32.CloseHandle(handle)
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(0.1)
 
 
 def main() -> None:
@@ -773,35 +775,44 @@ def main() -> None:
     # pystray/PIL — значит просто нет трея.
     # =================================================================
     tray_holder = {"icon": None}
+    tray_lock = threading.RLock()
 
-    def _tray_failed() -> None:
-        """Иконка не появилась — снимаем режим «крестик прячет окно».
-
-        Мёртвый трей хуже отсутствующего: окно исчезало по крестику,
-        а вернуть его было нечем.
-        """
-        tray_holder["icon"] = None
-        if gui is not None:
-            gui.set_tray_active(False)
+    def _tray_failed(failed_icon=None) -> None:
+        """Restore an accessible window when the active tray loop dies."""
+        with tray_lock:
+            if failed_icon is not None and tray_holder["icon"] is not failed_icon:
+                return
+            tray_holder["icon"] = None
+            if jarvis.stop_event.is_set():
+                return
+            if gui is not None:
+                gui.start_hidden = False
+                gui.set_tray_active(False)
+                gui.show_window()  # queued, also safe before the Flet session exists
 
     def _apply_tray(enabled: bool) -> None:
         """Включает/выключает иконку трея и режим «крестик сворачивает»."""
-        if enabled and tray_holder["icon"] is None:
-            try:
-                from jarvis.tray import start_tray
-                tray_holder["icon"] = start_tray(jarvis, on_fail=_tray_failed)
-            except Exception:
-                log.exception("Трей: запуск упал — работаю без трея")
-        elif not enabled and tray_holder["icon"] is not None:
-            try:
-                tray_holder["icon"].stop()
-            except Exception:
-                log.debug("Трей: иконка уже снята", exc_info=True)
-            tray_holder["icon"] = None
+        with tray_lock:
+            if enabled and tray_holder["icon"] is None:
+                try:
+                    from jarvis.tray import start_tray
+                    tray_holder["icon"] = start_tray(jarvis, on_fail=_tray_failed)
+                except Exception:
+                    log.exception("Трей: запуск упал — работаю без трея")
+            elif not enabled and tray_holder["icon"] is not None:
+                old_icon = tray_holder["icon"]
+                tray_holder["icon"] = None
+                try:
+                    old_icon.stop()
+                except Exception:
+                    log.debug("Трей: иконка уже снята", exc_info=True)
+                if gui is not None:
+                    gui.start_hidden = False
+                    gui.show_window()
 
-        if gui is not None:
-            # Трей есть -> крестик прячет окно, нет -> окно закрывается.
-            gui.set_tray_active(tray_holder["icon"] is not None)
+            if gui is not None:
+                # Трей есть -> крестик прячет окно, нет -> окно закрывается.
+                gui.set_tray_active(tray_holder["icon"] is not None)
 
     # --- Подписки: изменения конфига применяются на лету ---
     config.subscribe(make_config_listener(jarvis, config, listener,
@@ -864,7 +875,7 @@ def main() -> None:
     threading.Thread(target=_greet, daemon=True, name="greeting").start()
 
     # Иконка трея поднимается ЗДЕСЬ — до ft.run (см. _apply_tray выше).
-    _apply_tray(bool(config.get("tray_enabled", False)))
+    _apply_tray(bool(config.get("tray_enabled", True)))
 
     # === Режим запуска (№84) ===
     launch_mode = str(config.get("launch_mode", "gui") or "gui").lower()
@@ -879,6 +890,7 @@ def main() -> None:
         launch_mode = "gui"
 
     if gui is not None:
+        gui.start_hidden = launch_mode == "tray"
         if launch_mode == "tray":
             log.info("launch_mode=tray — GUI запущен, но окно скрыто")
             gui.start_hidden = True
@@ -892,8 +904,10 @@ def main() -> None:
         jarvis.stop_event.wait()
 
     if tray_holder["icon"] is not None:
+        stopping_icon = tray_holder["icon"]
+        tray_holder["icon"] = None
         try:
-            tray_holder["icon"].stop()
+            stopping_icon.stop()
         except Exception:
             log.debug("Трей: иконка уже снята", exc_info=True)
 

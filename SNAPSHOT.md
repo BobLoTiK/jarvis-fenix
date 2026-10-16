@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=5eced322b8cffc2d` · режим `lean` · файлов `239` · строк `44292` · источник `1913 КБ`
+`sha256=63a622b2b2e75095` · режим `lean` · файлов `262` · строк `48588` · источник `2163 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -13,9 +13,42 @@
 ````
 # PROJECT.md — источник правды о «Феникс»
 
-Курируемый документ. Обновлён 15.10.2026. `snapshot.py` включает его целиком;
+Курируемый документ. Обновлён 16.10.2026. `snapshot.py` включает его целиком;
 остальные руководства раскрывают пользовательские и технические детали.
 История версий — в `CHANGELOG.md`, порядок развития — в `PLAN.md`.
+
+## Кольцо действий Главной
+
+`gui_home_actions.py` — PhoenixActions: обёртка над существующей аурой с тем же
+фиксированным размером 300×300. Триггер 120px над птицей открывает три кнопки
+48px на окружности. Только нативные Flet Stack/Container/IconButton/Semantics,
+без нового Canvas или собственного animation-loop. Конечные opacity/scale
+переходы 220ms, уход курсора с общей зоны — задержка 240ms. Внешняя зона сама
+по себе не раскрывает меню: нужен hover птицы, focus с клавиатуры или активация.
+Реальные callbacks: `_select_tab(0)`, `_on_mic_toggle`, `_on_stop_speech`.
+В закрытом меню действия disabled+hidden semantics; без ядра аудио disabled,
+без speaking stop disabled. Состояние синхронизируется событиями и существующим
+5Hz RMS-poll, без повторных update при неизменных данных. Обновляется локальный
+контрол кольца, а не вся Page. Reduced motion берётся у той же PhoenixAura.
+Home keyboard-dispatch сохраняет обработчик боковой панели; Escape закрывает
+кольцо до обработки Escape панели. Dispose сбрасывает меню и отменяет таймер.
+Виджеты и отдельный раздел Планы в этом обновлении не добавляются.
+Инструкция: `docs/GUI_HOME_ACTION_RING.md`.
+
+## Исправления запуска окна / трея
+
+`FenixGUI.run_main/_run` используют `AppView.FLET_APP_HIDDEN` (Flet 1.0.3+).
+`_main` применяет название, ICO и первую раскладку при visible=False, затем
+явно показывает окно только для обычного GUI-старта. Tray-ошибки возвращают
+окно через очередь, включая ошибки до создания Flet Page. `prevent_close`
+меняется GUI-worker, не потоком трея. Трей readiness ограничен 3 секундами;
+Windows-адаптер pystray проверяет Shell_NotifyIconW и повторяет NIM_ADD до 2 с.
+Windows решает, положить значок в видимую область или под стрелку «^» —
+приложение не меняет системные настройки видимости значков.
+Основной mutex имеет Win64 HANDLE-сигнатуру и ограниченное 3-секундное ожидание
+освобождения старым launcher.exe; новый исходник launcher использует отдельное
+имя setup-mutex. В обновлении нет пересобранного EXE, старый EXE поддержан.
+Инструкция и ручная приёмка: `docs/GUI_STARTUP_TRAY_FIX.md`.
 
 ## 1. Назначение и стек
 
@@ -209,8 +242,125 @@ recognizing и thinking получают сигналы из голосовог�
 - Копирование через штатный Flet Clipboard; ошибка показывается, не скрывается.
 - Ошибка worker отображается через очередь без сырого exception/пароля; повтор
   действия автоматически не запускается. Микрофон и его pause-состояние сохраняются.
-- Остальные четыре вкладки не переписаны. Минимум native-окна остаётся 900×600.
+- «Микрофон» и «Голос и звук» обновлены; «Персона» и «Настройки» также обновлены. Минимум native-окна остаётся 900×600.
   Браузерный Flet-стенд с отключёнными ОС/аудио не заменяет Windows-приёмку.
+
+### Микрофон и голос
+
+`gui_audio.py` — нативные карточки и SoundSettings, диагностические потоки
+отдают только данные через GUI-очередь `sound_result`. Отдельных ASR/TTS/stream
+нет. Состояние проверки сохраняется при смене темы/вкладки; повторный старт
+блокируется до применения completion-события. Ошибки не содержат сырой payload.
+
+Listener обновляет `level_updated_at` в callback по monotonic; GUI очищает
+индикатор, если данным больше секунды. Тест собирает 3 с свежих current_rms,
+не сбрасывает статистику; смена входа/Listener, pause/mute инвалидируют замер.
+Шкала условная, не ASR-метрика; эмоция не выводится из session peak.
+Проба голоса: фиксированный Reply без nonverbal → существующий Jarvis.say;
+nonblocking `_command_lock` + cmd_lock, обычный _say_lock остаётся у ядра.
+Pending password/question и текущая речь блокируют пробу без очереди/исполнения
+handler. Stop остаётся остановкой речи; completion не доказывает физический звук.
+
+### Минималистичная главная
+
+`gui_home.py` — нативный HomeScreen (Flet), стартовый экран окна.
+Только локальные дата/время, фирменная птица, короткий реальный статус и
+переключение тем. Нет поля ввода, карточек задач, виджетов, фиктивных команд
+или лишних панелей. Виджеты и планы — позже. В покое корона плавно
+движется как декоративный элемент, не выдавая это за активность микрофона.
+Центральная солнечная корона вынесена в `gui_home_fx.py`: нативный Canvas,
+одна задача только на видимой Главной: 16 FPS в покое, до 24 FPS при активности.
+Покой — одна медленная линия; слушание — две линии, ярче свечение и три
+мягкие расходящиеся волны; речь — три плазменные линии и до 16 искр;
+распознавание/обработка — более спокойное движение. Это декоративный эффект,
+не анализ спектра и не синхронизация с фонемами TTS.
+Режимы смешиваются по времени: нарастание около 0.8 с до 95%, спад около
+1.5 с. Переход в середине другого продолжается из текущего смешанного
+состояния. Скорость интегрируется в общую фазу, поэтому контуры не прыгают.
+Уровень сигнала тоже сглажен (tau 0.30 с). Слои Canvas имеют постоянные
+типы/порядок/число (35): дополнительные волны и искры появляются через
+прозрачность, а не вставкой/удалением. Амплитуда бегущих волн усилена;
+весь эффект остаётся в фиксированном Canvas 300×300. Во время затухания
+сохраняется 24 FPS, после успокоения — 16 FPS. Входящий сигнал берётся
+только из существующих current_rms/level_updated_at Listener (5 Гц, свежесть
+не более секунды, без второго аудиопотока). Шум тоже может дать свечение.
+Тишина, пауза, mute и устаревшие данные оставляют только фоновую корону,
+но не включают усиленный эффект слушания. Короткий hold
+350 мс сглаживает паузы. speaking имеет приоритет над входным уровнем.
+При скрытии/сворачивании, смене вкладки, unmount/rebuild/stop задача гасится;
+Config gui_motion_enabled и доступные системные reduce-motion flags
+оставляют статичный рисунок. На кадре обновляется только Canvas.
+mic_watchdog больше не произносит предупреждение о тишине и не переключает
+вкладку: результат однократной проверки остаётся только в журнале.
+Обработка настоящего сбоя аудиопотока и ручная диагностика не отключены.
+«Диалог» остаётся отдельным экраном с прежним worker/stream/password-контрактом.
+Внутренние ID 0..5 сохранены, HOME_TAB=6; NAV_ORDER показывает Главную первой.
+Поэтому переходы из трея, audio/preferences и конструктора не переиндексируются.
+Home отражает события состояния, не запускает модель/микрофон и не выдаёт
+наличие выбранной модели за подключение. Если ядра нет — явная подпись.
+Задача часов запускается только при mount, обновляет только date/clock при
+смене минуты и отменяется при unmount/rebuild/stop; даты — на русском без
+зависимости от локали ОС, время — локальное системное.
+Смена темы сохраняет выбранную вкладку, обычный черновик и текущий стрим.
+HTML-прототип в приложение не встроен. Новых runtime-зависимостей нет.
+
+### Интерактивная боковая панель
+
+`gui_sidebar.py` — нативные Button/Stack/Canvas Flet, без HTML/WebView.
+Компактная ширина 76 px, раскрытая 252 px; при любой ширине окна
+hover синхронно анимирует резерв контента за 200 мс (push). Панель не
+перекрывает контент и на окнах уже 1100 px. Порога и зависимости от
+on_size_change нет. Закрепление всегда выделяет панели место. Config хранит только явное закрепление
+(`gui_sidebar_pinned`) и ручной флаг `gui_motion_enabled`; наведение не пишет диск.
+Hover open 100 мс, close 320 мс, переход ширины 200 мс; icon scale 1.06.
+Canvas рисует короткий медный сегмент по скруглённой рамке: один проход 850 мс,
+не больше 30 кадров/с, затем очищается. Обновляется Canvas, а не вся страница.
+Задачи ограничены и отменяются при уходе курсора, rebuild и unmount.
+Системные disable_animations/reduce_motion читаются через SemanticsService;
+если платформа их не предоставляет, доступен ручной флаг в Config.
+Tab/focus раскрывает, Escape закрывает незакреплённую панель; mouse focus
+не удерживает панель открытой. Список меню прокручивается отдельно от футера.
+Hover использует смесь selected/card, активный пункт — selected; медь не
+создаёт конкурирующей заливки. Выбранные темы и черновики не меняются.
+Ручная приёмка Windows/DPI — отдельно от Linux/Flet-render тестов.
+
+### Персона и общие настройки
+
+`gui_preferences.py` — нативные Flet-контролы, общие карточки/поля/палитра,
+ResponsiveRow с одной колонкой на узком окне и ScrollMode.AUTO.
+Фон, карточки, поля, рамки и текст используют общую палитру P, как в
+«Голосе и звуке»; медные акценты — общий P.brand. Отдельной палитры нет.
+Выбранные темы: тёмная — «Сумерки» (04), светлая — «Тёплый фарфор» (05).
+Общие токены также задают боковую панель, композер и пузырьки диалога.
+Расположение и поведение не менялись. Без WebView,
+параллельной памяти и дополнительных runtime-зависимостей.
+
+Редактор хранит только временные черновики. Изменения контролов не записывают
+данные до кнопки сохранения (кроме темы, у неё явное немедленное применение).
+Набор текста обновляет только зависимые подписи, без обратной отправки value
+редактируемого поля на каждый символ. Черновики сохраняются при смене темы/вкладки, но персона всегда привязана к
+profile.current; при смене пользователя старый черновик не переносится.
+`profile.read_fields/update_fields` используют общий profile lock, идентификатор
+и исходные значения; name/persona сохраняются одним config_manager.save.
+Факты, история, onboarding и неизвестные поля persona сохраняются. Сброс
+знакомства подтверждается отдельно. Глобальный Config.name не используется
+новым редактором и не мигрируется молча. Портрет/цитата — явный пример стиля,
+не генерация, не запуск команды и не обучение.
+
+Общие настройки сохраняют только изменённые ключи одним Config.update с
+expected_values. Config.set/update сериализованы RLock, не публикуют данные
+до успешного сохранения; уведомления идут после записи вне write-lock.
+Конфликт/ошибка сохраняют черновик. Тема — сразу, модель/трей/RAG — после
+Применить, Observer и launch_mode — после перезапуска. Запуск tray при
+выключенном трее запрещён; смена модели/адреса блокируется во время GUI-команды.
+
+Проверка Ollama запускается только кнопкой: один worker → `preferences_result`
+в штатной GUI-очереди. GET /api/tags, timeout 4 с на socket-операцию, ответ до
+1 MiB; без генерации, pull, прокси окружения, редиректов и credentials в URL.
+Ответы/исключения не показываются сырым текстом; поколения отсеивают устаревшие
+результаты. Это наличие моделей, не проверка качества/реальной генерации.
+Включение RAG или смена его сервера требует найденного configured embedding-тега.
+Путь/тег модели и удалённый URL не выдаются за подтверждение приватности.
 
 ### Конструктор «Мои команды»
 
@@ -301,8 +451,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── README.md  (74 стр)
 │   │   ├── release.yml  (114 стр)
 │   │   ├── test.yml  (71 стр)
-├── AGENTS.md  (119 стр)
-├── ARCHITECTURE.md  (1075 стр)
+├── AGENTS.md  (134 стр)
+├── ARCHITECTURE.md  (1085 стр)
 ├── assets/
 │   ├── nonverbal/
 │   │   ├── README.md  (40 стр)
@@ -310,7 +460,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── readme/
 │   │   ├── hero-mobile.svg  (8 стр)
 │   │   ├── hero.svg  (19 стр)
-├── CHANGELOG.md  (1354 стр)
+├── CHANGELOG.md  (1531 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -319,11 +469,20 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ├── cmds/
 │   ├── open_terminal.bat  (3 стр)
 │   ├── show_ip.bat  (3 стр)
-├── config.example.json  (85 стр)
+├── config.example.json  (87 стр)
 ├── CONTRIBUTING.md  (438 стр)
 ├── create_shortcut.bat  (51 стр)
 ├── docs/
-│   ├── USER_GUIDE.md  (890 стр)
+│   ├── GUI_HOME_ACTION_RING.md  (45 стр)
+│   ├── GUI_HOME_UPDATE.md  (47 стр)
+│   ├── GUI_PERSONA_SETTINGS_UPDATE.md  (62 стр)
+│   ├── GUI_SIDEBAR_PUSH_FIX.md  (29 стр)
+│   ├── GUI_SIDEBAR_UPDATE.md  (44 стр)
+│   ├── GUI_SOLAR_AURA_ALWAYS_UPDATE.md  (24 стр)
+│   ├── GUI_SOLAR_AURA_SMOOTH_UPDATE.md  (32 стр)
+│   ├── GUI_SOLAR_AURA_UPDATE.md  (52 стр)
+│   ├── GUI_STARTUP_TRAY_FIX.md  (55 стр)
+│   ├── USER_GUIDE.md  (978 стр)
 ├── install.bat  (411 стр)
 ├── installer.iss  (119 стр)
 ├── jarvis/
@@ -356,12 +515,18 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── brain.py  (868 стр)
 │   ├── celebrations.py  (165 стр)
 │   ├── command_builder.py  (152 стр)
-│   ├── config.py  (288 стр)
+│   ├── config.py  (267 стр)
 │   ├── config_manager.py  (156 стр)
 │   ├── files.py  (109 стр)
 │   ├── first_run.py  (26 стр)
-│   ├── gui.py  (2301 стр)
+│   ├── gui.py  (1639 стр)
+│   ├── gui_audio.py  (378 стр)
 │   ├── gui_commands.py  (305 стр)
+│   ├── gui_home.py  (170 стр)
+│   ├── gui_home_actions.py  (225 стр)
+│   ├── gui_home_fx.py  (206 стр)
+│   ├── gui_preferences.py  (602 стр)
+│   ├── gui_sidebar.py  (429 стр)
 │   ├── history.py  (75 стр)
 │   ├── installed.py  (51 стр)
 │   ├── intents/
@@ -418,7 +583,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── time.py  (84 стр)
 │   │   ├── units.py  (85 стр)
 │   ├── learning.py  (178 стр)
-│   ├── main.py  (905 стр)
+│   ├── main.py  (919 стр)
 │   ├── matching.py  (118 стр)
 │   ├── memory.py  (147 стр)
 │   ├── memory_context.py  (124 стр)
@@ -430,18 +595,18 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── packs.py  (117 стр)
 │   ├── paths.py  (235 стр)
 │   ├── persona.py  (226 стр)
-│   ├── profile.py  (489 стр)
+│   ├── profile.py  (522 стр)
 │   ├── prosody.py  (152 стр)
 │   ├── recognition.py  (154 стр)
 │   ├── recorder.py  (171 стр)
 │   ├── reply.py  (26 стр)
 │   ├── safety.py  (213 стр)
 │   ├── steam.py  (67 стр)
-│   ├── stt.py  (744 стр)
+│   ├── stt.py  (746 стр)
 │   ├── tasks.py  (257 стр)
 │   ├── text_utils.py  (98 стр)
 │   ├── timers.py  (326 стр)
-│   ├── tray.py  (188 стр)
+│   ├── tray.py  (223 стр)
 │   ├── tts.py  (384 стр)
 │   ├── tts_engines/
 │   │   ├── __init__.py  (12 стр)
@@ -457,7 +622,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── voices.py  (220 стр)
 │   ├── weather.py  (400 стр)
 ├── jarvis-fenix.code-workspace  (8 стр)
-├── launcher.py  (702 стр)
+├── launcher.py  (707 стр)
 ├── LICENSE  (25 стр)
 ├── packs/
 │   ├── apps.json  (21 стр)
@@ -465,8 +630,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── sites.json  (22 стр)
 │   ├── system.json  (17 стр)
 │   ├── work.json  (11 стр)
-├── PLAN.md  (243 стр)
-├── PROJECT.md  (272 стр)
+├── PLAN.md  (291 стр)
+├── PROJECT.md  (422 стр)
 ├── PROMPT.md  (511 стр)
 ├── pytest.ini  (20 стр)
 ├── README.md  (249 стр)
@@ -511,7 +676,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── uia_manual.py  (61 стр)
 │   │   ├── vad_debug.py  (61 стр)
 │   │   ├── vad_live.py  (41 стр)
-│   ├── README.md  (290 стр)
+│   ├── README.md  (449 стр)
 │   ├── stress_intents.py  (552 стр)
 │   ├── test_audio_regression.py  (556 стр)
 │   ├── test_audit_regressions.py  (265 стр)
@@ -525,12 +690,20 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_config_manager.py  (47 стр)
 │   ├── test_engine_probe.py  (100 стр)
 │   ├── test_git_hygiene.py  (322 стр)
+│   ├── test_gui_audio.py  (249 стр)
 │   ├── test_gui_chat.py  (287 стр)
 │   ├── test_gui_commands.py  (126 стр)
-│   ├── test_gui_wiring.py  (548 стр)
+│   ├── test_gui_home.py  (152 стр)
+│   ├── test_gui_home_actions.py  (189 стр)
+│   ├── test_gui_home_fx.py  (261 стр)
+│   ├── test_gui_preferences.py  (503 стр)
+│   ├── test_gui_sidebar.py  (283 стр)
+│   ├── test_gui_startup.py  (105 стр)
+│   ├── test_gui_wiring.py  (542 стр)
 │   ├── test_intents.py  (485 стр)
 │   ├── test_main_wiring.py  (202 стр)
 │   ├── test_memory_scope.py  (132 стр)
+│   ├── test_mic_watchdog.py  (36 стр)
 │   ├── test_mood.py  (386 стр)
 │   ├── test_nonverbal.py  (400 стр)
 │   ├── test_numeric_language.py  (521 стр)
@@ -542,7 +715,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_speech_gate.py  (86 стр)
 │   ├── test_stt.py  (451 стр)
 │   ├── test_test_portability.py  (44 стр)
-│   ├── test_tray.py  (180 стр)
+│   ├── test_tray.py  (249 стр)
 │   ├── test_tts.py  (243 стр)
 │   ├── test_uia.py  (788 стр)
 │   ├── test_uia_fast.py  (238 стр)
@@ -702,7 +875,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
     def get(self, key: str, default=None)
     def all_data(self)
     def set(self, key: str, value)
-    def update(self, data: dict)
+    def update(self, data: dict, *, expected_values: dict | None=None)
     def subscribe(self, callback: Callable[[str, Any], None])
     def unsubscribe(self, callback: Callable[[str, Any], None])
   _GLOBAL: ...
@@ -762,12 +935,9 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   THEMES = ...
   LLM_MODELS = ...
   TTS_BACKENDS = ...
+  HOME_TAB = ...
+  NAV_ORDER = ...
   NAV_ITEMS = ...
-  class _Sidebar(ft.Container)
-    def __init__(self, on_select)
-    def selected_index(self)
-    def selected_index(self, value)
-    def refresh_palette(self)
   class FenixGUI
     def __init__(self, jarvis, config)
     def start(self)
@@ -784,6 +954,30 @@ Non-verbal/микрофон/установщик по-прежнему треб�
     def set_mic_test_result(self, text: str, color: str)
     def launch_fireworks(self, duration: float=6.0)
   >>> GUI: ft.run(...) - Flet в главном потоке
+```
+
+**`jarvis/gui_audio.py`**
+
+```
+  # Native sound settings. Diagnostics use the existing listener/Speaker, not new streams.
+  TEST_PHRASE = ...
+  def note(text)
+  def button(text, handler, icon=None, primary=False, disabled=False)
+  def card(title, subtitle, controls, icon)
+  def screen(title, subtitle, controls)
+  class SoundSettings
+    def __init__(self, gui)
+    def apply_result(self, kind, text, color='text_dim', done=False)
+    def sync(self)
+    def build_mic(self)
+    def refresh_devices(self, e=None)
+    def update_level(self)
+    def test_mic(self, e=None)
+    def test_voice(self, e=None)
+    def build_audio(self)
+    def change_voice(self, e)
+    def show_rate(self, e)
+    def change_rate(self, e)
 ```
 
 **`jarvis/gui_commands.py`**
@@ -807,6 +1001,119 @@ Non-verbal/микрофон/установщик по-прежнему треб�
     def check(self, e=None)
     def set_password(self, e=None)
     def build(self)
+```
+
+**`jarvis/gui_home.py`**
+
+```
+  # Minimal native Home: local clock and the real assistant state, no chat/widgets.
+  WEEKDAYS = ...
+  MONTHS = ...
+  def clock_labels(now)
+  class HomeScreen(ft.Column)
+    def __init__(self, gui)
+    def apply_state(self, state)
+    def poll_signal(self)
+    def refresh_clock(self, now=None)
+    def did_mount(self)
+    def will_unmount(self)
+    def dispose(self)
+```
+
+**`jarvis/gui_home_actions.py`**
+
+```
+  # Three real Home actions. Native controls, finite transitions, no extra frame loop.
+  def entered(event)
+  class PhoenixActions(ft.Container)
+    def __init__(self, gui, aura)
+    def sync_state(self)
+    def set_open(self, value)
+    async def on_key(self, e)
+    def did_mount(self)
+    def will_unmount(self)
+    def dispose(self)
+```
+
+**`jarvis/gui_home_fx.py`**
+
+```
+  # Bounded native solar aura. Decorative state motion, never a fake waveform.
+  FPS = ...
+  IDLE_FPS = ...
+  MODES = ...
+  SIZE = ...
+  CENTER = ...
+  def transition_weights(current, target, dt)
+  def solar_shapes(mode, seconds, energy, color, *, weights=None, phase=None)
+  class PhoenixAura(ft.Container)
+    def __init__(self, gui, ring)
+    def foreground(self)
+    def motion_allowed(self)
+    def set_mode(self, mode, energy=0)
+    def sync_motion(self)
+    def did_mount(self)
+    def will_unmount(self)
+    def dispose(self)
+```
+
+**`jarvis/gui_preferences.py`**
+
+```
+  # Native persona/settings editors. Drafts are not configuration or a second memory.
+  STYLES = ...
+  TONES = ...
+  EXAMPLES = ...
+  SETTING_KEYS = ...
+  def validated_url(value)
+  class _NoRedirect(HTTPRedirectHandler)
+    def redirect_request(self, req, fp, code, msg, headers, newurl)
+  def probe_ollama(url)
+  def has_model(names, value)
+  def text(value, size=14, muted=False, **kwargs)
+  def button(label, handler, primary=False, **kwargs)
+  def card(title, subtitle, controls)
+  def input_border()
+  def divider()
+  class PreferenceScreens
+    def __init__(self, gui)
+    def add_trait(self, e)
+    def remove_trait(self, value)
+    def build_persona(self)
+    def choose_style(self, key)
+    def cancel_persona(self, e=None)
+    def save_persona(self, e=None)
+    def ask_reset(self, e=None)
+    def confirm_reset(self, confirm)
+    def build_settings(self)
+    def cancel_settings(self, e=None)
+    def start_probe(self, e=None)
+    def apply_probe(self, result)
+    def save_settings(self, e=None)
+```
+
+**`jarvis/gui_sidebar.py`**
+
+```
+  # Native, persistent hover rail. Bounded UI-loop animation; no WebView or threads.
+  COMPACT = ...
+  EXPANDED = ...
+  HEIGHT = ...
+  def mix(first, second, weight=0.65)
+  def rounded_outline(width, height=HEIGHT, radius=10)
+  def stroke_shapes(width, progress, color)
+  def entered(event)
+  class Sidebar(ft.Container)
+    def __init__(self, on_select, config=None)
+    def layout(self, content)
+    def did_mount(self)
+    def will_unmount(self)
+    def dispose(self)
+    def set_motion(self, enabled)
+    def selected_index(self)
+    def selected_index(self, value)
+    def refresh_palette(self)
+    async def on_key(self, e)
 ```
 
 **`jarvis/history.py`**
@@ -1509,6 +1816,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def switch(name: str)
   def list_all()
   def delete(name: str)
+  def read_fields(*keys: str)
+  def update_fields(data: dict, *, expected_profile: str, expected_values: dict)
   def mutate(key: str, func)
   def get(key: str, default=None)
   def set(key: str, value)
@@ -2537,6 +2846,33 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_snapshot_text_and_size_are_eol_independent(repo)
 ```
 
+**`tests/test_gui_audio.py`**
+
+```
+  # Native sound settings + real worker boundaries; no microphone or actual TTS.
+  def gui(tmp_path, monkeypatch)
+  def finish(gui)
+  def sample_clock(gui, monkeypatch, rms=800, callback=None)
+  def test_mic_controls_keep_full_name_and_refresh_without_saving(gui, monkeypatch)
+  def test_missing_saved_device_is_visible_and_not_replaced(gui)
+  def test_live_level_uses_current_rms_not_historical_peak(gui)
+  def test_stale_meter_and_paused_input_never_report_success(gui)
+  def test_windowed_mic_test_preserves_listener_stats(gui, monkeypatch, rms, needle)
+  def test_mic_test_rejects_cached_samples(gui, monkeypatch)
+  def test_changing_input_during_test_invalidates_result(gui, monkeypatch)
+  def test_voice_test_uses_existing_say_without_handler_or_history(gui)
+  def test_pending_command_blocks_voice_preview(gui, pending)
+  def test_voice_does_not_queue_behind_core_or_gui_lock(gui)
+  def test_preview_failure_sanitized_and_locks_released(gui)
+  def test_duplicate_test_click_and_theme_rebuild(gui)
+  def test_thread_start_failure_recovers(gui, monkeypatch)
+  def test_voice_picker_synced_to_chat_and_rate_saved(gui)
+  def test_stop_uses_existing_speaker(gui)
+  def test_listener_level_heartbeat_updates_even_when_muted()
+  def test_voice_preview_does_not_interrupt_existing_speech(gui)
+  def test_disappeared_listener_clears_old_meter_metadata(gui)
+```
+
 **`tests/test_gui_chat.py`**
 
 ```
@@ -2577,6 +2913,171 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_password_never_becomes_editor_draft(editor)
   def test_brand_assets_and_app_icon_have_no_letter_fallback(editor)
   def test_theme_rebuild_preserves_unsaved_command_but_not_password(editor, monkeypatch)
+```
+
+**`tests/test_gui_home.py`**
+
+```
+  # Native minimal Home; no OS/model/mic/network. Old navigation IDs stay stable.
+  def walk(control)
+  def gui(tmp_path, monkeypatch)
+  def test_startup_is_home_and_chat_ids_do_not_shift(gui)
+  def test_minimal_home_has_no_composer_cards_widgets_or_fake_actions(gui)
+  def test_local_date_labels_include_midnight_and_new_year()
+  def test_clock_only_marks_changes_at_minute_or_date_boundary(gui)
+  def test_home_mirrors_real_state_without_auto_opening_chat(gui, state, label)
+  def test_paused_mic_does_not_claim_listening(gui)
+  def test_incoming_chat_does_not_replace_home_and_is_available_in_dialog(gui)
+  def test_theme_rebuild_keeps_home_selected_and_preserves_chat_draft_and_stream(gui)
+  def test_home_navigation_does_not_break_tray_mic_or_settings(gui)
+  def test_unmounted_home_has_no_clock_task_and_stop_disposes_it(gui)
+  def test_clock_updates_only_date_controls_and_dispose_cancels_task(gui)
+```
+
+**`tests/test_gui_home_actions.py`**
+
+```
+  # Action orbit: real callbacks, continuous hover zone, keyboard and lifecycle.
+  def gui(tmp_path)
+  def event(value=True)
+  def attach(ring)
+  def test_closed_orbit_keeps_same_footprint_and_hidden_actions_out_of_tab_order(gui)
+  def test_bird_hover_opens_but_outer_zone_alone_does_not(gui, value)
+  def test_click_after_hover_does_not_accidentally_close(gui)
+  def test_shared_zone_survives_pointer_trip_to_buttons_then_closes(gui)
+  def test_keyboard_tab_focus_bridge_and_escape_no_reopening(gui)
+  def test_dialog_uses_existing_navigation_and_never_sends_message(gui)
+  def test_mic_toggles_real_core_and_syncs_chat_button_and_home(gui)
+  def test_stop_only_stops_existing_speech_and_does_not_claim_cancellation(gui)
+  def test_without_core_dialog_works_audio_actions_disabled(gui)
+  def test_hidden_action_cannot_execute_stale_click(gui)
+  def test_reduced_motion_removes_orbit_transitions(gui, reason)
+  def test_dispose_cancels_delayed_close_resets_state_and_does_not_touch_aura(gui)
+  def test_theme_rebuild_disposes_old_ring_and_does_not_leave_open_menu(gui)
+  def test_no_background_updates_for_unchanged_state_and_only_local_orbit_update(gui)
+  def test_custom_captions_do_not_duplicate_native_tooltips_and_hidden_semantics(gui)
+```
+
+**`tests/test_gui_home_fx.py`**
+
+```
+  # Native solar aura lifecycle; no audio device, model or Windows session.
+  def gui(tmp_path, monkeypatch)
+  def attach(aura)
+  def test_shapes_are_bounded_deterministic_and_change_smoothly(mode)
+  def test_idle_error_or_sensitive_states_keep_only_decorative_ambient(gui, state)
+  def test_real_states_select_their_own_motion_without_opening_chat(gui, state, mode)
+  def test_only_existing_fresh_rms_can_light_idle_home(gui)
+  def test_invalid_quiet_or_muted_input_cannot_start_glow(gui, changes)
+  def test_pause_clears_signal_and_speaking_has_priority_over_input(gui)
+  def test_one_task_targeted_updates_and_idle_keeps_same_phase(gui)
+  def test_background_and_reduced_motion_stop_animation(gui, reason)
+  def test_unmount_and_theme_dispose_old_aura_task(gui)
+  def test_os_reduce_motion_keeps_static_state_without_animation(gui, monkeypatch)
+  def test_native_window_events_stop_and_restore_motion(gui, event)
+  def test_visible_idle_animates_without_core_or_microphone(gui)
+  def test_fixed_layers_fade_instead_of_appearing()
+  def test_transition_eases_rise_fall_and_midflight_reversal()
+  def test_mounted_target_change_does_not_pop_or_restart_phase(gui)
+  def test_energy_is_smoothed_not_applied_as_a_step(gui)
+  def test_waves_have_more_travel_but_stay_inside_canvas()
+```
+
+**`tests/test_gui_preferences.py`**
+
+```
+  # Real imported Flet controls / real disk writes / explicit network fake only.
+  def ev(value)
+  def editor(tmp_path, monkeypatch)
+  def drain(editor)
+  def test_persona_controls_stage_then_save_to_one_current_profile(editor)
+  def test_persona_batch_is_one_write_and_keeps_other_profile_fields(editor, monkeypatch)
+  def test_persona_validation_never_writes(editor, key, value)
+  def test_persona_save_failure_retains_draft_and_never_reports_success(editor, monkeypatch)
+  def test_newer_persona_is_not_overwritten(editor)
+  def test_profile_switch_cannot_write_old_draft_to_new_person(editor)
+  def test_profile_switch_invalidates_draft_on_build(editor)
+  def test_drafts_survive_theme_build_and_navigation(editor)
+  def test_trait_chips_and_preview_are_pure_draft(editor)
+  def test_cancel_persona_reloads_saved_values(editor)
+  def test_reset_is_confirmed_and_preserves_facts_history_draft(editor)
+  def test_corrupt_profile_is_shown_not_overwritten(editor)
+  def test_settings_batch_apply_not_staged_per_control(editor)
+  def test_settings_failure_retains_every_old_value(editor, monkeypatch)
+  def test_settings_do_not_clobber_newer_values(editor)
+  def test_unrelated_setting_changed_elsewhere_is_not_overwritten(editor)
+  def test_hidden_tray_launch_is_rejected(editor)
+  def test_model_change_during_command_is_rejected(editor)
+  def test_cancel_settings_does_not_revert_theme(editor)
+  def test_bad_url_is_rejected(value)
+  def test_url_normalization(value, expected)
+  def test_probe_worker_only_enqueues_until_completion_applied(editor, monkeypatch)
+  def test_stale_probe_does_not_mark_new_address_ready(editor, monkeypatch)
+  def test_probe_error_is_sanitized(editor, monkeypatch)
+  def test_probe_thread_start_failure_unlocks(editor, monkeypatch)
+  def test_rag_enabling_requires_verified_embedding_inventory(editor, monkeypatch)
+  def test_profile_compare_write_never_changes_new_profile(editor)
+  def test_config_compare_and_swap_keeps_memory_disk_notifications(editor)
+  def test_config_serializes_concurrent_writes(editor)
+  def test_probe_http_contract_real_local_server(mode)
+  def test_pending_trait_is_included_by_explicit_save(editor)
+  def test_invalid_pending_trait_is_retained_on_validation_failure(editor)
+  def test_new_endpoint_is_notified_before_model_warmup(editor)
+  def test_typing_only_patches_dependent_labels_not_the_input(editor)
+  def test_preferences_outer_background_matches_shared_voice_background(editor, theme)
+  def test_preferences_background_follows_palette_not_a_copied_constant(editor, monkeypatch)
+  PALETTE_ROLES = ...
+  def test_preferences_use_shared_voice_palette_for_every_role(editor, theme)
+  def test_all_preference_colors_follow_live_tokens_without_hex_copies(editor, monkeypatch)
+  def test_selected_twilight_and_porcelain_match_approved_swatches(editor, theme, expected)
+  def test_selected_themes_text_and_primary_buttons_have_aa_contrast(editor, theme)
+```
+
+**`tests/test_gui_sidebar.py`**
+
+```
+  # Native controls and bounded asyncio tasks; no desktop, microphone or model.
+  def hover(value)
+  def rail(tmp_path)
+  def attach(panel)
+  def test_wide_hover_pushes_content_with_matching_animation(rail)
+  def test_selection_and_click_use_real_callback_without_replacing_buttons(rail)
+  def test_hover_stays_in_selected_color_family_and_selection_stays_distinct(rail, theme)
+  def test_pin_is_persistent_and_changes_reserve_only_after_success(rail)
+  def test_pin_write_failure_retains_previous_state(rail, monkeypatch)
+  def test_hover_delay_reentry_and_collapse_after_mouse_click(rail)
+  def test_brief_pointer_pass_does_not_expand(rail)
+  def test_keyboard_focus_keeps_open_escape_closes_and_pinned_ignores_escape(rail)
+  def test_blur_outside_sidebar_closes_keyboard_expansion(rail)
+  def test_motion_disabled_removes_animation_and_does_not_schedule_stroke(rail)
+  def test_expansion_does_not_cancel_first_hover_stroke(rail)
+  def test_stroke_finishes_without_idle_animation_loop(rail)
+  def test_stale_hover_exit_does_not_cancel_next_button(rail)
+  def test_theme_refresh_preserves_selected_expanded_pin_and_invalidates_old_stroke(rail)
+  def test_dispose_cancels_pending_tasks_and_suppresses_future_updates(rail)
+  def test_native_stroke_stays_on_rounded_outline(width)
+  def test_canvas_is_not_positioned_inside_a_non_stack_parent(rail)
+  def test_config_motion_override_disables_native_animation_on_start(tmp_path)
+  def test_navigation_scrolls_without_displacing_fixed_footer(rail)
+  def test_accessibility_reduce_motion_disables_animation(rail, monkeypatch)
+  def test_theme_refresh_cancels_delayed_pointer_actions(rail)
+  def test_hover_always_pushes_without_width_threshold(rail, width)
+```
+
+**`tests/test_gui_startup.py`**
+
+```
+  # Startup ordering, tray failure recovery, old EXE mutex handoff; no desktop needed.
+  ROOT = ...
+  def gui(tmp_path)
+  def test_native_client_starts_hidden(gui, monkeypatch, method)
+  def test_brand_and_first_layout_precede_show(gui, hidden)
+  def test_tray_state_is_applied_by_gui_worker(gui)
+  def source_function(name)
+  def test_old_launcher_mutex_handoff(codes, expected, monkeypatch)
+  def tray_callbacks(gui)
+  def test_tray_failure_before_page_restores_startup_intent(gui)
+  def test_stale_or_shutdown_tray_callback_does_not_show_window(gui)
 ```
 
 **`tests/test_gui_wiring.py`**
@@ -2620,10 +3121,10 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_theme_dropdown_rejects_unknown(gui, cfg)
   def test_observer_enabled_checkbox(gui, cfg)
   def test_memory_rag_checkbox(gui, cfg)
-  def test_persona_name_goes_to_config(gui, cfg)
-  def test_persona_fields_go_to_persona_module(gui, monkeypatch)
-  def test_persona_tone_rejects_unknown(gui, monkeypatch)
-  def test_persona_assistant_name_empty_uses_default(gui, monkeypatch)
+  def test_persona_name_is_staged_not_written_to_global_config(gui, cfg)
+  def test_persona_fields_are_real_draft_controls(gui)
+  def test_persona_unknown_tone_is_rejected_without_writing(gui)
+  def test_persona_empty_assistant_name_is_validation_error(gui)
   def test_audio_tab_has_vad_auto_download_checkbox(gui)
   def test_vad_auto_download_sends_flag(gui, cfg)
   class FakeWindow
@@ -2709,6 +3210,15 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_rag_cannot_reintroduce_disallowed_keys(monkeypatch)
   def test_generic_context_neither_exposes_nor_deletes_profile(tmp_path, monkeypatch)
   def test_generic_query_never_calls_vector_retriever(monkeypatch)
+```
+
+**`tests/test_mic_watchdog.py`**
+
+```
+  # Execute the real watchdog method without importing Windows/audio backends.
+  def watchdog()
+  def test_watchdog_never_speaks_or_steals_navigation(peak, caplog)
+  def test_watchdog_disabled_or_shutdown_does_not_read_listener()
 ```
 
 **`tests/test_mood.py`**
@@ -3029,6 +3539,9 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_build_icon_title_and_menu()
   def test_start_tray_runs_in_background(monkeypatch)
   def test_start_tray_without_pystray_is_not_fatal(monkeypatch)
+  def test_invisible_tray_is_not_returned_as_ready(monkeypatch)
+  def test_dead_tray_restores_window_callback(monkeypatch)
+  def test_windows_shell_must_accept_icon(monkeypatch, results, raises)
 ```
 
 **`tests/test_tts.py`**
@@ -3409,12 +3922,18 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/brain.py` | 868 | code | LLM-фолбэк: локальная нейронка (Ollama) разбирает команду в структурны |
 | `jarvis/celebrations.py` | 165 | code | Праздничные триггеры — поздравление с ДР + двойной салют. |
 | `jarvis/command_builder.py` | 152 | code | Typed custom commands. No execution, model calls or shell parsing in t |
-| `jarvis/config.py` | 288 | code | Загрузка конфигурации и объект Config в памяти. |
+| `jarvis/config.py` | 267 | code | Загрузка конфигурации и объект Config в памяти. |
 | `jarvis/config_manager.py` | 156 | code | Единый менеджер записи в config.json. |
 | `jarvis/files.py` | 109 | code | Файлы и папки: открыть, посмотреть содержимое, создать. |
 | `jarvis/first_run.py` | 26 | code | Первый запуск — знакомство через LLM-диалог. |
-| `jarvis/gui.py` | 2301 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
+| `jarvis/gui.py` | 1639 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
+| `jarvis/gui_audio.py` | 378 | code | Native sound settings. Diagnostics use the existing listener/Speaker,  |
 | `jarvis/gui_commands.py` | 305 | code | Flet editor for the existing custom_commands pipeline. Never executes  |
+| `jarvis/gui_home.py` | 170 | code | Minimal native Home: local clock and the real assistant state, no chat |
+| `jarvis/gui_home_actions.py` | 225 | code | Three real Home actions. Native controls, finite transitions, no extra |
+| `jarvis/gui_home_fx.py` | 206 | code | Bounded native solar aura. Decorative state motion, never a fake wavef |
+| `jarvis/gui_preferences.py` | 602 | code | Native persona/settings editors. Drafts are not configuration or a sec |
+| `jarvis/gui_sidebar.py` | 429 | code | Native, persistent hover rail. Bounded UI-loop animation; no WebView o |
 | `jarvis/history.py` | 75 | code | История последних действий для отмены («стоп, не то»). |
 | `jarvis/installed.py` | 51 | code | Индекс установленных программ по ярлыкам меню «Пуск». |
 | `jarvis/intents/__init__.py` | 10 | code | Разбор команд Феникса — пакет. |
@@ -3467,7 +3986,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/language/time.py` | 84 | code | Duration grammar with source spans. Uses the shared numeral/unit vocab |
 | `jarvis/language/units.py` | 85 | code | Semantic unit lexicon shared by input and output; spelling is data, no |
 | `jarvis/learning.py` | 178 | code | Самообучение Феникса: факты и коррекции. |
-| `jarvis/main.py` | 905 | code | Точка входа: связывает распознавание, интенты, синтез речи и GUI. |
+| `jarvis/main.py` | 919 | code | Точка входа: связывает распознавание, интенты, синтез речи и GUI. |
 | `jarvis/matching.py` | 118 | code | Нечёткое сопоставление речи с названиями: транслитерация + difflib. |
 | `jarvis/memory.py` | 147 | code | Память диалога — на профиль. |
 | `jarvis/memory_context.py` | 124 | code | Query-scoped personal memory. Absence/uncertainty never means 'send ev |
@@ -3479,18 +3998,18 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/packs.py` | 117 | code | Загрузка и выгрузка паков команд из папки packs/. |
 | `jarvis/paths.py` | 235 | code | Централизованное определение путей Феникса. |
 | `jarvis/persona.py` | 226 | code | Персона ассистента — стиль общения, черты, backstory, tone. |
-| `jarvis/profile.py` | 489 | code | Профиль пользователя — мультипрофиль. |
+| `jarvis/profile.py` | 522 | code | Профиль пользователя — мультипрофиль. |
 | `jarvis/prosody.py` | 152 | code | Prosody — эмоции из голоса (RMS + pitch + ZCR). |
 | `jarvis/recognition.py` | 154 | code | Measurable ASR acceptance policy, not a blacklist of 'strange' words. |
 | `jarvis/recorder.py` | 171 | code | Запись действий: клавиши, клики, паузы. |
 | `jarvis/reply.py` | 26 | code | Reply — результат IntentHandler.handle(). |
 | `jarvis/safety.py` | 213 | code | Постфильтр ответов LLM — вторая линия «красной черты». |
 | `jarvis/steam.py` | 67 | code | Индекс установленных игр Steam: appmanifest -> (название, appid). |
-| `jarvis/stt.py` | 744 | code | Распознавание речи. |
+| `jarvis/stt.py` | 746 | code | Распознавание речи. |
 | `jarvis/tasks.py` | 257 | code | Списки задач. |
 | `jarvis/text_utils.py` | 98 | code | Общие текстовые утилиты для Феникса. |
 | `jarvis/timers.py` | 326 | code | Таймеры и напоминания. |
-| `jarvis/tray.py` | 188 | code | Иконка в системном трее (pystray). |
+| `jarvis/tray.py` | 223 | code | Иконка в системном трее (pystray). |
 | `jarvis/tts.py` | 384 | code | Синтез речи — фасад над tts_engines. |
 | `jarvis/tts_engines/__init__.py` | 12 | code | TTS-движки Феникса — абстракция над Piper, Silero, WinRT, SAPI. |
 | `jarvis/tts_engines/base.py` | 73 | code | Базовый класс TTS-движка. |
@@ -3546,12 +4065,20 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_config_manager.py` | 47 | code | Тесты config_manager: параллельная запись не рвёт файл. |
 | `tests/test_engine_probe.py` | 100 | code | Заглушка движка TTS (factory._probe_engine). |
 | `tests/test_git_hygiene.py` | 322 | code | Exercise real temporary Git indexes/hooks; never commit or alter the u |
+| `tests/test_gui_audio.py` | 249 | code | Native sound settings + real worker boundaries; no microphone or actua |
 | `tests/test_gui_chat.py` | 287 | code | Imported Flet controls + real GUI worker threads; no window, ASR or au |
 | `tests/test_gui_commands.py` | 126 | code | Imported native builder controls; no OS actions or real passwords. |
-| `tests/test_gui_wiring.py` | 548 | code | GUI → config: каждый элемент окна реально отсылает изменение. |
+| `tests/test_gui_home.py` | 152 | code | Native minimal Home; no OS/model/mic/network. Old navigation IDs stay  |
+| `tests/test_gui_home_actions.py` | 189 | code | Action orbit: real callbacks, continuous hover zone, keyboard and life |
+| `tests/test_gui_home_fx.py` | 261 | code | Native solar aura lifecycle; no audio device, model or Windows session |
+| `tests/test_gui_preferences.py` | 503 | code | Real imported Flet controls / real disk writes / explicit network fake |
+| `tests/test_gui_sidebar.py` | 283 | code | Native controls and bounded asyncio tasks; no desktop, microphone or m |
+| `tests/test_gui_startup.py` | 105 | code | Startup ordering, tray failure recovery, old EXE mutex handoff; no des |
+| `tests/test_gui_wiring.py` | 542 | code | GUI → config: каждый элемент окна реально отсылает изменение. |
 | `tests/test_intents.py` | 485 | code | Автотест Феникса без микрофона. |
 | `tests/test_main_wiring.py` | 202 | code | config → живое ядро: подписчик make_config_listener. |
 | `tests/test_memory_scope.py` | 132 | code | Personalization should serve a question, not choose its topic. |
+| `tests/test_mic_watchdog.py` | 36 | code | Execute the real watchdog method without importing Windows/audio backe |
 | `tests/test_mood.py` | 386 | code | Тесты jarvis.mood — состояние, детекция, decay, влияние. |
 | `tests/test_nonverbal.py` | 400 | code | Nonverbal policy/mixing: synthetic PCM and fake output, no TTS weights |
 | `tests/test_numeric_language.py` | 521 | code | Executable Russian language corpus: understanding, morphology and spee |
@@ -3563,7 +4090,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_speech_gate.py` | 86 | code | Тесты jarvis.vad.SpeechHangover — «хвост» тишины после речи. |
 | `tests/test_stt.py` | 451 | code | stt.Listener: живое применение настроек (то, что раньше не работало). |
 | `tests/test_test_portability.py` | 44 | code | Audio fixture contents must never become Windows environment-variable  |
-| `tests/test_tray.py` | 180 | code | Трей (jarvis.tray): пункты меню реально дёргают ядро и GUI. |
+| `tests/test_tray.py` | 249 | code | Трей (jarvis.tray): пункты меню реально дёргают ядро и GUI. |
 | `tests/test_tts.py` | 243 | code | Тесты jarvis.tts_engines — движки и фабрика. С моками. |
 | `tests/test_uia.py` | 788 | code | Тесты jarvis.uia — логика обёртки. С моками. |
 | `tests/test_uia_fast.py` | 238 | code | Тесты быстрых UIA-команд — `jarvis/intents/fast/uia.py`. |
@@ -3574,7 +4101,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_window_targets.py` | 294 | code | Тесты выбора окна: голосовое имя → процессы → окно. |
 | `check_all.py` | 170 | code | Единый прогон всех проверок Феникса — движок для check_all.bat. |
 | `check_syntax.py` | 60 | code | Проверяет синтаксис всех .py файлов в проекте. |
-| `launcher.py` | 702 | code | Лаунчер Феникса — полный автозапуск. |
+| `launcher.py` | 707 | code | Лаунчер Феникса — полный автозапуск. |
 | `snapshot.py` | 727 | code | Собирает снимок проекта в один SNAPSHOT.md. |
 
 ---
@@ -6541,6 +7068,7 @@ def describe_steps(steps):
 """Загрузка конфигурации и объект Config в памяти. ... [8 строк]"""
 
 import logging
+import threading
 from pathlib import Path
 from typing import Any, Callable
 
@@ -6674,6 +7202,9 @@ DEFAULT_CONFIG = {
     # Системная — валидное значение (в gui.py THEMES).
     # Раньше было "dark-blue" — такого ключа в THEMES нет.
     "gui_theme": "Системная",
+    "gui_sidebar_pinned": False,
+    # False disables sidebar motion even when the OS does not expose accessibility flags.
+    "gui_motion_enabled": True,
     "gui_x": None,
     "gui_y": None,
     "tray_enabled": True,
@@ -6689,6 +7220,7 @@ class Config:
             from jarvis import paths as _paths
             path = _paths.config_path()
         self.path = path
+        self._write_lock = threading.RLock()
         self._data: dict = {}
         self._listeners: list[Callable[[str, Any], None]] = []
         self.reload()
@@ -6717,47 +7249,23 @@ class Config:
     # --- запись ----------------------------------------------------------
 
     def set(self, key: str, value) -> bool:
-        """Ставит значение, сохраняет на диск, оповещает подписчиков. ... [3 строк]"""
-        if self._data.get(key) == value:
-            return True
-        old_value = self._data.get(key)
-        self._data[key] = value
-        ok = config_manager.save(self._data, path=self.path)
+        """Persist before publishing the value and notifying subscribers."""
+        return self.update({key: value})
 
-        if not ok:
-            # Откат: не оставляем рассинхрон память ↔ диск.
-            self._data[key] = old_value
-            log.error("Config.set: save не удался на ключе %s — откатил", key)
-            return False
-
-        for cb in list(self._listeners):
-            try:
-                cb(key, value)
-            except Exception:
-                log.exception("Подписчик Config упал на ключе %s", key)
-        return True
-
-    def update(self, data: dict) -> bool:
-        """Массовое обновление. Оповещает по каждому ключу. ... [3 строк]"""
-        changed = {k: v for k, v in data.items() if self._data.get(k) != v}
-        if not changed:
-            return True
-
-        # Запоминаем старые значения для отката
-        old_values = {k: self._data.get(k) for k in changed}
-
-        self._data.update(changed)
-        ok = config_manager.save(self._data, path=self.path)
-
-        if not ok:
-            # Откат
-            self._data.update(old_values)
-            log.error(
-                "Config.update: save не удался — откатил %d ключей",
-                len(changed),
-            )
-            return False
-
+    def update(self, data: dict, *, expected_values: dict | None = None) -> bool:
+        """One atomic write for a batch, with optional editor conflict detection. ... [4 строк]"""
+        with self._write_lock:
+            if expected_values is not None and any(
+                    self._data.get(k) != v for k, v in expected_values.items()):
+                return False
+            changed = {k: v for k, v in data.items() if self._data.get(k) != v}
+            if not changed:
+                return True
+            updated = {**self._data, **changed}
+            if not config_manager.save(updated, path=self.path):
+                log.error("Config.update: save failed; previous values retained")
+                return False
+            self._data = updated
         for key, value in changed.items():
             for cb in list(self._listeners):
                 try:
@@ -7111,33 +7619,35 @@ from jarvis.vad import DEFAULT_HANGOVER_MS
 
 log = logging.getLogger("jarvis.gui")
 
+# User-selected directions: 04 "Twilight" and 05 "Warm Porcelain".
+# Shared tokens are consumed by every native screen, including preferences.
 PALETTES = {
     "dark": {
-        "sidebar": "#10161e", "selected": "#263447",
-        "brand": "#e7ad7b", "composer": "#17212d",
-        "bg_main": "#0b1016",
-        "bg_card": "#131c26",
-        "bg_bubble_user": "#23364b",
-        "bg_bubble_ai": "#17212d",
-        "accent": "#8bb7ee",
-        "text": "#eaf0f6",
-        "text_dim": "#a1b0c1",
-        "border": "#3f5266",
+        "sidebar": "#181823", "selected": "#343149",
+        "brand": "#d8a786", "composer": "#242435",
+        "bg_main": "#12121c",
+        "bg_card": "#1d1e2d",
+        "bg_bubble_user": "#343149",
+        "bg_bubble_ai": "#202030",
+        "accent": "#bab4eb",
+        "text": "#eeedf7",
+        "text_dim": "#abaac1",
+        "border": "#52526b",
         "error": "#f85149",
         "success": "#3fb950",
         "warning": "#d29922",
     },
     "light": {
-        "sidebar": "#eeeae4", "selected": "#dce5f0",
-        "brand": "#8b512a", "composer": "#ffffff",
-        "bg_main": "#f5f3ef",
-        "bg_card": "#ffffff",
-        "bg_bubble_user": "#e4eaf0",
-        "bg_bubble_ai": "#eeeae4",
-        "accent": "#245d99",
-        "text": "#23272f",
-        "text_dim": "#606b78",
-        "border": "#b6b0a6",
+        "sidebar": "#ede7df", "selected": "#eee1d3",
+        "brand": "#92532f", "composer": "#fffefc",
+        "bg_main": "#f5f2ed",
+        "bg_card": "#fffefc",
+        "bg_bubble_user": "#eee1d3",
+        "bg_bubble_ai": "#f1ece5",
+        "accent": "#865638",
+        "text": "#282b30",
+        "text_dim": "#5c6570",
+        "border": "#b3aaa0",
         "error": "#cf222e",
         "success": "#1a7f37",
         "warning": "#9a6700",
@@ -7171,13 +7681,13 @@ class _Palette:
 
 P = _Palette()
 
-BG_DARK = "#0b1016"
-BG_CARD = "#131c26"
-BG_BUBBLE_USER = "#23364b"
-BG_BUBBLE_AI = "#17212d"
-ACCENT = "#8bb7ee"
-TEXT = "#eaf0f6"
-TEXT_DIM = "#a1b0c1"
+BG_DARK = P.bg_main
+BG_CARD = P.bg_card
+BG_BUBBLE_USER = P.bg_bubble_user
+BG_BUBBLE_AI = P.bg_bubble_ai
+ACCENT = P.accent
+TEXT = P.text
+TEXT_DIM = P.text_dim
 
 
 def _apply_palette(name: str) -> None:
@@ -7230,6 +7740,9 @@ def _brand_image(name: str, size: int, label: str = ""):
                     semantics_label=label, exclude_from_semantics=not bool(label))
 
 
+HOME_TAB = 6  # Existing 0..5 IDs stay stable for tray/audio/preferences callbacks.
+NAV_ORDER = (HOME_TAB, 0, 1, 2, 3, 4, 5)
+
 NAV_ITEMS = (
     ("Диалог", ft.Icons.CHAT_BUBBLE_OUTLINE),
     ("Микрофон", ft.Icons.MIC_NONE),
@@ -7237,65 +7750,12 @@ NAV_ITEMS = (
     ("Персона", ft.Icons.PERSON_OUTLINE),
     ("Настройки", ft.Icons.TUNE),
     ("Мои команды", ft.Icons.ACCOUNT_TREE_OUTLINED),
+    ("Главная", ft.Icons.HOME_OUTLINED),
 )
 
 
-class _Sidebar(ft.Container):
-    """Native sidebar; selection is shared by mouse navigation and tray actions."""
-
-    def __init__(self, on_select):
-        super().__init__(width=208, padding=16)
-        self._selected_index = 0
-        self._on_select = on_select
-        self.refresh_palette()
-
-    @property
-    def selected_index(self):
-        return self._selected_index
-
-    @selected_index.setter
-    def selected_index(self, value):
-        if not 0 <= value < len(NAV_ITEMS):
-            return
-        self._selected_index = value
-        # Preserve button IDs/focus during quick navigation. Rebuild only for a theme/profile.
-        for index, button in enumerate(self.nav_buttons):
-            active = index == value
-            button.bgcolor = P.selected if active else P.sidebar
-            button.content.controls[1].color = TEXT if active else TEXT_DIM
-            button.content.controls[2].visible = active
-
-    def refresh_palette(self):
-        from jarvis import profile
-        self.bgcolor = P.sidebar
-        self.border = ft.Border(right=ft.BorderSide(1, P.border))
-        self.nav_buttons = []
-        for index, (label, icon) in enumerate(NAV_ITEMS):
-            active = index == self._selected_index
-            self.nav_buttons.append(ft.Button(
-                content=ft.Row([_brand_image(("dialog", "microphone", "audio", "persona", "settings", "commands")[index], 24),
-                                ft.Text(label, size=14, color=TEXT if active else TEXT_DIM,
-                                        expand=True),
-                                ft.Container(width=5, height=5, border_radius=3,
-                                             bgcolor=ACCENT, visible=active)], spacing=10),
-                height=48, bgcolor=P.selected if active else P.sidebar, elevation=0,
-                style=ft.ButtonStyle(padding=10, shape=ft.RoundedRectangleBorder(radius=10)),
-                tooltip=label,
-                on_click=lambda e, i=index: self._on_select(i)))
-        self.content = ft.Column([
-            ft.Container(content=ft.Row([
-                _brand_image("phoenix", 38, "Феникс"),
-                ft.Column([ft.Text("Феникс", size=21, weight=ft.FontWeight.BOLD, color=TEXT),
-                           ft.Text("Локальный ассистент", size=12, color=TEXT_DIM)],
-                          spacing=2, expand=True)], spacing=12), padding=ft.Padding(top=12, bottom=28)),
-            *self.nav_buttons,
-            ft.Container(expand=True),
-            ft.Divider(color=P.border),
-            ft.Container(ft.Column([
-                ft.Text(str(profile.current()), size=14, color=TEXT, max_lines=2),
-                ft.Text("Профиль и настройки", size=12, color=TEXT_DIM)], spacing=4),
-                padding=ft.Padding(top=12, bottom=12)),
-        ], spacing=8, expand=True)
+# Kept as an import alias for existing callers and tray/navigation tests.
+from jarvis.gui_sidebar import Sidebar as _Sidebar
 
 
 class FenixGUI:
@@ -7310,6 +7770,7 @@ class FenixGUI:
 
         # launch_mode=tray — окно скрыто при старте
         self.start_hidden = False
+        self._home_window_visible = True
 
         # Трей: если иконка поднялась (jarvis.tray.start_tray), закрытие
         # окна крестиком сворачивает Феникса в трей, а не убивает процесс.
@@ -7345,6 +7806,7 @@ class FenixGUI:
         self._rail = None
         self._tabs = {}
         self._command_builder = None
+        self._home = None
 
         # Контролы вкладки «Микрофон»
         self._mic_dropdown = None
@@ -7406,13 +7868,15 @@ class FenixGUI:
             return
         self._running = True
         try:
-            ft.run(self._main)
+            ft.run(self._main, view=ft.AppView.FLET_APP_HIDDEN)
         except Exception:
             log.exception("GUI (Flet) упал")
         finally:
             self._running = False
 
     def stop(self) -> None:
+        if self._home is not None:
+            self._home.dispose()
         self._running = False
         self._queue.put(("stop", None))
 
@@ -7423,10 +7887,10 @@ class FenixGUI:
     def set_tray_active(self, active: bool) -> None:
         """Включает/выключает режим «закрытие окна сворачивает в трей». ... [5 строк]"""
         self.tray_active = bool(active)
+        # May be called by the tray monitor, never mutate Flet from that thread.
+        if self._page is not None:
+            self._queue.put(("tray_active", self.tray_active))
         try:
-            if self._page is not None:
-                self._page.window.prevent_close = self.tray_active
-                self._page.update()
             log.info(
                 "GUI: трей %s — закрытие окна %s",
                 "включён" if self.tray_active else "выключен",
@@ -7442,6 +7906,8 @@ class FenixGUI:
     def quit(self) -> None:
         """Закрывает Феникса целиком — для пункта «Выход» в трее. ... [5 строк]"""
         self._queue.put(("stop", None))
+        if self._home is not None:
+            self._home.dispose()
         try:
             if self._page is not None:
                 self._page.window.prevent_close = False
@@ -7476,7 +7942,7 @@ class FenixGUI:
 
     def _run(self) -> None:
         try:
-            ft.run(self._main)
+            ft.run(self._main, view=ft.AppView.FLET_APP_HIDDEN)
         except Exception:
             log.exception("GUI (Flet) упал")
         finally:
@@ -7539,20 +8005,25 @@ class FenixGUI:
         # ДО ft.run): если он есть, закрывать окно нельзя — Феникс умер бы
         # вместе с ним. prevent_close применяем ЗАРАНЕЕ, в обработчике
         # CLOSE флаг уже опаздывает.
-        if self.tray_active:
-            self.set_tray_active(True)
+        page.window.prevent_close = self.tray_active
 
         # launch_mode=tray — окно скрыто
         if self.start_hidden:
+            self._home_window_visible = False
             page.window.visible = False
             log.info("GUI: окно скрыто при старте (launch_mode=tray)")
 
+        # The native client starts hidden: title, icon and first layout are
+        # submitted BEFORE revealing it, so the default Flet shell never flashes.
+        page.window.visible = False
         self._build_ui(page)
+        if not self.start_hidden:
+            self._show_window_now()
         page.run_task(self._process_queue)
         page.run_task(self._mic_level_loop)
 
     def _build_ui(self, page: ft.Page) -> None:
-        self._rail = _Sidebar(self._select_tab)
+        self._rail = _Sidebar(self._select_tab, self.config)
 
         self._tabs = {
             0: self._build_main_tab(),
@@ -7561,27 +8032,36 @@ class FenixGUI:
             3: self._build_persona_tab(),
             4: self._build_settings_tab(),
             5: self._build_commands_tab(),
+            HOME_TAB: self._build_home_tab(),
         }
 
         self._content_area = ft.Container(
-            content=self._tabs[0],
+            content=self._tabs[HOME_TAB],
             expand=True,
             padding=0,
             bgcolor=BG_DARK,
         )
 
-        page.add(
-            ft.Row(
-                controls=[
-                    self._rail,
-                    self._content_area,
-                ],
-                expand=True,
-                spacing=0,
-            )
-        )
+        self._rail.selected_index = HOME_TAB
+        page.add(self._rail.layout(self._content_area))
+        page.on_keyboard_event = self._on_home_key
+
+
+    async def _on_home_key(self, e):
+        if self._rail.selected_index == HOME_TAB and self._home is not None:
+            if await self._home.actions.on_key(e):
+                return
+        await self._rail.on_key(e)
+
+    def _build_home_tab(self) -> ft.Control:
+        from jarvis.gui_home import HomeScreen
+        if self._home is not None:
+            self._home.dispose()
+        self._home = HomeScreen(self)
+        return self._home
 
     def _build_main_tab(self) -> ft.Control:
+        """Chat screen. Historical method name is kept for existing callers/tests."""
         self._status_circle = ft.Container(width=6, height=6, border_radius=3, bgcolor=ACCENT)
         self._status_text = ft.Text(size=13, color=TEXT)
         self._status_sub = ft.Text(size=12, color=TEXT_DIM)
@@ -7657,7 +8137,7 @@ class FenixGUI:
             options=[ft.dropdown.Option("commands", "Команды"), ft.dropdown.Option("llm", "ИИ"),
                      ft.dropdown.Option("combo", "Комбо")], on_select=self._on_mode_change,
             text_size=13, dense=True, border_color=P.border, focused_border_color=ACCENT)
-        voice = ft.Dropdown(label="Голос", value=self.config.get("tts_voice", "ruslan"),
+        voice = self._main_voice_dropdown = ft.Dropdown(label="Голос", value=self.config.get("tts_voice", "ruslan"),
                             options=self._get_voice_options(), width=125, text_size=13, dense=True,
                             on_select=self._on_voice_change, border_color=P.border,
                             focused_border_color=ACCENT)
@@ -7792,568 +8272,54 @@ class FenixGUI:
             self._command_builder = CommandBuilder(self)
         return self._command_builder.build()
 
+    def _sound(self):
+        if getattr(self, "_sound_settings", None) is None:
+            from jarvis.gui_audio import SoundSettings
+            self._sound_settings = SoundSettings(self)
+        return self._sound_settings
+
     def _build_mic_tab(self) -> ft.Control:
-        name = "—"
-        if self.jarvis and self.jarvis.listener:
-            name = self.jarvis.listener.device_name
-
-        devices = ["по умолчанию"]
-        try:
-            import sounddevice as sd
-            for d in sd.query_devices():
-                if d["max_input_channels"] > 0:
-                    n = d["name"][:50]
-                    if n not in devices:
-                        devices.append(n)
-        except Exception:
-            log.exception("Не удалось получить список устройств")
-
-        current = self.config.get("input_device") or "по умолчанию"
-        if current not in devices:
-            devices.append(current)
-
-        self._mic_dropdown = ft.Dropdown(
-            value=current,
-            options=[ft.dropdown.Option(d) for d in devices],
-            width=400,
-            border_color="#3f5266",
-            focused_border_color=ACCENT,
-            on_select=self._on_mic_change,
-        )
-
-        self._mic_level_bar = ft.ProgressBar(
-            value=0.0,
-            width=400,
-            color=ACCENT,
-            bgcolor="#17212d",
-        )
-        self._mic_level_text = ft.Text("Уровень сигнала: —", size=13, color=TEXT_DIM)
-        self._mic_status_text = ft.Text("Статус: ожидание проверки", size=13, color=TEXT_DIM)
-        self._mic_peak_text = ft.Text("Пик за сессию: 0", size=13, color=TEXT_DIM)
-        self._mic_utt_text = ft.Text("Распознано фраз: 0", size=13, color=TEXT_DIM)
-        self._mic_emotion_text = ft.Text(
-            "Эмоция: —", size=13, color=TEXT_DIM,
-        )
-        self._mic_test_result = ft.Text("", size=13, color=TEXT_DIM)
-        # «Текущее устройство» — вынесено в поле, чтобы текст обновлялся
-        # сразу после смены микрофона, а не только при пересборке вкладки.
-        self._mic_device_text = ft.Text(
-            f"Текущее устройство: {name}", size=14, color=TEXT,
-        )
-
-        return ft.Container(
-            content=ft.Column(
-                controls=[
-                    ft.Text("Микрофон", size=26, weight=ft.FontWeight.BOLD, color=TEXT),
-                    ft.Container(height=25),
-                    self._mic_device_text,
-                    ft.Container(height=20),
-                    ft.Container(
-                        content=ft.Column(
-                            controls=[
-                                self._mic_level_text,
-                                self._mic_level_bar,
-                                ft.Container(height=8),
-                                self._mic_peak_text,
-                                self._mic_utt_text,
-                                self._mic_emotion_text,
-                                self._mic_status_text,
-                                self._mic_test_result,
-                            ],
-                            spacing=6,
-                        ),
-                        padding=16,
-                        bgcolor=BG_CARD,
-                        border_radius=12,
-                    ),
-                    ft.Container(height=15),
-                    ft.Button(
-                        content=ft.Row(
-                            controls=[
-                                ft.Icon(ft.Icons.MIC, color=BG_DARK),
-                                ft.Text("Проверить микрофон (3 сек)", color=BG_DARK),
-                            ],
-                            spacing=8,
-                            alignment=ft.MainAxisAlignment.CENTER,
-                        ),
-                        on_click=self._on_mic_test,
-                        style=ft.ButtonStyle(
-                            bgcolor=ACCENT,
-                            shape=ft.RoundedRectangleBorder(radius=10),
-                            padding=ft.Padding(left=20, right=20, top=12, bottom=12),
-                        ),
-                    ),
-                    ft.Container(height=20),
-                    ft.Text("Выбрать устройство:", size=13, color=TEXT_DIM),
-                    self._mic_dropdown,
-                    ft.Container(height=15),
-                    ft.Container(
-                        content=ft.Text(
-                            "После смены устройства перезапусти Феникса",
-                            size=12,
-                            color="#d29922",
-                        ),
-                        padding=12,
-                        bgcolor="#2d2210",
-                        border_radius=8,
-                    ),
-                ],
-                spacing=5,
-                scroll=ft.ScrollMode.AUTO,
-            ),
-            padding=ft.Padding(left=40, top=40, right=40, bottom=40),
-            expand=True,
-        )
+        return self._sound().build_mic()
 
     def _on_mic_change(self, e) -> None:
         """Смена микрофона применяется на лету (без перезапуска). ... [6 строк]"""
         value = e.control.value
+        if getattr(self, "_sound_settings", None) is not None:
+            value = self._sound_settings.device_values.get(value, value)
         if value == "по умолчанию":
             value = None
-        self.config.set("input_device", value)
+        if self.config.set("input_device", value) is False:
+            self._show_status("Не удалось сохранить выбор микрофона.")
+            return
+        if getattr(self, "_sound_settings", None) is not None:
+            self._sound_settings.apply_result("mic", "Вход изменён. Повторите проверку уровня.")
         if getattr(self, "_mic_device_text", None) is not None:
             listener = self.jarvis.listener if self.jarvis is not None else None
             shown = listener.device_name if listener is not None else (
                 value or "по умолчанию")
             self._mic_device_text.value = f"Текущее устройство: {shown}"
         self._show_status(
-            "Микрофон переключён. Скажите «Феникс» — проверю, что слышу."
+            "Выбор сохранён. Вход переоткрывается; проверьте шкалу сигнала."
         )
         log.info("GUI: input_device → %r (применяю на лету)", value)
 
-    def _on_mic_test(self, e) -> None:
-        """Кнопка «Проверить микрофон». ... [5 строк]"""
-        if self.jarvis is None or self.jarvis.listener is None:
-            # Этот case уже в главном потоке — можно обновить напрямую.
-            if self._mic_test_result is not None:
-                self._mic_test_result.value = "Listener не запущен"
-                self._mic_test_result.color = "#f85149"
-            return
-
-        def _run():
-            listener = self.jarvis.listener
-            listener.reset_stats()
-            # Первое сообщение — через очередь
-            self.set_mic_test_result("Слушаю 3 секунды... говори!", ACCENT)
-
-            time.sleep(3.0)
-            peak = listener.peak
-            if peak >= 500:
-                self.set_mic_test_result(
-                    f"Микрофон работает (пик {peak})", "#3fb950"
-                )
-            elif peak >= 100:
-                self.set_mic_test_result(
-                    f"Микрофон очень тихий (пик {peak}).", "#d29922"
-                )
-            else:
-                self.set_mic_test_result(
-                    f"Микрофон молчит (пик {peak}).", "#f85149"
-                )
-
-        threading.Thread(target=_run, daemon=True, name="mic-test").start()
+    def _on_mic_test(self, e) -> bool:
+        return self._sound().test_mic(e)
 
     def _update_mic_level(self) -> None:
-        if self.jarvis is None or self.jarvis.listener is None:
-            return
-        listener = self.jarvis.listener
-        rms = listener.current_rms
-        level = min(1.0, rms / 2000.0)
-
-        try:
-            if self._mic_level_bar is not None:
-                self._mic_level_bar.value = level
-            if self._mic_level_text is not None:
-                pct = int(level * 100)
-                self._mic_level_text.value = f"Уровень сигнала: {pct}%"
-            if self._mic_peak_text is not None:
-                self._mic_peak_text.value = f"Пик за сессию: {listener.peak}"
-            if self._mic_utt_text is not None:
-                self._mic_utt_text.value = f"Распознано фраз: {listener.utterances}"
-            if self._mic_status_text is not None:
-                if listener.peak >= 500:
-                    self._mic_status_text.value = "Статус: Работает"
-                    self._mic_status_text.color = "#3fb950"
-                elif listener.peak >= 100:
-                    self._mic_status_text.value = "Статус: Тихий сигнал"
-                    self._mic_status_text.color = "#d29922"
-                else:
-                    self._mic_status_text.value = "Статус: Ожидание звука"
-                    self._mic_status_text.color = TEXT_DIM
-
-            if getattr(self, "_mic_emotion_text", None):
-                if listener.peak > 2500:
-                    emo = "excited / annoyed"
-                elif listener.peak > 200:
-                    emo = "neutral / happy"
-                else:
-                    emo = "tired / тишина"
-                self._mic_emotion_text.value = f"Эмоция: ~{emo}"
-        except Exception:
-            log.exception("_update_mic_level упал")
+        self._sound().update_level()
 
     def _build_audio_tab(self) -> ft.Control:
-        """Вкладка «Аудио» — Non-verbal, VAD и Prosody."""
+        return self._sound().build_audio()
 
-        nonverbal_enabled = ft.Checkbox(
-            label="Звуковые реакции (смех, вздохи, хм, зевок)",
-            value=bool(self.config.get("nonverbal_enabled", False)),
-            on_change=self._on_nonverbal_enabled,
-        )
-        nonverbal_hint = ft.Text(
-            "Только в диалоге, не чаще раза в 45 секунд по умолчанию. "
-            "Тише речи на 15 дБ. Silero, Piper и WinRT; SAPI — без реакций.",
-            size=11, color=TEXT_DIM,
-        )
-
-        # === Prosody ===
-        prosody_enabled = ft.Checkbox(
-            label="Эмоции из голоса (Prosody)",
-            value=bool(self.config.get("prosody_enabled", True)),
-            on_change=self._on_prosody_enabled,
-        )
-
-        prosody_priority = ft.Dropdown(
-            label="Приоритет эмоций",
-            value=self.config.get("prosody_priority", "prosody"),
-            options=[
-                ft.dropdown.Option("prosody", "Голос важнее текста"),
-                ft.dropdown.Option("text", "Текст важнее голоса"),
-                ft.dropdown.Option("both", "Оба (голос первым)"),
-            ],
-            width=400,
-            border_color="#3f5266",
-            focused_border_color=ACCENT,
-            on_select=self._on_prosody_priority,
-        )
-
-        prosody_hint = ft.Text(
-            "Prosody определяет эмоцию из громкости, высоты и «шумности» "
-            "голоса (RMS + pitch + ZCR). Точность ~60–70%.",
-            size=11,
-            color=TEXT_DIM,
-        )
-
-        # === VAD ===
-        vad_enabled = ft.Checkbox(
-            label="VAD (Silero) — фильтр тишины до распознавания",
-            value=bool(self.config.get("vad_enabled", True)),
-            on_change=self._on_vad_enabled,
-        )
-
-        vad_adaptive = ft.Checkbox(
-            label="Адаптивный порог (подстраивается под микрофон)",
-            value=bool(self.config.get("vad_adaptive", True)),
-            on_change=self._on_vad_adaptive,
-        )
-
-        # Модель silero_vad.onnx в комплект не входит (в репозитории её
-        # нет) — Феникс качает её сам. Флаг нужен для машин без сети.
-        vad_auto_download = ft.Checkbox(
-            label="Скачивать модель VAD (2.3 МБ), если её ещё нет",
-            value=bool(self.config.get("vad_auto_download", True)),
-            on_change=self._on_vad_auto_download,
-        )
-
-        auto_download_hint = ft.Text(
-            "Модель silero_vad.onnx качается фоном при первом запуске и "
-            "включается без перезапуска. Без неё VAD молча не работает.",
-            size=11,
-            color=TEXT_DIM,
-        )
-
-        self._vad_threshold_label = ft.Text(
-            f"Порог VAD: {self.config.get('vad_threshold', 0.5):.2f}",
-            size=13,
-            color=TEXT,
-        )
-
-        self._vad_threshold_slider = ft.Slider(
-            min=0.1,
-            max=0.9,
-            divisions=16,
-            value=float(self.config.get("vad_threshold", 0.5)),
-            label="{value:.2f}",
-            active_color=ACCENT,
-            on_change=self._on_vad_threshold_change,
-            on_change_end=self._on_vad_threshold_end,
-        )
-
-        vad_hint = ft.Text(
-            "VAD отсекает тишину и шум — Vosk не получает пустые чанки. "
-            "Порог 0.3 — ловит тихую речь, 0.7 — только громкую.",
-            size=11,
-            color=TEXT_DIM,
-        )
-
-        # «Хвост» тишины. Без него VAD вырезает всю тишину, Vosk не видит
-        # паузу (`AcceptWaveform` -> False) и не отдаёт финальный текст:
-        # Феникс отвечает поздно или не отвечает вовсе. См. jarvis/vad.py.
-        self._vad_hangover_label = ft.Text(
-            f"Хвост тишины для Vosk: "
-            f"{int(self.config.get('vad_hangover_ms', DEFAULT_HANGOVER_MS))} мс",
-            size=13,
-            color=TEXT,
-        )
-
-        self._vad_hangover_slider = ft.Slider(
-            min=0,
-            max=3000,
-            divisions=12,
-            value=float(self.config.get("vad_hangover_ms", DEFAULT_HANGOVER_MS)),
-            label="{value:.0f}",
-            active_color=ACCENT,
-            on_change=self._on_vad_hangover_change,
-            on_change_end=self._on_vad_hangover_end,
-        )
-
-        hangover_hint = ft.Text(
-            "1500 мс — как без VAD. Меньше — ответ раньше, но Vosk может "
-            "не успеть закрыть фразу. Применяется сразу.",
-            size=11,
-            color=TEXT_DIM,
-        )
-
-        # === Распознавание ===
-        barge_enabled = ft.Checkbox(
-            label="Прерывать Феникса голосом (barge-in)",
-            value=bool(self.config.get("barge_enabled", True)),
-            on_change=self._on_barge_enabled,
-        )
-
-        wake_required = ft.Checkbox(
-            label="Ждать wake-слово «Феникс» (выкл — любая речь = команда)",
-            value=bool(self.config.get("wake_word_required", True)),
-            on_change=self._on_wake_required,
-        )
-
-        def _section(title):
-            return ft.Text(title, size=16, weight=ft.FontWeight.BOLD, color=ACCENT)
-
-        def _label(text):
-            return ft.Text(text, size=12, color=TEXT_DIM)
-
-        return ft.Container(
-            content=ft.Column(
-                controls=[
-                    ft.Text("Аудио", size=26, weight=ft.FontWeight.BOLD, color=TEXT),
-                    ft.Container(height=20),
-
-                    _section("Звуковые реакции"),
-                    nonverbal_enabled,
-                    nonverbal_hint,
-                    ft.Container(height=25),
-                    _section("Эмоции из голоса (Prosody)"),
-                    prosody_enabled,
-                    prosody_hint,
-                    ft.Container(height=10),
-                    _label("Как определять эмоцию:"),
-                    prosody_priority,
-                    ft.Container(height=25),
-
-                    _section("VAD — фильтр тишины"),
-                    vad_enabled,
-                    vad_adaptive,
-                    vad_auto_download,
-                    auto_download_hint,
-                    ft.Container(height=8),
-                    self._vad_threshold_label,
-                    self._vad_threshold_slider,
-                    vad_hint,
-                    ft.Container(height=8),
-                    self._vad_hangover_label,
-                    self._vad_hangover_slider,
-                    hangover_hint,
-                    ft.Container(height=25),
-
-                    _section("Распознавание"),
-                    barge_enabled,
-                    wake_required,
-                    ft.Container(height=8),
-                    _label("Всё на этой вкладке применяется сразу, "
-                           "перезапуск не нужен."),
-                ],
-                spacing=8,
-                scroll=ft.ScrollMode.AUTO,
-            ),
-            padding=ft.Padding(left=40, top=40, right=40, bottom=40),
-            expand=True,
-        )
+    def _preferences(self):
+        if getattr(self, "_preference_screens", None) is None:
+            from jarvis.gui_preferences import PreferenceScreens
+            self._preference_screens = PreferenceScreens(self)
+        return self._preference_screens
 
     def _build_persona_tab(self) -> ft.Control:
-        """Вкладка «Персона» — имя, стиль, черты, backstory."""
-        from jarvis import persona
-
-        p = persona.get()
-
-        name_field = ft.TextField(
-            label="Имя пользователя",
-            value=self.config.get("name", "") or "",
-            width=400,
-            border_color="#3f5266",
-            focused_border_color=ACCENT,
-            on_submit=self._on_persona_name,
-        )
-
-        assistant_name_field = ft.TextField(
-            label="Имя ассистента",
-            value=p.get("assistant_name") or "Феникс",
-            width=400,
-            border_color="#3f5266",
-            focused_border_color=ACCENT,
-            on_submit=self._on_persona_assistant_name,
-        )
-
-        style_dropdown = ft.Dropdown(
-            label="Стиль общения",
-            value=p.get("speech_style") or "friendly",
-            options=[
-                ft.dropdown.Option("formal", "Формальный (на «вы»)"),
-                ft.dropdown.Option("friendly", "Дружеский (на «ты»)"),
-                ft.dropdown.Option("sarcastic", "Саркастичный"),
-                ft.dropdown.Option("brief", "Краткий"),
-            ],
-            width=400,
-            border_color="#3f5266",
-            focused_border_color=ACCENT,
-            on_select=self._on_persona_style,
-        )
-
-        tone_dropdown = ft.Dropdown(
-            label="Тон общения",
-            value=p.get("tone") or "auto",
-            options=[
-                ft.dropdown.Option("auto", "Авто (подстраивается)"),
-                ft.dropdown.Option("polite", "Вежливый (без мата)"),
-                ft.dropdown.Option("unrestricted", "Без цензуры (если юзер сам)"),
-            ],
-            width=400,
-            border_color="#3f5266",
-            focused_border_color=ACCENT,
-            on_select=self._on_persona_tone,
-        )
-
-        tone_hint = ft.Text(
-            "Авто — Феникс сам подстраивается под ваш стиль. "
-            "Вежливый — всегда без мата. Без цензуры — можно вставить, если вы сами.",
-            size=11,
-            color=TEXT_DIM,
-        )
-
-        traits_field = ft.TextField(
-            label="Черты (через запятую)",
-            value=", ".join(p.get("traits") or []),
-            width=400,
-            border_color="#3f5266",
-            focused_border_color=ACCENT,
-            on_submit=self._on_persona_traits,
-        )
-
-        backstory_field = ft.TextField(
-            label="Контекст (backstory)",
-            value=p.get("backstory") or "",
-            width=400,
-            multiline=True,
-            min_lines=3,
-            max_lines=6,
-            border_color="#3f5266",
-            focused_border_color=ACCENT,
-            on_submit=self._on_persona_backstory,
-        )
-
-        reset_btn = ft.Button(
-            content=ft.Row(
-                controls=[
-                    ft.Icon(ft.Icons.REFRESH, color=BG_DARK),
-                    ft.Text("Сбросить онбординг", color=BG_DARK),
-                ],
-                spacing=8,
-                alignment=ft.MainAxisAlignment.CENTER,
-            ),
-            on_click=self._on_persona_reset,
-            style=ft.ButtonStyle(
-                bgcolor=ACCENT,
-                shape=ft.RoundedRectangleBorder(radius=10),
-                padding=ft.Padding(left=20, right=20, top=10, bottom=10),
-            ),
-        )
-
-        def _label(t):
-            return ft.Text(t, size=12, color=TEXT_DIM)
-
-        return ft.Container(
-            content=ft.Column(
-                controls=[
-                    ft.Text("Персона", size=26, weight=ft.FontWeight.BOLD, color=TEXT),
-                    ft.Container(height=20),
-                    _label("Как тебя зовут (пользователь):"),
-                    name_field,
-                    ft.Container(height=12),
-                    _label("Как зовут ассистента:"),
-                    assistant_name_field,
-                    ft.Container(height=12),
-                    _label("Стиль общения:"),
-                    style_dropdown,
-                    ft.Container(height=12),
-                    _label("Тон общения:"),
-                    tone_dropdown,
-                    tone_hint,
-                    ft.Container(height=12),
-                    _label("Черты характера (через запятую):"),
-                    traits_field,
-                    ft.Container(height=12),
-                    _label("Контекст (backstory):"),
-                    backstory_field,
-                    ft.Container(height=20),
-                    reset_btn,
-                ],
-                spacing=6,
-                scroll=ft.ScrollMode.AUTO,
-            ),
-            padding=ft.Padding(left=40, top=40, right=40, bottom=40),
-            expand=True,
-        )
-
-    def _on_persona_name(self, e) -> None:
-        self.config.set("name", e.control.value.strip())
-
-    def _on_persona_assistant_name(self, e) -> None:
-        from jarvis import persona
-        persona.set_field("assistant_name", e.control.value.strip() or "Феникс")
-
-    def _on_persona_style(self, e) -> None:
-        from jarvis import persona
-        persona.set_field("speech_style", e.control.value)
-
-    def _on_persona_tone(self, e) -> None:
-        from jarvis import persona
-        tone = e.control.value
-        if tone not in persona.VALID_TONES:
-            tone = "auto"
-        persona.set_field("tone", tone)
-        log.info("GUI: persona.tone → %s", tone)
-
-    def _on_persona_traits(self, e) -> None:
-        from jarvis import persona
-        raw = e.control.value.strip()
-        traits = [t.strip() for t in raw.split(",") if t.strip()] if raw else []
-        persona.set_field("traits", traits)
-
-    def _on_persona_backstory(self, e) -> None:
-        from jarvis import persona
-        persona.set_field("backstory", e.control.value.strip())
-
-    def _on_persona_reset(self, e) -> None:
-        from jarvis import persona
-        persona.reset_onboarding()
-        log.info("GUI: онбординг сброшен")
-        try:
-            snack = ft.SnackBar(ft.Text("Онбординг сброшен. Перезапусти Феникса."))
-            self._page.overlay.append(snack)
-            snack.open = True
-            self._page.update()
-        except Exception:
-            log.exception("Не удалось показать SnackBar")
+        return self._preferences().build_persona()
 
     def _on_nonverbal_enabled(self, e) -> None:
         self.config.set("nonverbal_enabled", bool(e.control.value))
@@ -8467,169 +8433,7 @@ class FenixGUI:
         log.info("GUI: wake_word_required → %s", value)
 
     def _build_settings_tab(self) -> ft.Control:
-        llm_dropdown = ft.Dropdown(
-            value=self.config.get("llm_model", "qwen2.5:7b-instruct"),
-            options=[ft.dropdown.Option(m) for m in LLM_MODELS],
-            width=350,
-            border_color="#3f5266",
-            focused_border_color=ACCENT,
-            on_select=self._on_llm_change,
-        )
-
-        ollama_field = ft.TextField(
-            value=self.config.get("ollama_url", "http://127.0.0.1:11434"),
-            width=400,
-            border_color="#3f5266",
-            focused_border_color=ACCENT,
-            on_submit=self._on_ollama_change,
-        )
-
-        tts_dropdown = ft.Dropdown(
-            value=self.config.get("tts_backend", "auto"),
-            options=[ft.dropdown.Option(b) for b in TTS_BACKENDS],
-            width=250,
-            border_color="#3f5266",
-            focused_border_color=ACCENT,
-            on_select=self._on_tts_change,
-        )
-
-        rate_slider = ft.Slider(
-            min=0.5,
-            max=2.0,
-            divisions=30,
-            value=float(self.config.get("voice_rate", 1.15)),
-            label="{value}",
-            active_color=ACCENT,
-            on_change_end=self._on_rate_change,
-        )
-
-        theme_dropdown = ft.Dropdown(
-            value=self.config.get("gui_theme", "Системная"),
-            options=[ft.dropdown.Option(t) for t in THEMES.keys()],
-            width=250,
-            border_color="#3f5266",
-            focused_border_color=ACCENT,
-            on_select=self._on_theme_change,
-        )
-
-        # Трей: ключи были в config, но контролов не было вообще —
-        # включить иконку можно было только правкой config.json.
-        tray_checkbox = ft.Checkbox(
-            label="Иконка в трее (закрытие окна сворачивает Феникса)",
-            value=bool(self.config.get("tray_enabled", True)),
-            on_change=self._on_tray_enabled,
-        )
-
-        launch_dropdown = ft.Dropdown(
-            value=str(self.config.get("launch_mode", "gui") or "gui"),
-            options=[
-                ft.dropdown.Option("gui", "Обычный — окно при старте"),
-                ft.dropdown.Option("tray", "Только трей — окно скрыто"),
-            ],
-            width=300,
-            border_color="#3f5266",
-            focused_border_color=ACCENT,
-            on_select=self._on_launch_mode,
-        )
-
-        launch_hint = ft.Text(
-            "Режим запуска применяется при следующем запуске Феникса.",
-            size=11,
-            color=TEXT_DIM,
-        )
-
-        # Observer — фоновая отправка истории диалога в LLM. По умолчанию
-        # выключен: включение галочки = согласие пользователя.
-        observer_checkbox = ft.Checkbox(
-            label="Фоновый анализ диалога (Observer) — запоминать факты о тебе",
-            value=bool(self.config.get("observer_enabled", False)),
-            on_change=self._on_observer_enabled,
-        )
-
-        observer_hint = ft.Text(
-            "Раз в ~30 секунд последние сообщения диалога уходят в "
-            "локальную LLM (Ollama) — из них извлекаются факты: имя, "
-            "город, работа. Факты пишутся в profile.json (%APPDATA%\\Phoenix), "
-            "ход извлечения — в logs/observer.log. Выключено по умолчанию, "
-            "применяется после перезапуска.",
-            size=11,
-            color=TEXT_DIM,
-        )
-
-        # Векторная память фактов (RAG). Тоже по умолчанию выключена:
-        # это производная обработка данных о пользователе. Новых данных
-        # не собирает — только отбирает уже сохранённые факты.
-        rag_checkbox = ft.Checkbox(
-            label="Подбирать факты по смыслу (векторная память, RAG)",
-            value=bool(self.config.get("memory_rag_enabled", False)),
-            on_change=self._on_memory_rag_enabled,
-        )
-
-        rag_hint = ft.Text(
-            "Когда фактов много, в промпт уходят только релевантные "
-            "запросу — остальные не мешают. Нужна модель эмбеддингов: "
-            "«ollama pull nomic-embed-text» (~274 МБ). Всё локально: "
-            "запросы идут только в Ollama на этом же компьютере, "
-            "индекс лежит в memory_index.json рядом с profile.json. "
-            "Выключено по умолчанию, применяется сразу.",
-            size=11,
-            color=TEXT_DIM,
-        )
-
-        def _section(title):
-            return ft.Text(title, size=16, weight=ft.FontWeight.BOLD, color=ACCENT)
-
-        def _label(text):
-            return ft.Text(text, size=13, color=TEXT_DIM)
-
-        return ft.Container(
-            content=ft.Column(
-                controls=[
-                    ft.Text("Настройки", size=26, weight=ft.FontWeight.BOLD, color=TEXT),
-                    ft.Container(height=20),
-                    _section("LLM"),
-                    _label("Модель:"),
-                    llm_dropdown,
-                    ft.Container(height=8),
-                    _label("Ollama URL:"),
-                    ollama_field,
-                    ft.Container(height=25),
-                    _section("TTS"),
-                    _label("Бэкенд:"),
-                    tts_dropdown,
-                    ft.Container(height=8),
-                    _label("Качество голоса:"),
-                    self._build_voice_quality_row(),
-                    ft.Container(height=8),
-                    _label("Скорость речи:"),
-                    rate_slider,
-                    ft.Container(height=25),
-                    _section("Внешний вид"),
-                    _label("Тема:"),
-                    theme_dropdown,
-                    ft.Container(height=25),
-                    _section("Приложение"),
-                    tray_checkbox,
-                    ft.Container(height=8),
-                    _label("Режим запуска:"),
-                    launch_dropdown,
-                    launch_hint,
-                    ft.Container(height=25),
-                    _section("Приватность"),
-                    observer_checkbox,
-                    ft.Container(height=8),
-                    observer_hint,
-                    ft.Container(height=12),
-                    rag_checkbox,
-                    ft.Container(height=8),
-                    rag_hint,
-                ],
-                spacing=6,
-                scroll=ft.ScrollMode.AUTO,
-            ),
-            padding=ft.Padding(left=40, top=40, right=40, bottom=40),
-            expand=True,
-        )
+        return self._preferences().build_settings()
 
     def _build_voice_quality_row(self) -> ft.Control:
         current = self.config.get("tts_voice_quality", "medium")
@@ -8697,10 +8501,21 @@ class FenixGUI:
                     self._open_mic_tab()
                 elif kind == "open_settings_tab":
                     self._open_settings_tab()
+                elif kind == "tray_active":
+                    self._page.window.prevent_close = bool(value)
                 elif kind == "show_window":
                     self._show_window_now()
+                elif kind == "home_signal":
+                    if self._home is not None:
+                        self._home.poll_signal()
+                    continue  # Aura updates only its own controls, never the whole page.
                 elif kind == "mic_level":
                     self._update_mic_level()
+                elif kind == "preferences_result":
+                    self._preferences().apply_probe(value)
+                    continue  # Completion updates only its own status/button, not text inputs.
+                elif kind == "sound_result":
+                    self._sound().apply_result(*value)
                 elif kind == "mic_test":
                     self._apply_mic_test_result(*value)
                 elif kind == "rebuild_theme":
@@ -8853,6 +8668,9 @@ class FenixGUI:
                 if self._rail and self._rail.selected_index == 1:
                     self._queue.put(("mic_level", None))
 
+                if self._rail and self._rail.selected_index == HOME_TAB:
+                    self._queue.put(("home_signal", None))
+
                 if self._state == "awaiting":
                     self._queue.put(("state", "idle"))
                 counter += 1
@@ -8884,6 +8702,8 @@ class FenixGUI:
                 if pending_alive(getattr(handler, "_pending_question", None)):
                     state = "awaiting"
         self._state = state
+        if self._home is not None:
+            self._home.apply_state(state)
         color, text, sub = STATES[state]
         if P is not None:
             color = {"idle": ACCENT, "thinking": ACCENT, "speaking": P.success,
@@ -9000,8 +8820,11 @@ class FenixGUI:
         """Показывает окно — для launch_mode=tray."""
         try:
             if self._page is not None:
+                self._home_window_visible = True
                 self._page.window.visible = True
                 self._page.window.minimized = False
+                if self._home is not None:
+                    self._home.aura.sync_motion()
                 self._page.update()
                 log.info("GUI: окно показано")
         except Exception:
@@ -9010,6 +8833,12 @@ class FenixGUI:
     def _on_window_event(self, e) -> None:
         """События окна: позиция (MOVED) и «закрыть в трей» (CLOSE). ... [5 строк]"""
         try:
+            if e.type in (ft.WindowEventType.HIDE, ft.WindowEventType.MINIMIZE,
+                          ft.WindowEventType.SHOW, ft.WindowEventType.RESTORE):
+                self._home_window_visible = e.type in (ft.WindowEventType.SHOW, ft.WindowEventType.RESTORE)
+                if self._home is not None:
+                    self._home.aura.sync_motion()
+                return
             if e.type == ft.WindowEventType.CLOSE:
                 self._on_window_close(e)
                 return
@@ -9034,7 +8863,10 @@ class FenixGUI:
         try:
             page = getattr(e, "page", None) or self._page
             page.window.prevent_close = True
+            self._home_window_visible = False
             page.window.visible = False
+            if self._home is not None:
+                self._home.aura.sync_motion()
             page.update()
             log.info("GUI: окно свёрнуто в трей (Феникс продолжает слушать)")
         except Exception:
@@ -9050,12 +8882,18 @@ class FenixGUI:
             return
         if self._command_builder is not None:
             self._command_builder.capture()
+        if index == 3:
+            self._tabs[3] = self._build_persona_tab()
+        elif index == 4:
+            self._tabs[4] = self._build_settings_tab()
         if index == 5:
             self._tabs[5] = self._build_commands_tab()
         self._rail.selected_index = index
         if index == 0 and getattr(self, "_model_label", None) is not None:
             self._model_label.value = self._model_caption()
         self._content_area.content = self._tabs[index]
+        if self._home is not None:
+            self._home.aura.sync_motion()
         if self._page is not None:
             self._page.update()
 
@@ -9084,7 +8922,16 @@ class FenixGUI:
             self.jarvis.handler.mode = mode
 
     def _on_voice_change(self, e) -> None:
-        self.config.set("tts_voice", e.control.value)
+        if self.config.set("tts_voice", e.control.value) is False:
+            self._show_status("Не удалось сохранить выбранный голос.")
+            return
+        if getattr(self, "_main_voice_dropdown", None) is not None:
+            self._main_voice_dropdown.value = e.control.value
+        sound = getattr(self, "_sound_settings", None)
+        if sound is not None:
+            if sound.voice_dropdown is not None:
+                sound.voice_dropdown.value = e.control.value
+            sound.apply_result("voice", "Голос выбран. Прослушайте пробу, чтобы проверить звучание.")
 
     def _get_voice_options(self) -> list:
         """Список голосов под текущий tts_backend."""
@@ -9206,7 +9053,10 @@ class FenixGUI:
         if theme_name not in THEMES:
             theme_name = "Системная"
         mode = THEMES[theme_name]
-        self.config.set("gui_theme", theme_name)
+        if self.config.set("gui_theme", theme_name) is False:
+            self._show_status("Не удалось сохранить тему. Предыдущая тема сохранена.")
+            self._rebuild_ui_for_theme()
+            return
 
         if mode == ft.ThemeMode.SYSTEM:
             palette_name = _detect_system_theme()
@@ -9226,7 +9076,7 @@ class FenixGUI:
             log.exception("Ошибка в _on_theme_change")
 
     def _rebuild_ui_for_theme(self) -> None:
-        current_index = self._rail.selected_index if self._rail else 0
+        current_index = self._rail.selected_index if self._rail else HOME_TAB
         if self._command_builder is not None:
             self._command_builder.capture()
         if self._input_field is not None:
@@ -9237,13 +9087,14 @@ class FenixGUI:
             0: self._build_main_tab(), 1: self._build_mic_tab(),
             2: self._build_audio_tab(), 3: self._build_persona_tab(),
             4: self._build_settings_tab(), 5: self._build_commands_tab(),
+            HOME_TAB: self._build_home_tab(),
         }
         if error and self._error_text is not None:
             self._error_text.value = error
             self._error_banner.visible = True
         if self._content_area is not None:
             self._content_area.bgcolor = BG_DARK
-            self._content_area.content = self._tabs.get(current_index, self._tabs[0])
+            self._content_area.content = self._tabs.get(current_index, self._tabs[HOME_TAB])
         if self._rail is not None:
             self._rail.refresh_palette()
 
@@ -9315,6 +9166,389 @@ class FenixGUI:
             self._apply_busy(False)
             return False
         return True
+```
+
+### `jarvis/gui_audio.py`
+
+```python
+"""Native sound settings. Diagnostics use the existing listener/Speaker, not new streams."""
+import logging
+import math
+import threading
+import time
+
+import flet as ft
+
+from jarvis.vad import DEFAULT_HANGOVER_MS
+
+log = logging.getLogger(__name__)
+TEST_PHRASE = "Привет! Это голос Феникса. Проверим, удобно ли меня слушать."
+
+
+def _ui():
+    from jarvis import gui
+    return gui
+
+
+def note(text):
+    return ft.Text(text, size=13, color=_ui().P.text_dim)
+
+
+def button(text, handler, icon=None, primary=False, disabled=False):
+    p = _ui().P
+    return ft.Button(content=ft.Row([
+        *([ft.Icon(icon, size=18)] if icon else []), ft.Text(text, size=14),
+    ], tight=True, spacing=8), on_click=handler, disabled=disabled,
+        height=44, style=ft.ButtonStyle(
+            bgcolor={ft.ControlState.DEFAULT: p.brand if primary else p.selected,
+                     ft.ControlState.DISABLED: p.selected},
+            color={ft.ControlState.DEFAULT: p.bg_main if primary else p.text,
+                   ft.ControlState.DISABLED: p.text_dim},
+            shape=ft.RoundedRectangleBorder(radius=8),
+            padding=ft.Padding.symmetric(horizontal=16)))
+
+
+def card(title, subtitle, controls, icon):
+    p = _ui().P
+    return ft.Container(content=ft.Column([
+        ft.Row([_ui()._brand_image(icon, 24), ft.Text(title, size=18,
+            weight=ft.FontWeight.W_600, color=p.text)], spacing=12),
+        note(subtitle), ft.Container(height=4), *controls,
+    ], spacing=12), bgcolor=p.bg_card, border=ft.Border.all(1, p.border),
+        border_radius=12, padding=20)
+
+
+def screen(title, subtitle, controls):
+    p = _ui().P
+    return ft.Container(expand=True, padding=ft.Padding.all(28), content=ft.Column([
+        ft.Text(title, size=28, weight=ft.FontWeight.BOLD, color=p.text),
+        note(subtitle), ft.Container(height=4), *controls,
+    ], spacing=16, scroll=ft.ScrollMode.AUTO, expand=True))
+
+
+class SoundSettings:
+    """Persistent diagnostic state survives palette/tab rebuilds; controls do not."""
+    def __init__(self, gui):
+        self.gui = gui
+        self.lock = threading.Lock()
+        self.busy = None
+        self.thread = None
+        self.results = {"mic": ("Проверка ещё не запускалась.", "text_dim"),
+                        "voice": ("Нажмите «Послушать голос» — фраза не попадёт в чат.", "text_dim")}
+        self.engine_label = None
+        self.voice_dropdown = None
+        self.device_values = {}
+        self.voice_result = None
+        self.mic_test_button = self.voice_test_button = None
+        self.mic_dropdown = self.mic_refresh_button = None
+        self.voice_controls = []
+
+    def _result(self, kind, text, color="text_dim", done=False):
+        # Workers send plain data only; Flet controls are updated by GUI queue.
+        self.gui._queue.put(("sound_result", (kind, text, color, done)))
+
+    def apply_result(self, kind, text, color="text_dim", done=False):
+        self.results[kind] = (text, color)
+        if done:
+            self.busy = None
+        self.sync()
+
+    def sync(self):
+        p = _ui().P
+        if self.gui._mic_test_result is not None:
+            text, color = self.results["mic"]
+            self.gui._mic_test_result.value = text
+            self.gui._mic_test_result.color = getattr(p, color)
+        if self.voice_result is not None:
+            text, color = self.results["voice"]
+            self.voice_result.value = text
+            self.voice_result.color = getattr(p, color)
+        if self.engine_label is not None:
+            engine = getattr(getattr(self.gui.jarvis, "speaker", None), "_engine_name", "none")
+            self.engine_label.value = f"Загруженный движок: {engine}" if engine != "none" else "Движок: готовность ещё не подтверждена"
+        if self.voice_test_button is not None:
+            self.voice_test_button.content.controls[-1].value = "Проба голоса…" if self.busy == "voice" else "Послушать голос"
+        if self.mic_test_button is not None:
+            self.mic_test_button.content.controls[-1].value = "Измеряю уровень…" if self.busy == "mic" else "Проверить уровень · 3 сек"
+        for control in [self.mic_test_button, self.voice_test_button,
+                        self.mic_dropdown, self.mic_refresh_button, *self.voice_controls]:
+            if control is not None:
+                control.disabled = self.busy is not None
+
+    def build_mic(self):
+        g, p = self.gui, _ui().P
+        devices = ["по умолчанию"]
+        error = ""
+        try:
+            import sounddevice as sd
+            for d in sd.query_devices():
+                name = str(d["name"])
+                if d["max_input_channels"] > 0 and name not in devices:
+                    devices.append(name)  # Keep full device name for Listener.resolve_device.
+        except Exception:
+            error = "Не удалось получить список. Проверьте доступ к микрофону в Windows."
+            log.warning("GUI: input device enumeration failed")
+        current = g.config.get("input_device")
+        if current is None or current == "":
+            current = "по умолчанию"
+        self.device_values = {str(current): current}
+        missing = current not in devices
+        if missing:
+            devices.append(current)
+        g._mic_dropdown = self.mic_dropdown = ft.Dropdown(label="Устройство ввода", value=str(current),
+            options=[ft.dropdown.Option(str(d), str(d) + (" · сохранено, не найдено" if missing and d == current else "")) for d in devices],
+            expand=True, border_color=p.border, focused_border_color=p.brand, on_select=g._on_mic_change)
+        self.mic_refresh_button = button("Обновить", self.refresh_devices, ft.Icons.REFRESH)
+        listener = getattr(g.jarvis, "listener", None)
+        name = getattr(listener, "device_name", "Слушатель ещё не запущен")
+        g._mic_device_text = ft.Text(f"Текущее устройство: {name}", size=13, color=p.text_dim)
+        device = card("Откуда слушать", "Выбор применяется без перезапуска. Фактический вход показан ниже.", [
+            ft.Row([g._mic_dropdown, self.mic_refresh_button], spacing=12),
+            g._mic_device_text, *([note(error)] if error else []),
+        ], "microphone")
+        g._mic_level_bar = ft.ProgressBar(value=0, color=p.brand, bgcolor=p.selected, height=10, border_radius=5)
+        g._mic_level_text = ft.Text("Уровень сигнала: —", size=24, weight=ft.FontWeight.W_600, color=p.text)
+        g._mic_status_text = note("Статус: ожидание звука")
+        g._mic_peak_text = note("Пик за сессию: —")
+        g._mic_utt_text = note("Распознано фраз: —")
+        # Loudness is not an emotion classifier. Do not invent emotion labels.
+        g._mic_emotion_text = None
+        g._mic_test_result = note("")
+        self.mic_test_button = button("Проверить уровень · 3 сек", g._on_mic_test, ft.Icons.MIC, True)
+        signal = card("Как меня слышно", "Живой уровень с текущего входа. Шкала условная, не измерение точности Vosk.", [
+            ft.Row([g._mic_level_text, g._mic_status_text], wrap=True, spacing=16),
+            g._mic_level_bar,
+            ft.Row([g._mic_peak_text, g._mic_utt_text], wrap=True, spacing=24),
+            ft.Row([self.mic_test_button], wrap=True), g._mic_test_result,
+            note("Для проверки скажите фразу без обращения к Фениксу. Обычное распознавание остаётся включённым."),
+        ], "audio")
+        hint = card("Если вас не слышно", "Начните с простого — переустановка обычно не нужна.", [
+            note("1. Выберите нужный вход и проверьте разрешение микрофона в Windows."),
+            note("2. Посмотрите, двигается ли шкала, когда вы говорите."),
+            note("3. Сравните одну команду голосом и в чате: это разделит ошибку распознавания и команды."),
+        ], "settings")
+        self.sync()
+        self.update_level()
+        return screen("Микрофон", "Ваш голос — начало действия. Настройте вход и проверьте сигнал.", [device, signal, hint])
+
+    def refresh_devices(self, e=None):
+        if self.busy:
+            return
+        g = self.gui
+        g._tabs[1] = self.build_mic()
+        if g._content_area is not None and g._rail is not None and g._rail.selected_index == 1:
+            g._content_area.content = g._tabs[1]
+        if g._page is not None:
+            g._page.update()
+
+    def update_level(self):
+        g, p = self.gui, _ui().P
+        listener = getattr(g.jarvis, "listener", None)
+        if g._mic_level_bar is None:
+            return
+        g._mic_device_text.value = f"Текущее устройство: {getattr(listener, 'device_name', 'слушатель не запущен')}"
+        if listener is None:
+            g._mic_peak_text.value = "Пик за сессию: —"
+            g._mic_utt_text.value = "Распознано фраз: —"
+        paused = g.jarvis is not None and not getattr(g.jarvis, "listening_enabled", True)
+        if listener is None or paused or getattr(listener, "muted", False):
+            g._mic_level_bar.value = 0
+            g._mic_level_text.value = "Уровень сигнала: —"
+            g._mic_status_text.value = "Статус: пауза" if paused else ("Статус: вход временно приглушён" if listener else "Статус: слушатель не запущен")
+            g._mic_status_text.color = p.text_dim
+            return
+        try:
+            if time.monotonic() - getattr(listener, "level_updated_at", 0) > 1:
+                g._mic_level_bar.value = 0
+                g._mic_level_text.value = "Уровень сигнала: —"
+                g._mic_status_text.value = "Статус: нет свежих данных входа"
+                g._mic_status_text.color = p.warning
+                return
+            rms = max(0, float(listener.current_rms))
+            if not math.isfinite(rms):
+                rms = 0
+            level = min(1, rms / 2000)
+            g._mic_level_bar.value = level
+            g._mic_level_text.value = f"Уровень сигнала: {int(level * 100)}%"
+            g._mic_peak_text.value = f"Пик за сессию: {listener.peak}"
+            g._mic_utt_text.value = f"Распознано фраз: {listener.utterances}"
+            g._mic_device_text.value = f"Текущее устройство: {listener.device_name}"
+            g._mic_status_text.value = "Статус: есть сигнал" if rms >= 100 else "Статус: тихо / ожидание звука"
+            g._mic_status_text.color = p.success if rms >= 100 else p.text_dim
+        except (AttributeError, TypeError, ValueError):
+            g._mic_status_text.value = "Статус: нет данных уровня"
+
+    def _launch(self, kind, worker):
+        if not self.lock.acquire(blocking=False):
+            return False
+        # Busy stays set until the completion event is applied, preventing stale events.
+        if self.busy is not None:
+            self.lock.release()
+            return False
+        self.busy = kind
+        self.results[kind] = ("Слушаю сигнал 3 секунды…" if kind == "mic" else "Подготавливаю голос…", "text_dim")
+        self.sync()
+        def run():
+            try:
+                worker()
+            except Exception as error:
+                log.warning("GUI sound diagnostic failed (%s)", type(error).__name__)
+                self._result(kind, "Не удалось выполнить проверку. Проверьте устройство и журнал ошибок.", "error", True)
+            finally:
+                self.lock.release()
+        try:
+            self.thread = threading.Thread(target=run, daemon=True, name=f"gui-{kind}-test")
+            self.thread.start()
+        except Exception:
+            self.lock.release()
+            self.busy = None
+            self.apply_result(kind, "Не удалось запустить проверку. Повторите попытку.", "error")
+            return False
+        return True
+
+    def test_mic(self, e=None):
+        g = self.gui
+        listener = getattr(g.jarvis, "listener", None)
+        if listener is None or not getattr(g.jarvis, "listening_enabled", True) or getattr(listener, "muted", False):
+            self.apply_result("mic", "Включите прослушивание и дождитесь готовности микрофона.", "warning")
+            return False
+        device = g.config.get("input_device")
+        def sample():
+            peak_rms = 0
+            started = time.monotonic()
+            samples = set()
+            for _ in range(60):
+                if (getattr(g.jarvis, "listener", None) is not listener or
+                    g.config.get("input_device") != device or not getattr(g.jarvis, "listening_enabled", True) or
+                    getattr(listener, "muted", False)):
+                    self._result("mic", "Вход изменился или был приостановлен. Повторите проверку.", "warning", True)
+                    return
+                rms = float(listener.current_rms)
+                stamp = getattr(listener, "level_updated_at", 0)
+                if math.isfinite(rms) and stamp > started:
+                    samples.add(stamp)
+                    peak_rms = max(peak_rms, rms)
+                time.sleep(.05)
+            if len(samples) < 2:
+                self._result("mic", "Нет свежих данных входа. Дождитесь открытия микрофона и повторите проверку.", "warning", True)
+                return
+            if peak_rms >= 500:
+                text, color = "Сигнал заметен. Если речь распознаётся неверно, проверьте команду отдельно.", "success"
+            elif peak_rms >= 100:
+                text, color = "Сигнал тихий. Приблизьте микрофон или увеличьте входную громкость Windows.", "warning"
+            else:
+                text, color = "За время проверки заметного сигнала нет. Проверьте вход и разрешения Windows.", "warning"
+            self._result("mic", text, color, True)
+        return self._launch("mic", sample)
+
+    def test_voice(self, e=None):
+        g = self.gui
+        if g.jarvis is None or getattr(g.jarvis, "speaker", None) is None:
+            self.apply_result("voice", "Звуковое ядро ещё не готово.", "warning")
+            return False
+        def speak():
+            core = g.jarvis
+            if not g._command_lock.acquire(blocking=False):
+                self._result("voice", "Феникс занят командой. Повторите после ответа.", "warning", True)
+                return
+            if not core.cmd_lock.acquire(blocking=False):
+                g._command_lock.release()
+                self._result("voice", "Феникс занят командой. Повторите после ответа.", "warning", True)
+                return
+            try:
+                if (g._command_busy or getattr(core.handler, "_pending_password", None) or
+                    getattr(core.handler, "_pending_question", None)):
+                    self._result("voice", "Сначала завершите текущую команду или уточнение.", "warning", True)
+                    return
+                if core.speaker.is_playing():
+                    self._result("voice", "Дождитесь окончания речи или нажмите «Остановить речь».", "warning", True)
+                    return
+                from jarvis.reply import Reply
+                g.set_state("speaking")
+                # Jarvis.say owns _say_lock, listener mute/barge-in and Speaker.
+                interrupted = core.say(Reply(text=TEST_PHRASE, allow_nonverbal=False))
+                engine = getattr(core.speaker, "_engine_name", "none")
+                if engine == "none":
+                    self._result("voice", "Движок не готов. Проверьте выбранный TTS и его модели.", "warning", True)
+                else:
+                    text = "Проба прервана." if interrupted else "Проба завершена. Если звука нет, проверьте выход и громкость Windows."
+                    self._result("voice", text, "text_dim", True)
+            finally:
+                core.cmd_lock.release()
+                g._command_lock.release()
+                g.set_state("idle")
+        return self._launch("voice", speak)
+
+    def build_audio(self):
+        g, p = self.gui, _ui().P
+        backend = ft.Dropdown(label="Движок речи", value=g.config.get("tts_backend", "auto"),
+            options=[ft.dropdown.Option(k) for k in _ui().TTS_BACKENDS], expand=True,
+            border_color=p.border, focused_border_color=p.brand, on_select=g._on_tts_change)
+        current = g.config.get("tts_voice", "ruslan")
+        options = g._get_voice_options()
+        if current not in [o.key for o in options]:
+            options.append(ft.dropdown.Option(current, f"{current} · сохранён"))
+        voice = self.voice_dropdown = ft.Dropdown(label="Голос", value=current, options=options, expand=True,
+            border_color=p.border, focused_border_color=p.brand, on_select=self.change_voice)
+        refresh = button("Обновить", g._on_refresh_voices, ft.Icons.REFRESH)
+        self.rate_label = note(f"Скорость речи · {float(g.config.get('voice_rate', 1.15)):.2f}×")
+        rate = ft.Slider(min=.5, max=2, divisions=30, value=float(g.config.get("voice_rate", 1.15)),
+            active_color=p.brand, label="{value}", on_change=self.show_rate, on_change_end=self.change_rate)
+        self.voice_result = note("")
+        self.voice_test_button = button("Послушать голос", self.test_voice, ft.Icons.PLAY_ARROW, True)
+        stop = button("Остановить речь", g._on_stop_speech, ft.Icons.STOP)
+        self.voice_controls = [backend, voice, refresh, rate]
+        engine = getattr(getattr(g.jarvis, "speaker", None), "_engine_name", "none")
+        self.engine_label = note(f"Загруженный движок: {engine}" if engine != "none" else "Движок: готовность ещё не подтверждена")
+        voice_card = card("Голос Феникса", "Выберите тембр и темп, затем прослушайте короткую фразу.", [
+            ft.Row([backend, voice], spacing=12),
+            ft.Row([refresh, self.engine_label], wrap=True),
+            self.rate_label, rate, ft.Row([self.voice_test_button, stop], wrap=True, spacing=12),
+            self.voice_result,
+            note("Голоса в списке могут требовать модели. Проба использует обычный звуковой тракт; первый запуск может занять время."),
+        ], "audio")
+        reactions = card("Живое звучание", "Необязательные реакции и анализ интонации — настройте под себя.", [
+            ft.Checkbox(label="Звуковые реакции (смех, вздохи, хм, зевок)", value=bool(g.config.get("nonverbal_enabled", False)), on_change=g._on_nonverbal_enabled),
+            note("Только в помеченном диалоге. Silero, Piper и WinRT; SAPI — без реакций. На голосовую пробу не добавляются."),
+            ft.Checkbox(label="Анализировать интонацию голоса (Prosody)", value=bool(g.config.get("prosody_enabled", True)), on_change=g._on_prosody_enabled),
+            ft.Dropdown(label="Приоритет оценки интонации", value=g.config.get("prosody_priority", "prosody"), options=[
+                ft.dropdown.Option("prosody", "Голос важнее текста"), ft.dropdown.Option("text", "Текст важнее голоса"),
+                ft.dropdown.Option("both", "Оба: голос первым")], on_select=g._on_prosody_priority, border_color=p.border),
+            note("Это эвристика RMS/pitch/ZCR, а не достоверное определение эмоций человека."),
+        ], "persona")
+        g._vad_threshold_label = note(f"Порог VAD: {g.config.get('vad_threshold', .5):.2f}")
+        g._vad_threshold_slider = ft.Slider(min=.1, max=.9, divisions=16, value=float(g.config.get("vad_threshold", .5)), active_color=p.brand,
+            on_change=g._on_vad_threshold_change, on_change_end=g._on_vad_threshold_end)
+        g._vad_hangover_label = note(f"Хвост тишины для Vosk: {int(g.config.get('vad_hangover_ms', DEFAULT_HANGOVER_MS))} мс")
+        g._vad_hangover_slider = ft.Slider(min=0, max=3000, divisions=12, value=float(g.config.get("vad_hangover_ms", DEFAULT_HANGOVER_MS)),
+            active_color=p.brand, on_change=g._on_vad_hangover_change, on_change_end=g._on_vad_hangover_end)
+        advanced = ft.ExpansionTile(title=ft.Text("Распознавание и фильтр тишины", color=p.text, size=16),
+            subtitle=note("VAD, паузы Vosk, обращение и перебивание"), controls=[ft.Container(padding=16, content=ft.Column([
+                ft.Checkbox(label="VAD (Silero) — фильтр тишины", value=bool(g.config.get("vad_enabled", True)), on_change=g._on_vad_enabled),
+                ft.Checkbox(label="Адаптивный порог под микрофон", value=bool(g.config.get("vad_adaptive", True)), on_change=g._on_vad_adaptive),
+                ft.Checkbox(label="Скачивать модель VAD, если её нет", value=bool(g.config.get("vad_auto_download", True)), on_change=g._on_vad_auto_download),
+                note("Без модели фильтр VAD недоступен. Скачивание требует сети; Vosk остаётся основным распознавателем."),
+                g._vad_threshold_label, g._vad_threshold_slider,
+                note("Меньший порог пропускает больше кандидатов на речь, но также больше шума."),
+                g._vad_hangover_label, g._vad_hangover_slider,
+                note("Короткий хвост может ускорить ответ, но Vosk должен успеть завершить фразу."),
+                ft.Checkbox(label="Прерывать Феникса голосом (barge-in)", value=bool(g.config.get("barge_enabled", True)), on_change=g._on_barge_enabled),
+                ft.Checkbox(label="Ждать обращения «Феникс»", value=bool(g.config.get("wake_word_required", True)), on_change=g._on_wake_required),
+                note("Без ожидания обращения любая распознанная речь может стать командой. Изменения применяются сразу."),
+            ], spacing=12))])
+        self.sync()
+        return screen("Голос и звук", "Тембр, темп и поведение речи — в одном месте.", [voice_card, reactions, advanced])
+
+    def change_voice(self, e):
+        self.gui._on_voice_change(e)
+
+    def show_rate(self, e):
+        self.rate_label.value = f"Скорость речи · {float(e.control.value):.2f}×"
+
+    def change_rate(self, e):
+        self.show_rate(e)
+        self.gui._on_rate_change(e)
+        self.apply_result("voice", "Темп изменён. Прослушайте пробу ещё раз.")
 ```
 
 ### `jarvis/gui_commands.py`
@@ -9625,6 +9859,1654 @@ class CommandBuilder:
     def _keep(self):
         self.confirm_delete = None
         self.refresh()
+```
+
+### `jarvis/gui_home.py`
+
+```python
+"""Minimal native Home: local clock and the real assistant state, no chat/widgets."""
+import asyncio
+import math
+import time
+from datetime import datetime
+from types import SimpleNamespace
+
+import flet as ft
+
+WEEKDAYS = ("понедельник", "вторник", "среда", "четверг", "пятница", "суббота", "воскресенье")
+MONTHS = ("января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря")
+
+
+def clock_labels(now):
+    return f"{WEEKDAYS[now.weekday()]}, {now.day} {MONTHS[now.month - 1]}", now.strftime("%H:%M")
+
+
+from jarvis.gui_home_fx import PhoenixAura
+from jarvis.gui_home_actions import PhoenixActions
+
+
+class HomeScreen(ft.Column):
+    """Minimal Home with real-state solar aura; quiet ambient motion, no fake audio."""
+    def __init__(self, gui):
+        from jarvis import gui as ui
+        super().__init__(spacing=0, expand=True)
+        self.gui = gui
+        self._host = None
+        self._future = None
+        self._mounted = False
+        self._epoch = 0
+        p = ui.P
+        self.date = ft.Text(size=11, color=p.text_dim)
+        self.clock = ft.Text(size=11, color=p.text_dim)
+        self.refresh_clock()
+        self.status = ft.Text(size=11, color=p.text_dim, text_align=ft.TextAlign.CENTER)
+        self.dot = ft.Container(width=5, height=5, border_radius=3, bgcolor=p.brand)
+        self.ring = ft.Container(
+            ui._brand_image("phoenix", 112, "Феникс"), width=240, height=240,
+            border_radius=120, alignment=ft.Alignment.CENTER,
+            border=ft.Border.all(1, ft.Colors.with_opacity(.35, p.border)),
+            bgcolor=ft.Colors.with_opacity(.12, p.sidebar),
+            shadow=ft.BoxShadow(blur_radius=75, spread_radius=12,
+                                color=ft.Colors.with_opacity(.035, p.accent)))
+        self.aura = PhoenixAura(gui, self.ring)
+        self.actions = PhoenixActions(gui, self.aura)
+        self._signal_until = 0
+        self._signal_energy = 0
+        self.theme_buttons = []
+        for title, value in (("Сумерки", "Тёмная"), ("Фарфор", "Светлая")):
+            active = (value == "Светлая") == (p.bg_main == ui.PALETTES["light"]["bg_main"])
+            fill = p.selected if active else ft.Colors.TRANSPARENT
+            self.theme_buttons.append(ft.Button(title, height=34, elevation=0, bgcolor=fill,
+                tooltip=f"Тема: {title}", on_click=lambda e, name=value: self._theme(name),
+                style=ft.ButtonStyle(padding=ft.Padding.symmetric(horizontal=12),
+                    bgcolor={ft.ControlState.DEFAULT: fill, ft.ControlState.HOVERED: p.selected},
+                    overlay_color=ft.Colors.TRANSPARENT,
+                    color=p.text if active else p.text_dim,
+                    shape=ft.RoundedRectangleBorder(radius=8))))
+        self.header = ft.Container(ft.Row([
+            ft.Text("Рабочее пространство  /  Главная", size=12, color=p.text_dim, expand=True),
+            ft.Container(ft.Row(self.theme_buttons, spacing=3), padding=4, border_radius=11,
+                         bgcolor=p.sidebar, border=ft.Border.all(1, ft.Colors.with_opacity(.5, p.border)))
+        ], spacing=12), padding=ft.Padding(left=28, right=28, top=16, bottom=16),
+            border=ft.Border(bottom=ft.BorderSide(1, ft.Colors.with_opacity(.5, p.border))))
+        self.controls = [self.header, ft.Container(ft.Column([
+            ft.Row([ft.Row([ft.Icon(ft.Icons.WB_SUNNY_OUTLINED, size=14, color=p.text_dim), self.date], spacing=8),
+                    self.clock], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+            ft.Container(ft.Column([self.actions,
+                ft.Row([self.dot, self.status], spacing=8, alignment=ft.MainAxisAlignment.CENTER)
+            ], spacing=4, tight=True, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                alignment=ft.Alignment.CENTER, expand=True),
+            ft.Text("Просто твоё пространство.", size=10, color=p.text_dim),
+        ], expand=True, spacing=20), padding=ft.Padding(left=28, right=28, top=26, bottom=24), expand=True)]
+        self.apply_state(gui._state)
+
+    def _theme(self, name):
+        self.gui._on_theme_change(SimpleNamespace(control=SimpleNamespace(value=name)))
+
+    def apply_state(self, state):
+        from jarvis import gui as ui
+        p = ui.P
+        if self.gui.jarvis is None:
+            text, color = "Ядро ещё не готово", p.text_dim
+        elif state == "idle":
+            text = "Рядом, когда нужен" if getattr(self.gui.jarvis, "listening_enabled", True) else "Микрофон на паузе"
+            color = p.brand
+        else:
+            text = ui.STATES.get(state, ui.STATES["idle"])[1]
+            color = {"error": p.error, "speaking": p.success}.get(state, p.brand)
+        self.status.value = text
+        self.dot.bgcolor = color
+        self._sync_aura()
+        self.actions.sync_state()
+
+    def _sync_aura(self):
+        state = self.gui._state
+        mode = "idle"
+        if self.gui.jarvis is not None:
+            if state == "speaking":
+                mode = "speaking"
+            elif state in ("thinking", "recognizing"):
+                mode = "thinking"
+            elif getattr(self.gui.jarvis, "listening_enabled", True):
+                if state == "listening" or (state == "idle" and time.monotonic() < self._signal_until):
+                    mode = "listening"
+        self.aura.set_mode(mode, self._signal_energy)
+
+    def poll_signal(self):
+        """Reuse existing fresh RMS at 5 Hz. No stream, recording or recognition here."""
+        core = self.gui.jarvis
+        listener = getattr(core, "listener", None)
+        now = time.monotonic()
+        valid = False
+        fresh = False
+        try:
+            stamp = float(listener.level_updated_at)
+            rms = float(listener.current_rms)
+            fresh = 0 <= now - stamp <= 1 and math.isfinite(rms)
+            valid = (getattr(core, "listening_enabled", True) and not listener.muted
+                     and fresh and rms >= 150)
+        except (AttributeError, TypeError, ValueError):
+            pass
+        if valid and self.gui._state == "idle":
+            self._signal_until = now + .35
+            self._signal_energy = min(1, rms / 2000)
+        elif not valid:
+            # A paused/muted/stale input must not keep a residual listening glow.
+            paused = (core is None or not getattr(core, "listening_enabled", True)
+                      or getattr(listener, "muted", False))
+            if paused or not fresh:
+                self._signal_until = 0
+            if now >= self._signal_until:
+                self._signal_energy = 0
+        self._sync_aura()
+        self.actions.sync_state()
+
+    def refresh_clock(self, now=None):
+        date, clock = clock_labels(now or datetime.now())
+        changed = self.date.value != date or self.clock.value != clock
+        self.date.value, self.clock.value = date, clock
+        return changed
+
+    def did_mount(self):
+        self._mounted = True
+        self._host = self.page
+        self._epoch += 1
+        self._future = self._host.run_task(self._clock_loop, self._epoch)
+
+    def will_unmount(self):
+        self.dispose()
+
+    def dispose(self):
+        self.actions.dispose()
+        self.aura.dispose()
+        self._mounted = False
+        self._epoch += 1
+        if self._future is not None:
+            self._future.cancel()
+            self._future = None
+        self._host = None
+
+    async def _clock_loop(self, epoch):
+        while self._mounted and epoch == self._epoch:
+            if self.refresh_clock():
+                try:
+                    self._host.update(self.date, self.clock)
+                except RuntimeError:
+                    return  # Detached renderer: never keep polling an old page.
+            await asyncio.sleep(1)
+```
+
+### `jarvis/gui_home_actions.py`
+
+```python
+"""Three real Home actions. Native controls, finite transitions, no extra frame loop."""
+import asyncio
+from functools import partial
+
+import flet as ft
+
+
+def entered(event):
+    value = getattr(event, "data", False)
+    return value is True or str(value).lower() == "true"
+
+
+class PhoenixActions(ft.Container):
+    """Same 300px footprint as the aura; one shared pointer zone bridges buttons."""
+    def __init__(self, gui, aura):
+        from jarvis import gui as ui
+        self.gui, self.aura = gui, aura
+        self.opened = False
+        self._inside = False
+        self._focused = None
+        self._keyboard = False
+        self._mounted = False
+        self._host = None
+        self._close_task = None
+        self._epoch = 0
+        p = ui.P
+        self.guide = ft.Container(width=252, height=252, left=24, top=24,
+            border_radius=126, border=ft.Border.all(1, ft.Colors.with_opacity(.22, p.brand)),
+            opacity=0, ignore_interactions=True)
+        self.hint = ft.Text("", size=11, color=p.text_dim, text_align=ft.TextAlign.CENTER)
+        self.caption = ft.Container(self.hint, left=44, right=44, bottom=10,
+            alignment=ft.Alignment.CENTER, opacity=0, ignore_interactions=True)
+        # A normal focusable button overlays only the bird, not its animated canvas.
+        self.center = ft.IconButton(icon=ft.Container(width=1, height=1), icon_color=ft.Colors.TRANSPARENT,
+            width=120, height=120, padding=0,
+            style=ft.ButtonStyle(shape=ft.CircleBorder(), overlay_color=ft.Colors.TRANSPARENT),
+            focus_color=ft.Colors.with_opacity(.10, p.brand),
+            hover_color=ft.Colors.TRANSPARENT, splash_color=ft.Colors.TRANSPARENT,
+            on_hover=self._center_hover, on_click=self._toggle,
+            on_focus=partial(self._focus, "center"), on_blur=partial(self._blur, "center"))
+        trigger = ft.Container(ft.Semantics(content=self.center, label="Действия Феникса", button=True),
+                               width=120, height=120, left=90, top=90)
+        self.buttons, self.slots, self.semantics = {}, {}, {}
+        placements = (("dialog", ft.Icons.CHAT_BUBBLE_OUTLINE, 126, 4),
+                      ("mic", ft.Icons.MIC_NONE, 14, 184),
+                      ("stop", ft.Icons.STOP_ROUNDED, 238, 184))
+        for key, icon, x, y in placements:
+            button = ft.IconButton(icon=icon, width=48, height=48, icon_size=22,
+                icon_color=p.brand, bgcolor=p.bg_card,
+                disabled_color=p.text_dim, hover_color=p.selected, focus_color=p.selected,
+                style=ft.ButtonStyle(shape=ft.CircleBorder(), side=ft.BorderSide(1, p.border)),
+                on_click=partial(self._act, key),
+                on_focus=partial(self._focus, key), on_blur=partial(self._blur, key))
+            self.buttons[key] = button
+            self.semantics[key] = ft.Semantics(content=button, button=True, hidden=True)
+            self.slots[key] = ft.Container(self.semantics[key], width=48, height=48, left=x, top=y,
+                border_radius=24, opacity=0, scale=.86, ignore_interactions=True,
+                on_hover=partial(self._action_hover, key),
+                shadow=ft.BoxShadow(blur_radius=16, color=ft.Colors.with_opacity(.12, p.brand)))
+        super().__init__(ft.Stack([aura, self.guide, trigger, *self.slots.values(), self.caption],
+            width=300, height=300), width=300, height=300, on_hover=self._zone_hover)
+        self._sync_motion()
+        self.sync_state()
+
+    def _sync_motion(self):
+        motion = self.aura.motion_allowed()
+        fade = ft.Animation(220, ft.AnimationCurve.EASE_OUT_CUBIC) if motion else None
+        for item in (self.guide, self.caption, *self.slots.values()):
+            item.animate_opacity = fade
+        for item in self.slots.values():
+            item.animate_scale = fade
+
+    def _update(self):
+        if self._mounted and self._host is not None:
+            try:
+                self._host.update(self)
+            except RuntimeError:
+                self.dispose()
+
+    def _labels(self):
+        core = self.gui.jarvis
+        listening = bool(getattr(core, "listening_enabled", False))
+        return {"dialog": "Открыть диалог",
+                "mic": "Выключить микрофон" if listening else "Включить микрофон",
+                "stop": "Остановить речь" if self.gui._state == "speaking" else "Сейчас нет озвучки"}
+
+    def sync_state(self):
+        from jarvis import gui as ui
+        core = self.gui.jarvis
+        labels = self._labels()
+        snapshot = (self.opened, core is not None, bool(getattr(core, "listening_enabled", False)),
+                    self.gui._state == "speaking")
+        if getattr(self, "_state_snapshot", None) == snapshot:
+            return
+        self._state_snapshot = snapshot
+        for key, button in self.buttons.items():
+            self.semantics[key].label = labels[key] if core is not None or key == "dialog" else "Ядро ещё не готово"
+            self.semantics[key].hidden = not self.opened
+            self.semantics[key].toggled = snapshot[2] if key == "mic" else None
+            button.disabled = (not self.opened or (key != "dialog" and core is None)
+                               or (key == "stop" and self.gui._state != "speaking"))
+            button.icon_color = ui.P.text_dim if button.disabled else ui.P.brand
+        self.buttons["mic"].icon = ft.Icons.MIC_NONE if snapshot[2] else ft.Icons.MIC_OFF_OUTLINED
+        self.buttons["mic"].icon_color = (ui.P.text_dim if self.buttons["mic"].disabled
+                                          else ui.P.brand if snapshot[2] else ui.P.error)
+        if self._focused in labels:
+            self.hint.value = labels[self._focused]
+        self._update()
+
+    def set_open(self, value):
+        self._cancel_close()
+        value = bool(value)
+        if self.opened == value:
+            return
+        self._sync_motion()
+        self.opened = value
+        for item in (self.guide, self.caption, *self.slots.values()):
+            item.opacity = 1 if value else 0
+        for item in self.slots.values():
+            item.scale = 1 if value else .86
+            item.ignore_interactions = not value
+        if value:
+            self.hint.value = "Выбери действие"
+        self.sync_state()
+
+    def _toggle(self, e=None):
+        # Pointer hover may already have opened it before the click arrives.
+        self.set_open(True)
+
+    def _center_hover(self, e):
+        self._keyboard = False
+        if entered(e):
+            self._inside = True
+            self.set_open(True)
+
+    def _zone_hover(self, e):
+        self._keyboard = False
+        self._inside = entered(e)
+        if self._inside:
+            self._cancel_close()
+        else:
+            self._schedule_close()
+
+    def _action_hover(self, key, e):
+        self._keyboard = False
+        if entered(e):
+            self._cancel_close()
+            self.hint.value = self.semantics[key].label
+        else:
+            self.hint.value = "Выбери действие"
+        self._update()
+
+    def _focus(self, key, e=None):
+        self._focused = key
+        self._cancel_close()
+        if self._keyboard:
+            self.set_open(True)
+        if self.opened:
+            self.hint.value = self._labels().get(key, "Выбери действие")
+            self._update()
+
+    def _blur(self, key, e=None):
+        if self._focused == key:
+            self._focused = None
+        self._schedule_close()
+
+    async def on_key(self, e):
+        if e.key == "Tab":
+            self._keyboard = True
+        elif e.key == "Escape" and self.opened:
+            self.set_open(False)
+            self._keyboard = False  # focusing the trigger must not reopen it
+            if self._mounted:
+                await self.center.focus()
+            return True
+        return False
+
+    def _act(self, key, e=None):
+        # Handler guard too: stale clicks after state changes must do nothing.
+        if not self.opened or self.buttons[key].disabled:
+            return
+        if key == "dialog":
+            self.set_open(False)
+            self.gui._select_tab(0)
+        elif key == "mic":
+            self.gui._on_mic_toggle(e)
+            self.sync_state()
+            self.hint.value = "Микрофон включён" if self.gui.jarvis.listening_enabled else "Микрофон на паузе"
+            self._update()
+        elif key == "stop" and self.gui._state == "speaking":
+            self.gui._on_stop_speech(e)
+            self.hint.value = "Озвучка остановлена"
+            self._update()
+
+    def _cancel_close(self):
+        self._epoch += 1
+        if self._close_task is not None:
+            self._close_task.cancel()
+            self._close_task = None
+
+    def _schedule_close(self):
+        self._cancel_close()
+        if self._mounted and self.opened:
+            self._close_task = self._host.run_task(self._close_later, self._epoch)
+
+    async def _close_later(self, epoch):
+        await asyncio.sleep(.24)
+        if epoch == self._epoch and not self._inside and not (self._keyboard and self._focused):
+            self._close_task = None
+            self.set_open(False)
+
+    def did_mount(self):
+        self._mounted, self._host = True, self.page
+
+    def will_unmount(self):
+        self.dispose()
+
+    def dispose(self):
+        self._mounted = False
+        self.set_open(False)
+        self._cancel_close()
+        self._inside = False
+        self._focused = None
+        self._keyboard = False
+        self._host = None
+```
+
+### `jarvis/gui_home_fx.py`
+
+```python
+"""Bounded native solar aura. Decorative state motion, never a fake waveform."""
+import asyncio
+import logging
+import math
+import time
+
+import flet as ft
+import flet.canvas as cv
+
+log = logging.getLogger(__name__)
+FPS = 24
+IDLE_FPS = 16
+MODES = ("idle", "listening", "speaking", "thinking")
+SIZE = 300
+CENTER = SIZE / 2
+
+
+def transition_weights(current, target, dt):
+    """Time-based easing; an interrupted transition continues from the current mix."""
+    tau = .50 if target == "idle" else .28
+    alpha = -math.expm1(-max(0, min(.1, dt)) / tau)
+    return {mode: value + ((1.0 if mode == target else 0.0) - value) * alpha
+            for mode, value in current.items()}
+
+
+def solar_shapes(mode, seconds, energy, color, *, weights=None, phase=None):
+    """Fixed topology: all layers persist and fade, rather than popping in/out."""
+    if mode not in MODES:
+        return []
+    w = weights if weights is not None else {m: float(m == mode) for m in MODES}
+    listening, speaking = w["listening"], w["speaking"]
+    speed = sum(w[m] * v for m,v in zip(MODES, (.85, 2.1, 2.8, 1.35)))
+    phase = seconds * speed if phase is None else phase
+    pulse = .5 + .5 * math.sin(phase)
+    strength = sum(w[m] * v for m,v in zip(MODES, (.32, .66, .84, .37))) + .10*pulse + .10*energy*listening
+    amplitude = sum(w[m] * v for m,v in zip(MODES, (3.0, 6.5, 9.0, 3.8))) + 1.2*energy*listening
+    shapes = []
+    def paint(alpha, width=1, fill=False):
+        return ft.Paint(color=ft.Colors.with_opacity(max(0, min(1, alpha)), color),
+            style=ft.PaintingStyle.FILL if fill else ft.PaintingStyle.STROKE,
+            stroke_width=width, stroke_cap=ft.StrokeCap.ROUND, stroke_join=ft.StrokeJoin.ROUND)
+    radius = 116 + 2.2*pulse
+    for width, alpha in ((29, .03), (17, .05), (7, .08), (1.2, .25)):
+        shapes.append(cv.Circle(CENTER, CENTER, radius, paint(strength * alpha, width)))
+    # Stronger travelling waves; geometry, brightness and extra layers all ease.
+    for layer, visibility in enumerate((1.0, listening + speaking, speaking)):
+        points = []
+        for i in range(121):
+            a = 2*math.pi*i/120
+            wave = (.65*math.sin(5*a - phase*.65 + layer)
+                    + .30*math.sin(8*a + phase*.85 + layer*.7)
+                    + .18*math.sin(3*a - phase*1.15))
+            swell = .85 + .15*math.sin(phase*.6 + layer)
+            r = radius + 4 + layer*3 + wave*amplitude*swell
+            points.append((CENTER + r*math.cos(a), CENTER + r*math.sin(a)))
+        elements = [cv.Path.MoveTo(*points[0]), *[cv.Path.LineTo(*q) for q in points[1:]]]
+        for width, alpha in ((9, .04), (3, .12), (.9, .46)):
+            shapes.append(cv.Path(elements, paint(strength*alpha*visibility/(1 + layer*.55), width)))
+    for j, visibility in enumerate((1.0, 1.0, speaking)):
+        r = radius - 3 + j*6
+        shapes.append(cv.Arc(CENTER-r, CENTER-r, 2*r, 2*r,
+            phase*.20 + j*2*math.pi/3, .50 + pulse*.18,
+            paint=paint(strength*.55*visibility, 1.4)))
+    # Waves also continue during speech, fading gently into the idle sun.
+    for j in range(3):
+        life = (phase*.16 + j/3) % 1
+        r = 122 + life*21
+        alpha = math.sin(math.pi*life)**2 * (.18*listening + .16*speaking)
+        shapes.append(cv.Circle(CENTER, CENTER, r, paint(alpha, .95)))
+    for i in range(16):
+        life = (phase*.10 + i/16) % 1
+        angle = i*2.39996
+        r = 121 + 15*life
+        x = CENTER + r*math.cos(angle) + 1.6*math.sin(phase*.4 + i)
+        y = CENTER + r*math.sin(angle) - 9*life
+        alpha = math.sin(math.pi*life)**2 * (.60*speaking + (.08*listening if i < 6 else 0))
+        shapes.append(cv.Circle(x, y, .7 + .55*(1-life), paint(alpha, fill=True)))
+    return shapes
+
+
+class PhoenixAura(ft.Container):
+    """A quiet ambient sun; one task only on visible Home, louder during activity."""
+    def __init__(self, gui, ring):
+        self.gui = gui
+        self.ring = ring
+        self.canvas = cv.Canvas([], width=SIZE, height=SIZE)
+        super().__init__(ft.Stack([
+            ft.Container(self.canvas, alignment=ft.Alignment.CENTER),
+            ft.Container(ring, alignment=ft.Alignment.CENTER),
+        ], width=SIZE, height=SIZE, fit=ft.StackFit.EXPAND),
+            width=SIZE, height=SIZE, ignore_interactions=True)
+        self.mode = "idle"
+        self.energy = 0
+        self._time_origin = time.monotonic()
+        self._last_frame = self._time_origin
+        self._phase = 0.0
+        self._weights = {mode: float(mode == "idle") for mode in MODES}
+        self._visual_energy = 0.0
+        self._mounted = False
+        self._host = None
+        self._future = None
+        self._accessibility_future = None
+        self._epoch = 0
+        self._os_reduced = False
+        self._service = None
+
+    def foreground(self):
+        from jarvis.gui import HOME_TAB
+        rail = getattr(self.gui, "_rail", None)
+        window = getattr(getattr(self.gui, "_page", None), "window", None)
+        return (getattr(self.gui, "_home_window_visible", True)
+                and rail is not None and rail.selected_index == HOME_TAB
+                and getattr(window, "visible", True) is not False
+                and getattr(window, "minimized", False) is not True)
+
+    def motion_allowed(self):
+        rail = getattr(self.gui, "_rail", None)
+        return (not self._os_reduced and self.gui.config.get("gui_motion_enabled", True) is not False
+                and getattr(rail, "motion_enabled", True))
+
+    def set_mode(self, mode, energy=0):
+        self.mode = mode if mode in MODES else "idle"
+        self.energy = max(0, min(1, energy))
+        # A target change never redraws a mounted animated scene immediately.
+        # The single frame loop eases from its current mixture, even on reversal.
+        if not self._mounted or not self.motion_allowed():
+            self._weights = {m: float(m == self.mode) for m in MODES}
+            self._visual_energy = self.energy
+            self._draw(0)
+        self.sync_motion()
+
+    def sync_motion(self):
+        active = self.mode in MODES
+        if not (self._mounted and self.foreground() and active and self.motion_allowed()):
+            self._stop_motion()
+            return
+        if self._future is None or self._future.done():
+            self._epoch += 1
+            self._last_frame = time.monotonic()
+            self._future = self._host.run_task(self._animate, self._epoch)
+
+    def _stop_motion(self):
+        self._epoch += 1
+        if self._future is not None:
+            self._future.cancel()
+            self._future = None
+
+    def _draw(self, seconds):
+        from jarvis import gui as ui
+        p = ui.P
+        now = time.monotonic()
+        dt = max(0, min(.1, now - self._last_frame))
+        self._last_frame = now
+        if self.motion_allowed():
+            self._weights = transition_weights(self._weights, self.mode, dt)
+            self._visual_energy += (self.energy-self._visual_energy)*(-math.expm1(-dt/.30))
+            speed = sum(self._weights[m]*v for m,v in zip(MODES, (.85, 2.1, 2.8, 1.35)))
+            self._phase += speed*dt
+        else:
+            self._weights = {m: float(m == self.mode) for m in MODES}
+            self._visual_energy = self.energy
+        self.canvas.shapes = solar_shapes(self.mode, seconds, self._visual_energy, p.brand,
+            weights=self._weights, phase=self._phase)
+        if self._mounted and self._host is not None:
+            try:
+                self._host.update(self.canvas)
+            except RuntimeError:
+                self._stop_motion()
+
+    async def _animate(self, epoch):
+        while (self._mounted and epoch == self._epoch and self.foreground()
+               and self.motion_allowed() and self.mode in MODES):
+            tick = time.monotonic()
+            self._draw(tick - self._time_origin)
+            settled_idle = self.mode == "idle" and self._weights["idle"] > .995
+            fps = IDLE_FPS if settled_idle else FPS
+            await asyncio.sleep(max(0, 1 / fps - (time.monotonic() - tick)))
+
+    async def _read_accessibility(self, host):
+        try:
+            self._service = ft.SemanticsService()
+            flags = await asyncio.wait_for(self._service.get_accessibility_features(), 2)
+            if self._mounted and host is self._host and (flags.disable_animations or flags.reduce_motion):
+                self._os_reduced = True
+                self._stop_motion()
+                self._draw(0)  # State remains legible, but completely still.
+        except Exception:
+            log.debug("Home aura: accessibility flags unavailable", exc_info=True)
+
+    def did_mount(self):
+        self._mounted, self._host = True, self.page
+        self._last_frame = time.monotonic()
+        self._draw(time.monotonic() - self._time_origin if self.motion_allowed() else 0)
+        self.sync_motion()
+        self._accessibility_future = self._host.run_task(self._read_accessibility, self._host)
+
+    def will_unmount(self):
+        self.dispose()
+
+    def dispose(self):
+        self._mounted = False
+        self._stop_motion()
+        if self._accessibility_future is not None:
+            self._accessibility_future.cancel()
+            self._accessibility_future = None
+        self._host = None
+```
+
+### `jarvis/gui_preferences.py`
+
+```python
+"""Native persona/settings editors. Drafts are not configuration or a second memory. ... [5 строк]"""
+from copy import deepcopy
+import json
+import logging
+import threading
+from types import SimpleNamespace
+from urllib.parse import urlsplit, urlunsplit
+from urllib.request import build_opener, ProxyHandler, HTTPRedirectHandler, Request
+
+import flet as ft
+
+from jarvis import persona, profile
+
+log = logging.getLogger(__name__)
+STYLES = {"formal": "Формальный", "friendly": "Дружеский",
+          "sarcastic": "Саркастичный", "brief": "Краткий"}
+TONES = {"auto": "Авто — подстраиваться", "polite": "Вежливый — без мата",
+         "unrestricted": "Без цензуры — если вы сами"}
+EXAMPLES = {
+    "formal": "Уточните, пожалуйста, какую задачу нужно выполнить в первую очередь.",
+    "friendly": "Давай разберёмся. Что нужно сделать в первую очередь?",
+    "sarcastic": "Планов много. Начнём с одного — что делаем первым?",
+    "brief": "Что сделать первым?",
+}
+SETTING_KEYS = ("llm_model", "ollama_url", "observer_enabled", "memory_rag_enabled",
+                "tray_enabled", "launch_mode")
+
+
+def validated_url(value):
+    """Ollama base URL only; never permit embedded credentials or redirect auth."""
+    value = value.strip()
+    if not value or any(c.isspace() or ord(c) < 32 for c in value):
+        raise ValueError("Укажите адрес Ollama без пробелов.")
+    try:
+        u = urlsplit(value)
+        port = u.port
+        if (u.scheme not in ("http", "https") or not u.hostname
+                or u.username is not None or u.password is not None
+                or u.query or u.fragment or "\\" in value):
+            raise ValueError
+    except ValueError:
+        raise ValueError("Нужен HTTP/HTTPS-адрес без логина, пароля, query и fragment.") from None
+    if port == 0:
+        raise ValueError("Порт должен быть от 1 до 65535.")
+    return urlunsplit((u.scheme, u.netloc, u.path.rstrip("/"), "", ""))
+
+
+class _NoRedirect(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def probe_ollama(url):
+    """List installed models, not a generation/readiness/quality benchmark."""
+    opener = build_opener(ProxyHandler({}), _NoRedirect())
+    with opener.open(Request(url + "/api/tags", headers={"Accept": "application/json"}),
+                     timeout=4) as response:
+        payload = response.read(1024 * 1024 + 1)
+    if len(payload) > 1024 * 1024:
+        raise ValueError("Oversized inventory")
+    data = json.loads(payload)
+    if not isinstance(data, dict) or not isinstance(data.get("models"), list):
+        raise ValueError("Invalid inventory")
+    names = set()
+    for entry in data["models"]:
+        if not isinstance(entry, dict):
+            raise ValueError("Invalid model entry")
+        name = entry.get("name", entry.get("model"))
+        if not isinstance(name, str) or len(name) > 256:
+            raise ValueError("Invalid model name")
+        names.add(name)
+    return frozenset(names)
+
+
+def has_model(names, value):
+    return value in names or (":" not in value and value + ":latest" in names)
+
+
+def _palette():
+    # Use the same live theme tokens as Voice and Sound, not a parallel palette.
+    from jarvis.gui import P
+    return SimpleNamespace(
+        bg=P.bg_main,
+        card=P.bg_card,
+        field=P.bg_card,
+        text=P.text,
+        dim=P.text_dim,
+        border=P.border,
+        accent=P.brand,
+        tint=P.selected,
+        button_text=P.bg_main,
+        error=P.error)
+
+
+def text(value, size=14, muted=False, **kwargs):
+    p = _palette()
+    return ft.Text(value, size=size, color=p.dim if muted else p.text, **kwargs)
+
+
+def button(label, handler, primary=False, **kwargs):
+    p = _palette()
+    if label.endswith(" →"):
+        label = ft.Row([text(label[:-2]), ft.Icon(ft.Icons.ARROW_FORWARD, size=17, color=p.accent)],
+                       tight=True, spacing=8)
+    return ft.Button(content=label, on_click=handler, height=44,
+        style=ft.ButtonStyle(bgcolor=p.accent if primary else p.field,
+            color=p.button_text if primary else p.text,
+            side=ft.BorderSide(1, p.accent if primary else p.border),
+            shape=ft.RoundedRectangleBorder(radius=8),
+            padding=ft.Padding.symmetric(horizontal=18)), **kwargs)
+
+
+def card(title, subtitle, controls):
+    p = _palette()
+    return ft.Container(bgcolor=p.card, border=ft.Border.all(1, p.border),
+        border_radius=12, padding=24, content=ft.Column([
+            text(title, 19, weight=ft.FontWeight.W_600), text(subtitle, muted=True),
+            ft.Container(height=4), *controls], spacing=14, horizontal_alignment=ft.CrossAxisAlignment.STRETCH))
+
+
+def input_border():
+    p = _palette()
+    return {
+        ft.ControlState.DEFAULT: ft.OutlineInputBorder(
+            side=ft.BorderSide(1, p.border), border_radius=8),
+        ft.ControlState.FOCUSED: ft.OutlineInputBorder(
+            side=ft.BorderSide(2, p.accent), border_radius=8),
+    }
+
+
+def divider():
+    return ft.Divider(height=12, thickness=1, color=_palette().border)
+
+
+class PreferenceScreens:
+    def __init__(self, gui):
+        self.gui = gui
+        self.persona_draft = None
+        self.persona_baseline = None
+        self.profile_id = None
+        self.persona_fields = {}
+        self.persona_notice = ""
+        self.persona_error = False
+        self.reset_confirm = False
+        self.pending_trait = ""
+        self.persona_read_error = False
+        self.settings_draft = None
+        self.settings_baseline = None
+        self.settings_fields = {}
+        self.settings_notice = ""
+        self.settings_error = False
+        self.probe_busy = False
+        self._probe_lock = threading.Lock()
+        self.probe_thread = None
+        self.probe_generation = 0
+        self.inventory = None
+        self.probe_status = "Доступность ещё не проверялась."
+        self.probe_label = None
+        self.probe_button = None
+        self.preview_title = self.preview_quote = self.preview_details = None
+
+    def _update(self):
+        if self.gui._page is not None:
+            self.gui._page.update()
+
+    def _refresh(self, index):
+        control = self.build_persona() if index == 3 else self.build_settings()
+        self.gui._tabs[index] = control
+        if self.gui._content_area is not None and self.gui._rail.selected_index == index:
+            self.gui._content_area.content = control
+        self._update()
+
+    def _load_persona(self):
+        self.persona_read_error = False
+        try:
+            identity, fields = profile.read_fields("name", "persona")
+        except (ValueError, OSError):
+            identity, fields = profile.current(), {"name": None, "persona": None}
+            self.persona_read_error = True
+        self.profile_id, self.persona_baseline = identity, fields
+        p = dict(persona.DEFAULT_PERSONA)
+        if isinstance(fields["persona"], dict):
+            p.update({k: v for k, v in fields["persona"].items()
+                      if k in p and v is not None})
+        self.persona_draft = {
+            "name": str(fields["name"] or ""),
+            "assistant_name": str(p["assistant_name"]),
+            "speech_style": p["speech_style"] if p["speech_style"] in STYLES else "friendly",
+            "tone": p["tone"] if p["tone"] in TONES else "auto",
+            "traits": list(p["traits"]) if isinstance(p["traits"], list) else [],
+            "backstory": str(p["backstory"]),
+        }
+        self.persona_notice, self.persona_error = "", False
+        self.reset_confirm = False
+        self.pending_trait = ""
+        if self.persona_read_error:
+            self.persona_notice = "Профиль не читается. Запись заблокирована, чтобы не потерять данные."
+            self.persona_error = True
+
+    def _ensure_persona(self):
+        if self.persona_draft is None or self.profile_id != profile.current():
+            self._load_persona()
+
+    def _load_settings(self):
+        self.settings_baseline = {k: self.gui.config.get(k) for k in SETTING_KEYS}
+        self.settings_draft = deepcopy(self.settings_baseline)
+
+    def _field(self, scope, key, label, multiline=False, max_length=None):
+        p = _palette()
+        draft = self.persona_draft if scope == "persona" else self.settings_draft
+        field = ft.TextField(label=label, value=draft[key] or "",
+            on_change=lambda e: self._change(scope, key, e.control.value),
+            border=input_border(), color=p.text,
+            label_style=ft.TextStyle(color=p.dim), bgcolor=p.field,
+            text_size=15, multiline=multiline,
+            min_lines=3 if multiline else 1, max_lines=5 if multiline else 1,
+            max_length=max_length, counter="")
+        (self.persona_fields if scope == "persona" else self.settings_fields)[key] = field
+        return field
+
+    def _select(self, scope, key, label, options):
+        p = _palette()
+        draft = self.persona_draft if scope == "persona" else self.settings_draft
+        current = draft[key]
+        if current not in options:
+            options = {str(current): str(current), **options}
+        control = ft.Dropdown(label=label, value=current,
+            options=[ft.dropdown.Option(k, v) for k, v in options.items()],
+            on_select=lambda e: self._change(scope, key, e.control.value),
+            border=input_border(),
+            color=p.text, bgcolor=p.field, text_size=15,
+            label_style=ft.TextStyle(color=p.dim))
+        (self.persona_fields if scope == "persona" else self.settings_fields)[key] = control
+        return control
+
+    def _change(self, scope, key, value):
+        if scope == "persona":
+            if self.profile_id != profile.current():
+                self._load_persona()
+                self._refresh(3)
+                return
+            self.persona_draft[key] = value
+            self.persona_notice = "Есть несохранённые изменения."
+            self.persona_error = False
+            self._sync_portrait()
+        else:
+            self.settings_draft[key] = value
+            self.settings_notice = "Есть несохранённые изменения."
+            self.settings_error = False
+            if key in ("llm_model", "ollama_url"):
+                self.probe_generation += 1
+                self.inventory = None
+                self.probe_status = "Параметры изменены. Проверьте подключение заново."
+                self._sync_probe()
+        notice = getattr(self, scope + "_notice_control", None)
+        if notice is not None:
+            notice.value = getattr(self, scope + "_notice")
+            notice.color = _palette().dim
+        # Do not echo TextField.value back on each keystroke: an entire-page
+        # patch can overwrite characters already typed ahead in the client.
+        # Update only dependent presentation controls, never the editing field.
+        if self.gui._page is not None:
+            targets = [notice] if notice is not None else []
+            if scope == "persona":
+                targets += [self.preview_title, self.preview_quote, self.preview_details]
+            elif self.probe_label is not None:
+                targets.append(self.probe_label)
+            self.gui._page.update(*[c for c in targets if c is not None])
+
+    def _trait_change(self, e):
+        self.pending_trait = e.control.value
+        self.persona_notice, self.persona_error = "Есть несохранённые изменения.", False
+        if getattr(self, "persona_notice_control", None) is not None:
+            self.persona_notice_control.value = self.persona_notice
+            self.persona_notice_control.color = _palette().dim
+            if self.gui._page is not None:
+                self.gui._page.update(self.persona_notice_control)
+
+    def _sync_portrait(self):
+        if self.preview_title is None:
+            return
+        p = self.persona_draft
+        self.preview_title.value = p["assistant_name"].strip() or "Феникс"
+        self.preview_quote.value = "«" + EXAMPLES.get(p["speech_style"], EXAMPLES["friendly"]) + "»"
+        traits = [v for v in p["traits"] if isinstance(v, str)]
+        self.preview_details.value = (persona.STYLE_DESCRIPTIONS.get(p["speech_style"], "")
+            + "\n" + persona.TONE_DESCRIPTIONS.get(p["tone"], "")
+            + ("\n" + ", ".join(traits) if traits else ""))
+
+    def _notice(self, scope):
+        p = _palette()
+        control = text(getattr(self, scope + "_notice") or
+            "Изменения применятся после сохранения.", muted=True)
+        if getattr(self, scope + "_error"):
+            control.color = p.error
+        setattr(self, scope + "_notice_control", control)
+        return control
+
+    def _screen(self, title, subtitle, content, footer):
+        p = _palette()
+        return ft.Container(expand=True, bgcolor=p.bg, padding=28,
+            content=ft.Column([
+                ft.Text("ХАРАКТЕР И ОБЩЕНИЕ" if title == "Персона" else
+                        "ПРИЛОЖЕНИЕ И ПРИВАТНОСТЬ", size=12, color=p.accent),
+                text(title, 32, weight=ft.FontWeight.W_600),
+                text(subtitle, 16, muted=True), ft.Container(height=8),
+                content, *footer], spacing=16, scroll=ft.ScrollMode.AUTO, expand=True))
+
+    def add_trait(self, e):
+        value = (self.pending_trait or e.control.value or "").strip()
+        if not value:
+            return
+        if len(value) > 40 or len(self.persona_draft["traits"]) >= 12:
+            self.persona_notice, self.persona_error = "До 12 черт, каждая до 40 символов.", True
+        elif value not in self.persona_draft["traits"]:
+            self._change("persona", "traits", self.persona_draft["traits"] + [value])
+            self.pending_trait = ""
+        self._refresh(3)
+
+    def remove_trait(self, value):
+        self._change("persona", "traits", [t for t in self.persona_draft["traits"] if t != value])
+        self._refresh(3)
+
+    def build_persona(self):
+        self._ensure_persona()
+        self.persona_fields = {}
+        p = _palette()
+        names = ft.ResponsiveRow([
+            ft.Container(self._field("persona", "name", "Ваше имя", max_length=60), col={"xs": 12, "md": 6}),
+            ft.Container(self._field("persona", "assistant_name", "Имя ассистента", max_length=60), col={"xs": 12, "md": 6}),
+        ], spacing=16, run_spacing=16)
+        style_buttons = ft.Row([button(label,
+            lambda e, key=key: self.choose_style(key),
+            primary=self.persona_draft["speech_style"] == key,
+            icon=ft.Icons.CHECK if self.persona_draft["speech_style"] == key else None,
+            tooltip=label + (" — выбран" if self.persona_draft["speech_style"] == key else ""))
+            for key, label in STYLES.items()], wrap=True, spacing=8, run_spacing=8)
+        traits = [ft.Chip(label=text(str(t)), on_delete=lambda e, t=t: self.remove_trait(t),
+                         bgcolor=p.tint) for t in self.persona_draft["traits"]]
+        add = ft.TextField(label="Добавить черту · Enter", value=self.pending_trait, on_submit=self.add_trait,
+            on_change=self._trait_change, max_length=40, counter="", text_size=14,
+            border=input_border(), color=p.text,
+            label_style=ft.TextStyle(color=p.dim), bgcolor=p.field)
+        from jarvis.gui import _brand_image
+        self.preview_title = text("", 25, weight=ft.FontWeight.W_600)
+        self.preview_details = text("", muted=True)
+        self.preview_quote = text("", 18)
+        self._sync_portrait()
+        portrait = card("Портрет персоны", "Профиль: " + self.profile_id, [
+            _brand_image("phoenix", 72), self.preview_title, self.preview_details,
+            divider(), text("ПРИМЕР МАНЕРЫ", 12, muted=True),
+            ft.Container(self.preview_quote, border=ft.Border(left=ft.BorderSide(2, p.accent)),
+                         padding=ft.Padding.only(left=16)),
+            text("Иллюстрация выбранного стиля, не ответ модели. LLM не запускается, история не меняется.", muted=True),
+            divider(), text("Персона задаёт общение. Голос и темп — в отдельном разделе.", muted=True),
+            button("Голос и звук →", lambda e: self.gui._select_tab(2))])
+        columns = ft.ResponsiveRow([
+            ft.Container(ft.Column([
+                card("Как обращаться друг к другу", "Имена для диалога, не команда активации.", [names]),
+                card("Манера общения", "Выберите стиль, который ощущается вашим.", [
+                    style_buttons, divider(), self._select("persona", "tone", "Тон разговора", TONES)]),
+                card("Детали характера", "Дополняют стиль, не меняя правила безопасных действий.", [
+                    ft.Row(traits, wrap=True, spacing=8, run_spacing=8), add,
+                    self._field("persona", "backstory", "Контекст общения", multiline=True, max_length=2000)]),
+            ], spacing=18), col={"xs": 12, "lg": 8}),
+            ft.Container(portrait, col={"xs": 12, "lg": 4}),
+        ], spacing=20, run_spacing=20)
+        reset = [button("Отмена", lambda e: self.confirm_reset(False)),
+                 button("Повторить знакомство", lambda e: self.confirm_reset(True))] if self.reset_confirm else [
+                 button("Повторить знакомство…", self.ask_reset)]
+        return self._screen("Персона", "Знакомый голос. Ваш стиль общения.", columns, [
+            self._notice("persona"), ft.Row([button("Отменить изменения", self.cancel_persona),
+                button("Сохранить персону", self.save_persona, primary=True)], wrap=True),
+            *([text("Сбросится только знакомство. Факты и история останутся; черновик не сохраняется.", muted=True)]
+              if self.reset_confirm else []), ft.Row(reset, wrap=True)])
+
+    def choose_style(self, key):
+        self._change("persona", "speech_style", key)
+        self._refresh(3)
+
+    def cancel_persona(self, e=None):
+        self._load_persona()
+        self.persona_notice = "Черновик отменён. Показаны сохранённые значения."
+        self._refresh(3)
+
+    def save_persona(self, e=None):
+        d = deepcopy(self.persona_draft)
+        pending = self.pending_trait.strip()
+        if pending and pending not in d["traits"]:
+            d["traits"].append(pending)
+        if self.persona_read_error:
+            self.persona_notice, self.persona_error = "Профиль не читается. Сохранение заблокировано.", True
+        elif self.profile_id != profile.current():
+            self._load_persona()
+            self.persona_notice, self.persona_error = "Профиль сменился. Старый черновик не сохранён.", True
+        elif (not d["assistant_name"].strip() or len(d["assistant_name"].strip()) > 60
+              or len(d["name"].strip()) > 60 or len(d["backstory"]) > 2000
+              or d["speech_style"] not in STYLES or d["tone"] not in TONES
+              or len(d["traits"]) > 12
+              or any(not isinstance(t, str) or not t.strip() or len(t) > 40 for t in d["traits"])):
+            self.persona_notice, self.persona_error = "Проверьте поля: имя ассистента обязательно; имена до 60, контекст до 2000 символов, до 12 черт по 40 символов.", True
+        else:
+            # Merge supported fields into the baseline; onboarding and future/legacy keys survive.
+            merged = dict(self.persona_baseline["persona"]) if isinstance(self.persona_baseline["persona"], dict) else {}
+            merged.update({k: (v.strip() if isinstance(v, str) else deepcopy(v))
+                           for k, v in d.items() if k != "name"})
+            if profile.update_fields({"name": d["name"].strip(), "persona": merged},
+                    expected_profile=self.profile_id, expected_values=self.persona_baseline):
+                self._load_persona()
+                self.persona_notice = "Персона сохранена в текущем профиле."
+            else:
+                self.persona_notice, self.persona_error = "Не удалось сохранить: профиль изменён другим действием или запись недоступна. Черновик сохранён на экране. Для загрузки актуальных данных нажмите «Отменить изменения».", True
+        self._refresh(3)
+
+    def ask_reset(self, e=None):
+        self.reset_confirm = True
+        self._refresh(3)
+
+    def confirm_reset(self, confirm):
+        if confirm and not self.persona_read_error:
+            baseline = self.persona_baseline
+            merged = dict(baseline["persona"]) if isinstance(baseline["persona"], dict) else {}
+            merged.update(onboarding_done=False, onboarding_at=0.0)
+            ok = profile.update_fields({"persona": merged}, expected_profile=self.profile_id,
+                                       expected_values=baseline)
+            if ok:
+                self.persona_baseline["persona"] = merged
+            self.persona_notice = ("Знакомство сброшено. Факты, история и черновик сохранены."
+                if ok else "Сброс не выполнен: профиль изменён или запись недоступна.")
+            self.persona_error = not ok
+        self.reset_confirm = False
+        self._refresh(3)
+
+    def _toggle(self, key, title, description):
+        p = _palette()
+        control = ft.Switch(value=bool(self.settings_draft[key]), active_color=p.accent,
+            on_change=lambda e: self._change("settings", key, bool(e.control.value)),
+            tooltip=title)
+        self.settings_fields[key] = control
+        return ft.Row([ft.Column([text(title, 15), text(description, 13, muted=True)],
+                                  spacing=5, expand=True), control], spacing=16)
+
+    def build_settings(self):
+        if self.settings_draft is None:
+            self._load_settings()
+        self.settings_fields = {}
+        from jarvis.gui import LLM_MODELS, THEMES
+        self.probe_label = text(self.probe_status, muted=True)
+        self.probe_button = button("Проверяю…" if self.probe_busy else "Проверить подключение",
+                                   self.start_probe, disabled=self.probe_busy)
+        model = card("Локальная модель", "Ollama для ответов и обработки контекста.", [
+            self._select("settings", "llm_model", "Модель", {m: m for m in LLM_MODELS}),
+            self._field("settings", "ollama_url", "Адрес Ollama", max_length=2048),
+            self.probe_label, self.probe_button,
+            text("Проверка читает только список моделей. Не запускает генерацию и не скачивает файлы.", muted=True),
+            divider(), text("При удалённом адресе запросы и включённый анализ диалога уходят на выбранный сервер. Слово «локальная» не гарантирует приватность удалённого сервера.", muted=True)])
+        privacy = card("Приватность и память", "По умолчанию оба способа обработки выключены.", [
+            self._toggle("observer_enabled", "Запоминать факты из диалога",
+                "Observer отправляет недавние сообщения в выбранную Ollama. Факты сохраняются в профиле, диагностика — в observer.log."),
+            text("После перезапуска — и включение, и отключение.", 13, muted=True), divider(),
+            self._toggle("memory_rag_enabled", "Подбирать факты по смыслу",
+                "RAG отбирает уже сохранённые факты. После применения — сразу. Новые факты не собирает."),
+            text("Для включения проверьте наличие настроенной embedding-модели через «Проверить подключение». Автозагрузки здесь нет.", muted=True)])
+        theme = ft.Dropdown(label="Тема", value=self.gui.config.get("gui_theme", "Системная"),
+            options=[ft.dropdown.Option(t) for t in THEMES],
+            on_select=self.gui._on_theme_change, color=_palette().text,
+            bgcolor=_palette().field, border=input_border(),
+            label_style=ft.TextStyle(color=_palette().dim))
+        appearance = card("Внешний вид", "Тот же Феникс, в комфортном свете.", [
+            theme, text("Тема применяется сразу. Черновики других настроек сохраняются.", muted=True)])
+        launch = card("Запуск и окно", "Поведение на рабочем столе.", [
+            self._toggle("tray_enabled", "Оставаться в трее", "При закрытии окна продолжать работу. Применяется сразу после сохранения."),
+            divider(), self._select("settings", "launch_mode", "При запуске приложения",
+                {"gui": "Показывать окно", "tray": "Только трей"}),
+            text("Режим запуска — со следующего старта приложения.", muted=True)])
+        audio = card("Голос — в своём разделе", "Без повторяющихся настроек в разных местах.", [
+            text("Движок, голос, темп, реакции и проба речи.", muted=True),
+            button("Открыть «Голос и звук» →", lambda e: self.gui._select_tab(2))])
+        content = ft.ResponsiveRow([
+            ft.Container(ft.Column([model, privacy], spacing=18), col={"xs": 12, "lg": 6}),
+            ft.Container(ft.Column([appearance, launch, audio], spacing=18), col={"xs": 12, "lg": 6}),
+        ], spacing=20, run_spacing=20)
+        return self._screen("Настройки", "Всё важное — на своих местах.", content, [
+            self._notice("settings"), ft.Row([button("Отменить изменения", self.cancel_settings),
+                button("Применить изменения", self.save_settings, primary=True)], wrap=True)])
+
+    def cancel_settings(self, e=None):
+        self._load_settings()
+        self.probe_generation += 1
+        self.inventory = None
+        self.probe_status = "Доступность ещё не проверялась."
+        self.settings_notice, self.settings_error = "Черновик отменён. Тема не изменена.", False
+        self._refresh(4)
+
+    def _sync_probe(self):
+        if self.probe_label is not None:
+            self.probe_label.value = self.probe_status
+        if self.probe_button is not None:
+            self.probe_button.disabled = self.probe_busy
+            self.probe_button.content = "Проверяю…" if self.probe_busy else "Проверить подключение"
+
+    def start_probe(self, e=None):
+        if self.probe_busy:
+            return False
+        try:
+            url = validated_url(self.settings_draft["ollama_url"])
+        except ValueError as error:
+            self.probe_status = str(error)
+            self._sync_probe()
+            self._update()
+            return False
+        if not self._probe_lock.acquire(blocking=False):
+            return False
+        self.probe_generation += 1
+        token = self.probe_generation
+        self.probe_busy = True
+        self.inventory = None
+        self.probe_status = "Проверяю список установленных моделей…"
+        self._sync_probe()
+        self._update()
+        def run():
+            try:
+                result = (token, url, probe_ollama(url), None)
+            except Exception:
+                # Never expose/log URL credentials, raw response or exception payload.
+                result = (token, url, None, "Проверка не удалась. Проверьте адрес, запуск Ollama и доступность сервера. Настройки не изменены.")
+            self.gui._queue.put(("preferences_result", result))
+        try:
+            self.probe_thread = threading.Thread(target=run, daemon=True, name="gui-ollama-probe")
+            self.probe_thread.start()
+        except Exception:
+            self.probe_busy = False
+            self._probe_lock.release()
+            self.probe_status = "Не удалось запустить проверку. Настройки не изменены."
+            self._sync_probe()
+            self._update()
+            return False
+        return True
+
+    def apply_probe(self, result):
+        token, url, names, error = result
+        self.probe_busy = False
+        if self._probe_lock.locked():
+            self._probe_lock.release()
+        if token == self.probe_generation:
+            if error:
+                self.probe_status = error
+            else:
+                self.inventory = (url, names)
+                model = self.settings_draft["llm_model"]
+                embed = self.gui.config.get("memory_rag_model", "nomic-embed-text")
+                self.probe_status = ("Ollama доступна. Модель " + ("найдена." if has_model(names, model) else "не найдена.")
+                    + " Embedding-модель " + ("найдена." if has_model(names, embed) else "не найдена.")
+                    + " Генерация и качество не проверялись.")
+        self._sync_probe()
+        if self.gui._page is not None:
+            self.gui._page.update(self.probe_label, self.probe_button)
+
+    def save_settings(self, e=None):
+        self.settings_error = True
+        try:
+            d = deepcopy(self.settings_draft)
+            d["ollama_url"] = validated_url(d["ollama_url"])
+            if not isinstance(d["llm_model"], str) or not d["llm_model"].strip() or len(d["llm_model"]) > 256:
+                raise ValueError("Выберите непустое имя модели до 256 символов.")
+            if d["launch_mode"] not in ("gui", "tray"):
+                raise ValueError("Выберите режим запуска.")
+            if d["launch_mode"] == "tray" and not d["tray_enabled"]:
+                raise ValueError("Для запуска только в трее сначала включите «Оставаться в трее».")
+            for key in ("observer_enabled", "memory_rag_enabled", "tray_enabled"):
+                if type(d[key]) is not bool:
+                    raise ValueError("Проверьте переключатели настроек.")
+            # Notify the new endpoint before model warmup in the existing Brain subscriber.
+            ordered_keys = ("ollama_url", "llm_model", "observer_enabled", "memory_rag_enabled",
+                            "tray_enabled", "launch_mode")
+            changes = {k: d[k] for k in ordered_keys if d[k] != self.settings_baseline[k]}
+            if any(self.gui.config.get(k) != self.settings_baseline[k] for k in changes):
+                raise ValueError("Эти настройки изменены другим действием. Черновик не записан. Отмените изменения, чтобы загрузить актуальные данные.")
+            if "llm_model" in changes or "ollama_url" in changes:
+                if getattr(self.gui, "_command_busy", False):
+                    raise ValueError("Дождитесь окончания текущей команды перед сменой модели или адреса.")
+            if d["memory_rag_enabled"] and ("memory_rag_enabled" in changes or "ollama_url" in changes):
+                embed = self.gui.config.get("memory_rag_model", "nomic-embed-text")
+                if not self.inventory or self.inventory[0] != d["ollama_url"] or not has_model(self.inventory[1], embed):
+                    raise ValueError("Для RAG сначала проверьте подключение и наличие embedding-модели. Автозагрузка не выполняется.")
+            if not self.gui.config.update(changes, expected_values={k: self.settings_baseline[k] for k in changes}):
+                raise ValueError("Не удалось записать настройки. Черновик сохранён; прежние значения не изменены.")
+            self._load_settings()
+            self.settings_error = False
+            self.settings_notice = "Изменений нет." if not changes else "Настройки сохранены."
+            if "observer_enabled" in changes or "launch_mode" in changes:
+                self.settings_notice += " Для Observer и режима запуска нужен перезапуск."
+            if getattr(self.gui, "_model_label", None) is not None:
+                self.gui._model_label.value = self.gui._model_caption()
+        except ValueError as error:
+            self.settings_notice = str(error)
+        self._refresh(4)
+```
+
+### `jarvis/gui_sidebar.py`
+
+```python
+"""Native, persistent hover rail. Bounded UI-loop animation; no WebView or threads. ... [4 строк]"""
+import asyncio
+from functools import partial
+import logging
+import math
+import time
+
+import flet as ft
+import flet.canvas as cv
+
+log = logging.getLogger(__name__)
+COMPACT = 76
+EXPANDED = 252
+HEIGHT = 48
+
+
+def _ui():
+    from jarvis import gui
+    return gui
+
+
+def mix(first, second, weight=.65):
+    """Same-hue hover: selected surface mixed with card, never a copper fill."""
+    rgb = [round(int(first[i:i + 2], 16) * weight +
+                 int(second[i:i + 2], 16) * (1 - weight)) for i in (1, 3, 5)]
+    return "#" + "".join(f"{v:02x}" for v in rgb)
+
+
+def rounded_outline(width, height=HEIGHT, radius=10):
+    """Evenly sample straight edges and quarter-circles inside a one-pixel inset."""
+    x0, y0, x1, y1 = 1.5, 1.5, width - 1.5, height - 1.5
+    r = min(radius, (x1 - x0) / 2, (y1 - y0) / 2)
+    points = []
+    def edge(a, b):
+        steps = max(1, math.ceil(math.dist(a, b) / 3))
+        points.extend((a[0] + (b[0] - a[0]) * j / steps,
+                       a[1] + (b[1] - a[1]) * j / steps) for j in range(steps))
+    def arc(cx, cy, angle):
+        steps = max(4, math.ceil(math.pi * r / 6))
+        points.extend((cx + r * math.cos(angle + math.pi / 2 * j / steps),
+                       cy + r * math.sin(angle + math.pi / 2 * j / steps))
+                      for j in range(steps))
+    edge((x0 + r, y0), (x1 - r, y0)); arc(x1 - r, y0 + r, -math.pi / 2)
+    edge((x1, y0 + r), (x1, y1 - r)); arc(x1 - r, y1 - r, 0)
+    edge((x1 - r, y1), (x0 + r, y1)); arc(x0 + r, y1 - r, math.pi / 2)
+    edge((x0, y1 - r), (x0, y0 + r)); arc(x0 + r, y0 + r, math.pi)
+    return points
+
+
+def stroke_shapes(width, progress, color):
+    """A finite short head with a soft tail, moving once around the perimeter."""
+    pts = rounded_outline(max(48, width))
+    head = int(progress * len(pts))
+    shapes = []
+    length = max(5, round(len(pts) * .115))
+    fade = min(1, progress / .1, (1 - progress) / .12)
+    if fade <= 0:
+        return shapes
+    for part in range(3):
+        lo = head - length + part * length // 3
+        hi = head - length + (part + 1) * length // 3
+        segment = [pts[j % len(pts)] for j in range(lo, hi + 1)]
+        alpha = min(1, max(0, fade * (.22, .50, 1)[part]))
+        shapes.append(cv.Path([
+            cv.Path.MoveTo(*segment[0]), *[cv.Path.LineTo(*p) for p in segment[1:]]],
+            paint=ft.Paint(color=ft.Colors.with_opacity(alpha, color),
+                style=ft.PaintingStyle.STROKE, stroke_width=1.7,
+                stroke_cap=ft.StrokeCap.ROUND, stroke_join=ft.StrokeJoin.ROUND)))
+    return shapes
+
+
+def entered(event):
+    return getattr(event, "data", False) in (True, "true", "True")
+
+
+class Sidebar(ft.Container):
+    def __init__(self, on_select, config=None):
+        super().__init__(width=COMPACT, padding=ft.Padding.symmetric(horizontal=12, vertical=20),
+                         clip_behavior=ft.ClipBehavior.HARD_EDGE)
+        self._on_select = on_select
+        self.config = config
+        self.pinned = bool(config and config.get("gui_sidebar_pinned", False) is True)
+        self.expanded = self.pinned
+        self.motion_enabled = not config or config.get("gui_motion_enabled", True) is not False
+        self._selected_index = 0
+        self._hovered = None
+        self._focused = None
+        self._keyboard_navigation = False
+        self._pointer_inside = False
+        self._mounted = False
+        self._host = None
+        self._tasks = {}
+        self._epoch = 0
+        self._reserve = None
+        self._canvas_widths = {}
+        self._service = None
+        self.on_hover = self._on_panel_hover
+        self.refresh_palette()
+
+    def layout(self, content):
+        self._reserve = ft.Container(width=self._content_width(),
+            animate=ft.Animation(200, ft.AnimationCurve.EASE_OUT_CUBIC) if self.motion_enabled else None)
+        self.left = self.top = self.bottom = 0
+        return ft.Stack([
+            ft.Row([self._reserve, content], spacing=0, expand=True), self,
+        ], expand=True, fit=ft.StackFit.EXPAND)
+
+    def _content_width(self):
+        return EXPANDED if self.expanded else COMPACT
+
+    def _sync_reserve(self):
+        if self._reserve is not None:
+            self._reserve.width = self._content_width()
+            self._reserve.animate = ft.Animation(200, ft.AnimationCurve.EASE_OUT_CUBIC) if self.motion_enabled else None
+
+    def did_mount(self):
+        self._mounted = True
+        self._host = self.page
+        self._schedule("accessibility", self._read_accessibility)
+
+    def will_unmount(self):
+        self.dispose()
+
+    def dispose(self):
+        self._mounted = False
+        self._epoch += 1
+        for future in self._tasks.values():
+            future.cancel()
+        self._tasks.clear()
+        self._host = None
+
+    def _cancel(self, key):
+        future = self._tasks.pop(key, None)
+        if future is not None:
+            future.cancel()
+
+    def _schedule(self, key, handler, *args):
+        self._cancel(key)
+        if self._mounted and self._host is not None:
+            self._tasks[key] = self._host.run_task(handler, *args)
+
+    def _update(self, *controls):
+        if self._mounted:
+            try:
+                self._host.update(*(controls or (self,)))
+            except RuntimeError:
+                if self._mounted:
+                    log.exception("Sidebar update failed")
+
+    async def _read_accessibility(self):
+        # Supported Flet service; no Windows registry probing or polling loop.
+        try:
+            self._service = ft.SemanticsService()
+            flags = await asyncio.wait_for(self._service.get_accessibility_features(), 2)
+            if flags.disable_animations or flags.reduce_motion:
+                self.set_motion(False)
+        except Exception:
+            log.debug("Sidebar: accessibility flags unavailable", exc_info=True)
+
+    def set_motion(self, enabled):
+        self.motion_enabled = bool(enabled)
+        self.animate = ft.Animation(200, ft.AnimationCurve.EASE_OUT_CUBIC) if enabled else None
+        if not enabled:
+            self._cancel("stroke")
+            for canvas in self.canvases:
+                canvas.shapes = []
+        for icon in self.icon_controls:
+            icon.animate_scale = 160 if enabled else None
+            if not enabled:
+                icon.scale = 1
+        self._sync_reserve()
+        self._update(self, *([self._reserve] if self._reserve is not None else []))
+
+    @property
+    def selected_index(self):
+        return self._selected_index
+
+    @selected_index.setter
+    def selected_index(self, value):
+        if not 0 <= value < len(self.nav_buttons):
+            return
+        self._selected_index = value
+        self._sync_buttons()
+
+    def refresh_palette(self):
+        self._epoch += 1
+        self._cancel("stroke")
+        self._cancel("open")
+        self._cancel("close")
+        self._keyboard_navigation = False
+        self._hovered = None
+        self._focused = None
+        ui, p = _ui(), _ui().P
+        self.bgcolor = p.sidebar
+        self.border = ft.Border(right=ft.BorderSide(1, p.border))
+        self.width = EXPANDED if self.expanded else COMPACT
+        self.animate = ft.Animation(200, ft.AnimationCurve.EASE_OUT_CUBIC) if self.motion_enabled else None
+        self.nav_buttons, self.canvases, self.icon_controls = [], [], []
+        self.labels, self.dots, self.markers = [], [], []
+        self._canvas_widths = {}
+        for index, (label, _) in enumerate(ui.NAV_ITEMS):
+            image = (ft.Icon(ft.Icons.HOME_OUTLINED, size=24, color=p.brand) if index == ui.HOME_TAB else
+                     ui._brand_image(("dialog", "microphone", "audio", "persona", "settings", "commands")[index], 24))
+            icon = ft.Container(image, width=24, height=24, animate_scale=160 if self.motion_enabled else None)
+            caption = ft.Text(label, size=14, color=p.text, expand=True, no_wrap=True)
+            dot = ft.Container(width=5, height=5, border_radius=3, bgcolor=p.brand)
+            marker = ft.Container(left=0, top=16, height=16, width=3, border_radius=2, bgcolor=p.brand,
+                                  ignore_interactions=True)
+            canvas = cv.Canvas([], expand=True,
+                               on_resize=partial(self._on_canvas_resize, index), resize_interval=40)
+            content = ft.Stack([
+                ft.Container(ft.Row([icon, caption, dot], spacing=14), height=HEIGHT,
+                             padding=ft.Padding.symmetric(horizontal=13)),
+                marker, ft.Container(canvas, left=0, right=0, top=0, bottom=0,
+                                     ignore_interactions=True),
+            ], height=HEIGHT, fit=ft.StackFit.EXPAND)
+            button = ft.Button(content=content, height=HEIGHT,
+                width=self.width - 24, elevation=0, tooltip=label,
+                on_click=partial(self._click, index),
+                on_hover=partial(self._on_nav_hover, index),
+                on_focus=partial(self._on_focus, index), on_blur=partial(self._on_blur, index))
+            self.nav_buttons.append(button); self.canvases.append(canvas)
+            self.icon_controls.append(icon); self.labels.append(caption)
+            self.dots.append(dot); self.markers.append(marker)
+        self.title_block = ft.Column([
+            ft.Text("Феникс", size=21, weight=ft.FontWeight.BOLD, color=p.text, no_wrap=True),
+            ft.Text("Локальный ассистент", size=12, color=p.text_dim, no_wrap=True),
+        ], spacing=2, expand=True)
+        self.logo_button = ft.Button(content=ft.Row([
+            ui._brand_image("phoenix", 38, "Феникс"), self.title_block], spacing=12),
+            width=self.width - 24, height=64, elevation=0,
+            style=ft.ButtonStyle(padding=6, bgcolor=ft.Colors.TRANSPARENT,
+                overlay_color=ft.Colors.TRANSPARENT, shape=ft.RoundedRectangleBorder(radius=10)),
+            on_click=self._toggle, on_focus=partial(self._on_focus, -1),
+            on_blur=partial(self._on_blur, -1))
+        self.pin_label = ft.Text("Открепить панель" if self.pinned else "Закрепить панель",
+                                  size=14, color=p.text_dim, no_wrap=True)
+        self.pin_icon = ft.Icon(ft.Icons.PUSH_PIN if self.pinned else ft.Icons.PUSH_PIN_OUTLINED,
+                               size=22, color=p.brand if self.pinned else p.text_dim)
+        self.pin_button = ft.Button(content=ft.Row([self.pin_icon, self.pin_label], spacing=14),
+            width=self.width - 24, height=44, elevation=0,
+            style=ft.ButtonStyle(padding=13, bgcolor=ft.Colors.TRANSPARENT,
+                overlay_color=ft.Colors.with_opacity(.07, p.text),
+                shape=ft.RoundedRectangleBorder(radius=8)),
+            tooltip=self.pin_label.value, on_click=self._toggle_pin,
+            on_focus=partial(self._on_focus, -2), on_blur=partial(self._on_blur, -2))
+        from jarvis import profile
+        name = str(profile.current())
+        self.profile_label = ft.Text(name, size=14, color=p.text, max_lines=1, no_wrap=True,
+                                     overflow=ft.TextOverflow.ELLIPSIS)
+        self.profile_details = ft.Column([self.profile_label,
+            ft.Text("Профиль и настройки", size=12, color=p.text_dim, no_wrap=True)], spacing=4, expand=True)
+        avatar = ft.Container(ft.Text(name[:1].upper(), color=p.brand, size=14),
+            width=46, height=46, border=ft.Border.all(1, p.border),
+            border_radius=12, alignment=ft.Alignment.CENTER, tooltip=name)
+        self.profile_block = ft.Container(ft.Row([avatar, self.profile_details], spacing=14),
+                                          padding=ft.Padding.only(top=12))
+        # Positioned fixed-width inner column is clipped by the animated outer rail.
+        self.navigation = ft.Column([self.nav_buttons[i] for i in ui.NAV_ORDER], spacing=8, expand=True,
+                                    scroll=ft.ScrollMode.AUTO)
+        column = ft.Column([
+            self.logo_button, ft.Container(height=20), self.navigation, self.pin_button,
+            ft.Divider(color=p.border, height=12), self.profile_block,
+        ], spacing=8, horizontal_alignment=ft.CrossAxisAlignment.START, expand=True)
+        self.content = ft.Stack([ft.Container(column, left=0, top=0, bottom=0,
+                                               width=EXPANDED - 24)], expand=True)
+        self._sync_expansion()
+        self._sync_buttons()
+
+    def _sync_buttons(self):
+        p = _ui().P
+        for index, button in enumerate(self.nav_buttons):
+            active, hovered = index == self._selected_index, index == self._hovered
+            fill = p.selected if active else mix(p.selected, p.bg_card) if hovered else p.sidebar
+            button.bgcolor = fill
+            button.style = ft.ButtonStyle(
+                padding=0, animation_duration=140 if self.motion_enabled else 0,
+                overlay_color=ft.Colors.TRANSPARENT,
+                bgcolor={ft.ControlState.DEFAULT: fill, ft.ControlState.HOVERED:
+                         p.selected if active else mix(p.selected, p.bg_card)},
+                side={ft.ControlState.DEFAULT: ft.BorderSide(1, p.border if hovered else ft.Colors.TRANSPARENT),
+                      ft.ControlState.HOVERED: ft.BorderSide(1, p.border),
+                      ft.ControlState.FOCUSED: ft.BorderSide(2, p.accent)},
+                shape=ft.RoundedRectangleBorder(radius=10))
+            self.labels[index].color = p.text if active or hovered else p.text_dim
+            self.markers[index].visible = active
+            self.dots[index].visible = active and self.expanded
+            self.icon_controls[index].scale = 1.06 if hovered and self.motion_enabled else 1
+
+    def _sync_expansion(self):
+        width = EXPANDED if self.expanded else COMPACT
+        self.width = width
+        for button in [self.logo_button, self.pin_button, *self.nav_buttons]:
+            button.width = width - 24
+        for label in [self.title_block, self.pin_label, self.profile_details, *self.labels]:
+            label.visible = self.expanded
+        self.logo_button.tooltip = "Свернуть панель" if self.expanded else "Раскрыть панель"
+        self._sync_buttons()
+
+    def _set_expanded(self, expanded):
+        expanded = bool(expanded or self.pinned)
+        if expanded == self.expanded:
+            return
+        self._cancel("stroke")
+        for canvas in self.canvases:
+            canvas.shapes = []
+        self.expanded = expanded
+        self._sync_expansion()
+        self._sync_reserve()
+        self._update(self, *([self._reserve] if self._reserve is not None else []))
+        if self._hovered is not None and self.motion_enabled:
+            self._schedule("stroke", self._stroke_once, self._hovered, self._epoch)
+
+    def _click(self, index, e=None):
+        self._keyboard_navigation = False
+        self._on_select(index)
+
+    async def _toggle(self, e=None):
+        self._keyboard_navigation = False
+        self._cancel("open"); self._cancel("close")
+        self._set_expanded(not self.expanded)
+
+    async def _toggle_pin(self, e=None):
+        desired = not self.pinned
+        if self.config and self.config.set("gui_sidebar_pinned", desired) is False:
+            self.pin_button.tooltip = "Не удалось сохранить закрепление. Попробуйте ещё раз."
+            self._update(self.pin_button)
+            return
+        self.pinned = desired
+        self._keyboard_navigation = False
+        self._cancel("open"); self._cancel("close")
+        self.pin_label.value = "Открепить панель" if desired else "Закрепить панель"
+        self.pin_button.tooltip = self.pin_label.value
+        p = _ui().P
+        self.pin_icon.name = ft.Icons.PUSH_PIN if desired else ft.Icons.PUSH_PIN_OUTLINED
+        self.pin_icon.color = p.brand if desired else p.text_dim
+        self._sync_reserve()
+        self._set_expanded(True)
+        self._update(self, *([self._reserve] if self._reserve is not None else []))
+        if not desired and not self._pointer_inside:
+            self._schedule("close", self._close_later)
+
+    async def _on_panel_hover(self, e):
+        self._pointer_inside = entered(e)
+        self._keyboard_navigation = False
+        self._cancel("open"); self._cancel("close")
+        if self._pointer_inside:
+            self._schedule("open", self._open_later)
+        elif not self.pinned:
+            self._schedule("close", self._close_later)
+
+    async def _open_later(self):
+        await asyncio.sleep(.1)
+        if self._pointer_inside:
+            self._set_expanded(True)
+
+    async def _close_later(self):
+        await asyncio.sleep(.32)
+        if not self.pinned and not self._pointer_inside and not (
+                self._keyboard_navigation and self._focused is not None):
+            self._set_expanded(False)
+
+    async def _on_focus(self, index, e=None):
+        self._focused = index
+        if self._keyboard_navigation:
+            self._cancel("close")
+            self._set_expanded(True)
+
+    async def _on_blur(self, index, e=None):
+        if self._focused == index:
+            self._focused = None
+        if not self._pointer_inside:
+            self._schedule("close", self._close_later)
+
+    async def on_key(self, e):
+        if e.key == "Tab":
+            self._keyboard_navigation = True
+        elif e.key == "Escape" and not self.pinned and self.expanded:
+            self._keyboard_navigation = False
+            self._cancel("open"); self._cancel("close")
+            self._set_expanded(False)
+
+    async def _on_canvas_resize(self, index, e):
+        self._canvas_widths[index] = e.width
+
+    async def _on_nav_hover(self, index, e):
+        if not entered(e) and self._hovered != index:
+            return
+        self._keyboard_navigation = False
+        self._cancel("stroke")
+        for canvas in self.canvases:
+            canvas.shapes = []
+        if entered(e):
+            self._hovered = index
+            if self.motion_enabled:
+                self._schedule("stroke", self._stroke_once, index, self._epoch)
+        elif self._hovered == index:
+            self._hovered = None
+        self._sync_buttons()
+        self._update()
+
+    async def _stroke_once(self, index, epoch):
+        # Wait for the expansion to settle so the stroke follows the final outline.
+        await asyncio.sleep(.32)
+        if not self._stroke_valid(index, epoch):
+            return
+        canvas = self.canvases[index]
+        started = time.monotonic()
+        try:
+            while self._stroke_valid(index, epoch):
+                progress = min(1, (time.monotonic() - started) / .85)
+                width = self._canvas_widths.get(index, self.width - 24)
+                canvas.shapes = stroke_shapes(width, progress, _ui().P.brand)
+                self._update(canvas)
+                if progress >= 1:
+                    break
+                await asyncio.sleep(1 / 30)
+        finally:
+            if self._mounted and epoch == self._epoch:
+                canvas.shapes = []
+                self._update(canvas)
+
+    def _stroke_valid(self, index, epoch):
+        return (self._mounted and self.motion_enabled and self._hovered == index
+                and epoch == self._epoch)
 ```
 
 ### `jarvis/history.py`
@@ -15232,7 +17114,7 @@ class Jarvis:
         self.stop_event.set()
 
     def mic_watchdog(self) -> None:
-        """Проверяет микрофон ОДИН РАЗ через mic_check_sec. ... [7 строк]"""
+        """One passive startup diagnostic in the log; never speak or steal a tab. ... [4 строк]"""
         if not self.config.get("mic_watchdog_enabled", True):
             log.info("mic_watchdog выключен в config")
             return
@@ -15248,16 +17130,7 @@ class Jarvis:
         log.warning("Микрофон молчит (пик %d за %.0f с): %s",
                     self.listener.peak, delay, self.listener.device_name)
 
-        try:
-            self.say(Reply(text="Я не слышу микрофон. Проверьте, включён ли он, "
-                               "или выберите другое устройство в настройках."))
-        except Exception:
-            log.exception("mic_watchdog: не удалось озвучить предупреждение")
-
-        if self.gui is not None:
-            self.gui._queue.put(("open_mic_tab", None))
-
-        log.info("mic_watchdog: предупреждение показано, больше не повторяем")
+        log.info("mic_watchdog: результат только в журнале, без озвучки и переключения GUI")
 
     def run_loop(self) -> None:
         try:
@@ -15608,14 +17481,28 @@ def _single_instance() -> bool:
     """Именованный мьютекс на всё время работы процесса. ... [5 строк]"""
     global _MUTEX_HANDLE
     import ctypes
+    from ctypes import wintypes
     kernel32 = ctypes.windll.kernel32
-    _MUTEX_HANDLE = kernel32.CreateMutexW(None, False,
-                                          "Local\\JarvisPhoenixSingleInstance")
-    if kernel32.GetLastError() == 183:  # ERROR_ALREADY_EXISTS
-        kernel32.CloseHandle(_MUTEX_HANDLE)
-        _MUTEX_HANDLE = None
-        return False
-    return True
+    kernel32.CreateMutexW.argtypes = (ctypes.c_void_p, wintypes.BOOL, wintypes.LPCWSTR)
+    kernel32.CreateMutexW.restype = wintypes.HANDLE
+    kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
+    kernel32.CloseHandle.restype = wintypes.BOOL
+    # Older Phoenix.exe holds the SAME mutex until it exits after Popen.
+    # Give that short-lived parent time to exit; a real running core keeps it.
+    deadline = time.monotonic() + 3.0
+    while True:
+        handle = kernel32.CreateMutexW(None, False,
+                                      "Local\\JarvisPhoenixSingleInstance")
+        exists = kernel32.GetLastError() == 183
+        if not handle:
+            raise ctypes.WinError()
+        if not exists:
+            _MUTEX_HANDLE = handle
+            return True
+        kernel32.CloseHandle(handle)
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(0.1)
 
 
 def main() -> None:
@@ -15761,31 +17648,44 @@ def main() -> None:
     # pystray/PIL — значит просто нет трея.
     # =================================================================
     tray_holder = {"icon": None}
+    tray_lock = threading.RLock()
 
-    def _tray_failed() -> None:
-        """Иконка не появилась — снимаем режим «крестик прячет окно». ... [4 строк]"""
-        tray_holder["icon"] = None
-        if gui is not None:
-            gui.set_tray_active(False)
+    def _tray_failed(failed_icon=None) -> None:
+        """Restore an accessible window when the active tray loop dies."""
+        with tray_lock:
+            if failed_icon is not None and tray_holder["icon"] is not failed_icon:
+                return
+            tray_holder["icon"] = None
+            if jarvis.stop_event.is_set():
+                return
+            if gui is not None:
+                gui.start_hidden = False
+                gui.set_tray_active(False)
+                gui.show_window()  # queued, also safe before the Flet session exists
 
     def _apply_tray(enabled: bool) -> None:
         """Включает/выключает иконку трея и режим «крестик сворачивает»."""
-        if enabled and tray_holder["icon"] is None:
-            try:
-                from jarvis.tray import start_tray
-                tray_holder["icon"] = start_tray(jarvis, on_fail=_tray_failed)
-            except Exception:
-                log.exception("Трей: запуск упал — работаю без трея")
-        elif not enabled and tray_holder["icon"] is not None:
-            try:
-                tray_holder["icon"].stop()
-            except Exception:
-                log.debug("Трей: иконка уже снята", exc_info=True)
-            tray_holder["icon"] = None
+        with tray_lock:
+            if enabled and tray_holder["icon"] is None:
+                try:
+                    from jarvis.tray import start_tray
+                    tray_holder["icon"] = start_tray(jarvis, on_fail=_tray_failed)
+                except Exception:
+                    log.exception("Трей: запуск упал — работаю без трея")
+            elif not enabled and tray_holder["icon"] is not None:
+                old_icon = tray_holder["icon"]
+                tray_holder["icon"] = None
+                try:
+                    old_icon.stop()
+                except Exception:
+                    log.debug("Трей: иконка уже снята", exc_info=True)
+                if gui is not None:
+                    gui.start_hidden = False
+                    gui.show_window()
 
-        if gui is not None:
-            # Трей есть -> крестик прячет окно, нет -> окно закрывается.
-            gui.set_tray_active(tray_holder["icon"] is not None)
+            if gui is not None:
+                # Трей есть -> крестик прячет окно, нет -> окно закрывается.
+                gui.set_tray_active(tray_holder["icon"] is not None)
 
     # --- Подписки: изменения конфига применяются на лету ---
     config.subscribe(make_config_listener(jarvis, config, listener,
@@ -15842,7 +17742,7 @@ def main() -> None:
     threading.Thread(target=_greet, daemon=True, name="greeting").start()
 
     # Иконка трея поднимается ЗДЕСЬ — до ft.run (см. _apply_tray выше).
-    _apply_tray(bool(config.get("tray_enabled", False)))
+    _apply_tray(bool(config.get("tray_enabled", True)))
 
     # === Режим запуска (№84) ===
     launch_mode = str(config.get("launch_mode", "gui") or "gui").lower()
@@ -15857,6 +17757,7 @@ def main() -> None:
         launch_mode = "gui"
 
     if gui is not None:
+        gui.start_hidden = launch_mode == "tray"
         if launch_mode == "tray":
             log.info("launch_mode=tray — GUI запущен, но окно скрыто")
             gui.start_hidden = True
@@ -15870,8 +17771,10 @@ def main() -> None:
         jarvis.stop_event.wait()
 
     if tray_holder["icon"] is not None:
+        stopping_icon = tray_holder["icon"]
+        tray_holder["icon"] = None
         try:
-            tray_holder["icon"].stop()
+            stopping_icon.stop()
         except Exception:
             log.debug("Трей: иконка уже снята", exc_info=True)
 
@@ -17933,6 +19836,35 @@ def _cache_invalidate(path: Path | None = None) -> None:
             _cache.pop(path, None)
 
 
+def read_fields(*keys: str) -> tuple[str, dict]:
+    """Consistent editor snapshot; values and identity share the profile lock."""
+    with _lock:
+        data = _safe_load()
+        return current(), {key: copy.deepcopy(data.get(key)) for key in keys}
+
+
+def update_fields(data: dict, *, expected_profile: str,
+                  expected_values: dict) -> bool:
+    """Compare-and-save one profile file, without overwriting a newer editor. ... [4 строк]"""
+    with _lock:
+        if current() != expected_profile:
+            return False
+        try:
+            current_data = _safe_load()
+        except json.JSONDecodeError:
+            return False
+        if any(current_data.get(key) != value
+               for key, value in expected_values.items()):
+            return False
+        current_data.update(copy.deepcopy(data))
+        current_data.setdefault("created_at", time.time())
+        path = profile_path()
+        if not config_manager.save(current_data, path=path):
+            return False
+        _cache_store(path, current_data)
+        return True
+
+
 def mutate(key: str, func) -> bool:
     """Атомарно меняет ключ: func(копия текущего значения) → новое. ... [5 строк]"""
     with _lock:
@@ -18861,6 +20793,7 @@ class Listener:
         self.peak = 0
         self.utterances = 0
         self.current_rms = 0  # текущий уровень сигнала (для GUI)
+        self.level_updated_at = 0.0  # monotonic heartbeat, not audio content
 
         self.barge_enabled = True
         self.muted = False
@@ -19057,6 +20990,7 @@ class Listener:
         else:
             rms = 0
             self.current_rms = 0
+        self.level_updated_at = time.monotonic()
         self._process_barge(rms)
 
         if self.muted:
@@ -20199,11 +22133,39 @@ def build_menu(jarvis):
     )
 
 
+def _windows_icon_type(base, win32):
+    """pystray 0.19 ignores Shell_NotifyIconW's BOOL; do not fake readiness. ... [4 строк]"""
+    import ctypes
+
+    class CheckedWindowsIcon(base):
+        def _show(self):
+            self._assert_icon_handle()
+            deadline = time.monotonic() + 2.0
+            while True:
+                accepted = win32.Shell_NotifyIcon(win32.NIM_ADD, win32.NOTIFYICONDATAW(
+                    cbSize=ctypes.sizeof(win32.NOTIFYICONDATAW),
+                    hWnd=self._hwnd, hID=id(self),
+                    uFlags=win32.NIF_MESSAGE | win32.NIF_ICON | win32.NIF_TIP,
+                    uCallbackMessage=win32.WM_NOTIFY, hIcon=self._icon_handle,
+                    szTip=self.title))
+                if accepted:
+                    return
+                if time.monotonic() >= deadline:
+                    raise OSError("Windows не приняла значок Феникса в область уведомлений")
+                time.sleep(0.1)
+
+    return CheckedWindowsIcon
+
+
 def build_icon(jarvis):
     """Создаёт pystray.Icon (message loop не запускает)."""
     import pystray
 
-    return pystray.Icon(
+    icon_type = pystray.Icon
+    if os.name == "nt":
+        from pystray._util import win32
+        icon_type = _windows_icon_type(icon_type, win32)
+    return icon_type(
         ICON_NAME,
         _make_icon_image(),
         f"{APP_NAME} v{__version__}",
@@ -20212,47 +22174,54 @@ def build_icon(jarvis):
 
 
 def start_tray(jarvis, check_after: float = 3.0, on_fail=None):
-    """Поднимает иконку в фоне. Возвращает Icon или None (трея не будет). ... [9 строк]"""
+    """Return an icon only after Windows accepted its visibility request. ... [5 строк]"""
     try:
         icon = build_icon(jarvis)
     except Exception:
         log.exception("Трей: pystray/PIL недоступны — работаю без трея")
         return None
 
+    exited = threading.Event()
+
     def _run_icon():
         try:
             icon.run()
         except Exception:
             log.exception("Трей: message loop упал — работаю без трея")
+        finally:
+            exited.set()
 
     thread = threading.Thread(target=_run_icon, daemon=True, name="tray")
     thread.start()
+    deadline = time.monotonic() + max(0.0, check_after)
+    while True:
+        if not exited.is_set() and getattr(icon, "visible", False):
+            break
+        remaining = deadline - time.monotonic()
+        if remaining <= 0 or exited.is_set():
+            log.warning("Трей не готов — окно останется доступным")
+            # stop can block in a failed backend, never stall GUI startup.
+            def _stop_failed():
+                try:
+                    icon.stop()
+                except Exception:
+                    log.debug("Трей: остановка не удалась", exc_info=True)
+            threading.Thread(target=_stop_failed, daemon=True, name="tray-cleanup").start()
+            return None
+        exited.wait(min(0.05, remaining))
+    log.info("Трей: значок %s готов (проверьте также скрытые значки Windows)", APP_NAME)
 
-    def _check_visible():
-        """Убеждаемся, что иконка реально появилась (иначе трей молча мёртв)."""
-        deadline = time.time() + max(0.0, check_after)
-        while time.time() < deadline:
-            if getattr(icon, "visible", False):
-                log.info("Трей: иконка в системном трее (поток %s)", thread.name)
-                return
-            time.sleep(0.2)
-        if getattr(icon, "visible", False):
-            return
-        log.warning("Трей: иконка не появилась за %.1f с (поток %s) — "
-                    "работаю без трея", check_after,
-                    "жив" if thread.is_alive() else "упал")
-        try:
-            icon.stop()
-        except Exception:
-            log.debug("Трей: не удалось снять невидимую иконку", exc_info=True)
+    def _monitor():
+        exited.wait()
+        # Explicit disable / exit also stops the loop. Caller decides whether
+        # this is still the active icon, preventing stale callbacks on replacement.
         if on_fail is not None:
             try:
-                on_fail()
+                on_fail(icon)
             except Exception:
-                log.exception("Трей: on_fail упал")
+                log.exception("Трей: обработчик остановки упал")
 
-    threading.Thread(target=_check_visible, daemon=True,
-                     name="tray-check").start()
+    threading.Thread(target=_monitor, daemon=True, name="tray-check").start()
     return icon
 ```
 
@@ -30129,6 +32098,260 @@ def test_snapshot_text_and_size_are_eol_independent(repo):
     assert (repo / "SNAPSHOT.md").read_text(encoding="utf-8") != before
 ```
 
+### `tests/test_gui_audio.py`
+
+```python
+"""Native sound settings + real worker boundaries; no microphone or actual TTS."""
+import queue
+import sys
+import threading
+import time
+from types import SimpleNamespace as NS
+from unittest.mock import Mock
+
+import pytest
+ft = pytest.importorskip("flet")
+from jarvis import gui as module, gui_audio as audio, mood, profile
+from jarvis.config import Config
+
+
+@pytest.fixture
+def gui(tmp_path, monkeypatch):
+    config = Config(tmp_path / "config.json")
+    core = NS(listener=NS(device_name="USB microphone", current_rms=800, peak=1400,
+        utterances=7, muted=False, level_updated_at=time.monotonic()),
+        listening_enabled=True, speaker=NS(is_playing=Mock(return_value=False),
+        stop=Mock(), _engine_name="piper"), cmd_lock=threading.Lock(),
+        say=Mock(return_value=False), handler=NS(_pending_password=None, _pending_question=None))
+    window = module.FenixGUI(core, config)
+    monkeypatch.setattr(window, "_get_voice_options", lambda: [ft.dropdown.Option("ruslan", "Руслан")])
+    # CI does not install PortAudio; device enumeration is an explicit transport fake.
+    monkeypatch.setitem(sys.modules, "sounddevice", NS(query_devices=lambda: [
+        {"name": "USB microphone", "max_input_channels": 1}]))
+    window._build_main_tab()
+    window._build_mic_tab()
+    window._build_audio_tab()
+    yield window
+    sound = window._sound()
+    if sound.thread:
+        sound.thread.join(4)
+    profile.unsubscribe(window._on_profile_switch)
+    mood.unsubscribe(window._on_mood_change)
+    module._apply_palette("dark")
+
+
+def finish(gui):
+    sound = gui._sound()
+    sound.thread.join(4)
+    assert not sound.thread.is_alive()
+    while not gui._queue.empty():
+        kind, value = gui._queue.get_nowait()
+        if kind == "sound_result":
+            sound.apply_result(*value)
+    assert sound.busy is None
+    assert sound.lock.acquire(blocking=False)
+    sound.lock.release()
+
+
+def sample_clock(gui, monkeypatch, rms=800, callback=None):
+    clock = NS(now=time.monotonic() + .1)
+    def sleep(seconds):
+        clock.now += seconds
+        gui.jarvis.listener.level_updated_at = clock.now
+        gui.jarvis.listener.current_rms = rms
+        if callback:
+            callback()
+    monkeypatch.setattr(audio, "time", NS(monotonic=lambda: clock.now, sleep=sleep))
+
+
+def test_mic_controls_keep_full_name_and_refresh_without_saving(gui, monkeypatch):
+    name = "USB microphone " + "long device name " * 5
+    monkeypatch.setattr("sounddevice.query_devices", lambda: [{"name": name, "max_input_channels": 1}])
+    before = gui.config.get("input_device")
+    gui._sound().refresh_devices()
+    assert name in [x.key for x in gui._mic_dropdown.options]
+    assert gui.config.get("input_device") == before
+    assert gui._mic_emotion_text is None
+
+
+def test_missing_saved_device_is_visible_and_not_replaced(gui):
+    gui.config.set("input_device", "Missing USB")
+    gui._build_mic_tab()
+    assert gui._mic_dropdown.value == "Missing USB"
+    assert "не найдено" in gui._mic_dropdown.options[-1].text
+    assert gui.config.get("input_device") == "Missing USB"
+
+
+def test_live_level_uses_current_rms_not_historical_peak(gui):
+    gui.jarvis.listener.current_rms = 0
+    gui.jarvis.listener.peak = 32767
+    gui._update_mic_level()
+    assert gui._mic_level_bar.value == 0
+    assert "ожидание" in gui._mic_status_text.value
+    gui.jarvis.listener.current_rms = 900
+    gui._update_mic_level()
+    assert gui._mic_level_bar.value == .45
+    assert "есть сигнал" in gui._mic_status_text.value
+
+
+def test_stale_meter_and_paused_input_never_report_success(gui):
+    gui.jarvis.listener.level_updated_at = 0
+    gui._update_mic_level()
+    assert "нет свежих" in gui._mic_status_text.value
+    assert gui._mic_level_bar.value == 0
+    gui.jarvis.listening_enabled = False
+    gui._update_mic_level()
+    assert "пауза" in gui._mic_status_text.value
+    assert gui._on_mic_test(None) is False
+
+
+@pytest.mark.parametrize("rms,needle", [(800, "заметен"), (250, "тихий"), (0, "заметного сигнала нет")])
+def test_windowed_mic_test_preserves_listener_stats(gui, monkeypatch, rms, needle):
+    sample_clock(gui, monkeypatch, rms)
+    before = gui.jarvis.listener.peak, gui.jarvis.listener.utterances
+    assert gui._on_mic_test(None)
+    finish(gui)
+    assert needle in gui._mic_test_result.value
+    assert (gui.jarvis.listener.peak, gui.jarvis.listener.utterances) == before
+    gui.jarvis.say.assert_not_called()
+
+
+def test_mic_test_rejects_cached_samples(gui, monkeypatch):
+    monkeypatch.setattr(audio, "time", NS(monotonic=time.monotonic, sleep=lambda s: None))
+    assert gui._on_mic_test(None)
+    finish(gui)
+    assert "Нет свежих данных" in gui._mic_test_result.value
+
+
+def test_changing_input_during_test_invalidates_result(gui, monkeypatch):
+    sample_clock(gui, monkeypatch, callback=lambda: gui.config.set("input_device", "new input"))
+    assert gui._on_mic_test(None)
+    finish(gui)
+    assert "Вход изменился" in gui._mic_test_result.value
+
+
+def test_voice_test_uses_existing_say_without_handler_or_history(gui):
+    before = list(gui._messages)
+    assert gui._sound().test_voice()
+    finish(gui)
+    [(reply,), kwargs] = gui.jarvis.say.call_args
+    assert reply.text == audio.TEST_PHRASE
+    assert reply.allow_nonverbal is False
+    assert gui._messages == before
+    assert "Проба завершена" in gui._sound().voice_result.value
+    assert gui.jarvis.cmd_lock.acquire(blocking=False)
+    gui.jarvis.cmd_lock.release()
+    assert gui._command_lock.acquire(blocking=False)
+    gui._command_lock.release()
+
+
+@pytest.mark.parametrize("pending", ["_pending_password", "_pending_question"])
+def test_pending_command_blocks_voice_preview(gui, pending):
+    setattr(gui.jarvis.handler, pending, {"action": "do-not-touch"})
+    gui._sound().test_voice()
+    finish(gui)
+    gui.jarvis.say.assert_not_called()
+    assert "Сначала завершите" in gui._sound().voice_result.value
+
+
+def test_voice_does_not_queue_behind_core_or_gui_lock(gui):
+    for lock in (gui.jarvis.cmd_lock, gui._command_lock):
+        lock.acquire()
+        try:
+            gui._sound().test_voice()
+            finish(gui)
+            gui.jarvis.say.assert_not_called()
+            assert "занят" in gui._sound().voice_result.value
+        finally:
+            lock.release()
+
+
+def test_preview_failure_sanitized_and_locks_released(gui):
+    gui.jarvis.say.side_effect = RuntimeError("private payload")
+    gui._sound().test_voice()
+    finish(gui)
+    assert "private payload" not in gui._sound().voice_result.value
+    assert "Не удалось" in gui._sound().voice_result.value
+    assert gui.jarvis.cmd_lock.acquire(blocking=False)
+    gui.jarvis.cmd_lock.release()
+
+
+def test_duplicate_test_click_and_theme_rebuild(gui):
+    entered, release = threading.Event(), threading.Event()
+    def say(reply):
+        entered.set()
+        assert release.wait(3)
+    gui.jarvis.say.side_effect = say
+    sound = gui._sound()
+    assert sound.test_voice()
+    try:
+        assert entered.wait(2)
+        assert sound.test_voice() is False
+        assert sound.test_mic() is False
+        module._apply_palette("light")
+        gui._build_mic_tab(); gui._build_audio_tab()
+        assert sound.voice_test_button.disabled and sound.mic_test_button.disabled
+        assert sound is gui._sound()
+    finally:
+        release.set()
+        finish(gui)
+    assert not sound.voice_test_button.disabled
+    assert gui.jarvis.say.call_count == 1
+
+
+def test_thread_start_failure_recovers(gui, monkeypatch):
+    monkeypatch.setattr(audio.threading.Thread, "start", Mock(side_effect=RuntimeError("failed")))
+    assert gui._sound().test_voice() is False
+    assert gui._sound().busy is None
+    assert not gui._sound().voice_test_button.disabled
+    # A never-started Thread cannot be joined by the fixture.
+    gui._sound().thread = None
+
+
+def test_voice_picker_synced_to_chat_and_rate_saved(gui):
+    gui._sound().change_voice(NS(control=NS(value="irina")))
+    assert gui.config.get("tts_voice") == "irina"
+    assert gui._main_voice_dropdown.value == "irina"
+    assert gui._sound().voice_dropdown.value == "irina"
+    gui._sound().change_rate(NS(control=NS(value=1.3)))
+    assert gui.config.get("voice_rate") == 1.3
+    assert "1.30" in gui._sound().rate_label.value
+
+
+def test_stop_uses_existing_speaker(gui):
+    gui._on_stop_speech()
+    gui.jarvis.speaker.stop.assert_called_once()
+
+
+def test_listener_level_heartbeat_updates_even_when_muted():
+    import numpy as np
+    from jarvis.stt import Listener
+    listener = NS(peak=0, current_rms=0, level_updated_at=0,
+                  muted=True, _process_barge=Mock())
+    Listener._callback(listener, np.full(32, 600, dtype="<i2").tobytes(), 32, None, None)
+    assert listener.current_rms == 600
+    assert listener.level_updated_at > 0
+    listener._process_barge.assert_called_once_with(600)
+
+
+def test_voice_preview_does_not_interrupt_existing_speech(gui):
+    gui.jarvis.speaker.is_playing.return_value = True
+    gui._sound().test_voice()
+    finish(gui)
+    gui.jarvis.say.assert_not_called()
+    gui.jarvis.speaker.stop.assert_not_called()
+    assert "Дождитесь окончания" in gui._sound().voice_result.value
+
+
+def test_disappeared_listener_clears_old_meter_metadata(gui):
+    gui._update_mic_level()
+    gui.jarvis.listener = None
+    gui._update_mic_level()
+    assert "слушатель не запущен" in gui._mic_device_text.value
+    assert gui._mic_peak_text.value.endswith("—")
+    assert gui._mic_utt_text.value.endswith("—")
+```
+
 ### `tests/test_gui_chat.py`
 
 ```python
@@ -30403,7 +32626,7 @@ def test_sidebar_selects_all_real_tabs_and_keeps_theme_selection(gui):
 
 def test_sidebar_profile_and_configured_model_are_not_network_status(gui):
     sidebar = module._Sidebar(lambda i: None)
-    assert sidebar.content.controls[-1].content.controls[0].value == profile.current()
+    assert sidebar.profile_label.value == profile.current()
     gui._on_llm_change(SimpleNamespace(control=SimpleNamespace(value="my-local-model:latest")))
     assert gui._model_label.value == "Модель: my-local-model:latest"
     assert gui._model_caption() == "Модель: my-local-model:latest"
@@ -30449,7 +32672,7 @@ def editor(tmp_path):
 
 def test_sixth_tab_and_unsaved_editor_survive_navigation(editor):
     gui = editor.gui
-    assert len(module.NAV_ITEMS) == 6
+    assert len(module.NAV_ITEMS) == 7
     assert gui._rail.selected_index == 5
     editor.new()
     assert editor.fields["name"].on_change is not None
@@ -30547,6 +32770,1526 @@ def test_theme_rebuild_preserves_unsaved_command_but_not_password(editor, monkey
     assert editor.fields["name"].value == "Мой черновик"
     assert not editor.password_field.value
     assert "Never-store-42" not in repr(editor.draft)
+```
+
+### `tests/test_gui_home.py`
+
+```python
+"""Native minimal Home; no OS/model/mic/network. Old navigation IDs stay stable."""
+import asyncio
+from datetime import datetime
+from types import SimpleNamespace as NS
+from unittest.mock import Mock
+
+import flet as ft
+import pytest
+from jarvis import gui as module, profile, mood
+from jarvis.config import Config
+from jarvis.gui_home import HomeScreen, clock_labels
+
+
+def walk(control):
+    yield control
+    content = getattr(control, "content", None)
+    if isinstance(content, ft.Control):
+        yield from walk(content)
+    for child in getattr(control, "controls", []) or []:
+        yield from walk(child)
+
+
+@pytest.fixture
+def gui(tmp_path, monkeypatch):
+    window = module.FenixGUI(None, Config(tmp_path / "config.json"))
+    window._page = NS(add=Mock(), update=Mock(), window=NS())
+    monkeypatch.setattr(window, "_get_voice_options", lambda: [ft.dropdown.Option("ruslan")])
+    window._build_ui(window._page)
+    yield window
+    window.stop()
+    window._rail.dispose()
+    profile.unsubscribe(window._on_profile_switch)
+    mood.unsubscribe(window._on_mood_change)
+    module._apply_palette("dark")
+
+
+def test_startup_is_home_and_chat_ids_do_not_shift(gui):
+    assert module.HOME_TAB == 6
+    assert gui._rail.selected_index == module.HOME_TAB
+    assert gui._content_area.content is gui._home
+    assert [module.NAV_ITEMS[i][0] for i in module.NAV_ORDER] == [
+        "Главная", "Диалог", "Микрофон", "Голос и звук", "Персона", "Настройки", "Мои команды"]
+    assert gui._rail.navigation.controls[0] is gui._rail.nav_buttons[module.HOME_TAB]
+    gui._select_tab(0)
+    assert gui._content_area.content is gui._tabs[0]
+    assert gui._input_field in list(walk(gui._tabs[0]))
+
+
+def test_minimal_home_has_no_composer_cards_widgets_or_fake_actions(gui):
+    controls = list(walk(gui._home))
+    assert not any(isinstance(c, (ft.TextField, ft.Dropdown, ft.ListView)) for c in controls)
+    buttons = [c for c in controls if isinstance(c, ft.Button)]
+    assert buttons == gui._home.theme_buttons
+    assert not hasattr(gui._home, "on_click") or gui._home.on_click is None
+    assert "Модель" not in " ".join(str(getattr(c, "value", "")) for c in controls)
+    assert gui._home.status.value == "Ядро ещё не готово"
+
+
+def test_local_date_labels_include_midnight_and_new_year():
+    assert clock_labels(datetime(2026, 12, 31, 23, 59)) == ("четверг, 31 декабря", "23:59")
+    assert clock_labels(datetime(2027, 1, 1, 0, 0)) == ("пятница, 1 января", "00:00")
+
+
+def test_clock_only_marks_changes_at_minute_or_date_boundary(gui):
+    home = gui._home
+    assert home.refresh_clock(datetime(2027, 1, 1, 8, 30))
+    assert not home.refresh_clock(datetime(2027, 1, 1, 8, 30, 59))
+    assert home.refresh_clock(datetime(2027, 1, 1, 8, 31))
+    assert home.clock.value == "08:31"
+
+
+@pytest.mark.parametrize("state,label", [("listening", "Слушаю"), ("thinking", "Обрабатываю"),
+    ("speaking", "Говорю"), ("error", "Ошибка"), ("password", "Нужен пароль")])
+def test_home_mirrors_real_state_without_auto_opening_chat(gui, state, label):
+    gui.jarvis = NS(listening_enabled=True, handler=NS(_pending_password=None, _pending_question=None))
+    gui._apply_state(state)
+    assert gui._home.status.value == label
+    assert gui._rail.selected_index == module.HOME_TAB
+    assert gui._content_area.content is gui._home
+
+
+def test_paused_mic_does_not_claim_listening(gui):
+    gui.jarvis = NS(listening_enabled=False, handler=NS(_pending_password=None, _pending_question=None))
+    gui._apply_state("idle")
+    assert gui._home.status.value == "Микрофон на паузе"
+
+
+def test_incoming_chat_does_not_replace_home_and_is_available_in_dialog(gui):
+    gui._apply_message("user", "Проверка")
+    gui._apply_stream_chunk("Ответ")
+    assert gui._content_area.content is gui._home
+    gui._select_tab(0)
+    assert gui._messages[-1]["text"] == "Ответ"
+    gui._select_tab(module.HOME_TAB)
+    assert gui._content_area.content is gui._home
+
+
+def test_theme_rebuild_keeps_home_selected_and_preserves_chat_draft_and_stream(gui):
+    old_home = gui._home
+    old_home.dispose = Mock(wraps=old_home.dispose)
+    gui._input_field.value = "Несохранённый черновик"
+    gui._apply_stream_chunk("Часть ответа")
+    gui._home._theme("Светлая")
+    old_home.dispose.assert_called()
+    assert gui.config.get("gui_theme") == "Светлая"
+    assert gui._rail.selected_index == module.HOME_TAB
+    assert gui._content_area.content is gui._home and gui._home is not old_home
+    assert gui._input_field.value == "Несохранённый черновик"
+    assert gui._messages[-1]["text"] == "Часть ответа"
+    gui._select_tab(0)
+    gui._home._theme("Тёмная")
+    assert gui._rail.selected_index == 0
+    assert gui._content_area.content is gui._tabs[0]
+
+
+def test_home_navigation_does_not_break_tray_mic_or_settings(gui):
+    gui._open_mic_tab()
+    assert gui._rail.selected_index == 1 and gui._content_area.content is gui._tabs[1]
+    gui._select_tab(module.HOME_TAB)
+    gui._open_settings_tab()
+    assert gui._rail.selected_index == 4 and gui._content_area.content is gui._tabs[4]
+    gui._show_window_now()
+    assert gui._page.window.visible and gui._page.window.minimized is False
+
+
+def test_unmounted_home_has_no_clock_task_and_stop_disposes_it(gui):
+    assert not gui._home._mounted and gui._home._future is None
+    future = Mock()
+    gui._home._future = future
+    gui.stop()
+    future.cancel.assert_called_once()
+    assert gui._home._future is None and gui._home._host is None
+
+
+def test_clock_updates_only_date_controls_and_dispose_cancels_task(gui):
+    async def scenario():
+        home = gui._home
+        home._mounted = True
+        home._epoch = 12
+        host = home._host = NS(update=Mock())
+        home.refresh_clock = Mock(return_value=True)
+        home._future = asyncio.create_task(home._clock_loop(12))
+        await asyncio.sleep(.01)
+        host.update.assert_called_once_with(home.date, home.clock)
+        task = home._future
+        home.will_unmount()
+        await asyncio.sleep(0)
+        assert task.cancelled() and home._host is None
+        home.refresh_clock.reset_mock()
+        await home._clock_loop(12)
+        home.refresh_clock.assert_not_called()
+    asyncio.run(scenario())
+```
+
+### `tests/test_gui_home_actions.py`
+
+```python
+"""Action orbit: real callbacks, continuous hover zone, keyboard and lifecycle."""
+import asyncio
+from types import SimpleNamespace as NS
+from unittest.mock import Mock, AsyncMock
+import flet as ft
+import pytest
+from jarvis import gui as module, profile, mood
+from jarvis.config import Config
+
+@pytest.fixture
+def gui(tmp_path):
+    g = module.FenixGUI(None, Config(tmp_path/'config.json'))
+    g._page = NS(add=Mock(), update=Mock(), window=NS(visible=True,minimized=False))
+    g._build_ui(g._page)
+    g.jarvis = NS(listening_enabled=True,speaker=NS(stop=Mock()),
+                  handler=NS(_pending_password=None,_pending_question=None))
+    g._home.apply_state('idle')
+    yield g
+    g.stop();g._rail.dispose()
+    profile.unsubscribe(g._on_profile_switch);mood.unsubscribe(g._on_mood_change)
+    module._apply_palette('dark')
+
+
+def event(value=True): return NS(data=value)
+
+
+def attach(ring):
+    ring._mounted = True
+    ring._host = NS(update=Mock(),run_task=lambda f,*a:asyncio.create_task(f(*a)))
+    return ring._host
+
+
+def test_closed_orbit_keeps_same_footprint_and_hidden_actions_out_of_tab_order(gui):
+    r=gui._home.actions
+    assert r.width == r.height == r.aura.width == r.aura.height == 300
+    assert not r.opened
+    assert len(r.buttons)==3
+    assert all(b.disabled for b in r.buttons.values())
+    assert all(s.opacity==0 and s.ignore_interactions for s in r.slots.values())
+    assert r.center.disabled is False
+    assert r.aura.ignore_interactions is True
+
+
+@pytest.mark.parametrize('value',[True,'true','True'])
+def test_bird_hover_opens_but_outer_zone_alone_does_not(gui,value):
+    r=gui._home.actions
+    r._zone_hover(event(value))
+    assert not r.opened
+    r._center_hover(event(value))
+    assert r.opened and r.guide.opacity==1
+    assert not r.buttons['dialog'].disabled and not r.buttons['mic'].disabled
+    assert r.buttons['stop'].disabled
+    assert all(s.opacity==1 and s.scale==1 and not s.ignore_interactions for s in r.slots.values())
+
+
+def test_click_after_hover_does_not_accidentally_close(gui):
+    r=gui._home.actions;r._center_hover(event());r._toggle()
+    assert r.opened
+
+
+def test_shared_zone_survives_pointer_trip_to_buttons_then_closes(gui):
+    async def run():
+        r=gui._home.actions;attach(r)
+        r._zone_hover(event());r._center_hover(event())
+        r._center_hover(event(False));r._action_hover('mic',event())
+        await asyncio.sleep(.27)
+        assert r.opened and r.hint.value=='Выключить микрофон'
+        r._zone_hover(event(False))
+        await asyncio.sleep(.1)
+        assert r.opened
+        r._zone_hover(event())
+        await asyncio.sleep(.2)
+        assert r.opened
+        r._zone_hover(event(False));await asyncio.sleep(.27)
+        assert not r.opened
+    asyncio.run(run())
+
+
+def test_keyboard_tab_focus_bridge_and_escape_no_reopening(gui):
+    async def run():
+        r=gui._home.actions;attach(r);r.center.focus=AsyncMock(side_effect=lambda:r._focus('center'))
+        await gui._on_home_key(NS(key='Tab'))
+        r._focus('center');assert r.opened
+        r._blur('center');r._focus('dialog')
+        await asyncio.sleep(.27);assert r.opened
+        await gui._on_home_key(NS(key='Escape'))
+        assert not r.opened
+        r.center.focus.assert_awaited_once()
+        await gui._on_home_key(NS(key='Tab'));r._focus('dialog')
+        assert r.opened
+        r._blur('dialog');await asyncio.sleep(.27)
+        assert not r.opened
+    asyncio.run(run())
+
+
+def test_dialog_uses_existing_navigation_and_never_sends_message(gui):
+    r=gui._home.actions;r.set_open(True)
+    gui._run_command=Mock()
+    r._act('dialog')
+    assert gui._rail.selected_index==0 and gui._content_area.content is gui._tabs[0]
+    assert not r.opened
+    gui._run_command.assert_not_called()
+
+
+def test_mic_toggles_real_core_and_syncs_chat_button_and_home(gui):
+    r=gui._home.actions;r.set_open(True)
+    r._act('mic')
+    assert not gui.jarvis.listening_enabled
+    assert gui._mic_btn.icon==ft.Icons.MIC_OFF
+    assert r.buttons['mic'].icon==ft.Icons.MIC_OFF_OUTLINED
+    assert r.semantics['mic'].label=='Включить микрофон'
+    assert gui._home.status.value=='Микрофон на паузе'
+    r._act('mic')
+    assert gui.jarvis.listening_enabled and r.semantics['mic'].label=='Выключить микрофон'
+
+
+def test_stop_only_stops_existing_speech_and_does_not_claim_cancellation(gui):
+    r=gui._home.actions;r.set_open(True)
+    r._act('stop');gui.jarvis.speaker.stop.assert_not_called()
+    gui._apply_state('speaking');assert not r.buttons['stop'].disabled
+    r._act('stop');gui.jarvis.speaker.stop.assert_called_once()
+    assert gui._rail.selected_index==module.HOME_TAB
+    gui._apply_state('idle');assert r.buttons['stop'].disabled
+    r._act('stop');gui.jarvis.speaker.stop.assert_called_once()
+
+
+def test_without_core_dialog_works_audio_actions_disabled(gui):
+    gui.jarvis=None;r=gui._home.actions;r.set_open(True)
+    assert not r.buttons['dialog'].disabled
+    assert r.buttons['mic'].disabled and r.buttons['stop'].disabled
+    r._act('mic');r._act('stop')
+    assert gui.jarvis is None
+    assert r.semantics['mic'].label=='Ядро ещё не готово'
+
+
+def test_hidden_action_cannot_execute_stale_click(gui):
+    r=gui._home.actions
+    r._act('dialog');r._act('mic');r._act('stop')
+    assert gui._rail.selected_index==module.HOME_TAB and gui.jarvis.listening_enabled
+    gui.jarvis.speaker.stop.assert_not_called()
+
+
+@pytest.mark.parametrize('reason',['config','os','rail'])
+def test_reduced_motion_removes_orbit_transitions(gui,reason):
+    r=gui._home.actions
+    if reason=='config':gui.config.set('gui_motion_enabled',False)
+    elif reason=='os':r.aura._os_reduced=True
+    else:gui._rail.motion_enabled=False
+    r.set_open(True)
+    assert all(s.animate_opacity is None and s.animate_scale is None for s in r.slots.values())
+    assert all(s.opacity==1 and s.scale==1 for s in r.slots.values())
+
+
+def test_dispose_cancels_delayed_close_resets_state_and_does_not_touch_aura(gui):
+    async def run():
+        r=gui._home.actions;host=attach(r)
+        r.set_open(True);r._zone_hover(event(False));task=r._close_task
+        r.dispose();await asyncio.sleep(0)
+        assert task.cancelled() and r._close_task is None and not r.opened
+        assert r._host is None and not r._mounted
+        assert gui._home.aura.mode=='idle'
+    asyncio.run(run())
+
+
+def test_theme_rebuild_disposes_old_ring_and_does_not_leave_open_menu(gui):
+    old=gui._home.actions;old.set_open(True)
+    gui._home._theme('Светлая')
+    assert gui._home.actions is not old and not old.opened
+    assert not gui._home.actions.opened
+
+
+def test_no_background_updates_for_unchanged_state_and_only_local_orbit_update(gui):
+    r=gui._home.actions;r._mounted=True;r._host=NS(update=Mock())
+    for _ in range(10):r.sync_state()
+    r._host.update.assert_not_called()
+    r.set_open(True)
+    assert all(c.args==(r,) for c in r._host.update.call_args_list)
+
+
+def test_custom_captions_do_not_duplicate_native_tooltips_and_hidden_semantics(gui):
+    r=gui._home.actions
+    assert all(b.tooltip is None for b in r.buttons.values())
+    assert all(s.hidden for s in r.semantics.values())
+    r.set_open(True)
+    assert all(not s.hidden for s in r.semantics.values())
+    assert r.semantics['dialog'].label=='Открыть диалог'
+    assert r.semantics['mic'].toggled is True
+    r.set_open(False)
+    assert all(s.hidden for s in r.semantics.values())
+```
+
+### `tests/test_gui_home_fx.py`
+
+```python
+"""Native solar aura lifecycle; no audio device, model or Windows session."""
+import asyncio
+import math
+import re
+import time
+from types import SimpleNamespace as NS
+from unittest.mock import Mock
+
+import flet as ft
+import flet.canvas as cv
+import pytest
+from jarvis import gui as module, profile, mood
+from jarvis.config import Config
+from jarvis.gui_home_fx import solar_shapes, FPS, IDLE_FPS, MODES, transition_weights
+
+
+@pytest.fixture
+def gui(tmp_path, monkeypatch):
+    window = module.FenixGUI(None, Config(tmp_path / "config.json"))
+    window._page = NS(add=Mock(), update=Mock(), window=NS(visible=True, minimized=False))
+    monkeypatch.setattr(window, "_get_voice_options", lambda: [ft.dropdown.Option("ruslan")])
+    window._build_ui(window._page)
+    window.jarvis = NS(listening_enabled=True,
+        listener=NS(current_rms=0, level_updated_at=time.monotonic(), muted=False),
+        handler=NS(_pending_password=None, _pending_question=None))
+    yield window
+    window.stop(); window._rail.dispose()
+    profile.unsubscribe(window._on_profile_switch); mood.unsubscribe(window._on_mood_change)
+    module._apply_palette("dark")
+
+
+def attach(aura):
+    aura._mounted = True
+    aura._host = NS(run_task=lambda fn, *args: asyncio.create_task(fn(*args)), update=Mock())
+    return aura._host
+
+
+@pytest.mark.parametrize("mode", ["idle", "listening", "speaking", "thinking"])
+def test_shapes_are_bounded_deterministic_and_change_smoothly(mode):
+    a = solar_shapes(mode, .5, .3, "#d8a786")
+    b = solar_shapes(mode, 1, .3, "#d8a786")
+    assert len(a) == 35
+    clean = lambda shapes: re.sub(r"_i=\d+", "_i=ID", repr(shapes))
+    assert clean(a) == clean(solar_shapes(mode, .5, .3, "#d8a786"))
+    assert clean(a) != clean(b)
+    assert FPS == 24 and IDLE_FPS == 16
+    for shape in a:
+        if isinstance(shape, cv.Arc):
+            assert shape.use_center is False and isinstance(shape.paint,ft.Paint)
+        if hasattr(shape, "radius"):
+            assert 0 < shape.radius < 150
+            assert 0 < shape.x < 300 and 0 < shape.y < 300
+
+
+@pytest.mark.parametrize("state", ["idle", "error", "password", "awaiting"])
+def test_idle_error_or_sensitive_states_keep_only_decorative_ambient(gui, state):
+    gui._apply_state(state)
+    assert gui._home.aura.mode == "idle"
+    assert gui._home.aura.canvas.shapes
+    assert gui._home.aura._future is None
+
+
+@pytest.mark.parametrize("state,mode", [("speaking","speaking"),("listening","listening"),
+    ("thinking","thinking"),("recognizing","thinking")])
+def test_real_states_select_their_own_motion_without_opening_chat(gui, state, mode):
+    gui._apply_state(state)
+    assert gui._home.aura.mode == mode and gui._home.aura.canvas.shapes
+    assert gui._rail.selected_index == module.HOME_TAB
+    assert gui._home.aura._future is None  # Not mounted, no background task.
+
+
+def test_only_existing_fresh_rms_can_light_idle_home(gui):
+    home, listener = gui._home, gui.jarvis.listener
+    gui._apply_state("idle")
+    listener.current_rms = 800
+    home.poll_signal()
+    assert home.aura.mode == "listening" and home.aura.energy == .4
+    assert home.status.value == "Рядом, когда нужен"  # Signal is not a recognition claim.
+    listener.level_updated_at -= 2
+    home.poll_signal()
+    assert home.aura.mode == "idle" and home.aura.energy == 0
+
+
+@pytest.mark.parametrize("changes", [dict(muted=True), dict(current_rms=float("nan")),
+    dict(current_rms=float("inf")), dict(level_updated_at="bad"), dict(current_rms=0)])
+def test_invalid_quiet_or_muted_input_cannot_start_glow(gui, changes):
+    gui.jarvis.listener.current_rms = 800
+    for key,value in changes.items():setattr(gui.jarvis.listener,key,value)
+    gui._home.poll_signal()
+    assert gui._home.aura.mode == "idle"
+
+
+def test_pause_clears_signal_and_speaking_has_priority_over_input(gui):
+    listener = gui.jarvis.listener
+    listener.current_rms = 1200
+    gui._home.poll_signal()
+    assert gui._home.aura.mode == "listening"
+    gui.jarvis.listening_enabled = False
+    gui._apply_state("idle");gui._home.poll_signal()
+    assert gui._home.aura.mode == "idle"
+    assert gui._home.status.value == "Микрофон на паузе"
+    gui.jarvis.listening_enabled = True
+    gui._apply_state("speaking");gui._home.poll_signal()
+    assert gui._home.aura.mode == "speaking"
+
+
+def test_one_task_targeted_updates_and_idle_keeps_same_phase(gui):
+    async def scenario():
+        aura = gui._home.aura
+        host = attach(aura)
+        gui._apply_state("speaking")
+        task = aura._future
+        aura.sync_motion();aura.sync_motion()
+        assert aura._future is task
+        await asyncio.sleep(.14)
+        # State frame + at most four animation frames, not page.update at 24 Hz.
+        assert 2 <= host.update.call_count <= 6
+        assert all(c.args == (aura.canvas,) for c in host.update.call_args_list)
+        gui._apply_state("idle")
+        await asyncio.sleep(0)
+        assert not task.cancelled() and aura._future is task and aura.canvas.shapes
+        aura.dispose()
+        await asyncio.sleep(0)
+        assert task.cancelled() and aura._future is None
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("reason", ["tab", "hidden", "minimized", "config", "os", "rail"])
+def test_background_and_reduced_motion_stop_animation(gui, reason):
+    async def scenario():
+        aura = gui._home.aura;attach(aura)
+        gui._apply_state("speaking");task=aura._future
+        await asyncio.sleep(.01)
+        if reason=="tab":gui._select_tab(0)
+        elif reason=="hidden":gui._page.window.visible=False
+        elif reason=="minimized":gui._page.window.minimized=True
+        elif reason=="config":gui.config.set("gui_motion_enabled",False)
+        elif reason=="os":aura._os_reduced=True
+        elif reason=="rail":gui._rail.motion_enabled=False
+        aura.sync_motion();await asyncio.sleep(0)
+        assert task.cancelled() and aura._future is None
+        aura.dispose()
+    asyncio.run(scenario())
+
+
+def test_unmount_and_theme_dispose_old_aura_task(gui):
+    async def scenario():
+        old=gui._home.aura;attach(old)
+        gui._apply_state("listening");task=old._future
+        await asyncio.sleep(.01)
+        gui._home._theme("Светлая")
+        await asyncio.sleep(0)
+        assert task.cancelled() and old._host is None and not old._mounted
+        assert gui._home.aura is not old and gui._home.aura.mode=="listening"
+    asyncio.run(scenario())
+
+
+def test_os_reduce_motion_keeps_static_state_without_animation(gui, monkeypatch):
+    async def scenario():
+        aura=gui._home.aura;host=attach(aura)
+        async def flags():return NS(disable_animations=False, reduce_motion=True)
+        monkeypatch.setattr(ft,"SemanticsService",lambda:NS(get_accessibility_features=flags))
+        gui._apply_state("speaking");task=aura._future
+        await aura._read_accessibility(host)
+        await asyncio.sleep(0)
+        assert aura._os_reduced and task.cancelled() and aura._future is None
+        assert aura.canvas.shapes  # Useful static state feedback, no motion.
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("event", [ft.WindowEventType.MINIMIZE, ft.WindowEventType.HIDE])
+def test_native_window_events_stop_and_restore_motion(gui, event):
+    async def scenario():
+        aura=gui._home.aura;attach(aura)
+        gui._apply_state("speaking");task=aura._future
+        await asyncio.sleep(.01)
+        gui._on_window_event(NS(type=event))
+        await asyncio.sleep(0)
+        assert task.cancelled() and aura._future is None
+        gui._on_window_event(NS(type=ft.WindowEventType.RESTORE))
+        assert aura._future is not None
+        aura.dispose()
+    asyncio.run(scenario())
+
+
+def test_visible_idle_animates_without_core_or_microphone(gui):
+    async def scenario():
+        gui.jarvis=None
+        aura=gui._home.aura;host=attach(aura)
+        gui._apply_state("idle");task=aura._future
+        assert task is not None and aura.mode=="idle"
+        await asyncio.sleep(.14)
+        assert 2 <= host.update.call_count <= 5
+        assert gui._home.status.value=="Ядро ещё не готово"
+        aura.dispose();await asyncio.sleep(0)
+        assert task.cancelled()
+    asyncio.run(scenario())
+
+
+def test_fixed_layers_fade_instead_of_appearing():
+    scenes=[solar_shapes(mode,1,.5,"#d8a786") for mode in ("idle","listening","speaking")]
+    assert all(len(scene)==35 for scene in scenes)
+    assert all(sum(isinstance(s,cv.Path) for s in scene)==9 for scene in scenes)
+    # Layer count/type/order stays stable across modes; only geometry/alpha changes.
+    assert [type(s) for s in scenes[0]] == [type(s) for s in scenes[2]]
+
+
+def test_transition_eases_rise_fall_and_midflight_reversal():
+    weights={m:float(m=="idle") for m in MODES}
+    first=transition_weights(weights,"speaking",1/24)
+    assert 0 < first["speaking"] < .2 and first["idle"] > .8
+    for _ in range(24):weights=transition_weights(weights,"speaking",1/24)
+    assert .95 < weights["speaking"] < 1
+    previous=weights.copy()
+    weights=transition_weights(weights,"listening",1/24)
+    assert 0 < weights["listening"] < .2
+    assert weights["speaking"] > previous["speaking"]-.15
+    for _ in range(48):weights=transition_weights(weights,"idle",1/24)
+    assert .98 < weights["idle"] < 1
+    assert sum(weights.values())==pytest.approx(1)
+    assert all(0 <= v <= 1 for v in weights.values())
+
+
+def test_mounted_target_change_does_not_pop_or_restart_phase(gui):
+    async def scenario():
+        aura=gui._home.aura;host=attach(aura)
+        aura.set_mode("idle");await asyncio.sleep(.08)
+        task=aura._future;phase=aura._phase;before=aura.canvas.shapes
+        weights=aura._weights.copy();count=host.update.call_count
+        aura.set_mode("speaking",.8)
+        assert aura._future is task and aura._phase==phase
+        assert aura.canvas.shapes is before and aura._weights==weights
+        assert host.update.call_count==count
+        await asyncio.sleep(.08)
+        assert phase < aura._phase and 0 < aura._weights["speaking"] < .5
+        aura.dispose()
+    asyncio.run(scenario())
+
+
+def test_energy_is_smoothed_not_applied_as_a_step(gui):
+    aura=gui._home.aura
+    aura._mounted=True;aura._host=NS(update=Mock())
+    aura.energy=1;aura.mode="listening"
+    aura._last_frame=time.monotonic()-.04
+    aura._draw(1)
+    assert 0 < aura._visual_energy < .2
+    assert 0 < aura._weights["listening"] < .2
+    aura.dispose()
+
+
+def test_waves_have_more_travel_but_stay_inside_canvas():
+    spreads=[]
+    for mode in ("idle","listening","speaking"):
+        shapes=solar_shapes(mode,1,.5,"#d8a786",phase=1)
+        paths=[s for s in shapes if isinstance(s,cv.Path)]
+        for path in paths:
+            assert all(5 < p.x < 295 and 5 < p.y < 295 for p in path.elements)
+        radii=[math.hypot(p.x-150,p.y-150) for p in paths[0].elements]
+        spreads.append(max(radii)-min(radii))
+    assert spreads[1] > 2*spreads[0]
+    assert spreads[2] > spreads[1]
+```
+
+### `tests/test_gui_preferences.py`
+
+```python
+"""Real imported Flet controls / real disk writes / explicit network fake only. ... [3 строк]"""
+import json
+import queue
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from types import SimpleNamespace as NS
+
+import pytest
+import flet as ft
+
+from jarvis import config_manager, gui as module, gui_preferences as ui, mood, profile
+from jarvis.config import Config
+
+
+def ev(value):
+    return NS(control=NS(value=value))
+
+
+@pytest.fixture
+def editor(tmp_path, monkeypatch):
+    monkeypatch.setattr(profile, 'PROFILES_DIR', tmp_path / 'profiles')
+    monkeypatch.setattr(profile, '_current', 'test')
+    monkeypatch.setattr(profile, '_cache', {})
+    monkeypatch.setattr(profile, '_listeners', [])
+    cfg = Config(tmp_path / 'config.json')
+    window = module.FenixGUI(None, cfg)
+    screen = window._preferences()
+    window._build_persona_tab()
+    window._build_settings_tab()
+    yield screen
+    if screen.probe_thread:
+        screen.probe_thread.join(6)
+    profile.unsubscribe(window._on_profile_switch)
+    mood.unsubscribe(window._on_mood_change)
+    module._apply_palette('dark')
+
+
+def drain(editor):
+    editor.probe_thread.join(6)
+    assert not editor.probe_thread.is_alive()
+    events = []
+    while not editor.gui._queue.empty():
+        kind, value = editor.gui._queue.get_nowait()
+        events.append(kind)
+        if kind == 'preferences_result':
+            editor.apply_probe(value)
+    return events
+
+
+def test_persona_controls_stage_then_save_to_one_current_profile(editor):
+    editor.persona_fields['name'].on_change(ev('Маша'))
+    editor.persona_fields['assistant_name'].on_change(ev('Искра'))
+    editor.persona_fields['tone'].on_select(ev('polite'))
+    editor.choose_style('brief')
+    assert profile.get('name') is None
+    assert profile.get('persona') is None
+    editor.save_persona()
+    assert profile.get('name') == 'Маша'
+    assert profile.get('persona')['assistant_name'] == 'Искра'
+    assert profile.get('persona')['tone'] == 'polite'
+    assert profile.get('persona')['speech_style'] == 'brief'
+    assert editor.gui.config.get('name') != 'Маша'  # not a global name / other profile leak
+    assert not editor.persona_error
+
+
+def test_persona_batch_is_one_write_and_keeps_other_profile_fields(editor, monkeypatch):
+    profile.set('facts', {'city': 'Тест'})
+    profile.set('persona', {'onboarding_done': True, 'onboarding_at': 100, 'legacy': 'keep'})
+    editor.cancel_persona()
+    editor._change('persona', 'backstory', 'Новый контекст')
+    original = config_manager.save
+    writes = []
+    def save(data, path=None):
+        writes.append(path)
+        return original(data, path)
+    monkeypatch.setattr(config_manager, 'save', save)
+    editor.save_persona()
+    assert len(writes) == 1
+    assert profile.get('facts') == {'city': 'Тест'}
+    assert profile.get('persona')['onboarding_at'] == 100
+    assert profile.get('persona')['legacy'] == 'keep'
+
+
+@pytest.mark.parametrize('key,value', [('assistant_name',''), ('assistant_name','a'*61),
+    ('name','a'*61), ('backstory','a'*2001), ('tone','bogus'), ('speech_style','bogus'),
+    ('traits', ['a']*13), ('traits',[None]), ('traits',['a'*41])])
+def test_persona_validation_never_writes(editor, key, value):
+    editor.persona_draft[key] = value
+    editor.save_persona()
+    assert editor.persona_error
+    assert profile.get('persona') is None
+
+
+def test_persona_save_failure_retains_draft_and_never_reports_success(editor, monkeypatch):
+    editor._change('persona', 'name', 'Черновик')
+    monkeypatch.setattr(config_manager, 'save', lambda *a, **kw: False)
+    editor.save_persona()
+    assert editor.persona_error
+    assert editor.persona_draft['name'] == 'Черновик'
+    assert profile.get('name') is None
+
+
+def test_newer_persona_is_not_overwritten(editor):
+    editor._change('persona', 'name', 'Черновик')
+    profile.set('persona', {'assistant_name': 'Новая'})
+    editor.save_persona()
+    assert editor.persona_error
+    assert profile.get('name') is None
+    assert profile.get('persona')['assistant_name'] == 'Новая'
+
+
+def test_profile_switch_cannot_write_old_draft_to_new_person(editor):
+    editor._change('persona','name','Чужой черновик')
+    profile.switch('Другой')
+    editor.save_persona()
+    assert profile.get('name') == 'Другой'
+    assert profile.get('persona') is None
+    assert editor.profile_id == profile.current()
+    assert editor.persona_draft['name'] == 'Другой'
+
+
+def test_profile_switch_invalidates_draft_on_build(editor):
+    editor._change('persona','backstory','Старый профиль')
+    profile.switch('Новый')
+    editor.build_persona()
+    assert editor.persona_draft['backstory'] == ''
+
+
+def test_drafts_survive_theme_build_and_navigation(editor):
+    editor._change('persona','backstory','Не теряй')
+    editor.pending_trait = 'Новая черта'
+    editor._change('settings','ollama_url','http://localhost:8888')
+    module._apply_palette('light')
+    editor.build_persona(); editor.build_settings()
+    assert editor.persona_fields['backstory'].value == 'Не теряй'
+    assert editor.pending_trait == 'Новая черта'
+    assert editor.settings_fields['ollama_url'].value == 'http://localhost:8888'
+    assert editor.settings_fields['llm_model'].value
+
+
+def test_trait_chips_and_preview_are_pure_draft(editor):
+    editor.add_trait(ev('Спокойный'))
+    editor.add_trait(ev('Спокойный'))
+    assert editor.persona_draft['traits'] == ['Спокойный']
+    assert 'Спокойный' in editor.preview_details.value
+    editor.remove_trait('Спокойный')
+    assert editor.persona_draft['traits'] == []
+    editor.choose_style('formal')
+    assert 'Уточните' in editor.preview_quote.value
+    assert editor.gui._messages == []
+    assert profile.get('persona') is None
+
+
+def test_cancel_persona_reloads_saved_values(editor):
+    editor._change('persona','name','Черновик')
+    editor.cancel_persona()
+    assert editor.persona_draft['name'] == ''
+
+
+def test_reset_is_confirmed_and_preserves_facts_history_draft(editor):
+    profile.set('facts', {'key':'value'})
+    profile.set('persona', {'onboarding_done': True, 'backstory': 'Сохранённое'})
+    editor.cancel_persona()
+    editor._change('persona','backstory','Черновик')
+    editor.ask_reset()
+    assert profile.get('persona')['onboarding_done']
+    editor.confirm_reset(False)
+    assert profile.get('persona')['onboarding_done']
+    editor.ask_reset(); editor.confirm_reset(True)
+    assert not profile.get('persona')['onboarding_done']
+    assert profile.get('persona')['backstory'] == 'Сохранённое'
+    assert editor.persona_draft['backstory'] == 'Черновик'
+    assert profile.get('facts') == {'key':'value'}
+    editor.save_persona()
+    assert profile.get('persona')['backstory'] == 'Черновик'
+
+
+def test_corrupt_profile_is_shown_not_overwritten(editor):
+    profile.profile_path().write_text('{broken', encoding='utf-8')
+    profile._cache_invalidate()
+    editor.cancel_persona()
+    assert editor.persona_read_error
+    editor.save_persona()
+    assert profile.profile_path().read_text(encoding='utf-8') == '{broken'
+
+
+def test_settings_batch_apply_not_staged_per_control(editor):
+    cfg = editor.gui.config
+    events=[]
+    cfg.subscribe(lambda k,v: events.append(k))
+    editor.settings_fields['llm_model'].on_select(ev('gemma2:9b'))
+    editor.settings_fields['observer_enabled'].on_change(ev(True))
+    assert cfg.get('observer_enabled') is False
+    assert cfg.get('llm_model') != 'gemma2:9b'
+    editor.save_settings()
+    assert cfg.get('llm_model') == 'gemma2:9b'
+    assert cfg.get('observer_enabled') is True
+    assert sorted(events) == ['llm_model','observer_enabled']
+    assert 'перезапуск' in editor.settings_notice
+
+
+def test_settings_failure_retains_every_old_value(editor, monkeypatch):
+    cfg=editor.gui.config
+    before=cfg.all_data()
+    editor._change('settings','llm_model','gemma2:9b')
+    editor._change('settings','observer_enabled',True)
+    monkeypatch.setattr(config_manager,'save',lambda *a,**kw:False)
+    editor.save_settings()
+    assert editor.settings_error
+    assert cfg.all_data() == before
+    assert editor.settings_draft['llm_model'] == 'gemma2:9b'
+
+
+def test_settings_do_not_clobber_newer_values(editor):
+    editor._change('settings','llm_model','gemma2:9b')
+    editor.gui.config.set('llm_model','llama3.1:8b')
+    editor.save_settings()
+    assert editor.settings_error
+    assert editor.gui.config.get('llm_model') == 'llama3.1:8b'
+
+
+def test_unrelated_setting_changed_elsewhere_is_not_overwritten(editor):
+    editor._change('settings','llm_model','gemma2:9b')
+    editor.gui.config.set('tray_enabled',False)
+    editor.save_settings()
+    assert not editor.settings_error
+    assert editor.gui.config.get('tray_enabled') is False
+
+
+def test_hidden_tray_launch_is_rejected(editor):
+    editor._change('settings','launch_mode','tray')
+    editor._change('settings','tray_enabled',False)
+    editor.save_settings()
+    assert editor.settings_error
+    assert editor.gui.config.get('tray_enabled') is True
+
+
+def test_model_change_during_command_is_rejected(editor):
+    editor.gui._command_busy=True
+    editor._change('settings','llm_model','gemma2:9b')
+    editor.save_settings()
+    assert editor.settings_error
+
+
+def test_cancel_settings_does_not_revert_theme(editor):
+    editor.gui.config.set('gui_theme','Светлая')
+    editor._change('settings','ollama_url','http://localhost:9000')
+    editor.cancel_settings()
+    assert editor.gui.config.get('gui_theme') == 'Светлая'
+    assert editor.settings_draft['ollama_url'] != 'http://localhost:9000'
+
+
+@pytest.mark.parametrize('value', ['', 'ftp://localhost', 'http://u:p@localhost:11434',
+    'http://localhost:99999', 'http://localhost:0', 'http://localhost/?token=secret',
+    'http://localhost/#x', 'http://local host', 'http://localhost\\@evil', 'http://'])
+def test_bad_url_is_rejected(value):
+    with pytest.raises(ValueError): ui.validated_url(value)
+
+
+@pytest.mark.parametrize('value,expected', [('http://localhost:11434/', 'http://localhost:11434'),
+    ('https://example.com/ollama/', 'https://example.com/ollama'),
+    ('http://[::1]:11434','http://[::1]:11434')])
+def test_url_normalization(value,expected):
+    assert ui.validated_url(value)==expected
+
+
+def test_probe_worker_only_enqueues_until_completion_applied(editor, monkeypatch):
+    entered,release=threading.Event(),threading.Event()
+    def probe(url):
+        entered.set(); assert release.wait(3)
+        return frozenset({'qwen2.5:7b-instruct','nomic-embed-text:latest'})
+    monkeypatch.setattr(ui,'probe_ollama',probe)
+    assert editor.start_probe()
+    try:
+        assert entered.wait(2)
+        assert not editor.start_probe()
+        assert editor.inventory is None
+    finally: release.set()
+    editor.probe_thread.join(4)
+    assert editor.probe_busy  # completion still on queue
+    assert editor.inventory is None
+    assert 'preferences_result' in drain(editor)
+    assert not editor.probe_busy
+    assert editor.inventory
+    assert 'Генерация' in editor.probe_status
+
+
+def test_stale_probe_does_not_mark_new_address_ready(editor, monkeypatch):
+    monkeypatch.setattr(ui,'probe_ollama',lambda url:frozenset({'nomic-embed-text:latest'}))
+    editor.start_probe(); editor.probe_thread.join(4)
+    editor._change('settings','ollama_url','http://localhost:9999')
+    drain(editor)
+    assert editor.inventory is None
+    assert 'заново' in editor.probe_status
+
+
+def test_probe_error_is_sanitized(editor, monkeypatch):
+    def bad(url):raise RuntimeError('PASSWORD raw payload SECRET')
+    monkeypatch.setattr(ui,'probe_ollama',bad)
+    editor.start_probe();drain(editor)
+    assert 'SECRET' not in editor.probe_status
+    assert 'не удалась' in editor.probe_status
+    assert not editor.probe_busy
+
+
+def test_probe_thread_start_failure_unlocks(editor, monkeypatch):
+    class Broken:
+        def __init__(self,**kwargs):pass
+        def start(self):raise RuntimeError('SECRET')
+        def join(self,*args):pass
+    monkeypatch.setattr(ui.threading,'Thread',Broken)
+    assert not editor.start_probe()
+    assert not editor.probe_busy
+    assert 'SECRET' not in editor.probe_status
+
+
+def test_rag_enabling_requires_verified_embedding_inventory(editor, monkeypatch):
+    editor._change('settings','memory_rag_enabled',True)
+    editor.save_settings()
+    assert editor.settings_error
+    assert not editor.gui.config.get('memory_rag_enabled')
+    monkeypatch.setattr(ui,'probe_ollama',lambda url:frozenset({'nomic-embed-text:latest'}))
+    editor.start_probe();drain(editor)
+    editor.save_settings()
+    assert not editor.settings_error
+    assert editor.gui.config.get('memory_rag_enabled')
+
+
+def test_profile_compare_write_never_changes_new_profile(editor):
+    identity,baseline=profile.read_fields('name','persona')
+    profile.switch('Другой')
+    assert not profile.update_fields({'name':'Неверное'},expected_profile=identity,expected_values=baseline)
+    assert profile.get('name')=='Другой'
+
+
+def test_config_compare_and_swap_keeps_memory_disk_notifications(editor):
+    cfg=editor.gui.config
+    events=[];cfg.subscribe(lambda *x:events.append(x))
+    before=cfg.path.read_bytes()
+    assert not cfg.update({'llm_model':'other'},expected_values={'llm_model':'stale'})
+    assert cfg.path.read_bytes()==before
+    assert not events
+
+
+def test_config_serializes_concurrent_writes(editor):
+    cfg=editor.gui.config
+    barrier=threading.Barrier(8)
+    def write(i):
+        barrier.wait();assert cfg.set('parallel_'+str(i),i)
+    threads=[threading.Thread(target=write,args=(i,)) for i in range(8)]
+    for t in threads:t.start()
+    for t in threads:t.join(3)
+    saved=json.loads(cfg.path.read_text(encoding='utf-8'))
+    for i in range(8):assert saved['parallel_'+str(i)]==cfg.get('parallel_'+str(i))==i
+
+
+@pytest.mark.parametrize('mode',['ok','redirect','invalid','oversize'])
+def test_probe_http_contract_real_local_server(mode):
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            assert self.path=='/api/tags'
+            if mode=='redirect':
+                self.send_response(302);self.send_header('Location','/elsewhere');self.end_headers();return
+            self.send_response(200);self.end_headers()
+            payload=(json.dumps({'models':[{'name':'test:latest'}]}).encode() if mode=='ok'
+                     else b'not json' if mode=='invalid' else b'x'*(1024*1024+1))
+            self.wfile.write(payload)
+        def log_message(self,*a):pass
+    server=HTTPServer(('127.0.0.1',0),Handler)
+    thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
+    try:
+        url='http://127.0.0.1:'+str(server.server_port)
+        if mode=='ok': assert ui.probe_ollama(url)==frozenset({'test:latest'})
+        else:
+            with pytest.raises(Exception):ui.probe_ollama(url)
+    finally:server.shutdown();server.server_close();thread.join(2)
+
+
+def test_pending_trait_is_included_by_explicit_save(editor):
+    editor.pending_trait = "Внимательный"
+    editor.save_persona()
+    assert profile.get("persona")["traits"] == ["Внимательный"]
+    assert not editor.pending_trait
+
+
+def test_invalid_pending_trait_is_retained_on_validation_failure(editor):
+    editor.pending_trait = "a" * 41
+    editor.save_persona()
+    assert editor.persona_error
+    assert editor.pending_trait == "a" * 41
+    assert profile.get("persona") is None
+
+
+def test_new_endpoint_is_notified_before_model_warmup(editor):
+    events = []
+    editor.gui.config.subscribe(lambda k, v: events.append(k))
+    editor._change("settings", "llm_model", "gemma2:9b")
+    editor._change("settings", "ollama_url", "http://localhost:11435")
+    editor.save_settings()
+    assert events[:2] == ["ollama_url", "llm_model"]
+
+
+def test_typing_only_patches_dependent_labels_not_the_input(editor):
+    calls = []
+    editor.gui._page = NS(update=lambda *controls: calls.append(controls))
+    field = editor.persona_fields["assistant_name"]
+    field.on_change(ev("Новый текст"))
+    assert calls and all(field not in call for call in calls)
+    calls.clear()
+    field = editor.settings_fields["ollama_url"]
+    field.on_change(ev("http://localhost:12345"))
+    assert calls and all(field not in call for call in calls)
+    editor.gui._page = None
+
+
+@pytest.mark.parametrize("theme", ["dark", "light"])
+def test_preferences_outer_background_matches_shared_voice_background(editor, theme):
+    module._apply_palette(theme)
+    assert ui._palette().bg == module.P.bg_main
+    assert editor.build_persona().bgcolor == module.P.bg_main
+    assert editor.build_settings().bgcolor == module.P.bg_main
+    assert ui._palette().card == module.P.bg_card
+
+
+def test_preferences_background_follows_palette_not_a_copied_constant(editor, monkeypatch):
+    monkeypatch.setattr(module.P, "_data", {**module.P._data, "bg_main": "#010203"})
+    assert editor.build_persona().bgcolor == "#010203"
+    assert editor.build_settings().bgcolor == "#010203"
+
+
+PALETTE_ROLES = {
+    "bg": "bg_main", "card": "bg_card", "field": "bg_card",
+    "text": "text", "dim": "text_dim", "border": "border",
+    "accent": "brand", "tint": "selected", "button_text": "bg_main",
+    "error": "error",
+}
+
+
+@pytest.mark.parametrize("theme", ["dark", "light"])
+def test_preferences_use_shared_voice_palette_for_every_role(editor, theme):
+    module._apply_palette(theme)
+    palette = ui._palette()
+    for role, token in PALETTE_ROLES.items():
+        assert getattr(palette, role) == getattr(module.P, token)
+    for build in (editor.build_persona, editor.build_settings):
+        assert build().bgcolor == module.P.bg_main
+    field = editor.persona_fields["name"]
+    assert field.bgcolor == module.P.bg_card
+    assert field.color == module.P.text
+    assert field.label_style.color == module.P.text_dim
+    assert field.border[ft.ControlState.DEFAULT].side.color == module.P.border
+    assert field.border[ft.ControlState.FOCUSED].side.color == module.P.brand
+    panel = ui.card("Title", "Subtitle", [])
+    assert panel.bgcolor == module.P.bg_card
+    assert panel.border.top.color == module.P.border
+
+
+def test_all_preference_colors_follow_live_tokens_without_hex_copies(editor, monkeypatch):
+    tokens = {token: f"#{index:06x}" for index, token in
+              enumerate(dict.fromkeys(PALETTE_ROLES.values()), 1)}
+    monkeypatch.setattr(module.P, "_data", {**module.P._data, **tokens})
+    palette = ui._palette()
+    for role, token in PALETTE_ROLES.items():
+        assert getattr(palette, role) == tokens[token]
+
+
+@pytest.mark.parametrize("theme,expected", [
+    ("dark", ("#12121c", "#1d1e2d", "#d8a786", "#eeedf7", "#abaac1")),
+    ("light", ("#f5f2ed", "#fffefc", "#92532f", "#282b30", "#5c6570")),
+])
+def test_selected_twilight_and_porcelain_match_approved_swatches(editor, theme, expected):
+    module._apply_palette(theme)
+    palette = ui._palette()
+    assert (palette.bg, palette.card, palette.accent, palette.text, palette.dim) == expected
+    assert module.BG_DARK == palette.bg
+    assert module.BG_CARD == palette.card
+    assert module.TEXT == palette.text
+    assert module.TEXT_DIM == palette.dim
+    assert module.ACCENT == module.P.accent
+
+
+def _contrast(first, second):
+    def luminance(value):
+        rgb = [int(value[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+        rgb = [x / 12.92 if x <= .04045 else ((x + .055) / 1.055) ** 2.4 for x in rgb]
+        return sum(x * weight for x, weight in zip(rgb, (.2126, .7152, .0722)))
+    low, high = sorted((luminance(first), luminance(second)))
+    return (high + .05) / (low + .05)
+
+
+@pytest.mark.parametrize("theme", ["dark", "light"])
+def test_selected_themes_text_and_primary_buttons_have_aa_contrast(editor, theme):
+    module._apply_palette(theme)
+    p = module.P
+    for surface in (p.bg_main, p.bg_card, p.sidebar, p.composer, p.selected,
+                    p.bg_bubble_user, p.bg_bubble_ai):
+        assert _contrast(p.text, surface) >= 4.5
+        assert _contrast(p.text_dim, surface) >= 4.5
+    assert _contrast(p.bg_main, p.brand) >= 4.5
+    assert _contrast(p.accent, p.bg_card) >= 4.5
+```
+
+### `tests/test_gui_sidebar.py`
+
+```python
+"""Native controls and bounded asyncio tasks; no desktop, microphone or model."""
+import asyncio
+from types import SimpleNamespace as NS
+from unittest.mock import Mock
+
+import flet as ft
+import pytest
+
+from jarvis import gui as module
+from jarvis.config import Config
+from jarvis.gui_sidebar import Sidebar, COMPACT, EXPANDED, mix, rounded_outline, stroke_shapes
+
+
+def hover(value):
+    return NS(data="true" if value else "false")
+
+
+@pytest.fixture
+def rail(tmp_path):
+    cfg = Config(tmp_path / "config.json")
+    panel = Sidebar(Mock(), cfg)
+    yield panel
+    panel.dispose()
+    module._apply_palette("dark")
+
+
+def attach(panel):
+    calls = []
+    panel._mounted = True
+    panel._host = NS(run_task=lambda fn, *args: asyncio.create_task(fn(*args)),
+                     update=lambda *controls: calls.append(controls))
+    return calls
+
+
+def test_wide_hover_pushes_content_with_matching_animation(rail):
+    content = ft.Container()
+    layout = rail.layout(content)
+    assert isinstance(layout, ft.Stack)
+    assert rail.width == COMPACT == rail._reserve.width
+    rail._set_expanded(True)
+    assert rail.width == EXPANDED
+    assert rail._reserve.width == EXPANDED
+    assert rail._reserve.animate.duration == rail.animate.duration == 200
+    assert layout.controls[0].controls[1] is content
+    assert all(b.width == EXPANDED - 24 for b in rail.nav_buttons)
+    rail._set_expanded(False)
+    assert rail.width == COMPACT
+    assert all(not label.visible for label in rail.labels)
+
+
+def test_selection_and_click_use_real_callback_without_replacing_buttons(rail):
+    identities = [id(b) for b in rail.nav_buttons]
+    rail.selected_index = 2
+    rail._on_select.assert_not_called()
+    rail.nav_buttons[3].on_click(None)
+    rail._on_select.assert_called_once_with(3)
+    assert identities == [id(b) for b in rail.nav_buttons]
+    rail.selected_index = 999
+    assert rail.selected_index == 2
+
+
+@pytest.mark.parametrize("theme", ["dark", "light"])
+def test_hover_stays_in_selected_color_family_and_selection_stays_distinct(rail, theme):
+    module._apply_palette(theme)
+    rail.refresh_palette(); rail.selected_index = 2
+    asyncio.run(rail._on_nav_hover(3, hover(True)))
+    assert rail.nav_buttons[2].bgcolor == module.P.selected
+    assert rail.nav_buttons[3].bgcolor == mix(module.P.selected, module.P.bg_card)
+    assert rail.nav_buttons[3].bgcolor != module.P.brand
+    assert rail.markers[2].visible and not rail.markers[3].visible
+    asyncio.run(rail._on_nav_hover(2, hover(True)))
+    assert rail.nav_buttons[2].bgcolor == module.P.selected
+
+
+def test_pin_is_persistent_and_changes_reserve_only_after_success(rail):
+    rail.layout(ft.Container())
+    asyncio.run(rail._toggle_pin())
+    assert rail.pinned and rail.expanded
+    assert rail.config.get("gui_sidebar_pinned") is True
+    assert rail._reserve.width == EXPANDED
+    restored = Sidebar(Mock(), Config(rail.config.path))
+    assert restored.pinned and restored.width == EXPANDED
+    asyncio.run(rail._toggle_pin())
+    assert not rail.pinned and rail._reserve.width == EXPANDED
+
+
+def test_pin_write_failure_retains_previous_state(rail, monkeypatch):
+    rail.layout(ft.Container())
+    monkeypatch.setattr(rail.config, "set", lambda *a: False)
+    asyncio.run(rail._toggle_pin())
+    assert not rail.pinned
+    assert rail._reserve.width == COMPACT
+    assert "Не удалось" in rail.pin_button.tooltip
+
+
+def test_hover_delay_reentry_and_collapse_after_mouse_click(rail):
+    async def scenario():
+        attach(rail)
+        await rail._on_panel_hover(hover(True));await asyncio.sleep(.13)
+        assert rail.expanded
+        await rail._on_panel_hover(hover(False));await asyncio.sleep(.1)
+        await rail._on_panel_hover(hover(True));await asyncio.sleep(.28)
+        assert rail.expanded
+        rail._focused = 2  # mouse click focus must not lock the panel open
+        rail._click(2)
+        await rail._on_panel_hover(hover(False));await asyncio.sleep(.36)
+        assert not rail.expanded
+        rail.dispose()
+    asyncio.run(scenario())
+
+
+def test_brief_pointer_pass_does_not_expand(rail):
+    async def scenario():
+        attach(rail)
+        await rail._on_panel_hover(hover(True))
+        await rail._on_panel_hover(hover(False))
+        await asyncio.sleep(.15)
+        assert not rail.expanded
+        rail.dispose()
+    asyncio.run(scenario())
+
+
+def test_keyboard_focus_keeps_open_escape_closes_and_pinned_ignores_escape(rail):
+    async def scenario():
+        attach(rail)
+        await rail.on_key(NS(key="Tab"));await rail._on_focus(2)
+        assert rail.expanded
+        await rail._close_later()
+        assert rail.expanded
+        await rail.on_key(NS(key="Escape"))
+        assert not rail.expanded
+        await rail._toggle_pin();await rail.on_key(NS(key="Escape"))
+        assert rail.expanded and rail.pinned
+        rail.dispose()
+    asyncio.run(scenario())
+
+
+def test_blur_outside_sidebar_closes_keyboard_expansion(rail):
+    async def scenario():
+        attach(rail)
+        await rail.on_key(NS(key="Tab"));await rail._on_focus(2)
+        await rail._on_blur(2);await asyncio.sleep(.36)
+        assert not rail.expanded
+        rail.dispose()
+    asyncio.run(scenario())
+
+
+def test_motion_disabled_removes_animation_and_does_not_schedule_stroke(rail):
+    async def scenario():
+        attach(rail);rail.set_motion(False)
+        await rail._on_nav_hover(2, hover(True))
+        assert "stroke" not in rail._tasks
+        assert rail.animate is None
+        assert all(not c.shapes for c in rail.canvases)
+        assert all(c.scale == 1 for c in rail.icon_controls)
+        rail.dispose()
+    asyncio.run(scenario())
+
+
+def test_expansion_does_not_cancel_first_hover_stroke(rail):
+    async def scenario():
+        calls = attach(rail)
+        await rail._on_panel_hover(hover(True));await rail._on_nav_hover(2, hover(True))
+        await asyncio.sleep(.65)
+        assert rail.expanded and rail.canvases[2].shapes
+        assert any(call == (rail.canvases[2],) for call in calls)
+        rail.dispose()
+    asyncio.run(scenario())
+
+
+def test_stroke_finishes_without_idle_animation_loop(rail):
+    async def scenario():
+        calls = attach(rail);rail._set_expanded(True)
+        await rail._on_nav_hover(2, hover(True));await asyncio.sleep(1.3)
+        assert not rail.canvases[2].shapes
+        assert rail._tasks["stroke"].done()
+        count = len(calls);await asyncio.sleep(.1)
+        assert len(calls) == count
+        rail.dispose()
+    asyncio.run(scenario())
+
+
+def test_stale_hover_exit_does_not_cancel_next_button(rail):
+    async def scenario():
+        attach(rail)
+        await rail._on_nav_hover(2, hover(True))
+        await rail._on_nav_hover(3, hover(True))
+        task = rail._tasks["stroke"]
+        await rail._on_nav_hover(2, hover(False))
+        assert rail._hovered == 3 and rail._tasks["stroke"] is task
+        assert not task.cancelled()
+        rail.dispose()
+    asyncio.run(scenario())
+
+
+def test_theme_refresh_preserves_selected_expanded_pin_and_invalidates_old_stroke(rail):
+    rail.selected_index = 4
+    asyncio.run(rail._toggle_pin())
+    previous = rail._epoch
+    module._apply_palette("light");rail.refresh_palette()
+    assert rail.selected_index == 4 and rail.pinned and rail.expanded
+    assert rail.width == EXPANDED and rail._epoch > previous
+    assert not rail._stroke_valid(4, previous)
+    assert rail.bgcolor == module.P.sidebar
+    assert rail.nav_buttons[4].bgcolor == module.P.selected
+
+
+def test_dispose_cancels_pending_tasks_and_suppresses_future_updates(rail):
+    async def scenario():
+        calls = attach(rail)
+        await rail._on_panel_hover(hover(True));await rail._on_nav_hover(2, hover(True))
+        futures = list(rail._tasks.values());rail.dispose();await asyncio.sleep(0)
+        assert not rail._tasks and all(t.cancelled() for t in futures)
+        count = len(calls);rail._update();await asyncio.sleep(.12)
+        assert len(calls) == count
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("width", [COMPACT - 24, EXPANDED - 24])
+def test_native_stroke_stays_on_rounded_outline(width):
+    points = rounded_outline(width)
+    assert all(1.49 <= x <= width - 1.49 and 1.49 <= y <= 48 - 1.49 for x, y in points)
+    assert stroke_shapes(width, 0, "#d8a786") == []
+    assert stroke_shapes(width, 1, "#d8a786") == []
+    a, b = stroke_shapes(width, .25, "#d8a786"), stroke_shapes(width, .6, "#d8a786")
+    assert len(a) == len(b) == 3
+    assert a[-1].elements[0].x != b[-1].elements[0].x
+
+
+def test_canvas_is_not_positioned_inside_a_non_stack_parent(rail):
+    # This matters at the Flutter renderer level; Python construction alone accepts it.
+    for canvas in rail.canvases:
+        assert canvas.left is None and canvas.right is None
+        assert canvas.top is None and canvas.bottom is None
+
+
+def test_config_motion_override_disables_native_animation_on_start(tmp_path):
+    cfg = Config(tmp_path / "motion.json");cfg.set("gui_motion_enabled", False)
+    panel = Sidebar(Mock(), cfg)
+    assert not panel.motion_enabled and panel.animate is None
+
+
+def test_navigation_scrolls_without_displacing_fixed_footer(rail):
+    assert rail.navigation.expand is True
+    assert rail.navigation.scroll == ft.ScrollMode.AUTO
+
+
+def test_accessibility_reduce_motion_disables_animation(rail, monkeypatch):
+    async def flags():
+        return NS(disable_animations=False, reduce_motion=True)
+    monkeypatch.setattr(ft, "SemanticsService", lambda: NS(get_accessibility_features=flags))
+    asyncio.run(rail._read_accessibility())
+    assert not rail.motion_enabled and rail.animate is None
+
+
+def test_theme_refresh_cancels_delayed_pointer_actions(rail):
+    async def scenario():
+        attach(rail)
+        await rail._on_panel_hover(hover(True))
+        rail.refresh_palette()
+        await asyncio.sleep(.15)
+        assert not rail.expanded
+        assert "open" not in rail._tasks and "close" not in rail._tasks
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("width", [600, 812, 900, 1099, 1100, 1280])
+def test_hover_always_pushes_without_width_threshold(rail, width):
+    layout = rail.layout(ft.Container(expand=True))
+    layout.width = width
+    assert rail._reserve.width == COMPACT
+    rail._set_expanded(True)
+    assert rail.width == rail._reserve.width == EXPANDED
+    assert rail._reserve.animate.duration == rail.animate.duration == 200
+    # Resizing the parent must never switch expanded navigation to overlay.
+    layout.width = 812 if width >= 1100 else 1280
+    assert rail._reserve.width == EXPANDED
+    rail._set_expanded(False)
+    assert rail.width == rail._reserve.width == COMPACT
+    asyncio.run(rail._toggle_pin())
+    assert rail._reserve.width == EXPANDED
+    rail.set_motion(False)
+    assert rail._reserve.animate is None
+```
+
+### `tests/test_gui_startup.py`
+
+```python
+"""Startup ordering, tray failure recovery, old EXE mutex handoff; no desktop needed."""
+import ast
+import asyncio
+from pathlib import Path
+from types import SimpleNamespace as NS
+from unittest.mock import Mock
+import pytest
+from jarvis import gui as module, profile, mood
+from jarvis.config import Config
+
+ROOT = Path(__file__).resolve().parents[1]
+
+@pytest.fixture
+def gui(tmp_path):
+    g = module.FenixGUI(None, Config(tmp_path/'config.json'))
+    yield g
+    g.stop()
+    profile.unsubscribe(g._on_profile_switch)
+    mood.unsubscribe(g._on_mood_change)
+
+@pytest.mark.parametrize('method', ['run_main', '_run'])
+def test_native_client_starts_hidden(gui, monkeypatch, method):
+    runner = Mock()
+    monkeypatch.setattr(module.ft, 'run', runner)
+    getattr(gui, method)()
+    assert runner.call_args.kwargs['view'] == module.ft.AppView.FLET_APP_HIDDEN
+
+@pytest.mark.parametrize('hidden', [False, True])
+def test_brand_and_first_layout_precede_show(gui, hidden):
+    gui.start_hidden = hidden
+    page = NS(window=NS(), add=Mock(), update=Mock(), run_task=Mock())
+    def build(p):
+        assert p.title == 'Феникс'
+        assert p.window.visible is False
+        assert p.window.icon.endswith('icon.ico')
+    gui._build_ui = Mock(side_effect=build)
+    gui._main(page)
+    assert page.window.visible is (not hidden)
+    if not hidden:
+        assert page.window.minimized is False
+        page.update.assert_called_once()
+    assert page.run_task.call_count == 2
+
+
+def test_tray_state_is_applied_by_gui_worker(gui):
+    gui._page = NS(window=NS(prevent_close=False), update=Mock())
+    gui.set_tray_active(True)
+    assert not gui._page.window.prevent_close
+    gui._queue.put(('stop', None))
+    gui._running = True
+    asyncio.run(gui._process_queue())
+    assert gui._page.window.prevent_close
+
+
+def source_function(name):
+    tree = ast.parse((ROOT/'jarvis/main.py').read_text())
+    node = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == name)
+    return node
+
+@pytest.mark.parametrize('codes,expected', [([0], True), ([183,0],True), ([183]*40,False)])
+def test_old_launcher_mutex_handoff(codes, expected, monkeypatch):
+    import ctypes
+    clock = [0.0]
+    codes = iter(codes)
+    k = NS(CreateMutexW=Mock(return_value=123456789123), CloseHandle=Mock(),
+           GetLastError=Mock(side_effect=lambda: next(codes)))
+    monkeypatch.setattr(ctypes, 'windll', NS(kernel32=k), raising=False)
+    env = {'_MUTEX_HANDLE':None, 'time':NS(monotonic=lambda:clock[0],
+                   sleep=lambda dt:clock.__setitem__(0,clock[0]+dt))}
+    exec(compile(ast.Module(body=[source_function('_single_instance')],type_ignores=[]),'<test>','exec'),env)
+    assert env['_single_instance']() is expected
+    if expected:
+        assert env['_MUTEX_HANDLE'] == 123456789123
+    else:
+        assert env['_MUTEX_HANDLE'] is None
+    assert k.CreateMutexW.restype == ctypes.wintypes.HANDLE
+
+
+def tray_callbacks(gui):
+    main = source_function('main')
+    nodes = [n for n in main.body if isinstance(n,ast.FunctionDef) and n.name in ('_tray_failed','_apply_tray')]
+    import threading
+    env = dict(tray_holder={'icon':None}, tray_lock=threading.RLock(),
+               jarvis=NS(stop_event=threading.Event()), gui=gui, log=Mock())
+    exec(compile(ast.Module(body=nodes,type_ignores=[]),'<tray-callbacks>','exec'),env)
+    return env
+
+
+def test_tray_failure_before_page_restores_startup_intent(gui):
+    gui.start_hidden = True
+    env = tray_callbacks(gui)
+    icon = object(); env['tray_holder']['icon'] = icon
+    env['_tray_failed'](icon)
+    assert not gui.start_hidden and not gui.tray_active
+    assert gui._queue.get_nowait() == ('show_window',None)
+
+
+def test_stale_or_shutdown_tray_callback_does_not_show_window(gui):
+    env = tray_callbacks(gui)
+    env['tray_holder']['icon'] = object()
+    env['_tray_failed'](object())
+    assert gui._queue.empty()
+    env['jarvis'].stop_event.set()
+    env['_tray_failed'](env['tray_holder']['icon'])
+    assert gui._queue.empty()
 ```
 
 ### `tests/test_gui_wiring.py`
@@ -30835,51 +34578,38 @@ def test_memory_rag_checkbox(gui, cfg):
 # Вкладка «Персона»
 # =================================================================
 
-def test_persona_name_goes_to_config(gui, cfg):
-    gui._on_persona_name(ev("Маша"))
-    assert cfg["name"] == "Маша"
+def test_persona_name_is_staged_not_written_to_global_config(gui, cfg):
+    gui._build_persona_tab()
+    before = cfg.get("name")
+    editor = gui._preferences()
+    editor.persona_fields["name"].on_change(ev("Маша"))
+    assert editor.persona_draft["name"] == "Маша"
+    assert cfg.get("name") == before
 
 
-def test_persona_fields_go_to_persona_module(gui, monkeypatch):
-    saved = {}
-    monkeypatch.setattr(
-        persona_mod, "set_field",
-        lambda field, value: saved.__setitem__(field, value),
-    )
-
-    gui._on_persona_assistant_name(ev("Джарвис"))
-    gui._on_persona_style(ev("кратко"))
-    gui._on_persona_traits(ev("добрый, умный"))
-    gui._on_persona_backstory(ev("живу в ноутбуке"))
-
-    assert saved["assistant_name"] == "Джарвис"
-    assert saved["speech_style"] == "кратко"
-    assert saved["traits"] == ["добрый", "умный"]
-    assert saved["backstory"] == "живу в ноутбуке"
+def test_persona_fields_are_real_draft_controls(gui):
+    gui._build_persona_tab()
+    editor = gui._preferences()
+    editor.persona_fields["assistant_name"].on_change(ev("Искра"))
+    editor.persona_fields["backstory"].on_change(ev("Контекст"))
+    assert editor.persona_draft["assistant_name"] == "Искра"
+    assert editor.persona_draft["backstory"] == "Контекст"
 
 
-def test_persona_tone_rejects_unknown(gui, monkeypatch):
-    saved = {}
-    monkeypatch.setattr(
-        persona_mod, "set_field",
-        lambda field, value: saved.__setitem__(field, value),
-    )
-
-    gui._on_persona_tone(ev("злой"))
-
-    assert saved["tone"] == "auto"
+def test_persona_unknown_tone_is_rejected_without_writing(gui):
+    gui._build_persona_tab()
+    editor = gui._preferences()
+    editor.persona_draft["tone"] = "bogus"
+    editor.save_persona()
+    assert editor.persona_error
 
 
-def test_persona_assistant_name_empty_uses_default(gui, monkeypatch):
-    saved = {}
-    monkeypatch.setattr(
-        persona_mod, "set_field",
-        lambda field, value: saved.__setitem__(field, value),
-    )
-
-    gui._on_persona_assistant_name(ev("   "))
-
-    assert saved["assistant_name"] == "Феникс"
+def test_persona_empty_assistant_name_is_validation_error(gui):
+    gui._build_persona_tab()
+    editor = gui._preferences()
+    editor.persona_fields["assistant_name"].on_change(ev("   "))
+    editor.save_persona()
+    assert editor.persona_error
 
 
 # =================================================================
@@ -31018,10 +34748,12 @@ def test_set_tray_active_toggles_prevent_close(gui):
 
     gui.set_tray_active(True)
     assert gui.tray_active is True
-    assert page.window.prevent_close is True
+    assert gui._queue.get_nowait() == ("tray_active", True)
+    assert page.window.prevent_close is False  # worker applies it, not caller thread
 
     gui.set_tray_active(False)
     assert gui.tray_active is False
+    assert gui._queue.get_nowait() == ("tray_active", False)
     assert page.window.prevent_close is False
 
 
@@ -31053,12 +34785,17 @@ def test_show_window_makes_window_visible(gui):
 # =================================================================
 
 def test_settings_tab_has_tray_controls(gui):
-    """tray_enabled раньше правился только в config.json — теперь в GUI."""
-    tab = gui._build_settings_tab()
-    box = _find_checkbox(tab, "Иконка в трее")
-
-    assert box is not None, "во вкладке «Настройки» нет чекбокса трея"
-    assert box.value is True
+    """Native switch stages a value; only Apply persists it."""
+    gui._build_settings_tab()
+    editor = gui._preferences()
+    control = editor.settings_fields["tray_enabled"]
+    assert isinstance(control, ft.Switch)
+    assert control.value is True
+    control.on_change(ev(False))
+    assert gui.config.get("tray_enabled") is True
+    assert editor.settings_draft["tray_enabled"] is False
+    editor.save_settings()
+    assert gui.config.get("tray_enabled") is False
 
 
 def test_tray_enabled_sends_flag(gui, cfg):
@@ -31842,6 +35579,47 @@ def test_generic_query_never_calls_vector_retriever(monkeypatch):
     retrieve.assert_not_called()
     assert "Нижний Новгород" not in text
     assert "Матрица" not in text
+```
+
+### `tests/test_mic_watchdog.py`
+
+```python
+"""Execute the real watchdog method without importing Windows/audio backends."""
+import ast
+import logging
+from pathlib import Path
+from types import SimpleNamespace as NS
+from unittest.mock import Mock
+
+import pytest
+
+
+def watchdog():
+    path=Path(__file__).resolve().parents[1]/"jarvis/main.py"
+    tree=ast.parse(path.read_text(encoding="utf-8"))
+    cls=next(n for n in tree.body if isinstance(n,ast.ClassDef) and n.name=="Jarvis")
+    fn=next(n for n in cls.body if isinstance(n,ast.FunctionDef) and n.name=="mic_watchdog")
+    env={"log":logging.getLogger("watchdog-test")}
+    exec(compile(ast.Module(body=[fn],type_ignores=[]),str(path),"exec"),env)
+    return env["mic_watchdog"]
+
+
+@pytest.mark.parametrize("peak",[0,10,49,50,500])
+def test_watchdog_never_speaks_or_steals_navigation(peak,caplog):
+    core=NS(config={"mic_check_sec":20},stop_event=NS(wait=Mock(return_value=False)),
+        listener=NS(peak=peak,device_name="Test mic"),say=Mock(),gui=NS(_queue=Mock()))
+    with caplog.at_level(logging.INFO):watchdog()(core)
+    core.say.assert_not_called();core.gui._queue.put.assert_not_called()
+    core.stop_event.wait.assert_called_once_with(20)
+    if peak<50:assert "Микрофон молчит" in caplog.text
+
+
+def test_watchdog_disabled_or_shutdown_does_not_read_listener():
+    for disabled,stopped in [(True,False),(False,True)]:
+        core=NS(config={"mic_watchdog_enabled":not disabled},
+            stop_event=NS(wait=Mock(return_value=stopped)),say=Mock(),gui=Mock())
+        watchdog()(core)
+        core.say.assert_not_called();core.gui._queue.put.assert_not_called()
 ```
 
 ### `tests/test_mood.py`
@@ -34757,20 +38535,21 @@ def test_start_tray_runs_in_background(monkeypatch):
     """Иконка поднимается в daemon-потоке: главный поток нужен Flet'у."""
     started = threading.Event()
 
+    stopped = threading.Event()
     class FakePystrayIcon:
         visible = False
-
         def run(self):
+            self.visible = True
             started.set()
-
+            stopped.wait(3)
         def stop(self):
-            pass
+            stopped.set()
 
     monkeypatch.setattr(tray, "build_icon", lambda jarvis: FakePystrayIcon())
-    icon = tray.start_tray(FakeJarvis(), check_after=0.0)
-
-    assert icon is not None
-    assert started.wait(3.0), "icon.run() не запустился в фоновом потоке"
+    icon = tray.start_tray(FakeJarvis(), check_after=1.0)
+    assert icon is not None and icon.visible
+    assert started.is_set()
+    icon.stop()
 
 
 def test_start_tray_without_pystray_is_not_fatal(monkeypatch):
@@ -34781,6 +38560,74 @@ def test_start_tray_without_pystray_is_not_fatal(monkeypatch):
     monkeypatch.setattr(tray, "build_icon", _boom)
 
     assert tray.start_tray(FakeJarvis()) is None
+
+
+def test_invisible_tray_is_not_returned_as_ready(monkeypatch):
+    stopped = threading.Event()
+    class Invisible:
+        visible = False
+        def run(self):
+            stopped.wait(2)
+        def stop(self):
+            stopped.set()
+    monkeypatch.setattr(tray, 'build_icon', lambda j: Invisible())
+    assert tray.start_tray(FakeJarvis(), check_after=.02) is None
+    assert stopped.wait(1)
+
+
+def test_dead_tray_restores_window_callback(monkeypatch):
+    stopped = threading.Event()
+    called = threading.Event()
+    class Icon:
+        visible = False
+        def run(self):
+            self.visible = True
+            stopped.wait(2)
+        def stop(self):
+            stopped.set()
+    icon = Icon()
+    monkeypatch.setattr(tray, 'build_icon', lambda j: icon)
+    received = []
+    def failed(value):
+        received.append(value)
+        called.set()
+    assert tray.start_tray(FakeJarvis(), on_fail=failed) is icon
+    stopped.set()
+    assert called.wait(1)
+    assert received == [icon]
+
+
+@pytest.mark.parametrize('results,raises', [([True],False), ([False,False,True],False), ([False]*30,True)])
+def test_windows_shell_must_accept_icon(monkeypatch, results, raises):
+    import ctypes
+    from types import SimpleNamespace as NS
+    results = iter(results)
+    clock = [0.0]
+    monkeypatch.setattr(tray.time, 'monotonic', lambda:clock[0])
+    monkeypatch.setattr(tray.time, 'sleep', lambda dt:clock.__setitem__(0,clock[0]+dt))
+    class Payload(ctypes.Structure):
+        _fields_ = []
+        def __init__(self, **kw):
+            self.kw = kw
+    calls = []
+    def shell(code, payload):
+        calls.append((code,payload.kw))
+        return next(results)
+    win32 = NS(NOTIFYICONDATAW=Payload, Shell_NotifyIcon=shell,
+               NIM_ADD=0, NIF_MESSAGE=1,NIF_ICON=2,NIF_TIP=4,WM_NOTIFY=1024)
+    class Base:
+        _hwnd=123; _icon_handle=456; title='Феникс'
+        def _assert_icon_handle(self): pass
+    icon = tray._windows_icon_type(Base,win32)()
+    if raises:
+        with pytest.raises(OSError,match='Windows'):
+            icon._show()
+    else:
+        icon._show()
+    assert calls[0][1]['hWnd'] == 123
+    assert calls[0][1]['hIcon'] == 456
+    assert calls[0][1]['szTip'] == 'Феникс'
+    assert calls[0][1]['uFlags'] == 7
 ```
 
 ### `tests/test_tts.py`
@@ -37739,7 +41586,7 @@ from pathlib import Path
 
 # Local\ вместо Global\ — работает без прав администратора
 # (Global\ требует SeCreateGlobalPrivilege).
-MUTEX_NAME = "Local\\JarvisPhoenixSingleInstance"
+MUTEX_NAME = "Local\\JarvisPhoenixLauncherSetup"
 _MUTEX_HANDLE = None
 
 PYTHON_INSTALLER_URL = "https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe"
@@ -37849,7 +41696,12 @@ def already_running(logger) -> bool:
     if _MUTEX_HANDLE is not None:
         return False
 
+    from ctypes import wintypes
     kernel32 = ctypes.windll.kernel32
+    kernel32.CreateMutexW.argtypes = (ctypes.c_void_p, wintypes.BOOL, wintypes.LPCWSTR)
+    kernel32.CreateMutexW.restype = wintypes.HANDLE
+    kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
+    kernel32.CloseHandle.restype = wintypes.BOOL
     handle = kernel32.CreateMutexW(None, False, MUTEX_NAME)
     last_error = kernel32.GetLastError()
 
@@ -38087,7 +41939,7 @@ def check_dependencies(project_dir: Path, logger) -> bool:
         return False
     try:
         result = subprocess.run(
-            [str(python), "-c", "import flet, vosk, pymorphy3, num2words; print('ok')"],
+            [str(python), "-c", "import flet, vosk, pymorphy3, num2words, pystray, PIL; print('ok')"],
             capture_output=True,
             text=True,
             timeout=15,
@@ -39444,6 +43296,8 @@ pause
   "danger_password": "",
   "gui_enabled": true,
   "gui_theme": "Системная",
+  "gui_sidebar_pinned": false,
+  "gui_motion_enabled": true,
   "gui_x": null,
   "gui_y": null,
   "tray_enabled": true,
@@ -40586,10 +44440,11 @@ pymorphy3>=2.0.3,<3
 
 - Фирменные ресурсы Феникса
 
-#### `tests/README.md` — 16 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `tests/README.md` — 24 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Тесты Феникса
   - Карта
+  - Персона и Настройки — 16.10.2026
   - Главная GUI
     - Проверка GUI с конструктором команд
   - Граница импортов уточнений
@@ -40604,6 +44459,13 @@ pymorphy3>=2.0.3,<3
   - Зависимость от окружения
   - Логи
   - См. также
+  - Микрофон / Голос и звук
+  - Интерактивная боковая панель
+    - Обновление push на любой ширине
+  - Минималистичная Главная
+  - Солнечная корона и mic_watchdog
+    - Startup/tray regression
+    - Кольцо действий Главной
 
 #### `tests/audio/README.md` — 7 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -40623,7 +44485,7 @@ pymorphy3>=2.0.3,<3
   - Обновление 15.10.2026: язык, память, Non-verbal
   - Как добавить новый workflow
 
-#### `AGENTS.md` — 9 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `AGENTS.md` — 11 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - AGENTS.md — навигация для помощника по «Феникс»
   - Среда и запуск
@@ -40634,8 +44496,10 @@ pymorphy3>=2.0.3,<3
   - После правки
   - Аудиорегрессии
   - Перед коммитом
+  - Персона и Настройки
+    - Кольцо Главной
 
-#### `ARCHITECTURE.md` — 50 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `ARCHITECTURE.md` — 51 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - 🏗 Архитектура «Феникс»
   - 📑 Содержание
@@ -40678,12 +44542,27 @@ pymorphy3>=2.0.3,<3
     - `.venv311`
     - Git
 
-#### `CHANGELOG.md` — 87 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 102 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
+  - Кольцо действий Феникса
+  - Надёжный старт окна и трея
+  - Плавные переходы и более живые волны
+  - Постоянная корона и усиленные активные режимы
+  - Солнечная корона Феникса и тихая диагностика микрофона
+  - Исправление панели после добавления Главной
   - 📑 Содержание
   - 🚧 [Unreleased]
+    - 📅 Сессия 16.10.2026
+      - Минималистичная Главная, отдельный Диалог
+      - Плавный сдвиг при раскрытии панели
+      - Интерактивная боковая панель
+      - Выбранные темы: Сумерки и Тёплый фарфор
+      - Общая палитра Персоны, Настроек и Голоса
+      - Единый внешний фон GUI
+      - GUI: Персона и Настройки — нативная реализация утверждённого концепта
     - 📅 Сессия 15.10.2026
+      - GUI: Микрофон / Голос и звук
       - SNAPSHOT: смешанные переносы строк Windows/Git
       - GUI: птица и конструктор «Мои команды»
       - GUI: графитово-медный Диалог
@@ -40705,21 +44584,6 @@ pymorphy3>=2.0.3,<3
     - 📅 Сессия 13.10.2026
       - 🪟 Окно ищется по процессу, а не по заголовку (№45–№50)
       - 🔒 Приватность и «красная черта»: Observer выключен, ответы фильтруются
-      - 🐞 «Закрой вкладку ютуб» — почему вкладка не закрывалась
-      - 🧪 Тесты — одна папка, стресс-тест на 100 ситуаций, единый прогон
-        - 🕐 Время — добавлены естественные формулировки
-      - 🐛 Исправлено
-        - 🖥 UIA без библиотеки — понятный отказ вместо «LLM недоступна»
-        - 🌐 Углублённое управление браузером — что упустил первый проход
-        - 📦 Установщик (Inno Setup) — доведён до рабочего состояния
-      - ✨ Добавлено
-        - 🛠 `scripts/build_setup.py` — вся сборка одной командой
-      - 📦 Сборка
-      - 🚀 CI — авторелиз по тегу (`release.yml`)
-      - 📝 Документация
-      - 🧭 Документация — план приведён к фактам
-      - ⚖️ Vosk остаётся: замер вместо переписывания
-    - 📅 Сессия 12.10.2026
 
 #### `CI.md` — 16 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -40776,7 +44640,7 @@ pymorphy3>=2.0.3,<3
   - 🤝 Как задавать вопросы
   - 🎯 Философия
 
-#### `PLAN.md` — 18 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `PLAN.md` — 21 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - 📋 План развития «Феникс»
   - 🎯 Курс: сначала сам Феникс
@@ -40787,8 +44651,10 @@ pymorphy3>=2.0.3,<3
     - Реализовано в первом ограниченном наборе
     - Приёмка на Windows
   - 🎧 🚧 Аудиорегрессии — текущая приёмка
-  - 🖼 🚧 GUI — первый экран реализован, требуется приёмка Windows
+  - 🖼 🚧 GUI — Диалог, команды, звук, Персона и Настройки реализованы; требуется приёмка Windows
     - Дополнение GUI: свой язык команд
+    - Дополнение GUI: микрофон, голос и звук
+    - Дополнение GUI: Персона и Настройки
   - Б. Контекст исправлений и расширение слотов — после GUI
   - В. ⏭ Управляемое самообучение приложения
   - Г. ⏭ Качество памяти и разговора
@@ -40796,6 +44662,7 @@ pymorphy3>=2.0.3,<3
   - Е. Сквозная проверка качества и стабильности
   - 💤 Дальний бэклог — не текущий план разработки
   - Правила завершения шага
+  - Готово: кольцо действий Главной
 
 #### `PROMPT.md` — 27 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -40848,7 +44715,70 @@ pymorphy3>=2.0.3,<3
   - Ограничения
   - Прослушивание
 
-#### `docs/USER_GUIDE.md` — 44 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `docs/GUI_HOME_ACTION_RING.md` — 5 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Кольцо действий Главной
+  - Установка
+  - Действия
+  - Что проверить
+  - Проверка на стенде
+
+#### `docs/GUI_HOME_UPDATE.md` — 5 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Минималистичная Главная — обновление проекта
+  - Установка
+  - Что изменилось
+  - Проверить на Windows
+  - Границы проверки
+
+#### `docs/GUI_PERSONA_SETTINGS_UPDATE.md` — 4 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Обновление «Персона и Настройки»
+  - Установка
+  - Что изменилось
+  - Что проверить на вашей Windows
+
+#### `docs/GUI_SIDEBAR_PUSH_FIX.md` — 4 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Исправление сдвига контента
+  - Установка
+  - Проверь
+  - Проверка на стенде
+
+#### `docs/GUI_SIDEBAR_UPDATE.md` — 4 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Интерактивная панель Феникса
+  - Установка
+  - Что проверить на Windows
+  - Границы проверки
+
+#### `docs/GUI_SOLAR_AURA_ALWAYS_UPDATE.md` — 1 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Постоянная солнечная корона
+
+#### `docs/GUI_SOLAR_AURA_SMOOTH_UPDATE.md` — 3 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Плавные переходы и более активные волны
+  - Изменения
+  - Проверь
+
+#### `docs/GUI_SOLAR_AURA_UPDATE.md` — 5 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Солнечная корона — обновление GUI
+  - Установка
+  - Что изменилось
+  - Что проверить на Windows
+  - Границы проверки
+
+#### `docs/GUI_STARTUP_TRAY_FIX.md` — 5 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Исправление старта окна и трея
+  - Установка
+  - Что изменено
+  - Что проверить на своём ПК
+  - Проверено на стенде
+
+#### `docs/USER_GUIDE.md` — 46 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Руководство пользователя · Феникс
   - Навигация
@@ -40893,4 +44823,4 @@ pymorphy3>=2.0.3,<3
 
 ---
 
-_Итого по категориям — code: 175, data: 44, doc: 15, pack: 5. Режим `lean`._
+_Итого по категориям — code: 189, data: 44, doc: 24, pack: 5. Режим `lean`._

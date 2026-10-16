@@ -1,6 +1,6 @@
 # AGENTS.md — навигация для помощника по «Феникс»
 
-Актуализировано 15.10.2026. Сначала нужный раздел `PROJECT.md`, затем поиск
+Актуализировано 16.10.2026. Сначала нужный раздел `PROJECT.md`, затем поиск
 по файлам и чтение небольшого диапазона. Не загружать целиком `SNAPSHOT.md`:
 это генерируемый контекст, а не место правки кода. Историю не выдавать за текущий статус.
 
@@ -29,7 +29,7 @@ TTS: Silero/Piper/WinRT/SAPI. Python 3.13/3.14 не брать для Windows/Vo
 | Модуль | Роль |
 |---|---|
 | `jarvis/main.py` | голосовой цикл, ASR gate, cmd_lock, _say_lock, barge-in |
-| `jarvis/gui.py`, `gui_commands.py` | Flet, вкладки, конструктор, очередь событий |
+| `jarvis/gui.py`, `gui_commands.py`, `gui_audio.py`, `gui_preferences.py`, `gui_sidebar.py`, `gui_home.py`, `gui_home_fx.py` | Flet, вкладки, конструктор, очередь событий |
 | `jarvis/command_builder.py` | Typed custom_commands, валидация/CRUD без исполнения |
 | `jarvis/intents/` | handler, pipeline, fast-правила, исполнение |
 | `jarvis/language/` | числовые слоты команд, чтение чисел/римских цифр, морфология |
@@ -105,7 +105,7 @@ File-mode Listener и микрофон используют один `_consume_a
 ASR ожидаемым текстом сценария, не форсировать FinalResult ради зелёного теста.
 Hybrid/VAD fallback или отсутствующая модель = BLOCKED/2, а не pass/skip.
 Не расширять ограниченный sandbox до выполнения реальных действий. Не включать
-WAV/транскрипты/модели в ZIP/Git/snapshot. GUI: новый Диалог и «Мои команды» реализованы; native Windows-приёмка остаётся.
+WAV/транскрипты/модели в ZIP/Git/snapshot. GUI: Диалог, «Мои команды», «Микрофон», «Голос и звук», «Персона» и «Настройки» реализованы; native Windows-приёмка остаётся.
 
 
 ## Перед коммитом
@@ -117,3 +117,18 @@ Hook проверяет **Git index** через `scripts/check_staged_snapshot.
 `python snapshot.py`, затем явно подготовить нужные файлы и SNAPSHOT.md.
 pytest-log.txt исключён из Git/Cline/snapshot; если уже tracked — пользователь
 сам выполняет `git rm --cached -- pytest-log.txt`, локальный лог сохраняется.
+
+## Персона и Настройки
+
+Редактор: gui_preferences.py. Черновик не писать в Config/profile на каждый ввод.
+Имя и persona — одна profile-scoped compare-and-save запись; глобальный name
+не подставлять и не мигрировать молча. Факты/историю/onboarding сохранять.
+Config.update(expected_values=...) защищает пакет от конфликтов; ошибки записи
+не превращать в успех. Тема сразу, Observer/launch_mode после перезапуска.
+Ollama inventory — только по кнопке, worker → preferences_result в штатной очереди;
+никаких pull/inference, raw exception, stale success или fake-online.
+
+### Кольцо Главной
+`jarvis/gui_home_actions.py` — конечные переходы и 3 реальных Home-действия.
+Не добавлять frame-loop или поток аудио; сохранять 300px footprint и общий
+hover-мост. Скрытые действия должны быть недоступны для Tab и screen reader.

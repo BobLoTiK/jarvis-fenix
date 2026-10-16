@@ -31,33 +31,35 @@ from jarvis.vad import DEFAULT_HANGOVER_MS
 
 log = logging.getLogger("jarvis.gui")
 
+# User-selected directions: 04 "Twilight" and 05 "Warm Porcelain".
+# Shared tokens are consumed by every native screen, including preferences.
 PALETTES = {
     "dark": {
-        "sidebar": "#10161e", "selected": "#263447",
-        "brand": "#e7ad7b", "composer": "#17212d",
-        "bg_main": "#0b1016",
-        "bg_card": "#131c26",
-        "bg_bubble_user": "#23364b",
-        "bg_bubble_ai": "#17212d",
-        "accent": "#8bb7ee",
-        "text": "#eaf0f6",
-        "text_dim": "#a1b0c1",
-        "border": "#3f5266",
+        "sidebar": "#181823", "selected": "#343149",
+        "brand": "#d8a786", "composer": "#242435",
+        "bg_main": "#12121c",
+        "bg_card": "#1d1e2d",
+        "bg_bubble_user": "#343149",
+        "bg_bubble_ai": "#202030",
+        "accent": "#bab4eb",
+        "text": "#eeedf7",
+        "text_dim": "#abaac1",
+        "border": "#52526b",
         "error": "#f85149",
         "success": "#3fb950",
         "warning": "#d29922",
     },
     "light": {
-        "sidebar": "#eeeae4", "selected": "#dce5f0",
-        "brand": "#8b512a", "composer": "#ffffff",
-        "bg_main": "#f5f3ef",
-        "bg_card": "#ffffff",
-        "bg_bubble_user": "#e4eaf0",
-        "bg_bubble_ai": "#eeeae4",
-        "accent": "#245d99",
-        "text": "#23272f",
-        "text_dim": "#606b78",
-        "border": "#b6b0a6",
+        "sidebar": "#ede7df", "selected": "#eee1d3",
+        "brand": "#92532f", "composer": "#fffefc",
+        "bg_main": "#f5f2ed",
+        "bg_card": "#fffefc",
+        "bg_bubble_user": "#eee1d3",
+        "bg_bubble_ai": "#f1ece5",
+        "accent": "#865638",
+        "text": "#282b30",
+        "text_dim": "#5c6570",
+        "border": "#b3aaa0",
         "error": "#cf222e",
         "success": "#1a7f37",
         "warning": "#9a6700",
@@ -91,13 +93,13 @@ class _Palette:
 
 P = _Palette()
 
-BG_DARK = "#0b1016"
-BG_CARD = "#131c26"
-BG_BUBBLE_USER = "#23364b"
-BG_BUBBLE_AI = "#17212d"
-ACCENT = "#8bb7ee"
-TEXT = "#eaf0f6"
-TEXT_DIM = "#a1b0c1"
+BG_DARK = P.bg_main
+BG_CARD = P.bg_card
+BG_BUBBLE_USER = P.bg_bubble_user
+BG_BUBBLE_AI = P.bg_bubble_ai
+ACCENT = P.accent
+TEXT = P.text
+TEXT_DIM = P.text_dim
 
 
 def _apply_palette(name: str) -> None:
@@ -150,6 +152,9 @@ def _brand_image(name: str, size: int, label: str = ""):
                     semantics_label=label, exclude_from_semantics=not bool(label))
 
 
+HOME_TAB = 6  # Existing 0..5 IDs stay stable for tray/audio/preferences callbacks.
+NAV_ORDER = (HOME_TAB, 0, 1, 2, 3, 4, 5)
+
 NAV_ITEMS = (
     ("Диалог", ft.Icons.CHAT_BUBBLE_OUTLINE),
     ("Микрофон", ft.Icons.MIC_NONE),
@@ -157,65 +162,12 @@ NAV_ITEMS = (
     ("Персона", ft.Icons.PERSON_OUTLINE),
     ("Настройки", ft.Icons.TUNE),
     ("Мои команды", ft.Icons.ACCOUNT_TREE_OUTLINED),
+    ("Главная", ft.Icons.HOME_OUTLINED),
 )
 
 
-class _Sidebar(ft.Container):
-    """Native sidebar; selection is shared by mouse navigation and tray actions."""
-
-    def __init__(self, on_select):
-        super().__init__(width=208, padding=16)
-        self._selected_index = 0
-        self._on_select = on_select
-        self.refresh_palette()
-
-    @property
-    def selected_index(self):
-        return self._selected_index
-
-    @selected_index.setter
-    def selected_index(self, value):
-        if not 0 <= value < len(NAV_ITEMS):
-            return
-        self._selected_index = value
-        # Preserve button IDs/focus during quick navigation. Rebuild only for a theme/profile.
-        for index, button in enumerate(self.nav_buttons):
-            active = index == value
-            button.bgcolor = P.selected if active else P.sidebar
-            button.content.controls[1].color = TEXT if active else TEXT_DIM
-            button.content.controls[2].visible = active
-
-    def refresh_palette(self):
-        from jarvis import profile
-        self.bgcolor = P.sidebar
-        self.border = ft.Border(right=ft.BorderSide(1, P.border))
-        self.nav_buttons = []
-        for index, (label, icon) in enumerate(NAV_ITEMS):
-            active = index == self._selected_index
-            self.nav_buttons.append(ft.Button(
-                content=ft.Row([_brand_image(("dialog", "microphone", "audio", "persona", "settings", "commands")[index], 24),
-                                ft.Text(label, size=14, color=TEXT if active else TEXT_DIM,
-                                        expand=True),
-                                ft.Container(width=5, height=5, border_radius=3,
-                                             bgcolor=ACCENT, visible=active)], spacing=10),
-                height=48, bgcolor=P.selected if active else P.sidebar, elevation=0,
-                style=ft.ButtonStyle(padding=10, shape=ft.RoundedRectangleBorder(radius=10)),
-                tooltip=label,
-                on_click=lambda e, i=index: self._on_select(i)))
-        self.content = ft.Column([
-            ft.Container(content=ft.Row([
-                _brand_image("phoenix", 38, "Феникс"),
-                ft.Column([ft.Text("Феникс", size=21, weight=ft.FontWeight.BOLD, color=TEXT),
-                           ft.Text("Локальный ассистент", size=12, color=TEXT_DIM)],
-                          spacing=2, expand=True)], spacing=12), padding=ft.Padding(top=12, bottom=28)),
-            *self.nav_buttons,
-            ft.Container(expand=True),
-            ft.Divider(color=P.border),
-            ft.Container(ft.Column([
-                ft.Text(str(profile.current()), size=14, color=TEXT, max_lines=2),
-                ft.Text("Профиль и настройки", size=12, color=TEXT_DIM)], spacing=4),
-                padding=ft.Padding(top=12, bottom=12)),
-        ], spacing=8, expand=True)
+# Kept as an import alias for existing callers and tray/navigation tests.
+from jarvis.gui_sidebar import Sidebar as _Sidebar
 
 
 class FenixGUI:
@@ -230,6 +182,7 @@ class FenixGUI:
 
         # launch_mode=tray — окно скрыто при старте
         self.start_hidden = False
+        self._home_window_visible = True
 
         # Трей: если иконка поднялась (jarvis.tray.start_tray), закрытие
         # окна крестиком сворачивает Феникса в трей, а не убивает процесс.
@@ -265,6 +218,7 @@ class FenixGUI:
         self._rail = None
         self._tabs = {}
         self._command_builder = None
+        self._home = None
 
         # Контролы вкладки «Микрофон»
         self._mic_dropdown = None
@@ -336,13 +290,15 @@ class FenixGUI:
             return
         self._running = True
         try:
-            ft.run(self._main)
+            ft.run(self._main, view=ft.AppView.FLET_APP_HIDDEN)
         except Exception:
             log.exception("GUI (Flet) упал")
         finally:
             self._running = False
 
     def stop(self) -> None:
+        if self._home is not None:
+            self._home.dispose()
         self._running = False
         self._queue.put(("stop", None))
 
@@ -358,10 +314,10 @@ class FenixGUI:
         в обработчике CLOSE флаг уже опаздывает.
         """
         self.tray_active = bool(active)
+        # May be called by the tray monitor, never mutate Flet from that thread.
+        if self._page is not None:
+            self._queue.put(("tray_active", self.tray_active))
         try:
-            if self._page is not None:
-                self._page.window.prevent_close = self.tray_active
-                self._page.update()
             log.info(
                 "GUI: трей %s — закрытие окна %s",
                 "включён" if self.tray_active else "выключен",
@@ -382,6 +338,8 @@ class FenixGUI:
         выход реально работал, снимаем prevent_close и закрываем окно.
         """
         self._queue.put(("stop", None))
+        if self._home is not None:
+            self._home.dispose()
         try:
             if self._page is not None:
                 self._page.window.prevent_close = False
@@ -421,7 +379,7 @@ class FenixGUI:
 
     def _run(self) -> None:
         try:
-            ft.run(self._main)
+            ft.run(self._main, view=ft.AppView.FLET_APP_HIDDEN)
         except Exception:
             log.exception("GUI (Flet) упал")
         finally:
@@ -484,20 +442,25 @@ class FenixGUI:
         # ДО ft.run): если он есть, закрывать окно нельзя — Феникс умер бы
         # вместе с ним. prevent_close применяем ЗАРАНЕЕ, в обработчике
         # CLOSE флаг уже опаздывает.
-        if self.tray_active:
-            self.set_tray_active(True)
+        page.window.prevent_close = self.tray_active
 
         # launch_mode=tray — окно скрыто
         if self.start_hidden:
+            self._home_window_visible = False
             page.window.visible = False
             log.info("GUI: окно скрыто при старте (launch_mode=tray)")
 
+        # The native client starts hidden: title, icon and first layout are
+        # submitted BEFORE revealing it, so the default Flet shell never flashes.
+        page.window.visible = False
         self._build_ui(page)
+        if not self.start_hidden:
+            self._show_window_now()
         page.run_task(self._process_queue)
         page.run_task(self._mic_level_loop)
 
     def _build_ui(self, page: ft.Page) -> None:
-        self._rail = _Sidebar(self._select_tab)
+        self._rail = _Sidebar(self._select_tab, self.config)
 
         self._tabs = {
             0: self._build_main_tab(),
@@ -506,27 +469,36 @@ class FenixGUI:
             3: self._build_persona_tab(),
             4: self._build_settings_tab(),
             5: self._build_commands_tab(),
+            HOME_TAB: self._build_home_tab(),
         }
 
         self._content_area = ft.Container(
-            content=self._tabs[0],
+            content=self._tabs[HOME_TAB],
             expand=True,
             padding=0,
             bgcolor=BG_DARK,
         )
 
-        page.add(
-            ft.Row(
-                controls=[
-                    self._rail,
-                    self._content_area,
-                ],
-                expand=True,
-                spacing=0,
-            )
-        )
+        self._rail.selected_index = HOME_TAB
+        page.add(self._rail.layout(self._content_area))
+        page.on_keyboard_event = self._on_home_key
+
+
+    async def _on_home_key(self, e):
+        if self._rail.selected_index == HOME_TAB and self._home is not None:
+            if await self._home.actions.on_key(e):
+                return
+        await self._rail.on_key(e)
+
+    def _build_home_tab(self) -> ft.Control:
+        from jarvis.gui_home import HomeScreen
+        if self._home is not None:
+            self._home.dispose()
+        self._home = HomeScreen(self)
+        return self._home
 
     def _build_main_tab(self) -> ft.Control:
+        """Chat screen. Historical method name is kept for existing callers/tests."""
         self._status_circle = ft.Container(width=6, height=6, border_radius=3, bgcolor=ACCENT)
         self._status_text = ft.Text(size=13, color=TEXT)
         self._status_sub = ft.Text(size=12, color=TEXT_DIM)
@@ -602,7 +574,7 @@ class FenixGUI:
             options=[ft.dropdown.Option("commands", "Команды"), ft.dropdown.Option("llm", "ИИ"),
                      ft.dropdown.Option("combo", "Комбо")], on_select=self._on_mode_change,
             text_size=13, dense=True, border_color=P.border, focused_border_color=ACCENT)
-        voice = ft.Dropdown(label="Голос", value=self.config.get("tts_voice", "ruslan"),
+        voice = self._main_voice_dropdown = ft.Dropdown(label="Голос", value=self.config.get("tts_voice", "ruslan"),
                             options=self._get_voice_options(), width=125, text_size=13, dense=True,
                             on_select=self._on_voice_change, border_color=P.border,
                             focused_border_color=ACCENT)
@@ -737,118 +709,14 @@ class FenixGUI:
             self._command_builder = CommandBuilder(self)
         return self._command_builder.build()
 
+    def _sound(self):
+        if getattr(self, "_sound_settings", None) is None:
+            from jarvis.gui_audio import SoundSettings
+            self._sound_settings = SoundSettings(self)
+        return self._sound_settings
+
     def _build_mic_tab(self) -> ft.Control:
-        name = "—"
-        if self.jarvis and self.jarvis.listener:
-            name = self.jarvis.listener.device_name
-
-        devices = ["по умолчанию"]
-        try:
-            import sounddevice as sd
-            for d in sd.query_devices():
-                if d["max_input_channels"] > 0:
-                    n = d["name"][:50]
-                    if n not in devices:
-                        devices.append(n)
-        except Exception:
-            log.exception("Не удалось получить список устройств")
-
-        current = self.config.get("input_device") or "по умолчанию"
-        if current not in devices:
-            devices.append(current)
-
-        self._mic_dropdown = ft.Dropdown(
-            value=current,
-            options=[ft.dropdown.Option(d) for d in devices],
-            width=400,
-            border_color="#3f5266",
-            focused_border_color=ACCENT,
-            on_select=self._on_mic_change,
-        )
-
-        self._mic_level_bar = ft.ProgressBar(
-            value=0.0,
-            width=400,
-            color=ACCENT,
-            bgcolor="#17212d",
-        )
-        self._mic_level_text = ft.Text("Уровень сигнала: —", size=13, color=TEXT_DIM)
-        self._mic_status_text = ft.Text("Статус: ожидание проверки", size=13, color=TEXT_DIM)
-        self._mic_peak_text = ft.Text("Пик за сессию: 0", size=13, color=TEXT_DIM)
-        self._mic_utt_text = ft.Text("Распознано фраз: 0", size=13, color=TEXT_DIM)
-        self._mic_emotion_text = ft.Text(
-            "Эмоция: —", size=13, color=TEXT_DIM,
-        )
-        self._mic_test_result = ft.Text("", size=13, color=TEXT_DIM)
-        # «Текущее устройство» — вынесено в поле, чтобы текст обновлялся
-        # сразу после смены микрофона, а не только при пересборке вкладки.
-        self._mic_device_text = ft.Text(
-            f"Текущее устройство: {name}", size=14, color=TEXT,
-        )
-
-        return ft.Container(
-            content=ft.Column(
-                controls=[
-                    ft.Text("Микрофон", size=26, weight=ft.FontWeight.BOLD, color=TEXT),
-                    ft.Container(height=25),
-                    self._mic_device_text,
-                    ft.Container(height=20),
-                    ft.Container(
-                        content=ft.Column(
-                            controls=[
-                                self._mic_level_text,
-                                self._mic_level_bar,
-                                ft.Container(height=8),
-                                self._mic_peak_text,
-                                self._mic_utt_text,
-                                self._mic_emotion_text,
-                                self._mic_status_text,
-                                self._mic_test_result,
-                            ],
-                            spacing=6,
-                        ),
-                        padding=16,
-                        bgcolor=BG_CARD,
-                        border_radius=12,
-                    ),
-                    ft.Container(height=15),
-                    ft.Button(
-                        content=ft.Row(
-                            controls=[
-                                ft.Icon(ft.Icons.MIC, color=BG_DARK),
-                                ft.Text("Проверить микрофон (3 сек)", color=BG_DARK),
-                            ],
-                            spacing=8,
-                            alignment=ft.MainAxisAlignment.CENTER,
-                        ),
-                        on_click=self._on_mic_test,
-                        style=ft.ButtonStyle(
-                            bgcolor=ACCENT,
-                            shape=ft.RoundedRectangleBorder(radius=10),
-                            padding=ft.Padding(left=20, right=20, top=12, bottom=12),
-                        ),
-                    ),
-                    ft.Container(height=20),
-                    ft.Text("Выбрать устройство:", size=13, color=TEXT_DIM),
-                    self._mic_dropdown,
-                    ft.Container(height=15),
-                    ft.Container(
-                        content=ft.Text(
-                            "После смены устройства перезапусти Феникса",
-                            size=12,
-                            color="#d29922",
-                        ),
-                        padding=12,
-                        bgcolor="#2d2210",
-                        border_radius=8,
-                    ),
-                ],
-                spacing=5,
-                scroll=ft.ScrollMode.AUTO,
-            ),
-            padding=ft.Padding(left=40, top=40, right=40, bottom=40),
-            expand=True,
-        )
+        return self._sound().build_mic()
 
     def _on_mic_change(self, e) -> None:
         """Смена микрофона применяется на лету (без перезапуска).
@@ -859,457 +727,42 @@ class FenixGUI:
         RawInputStream на новом устройстве.
         """
         value = e.control.value
+        if getattr(self, "_sound_settings", None) is not None:
+            value = self._sound_settings.device_values.get(value, value)
         if value == "по умолчанию":
             value = None
-        self.config.set("input_device", value)
+        if self.config.set("input_device", value) is False:
+            self._show_status("Не удалось сохранить выбор микрофона.")
+            return
+        if getattr(self, "_sound_settings", None) is not None:
+            self._sound_settings.apply_result("mic", "Вход изменён. Повторите проверку уровня.")
         if getattr(self, "_mic_device_text", None) is not None:
             listener = self.jarvis.listener if self.jarvis is not None else None
             shown = listener.device_name if listener is not None else (
                 value or "по умолчанию")
             self._mic_device_text.value = f"Текущее устройство: {shown}"
         self._show_status(
-            "Микрофон переключён. Скажите «Феникс» — проверю, что слышу."
+            "Выбор сохранён. Вход переоткрывается; проверьте шкалу сигнала."
         )
         log.info("GUI: input_device → %r (применяю на лету)", value)
 
-    def _on_mic_test(self, e) -> None:
-        """Кнопка «Проверить микрофон».
-
-        ВАЖНО: раньше этот метод дёргал self._page.update() из рабочего
-        потока — нарушение Flet. Теперь все обновления UI идут через
-        очередь (set_mic_test_result).
-        """
-        if self.jarvis is None or self.jarvis.listener is None:
-            # Этот case уже в главном потоке — можно обновить напрямую.
-            if self._mic_test_result is not None:
-                self._mic_test_result.value = "Listener не запущен"
-                self._mic_test_result.color = "#f85149"
-            return
-
-        def _run():
-            listener = self.jarvis.listener
-            listener.reset_stats()
-            # Первое сообщение — через очередь
-            self.set_mic_test_result("Слушаю 3 секунды... говори!", ACCENT)
-
-            time.sleep(3.0)
-            peak = listener.peak
-            if peak >= 500:
-                self.set_mic_test_result(
-                    f"Микрофон работает (пик {peak})", "#3fb950"
-                )
-            elif peak >= 100:
-                self.set_mic_test_result(
-                    f"Микрофон очень тихий (пик {peak}).", "#d29922"
-                )
-            else:
-                self.set_mic_test_result(
-                    f"Микрофон молчит (пик {peak}).", "#f85149"
-                )
-
-        threading.Thread(target=_run, daemon=True, name="mic-test").start()
+    def _on_mic_test(self, e) -> bool:
+        return self._sound().test_mic(e)
 
     def _update_mic_level(self) -> None:
-        if self.jarvis is None or self.jarvis.listener is None:
-            return
-        listener = self.jarvis.listener
-        rms = listener.current_rms
-        level = min(1.0, rms / 2000.0)
-
-        try:
-            if self._mic_level_bar is not None:
-                self._mic_level_bar.value = level
-            if self._mic_level_text is not None:
-                pct = int(level * 100)
-                self._mic_level_text.value = f"Уровень сигнала: {pct}%"
-            if self._mic_peak_text is not None:
-                self._mic_peak_text.value = f"Пик за сессию: {listener.peak}"
-            if self._mic_utt_text is not None:
-                self._mic_utt_text.value = f"Распознано фраз: {listener.utterances}"
-            if self._mic_status_text is not None:
-                if listener.peak >= 500:
-                    self._mic_status_text.value = "Статус: Работает"
-                    self._mic_status_text.color = "#3fb950"
-                elif listener.peak >= 100:
-                    self._mic_status_text.value = "Статус: Тихий сигнал"
-                    self._mic_status_text.color = "#d29922"
-                else:
-                    self._mic_status_text.value = "Статус: Ожидание звука"
-                    self._mic_status_text.color = TEXT_DIM
-
-            if getattr(self, "_mic_emotion_text", None):
-                if listener.peak > 2500:
-                    emo = "excited / annoyed"
-                elif listener.peak > 200:
-                    emo = "neutral / happy"
-                else:
-                    emo = "tired / тишина"
-                self._mic_emotion_text.value = f"Эмоция: ~{emo}"
-        except Exception:
-            log.exception("_update_mic_level упал")
+        self._sound().update_level()
 
     def _build_audio_tab(self) -> ft.Control:
-        """Вкладка «Аудио» — Non-verbal, VAD и Prosody."""
+        return self._sound().build_audio()
 
-        nonverbal_enabled = ft.Checkbox(
-            label="Звуковые реакции (смех, вздохи, хм, зевок)",
-            value=bool(self.config.get("nonverbal_enabled", False)),
-            on_change=self._on_nonverbal_enabled,
-        )
-        nonverbal_hint = ft.Text(
-            "Только в диалоге, не чаще раза в 45 секунд по умолчанию. "
-            "Тише речи на 15 дБ. Silero, Piper и WinRT; SAPI — без реакций.",
-            size=11, color=TEXT_DIM,
-        )
-
-        # === Prosody ===
-        prosody_enabled = ft.Checkbox(
-            label="Эмоции из голоса (Prosody)",
-            value=bool(self.config.get("prosody_enabled", True)),
-            on_change=self._on_prosody_enabled,
-        )
-
-        prosody_priority = ft.Dropdown(
-            label="Приоритет эмоций",
-            value=self.config.get("prosody_priority", "prosody"),
-            options=[
-                ft.dropdown.Option("prosody", "Голос важнее текста"),
-                ft.dropdown.Option("text", "Текст важнее голоса"),
-                ft.dropdown.Option("both", "Оба (голос первым)"),
-            ],
-            width=400,
-            border_color="#3f5266",
-            focused_border_color=ACCENT,
-            on_select=self._on_prosody_priority,
-        )
-
-        prosody_hint = ft.Text(
-            "Prosody определяет эмоцию из громкости, высоты и «шумности» "
-            "голоса (RMS + pitch + ZCR). Точность ~60–70%.",
-            size=11,
-            color=TEXT_DIM,
-        )
-
-        # === VAD ===
-        vad_enabled = ft.Checkbox(
-            label="VAD (Silero) — фильтр тишины до распознавания",
-            value=bool(self.config.get("vad_enabled", True)),
-            on_change=self._on_vad_enabled,
-        )
-
-        vad_adaptive = ft.Checkbox(
-            label="Адаптивный порог (подстраивается под микрофон)",
-            value=bool(self.config.get("vad_adaptive", True)),
-            on_change=self._on_vad_adaptive,
-        )
-
-        # Модель silero_vad.onnx в комплект не входит (в репозитории её
-        # нет) — Феникс качает её сам. Флаг нужен для машин без сети.
-        vad_auto_download = ft.Checkbox(
-            label="Скачивать модель VAD (2.3 МБ), если её ещё нет",
-            value=bool(self.config.get("vad_auto_download", True)),
-            on_change=self._on_vad_auto_download,
-        )
-
-        auto_download_hint = ft.Text(
-            "Модель silero_vad.onnx качается фоном при первом запуске и "
-            "включается без перезапуска. Без неё VAD молча не работает.",
-            size=11,
-            color=TEXT_DIM,
-        )
-
-        self._vad_threshold_label = ft.Text(
-            f"Порог VAD: {self.config.get('vad_threshold', 0.5):.2f}",
-            size=13,
-            color=TEXT,
-        )
-
-        self._vad_threshold_slider = ft.Slider(
-            min=0.1,
-            max=0.9,
-            divisions=16,
-            value=float(self.config.get("vad_threshold", 0.5)),
-            label="{value:.2f}",
-            active_color=ACCENT,
-            on_change=self._on_vad_threshold_change,
-            on_change_end=self._on_vad_threshold_end,
-        )
-
-        vad_hint = ft.Text(
-            "VAD отсекает тишину и шум — Vosk не получает пустые чанки. "
-            "Порог 0.3 — ловит тихую речь, 0.7 — только громкую.",
-            size=11,
-            color=TEXT_DIM,
-        )
-
-        # «Хвост» тишины. Без него VAD вырезает всю тишину, Vosk не видит
-        # паузу (`AcceptWaveform` -> False) и не отдаёт финальный текст:
-        # Феникс отвечает поздно или не отвечает вовсе. См. jarvis/vad.py.
-        self._vad_hangover_label = ft.Text(
-            f"Хвост тишины для Vosk: "
-            f"{int(self.config.get('vad_hangover_ms', DEFAULT_HANGOVER_MS))} мс",
-            size=13,
-            color=TEXT,
-        )
-
-        self._vad_hangover_slider = ft.Slider(
-            min=0,
-            max=3000,
-            divisions=12,
-            value=float(self.config.get("vad_hangover_ms", DEFAULT_HANGOVER_MS)),
-            label="{value:.0f}",
-            active_color=ACCENT,
-            on_change=self._on_vad_hangover_change,
-            on_change_end=self._on_vad_hangover_end,
-        )
-
-        hangover_hint = ft.Text(
-            "1500 мс — как без VAD. Меньше — ответ раньше, но Vosk может "
-            "не успеть закрыть фразу. Применяется сразу.",
-            size=11,
-            color=TEXT_DIM,
-        )
-
-        # === Распознавание ===
-        barge_enabled = ft.Checkbox(
-            label="Прерывать Феникса голосом (barge-in)",
-            value=bool(self.config.get("barge_enabled", True)),
-            on_change=self._on_barge_enabled,
-        )
-
-        wake_required = ft.Checkbox(
-            label="Ждать wake-слово «Феникс» (выкл — любая речь = команда)",
-            value=bool(self.config.get("wake_word_required", True)),
-            on_change=self._on_wake_required,
-        )
-
-        def _section(title):
-            return ft.Text(title, size=16, weight=ft.FontWeight.BOLD, color=ACCENT)
-
-        def _label(text):
-            return ft.Text(text, size=12, color=TEXT_DIM)
-
-        return ft.Container(
-            content=ft.Column(
-                controls=[
-                    ft.Text("Аудио", size=26, weight=ft.FontWeight.BOLD, color=TEXT),
-                    ft.Container(height=20),
-
-                    _section("Звуковые реакции"),
-                    nonverbal_enabled,
-                    nonverbal_hint,
-                    ft.Container(height=25),
-                    _section("Эмоции из голоса (Prosody)"),
-                    prosody_enabled,
-                    prosody_hint,
-                    ft.Container(height=10),
-                    _label("Как определять эмоцию:"),
-                    prosody_priority,
-                    ft.Container(height=25),
-
-                    _section("VAD — фильтр тишины"),
-                    vad_enabled,
-                    vad_adaptive,
-                    vad_auto_download,
-                    auto_download_hint,
-                    ft.Container(height=8),
-                    self._vad_threshold_label,
-                    self._vad_threshold_slider,
-                    vad_hint,
-                    ft.Container(height=8),
-                    self._vad_hangover_label,
-                    self._vad_hangover_slider,
-                    hangover_hint,
-                    ft.Container(height=25),
-
-                    _section("Распознавание"),
-                    barge_enabled,
-                    wake_required,
-                    ft.Container(height=8),
-                    _label("Всё на этой вкладке применяется сразу, "
-                           "перезапуск не нужен."),
-                ],
-                spacing=8,
-                scroll=ft.ScrollMode.AUTO,
-            ),
-            padding=ft.Padding(left=40, top=40, right=40, bottom=40),
-            expand=True,
-        )
+    def _preferences(self):
+        if getattr(self, "_preference_screens", None) is None:
+            from jarvis.gui_preferences import PreferenceScreens
+            self._preference_screens = PreferenceScreens(self)
+        return self._preference_screens
 
     def _build_persona_tab(self) -> ft.Control:
-        """Вкладка «Персона» — имя, стиль, черты, backstory."""
-        from jarvis import persona
-
-        p = persona.get()
-
-        name_field = ft.TextField(
-            label="Имя пользователя",
-            value=self.config.get("name", "") or "",
-            width=400,
-            border_color="#3f5266",
-            focused_border_color=ACCENT,
-            on_submit=self._on_persona_name,
-        )
-
-        assistant_name_field = ft.TextField(
-            label="Имя ассистента",
-            value=p.get("assistant_name") or "Феникс",
-            width=400,
-            border_color="#3f5266",
-            focused_border_color=ACCENT,
-            on_submit=self._on_persona_assistant_name,
-        )
-
-        style_dropdown = ft.Dropdown(
-            label="Стиль общения",
-            value=p.get("speech_style") or "friendly",
-            options=[
-                ft.dropdown.Option("formal", "Формальный (на «вы»)"),
-                ft.dropdown.Option("friendly", "Дружеский (на «ты»)"),
-                ft.dropdown.Option("sarcastic", "Саркастичный"),
-                ft.dropdown.Option("brief", "Краткий"),
-            ],
-            width=400,
-            border_color="#3f5266",
-            focused_border_color=ACCENT,
-            on_select=self._on_persona_style,
-        )
-
-        tone_dropdown = ft.Dropdown(
-            label="Тон общения",
-            value=p.get("tone") or "auto",
-            options=[
-                ft.dropdown.Option("auto", "Авто (подстраивается)"),
-                ft.dropdown.Option("polite", "Вежливый (без мата)"),
-                ft.dropdown.Option("unrestricted", "Без цензуры (если юзер сам)"),
-            ],
-            width=400,
-            border_color="#3f5266",
-            focused_border_color=ACCENT,
-            on_select=self._on_persona_tone,
-        )
-
-        tone_hint = ft.Text(
-            "Авто — Феникс сам подстраивается под ваш стиль. "
-            "Вежливый — всегда без мата. Без цензуры — можно вставить, если вы сами.",
-            size=11,
-            color=TEXT_DIM,
-        )
-
-        traits_field = ft.TextField(
-            label="Черты (через запятую)",
-            value=", ".join(p.get("traits") or []),
-            width=400,
-            border_color="#3f5266",
-            focused_border_color=ACCENT,
-            on_submit=self._on_persona_traits,
-        )
-
-        backstory_field = ft.TextField(
-            label="Контекст (backstory)",
-            value=p.get("backstory") or "",
-            width=400,
-            multiline=True,
-            min_lines=3,
-            max_lines=6,
-            border_color="#3f5266",
-            focused_border_color=ACCENT,
-            on_submit=self._on_persona_backstory,
-        )
-
-        reset_btn = ft.Button(
-            content=ft.Row(
-                controls=[
-                    ft.Icon(ft.Icons.REFRESH, color=BG_DARK),
-                    ft.Text("Сбросить онбординг", color=BG_DARK),
-                ],
-                spacing=8,
-                alignment=ft.MainAxisAlignment.CENTER,
-            ),
-            on_click=self._on_persona_reset,
-            style=ft.ButtonStyle(
-                bgcolor=ACCENT,
-                shape=ft.RoundedRectangleBorder(radius=10),
-                padding=ft.Padding(left=20, right=20, top=10, bottom=10),
-            ),
-        )
-
-        def _label(t):
-            return ft.Text(t, size=12, color=TEXT_DIM)
-
-        return ft.Container(
-            content=ft.Column(
-                controls=[
-                    ft.Text("Персона", size=26, weight=ft.FontWeight.BOLD, color=TEXT),
-                    ft.Container(height=20),
-                    _label("Как тебя зовут (пользователь):"),
-                    name_field,
-                    ft.Container(height=12),
-                    _label("Как зовут ассистента:"),
-                    assistant_name_field,
-                    ft.Container(height=12),
-                    _label("Стиль общения:"),
-                    style_dropdown,
-                    ft.Container(height=12),
-                    _label("Тон общения:"),
-                    tone_dropdown,
-                    tone_hint,
-                    ft.Container(height=12),
-                    _label("Черты характера (через запятую):"),
-                    traits_field,
-                    ft.Container(height=12),
-                    _label("Контекст (backstory):"),
-                    backstory_field,
-                    ft.Container(height=20),
-                    reset_btn,
-                ],
-                spacing=6,
-                scroll=ft.ScrollMode.AUTO,
-            ),
-            padding=ft.Padding(left=40, top=40, right=40, bottom=40),
-            expand=True,
-        )
-
-    def _on_persona_name(self, e) -> None:
-        self.config.set("name", e.control.value.strip())
-
-    def _on_persona_assistant_name(self, e) -> None:
-        from jarvis import persona
-        persona.set_field("assistant_name", e.control.value.strip() or "Феникс")
-
-    def _on_persona_style(self, e) -> None:
-        from jarvis import persona
-        persona.set_field("speech_style", e.control.value)
-
-    def _on_persona_tone(self, e) -> None:
-        from jarvis import persona
-        tone = e.control.value
-        if tone not in persona.VALID_TONES:
-            tone = "auto"
-        persona.set_field("tone", tone)
-        log.info("GUI: persona.tone → %s", tone)
-
-    def _on_persona_traits(self, e) -> None:
-        from jarvis import persona
-        raw = e.control.value.strip()
-        traits = [t.strip() for t in raw.split(",") if t.strip()] if raw else []
-        persona.set_field("traits", traits)
-
-    def _on_persona_backstory(self, e) -> None:
-        from jarvis import persona
-        persona.set_field("backstory", e.control.value.strip())
-
-    def _on_persona_reset(self, e) -> None:
-        from jarvis import persona
-        persona.reset_onboarding()
-        log.info("GUI: онбординг сброшен")
-        try:
-            snack = ft.SnackBar(ft.Text("Онбординг сброшен. Перезапусти Феникса."))
-            self._page.overlay.append(snack)
-            snack.open = True
-            self._page.update()
-        except Exception:
-            log.exception("Не удалось показать SnackBar")
+        return self._preferences().build_persona()
 
     def _on_nonverbal_enabled(self, e) -> None:
         self.config.set("nonverbal_enabled", bool(e.control.value))
@@ -1432,169 +885,7 @@ class FenixGUI:
         log.info("GUI: wake_word_required → %s", value)
 
     def _build_settings_tab(self) -> ft.Control:
-        llm_dropdown = ft.Dropdown(
-            value=self.config.get("llm_model", "qwen2.5:7b-instruct"),
-            options=[ft.dropdown.Option(m) for m in LLM_MODELS],
-            width=350,
-            border_color="#3f5266",
-            focused_border_color=ACCENT,
-            on_select=self._on_llm_change,
-        )
-
-        ollama_field = ft.TextField(
-            value=self.config.get("ollama_url", "http://127.0.0.1:11434"),
-            width=400,
-            border_color="#3f5266",
-            focused_border_color=ACCENT,
-            on_submit=self._on_ollama_change,
-        )
-
-        tts_dropdown = ft.Dropdown(
-            value=self.config.get("tts_backend", "auto"),
-            options=[ft.dropdown.Option(b) for b in TTS_BACKENDS],
-            width=250,
-            border_color="#3f5266",
-            focused_border_color=ACCENT,
-            on_select=self._on_tts_change,
-        )
-
-        rate_slider = ft.Slider(
-            min=0.5,
-            max=2.0,
-            divisions=30,
-            value=float(self.config.get("voice_rate", 1.15)),
-            label="{value}",
-            active_color=ACCENT,
-            on_change_end=self._on_rate_change,
-        )
-
-        theme_dropdown = ft.Dropdown(
-            value=self.config.get("gui_theme", "Системная"),
-            options=[ft.dropdown.Option(t) for t in THEMES.keys()],
-            width=250,
-            border_color="#3f5266",
-            focused_border_color=ACCENT,
-            on_select=self._on_theme_change,
-        )
-
-        # Трей: ключи были в config, но контролов не было вообще —
-        # включить иконку можно было только правкой config.json.
-        tray_checkbox = ft.Checkbox(
-            label="Иконка в трее (закрытие окна сворачивает Феникса)",
-            value=bool(self.config.get("tray_enabled", True)),
-            on_change=self._on_tray_enabled,
-        )
-
-        launch_dropdown = ft.Dropdown(
-            value=str(self.config.get("launch_mode", "gui") or "gui"),
-            options=[
-                ft.dropdown.Option("gui", "Обычный — окно при старте"),
-                ft.dropdown.Option("tray", "Только трей — окно скрыто"),
-            ],
-            width=300,
-            border_color="#3f5266",
-            focused_border_color=ACCENT,
-            on_select=self._on_launch_mode,
-        )
-
-        launch_hint = ft.Text(
-            "Режим запуска применяется при следующем запуске Феникса.",
-            size=11,
-            color=TEXT_DIM,
-        )
-
-        # Observer — фоновая отправка истории диалога в LLM. По умолчанию
-        # выключен: включение галочки = согласие пользователя.
-        observer_checkbox = ft.Checkbox(
-            label="Фоновый анализ диалога (Observer) — запоминать факты о тебе",
-            value=bool(self.config.get("observer_enabled", False)),
-            on_change=self._on_observer_enabled,
-        )
-
-        observer_hint = ft.Text(
-            "Раз в ~30 секунд последние сообщения диалога уходят в "
-            "локальную LLM (Ollama) — из них извлекаются факты: имя, "
-            "город, работа. Факты пишутся в profile.json (%APPDATA%\\Phoenix), "
-            "ход извлечения — в logs/observer.log. Выключено по умолчанию, "
-            "применяется после перезапуска.",
-            size=11,
-            color=TEXT_DIM,
-        )
-
-        # Векторная память фактов (RAG). Тоже по умолчанию выключена:
-        # это производная обработка данных о пользователе. Новых данных
-        # не собирает — только отбирает уже сохранённые факты.
-        rag_checkbox = ft.Checkbox(
-            label="Подбирать факты по смыслу (векторная память, RAG)",
-            value=bool(self.config.get("memory_rag_enabled", False)),
-            on_change=self._on_memory_rag_enabled,
-        )
-
-        rag_hint = ft.Text(
-            "Когда фактов много, в промпт уходят только релевантные "
-            "запросу — остальные не мешают. Нужна модель эмбеддингов: "
-            "«ollama pull nomic-embed-text» (~274 МБ). Всё локально: "
-            "запросы идут только в Ollama на этом же компьютере, "
-            "индекс лежит в memory_index.json рядом с profile.json. "
-            "Выключено по умолчанию, применяется сразу.",
-            size=11,
-            color=TEXT_DIM,
-        )
-
-        def _section(title):
-            return ft.Text(title, size=16, weight=ft.FontWeight.BOLD, color=ACCENT)
-
-        def _label(text):
-            return ft.Text(text, size=13, color=TEXT_DIM)
-
-        return ft.Container(
-            content=ft.Column(
-                controls=[
-                    ft.Text("Настройки", size=26, weight=ft.FontWeight.BOLD, color=TEXT),
-                    ft.Container(height=20),
-                    _section("LLM"),
-                    _label("Модель:"),
-                    llm_dropdown,
-                    ft.Container(height=8),
-                    _label("Ollama URL:"),
-                    ollama_field,
-                    ft.Container(height=25),
-                    _section("TTS"),
-                    _label("Бэкенд:"),
-                    tts_dropdown,
-                    ft.Container(height=8),
-                    _label("Качество голоса:"),
-                    self._build_voice_quality_row(),
-                    ft.Container(height=8),
-                    _label("Скорость речи:"),
-                    rate_slider,
-                    ft.Container(height=25),
-                    _section("Внешний вид"),
-                    _label("Тема:"),
-                    theme_dropdown,
-                    ft.Container(height=25),
-                    _section("Приложение"),
-                    tray_checkbox,
-                    ft.Container(height=8),
-                    _label("Режим запуска:"),
-                    launch_dropdown,
-                    launch_hint,
-                    ft.Container(height=25),
-                    _section("Приватность"),
-                    observer_checkbox,
-                    ft.Container(height=8),
-                    observer_hint,
-                    ft.Container(height=12),
-                    rag_checkbox,
-                    ft.Container(height=8),
-                    rag_hint,
-                ],
-                spacing=6,
-                scroll=ft.ScrollMode.AUTO,
-            ),
-            padding=ft.Padding(left=40, top=40, right=40, bottom=40),
-            expand=True,
-        )
+        return self._preferences().build_settings()
 
     def _build_voice_quality_row(self) -> ft.Control:
         current = self.config.get("tts_voice_quality", "medium")
@@ -1662,10 +953,21 @@ class FenixGUI:
                     self._open_mic_tab()
                 elif kind == "open_settings_tab":
                     self._open_settings_tab()
+                elif kind == "tray_active":
+                    self._page.window.prevent_close = bool(value)
                 elif kind == "show_window":
                     self._show_window_now()
+                elif kind == "home_signal":
+                    if self._home is not None:
+                        self._home.poll_signal()
+                    continue  # Aura updates only its own controls, never the whole page.
                 elif kind == "mic_level":
                     self._update_mic_level()
+                elif kind == "preferences_result":
+                    self._preferences().apply_probe(value)
+                    continue  # Completion updates only its own status/button, not text inputs.
+                elif kind == "sound_result":
+                    self._sound().apply_result(*value)
                 elif kind == "mic_test":
                     self._apply_mic_test_result(*value)
                 elif kind == "rebuild_theme":
@@ -1828,6 +1130,9 @@ class FenixGUI:
                 if self._rail and self._rail.selected_index == 1:
                     self._queue.put(("mic_level", None))
 
+                if self._rail and self._rail.selected_index == HOME_TAB:
+                    self._queue.put(("home_signal", None))
+
                 if self._state == "awaiting":
                     self._queue.put(("state", "idle"))
                 counter += 1
@@ -1859,6 +1164,8 @@ class FenixGUI:
                 if pending_alive(getattr(handler, "_pending_question", None)):
                     state = "awaiting"
         self._state = state
+        if self._home is not None:
+            self._home.apply_state(state)
         color, text, sub = STATES[state]
         if P is not None:
             color = {"idle": ACCENT, "thinking": ACCENT, "speaking": P.success,
@@ -1975,8 +1282,11 @@ class FenixGUI:
         """Показывает окно — для launch_mode=tray."""
         try:
             if self._page is not None:
+                self._home_window_visible = True
                 self._page.window.visible = True
                 self._page.window.minimized = False
+                if self._home is not None:
+                    self._home.aura.sync_motion()
                 self._page.update()
                 log.info("GUI: окно показано")
         except Exception:
@@ -1990,6 +1300,12 @@ class FenixGUI:
         пиксель. Ошибки глушим — позиция окна не критична.
         """
         try:
+            if e.type in (ft.WindowEventType.HIDE, ft.WindowEventType.MINIMIZE,
+                          ft.WindowEventType.SHOW, ft.WindowEventType.RESTORE):
+                self._home_window_visible = e.type in (ft.WindowEventType.SHOW, ft.WindowEventType.RESTORE)
+                if self._home is not None:
+                    self._home.aura.sync_motion()
+                return
             if e.type == ft.WindowEventType.CLOSE:
                 self._on_window_close(e)
                 return
@@ -2018,7 +1334,10 @@ class FenixGUI:
         try:
             page = getattr(e, "page", None) or self._page
             page.window.prevent_close = True
+            self._home_window_visible = False
             page.window.visible = False
+            if self._home is not None:
+                self._home.aura.sync_motion()
             page.update()
             log.info("GUI: окно свёрнуто в трей (Феникс продолжает слушать)")
         except Exception:
@@ -2034,12 +1353,18 @@ class FenixGUI:
             return
         if self._command_builder is not None:
             self._command_builder.capture()
+        if index == 3:
+            self._tabs[3] = self._build_persona_tab()
+        elif index == 4:
+            self._tabs[4] = self._build_settings_tab()
         if index == 5:
             self._tabs[5] = self._build_commands_tab()
         self._rail.selected_index = index
         if index == 0 and getattr(self, "_model_label", None) is not None:
             self._model_label.value = self._model_caption()
         self._content_area.content = self._tabs[index]
+        if self._home is not None:
+            self._home.aura.sync_motion()
         if self._page is not None:
             self._page.update()
 
@@ -2068,7 +1393,16 @@ class FenixGUI:
             self.jarvis.handler.mode = mode
 
     def _on_voice_change(self, e) -> None:
-        self.config.set("tts_voice", e.control.value)
+        if self.config.set("tts_voice", e.control.value) is False:
+            self._show_status("Не удалось сохранить выбранный голос.")
+            return
+        if getattr(self, "_main_voice_dropdown", None) is not None:
+            self._main_voice_dropdown.value = e.control.value
+        sound = getattr(self, "_sound_settings", None)
+        if sound is not None:
+            if sound.voice_dropdown is not None:
+                sound.voice_dropdown.value = e.control.value
+            sound.apply_result("voice", "Голос выбран. Прослушайте пробу, чтобы проверить звучание.")
 
     def _get_voice_options(self) -> list:
         """Список голосов под текущий tts_backend."""
@@ -2190,7 +1524,10 @@ class FenixGUI:
         if theme_name not in THEMES:
             theme_name = "Системная"
         mode = THEMES[theme_name]
-        self.config.set("gui_theme", theme_name)
+        if self.config.set("gui_theme", theme_name) is False:
+            self._show_status("Не удалось сохранить тему. Предыдущая тема сохранена.")
+            self._rebuild_ui_for_theme()
+            return
 
         if mode == ft.ThemeMode.SYSTEM:
             palette_name = _detect_system_theme()
@@ -2210,7 +1547,7 @@ class FenixGUI:
             log.exception("Ошибка в _on_theme_change")
 
     def _rebuild_ui_for_theme(self) -> None:
-        current_index = self._rail.selected_index if self._rail else 0
+        current_index = self._rail.selected_index if self._rail else HOME_TAB
         if self._command_builder is not None:
             self._command_builder.capture()
         if self._input_field is not None:
@@ -2221,13 +1558,14 @@ class FenixGUI:
             0: self._build_main_tab(), 1: self._build_mic_tab(),
             2: self._build_audio_tab(), 3: self._build_persona_tab(),
             4: self._build_settings_tab(), 5: self._build_commands_tab(),
+            HOME_TAB: self._build_home_tab(),
         }
         if error and self._error_text is not None:
             self._error_text.value = error
             self._error_banner.visible = True
         if self._content_area is not None:
             self._content_area.bgcolor = BG_DARK
-            self._content_area.content = self._tabs.get(current_index, self._tabs[0])
+            self._content_area.content = self._tabs.get(current_index, self._tabs[HOME_TAB])
         if self._rail is not None:
             self._rail.refresh_palette()
 

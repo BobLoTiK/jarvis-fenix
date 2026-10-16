@@ -122,11 +122,43 @@ def build_menu(jarvis):
     )
 
 
+def _windows_icon_type(base, win32):
+    """pystray 0.19 ignores Shell_NotifyIconW's BOOL; do not fake readiness.
+
+    Keep the adapter local (no monkeypatch to pystray/global WinAPI). Uses the
+    same native payload as its Windows backend; Explorer can be late at logon.
+    """
+    import ctypes
+
+    class CheckedWindowsIcon(base):
+        def _show(self):
+            self._assert_icon_handle()
+            deadline = time.monotonic() + 2.0
+            while True:
+                accepted = win32.Shell_NotifyIcon(win32.NIM_ADD, win32.NOTIFYICONDATAW(
+                    cbSize=ctypes.sizeof(win32.NOTIFYICONDATAW),
+                    hWnd=self._hwnd, hID=id(self),
+                    uFlags=win32.NIF_MESSAGE | win32.NIF_ICON | win32.NIF_TIP,
+                    uCallbackMessage=win32.WM_NOTIFY, hIcon=self._icon_handle,
+                    szTip=self.title))
+                if accepted:
+                    return
+                if time.monotonic() >= deadline:
+                    raise OSError("Windows не приняла значок Феникса в область уведомлений")
+                time.sleep(0.1)
+
+    return CheckedWindowsIcon
+
+
 def build_icon(jarvis):
     """Создаёт pystray.Icon (message loop не запускает)."""
     import pystray
 
-    return pystray.Icon(
+    icon_type = pystray.Icon
+    if os.name == "nt":
+        from pystray._util import win32
+        icon_type = _windows_icon_type(icon_type, win32)
+    return icon_type(
         ICON_NAME,
         _make_icon_image(),
         f"{APP_NAME} v{__version__}",
@@ -135,15 +167,11 @@ def build_icon(jarvis):
 
 
 def start_tray(jarvis, check_after: float = 3.0, on_fail=None):
-    """Поднимает иконку в фоне. Возвращает Icon или None (трея не будет).
+    """Return an icon only after Windows accepted its visibility request.
 
-    Вызывать ДО ft.run(): pystray создаёт собственный message loop, и если
-    запускать его после того, как главный поток ушёл в Flet, иконка
-    может не появиться вовсе.
-
-    on_fail — callback, если иконка не появилась за check_after: мёртвый
-    трей опаснее отсутствия — «крестик» спрятал бы окно навсегда, а
-    вернуть его было бы нечем.
+    Windows supports pystray's loop on a dedicated thread. Initial readiness
+    is bounded; failures return None, so callers never hide an unreachable UI.
+    A monitor also restores the GUI if the message loop dies later.
     """
     try:
         icon = build_icon(jarvis)
@@ -151,38 +179,45 @@ def start_tray(jarvis, check_after: float = 3.0, on_fail=None):
         log.exception("Трей: pystray/PIL недоступны — работаю без трея")
         return None
 
+    exited = threading.Event()
+
     def _run_icon():
         try:
             icon.run()
         except Exception:
             log.exception("Трей: message loop упал — работаю без трея")
+        finally:
+            exited.set()
 
     thread = threading.Thread(target=_run_icon, daemon=True, name="tray")
     thread.start()
+    deadline = time.monotonic() + max(0.0, check_after)
+    while True:
+        if not exited.is_set() and getattr(icon, "visible", False):
+            break
+        remaining = deadline - time.monotonic()
+        if remaining <= 0 or exited.is_set():
+            log.warning("Трей не готов — окно останется доступным")
+            # stop can block in a failed backend, never stall GUI startup.
+            def _stop_failed():
+                try:
+                    icon.stop()
+                except Exception:
+                    log.debug("Трей: остановка не удалась", exc_info=True)
+            threading.Thread(target=_stop_failed, daemon=True, name="tray-cleanup").start()
+            return None
+        exited.wait(min(0.05, remaining))
+    log.info("Трей: значок %s готов (проверьте также скрытые значки Windows)", APP_NAME)
 
-    def _check_visible():
-        """Убеждаемся, что иконка реально появилась (иначе трей молча мёртв)."""
-        deadline = time.time() + max(0.0, check_after)
-        while time.time() < deadline:
-            if getattr(icon, "visible", False):
-                log.info("Трей: иконка в системном трее (поток %s)", thread.name)
-                return
-            time.sleep(0.2)
-        if getattr(icon, "visible", False):
-            return
-        log.warning("Трей: иконка не появилась за %.1f с (поток %s) — "
-                    "работаю без трея", check_after,
-                    "жив" if thread.is_alive() else "упал")
-        try:
-            icon.stop()
-        except Exception:
-            log.debug("Трей: не удалось снять невидимую иконку", exc_info=True)
+    def _monitor():
+        exited.wait()
+        # Explicit disable / exit also stops the loop. Caller decides whether
+        # this is still the active icon, preventing stale callbacks on replacement.
         if on_fail is not None:
             try:
-                on_fail()
+                on_fail(icon)
             except Exception:
-                log.exception("Трей: on_fail упал")
+                log.exception("Трей: обработчик остановки упал")
 
-    threading.Thread(target=_check_visible, daemon=True,
-                     name="tray-check").start()
+    threading.Thread(target=_monitor, daemon=True, name="tray-check").start()
     return icon

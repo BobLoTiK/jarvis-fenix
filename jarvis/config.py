@@ -9,6 +9,7 @@
 """
 
 import logging
+import threading
 from pathlib import Path
 from typing import Any, Callable
 
@@ -142,6 +143,9 @@ DEFAULT_CONFIG = {
     # Системная — валидное значение (в gui.py THEMES).
     # Раньше было "dark-blue" — такого ключа в THEMES нет.
     "gui_theme": "Системная",
+    "gui_sidebar_pinned": False,
+    # False disables sidebar motion even when the OS does not expose accessibility flags.
+    "gui_motion_enabled": True,
     "gui_x": None,
     "gui_y": None,
     "tray_enabled": True,
@@ -157,6 +161,7 @@ class Config:
             from jarvis import paths as _paths
             path = _paths.config_path()
         self.path = path
+        self._write_lock = threading.RLock()
         self._data: dict = {}
         self._listeners: list[Callable[[str, Any], None]] = []
         self.reload()
@@ -185,53 +190,27 @@ class Config:
     # --- запись ----------------------------------------------------------
 
     def set(self, key: str, value) -> bool:
-        """Ставит значение, сохраняет на диск, оповещает подписчиков.
+        """Persist before publishing the value and notifying subscribers."""
+        return self.update({key: value})
 
-        Если save не удался — откатываем в памяти.
+    def update(self, data: dict, *, expected_values: dict | None = None) -> bool:
+        """One atomic write for a batch, with optional editor conflict detection.
+
+        Concurrent set/update calls are serialized. Callbacks run outside the
+        write lock; failed writes never publish temporary in-memory values.
         """
-        if self._data.get(key) == value:
-            return True
-        old_value = self._data.get(key)
-        self._data[key] = value
-        ok = config_manager.save(self._data, path=self.path)
-
-        if not ok:
-            # Откат: не оставляем рассинхрон память ↔ диск.
-            self._data[key] = old_value
-            log.error("Config.set: save не удался на ключе %s — откатил", key)
-            return False
-
-        for cb in list(self._listeners):
-            try:
-                cb(key, value)
-            except Exception:
-                log.exception("Подписчик Config упал на ключе %s", key)
-        return True
-
-    def update(self, data: dict) -> bool:
-        """Массовое обновление. Оповещает по каждому ключу.
-
-        Если save не удался — откатываем в памяти.
-        """
-        changed = {k: v for k, v in data.items() if self._data.get(k) != v}
-        if not changed:
-            return True
-
-        # Запоминаем старые значения для отката
-        old_values = {k: self._data.get(k) for k in changed}
-
-        self._data.update(changed)
-        ok = config_manager.save(self._data, path=self.path)
-
-        if not ok:
-            # Откат
-            self._data.update(old_values)
-            log.error(
-                "Config.update: save не удался — откатил %d ключей",
-                len(changed),
-            )
-            return False
-
+        with self._write_lock:
+            if expected_values is not None and any(
+                    self._data.get(k) != v for k, v in expected_values.items()):
+                return False
+            changed = {k: v for k, v in data.items() if self._data.get(k) != v}
+            if not changed:
+                return True
+            updated = {**self._data, **changed}
+            if not config_manager.save(updated, path=self.path):
+                log.error("Config.update: save failed; previous values retained")
+                return False
+            self._data = updated
         for key, value in changed.items():
             for cb in list(self._listeners):
                 try:

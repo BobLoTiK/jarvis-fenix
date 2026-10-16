@@ -300,51 +300,38 @@ def test_memory_rag_checkbox(gui, cfg):
 # Вкладка «Персона»
 # =================================================================
 
-def test_persona_name_goes_to_config(gui, cfg):
-    gui._on_persona_name(ev("Маша"))
-    assert cfg["name"] == "Маша"
+def test_persona_name_is_staged_not_written_to_global_config(gui, cfg):
+    gui._build_persona_tab()
+    before = cfg.get("name")
+    editor = gui._preferences()
+    editor.persona_fields["name"].on_change(ev("Маша"))
+    assert editor.persona_draft["name"] == "Маша"
+    assert cfg.get("name") == before
 
 
-def test_persona_fields_go_to_persona_module(gui, monkeypatch):
-    saved = {}
-    monkeypatch.setattr(
-        persona_mod, "set_field",
-        lambda field, value: saved.__setitem__(field, value),
-    )
-
-    gui._on_persona_assistant_name(ev("Джарвис"))
-    gui._on_persona_style(ev("кратко"))
-    gui._on_persona_traits(ev("добрый, умный"))
-    gui._on_persona_backstory(ev("живу в ноутбуке"))
-
-    assert saved["assistant_name"] == "Джарвис"
-    assert saved["speech_style"] == "кратко"
-    assert saved["traits"] == ["добрый", "умный"]
-    assert saved["backstory"] == "живу в ноутбуке"
+def test_persona_fields_are_real_draft_controls(gui):
+    gui._build_persona_tab()
+    editor = gui._preferences()
+    editor.persona_fields["assistant_name"].on_change(ev("Искра"))
+    editor.persona_fields["backstory"].on_change(ev("Контекст"))
+    assert editor.persona_draft["assistant_name"] == "Искра"
+    assert editor.persona_draft["backstory"] == "Контекст"
 
 
-def test_persona_tone_rejects_unknown(gui, monkeypatch):
-    saved = {}
-    monkeypatch.setattr(
-        persona_mod, "set_field",
-        lambda field, value: saved.__setitem__(field, value),
-    )
-
-    gui._on_persona_tone(ev("злой"))
-
-    assert saved["tone"] == "auto"
+def test_persona_unknown_tone_is_rejected_without_writing(gui):
+    gui._build_persona_tab()
+    editor = gui._preferences()
+    editor.persona_draft["tone"] = "bogus"
+    editor.save_persona()
+    assert editor.persona_error
 
 
-def test_persona_assistant_name_empty_uses_default(gui, monkeypatch):
-    saved = {}
-    monkeypatch.setattr(
-        persona_mod, "set_field",
-        lambda field, value: saved.__setitem__(field, value),
-    )
-
-    gui._on_persona_assistant_name(ev("   "))
-
-    assert saved["assistant_name"] == "Феникс"
+def test_persona_empty_assistant_name_is_validation_error(gui):
+    gui._build_persona_tab()
+    editor = gui._preferences()
+    editor.persona_fields["assistant_name"].on_change(ev("   "))
+    editor.save_persona()
+    assert editor.persona_error
 
 
 # =================================================================
@@ -487,10 +474,12 @@ def test_set_tray_active_toggles_prevent_close(gui):
 
     gui.set_tray_active(True)
     assert gui.tray_active is True
-    assert page.window.prevent_close is True
+    assert gui._queue.get_nowait() == ("tray_active", True)
+    assert page.window.prevent_close is False  # worker applies it, not caller thread
 
     gui.set_tray_active(False)
     assert gui.tray_active is False
+    assert gui._queue.get_nowait() == ("tray_active", False)
     assert page.window.prevent_close is False
 
 
@@ -522,12 +511,17 @@ def test_show_window_makes_window_visible(gui):
 # =================================================================
 
 def test_settings_tab_has_tray_controls(gui):
-    """tray_enabled раньше правился только в config.json — теперь в GUI."""
-    tab = gui._build_settings_tab()
-    box = _find_checkbox(tab, "Иконка в трее")
-
-    assert box is not None, "во вкладке «Настройки» нет чекбокса трея"
-    assert box.value is True
+    """Native switch stages a value; only Apply persists it."""
+    gui._build_settings_tab()
+    editor = gui._preferences()
+    control = editor.settings_fields["tray_enabled"]
+    assert isinstance(control, ft.Switch)
+    assert control.value is True
+    control.on_change(ev(False))
+    assert gui.config.get("tray_enabled") is True
+    assert editor.settings_draft["tray_enabled"] is False
+    editor.save_settings()
+    assert gui.config.get("tray_enabled") is False
 
 
 def test_tray_enabled_sends_flag(gui, cfg):

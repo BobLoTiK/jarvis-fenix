@@ -1073,3 +1073,13 @@ Inno Setup 6.7 → `Феникс_Setup.exe`. Ставит в `C:\ProgramData\Pho
 5. **Личные данные — только в `config.json`, `profiles/`, `system_caps.json`.**
 6. **Python 3.10–3.12** — только `.venv311`.
 7. **`snapshot.py`** — исключать `.venv311`, `profiles/`, `system_caps.json`, `*.bak*`.
+
+### GUI: диагностика входа и проба голоса
+
+`gui_audio.SoundSettings` строит «Микрофон»/«Голос и звук» и хранит состояние
+проверок между пересборками темы. FenixGUI остаётся владельцем страницы и очереди.
+Фоновые проверки отправляют `sound_result`; только обработчик GUI меняет контролы.
+Уровень берётся из существующего Listener.current_rms + level_updated_at (monotonic),
+без второго аудиопотока. Прослушивание: фиксированный Reply → Jarvis.say → Speaker;
+nonblocking GUI/core command locks, _say_lock ядра и обычный stop/barge-in сохранены.
+Диагностика не вызывает handler/LLM, не добавляет сообщения или факты в память.

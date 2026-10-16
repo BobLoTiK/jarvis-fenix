@@ -51,6 +51,8 @@
   "danger_password": "",
   "gui_enabled": true,
   "gui_theme": "Системная",
+  "gui_sidebar_pinned": false,
+  "gui_motion_enabled": true,
   "gui_x": null,
   "gui_y": null,
   "tray_enabled": true,
