@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=414c9597442904b3` · режим `lean` · файлов `276` · строк `50492` · источник `2297 КБ`
+`sha256=73cce5a42cc1973e` · режим `lean` · файлов `276` · строк `50495` · источник `2297 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -759,7 +759,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_gui_widgets.py  (259 стр)
 │   ├── test_gui_wiring.py  (542 стр)
 │   ├── test_intents.py  (485 стр)
-│   ├── test_launcher_ui.py  (194 стр)
+│   ├── test_launcher_ui.py  (197 стр)
 │   ├── test_main_wiring.py  (202 стр)
 │   ├── test_memory_scope.py  (132 стр)
 │   ├── test_mic_watchdog.py  (36 стр)
@@ -4318,7 +4318,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_gui_widgets.py` | 259 | code | Opt-in layouts, exact task IDs, safe command path, atomic saves and li |
 | `tests/test_gui_wiring.py` | 542 | code | GUI → config: каждый элемент окна реально отсылает изменение. |
 | `tests/test_intents.py` | 485 | code | Автотест Феникса без микрофона. |
-| `tests/test_launcher_ui.py` | 194 | code | Bootstrap presentation tests; no Tk display, installation, downloads o |
+| `tests/test_launcher_ui.py` | 197 | code | Bootstrap presentation tests; no Tk display, installation, downloads o |
 | `tests/test_main_wiring.py` | 202 | code | config → живое ядро: подписчик make_config_listener. |
 | `tests/test_memory_scope.py` | 132 | code | Personalization should serve a question, not choose its topic. |
 | `tests/test_mic_watchdog.py` | 36 | code | Execute the real watchdog method without importing Windows/audio backe |
@@ -36568,13 +36568,16 @@ def test_ui_patch_preserves_210_process_commands():
     # Presentation-only patch: all 9 subprocess call ASTs remain byte-for-byte equivalent.
     # Revisit intentionally when a later task changes the installation engine.
     import hashlib
-    tree=ast.parse((ROOT/'launcher.py').read_text())
-    calls=sorted(ast.dump(n) for n in ast.walk(tree)
+    tree=ast.parse((ROOT/'launcher.py').read_text(encoding='utf-8'))
+    # Python 3.13 omits empty lists by default; 3.11 includes them.
+    # Normalize to the 3.11 representation, preserving the command guard.
+    dump_options = {'show_empty': True} if sys.version_info >= (3, 13) else {}
+    calls=sorted(ast.dump(n, **dump_options) for n in ast.walk(tree)
                  if isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute)
                  and isinstance(n.func.value,ast.Name) and n.func.value.id=='subprocess')
     assert len(calls)==9
     assert hashlib.sha256('\n'.join(calls).encode()).hexdigest()==\
-        '42276f18825bcd450f346a2004cd8762efcb6d87682eab91bb5781811392e4b7'
+        '8bf329cc14ffd9398c08f01d6c995f04df5ff6955e9dd7be0dba02c833cdb727'
 ```
 
 ### `tests/test_main_wiring.py`

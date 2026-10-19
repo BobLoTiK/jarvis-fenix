@@ -185,10 +185,13 @@ def test_ui_patch_preserves_210_process_commands():
     # Presentation-only patch: all 9 subprocess call ASTs remain byte-for-byte equivalent.
     # Revisit intentionally when a later task changes the installation engine.
     import hashlib
-    tree=ast.parse((ROOT/'launcher.py').read_text())
-    calls=sorted(ast.dump(n) for n in ast.walk(tree)
+    tree=ast.parse((ROOT/'launcher.py').read_text(encoding='utf-8'))
+    # Python 3.13 omits empty lists by default; 3.11 includes them.
+    # Normalize to the 3.11 representation, preserving the command guard.
+    dump_options = {'show_empty': True} if sys.version_info >= (3, 13) else {}
+    calls=sorted(ast.dump(n, **dump_options) for n in ast.walk(tree)
                  if isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute)
                  and isinstance(n.func.value,ast.Name) and n.func.value.id=='subprocess')
     assert len(calls)==9
     assert hashlib.sha256('\n'.join(calls).encode()).hexdigest()==\
-        '42276f18825bcd450f346a2004cd8762efcb6d87682eab91bb5781811392e4b7'
+        '8bf329cc14ffd9398c08f01d6c995f04df5ff6955e9dd7be0dba02c833cdb727'
