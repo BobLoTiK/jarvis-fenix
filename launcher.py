@@ -2,12 +2,12 @@
 
 Что делает при запуске:
     1. Ищет Python 3.11 (py -3.X, where python, типичные пути).
-    2. Если не нашёл — MessageBox: [Скачать Python 3.11] [Отмена].
+    2. Если не нашёл — вопрос в едином окне подготовки.
        Скачивает python-3.11.9-amd64.exe, запускает installer.
     3. Проверяет .venv311. Если нет — создаёт.
     4. Проверяет зависимости (flet, vosk, piper). Если нет — pip install.
     5. Проверяет Vosk-модель. Если нет — скачивает.
-    6. Проверяет Ollama (URL + поиск на дисках). Если нет — MessageBox.
+    6. Проверяет Ollama (URL + поиск на дисках). Если нет — вопрос в окне подготовки.
     7. Запускает Феникс через .venv311\\Scripts\\pythonw.exe -m jarvis.
 
 Собирается в exe (PyInstaller). Защищён от повторного запуска.
@@ -83,8 +83,25 @@ DETACHED_PROCESS = 0x00000008
 # MessageBox
 # ============================================================
 
+_PREPARATION = None
+
+
+def _download_progress(block, block_size, total):
+    if _PREPARATION is not None:
+        _PREPARATION.download_progress(block, block_size, total)
+
+
 def msg_box(text: str, title: str = "Феникс", flags: int = MB_OK) -> int:
-    """Показывает Windows MessageBox. Возвращает ID нажатой кнопки."""
+    """Inline question while preparing; native fallback if the UI cannot open."""
+    if _PREPARATION is not None:
+        if flags & MB_YESNO:
+            return IDYES if _PREPARATION.ask(text, title, "Открыть сайт", "Продолжить без Ollama") else IDNO
+        if flags & MB_OKCANCEL:
+            answer = _PREPARATION.ask(text, title, "Продолжить", "Не сейчас")
+            _PREPARATION.declined = not answer
+            return IDOK if answer else IDCANCEL
+        _PREPARATION.detail(text)
+        return IDOK
     try:
         return ctypes.windll.user32.MessageBoxW(0, text, title, flags)
     except Exception:
@@ -92,14 +109,26 @@ def msg_box(text: str, title: str = "Феникс", flags: int = MB_OK) -> int:
 
 
 def info(text: str, title: str = "Феникс") -> None:
+    if _PREPARATION is not None:
+        if "уже запущен" in text.lower():
+            _PREPARATION.notice = text
+        else:
+            _PREPARATION.stage(title, text, show=True)
+        return
     msg_box(text, title, MB_OK | MB_ICONINFORMATION)
 
 
 def warn(text: str, title: str = "Феникс") -> None:
+    if _PREPARATION is not None:
+        _PREPARATION.detail(text)
+        return
     msg_box(text, title, MB_OK | MB_ICONWARNING)
 
 
 def error(text: str, title: str = "Феникс — ошибка") -> None:
+    if _PREPARATION is not None:
+        _PREPARATION.last_error = text
+        return
     msg_box(text, title, MB_OK | MB_ICONERROR)
 
 
@@ -118,13 +147,18 @@ def _setup_logging(base_dir: Path) -> Path:
 
     logger = logging.getLogger("launcher")
     logger.setLevel(logging.INFO)
-    logger.handlers.clear()
+    for handler in list(logger.handlers):
+        logger.removeHandler(handler)
+        handler.close()
 
     fh = logging.FileHandler(log_file, mode="a", encoding="utf-8")
     fh.setFormatter(logging.Formatter(
         "%(asctime)s launcher %(levelname)s %(message)s"
     ))
     logger.addHandler(fh)
+    if _PREPARATION is not None:
+        from launcher_ui import StageLogHandler
+        logger.addHandler(StageLogHandler(_PREPARATION))
 
     return log_file
 
@@ -272,7 +306,7 @@ def download_python_installer(logger) -> Path | None:
         "Сейчас будет скачан установщик Python 3.11 (~25 МБ).\n\n"
         "После скачивания откроется окно установки — "
         "нажми «Install Now» и дождись завершения.\n\n"
-        "Нажми ОК, чтобы начать скачивание.",
+        "Подготовка продолжится в этом окне.",
         "Феникс — установка Python",
     )
 
@@ -282,7 +316,7 @@ def download_python_installer(logger) -> Path | None:
         # Качаем в .part и переименовываем только после успеха: обрыв
         # оставлял обрезанный exe, который следующий запуск молча
         # переиспользовал («installer уже есть»).
-        urllib.request.urlretrieve(PYTHON_INSTALLER_URL, part)
+        urllib.request.urlretrieve(PYTHON_INSTALLER_URL, part, reporthook=_download_progress)
         part.replace(installer)
         logger.info("Installer скачан: %s", installer)
         return installer
@@ -539,7 +573,7 @@ def download_vosk_model(project_dir: Path, logger) -> bool:
 
     logger.info("Скачиваю Vosk: %s", VOSK_MODEL_URL)
     try:
-        urllib.request.urlretrieve(VOSK_MODEL_URL, zip_path)
+        urllib.request.urlretrieve(VOSK_MODEL_URL, zip_path, reporthook=_download_progress)
         logger.info("Vosk скачан: %s", zip_path)
     except Exception:
         logger.exception("Не удалось скачать Vosk")
@@ -676,7 +710,7 @@ def run_jarvis(project_dir: Path, pythonw: Path, logger) -> None:
 # Главная функция
 # ============================================================
 
-def main() -> None:
+def _main() -> None:
     if getattr(sys, "frozen", False):
         exe_dir = Path(sys.executable).resolve().parent
     else:
@@ -763,6 +797,28 @@ def main() -> None:
     handle_ollama(logger)
 
     run_jarvis(project_dir, pythonw, logger)
+
+
+def main() -> None:
+    """UI wrapper; the existing bootstrap workflow runs on one worker."""
+    base = Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) else Path(__file__).resolve().parent
+    log_file = _setup_logging(base)
+    try:
+        from launcher_ui import PreparationWindow
+        window = PreparationWindow(find_project_dir(logging.getLogger("launcher")), log_file)
+        def prepare(session):
+            global _PREPARATION
+            _PREPARATION = session
+            try:
+                _main()
+            finally:
+                _PREPARATION = None
+        window.run(prepare)
+    except Exception:
+        logging.getLogger("launcher").exception("Не удалось открыть окно подготовки")
+        error("Не удалось открыть окно подготовки Феникса.\n"
+              "При запуске из исходников нужен компонент Tcl/Tk Python 3.11.\n"
+              "Подробности: logs\\launcher.log")
 
 
 if __name__ == "__main__":

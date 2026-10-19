@@ -28,7 +28,7 @@
 ;   ISCC.exe /DMyAppVersion=1.0.2 installer.iss
 ; (CI передаёт версию из тега: scripts\build_setup.py --version 1.0.2)
 #ifndef MyAppVersion
-  #define MyAppVersion "1.0.0"
+  #define MyAppVersion "2.1.0"
 #endif
 #define MyAppPublisher "Phoenix Project"
 #define MyAppURL "https://github.com/BobLoTiK/jarvis-fenix"
@@ -62,6 +62,7 @@ WizardSmallImageFile=installer_small.bmp
 WizardImageStretch=yes
 WizardImageBackColor=$001C1212
 PrivilegesRequired=lowest
+MinVersion=10.0
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 ; Мьютексы ядра И setup-лаунчера — Inno попросит закрыть

@@ -473,3 +473,8 @@ uncheck, черновики задачи и редактора через тем
 ## Аудит установщика
 `test_release_payload.py`: исключение личных файлов, manifest, недостающие ресурсы, ссылки/небезопасные назначения, preflight, fingerprint/cancel, атомарный caps и мягкая ошибка диагностики. `test_build_setup.py` — версии/Inno override.
 Linux portable-прогон: 1189 passed, 4 skipped (исключены Windows-only test_browser_target.py/test_window_targets.py; это не Windows-приёмка). Реальная сборка/установка отдельно по docs/INSTALLER_UPDATE.md.
+
+## Окно подготовки (после 2.1.0)
+`tests/test_launcher_ui.py`: очередь UI, вопросы/отказ, отсутствие информационных modal, этапы и byte-progress, ошибка/повтор, двойной клик, отсутствие активной отмены, требования Tcl/Tk, включение root-модуля в payload. AST fingerprint подтверждает неизменность всех 9 subprocess-вызовов из 2.1.0. Фокусированный набор bootstrap/release/startup: 58 passed; check_syntax: 196 файлов. Windows-отрисовка, frozen EXE и чистая установка здесь не проверены.
+
+Итоговый Linux portable-прогон текущего патча: **1212 passed, 4 skipped, 147 warnings**; Windows-only test_browser_target.py и test_window_targets.py исключены, это не проверка установки на Windows.

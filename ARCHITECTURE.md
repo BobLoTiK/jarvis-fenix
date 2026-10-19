@@ -851,7 +851,7 @@ actions.spec_from_string(s)
 
 ~~~~
 1. Ищет Python 3.11.
-2. Нет → MessageBox: [Скачать Python 3.11] [Отмена].
+2. Нет → вопрос в едином окне подготовки: [Продолжить] [Не сейчас].
 3. Проверяет .venv311. Нет → создаёт.
 4. Проверяет fingerprint requirements и native Flet 1.0.3–1.0.x. Изменились → pip install после согласия.
    Диагностика возможностей — на машине пользователя, с кэшем в USER_DIR.
@@ -860,7 +860,7 @@ actions.spec_from_string(s)
 7. Запускает .venv311\Scripts\pythonw.exe -m jarvis.
 ~~~~
 
-- **Диалоги** — `ctypes.windll.user32.MessageBoxW`.
+- **Подготовка** — `launcher_ui.py`, Tk в EXE, очередь между UI и worker. MessageBox — аварийный fallback; активная отмена установки не добавлена. См. docs/BOOTSTRAP_WINDOW_UPDATE.md.
 - **Логи** — `logs/launcher.log`.
 - **Мьютекс** — `Local\JarvisPhoenixSingleInstance` (без админа).
 - **Zip Slip защита** при распаковке Vosk.

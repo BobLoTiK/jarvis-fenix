@@ -85,7 +85,7 @@ def make_banner(version=None) -> None:
         from jarvis import __version__
         ver_text = f"v{version or __version__}"
     except Exception:
-        ver_text = "v1.0.0"
+        raise RuntimeError("Не удалось определить версию пакета для баннера")
 
     font_ver = _find_font(10)
     bbox = d.textbbox((0, 0), ver_text, font=font_ver)

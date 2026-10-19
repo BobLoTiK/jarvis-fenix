@@ -6,7 +6,7 @@ import tempfile
 from pathlib import Path
 
 ROOT_FILES = (
-    'launcher.py', 'requirements.txt', 'config.example.json', 'README.md',
+    'launcher.py', 'launcher_ui.py', 'requirements.txt', 'config.example.json', 'README.md',
     'ARCHITECTURE.md', 'CHANGELOG.md', 'LICENSE', 'start_fenix.bat',
     'start_fenix_debug.bat', 'create_shortcut.bat',
 )
@@ -39,6 +39,7 @@ def collect_payload(root, include_exe=True):
     paths.update(('assets/readme/hero.svg', 'assets/readme/hero-mobile.svg', 'docs/USER_GUIDE.md'))
     # Only public Markdown documentation, not screenshots, logs or audio recordings.
     paths.update(p.relative_to(root).as_posix() for p in (root/'docs').glob('*.md'))
+    paths.update(p.relative_to(root).as_posix() for p in (root/'docs/releases').glob('*.md'))
     if include_exe:
         paths.add('Феникс.exe')
     for name in sorted(paths):

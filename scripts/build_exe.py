@@ -37,7 +37,17 @@ def ensure_icon() -> None:
         sys.exit(1)
 
 
+def check_bootstrap_ui() -> None:
+    """PyInstaller's Tk hook bundles Tcl/Tk; verify the builder includes it."""
+    try:
+        import tkinter
+        tkinter.Tcl().eval("info patchlevel")
+    except Exception as exc:
+        raise RuntimeError("Для сборки нужен Python с Tcl/Tk. В установщике Python включи Tcl/Tk and IDLE.") from exc
+
+
 def build() -> None:
+    check_bootstrap_ui()
     ensure_icon()
 
     cmd = [

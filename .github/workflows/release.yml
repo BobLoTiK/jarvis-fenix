@@ -118,8 +118,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
+          $notesFile = "docs/releases/$env:RELEASE_TAG.md"
+          $notesArgs = @("--generate-notes")
+          if (Test-Path $notesFile) { $notesArgs = @("--notes-file", $notesFile) }
           gh release create "$env:RELEASE_TAG" `
             "dist/Феникс_Setup.exe" `
             "Феникс.exe" `
             --title "Феникс $env:RELEASE_TAG" `
-            --generate-notes
+            @notesArgs

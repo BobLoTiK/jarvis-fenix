@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=5098c1d635df42a5` · режим `lean` · файлов `270` · строк `49572` · источник `2233 КБ`
+`sha256=414c9597442904b3` · режим `lean` · файлов `276` · строк `50492` · источник `2297 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -13,6 +13,14 @@
 ````
 # PROJECT.md — источник правды о «Феникс»
 
+**Текущий P0:** установленное приложение не открывается; причина ещё не
+подтверждена логом. Сначала запуск/Windows-приёмка, затем TTS.
+Дополненный план: docs/IMPROVEMENT_BACKLOG.md. Новые улучшения пока не реализованы.
+
+
+**Незарелизенный интерфейс подготовки:** `launcher_ui.py` (Tk + очередь), docs/BOOTSTRAP_WINDOW_UPDATE.md. Установочные команды прежние; активной отмены нет. Нужны пересборка EXE/Setup и Windows UI-приёмка.
+
+**Подготовленная версия: 2.1.0, тег `v2.1.0`.** Создание/push тега из этой рабочей копии не выполнялись (нет `.git` и GitHub-подключения). Дальнейшие действия: `docs/NEXT_STEPS.md`.
 
 **Поставка обновлена:** `docs/INSTALLER_UPDATE.md` — curated payload/manifest, Python 3.11/Flet 1.0.x, fingerprint зависимостей, caps в USER_DIR. EXE/Setup здесь не собраны; Windows acceptance обязательна. TTS-оптимизация ещё не реализована.
 Курируемый документ. Обновлён 16.10.2026. `snapshot.py` включает его целиком;
@@ -486,9 +494,9 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ├── .github/
 │   ├── workflows/
 │   │   ├── README.md  (74 стр)
-│   │   ├── release.yml  (125 стр)
+│   │   ├── release.yml  (128 стр)
 │   │   ├── test.yml  (71 стр)
-├── AGENTS.md  (150 стр)
+├── AGENTS.md  (158 стр)
 ├── ARCHITECTURE.md  (1091 стр)
 ├── assets/
 │   ├── nonverbal/
@@ -497,7 +505,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── readme/
 │   │   ├── hero-mobile.svg  (8 стр)
 │   │   ├── hero.svg  (19 стр)
-├── CHANGELOG.md  (1558 стр)
+├── CHANGELOG.md  (1581 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -510,6 +518,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ├── CONTRIBUTING.md  (438 стр)
 ├── create_shortcut.bat  (52 стр)
 ├── docs/
+│   ├── BOOTSTRAP_WINDOW_UPDATE.md  (46 стр)
 │   ├── GUI_HOME_ACTION_RING.md  (45 стр)
 │   ├── GUI_HOME_UPDATE.md  (47 стр)
 │   ├── GUI_PERSONA_SETTINGS_UPDATE.md  (62 стр)
@@ -520,11 +529,15 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── GUI_SOLAR_AURA_UPDATE.md  (52 стр)
 │   ├── GUI_STARTUP_TRAY_FIX.md  (55 стр)
 │   ├── GUI_WIDGETS_UPDATE.md  (58 стр)
-│   ├── INSTALLER_UPDATE.md  (44 стр)
+│   ├── IMPROVEMENT_BACKLOG.md  (113 стр)
+│   ├── INSTALLER_UPDATE.md  (47 стр)
 │   ├── LOCAL_VOICE_OPTIONS.md  (67 стр)
-│   ├── USER_GUIDE.md  (990 стр)
+│   ├── NEXT_STEPS.md  (52 стр)
+│   ├── releases/
+│   │   ├── v2.1.0.md  (34 стр)
+│   ├── USER_GUIDE.md  (993 стр)
 ├── install.bat  (342 стр)
-├── installer.iss  (105 стр)
+├── installer.iss  (106 стр)
 ├── jarvis/
 │   ├── __init__.py  (8 стр)
 │   ├── __main__.py  (4 стр)
@@ -663,7 +676,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── voices.py  (220 стр)
 │   ├── weather.py  (400 стр)
 ├── jarvis-fenix.code-workspace  (8 стр)
-├── launcher.py  (769 стр)
+├── launcher.py  (825 стр)
+├── launcher_ui.py  (332 стр)
 ├── LICENSE  (25 стр)
 ├── packs/
 │   ├── apps.json  (21 стр)
@@ -671,18 +685,18 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── sites.json  (22 стр)
 │   ├── system.json  (17 стр)
 │   ├── work.json  (11 стр)
-├── PLAN.md  (315 стр)
-├── PROJECT.md  (459 стр)
-├── PROMPT.md  (176 стр)
+├── PLAN.md  (332 стр)
+├── PROJECT.md  (467 стр)
+├── PROMPT.md  (184 стр)
 ├── pytest.ini  (20 стр)
-├── README.md  (252 стр)
+├── README.md  (255 стр)
 ├── requirements-ci.txt  (36 стр)
 ├── requirements-dev.txt  (10 стр)
 ├── requirements.txt  (63 стр)
 ├── scripts/
 │   ├── __init__.py  (7 стр)
 │   ├── audio_regression.py  (11 стр)
-│   ├── build_exe.py  (73 стр)
+│   ├── build_exe.py  (83 стр)
 │   ├── build_setup.py  (212 стр)
 │   ├── check_caps.py  (205 стр)
 │   ├── check_staged_snapshot.py  (149 стр)
@@ -691,7 +705,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── make_icon.py  (32 стр)
 │   ├── make_installer_images.py  (125 стр)
 │   ├── mics.py  (52 стр)
-│   ├── release_payload.py  (85 стр)
+│   ├── release_payload.py  (86 стр)
 │   ├── selftest.py  (49 стр)
 │   ├── set_llm_model.py  (52 стр)
 │   ├── startup_probe.py  (196 стр)
@@ -719,7 +733,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── uia_manual.py  (61 стр)
 │   │   ├── vad_debug.py  (61 стр)
 │   │   ├── vad_live.py  (41 стр)
-│   ├── README.md  (475 стр)
+│   ├── README.md  (480 стр)
 │   ├── stress_intents.py  (552 стр)
 │   ├── test_audio_regression.py  (556 стр)
 │   ├── test_audit_regressions.py  (265 стр)
@@ -745,6 +759,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_gui_widgets.py  (259 стр)
 │   ├── test_gui_wiring.py  (542 стр)
 │   ├── test_intents.py  (485 стр)
+│   ├── test_launcher_ui.py  (194 стр)
 │   ├── test_main_wiring.py  (202 стр)
 │   ├── test_memory_scope.py  (132 стр)
 │   ├── test_mic_watchdog.py  (36 стр)
@@ -2341,6 +2356,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   ICON = ...
   EXE_NAME = ...
   def ensure_icon()
+  def check_bootstrap_ui()
   def build()
 ```
 
@@ -3310,6 +3326,35 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def main()
 ```
 
+**`tests/test_launcher_ui.py`**
+
+```
+  # Bootstrap presentation tests; no Tk display, installation, downloads or Windows needed.
+  ROOT = ...
+  def reset_session(monkeypatch)
+  def test_question_queue_round_trip(answer)
+  def test_inline_consent_preserves_result(monkeypatch, answer, expected)
+  def test_inline_optional_question_preserves_result(monkeypatch, answer, expected)
+  def test_information_never_waits_for_acknowledgement(monkeypatch)
+  def test_already_running_is_inline_notice(monkeypatch)
+  def test_real_byte_progress_and_unknown_length(monkeypatch)
+  def test_pip_is_indeterminate_not_a_fake_percentage()
+  def window(tmp_path)
+  def test_busy_close_does_not_stop_active_installation(window)
+  def test_question_close_declines_without_process_operations(window)
+  def test_worker_error_becomes_retry_in_same_window(window)
+  def test_decline_finishes_without_error_or_retry(window)
+  def test_logged_failure_is_not_silently_treated_as_success(window)
+  def test_completed_launch_closes_preparation_window(window)
+  def test_ui_module_has_no_installation_or_process_engine()
+  def test_builder_reports_missing_tk_without_building(monkeypatch)
+  def test_builder_checks_tcl_interpreter(monkeypatch)
+  def test_source_payload_requires_bootstrap_ui()
+  def test_supported_windows_minimum_is_explicit()
+  def test_retry_double_click_schedules_only_once(window)
+  def test_ui_patch_preserves_210_process_commands()
+```
+
 **`tests/test_main_wiring.py`**
 
 ```
@@ -4016,6 +4061,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   IDCANCEL = ...
   CREATE_NO_WINDOW = ...
   DETACHED_PROCESS = ...
+  _PREPARATION = ...
   def msg_box(text: str, title: str='Феникс', flags: int=MB_OK)
   def info(text: str, title: str='Феникс')
   def warn(text: str, title: str='Феникс')
@@ -4041,6 +4087,29 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def handle_ollama(logger)
   def run_jarvis(project_dir: Path, pythonw: Path, logger)
   def main()
+```
+
+**`launcher_ui.py`**
+
+```
+  # One bootstrap window. Presentation only: no downloads, pip or process control.
+  class PreparationFailed(Exception)
+  class Question
+    def __init__(self, text, title, yes, no)
+    def resolve(self, answer)
+  class Session
+    def __init__(self)
+    def emit(self, kind, **data)
+    def stage(self, title, detail='', show=False)
+    def detail(self, text)
+    def ask(self, text, title, yes='Продолжить', no='Не сейчас')
+    def download_progress(self, block, block_size, total)
+  class StageLogHandler(logging.Handler)
+    def __init__(self, session)
+    def emit(self, record)
+  class PreparationWindow
+    def __init__(self, project_dir, log_file)
+    def run(self, job)
 ```
 
 **`snapshot.py`**
@@ -4195,7 +4264,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/weather.py` | 400 | code | Погода и курс валют. |
 | `scripts/__init__.py` | 7 | code | Пакет scripts: утилиты разработчика. |
 | `scripts/audio_regression.py` | 11 | code | Run optional local audio regression tools; ordinary pytest never loads |
-| `scripts/build_exe.py` | 73 | code | Сборка Феникс.exe (лёгкий лаунчер). |
+| `scripts/build_exe.py` | 83 | code | Сборка Феникс.exe (лёгкий лаунчер). |
 | `scripts/build_setup.py` | 212 | code | Полная сборка Феникса: Феникс.exe + Феникс_Setup.exe — одной командой. |
 | `scripts/check_caps.py` | 205 | code | Проверка возможностей системы — запускается из install.bat. |
 | `scripts/check_staged_snapshot.py` | 149 | code | Check the Git index, not an unstaged working-tree snapshot; never stag |
@@ -4204,7 +4273,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `scripts/make_icon.py` | 32 | code | Build the Windows/tray phoenix icon from the project's transparent mas |
 | `scripts/make_installer_images.py` | 125 | code | Генерация картинок для Inno Setup установщика Феникса. |
 | `scripts/mics.py` | 52 | code | Подбор микрофона: показывает устройства ввода и уровень сигнала. |
-| `scripts/release_payload.py` | 85 | code | Curated installer payload; never recurse over the developer's entire w |
+| `scripts/release_payload.py` | 86 | code | Curated installer payload; never recurse over the developer's entire w |
 | `scripts/selftest.py` | 49 | code | Самопроверка без микрофона: TTS -> Vosk -> разбор команды. |
 | `scripts/set_llm_model.py` | 52 | code | Устанавливает llm_model в config.json. |
 | `scripts/startup_probe.py` | 196 | code | Замер старта Феникса по этапам — что именно тормозит запуск. |
@@ -4249,6 +4318,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_gui_widgets.py` | 259 | code | Opt-in layouts, exact task IDs, safe command path, atomic saves and li |
 | `tests/test_gui_wiring.py` | 542 | code | GUI → config: каждый элемент окна реально отсылает изменение. |
 | `tests/test_intents.py` | 485 | code | Автотест Феникса без микрофона. |
+| `tests/test_launcher_ui.py` | 194 | code | Bootstrap presentation tests; no Tk display, installation, downloads o |
 | `tests/test_main_wiring.py` | 202 | code | config → живое ядро: подписчик make_config_listener. |
 | `tests/test_memory_scope.py` | 132 | code | Personalization should serve a question, not choose its topic. |
 | `tests/test_mic_watchdog.py` | 36 | code | Execute the real watchdog method without importing Windows/audio backe |
@@ -4275,7 +4345,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_window_targets.py` | 294 | code | Тесты выбора окна: голосовое имя → процессы → окно. |
 | `check_all.py` | 170 | code | Единый прогон всех проверок Феникса — движок для check_all.bat. |
 | `check_syntax.py` | 60 | code | Проверяет синтаксис всех .py файлов в проекте. |
-| `launcher.py` | 769 | code | Лаунчер Феникса — полный автозапуск. |
+| `launcher.py` | 825 | code | Лаунчер Феникса — полный автозапуск. |
+| `launcher_ui.py` | 332 | code | One bootstrap window. Presentation only: no downloads, pip or process  |
 | `snapshot.py` | 727 | code | Собирает снимок проекта в один SNAPSHOT.md. |
 
 ---
@@ -4287,7 +4358,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ```python
 """Феникс — локальный голосовой ассистент для Windows. ... [4 строк]"""
 
-__version__ = "1.0.0"
+__version__ = "2.1.0"
 APP_NAME = "Феникс"
 ```
 
@@ -26730,7 +26801,17 @@ def ensure_icon() -> None:
         sys.exit(1)
 
 
+def check_bootstrap_ui() -> None:
+    """PyInstaller's Tk hook bundles Tcl/Tk; verify the builder includes it."""
+    try:
+        import tkinter
+        tkinter.Tcl().eval("info patchlevel")
+    except Exception as exc:
+        raise RuntimeError("Для сборки нужен Python с Tcl/Tk. В установщике Python включи Tcl/Tk and IDLE.") from exc
+
+
 def build() -> None:
+    check_bootstrap_ui()
     ensure_icon()
 
     cmd = [
@@ -27543,7 +27624,7 @@ def make_banner(version=None) -> None:
         from jarvis import __version__
         ver_text = f"v{version or __version__}"
     except Exception:
-        ver_text = "v1.0.0"
+        raise RuntimeError("Не удалось определить версию пакета для баннера")
 
     font_ver = _find_font(10)
     bbox = d.textbbox((0, 0), ver_text, font=font_ver)
@@ -27646,7 +27727,7 @@ import tempfile
 from pathlib import Path
 
 ROOT_FILES = (
-    'launcher.py', 'requirements.txt', 'config.example.json', 'README.md',
+    'launcher.py', 'launcher_ui.py', 'requirements.txt', 'config.example.json', 'README.md',
     'ARCHITECTURE.md', 'CHANGELOG.md', 'LICENSE', 'start_fenix.bat',
     'start_fenix_debug.bat', 'create_shortcut.bat',
 )
@@ -27679,6 +27760,7 @@ def collect_payload(root, include_exe=True):
     paths.update(('assets/readme/hero.svg', 'assets/readme/hero-mobile.svg', 'docs/USER_GUIDE.md'))
     # Only public Markdown documentation, not screenshots, logs or audio recordings.
     paths.update(p.relative_to(root).as_posix() for p in (root/'docs').glob('*.md'))
+    paths.update(p.relative_to(root).as_posix() for p in (root/'docs/releases').glob('*.md'))
     if include_exe:
         paths.add('Феникс.exe')
     for name in sorted(paths):
@@ -36296,6 +36378,205 @@ if __name__ == "__main__":
     main()
 ```
 
+### `tests/test_launcher_ui.py`
+
+```python
+"""Bootstrap presentation tests; no Tk display, installation, downloads or Windows needed."""
+import ast
+import logging
+from pathlib import Path
+import sys
+import threading
+from types import SimpleNamespace
+from unittest.mock import Mock
+
+import pytest
+import launcher
+from launcher_ui import PreparationWindow, Session, StageLogHandler
+
+ROOT = Path(__file__).resolve().parents[1]
+
+@pytest.fixture(autouse=True)
+def reset_session(monkeypatch):
+    monkeypatch.setattr(launcher,'_PREPARATION',None)
+
+@pytest.mark.parametrize('answer',[True,False])
+def test_question_queue_round_trip(answer):
+    session=Session(); result=[]
+    worker=threading.Thread(target=lambda:result.append(session.ask('question','title')))
+    worker.start()
+    kind,data=session.events.get(timeout=2)
+    assert kind=='question'
+    data['question'].resolve(answer)
+    worker.join(timeout=2)
+    assert not worker.is_alive()
+    assert result==[answer]
+
+@pytest.mark.parametrize('answer,expected',[(True,launcher.IDOK),(False,launcher.IDCANCEL)])
+def test_inline_consent_preserves_result(monkeypatch,answer,expected):
+    session=Session();session.ask=Mock(return_value=answer)
+    monkeypatch.setattr(launcher,'_PREPARATION',session)
+    assert launcher.msg_box('prepare','title',launcher.MB_OKCANCEL|launcher.MB_ICONQUESTION)==expected
+    assert session.declined is (not answer)
+
+@pytest.mark.parametrize('answer,expected',[(True,launcher.IDYES),(False,launcher.IDNO)])
+def test_inline_optional_question_preserves_result(monkeypatch,answer,expected):
+    session=Session();session.ask=Mock(return_value=answer)
+    monkeypatch.setattr(launcher,'_PREPARATION',session)
+    assert launcher.msg_box('Ollama','title',launcher.MB_YESNO|launcher.MB_ICONQUESTION)==expected
+    assert not session.declined
+
+
+def test_information_never_waits_for_acknowledgement(monkeypatch):
+    session=Session();session.ask=Mock(side_effect=AssertionError('unexpected modal'))
+    monkeypatch.setattr(launcher,'_PREPARATION',session)
+    launcher.info('Создаю окружение','Подготовка')
+    kind,data=session.events.get_nowait()
+    assert kind=='stage' and data['show']
+    launcher.error('disk failure')
+    assert session.last_error=='disk failure'
+    launcher.warn('warning')
+    assert session.events.get_nowait()[0]=='detail'
+
+
+def test_already_running_is_inline_notice(monkeypatch):
+    session=Session();monkeypatch.setattr(launcher,'_PREPARATION',session)
+    launcher.info('Феникс уже запущен. Проверь трей.')
+    assert 'уже запущен' in session.notice
+
+
+def test_real_byte_progress_and_unknown_length(monkeypatch):
+    session=Session();monkeypatch.setattr(launcher,'_PREPARATION',session)
+    launcher._download_progress(0,1024,4096)
+    _,data=session.events.get_nowait();assert data['value']==0
+    session._last_progress=0
+    launcher._download_progress(2,1024,4096)
+    _,data=session.events.get_nowait();assert data['value']==.5
+    launcher._download_progress(9,1024,4096)
+    _,data=session.events.get_nowait();assert data['value']==1
+    session._last_progress=0
+    launcher._download_progress(2,1024,-1)
+    _,data=session.events.get_nowait();assert data['value'] is None
+
+
+def test_pip_is_indeterminate_not_a_fake_percentage():
+    session=Session();handler=StageLogHandler(session)
+    handler.emit(logging.LogRecord('launcher',logging.INFO,'',1,'pip install -r requirements.txt',(),None))
+    kind,data=session.events.get_nowait()
+    assert kind=='stage'
+    assert data['title']=='Устанавливаем зависимости'
+    assert 'неизвестен' in data['detail']
+
+
+@pytest.fixture
+def window(tmp_path):
+    w=PreparationWindow(tmp_path,tmp_path/'launcher.log')
+    for name in ('primary_button','cancel_button','stage_label','progress_label','root'):
+        setattr(w,name,Mock())
+    w._show=Mock();w._detail=Mock()
+    return w
+
+
+def test_busy_close_does_not_stop_active_installation(window):
+    window.state='busy';window.session=Session()
+    window._secondary()
+    window.root.destroy.assert_not_called()
+    assert 'дождись' in window._detail.call_args.args[0].lower()
+
+
+def test_question_close_declines_without_process_operations(window):
+    from launcher_ui import Question
+    window.question=Question('q','t','yes','no');q=window.question
+    window.state='question'
+    window._secondary()
+    assert q.ready.is_set() and not q.answer
+    assert window.state=='busy'
+
+
+def test_worker_error_becomes_retry_in_same_window(window):
+    window.job=Mock(side_effect=RuntimeError('test failure'))
+    window._start();window.worker.join(timeout=2)
+    kind,data=window.session.events.get(timeout=2)
+    assert kind=='finished' and data['status']=='failed'
+    window._event(kind,data)
+    assert window.state=='failed'
+    window.root.destroy.assert_not_called()
+    window.primary_button.configure.assert_called_with(text='Повторить',state='normal')
+
+
+def test_decline_finishes_without_error_or_retry(window):
+    window.job=lambda session:setattr(session,'declined',True)
+    window._start();window.worker.join(timeout=2)
+    kind,data=window.session.events.get(timeout=2)
+    assert data['status']=='ok'
+    assert window._event(kind,data) is False
+    window.root.destroy.assert_called_once()
+
+
+def test_logged_failure_is_not_silently_treated_as_success(window):
+    window.job=lambda session:setattr(session,'last_error','missing requirements')
+    window._start();window.worker.join(timeout=2)
+    _,data=window.session.events.get(timeout=2)
+    assert data['status']=='failed' and 'missing requirements' in data['text']
+
+
+def test_completed_launch_closes_preparation_window(window):
+    assert window._event('finished',{'status':'ok'}) is False
+    window.root.destroy.assert_called_once()
+
+
+def test_ui_module_has_no_installation_or_process_engine():
+    source=(ROOT/'launcher_ui.py').read_text()
+    tree=ast.parse(source)
+    imports=[n for n in ast.walk(tree) if isinstance(n,(ast.Import,ast.ImportFrom))]
+    assert not any('subprocess' in ast.dump(n) or 'urllib' in ast.dump(n) for n in imports)
+    assert 'def request_cancel' not in source
+    assert 'import tkinter' in source
+
+
+def test_builder_reports_missing_tk_without_building(monkeypatch):
+    from scripts import build_exe
+    monkeypatch.setitem(sys.modules,'tkinter',None)
+    with pytest.raises(RuntimeError,match='Tcl/Tk'):
+        build_exe.check_bootstrap_ui()
+
+
+def test_builder_checks_tcl_interpreter(monkeypatch):
+    from scripts import build_exe
+    interp=Mock();monkeypatch.setitem(sys.modules,'tkinter',SimpleNamespace(Tcl=lambda:interp))
+    build_exe.check_bootstrap_ui()
+    interp.eval.assert_called_once_with('info patchlevel')
+
+
+def test_source_payload_requires_bootstrap_ui():
+    from scripts.release_payload import collect_payload
+    assert 'launcher_ui.py' in collect_payload(ROOT,include_exe=False)
+
+
+def test_supported_windows_minimum_is_explicit():
+    assert "MinVersion=10.0" in (ROOT/"installer.iss").read_text()
+
+
+def test_retry_double_click_schedules_only_once(window):
+    window.state='failed';window._start=Mock()
+    window._primary();window._primary()
+    window._start.assert_called_once()
+    assert window.state=='retry_pending'
+
+
+def test_ui_patch_preserves_210_process_commands():
+    # Presentation-only patch: all 9 subprocess call ASTs remain byte-for-byte equivalent.
+    # Revisit intentionally when a later task changes the installation engine.
+    import hashlib
+    tree=ast.parse((ROOT/'launcher.py').read_text())
+    calls=sorted(ast.dump(n) for n in ast.walk(tree)
+                 if isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute)
+                 and isinstance(n.func.value,ast.Name) and n.func.value.id=='subprocess')
+    assert len(calls)==9
+    assert hashlib.sha256('\n'.join(calls).encode()).hexdigest()==\
+        '42276f18825bcd450f346a2004cd8762efcb6d87682eab91bb5781811392e4b7'
+```
+
 ### `tests/test_main_wiring.py`
 
 ```python
@@ -42845,8 +43126,25 @@ DETACHED_PROCESS = 0x00000008
 # MessageBox
 # ============================================================
 
+_PREPARATION = None
+
+
+def _download_progress(block, block_size, total):
+    if _PREPARATION is not None:
+        _PREPARATION.download_progress(block, block_size, total)
+
+
 def msg_box(text: str, title: str = "Феникс", flags: int = MB_OK) -> int:
-    """Показывает Windows MessageBox. Возвращает ID нажатой кнопки."""
+    """Inline question while preparing; native fallback if the UI cannot open."""
+    if _PREPARATION is not None:
+        if flags & MB_YESNO:
+            return IDYES if _PREPARATION.ask(text, title, "Открыть сайт", "Продолжить без Ollama") else IDNO
+        if flags & MB_OKCANCEL:
+            answer = _PREPARATION.ask(text, title, "Продолжить", "Не сейчас")
+            _PREPARATION.declined = not answer
+            return IDOK if answer else IDCANCEL
+        _PREPARATION.detail(text)
+        return IDOK
     try:
         return ctypes.windll.user32.MessageBoxW(0, text, title, flags)
     except Exception:
@@ -42854,14 +43152,26 @@ def msg_box(text: str, title: str = "Феникс", flags: int = MB_OK) -> int:
 
 
 def info(text: str, title: str = "Феникс") -> None:
+    if _PREPARATION is not None:
+        if "уже запущен" in text.lower():
+            _PREPARATION.notice = text
+        else:
+            _PREPARATION.stage(title, text, show=True)
+        return
     msg_box(text, title, MB_OK | MB_ICONINFORMATION)
 
 
 def warn(text: str, title: str = "Феникс") -> None:
+    if _PREPARATION is not None:
+        _PREPARATION.detail(text)
+        return
     msg_box(text, title, MB_OK | MB_ICONWARNING)
 
 
 def error(text: str, title: str = "Феникс — ошибка") -> None:
+    if _PREPARATION is not None:
+        _PREPARATION.last_error = text
+        return
     msg_box(text, title, MB_OK | MB_ICONERROR)
 
 
@@ -42880,13 +43190,18 @@ def _setup_logging(base_dir: Path) -> Path:
 
     logger = logging.getLogger("launcher")
     logger.setLevel(logging.INFO)
-    logger.handlers.clear()
+    for handler in list(logger.handlers):
+        logger.removeHandler(handler)
+        handler.close()
 
     fh = logging.FileHandler(log_file, mode="a", encoding="utf-8")
     fh.setFormatter(logging.Formatter(
         "%(asctime)s launcher %(levelname)s %(message)s"
     ))
     logger.addHandler(fh)
+    if _PREPARATION is not None:
+        from launcher_ui import StageLogHandler
+        logger.addHandler(StageLogHandler(_PREPARATION))
 
     return log_file
 
@@ -43034,7 +43349,7 @@ def download_python_installer(logger) -> Path | None:
         "Сейчас будет скачан установщик Python 3.11 (~25 МБ).\n\n"
         "После скачивания откроется окно установки — "
         "нажми «Install Now» и дождись завершения.\n\n"
-        "Нажми ОК, чтобы начать скачивание.",
+        "Подготовка продолжится в этом окне.",
         "Феникс — установка Python",
     )
 
@@ -43044,7 +43359,7 @@ def download_python_installer(logger) -> Path | None:
         # Качаем в .part и переименовываем только после успеха: обрыв
         # оставлял обрезанный exe, который следующий запуск молча
         # переиспользовал («installer уже есть»).
-        urllib.request.urlretrieve(PYTHON_INSTALLER_URL, part)
+        urllib.request.urlretrieve(PYTHON_INSTALLER_URL, part, reporthook=_download_progress)
         part.replace(installer)
         logger.info("Installer скачан: %s", installer)
         return installer
@@ -43301,7 +43616,7 @@ def download_vosk_model(project_dir: Path, logger) -> bool:
 
     logger.info("Скачиваю Vosk: %s", VOSK_MODEL_URL)
     try:
-        urllib.request.urlretrieve(VOSK_MODEL_URL, zip_path)
+        urllib.request.urlretrieve(VOSK_MODEL_URL, zip_path, reporthook=_download_progress)
         logger.info("Vosk скачан: %s", zip_path)
     except Exception:
         logger.exception("Не удалось скачать Vosk")
@@ -43438,7 +43753,7 @@ def run_jarvis(project_dir: Path, pythonw: Path, logger) -> None:
 # Главная функция
 # ============================================================
 
-def main() -> None:
+def _main() -> None:
     if getattr(sys, "frozen", False):
         exe_dir = Path(sys.executable).resolve().parent
     else:
@@ -43527,8 +43842,363 @@ def main() -> None:
     run_jarvis(project_dir, pythonw, logger)
 
 
+def main() -> None:
+    """UI wrapper; the existing bootstrap workflow runs on one worker."""
+    base = Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) else Path(__file__).resolve().parent
+    log_file = _setup_logging(base)
+    try:
+        from launcher_ui import PreparationWindow
+        window = PreparationWindow(find_project_dir(logging.getLogger("launcher")), log_file)
+        def prepare(session):
+            global _PREPARATION
+            _PREPARATION = session
+            try:
+                _main()
+            finally:
+                _PREPARATION = None
+        window.run(prepare)
+    except Exception:
+        logging.getLogger("launcher").exception("Не удалось открыть окно подготовки")
+        error("Не удалось открыть окно подготовки Феникса.\n"
+              "При запуске из исходников нужен компонент Tcl/Tk Python 3.11.\n"
+              "Подробности: logs\\launcher.log")
+
+
 if __name__ == "__main__":
     main()
+```
+
+### `launcher_ui.py`
+
+```python
+"""One bootstrap window. Presentation only: no downloads, pip or process control. ... [4 строк]"""
+from __future__ import annotations
+import os
+import logging
+from pathlib import Path
+import queue
+import threading
+import time
+
+
+class PreparationFailed(Exception):
+    pass
+
+
+class Question:
+    def __init__(self, text, title, yes, no):
+        self.text, self.title, self.yes, self.no = text, title, yes, no
+        self.ready = threading.Event()
+        self.answer = False
+
+    def resolve(self, answer):
+        self.answer = bool(answer)
+        self.ready.set()
+
+
+class Session:
+    """A queue boundary, not an installer engine. No widget access from workers."""
+    def __init__(self):
+        self.events = queue.Queue()
+        self.last_error = ''
+        self.declined = False
+        self.notice = ''
+        self._last_progress = 0.0
+
+    def emit(self, kind, **data):
+        self.events.put((kind, data))
+
+    def stage(self, title, detail='', show=False):
+        self.emit('stage', title=title, detail=detail, show=show)
+
+    def detail(self, text):
+        self.emit('detail', text=str(text))
+
+    def ask(self, text, title, yes='Продолжить', no='Не сейчас'):
+        question = Question(text, title, yes, no)
+        self.emit('question', question=question)
+        question.ready.wait()
+        return question.answer
+
+    def download_progress(self, block, block_size, total):
+        received = max(0, block*block_size)
+        if total > 0:
+            received = min(received,total)
+        now = time.monotonic()
+        complete = total > 0 and received >= total
+        if block and not complete and now-self._last_progress < .1:
+            return
+        self._last_progress = now
+        self.emit('progress', value=received/total if total > 0 else None,
+                  text=f'{received/1048576:.1f} МБ' +
+                  (f' из {total/1048576:.1f} МБ' if total > 0 else ' загружено'))
+
+
+class StageLogHandler(logging.Handler):
+    """Translate existing launcher logs to stage labels without changing its work."""
+    STAGES = (
+        ('Лаунчер стартует', 'Проверяем установку', 'Ищем Python 3.11 и проверяем окружение.', False),
+        ('Создаю venv:', 'Создаём окружение', 'Изолированная .venv311 для этой установки Феникса.', True),
+        ('pip install -r', 'Устанавливаем зависимости', 'pip загружает и устанавливает недостающие пакеты. Общий процент неизвестен; подготовка может занять несколько минут.', True),
+        ('Скачиваю installer:', 'Загружаем Python', 'Официальный установщик Python 3.11.', True),
+        ('Запускаю installer:', 'Установка Python', 'Заверши или отмени установку в отдельном окне официального установщика.', True),
+        ('Скачиваю Vosk:', 'Загружаем распознавание', 'Модель Vosk для русской речи.', True),
+        ('Распаковываю Vosk', 'Распаковываем модель', 'Подготавливаем файлы распознавания.', True),
+        ('Запускаю Феникс:', 'Запускаем Феникса', 'Передаём управление приложению.', False),
+    )
+
+    def __init__(self, session):
+        super().__init__()
+        self.session = session
+
+    def emit(self, record):
+        try:
+            message = record.getMessage()
+            for prefix, title, detail, show in self.STAGES:
+                if message.startswith(prefix):
+                    self.session.stage(title, detail, show=show)
+                    break
+        except Exception:
+            self.handleError(record)
+
+
+class PreparationWindow:
+    BG='#12121c'; CARD='#1d1e2d'; TEXT='#eeedf7'; DIM='#abaac1'; GOLD='#d8a786'
+    def __init__(self, project_dir, log_file):
+        self.project_dir, self.log_file = Path(project_dir), Path(log_file)
+        self.worker = None
+        self.session = None
+        self.question = None
+        self.state = 'idle'
+        self.progress = None
+        self.phase = 0
+        self.shown = False
+
+    def _button(self, parent, text, command, primary=False):
+        bg = self.GOLD if primary else '#343149'
+        fg = '#282b30' if primary else self.TEXT
+        return self.tk.Button(parent, text=text, command=command, bg=bg, fg=fg,
+            activebackground='#e4b995' if primary else '#45405c', activeforeground=fg,
+            relief='flat', borderwidth=0, highlightthickness=1,
+            highlightbackground=self.BG, highlightcolor=self.GOLD,
+            padx=18, pady=10, cursor='hand2', font=('Segoe UI',10), takefocus=True)
+
+    def _build(self):
+        import tkinter as tk
+        self.tk = tk
+        if os.name == 'nt':
+            import ctypes
+            try:
+                ctypes.windll.shcore.SetProcessDpiAwareness(1)
+            except (OSError, AttributeError):
+                pass
+            try:
+                ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('Phoenix.Bootstrap')
+            except (OSError, AttributeError):
+                pass
+        root = self.root = tk.Tk()
+        root.withdraw()
+        root.title('Феникс — подготовка')
+        root.configure(bg=self.BG)
+        root.resizable(False, False)
+        icon = self.project_dir/'jarvis/icon.ico'
+        if icon.is_file():
+            try:
+                root.iconbitmap(default=str(icon))
+            except tk.TclError:
+                pass
+        shell = tk.Frame(root, bg=self.BG, padx=30, pady=24)
+        shell.pack(fill='both', expand=True)
+        header = tk.Frame(shell, bg=self.BG)
+        header.pack(fill='x')
+        tk.Label(header, text='ФЕНИКС / ПОДГОТОВКА', bg=self.BG, fg=self.GOLD,
+                 font=('Segoe UI',10,'bold'), anchor='w').pack(side='left')
+        mark = self.project_dir/'jarvis/assets/brand/phoenix-dark.png'
+        if mark.is_file():
+            try:
+                image = tk.PhotoImage(file=str(mark))
+                self.mark_image = image.subsample(max(1,(image.width()+47)//48))
+                tk.Label(header,image=self.mark_image,bg=self.BG).pack(side='right')
+            except tk.TclError:
+                pass
+        tk.Label(shell, text='Всё начинается здесь.', bg=self.BG, fg=self.TEXT,
+                 font=('Segoe UI',24,'bold'), anchor='w').pack(fill='x', pady=(16,6))
+        tk.Label(shell, text='Подготовим компоненты — и откроем приложение.',
+                 bg=self.BG, fg=self.DIM, font=('Segoe UI',10), anchor='w').pack(fill='x')
+        card = tk.Frame(shell, bg=self.CARD, padx=18, pady=16)
+        card.pack(fill='x', pady=(20,16))
+        self.stage_label = tk.Label(card, text='Проверяем установку…', bg=self.CARD,
+            fg=self.TEXT, font=('Segoe UI',13,'bold'), anchor='w', wraplength=540, justify='left')
+        self.stage_label.pack(fill='x')
+        self.detail_text = tk.Text(card, width=66, height=8, bg=self.CARD, fg=self.DIM,
+            font=('Segoe UI',10), wrap='word', relief='flat', borderwidth=0,
+            highlightthickness=0, state='disabled', takefocus=True)
+        self.detail_text.pack(fill='x', pady=(10,12))
+        self.bar = tk.Canvas(card, bg=self.CARD, height=6, highlightthickness=0, width=540)
+        self.bar.pack(fill='x')
+        self.progress_label = tk.Label(card, text='Проверка компонентов', bg=self.CARD,
+            fg=self.DIM, font=('Segoe UI',9), anchor='w')
+        self.progress_label.pack(fill='x', pady=(8,0))
+        controls = tk.Frame(shell, bg=self.BG)
+        controls.pack(fill='x')
+        self.cancel_button = self._button(controls, 'Дождись завершения', self._secondary)
+        self.cancel_button.pack(side='right')
+        self.primary_button = self._button(controls, 'Продолжить', self._primary, True)
+        self.primary_button.pack(side='right', padx=(0,8))
+        self.primary_button.configure(state='disabled')
+        self.cancel_button.configure(state='disabled')
+        self.log_button = self._button(controls, 'Журнал', self._open_log)
+        self.log_button.pack(side='left')
+        tk.Label(shell, text='Активная установка не прерывается. Отказ — до начала этапа.',
+                 bg=self.BG, fg=self.DIM, font=('Segoe UI',9), anchor='w').pack(fill='x', pady=(12,0))
+        root.protocol('WM_DELETE_WINDOW', self._secondary)
+        root.bind('<Escape>', lambda _: self._secondary())
+        def enter(_):
+            button = root.focus_get()
+            if isinstance(button, tk.Button):
+                button.invoke()
+            else:
+                self.primary_button.invoke()
+        root.bind('<Return>', enter)
+        root.update_idletasks()
+        width, height = root.winfo_reqwidth(), root.winfo_reqheight()
+        root.geometry(f'+{max(0,(root.winfo_screenwidth()-width)//2)}+{max(0,(root.winfo_screenheight()-height)//2)}')
+        root.after(40,self._tick)
+
+    def _detail(self, text):
+        self.detail_text.configure(state='normal')
+        self.detail_text.delete('1.0','end')
+        self.detail_text.insert('1.0',str(text))
+        self.detail_text.configure(state='disabled')
+
+    def _show(self):
+        if not self.shown:
+            self.shown = True
+            self.root.deiconify()
+            self.root.lift()
+
+    def _open_log(self):
+        try:
+            os.startfile(self.log_file)
+        except (OSError,AttributeError):
+            self._detail(f'Журнал: {self.log_file}')
+
+    def _busy(self):
+        self.state = 'busy'
+        self.primary_button.configure(state='disabled')
+        self.cancel_button.configure(state='disabled', text='Дождись завершения')
+        self.progress = None
+        self.progress_label.configure(text='Выполняется…')
+
+    def _primary(self):
+        if self.state == 'question' and self.question is not None:
+            question, self.question = self.question, None
+            self._busy()
+            question.resolve(True)
+        elif self.state == 'failed':
+            self.state = 'retry_pending'
+            self.primary_button.configure(state='disabled')
+            self.cancel_button.configure(state='disabled')
+            self._start()
+
+    def _secondary(self):
+        if self.state == 'question' and self.question is not None:
+            question, self.question = self.question, None
+            self._busy()
+            question.resolve(False)
+        elif self.state in ('failed','notice','idle'):
+            self.root.destroy()
+        else:
+            self._detail('Этот этап уже выполняется. Дождись его завершения; принудительная остановка здесь отключена.')
+
+    def _start(self):
+        if self.worker is not None and self.worker.is_alive():
+            self.root.after(80,self._start)
+            return
+        self.session = Session()
+        self.question = None
+        self._busy()
+        def work():
+            try:
+                self.job(self.session)
+                if self.session.last_error:
+                    raise PreparationFailed(self.session.last_error)
+            except Exception as exc:
+                import logging
+                logging.getLogger('launcher').exception('Подготовка не завершена')
+                self.session.emit('finished',status='failed',text=str(exc) or 'Подробности в журнале.')
+            else:
+                self.session.emit('finished',status='notice' if self.session.notice else 'ok',text=self.session.notice)
+        self.worker = threading.Thread(target=work,name='phoenix-bootstrap',daemon=False)
+        self.worker.start()
+
+    def _event(self, kind, data):
+        if kind == 'finished':
+            self.question = None
+            self.state = data['status']
+            if self.state == 'ok':
+                self.root.destroy()
+                return False
+            self._show()
+            self.progress = 0
+            self.stage_label.configure(text='Не удалось завершить подготовку' if self.state=='failed' else 'Феникс уже работает')
+            self._detail(data.get('text',''))
+            self.progress_label.configure(text='Подробности доступны в журнале')
+            self.primary_button.configure(text='Повторить',state='normal' if self.state=='failed' else 'disabled')
+            self.cancel_button.configure(text='Закрыть',state='normal')
+        elif kind == 'stage':
+            self.stage_label.configure(text=data['title'])
+            self._detail(data['detail'])
+            self.progress = None
+            self.progress_label.configure(text='Выполняется…')
+            if data['show']:
+                self._show()
+        elif kind == 'detail':
+            self._detail(data['text'])
+        elif kind == 'progress':
+            self.progress = data['value']
+            self.progress_label.configure(text=data['text'])
+        elif kind == 'question':
+            self.question = data['question']
+            self.state = 'question'
+            self._show()
+            self.stage_label.configure(text=self.question.title)
+            self._detail(self.question.text)
+            self.progress = 0
+            self.progress_label.configure(text='Продолжение только с твоего согласия')
+            self.primary_button.configure(text=self.question.yes,state='normal')
+            self.cancel_button.configure(text=self.question.no,state='normal')
+            self.primary_button.focus_set()
+        return True
+
+    def _tick(self):
+        for _ in range(60):
+            try:
+                kind,data = self.session.events.get_nowait()
+            except queue.Empty:
+                break
+            if not self._event(kind,data):
+                return
+        width = max(1,self.bar.winfo_width())
+        self.bar.delete('all')
+        self.bar.create_rectangle(0,0,width,6,fill='#343149',outline='')
+        if self.progress is None and self.state == 'busy':
+            self.phase = (self.phase+.018)%1
+            span = width*.24
+            left = self.phase*(width+span)-span
+            self.bar.create_rectangle(max(0,left),0,min(width,left+span),6,fill=self.GOLD,outline='')
+        elif self.progress is not None:
+            self.bar.create_rectangle(0,0,width*max(0,min(1,self.progress)),6,fill=self.GOLD,outline='')
+        self.root.after(40,self._tick)
+
+    def run(self, job):
+        self.job = job
+        self._build()
+        self._start()
+        self.root.after(1200,lambda: self._show() if self.state=='busy' else None)
+        self.root.mainloop()
+        if self.worker is not None:
+            self.worker.join()
 ```
 
 ### `snapshot.py`
@@ -44322,11 +44992,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
+          $notesFile = "docs/releases/$env:RELEASE_TAG.md"
+          $notesArgs = @("--generate-notes")
+          if (Test-Path $notesFile) { $notesArgs = @("--notes-file", $notesFile) }
           gh release create "$env:RELEASE_TAG" `
             "dist/Феникс_Setup.exe" `
             "Феникс.exe" `
             --title "Феникс $env:RELEASE_TAG" `
-            --generate-notes
+            @notesArgs
 ```
 
 ### `.github/workflows/test.yml`
@@ -45051,7 +45724,7 @@ pause
 ;   ISCC.exe /DMyAppVersion=1.0.2 installer.iss
 ; (CI передаёт версию из тега: scripts\build_setup.py --version 1.0.2)
 #ifndef MyAppVersion
-  #define MyAppVersion "1.0.0"
+  #define MyAppVersion "2.1.0"
 #endif
 #define MyAppPublisher "Phoenix Project"
 #define MyAppURL "https://github.com/BobLoTiK/jarvis-fenix"
@@ -45085,6 +45758,7 @@ WizardSmallImageFile=installer_small.bmp
 WizardImageStretch=yes
 WizardImageBackColor=$001C1212
 PrivilegesRequired=lowest
+MinVersion=10.0
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 ; Мьютексы ядра И setup-лаунчера — Inno попросит закрыть
@@ -45648,7 +46322,7 @@ pymorphy3>=2.0.3,<3
 
 - Фирменные ресурсы Феникса
 
-#### `tests/README.md` — 26 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `tests/README.md` — 27 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Тесты Феникса
   - Карта
@@ -45676,6 +46350,7 @@ pymorphy3>=2.0.3,<3
     - Кольцо действий Главной
     - Опциональные виджеты Главной — текущая проверка
   - Аудит установщика
+  - Окно подготовки (после 2.1.0)
 
 #### `tests/audio/README.md` — 7 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -45754,9 +46429,10 @@ pymorphy3>=2.0.3,<3
     - `.venv311`
     - Git
 
-#### `CHANGELOG.md` — 105 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 108 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
+  - Не выпущено — план надёжности и улучшений
   - Стартовый handoff для нового чата (документация)
   - Опциональные виджеты Главной
   - Кольцо действий Феникса
@@ -45767,6 +46443,8 @@ pymorphy3>=2.0.3,<3
   - Исправление панели после добавления Главной
   - 📑 Содержание
   - 🚧 [Unreleased]
+    - Окно подготовки
+  - [2.1.0]
     - Аудит установки и обновления
     - 📅 Сессия 16.10.2026
       - Минималистичная Главная, отдельный Диалог
@@ -45793,9 +46471,6 @@ pymorphy3>=2.0.3,<3
       - Исправлено
       - Документация и проверка
     - 📅 Сессия 14.10.2026 (вечерняя)
-      - 🧠 Векторная память фактов — RAG (№51–53) ⭐ AIRI-концепция
-      - 🔧 `snapshot.py --check` — почему CI был красным всегда
-      - 🌐 Браузер пользователя: работаем там, где он сидит (№1)
 
 #### `CI.md` — 16 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -45852,10 +46527,11 @@ pymorphy3>=2.0.3,<3
   - 🤝 Как задавать вопросы
   - 🎯 Философия
 
-#### `PLAN.md` — 23 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `PLAN.md` — 25 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - 📋 План развития «Феникс»
-  - ⏭ Активная задача: потоковый TTS рядом с Ollama
+  - 🚧 Текущий P0: сбой установленного приложения
+  - ⏭ Следующая задача после P0: потоковый TTS рядом с Ollama
   - 🎯 Курс: сначала сам Феникс
   - 📊 Статусы
   - Приоритеты и ближайшие milestones
@@ -45877,6 +46553,7 @@ pymorphy3>=2.0.3,<3
   - Правила завершения шага
   - Готово: кольцо действий Главной
   - Поставка после обновления GUI
+  - Подготовка приложения — интерфейсный патч после 2.1.0
 
 #### `PROMPT.md` — 9 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -45890,7 +46567,7 @@ pymorphy3>=2.0.3,<3
   - 5. Контракты, которые нельзя сломать
   - 6. Как проверять и отдавать изменения
 
-#### `README.md` — 12 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `README.md` — 13 заголовков, полный текст не включён (дублирует PROJECT.md)
 
   - Не только поговорить
   - Быстрый старт
@@ -45904,12 +46581,20 @@ pymorphy3>=2.0.3,<3
 - Синтаксис, pytest, интенты и стресс-сценарии
 - После изменений — обновить снимок и проверить его
   - Найти нужное
+    - Окно подготовки (изменения после 2.1.0)
 
 #### `assets/nonverbal/README.md` — 3 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Звуковые реакции: источники и использование
   - Ограничения
   - Прослушивание
+
+#### `docs/BOOTSTRAP_WINDOW_UPDATE.md` — 4 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Единое окно подготовки (Unreleased, поверх 2.1.0)
+  - Что изменено
+  - Что не менялось
+  - Как собрать и проверить
 
 #### `docs/GUI_HOME_ACTION_RING.md` — 5 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -45982,7 +46667,19 @@ pymorphy3>=2.0.3,<3
   - Нагрузка
   - Что проверить на Windows
 
-#### `docs/INSTALLER_UPDATE.md` — 6 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `docs/IMPROVEMENT_BACKLOG.md` — 9 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Улучшения после сравнения пяти ассистентов
+  - P0. Установка и запуск — текущий блокер
+  - P1. Отзывчивая локальная озвучка вместе с Ollama
+  - P1/P2. Быстрые команды и меньше ложных активаций
+  - P2. Удобство для обычного пользователя
+  - P2. Практичные инструменты после стабилизации
+  - Лицензии и ограничения заимствования
+  - Источники обзора
+  - Сборка в текущей среде
+
+#### `docs/INSTALLER_UPDATE.md` — 7 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Поставка и обновление Феникса
   - Что изменено
@@ -45990,6 +46687,7 @@ pymorphy3>=2.0.3,<3
 - При необходимости: --version 1.0.2
   - Что проверить на Windows
   - Что не менялось
+  - Новое окно подготовки (Unreleased)
 
 #### `docs/LOCAL_VOICE_OPTIONS.md` — 7 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -46001,7 +46699,17 @@ pymorphy3>=2.0.3,<3
   - Что нужно для выбора
   - Первоисточники
 
-#### `docs/USER_GUIDE.md` — 47 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `docs/NEXT_STEPS.md` — 7 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Дальнейшие действия после 2.1.0
+  - Текущий блокер и дополненный бэклог
+  - 0. Выпустить и проверить 2.1.0
+  - 1. Ближайшая patch-версия: только реальные регрессии
+  - 2. Следующий функциональный этап: лёгкая локальная озвучка
+  - 3. Надёжность повседневной работы
+  - 4. После стабилизации
+
+#### `docs/USER_GUIDE.md` — 48 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Руководство пользователя · Феникс
   - Навигация
@@ -46044,6 +46752,14 @@ pymorphy3>=2.0.3,<3
   - 🔄 Автозапуск
   - 🧰 Инструменты разработчика
 
+#### `docs/releases/v2.1.0.md` — 5 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Феникс 2.1.0
+  - Главное
+  - Исправления и поставка
+  - Установка и обновление
+  - Проверки и ограничения
+
 ---
 
-_Итого по категориям — code: 194, data: 44, doc: 27, pack: 5. Режим `lean`._
+_Итого по категориям — code: 196, data: 44, doc: 31, pack: 5. Режим `lean`._

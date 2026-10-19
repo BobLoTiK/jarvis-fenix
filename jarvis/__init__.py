@@ -4,5 +4,5 @@
 Ключевые модули: jarvis.main, jarvis.intents, jarvis.brain, jarvis.tts, jarvis.stt.
 """
 
-__version__ = "1.0.0"
+__version__ = "2.1.0"
 APP_NAME = "Феникс"

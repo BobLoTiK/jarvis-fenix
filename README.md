@@ -250,3 +250,6 @@ ollama pull qwen2.5:7b-instruct
 **Лицензия [MIT](LICENSE).**
 
 [Вернуться наверх ↑](#top)
+
+### Окно подготовки (изменения после 2.1.0)
+Исходный лаунчер использует единое окно вместо цепочки информационных MessageBox. Для распространения нужна пересборка EXE/Setup с Tcl/Tk; подробности и ограничения — [BOOTSTRAP_WINDOW_UPDATE.md](docs/BOOTSTRAP_WINDOW_UPDATE.md).
