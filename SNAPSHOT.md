@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=b84ede0116ea34b2` · режим `lean` · файлов `284` · строк `52230` · источник `2387 КБ`
+`sha256=f001507bf61e095f` · режим `lean` · файлов `285` · строк `52251` · источник `2391 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -19,12 +19,13 @@
 загрузка одной локальной модели Ollama в том же окне. Существующий выбор не
 заменяется молча; пропуск не пишет настройки. Инструкция обоих изменений:
 docs/BOOTSTRAP_PYTHON_OLLAMA_UPDATE.md. 149 bootstrap/build тестов прошли на Linux;
-2 Windows-проверки пропущены. EXE/Setup не пересобраны, новое окно не принято
-на Windows. Старый тестовый установщик пользователь продолжает проверять отдельно.
+2 Windows-проверки пропущены. Пользователь сообщил о готовой новой сборке;
+её чистая Windows-приёмка ещё не выполнена. Результаты старой установки
+не переносятся на новую сборку.
 Readiness основного GUI, Диалог и TTS этим пакетом не исправлялись.
 
 
-**Интерфейс подготовки:** `launcher_ui.py` (Tk + очередь), дополнен выбором модели. Прежние основные process-команды сохранены; добавлены HTTPS/config helpers. Активной отмены нет. Нужны пересборка EXE/Setup и Windows UI-приёмка.
+**Интерфейс подготовки:** `launcher_ui.py` (Tk + очередь), дополнен выбором модели. Прежние основные process-команды сохранены; добавлены HTTPS/config helpers. Активной отмены нет. Пользователь сообщил о новой сборке; Windows UI-приёмка ожидается.
 
 **Подготовленная версия: 2.1.0, тег `v2.1.0`.** Создание/push тега из этой рабочей копии не выполнялись (нет `.git` и GitHub-подключения). Дальнейшие действия: `docs/NEXT_STEPS.md`.
 
@@ -32,6 +33,15 @@ Readiness основного GUI, Диалог и TTS этим пакетом н
 Курируемый документ. Обновлён 16.10.2026. `snapshot.py` включает его целиком;
 остальные руководства раскрывают пользовательские и технические детали.
 История версий — в `CHANGELOG.md`, порядок развития — в `PLAN.md`.
+
+## README как страница проекта
+
+README — короткая публичная страница, не копия PROJECT/PLAN и не отчёт сборки.
+В центре — реальные команды, редактор сценариев, отдельные Главная/Диалог,
+установка, диагностика и границы локальности. SVG-обложки assets/readme используют
+фирменную птицу, графит/медь и отдельную мобильную композицию. Уникальность подачи
+не заменяет точность: без фиктивных скриншотов, бенчмарков и будущих возможностей.
+Изменение README не меняет runtime и не требует пересборки установленного EXE.
 
 ## Текущий следующий шаг — лёгкая потоковая озвучка (ещё не реализован)
 
@@ -502,16 +512,17 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── README.md  (74 стр)
 │   │   ├── release.yml  (132 стр)
 │   │   ├── test.yml  (71 стр)
-├── AGENTS.md  (164 стр)
+├── AGENTS.md  (165 стр)
 ├── ARCHITECTURE.md  (1091 стр)
 ├── assets/
 │   ├── nonverbal/
 │   │   ├── README.md  (40 стр)
 │   │   ├── sources.json  (53 стр)
 │   ├── readme/
-│   │   ├── hero-mobile.svg  (8 стр)
-│   │   ├── hero.svg  (19 стр)
-├── CHANGELOG.md  (1606 стр)
+│   │   ├── hero-mobile.svg  (28 стр)
+│   │   ├── hero.svg  (33 стр)
+│   │   ├── README.md  (13 стр)
+├── CHANGELOG.md  (1617 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -695,11 +706,11 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── sites.json  (22 стр)
 │   ├── system.json  (17 стр)
 │   ├── work.json  (11 стр)
-├── PLAN.md  (343 стр)
-├── PROJECT.md  (473 стр)
-├── PROMPT.md  (190 стр)
+├── PLAN.md  (349 стр)
+├── PROJECT.md  (483 стр)
+├── PROMPT.md  (191 стр)
 ├── pytest.ini  (20 стр)
-├── README.md  (255 стр)
+├── README.md  (200 стр)
 ├── requirements-ci.txt  (36 стр)
 ├── requirements-dev.txt  (10 стр)
 ├── requirements.txt  (63 стр)
@@ -47765,37 +47776,71 @@ SOFTWARE.
 ### `assets/readme/hero-mobile.svg`
 
 ```
-<svg xmlns="http://www.w3.org/2000/svg" width="600" height="280" viewBox="0 0 600 280" role="img" aria-labelledby="title desc">
-<title id="title">Феникс — голос, который рядом</title><desc id="desc">Компактная обложка локального голосового ассистента для Windows.</desc>
-<rect width="600" height="280" rx="18" fill="#101b2b"/>
-<path d="M420 0V280M0 230H600" stroke="#23364e"/>
-<text x="32" y="126" font-family="Arial,sans-serif" font-size="76" font-weight="700" letter-spacing="-2" fill="#fff">Феникс</text>
-<text x="32" y="191" font-family="Arial,sans-serif" font-size="30" fill="#b8cbe2">Голос, который рядом.</text>
-<g stroke="#5e9fe8" stroke-width="9" stroke-linecap="round"><path d="M444 99V141M470 73V167M496 51V189M522 88V152M548 106V134"/></g>
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="360" viewBox="0 0 600 360" role="img" aria-labelledby="title desc">
+<title id="title">Феникс — скажи, что нужно сделать</title>
+<desc id="desc">Компактная фирменная обложка голосового ассистента для Windows.</desc>
+<rect width="600" height="360" rx="16" fill="#12121c"/>
+<text x="32" y="48" fill="#abaac1" font-family="Arial,sans-serif" font-size="26" letter-spacing="1">ГОЛОС / WINDOWS</text>
+<text x="28" y="161" fill="#eeedf7" font-family="Arial,sans-serif" font-size="94" font-weight="700" letter-spacing="-3">Феникс</text>
+<text x="32" y="220" fill="#d8a786" font-family="Arial,sans-serif" font-size="28">Скажи, что нужно сделать.</text>
+<path d="M32 263H568" stroke="#343149"/>
+<text x="32" y="308" fill="#eeedf7" font-family="Arial,sans-serif" font-size="26">Команды · Диалог · Сценарии</text>
+<g transform="translate(449 70) scale(.18) translate(-120 -66)">
+<path xmlns="http://www.w3.org/2000/svg" fill="#e7ad7b" d="M174 90 C143 181 194 226 279 282 C353 330 413 384 416 477 C441 426 432 377 396 331 C363 289 315 259 269 227 C218 192 184 157 174 90 Z" />
+  
+<path xmlns="http://www.w3.org/2000/svg" fill="#f3ece3" d="M144 197 C139 272 179 307 247 332 C281 345 309 355 333 371 C319 334 293 314 252 292 C203 266 167 241 144 197 Z" />
+  
+<path xmlns="http://www.w3.org/2000/svg" fill="#e7ad7b" d="M186 331 C201 376 229 389 277 400 C309 407 333 414 354 426 C330 392 308 383 270 370 C231 357 206 347 186 331 Z" />
+  
+<path xmlns="http://www.w3.org/2000/svg" fill="#e7ad7b" d="M680 90 C670 158 621 194 564 234 C535 254 509 274 489 293 L501 346 C530 311 562 292 601 266 C662 226 704 180 680 90 Z" />
+  
+<path xmlns="http://www.w3.org/2000/svg" fill="#f3ece3" d="M706 197 C712 272 669 307 603 332 C570 345 540 356 519 371 C536 335 565 312 601 292 C650 266 687 241 706 197 Z" />
+  
+<path xmlns="http://www.w3.org/2000/svg" fill="#e7ad7b" d="M664 331 C650 375 620 390 575 400 C543 407 520 414 497 426 C521 392 547 381 582 370 C619 358 644 347 664 331 Z" />
+  
+<path xmlns="http://www.w3.org/2000/svg" fill="#e7ad7b" d="M354 182 C384 190 405 179 430 168 C444 161 453 162 465 165 C484 161 498 169 503 184 C480 183 463 193 454 212 C438 244 456 279 468 313 C494 385 481 433 441 484 C458 429 451 392 432 353 C415 316 390 287 370 265 L395 209 C374 208 361 198 354 182 Z" />
+  
+<path xmlns="http://www.w3.org/2000/svg" fill="#cf9369" d="M395 416 C408 443 414 462 416 477 C401 514 376 539 340 554 C379 526 395 481 395 416 Z" />
+
+</g>
 </svg>
 ```
 
 ### `assets/readme/hero.svg`
 
 ```
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="400" viewBox="0 0 1200 400" role="img" aria-labelledby="title desc">
-<title id="title">Феникс — голос, который рядом</title>
-<desc id="desc">Локальный голосовой ассистент для Windows. Типографическая обложка с монограммой Ф и звуковым сигналом.</desc>
-<rect width="1200" height="400" rx="24" fill="#101b2b"/>
-<path d="M830 0V400M1010 0V400M0 328H1200" stroke="#23364e" stroke-width="1"/>
-<rect x="56" y="48" width="54" height="54" rx="14" fill="#2783de"/>
-<text x="83" y="87" text-anchor="middle" font-family="Arial,sans-serif" font-size="36" font-weight="700" fill="#fff">Ф</text>
-<text x="128" y="82" font-family="Arial,sans-serif" font-size="18" letter-spacing="3" fill="#a7bdd7">LOCAL VOICE ASSISTANT</text>
-<text x="52" y="208" font-family="Arial,sans-serif" font-size="92" font-weight="700" letter-spacing="-3" fill="#fff">Феникс</text>
-<text x="56" y="267" font-family="Arial,sans-serif" font-size="32" fill="#b8cbe2">Голос, который рядом.</text>
-<text x="56" y="371" font-family="Arial,sans-serif" font-size="19" fill="#9cb4d0">WINDOWS</text>
-<circle cx="179" cy="364" r="3" fill="#5e9fe8"/>
-<text x="200" y="371" font-family="Arial,sans-serif" font-size="19" fill="#9cb4d0">PYTHON</text>
-<circle cx="314" cy="364" r="3" fill="#5e9fe8"/>
-<text x="335" y="371" font-family="Arial,sans-serif" font-size="19" fill="#9cb4d0">OLLAMA</text>
-<g stroke="#5e9fe8" stroke-width="10" stroke-linecap="round">
-<path d="M848 176V224M876 148V252M904 181V219M932 119V281M960 150V250M988 166V234M1016 98V302M1044 144V256M1072 173V227M1100 159V241M1128 183V217"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="title desc">
+<title id="title">Феникс — скажи, что нужно сделать</title>
+<desc id="desc">Фирменная птица Феникса и медная типографика. Голосовой ассистент для Windows; команды, диалог и свои сценарии.</desc>
+<rect width="1200" height="360" rx="18" fill="#12121c"/>
+<path d="M60 276H1140M826 42V246" stroke="#343149" stroke-width="1"/>
+<text x="60" y="57" fill="#abaac1" font-family="Arial,sans-serif" font-size="22" letter-spacing="2">ГОЛОСОВОЙ АССИСТЕНТ / WINDOWS</text>
+<text x="54" y="173" fill="#eeedf7" font-family="Arial,sans-serif" font-size="104" font-weight="700" letter-spacing="-3">Феникс</text>
+<text x="60" y="229" fill="#d8a786" font-family="Arial,sans-serif" font-size="30">Скажи, что нужно сделать.</text>
+<g transform="translate(880 45) scale(.40) translate(-120 -66)">
+<path xmlns="http://www.w3.org/2000/svg" fill="#e7ad7b" d="M174 90 C143 181 194 226 279 282 C353 330 413 384 416 477 C441 426 432 377 396 331 C363 289 315 259 269 227 C218 192 184 157 174 90 Z" />
+  
+<path xmlns="http://www.w3.org/2000/svg" fill="#f3ece3" d="M144 197 C139 272 179 307 247 332 C281 345 309 355 333 371 C319 334 293 314 252 292 C203 266 167 241 144 197 Z" />
+  
+<path xmlns="http://www.w3.org/2000/svg" fill="#e7ad7b" d="M186 331 C201 376 229 389 277 400 C309 407 333 414 354 426 C330 392 308 383 270 370 C231 357 206 347 186 331 Z" />
+  
+<path xmlns="http://www.w3.org/2000/svg" fill="#e7ad7b" d="M680 90 C670 158 621 194 564 234 C535 254 509 274 489 293 L501 346 C530 311 562 292 601 266 C662 226 704 180 680 90 Z" />
+  
+<path xmlns="http://www.w3.org/2000/svg" fill="#f3ece3" d="M706 197 C712 272 669 307 603 332 C570 345 540 356 519 371 C536 335 565 312 601 292 C650 266 687 241 706 197 Z" />
+  
+<path xmlns="http://www.w3.org/2000/svg" fill="#e7ad7b" d="M664 331 C650 375 620 390 575 400 C543 407 520 414 497 426 C521 392 547 381 582 370 C619 358 644 347 664 331 Z" />
+  
+<path xmlns="http://www.w3.org/2000/svg" fill="#e7ad7b" d="M354 182 C384 190 405 179 430 168 C444 161 453 162 465 165 C484 161 498 169 503 184 C480 183 463 193 454 212 C438 244 456 279 468 313 C494 385 481 433 441 484 C458 429 451 392 432 353 C415 316 390 287 370 265 L395 209 C374 208 361 198 354 182 Z" />
+  
+<path xmlns="http://www.w3.org/2000/svg" fill="#cf9369" d="M395 416 C408 443 414 462 416 477 C401 514 376 539 340 554 C379 526 395 481 395 416 Z" />
+
 </g>
+<text x="60" y="321" fill="#d8a786" font-family="Arial,sans-serif" font-size="22">01</text>
+<text x="104" y="321" fill="#eeedf7" font-family="Arial,sans-serif" font-size="22" letter-spacing="1">КОМАНДЫ</text>
+<text x="360" y="321" fill="#d8a786" font-family="Arial,sans-serif" font-size="22">02</text>
+<text x="404" y="321" fill="#eeedf7" font-family="Arial,sans-serif" font-size="22" letter-spacing="1">ДИАЛОГ</text>
+<text x="660" y="321" fill="#d8a786" font-family="Arial,sans-serif" font-size="22">03</text>
+<text x="704" y="321" fill="#eeedf7" font-family="Arial,sans-serif" font-size="22" letter-spacing="1">СВОИ СЦЕНАРИИ</text>
 </svg>
 ```
 
@@ -48067,9 +48112,10 @@ pymorphy3>=2.0.3,<3
     - `.venv311`
     - Git
 
-#### `CHANGELOG.md` — 110 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 111 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
+  - Не выпущено — новая страница проекта
   - Не выпущено — единая подготовка Python и модели Ollama
   - Не выпущено — Python bootstrap HTTPS в Windows Sandbox
   - Не выпущено — план надёжности и улучшений
@@ -48108,7 +48154,6 @@ pymorphy3>=2.0.3,<3
       - Переносимость аудиотестов на Windows
       - Уточнение README и восстановление модулей пароля
       - Добавлено
-      - Исправлено
 
 #### `CI.md` — 16 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -48165,7 +48210,7 @@ pymorphy3>=2.0.3,<3
   - 🤝 Как задавать вопросы
   - 🎯 Философия
 
-#### `PLAN.md` — 25 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `PLAN.md` — 26 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - 📋 План развития «Феникс»
   - 🚧 Текущий P0: Windows-приёмка Python и модели Ollama
@@ -48173,6 +48218,7 @@ pymorphy3>=2.0.3,<3
   - 🎯 Курс: сначала сам Феникс
   - 📊 Статусы
   - Приоритеты и ближайшие milestones
+  - Публичная страница проекта
   - Что уже есть
   - А. 🚧 Уточнения и незавершённая команда — реализовано, приёмка Windows
     - Реализовано в первом ограниченном наборе
@@ -48207,25 +48253,29 @@ pymorphy3>=2.0.3,<3
 
 #### `README.md` — 13 заголовков, полный текст не включён (дублирует PROJECT.md)
 
-  - Не только поговорить
-  - Быстрый старт
-    - Из исходников · PowerShell / терминал VS Code
-    - После запуска
-  - Скажи — и попробуй
-    - Три режима — без лишней магии
-  - Локальный — с понятными границами
-  - Если что-то не так
-  - Разработка и проверки
-- Синтаксис, pytest, интенты и стресс-сценарии
-- После изменений — обновить снимок и проверить его
-  - Найти нужное
-    - Окно подготовки (изменения после 2.1.0)
+  - Начни с того, что и так делаешь каждый день
+    - Повторяется каждый день? Дай этому свою фразу
+  - Главная — не чат
+  - Запустить у себя
+    - Через установщик
+    - Из исходников
+    - Если хочется разговаривать, а не только давать команды
+  - Что остаётся на компьютере, а что использует сеть
+  - Если что-то пошло не так
+  - Для тех, кто хочет менять Феникса
+- Синтаксис, pytest, интент-сценарии и стресс-тесты
+- Снимок обновляется после изменений
+- Preflight ресурсов, без сборки EXE
 
 #### `assets/nonverbal/README.md` — 3 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Звуковые реакции: источники и использование
   - Ограничения
   - Прослушивание
+
+#### `assets/readme/README.md` — 1 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Обложки README
 
 #### `docs/BOOTSTRAP_PYTHON_OLLAMA_UPDATE.md` — 7 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -48419,4 +48469,4 @@ pymorphy3>=2.0.3,<3
 
 ---
 
-_Итого по категориям — code: 202, data: 44, doc: 33, pack: 5. Режим `lean`._
+_Итого по категориям — code: 202, data: 44, doc: 34, pack: 5. Режим `lean`._
