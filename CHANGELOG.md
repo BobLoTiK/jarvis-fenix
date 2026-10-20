@@ -13,6 +13,31 @@
 
 ---
 
+## Не выпущено — единая подготовка Python и модели Ollama
+
+- Предыдущий Python HTTPS/Authenticode-патч включён в общий пакет исходников.
+- После установки Ollama через официальный сайт можно проверить сервер в том
+  же окне; serve ожидает готовности API. Установщик Ollama не запускается молча.
+- Явный выбор существующей модели или Qwen2.5 Instruct 1.5B/3B/7B с примерным
+  размером, загрузка только выбранной через local /api/pull, progress по слою.
+- Наличие и completion проверяются без inference; затем только llm_model
+  сохраняется штатным atomic config_manager, с проверкой конфликтов model/url/mode.
+- Пропуск, ошибки/повтор, пользовательский endpoint, режим commands, cloud и
+  embedding-only защищены от автоматической загрузки/замены выбора.
+- 149 passed, 2 skipped на Linux/Python 3.13; новая Windows-сборка и UI-приёмка
+  не выполнялись. Инструкция: docs/BOOTSTRAP_PYTHON_OLLAMA_UPDATE.md.
+
+## Не выпущено — Python bootstrap HTTPS в Windows Sandbox
+
+- Загрузка Python переведена с urllib внутри frozen EXE на системный Windows
+  PowerShell HTTPS/TLS 1.2, без отключения сертификатов и без новых зависимостей.
+- Authenticode Valid + Python Software Foundation обязательны после загрузки и
+  повторно до запуска; private temp, .part.exe, cleanup, таймауты и понятные ошибки.
+- launcher_download.py включён в public payload и статически импортируется в
+  PyInstaller entrypoint. В build-release добавлен bootstrap/build pytest.
+- 75 passed, 2 skipped на Linux/Python 3.13; native Windows/EXE/Setup ещё не проверены.
+- Подробности и установка: docs/PYTHON_BOOTSTRAP_TLS_FIX.md. Не readiness-патч.
+
 ## Не выпущено — план надёжности и улучшений
 
 - Зафиксирован текущий блокер запуска: первопричина без пользовательского лога

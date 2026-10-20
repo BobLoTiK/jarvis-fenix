@@ -1,7 +1,7 @@
 """One bootstrap window. Presentation only: no downloads, pip or process control.
 
 Tk is lazy-imported and bundled by PyInstaller; Flet is not needed for setup.
-The worker retains existing installation commands and confirmation points.
+The worker owns downloads/processes; UI only presents questions and model choices.
 """
 from __future__ import annotations
 import os
@@ -24,6 +24,23 @@ class Question:
 
     def resolve(self, answer):
         self.answer = bool(answer)
+        self.ready.set()
+
+
+class ModelQuestion:
+    """Choice data only; worker waits, Tk thread resolves a model name or None."""
+    def __init__(self, title, text, options):
+        self.title, self.text = title, text
+        self.options = tuple(dict(o) for o in options)
+        if not self.options or len({o['value'] for o in self.options}) != len(self.options):
+            raise ValueError('Invalid model options')
+        self.ready = threading.Event()
+        self.answer = None
+
+    def resolve(self, value):
+        if value is not None and value not in {o['value'] for o in self.options}:
+            raise ValueError('Unknown model choice')
+        self.answer = value
         self.ready.set()
 
 
@@ -50,6 +67,21 @@ class Session:
         self.emit('question', question=question)
         question.ready.wait()
         return question.answer
+
+    def choose_model(self, title, text, options):
+        question = ModelQuestion(title, text, options)
+        self.emit('model_choice', question=question)
+        question.ready.wait()
+        return question.answer
+
+    def progress_update(self, value, text):
+        now = time.monotonic()
+        if value not in (None, 0, 1) and now - self._last_progress < .1:
+            return
+        if value is None and getattr(self, '_last_progress_text', None) == text and now - self._last_progress < .1:
+            return
+        self._last_progress, self._last_progress_text = now, text
+        self.emit('progress', value=value, text=text)
 
     def download_progress(self, block, block_size, total):
         received = max(0, block*block_size)
@@ -165,6 +197,8 @@ class PreparationWindow:
             font=('Segoe UI',10), wrap='word', relief='flat', borderwidth=0,
             highlightthickness=0, state='disabled', takefocus=True)
         self.detail_text.pack(fill='x', pady=(10,12))
+        self.choice_frame = tk.Frame(card, bg=self.CARD)
+        self.model_choice = None
         self.bar = tk.Canvas(card, bg=self.CARD, height=6, highlightthickness=0, width=540)
         self.bar.pack(fill='x')
         self.progress_label = tk.Label(card, text='Проверка компонентов', bg=self.CARD,
@@ -214,7 +248,34 @@ class PreparationWindow:
         except (OSError,AttributeError):
             self._detail(f'Журнал: {self.log_file}')
 
+    def _clear_choices(self):
+        frame = getattr(self, 'choice_frame', None)
+        if frame is not None:
+            for child in frame.winfo_children():
+                child.destroy()
+            frame.pack_forget()
+        self.model_choice = None
+
+    def _build_model_choices(self):
+        from tkinter import ttk
+        self._clear_choices()
+        options = self.question.options
+        self.model_choice = ttk.Combobox(
+            self.choice_frame, state='readonly', height=8,
+            values=[o['label'] for o in options], font=('Segoe UI', 10))
+        self.model_choice.current(0)
+        self.model_choice.pack(fill='x', pady=(0, 12))
+        self.model_choice.bind('<<ComboboxSelected>>', self._choice_changed)
+        self.choice_frame.pack(fill='x', before=self.bar)
+        self._choice_changed()
+
+    def _choice_changed(self, _=None):
+        index = self.model_choice.current()
+        installed = self.question.options[index].get('installed', False)
+        self.primary_button.configure(text='Использовать модель' if installed else 'Скачать и использовать')
+
     def _busy(self):
+        self._clear_choices()
         self.state = 'busy'
         self.primary_button.configure(state='disabled')
         self.cancel_button.configure(state='disabled', text='Дождись завершения')
@@ -222,7 +283,13 @@ class PreparationWindow:
         self.progress_label.configure(text='Выполняется…')
 
     def _primary(self):
-        if self.state == 'question' and self.question is not None:
+        if self.state == 'model_choice' and self.question is not None:
+            index = self.model_choice.current()
+            question, self.question = self.question, None
+            value = question.options[index]['value']
+            self._busy()
+            question.resolve(value)
+        elif self.state == 'question' and self.question is not None:
             question, self.question = self.question, None
             self._busy()
             question.resolve(True)
@@ -233,7 +300,11 @@ class PreparationWindow:
             self._start()
 
     def _secondary(self):
-        if self.state == 'question' and self.question is not None:
+        if self.state == 'model_choice' and self.question is not None:
+            question, self.question = self.question, None
+            self._busy()
+            question.resolve(None)
+        elif self.state == 'question' and self.question is not None:
             question, self.question = self.question, None
             self._busy()
             question.resolve(False)
@@ -265,6 +336,7 @@ class PreparationWindow:
 
     def _event(self, kind, data):
         if kind == 'finished':
+            self._clear_choices()
             self.question = None
             self.state = data['status']
             if self.state == 'ok':
@@ -289,6 +361,18 @@ class PreparationWindow:
         elif kind == 'progress':
             self.progress = data['value']
             self.progress_label.configure(text=data['text'])
+        elif kind == 'model_choice':
+            self.question = data['question']
+            self.state = 'model_choice'
+            self._show()
+            self.stage_label.configure(text=self.question.title)
+            self._detail(self.question.text)
+            self.progress = 0
+            self.progress_label.configure(text='Загрузка — только после нажатия кнопки. Размеры примерные.')
+            self.primary_button.configure(state='normal')
+            self.cancel_button.configure(text='Продолжить без ИИ', state='normal')
+            self._build_model_choices()
+            self.primary_button.focus_set()
         elif kind == 'question':
             self.question = data['question']
             self.state = 'question'

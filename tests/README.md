@@ -4,6 +4,32 @@
 входа: `check_all.bat` (запускает всё) и `check_syntax.py` (проверка
 синтаксиса — им пользуется и CI, и `install.bat`).
 
+## Общий bootstrap Python + Ollama
+
+Шесть файлов `test_launcher_download`, `test_launcher_ollama`,
+`test_bootstrap_ollama_config`, `test_launcher_ui`, `test_build_setup`,
+`test_release_payload`: **149 passed, 2 skipped**, Linux/Python 3.13.
+Настоящий loopback HTTP проверяет inventory, NDJSON pull, прогресс слоя,
+обрыв/ошибки, redirect и /show capabilities без inference. Настоящий subprocess
+в отдельном venv проверяет config bridge с изолированным APPDATA. Реальные JSON,
+штатные FileLock/atomic writes, конфликты/ошибки и отсутствие записи при пропуске.
+Tk-очередь и dropdown проверены с контролируемыми заглушками, не живым окном.
+Веса/Python не скачивались; native Windows и opt-in download пропущены.
+Инструкция: `docs/BOOTSTRAP_PYTHON_OLLAMA_UPDATE.md`.
+
+## Python bootstrap HTTPS — исходный патч
+
+`test_launcher_download.py` + `test_launcher_ui.py` + `test_build_setup.py` +
+`test_release_payload.py`: **75 passed, 2 skipped**, Linux/Python 3.13.
+Проверены безопасный запуск Windows helper без shell/profile, fixed URL,
+подпись до публикации/запуска, неподтверждённый exit, таймауты, cleanup,
+старый TEMP-кэш, сообщения ошибок, public payload и сохранность process commands.
+Windows-сеть/подпись/процессы в переносимых тестах подменены.
+Пропущены native PowerShell unsigned-EXE test и opt-in live download.
+Инструкция Windows-приёмки: `docs/PYTHON_BOOTSTRAP_TLS_FIX.md`.
+Старый AST-хеш в UI-тесте сохранён только для прежних девяти команд;
+он не заменяет новые поведенческие регрессии Windows downloader.
+
 ## Карта
 
 | Что | Где | Как запускать |

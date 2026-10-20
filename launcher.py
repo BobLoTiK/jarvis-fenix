@@ -27,6 +27,12 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
+from launcher_download import (
+    DownloadError, cleanup_download, download_python, verify_python_installer,
+)
+
+from launcher_ollama import prepare_models
+
 # ============================================================
 # Константы
 # ============================================================
@@ -294,42 +300,35 @@ def find_python(logger) -> str | None:
 
 
 def download_python_installer(logger) -> Path | None:
-    """Скачивает официальный installer Python в temp."""
-    temp_dir = Path(os.environ.get("TEMP", "."))
-    installer = temp_dir / PYTHON_INSTALLER_FILE
-
-    if installer.exists():
-        logger.info("Installer уже есть: %s", installer)
-        return installer
-
+    """Загрузка через Windows HTTPS с обязательной проверкой подписи."""
     info(
         "Сейчас будет скачан установщик Python 3.11 (~25 МБ).\n\n"
-        "После скачивания откроется окно установки — "
-        "нажми «Install Now» и дождись завершения.\n\n"
+        "Загрузка средствами Windows; затем проверка подписи издателя.\n"
+        "После скачивания нажми «Install Now» в установщике Python.\n\n"
         "Подготовка продолжится в этом окне.",
         "Феникс — установка Python",
     )
-
     logger.info("Скачиваю installer: %s", PYTHON_INSTALLER_URL)
-    part = installer.with_name(installer.name + ".part")
     try:
-        # Качаем в .part и переименовываем только после успеха: обрыв
-        # оставлял обрезанный exe, который следующий запуск молча
-        # переиспользовал («installer уже есть»).
-        urllib.request.urlretrieve(PYTHON_INSTALLER_URL, part, reporthook=_download_progress)
-        part.replace(installer)
-        logger.info("Installer скачан: %s", installer)
+        installer = download_python(PYTHON_INSTALLER_URL, logger, _download_progress)
+        logger.info("Installer скачан и подпись проверена: %s", installer)
         return installer
-    except Exception:
-        try:
-            part.unlink()
-        except OSError:
-            pass
-        logger.exception("Не удалось скачать installer Python")
+    except Exception as exc:
+        logger.exception("Не удалось скачать или проверить installer Python")
+        reasons = {
+            "certificate": "Windows не смогла проверить HTTPS-сертификат сервера.",
+            "dns": "Не удалось определить адрес сервера загрузки Python (DNS).",
+            "signature": "Подпись установщика недействительна или издатель не Python Software Foundation.",
+            "timeout": "Истекло время ожидания загрузки или проверки установщика Python.",
+            "unavailable": "Не удалось запустить системный Windows PowerShell для безопасной загрузки.",
+            "verification": "Не удалось подтвердить успешную загрузку и проверку установщика Python.",
+        }
+        reason = reasons.get(getattr(exc, "kind", ""), "Не удалось скачать Python средствами Windows.")
         error(
-            "Не удалось скачать Python.\n\n"
-            "Проверь интернет или скачай вручную:\n"
-            "https://www.python.org/downloads/release/python-3119/\n\n"
+            f"{reason}\n\n"
+            "Установка Python не запущена. Проверка безопасности не отключалась.\n"
+            "Проверь подключение и нажми «Повторить».\n"
+            "Официальная страница: https://www.python.org/downloads/release/python-3119/\n\n"
             "Логи: logs\\launcher.log",
         )
         return None
@@ -337,17 +336,26 @@ def download_python_installer(logger) -> Path | None:
 
 def run_python_installer(installer: Path, logger) -> bool:
     """Запускает installer Python. Ждёт завершения."""
-    logger.info("Запускаю installer: %s", installer)
     try:
-        subprocess.run([str(installer)], check=False)
-    except Exception:
-        logger.exception("Ошибка запуска installer")
-        return False
+        verify_python_installer(installer, logger)
+        logger.info("Запускаю installer: %s", installer)
+        try:
+            subprocess.run([str(installer)], check=False)
+        except Exception:
+            logger.exception("Ошибка запуска installer")
+            return False
 
-    logger.info("Installer завершён, ищу Python заново")
-    time.sleep(2)
-    python = find_python(logger)
-    return python is not None
+        logger.info("Installer завершён, ищу Python заново")
+        time.sleep(2)
+        python = find_python(logger)
+        return python is not None
+    except DownloadError:
+        logger.exception("Установщик Python не прошёл повторную проверку подписи")
+        error("Не удалось подтвердить подпись установщика Python перед запуском.\n"
+              "Установка не запущена. Нажми «Повторить».\n\nЛоги: logs\\launcher.log")
+        return False
+    finally:
+        cleanup_download(installer)
 
 
 # ============================================================
@@ -647,44 +655,26 @@ def find_ollama_exe(logger) -> Path | None:
     return None
 
 
-def handle_ollama(logger) -> None:
-    """Проверяет Ollama. Если нет — предлагает поставить."""
-    if check_ollama_running(logger):
-        return
-
-    ollama_exe = find_ollama_exe(logger)
-    if ollama_exe:
-        logger.info("Ollama найден, запускаю serve")
-        try:
-            subprocess.Popen(
+def start_ollama_server(ollama_exe, logger):
+    """Start the existing local service; readiness is checked by the setup worker."""
+    logger.info("Ollama найден, запускаю serve")
+    return subprocess.Popen(
                 [str(ollama_exe), "serve"],
                 creationflags=CREATE_NO_WINDOW,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
-            return
-        except Exception:
-            logger.exception("Не удалось запустить ollama serve")
 
-    logger.warning("Ollama не найдена")
-    reply = msg_box(
-        "Ollama не найдена.\n\n"
-        "Без неё Феникс работает в УРЕЗАННОМ режиме:\n"
-        "  ✓ Команды\n"
-        "  ✓ Распознавание речи\n"
-        "  ✓ Синтез речи\n"
-        "  ✗ Свободный диалог с ИИ\n"
-        "  ✗ Разбор сложных фраз\n\n"
-        "Поставить Ollama?\n"
-        "(откроется ollama.com/download)",
-        "Феникс — Ollama",
-        MB_YESNO | MB_ICONQUESTION,
+
+def handle_ollama(logger, project_dir=None) -> None:
+    """Optional server installation/recheck and explicit model choice in one window."""
+    if _PREPARATION is None:
+        logger.warning("Настройка Ollama требует окна подготовки; пропускаю без изменений")
+        return
+    prepare_models(
+        project_dir or find_project_dir(logger), _PREPARATION, logger,
+        find_ollama_exe, start_ollama_server, lambda url: os.startfile(url),
     )
-    if reply == IDYES:
-        try:
-            os.startfile(OLLAMA_DOWNLOAD_PAGE)
-        except Exception:
-            logger.exception("Не удалось открыть ollama.com")
 
 
 # ============================================================
@@ -794,7 +784,7 @@ def _main() -> None:
             return
 
     ensure_local_caps(project_dir, logger)
-    handle_ollama(logger)
+    handle_ollama(logger, project_dir)
 
     run_jarvis(project_dir, pythonw, logger)
 

@@ -5,11 +5,22 @@
 Локальный голосовой ассистент для Windows; форк [jsys12/jarvis](https://github.com/jsys12/jarvis).
 История и attribution оригинального автора сохраняются; см. LICENSE и CHANGELOG.md.
 
-## 🚧 Текущий P0: сбой установленного приложения
+## 🚧 Текущий P0: Windows-приёмка Python и модели Ollama
 
-Пользователь сообщает: ярлык есть, окно не появляется. Лога с целевого ПК пока
-нет, первопричина не установлена. Следующий шаг — контроль готовности GUI и
-ранняя диагностика запуска; затем Windows-сборка и smoke-test. TTS ниже — после P0.
+После подготовки Python вручную старая установка в Sandbox дошла до Ollama.
+Подготовлен общий исходный патч: Windows HTTPS + Authenticode для Python,
+установка Ollama через официальный сайт → повторная проверка в том же окне →
+явный выбор одной локальной модели/загрузка через API и сохранение llm_model.
+Готовая текущая модель не меняется; пропуск не скачивает и не пишет конфиг.
+Инструкция: [docs/BOOTSTRAP_PYTHON_OLLAMA_UPDATE.md](docs/BOOTSTRAP_PYTHON_OLLAMA_UPDATE.md).
+
+- [x] Источники и регрессии: 149 passed, 2 skipped (Linux/Python 3.13).
+- [ ] Пересобрать EXE/Setup на Windows или ручным build-release.
+- [ ] Windows UI-приёмка выбора/пропуска/ошибки/повтора модели.
+- [ ] Чистая Sandbox: Python → venv → pip → Vosk → Ollama/модель → GUI.
+
+Точные причины различия сертификатов frozen Python/Windows не объявлены
+установленными. Старый сбой ярлыка, readiness, Диалог и TTS не менялись.
 
 Полный приоритизированный список улучшений после обзора пяти проектов:
 [docs/IMPROVEMENT_BACKLOG.md](docs/IMPROVEMENT_BACKLOG.md).

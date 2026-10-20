@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=73cce5a42cc1973e` · режим `lean` · файлов `276` · строк `50495` · источник `2297 КБ`
+`sha256=b84ede0116ea34b2` · режим `lean` · файлов `284` · строк `52230` · источник `2387 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -13,12 +13,18 @@
 ````
 # PROJECT.md — источник правды о «Феникс»
 
-**Текущий P0:** установленное приложение не открывается; причина ещё не
-подтверждена логом. Сначала запуск/Windows-приёмка, затем TTS.
-Дополненный план: docs/IMPROVEMENT_BACKLOG.md. Новые улучшения пока не реализованы.
+**Текущий P0 — Windows-приёмка общего bootstrap-патча.** После ручной
+подготовки Python старая Sandbox-установка дошла до предложения Ollama.
+В исходниках подготовлены Windows HTTPS + Authenticode для Python и явный выбор/
+загрузка одной локальной модели Ollama в том же окне. Существующий выбор не
+заменяется молча; пропуск не пишет настройки. Инструкция обоих изменений:
+docs/BOOTSTRAP_PYTHON_OLLAMA_UPDATE.md. 149 bootstrap/build тестов прошли на Linux;
+2 Windows-проверки пропущены. EXE/Setup не пересобраны, новое окно не принято
+на Windows. Старый тестовый установщик пользователь продолжает проверять отдельно.
+Readiness основного GUI, Диалог и TTS этим пакетом не исправлялись.
 
 
-**Незарелизенный интерфейс подготовки:** `launcher_ui.py` (Tk + очередь), docs/BOOTSTRAP_WINDOW_UPDATE.md. Установочные команды прежние; активной отмены нет. Нужны пересборка EXE/Setup и Windows UI-приёмка.
+**Интерфейс подготовки:** `launcher_ui.py` (Tk + очередь), дополнен выбором модели. Прежние основные process-команды сохранены; добавлены HTTPS/config helpers. Активной отмены нет. Нужны пересборка EXE/Setup и Windows UI-приёмка.
 
 **Подготовленная версия: 2.1.0, тег `v2.1.0`.** Создание/push тега из этой рабочей копии не выполнялись (нет `.git` и GitHub-подключения). Дальнейшие действия: `docs/NEXT_STEPS.md`.
 
@@ -494,9 +500,9 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ├── .github/
 │   ├── workflows/
 │   │   ├── README.md  (74 стр)
-│   │   ├── release.yml  (128 стр)
+│   │   ├── release.yml  (132 стр)
 │   │   ├── test.yml  (71 стр)
-├── AGENTS.md  (158 стр)
+├── AGENTS.md  (164 стр)
 ├── ARCHITECTURE.md  (1091 стр)
 ├── assets/
 │   ├── nonverbal/
@@ -505,7 +511,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── readme/
 │   │   ├── hero-mobile.svg  (8 стр)
 │   │   ├── hero.svg  (19 стр)
-├── CHANGELOG.md  (1581 стр)
+├── CHANGELOG.md  (1606 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -518,7 +524,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ├── CONTRIBUTING.md  (438 стр)
 ├── create_shortcut.bat  (52 стр)
 ├── docs/
-│   ├── BOOTSTRAP_WINDOW_UPDATE.md  (46 стр)
+│   ├── BOOTSTRAP_PYTHON_OLLAMA_UPDATE.md  (119 стр)
+│   ├── BOOTSTRAP_WINDOW_UPDATE.md  (50 стр)
 │   ├── GUI_HOME_ACTION_RING.md  (45 стр)
 │   ├── GUI_HOME_UPDATE.md  (47 стр)
 │   ├── GUI_PERSONA_SETTINGS_UPDATE.md  (62 стр)
@@ -532,7 +539,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── IMPROVEMENT_BACKLOG.md  (113 стр)
 │   ├── INSTALLER_UPDATE.md  (47 стр)
 │   ├── LOCAL_VOICE_OPTIONS.md  (67 стр)
-│   ├── NEXT_STEPS.md  (52 стр)
+│   ├── NEXT_STEPS.md  (55 стр)
+│   ├── PYTHON_BOOTSTRAP_TLS_FIX.md  (98 стр)
 │   ├── releases/
 │   │   ├── v2.1.0.md  (34 стр)
 │   ├── USER_GUIDE.md  (993 стр)
@@ -676,8 +684,10 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── voices.py  (220 стр)
 │   ├── weather.py  (400 стр)
 ├── jarvis-fenix.code-workspace  (8 стр)
-├── launcher.py  (825 стр)
-├── launcher_ui.py  (332 стр)
+├── launcher.py  (815 стр)
+├── launcher_download.py  (156 стр)
+├── launcher_ollama.py  (327 стр)
+├── launcher_ui.py  (416 стр)
 ├── LICENSE  (25 стр)
 ├── packs/
 │   ├── apps.json  (21 стр)
@@ -685,9 +695,9 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── sites.json  (22 стр)
 │   ├── system.json  (17 стр)
 │   ├── work.json  (11 стр)
-├── PLAN.md  (332 стр)
-├── PROJECT.md  (467 стр)
-├── PROMPT.md  (184 стр)
+├── PLAN.md  (343 стр)
+├── PROJECT.md  (473 стр)
+├── PROMPT.md  (190 стр)
 ├── pytest.ini  (20 стр)
 ├── README.md  (255 стр)
 ├── requirements-ci.txt  (36 стр)
@@ -696,6 +706,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ├── scripts/
 │   ├── __init__.py  (7 стр)
 │   ├── audio_regression.py  (11 стр)
+│   ├── bootstrap_ollama_config.py  (77 стр)
 │   ├── build_exe.py  (83 стр)
 │   ├── build_setup.py  (212 стр)
 │   ├── check_caps.py  (205 стр)
@@ -733,10 +744,11 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── uia_manual.py  (61 стр)
 │   │   ├── vad_debug.py  (61 стр)
 │   │   ├── vad_live.py  (41 стр)
-│   ├── README.md  (480 стр)
+│   ├── README.md  (506 стр)
 │   ├── stress_intents.py  (552 стр)
 │   ├── test_audio_regression.py  (556 стр)
 │   ├── test_audit_regressions.py  (265 стр)
+│   ├── test_bootstrap_ollama_config.py  (120 стр)
 │   ├── test_brain_rag.py  (125 стр)
 │   ├── test_browser_target.py  (338 стр)
 │   ├── test_build_setup.py  (52 стр)
@@ -759,7 +771,9 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_gui_widgets.py  (259 стр)
 │   ├── test_gui_wiring.py  (542 стр)
 │   ├── test_intents.py  (485 стр)
-│   ├── test_launcher_ui.py  (197 стр)
+│   ├── test_launcher_download.py  (233 стр)
+│   ├── test_launcher_ollama.py  (438 стр)
+│   ├── test_launcher_ui.py  (199 стр)
 │   ├── test_main_wiring.py  (202 стр)
 │   ├── test_memory_scope.py  (132 стр)
 │   ├── test_mic_watchdog.py  (36 стр)
@@ -2348,6 +2362,14 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   # Run optional local audio regression tools; ordinary pytest never loads models.
 ```
 
+**`scripts/bootstrap_ollama_config.py`**
+
+```
+  # Small config bridge run by installed .venv311, never by frozen bootstrap imports.
+  def process(request, path=None)
+  def main()
+```
+
 **`scripts/build_exe.py`**
 
 ```
@@ -2758,6 +2780,25 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_voice_input_redacts_gui_and_skips_observer()
   def test_gui_input_redacts_history(tmp_path)
   def test_stt_does_not_retain_sensitive_recognition(caplog)
+```
+
+**`tests/test_bootstrap_ollama_config.py`**
+
+```
+  # Real config JSON and project atomic writer; never uses personal settings.
+  def path(tmp_path)
+  def read(path)
+  def expected(path)
+  def choose(path, model='qwen2.5:1.5b-instruct', snapshot=None)
+  def test_read_missing_config_uses_real_defaults_without_creating_file(path)
+  def test_selected_model_only_is_written_and_other_fields_survive(path)
+  def test_bad_config_is_never_replaced(path, raw)
+  def test_changed_settings_are_not_overwritten(path, field, value)
+  def test_unrelated_changes_while_downloading_are_preserved(path)
+  def test_write_error_is_not_success(path, monkeypatch)
+  def test_invalid_or_cloud_model_cannot_be_saved(path, name)
+  def test_existing_same_selection_does_not_write(path, monkeypatch)
+  def test_real_bridge_subprocess_reads_and_writes_appdata_only(tmp_path, monkeypatch)
 ```
 
 **`tests/test_brain_rag.py`**
@@ -3324,6 +3365,89 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def reset_handler_state(handler)
   def run_one(handler, speaker, name, cmd, expected, hooks=None)
   def main()
+```
+
+**`tests/test_launcher_download.py`**
+
+```
+  # Python bootstrap: no network/install in default tests; native Windows checks explicit.
+  LOG = ...
+  ROOT = ...
+  def native(monkeypatch)
+  def success()
+  def test_native_download_is_verified_before_atomic_publish(tmp_path, monkeypatch, native)
+  def test_failed_download_or_signature_is_removed(tmp_path, monkeypatch, native, kind)
+  def test_process_exit_alone_does_not_prove_verified_download(tmp_path, monkeypatch, native, failure)
+  def test_timed_out_native_process_cannot_publish_file(tmp_path, monkeypatch, native)
+  def test_missing_powershell_fails_closed(tmp_path, monkeypatch, native)
+  def test_untrusted_cached_temp_exe_is_never_reused(tmp_path, monkeypatch, native)
+  def test_only_fixed_official_url_is_accepted(tmp_path, monkeypatch, native, url)
+  def test_paths_and_urls_are_not_powershell_source(tmp_path, native)
+  def test_cleanup_does_not_remove_arbitrary_directory(tmp_path)
+  def test_second_signature_check_blocks_installer_execution(monkeypatch, tmp_path)
+  def test_verified_installer_preserves_interactive_command_and_find(monkeypatch, tmp_path)
+  def test_installer_cancel_or_not_installed_is_not_success(monkeypatch, tmp_path)
+  def test_launcher_reports_actionable_error(monkeypatch, kind, expected)
+  def test_successful_launcher_download_delegates_without_urllib(monkeypatch, tmp_path)
+  def test_helper_shipped_in_source_payload_and_imported_by_frozen_entrypoint()
+  def test_native_powershell_rejects_unsigned_exe(tmp_path)
+  def test_live_windows_python_download()
+```
+
+**`tests/test_launcher_ollama.py`**
+
+```
+  # Optional model setup + real loopback HTTP protocol. No models/inference/Windows install.
+  LOG = ...
+  SMALL = ...
+  DEFAULT = ...
+  def settings(**overrides)
+  def flow(tmp_path)
+  def test_configured_installed_model_is_not_changed_or_downloaded(flow)
+  def test_skip_model_is_not_global_decline_and_has_no_side_effect(flow)
+  def test_successful_pull_is_verified_before_saving_explicit_choice(flow)
+  def test_existing_alternative_does_not_download(flow)
+  def test_failed_pull_never_changes_config_and_can_skip(flow)
+  def test_success_status_without_inventory_cannot_change_config(flow)
+  def test_embedding_only_model_is_rejected_before_save(flow)
+  def test_write_conflict_is_not_reported_as_ready(flow)
+  def test_command_only_mode_does_not_offer_or_download_models(flow)
+  def test_custom_remote_endpoint_is_not_contacted_or_overwritten(flow, url)
+  def test_absent_ollama_can_be_skipped_without_browser(flow)
+  def test_site_install_then_recheck_continues_to_model_choice(flow)
+  def test_server_start_waits_for_readiness_before_model_choice(flow, monkeypatch)
+  def test_explicit_retry_uses_refreshed_settings_not_stale_snapshot(flow)
+  def test_invalid_ui_choice_is_never_pulled(flow)
+  def test_choices_preserve_installed_but_exclude_cloud_and_command_strings()
+  def test_endpoint_validator_rejects_remote_or_ambiguous_url(url)
+  def server()
+  def test_real_loopback_pull_streams_actual_layer_progress_and_checks_tags(server, monkeypatch)
+  def test_real_loopback_pull_rejects_errors_incomplete_and_bad_data(server, events)
+  def test_pull_rejects_success_without_installed_tag(server, monkeypatch)
+  def test_real_loopback_inventory_rejects_invalid_shape(server, data)
+  def test_loopback_cannot_redirect_to_remote_server(server)
+  def test_completion_check_rejects_embedding_cloud_and_unknown(server, data)
+  def test_arbitrary_model_cannot_be_pulled(server)
+  def test_model_choice_queue_waits_for_explicit_answer_and_skip_is_optional()
+  def test_model_question_rejects_values_outside_options()
+  def window()
+  def test_window_choice_confirm_routes_exact_model_not_boolean(window)
+  def test_window_choice_close_skips_without_closing_live_worker(window)
+  def test_progress_updates_use_supplied_value_and_are_throttled(monkeypatch)
+  def test_bootstrap_helper_is_in_payload_and_entrypoint_imports_it()
+  def test_bad_config_skips_setup_without_network_or_write(flow)
+  def test_loopback_inventory_omits_cloud_metadata(server)
+  def test_pull_has_an_overall_deadline(server, monkeypatch)
+  def test_wait_inventory_accepts_empty_ready_server()
+  def test_wait_inventory_timeout_is_not_ready()
+  def test_handle_ollama_keeps_session_and_project_context(monkeypatch, tmp_path)
+  def test_bad_config_skips_setup_without_network_or_write(flow)
+  def test_loopback_inventory_omits_cloud_metadata(server)
+  def test_pull_has_an_overall_deadline(server, monkeypatch)
+  def test_wait_inventory_accepts_empty_ready_server()
+  def test_wait_inventory_timeout_is_not_ready()
+  def test_handle_ollama_keeps_session_and_project_context(monkeypatch, tmp_path)
+  def test_model_dropdown_is_readonly_bounded_and_has_no_download_side_effect(window, monkeypatch)
 ```
 
 **`tests/test_launcher_ui.py`**
@@ -4084,9 +4208,60 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def download_vosk_model(project_dir: Path, logger)
   def check_ollama_running(logger)
   def find_ollama_exe(logger)
-  def handle_ollama(logger)
+  def start_ollama_server(ollama_exe, logger)
+  def handle_ollama(logger, project_dir=None)
   def run_jarvis(project_dir: Path, pythonw: Path, logger)
   def main()
+```
+
+**`launcher_download.py`**
+
+```
+  # Verified Python bootstrap download using Windows HTTPS (no third-party packages).
+  PYTHON_URL = ...
+  PYTHON_FILE = ...
+  DOWNLOAD_TIMEOUT = ...
+  VERIFY_TIMEOUT = ...
+  _SUCCESS = ...
+  class DownloadError(RuntimeError)
+    def __init__(self, kind)
+  _VERIFY = ...
+  _DOWNLOAD = ...
+  _HEADER = ...
+  _FOOTER = ...
+  def verify_python_installer(installer, logger)
+  def cleanup_download(installer)
+  def download_python(url, logger, reporthook)
+```
+
+**`launcher_ollama.py`**
+
+```
+  # Optional Ollama setup: explicit consent, local inventory/pull, safe config bridge.
+  MODEL_OPTIONS = ...
+  DEFAULT_URL = ...
+  DOWNLOAD_PAGE = ...
+  MAX_JSON = ...
+  MAX_LINE = ...
+  PULL_DEADLINE = ...
+  class SetupError(RuntimeError)
+  def local_model(name)
+  def canonical(name)
+  def local_endpoint(url)
+  class _NoRedirect(urllib.request.HTTPRedirectHandler)
+    def redirect_request(self, req, fp, code, msg, headers, newurl)
+  class OllamaAPI
+    def __init__(self, url)
+    def inventory(self)
+    def check_completion(self, name)
+    def pull(self, name, progress)
+  class ConfigBridge
+    def __init__(self, root, logger, python_exe=None)
+    def read(self)
+    def select(self, name, expected)
+  def choices(installed)
+  def ensure_server(api, session, logger, find_exe, start_server, open_site)
+  def prepare_models(root, session, logger, find_exe, start_server, open_site, bridge=None, api_factory=OllamaAPI)
 ```
 
 **`launcher_ui.py`**
@@ -4097,12 +4272,17 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   class Question
     def __init__(self, text, title, yes, no)
     def resolve(self, answer)
+  class ModelQuestion
+    def __init__(self, title, text, options)
+    def resolve(self, value)
   class Session
     def __init__(self)
     def emit(self, kind, **data)
     def stage(self, title, detail='', show=False)
     def detail(self, text)
     def ask(self, text, title, yes='Продолжить', no='Не сейчас')
+    def choose_model(self, title, text, options)
+    def progress_update(self, value, text)
     def download_progress(self, block, block_size, total)
   class StageLogHandler(logging.Handler)
     def __init__(self, session)
@@ -4264,6 +4444,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/weather.py` | 400 | code | Погода и курс валют. |
 | `scripts/__init__.py` | 7 | code | Пакет scripts: утилиты разработчика. |
 | `scripts/audio_regression.py` | 11 | code | Run optional local audio regression tools; ordinary pytest never loads |
+| `scripts/bootstrap_ollama_config.py` | 77 | code | Small config bridge run by installed .venv311, never by frozen bootstr |
 | `scripts/build_exe.py` | 83 | code | Сборка Феникс.exe (лёгкий лаунчер). |
 | `scripts/build_setup.py` | 212 | code | Полная сборка Феникса: Феникс.exe + Феникс_Setup.exe — одной командой. |
 | `scripts/check_caps.py` | 205 | code | Проверка возможностей системы — запускается из install.bat. |
@@ -4296,6 +4477,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/stress_intents.py` | 552 | code | Стресс-тест Феникса: ровно 102 разных ситуаций без микрофона и сети. |
 | `tests/test_audio_regression.py` | 556 | code | Fast contracts only: fake decoders are NOT an audio quality measuremen |
 | `tests/test_audit_regressions.py` | 265 | code | Regression tests for the six audited bugs and related edge cases. |
+| `tests/test_bootstrap_ollama_config.py` | 120 | code | Real config JSON and project atomic writer; never uses personal settin |
 | `tests/test_brain_rag.py` | 125 | code | Query-scoped memory: unavailable retrieval never means send all facts. |
 | `tests/test_browser_target.py` | 338 | code | №1: Феникс работает в том браузере, в котором сидит пользователь. |
 | `tests/test_build_setup.py` | 52 | code | Версии установщика, поиск Inno и совпадение с версией пакета. |
@@ -4318,7 +4500,9 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_gui_widgets.py` | 259 | code | Opt-in layouts, exact task IDs, safe command path, atomic saves and li |
 | `tests/test_gui_wiring.py` | 542 | code | GUI → config: каждый элемент окна реально отсылает изменение. |
 | `tests/test_intents.py` | 485 | code | Автотест Феникса без микрофона. |
-| `tests/test_launcher_ui.py` | 197 | code | Bootstrap presentation tests; no Tk display, installation, downloads o |
+| `tests/test_launcher_download.py` | 233 | code | Python bootstrap: no network/install in default tests; native Windows  |
+| `tests/test_launcher_ollama.py` | 438 | code | Optional model setup + real loopback HTTP protocol. No models/inferenc |
+| `tests/test_launcher_ui.py` | 199 | code | Bootstrap presentation tests; no Tk display, installation, downloads o |
 | `tests/test_main_wiring.py` | 202 | code | config → живое ядро: подписчик make_config_listener. |
 | `tests/test_memory_scope.py` | 132 | code | Personalization should serve a question, not choose its topic. |
 | `tests/test_mic_watchdog.py` | 36 | code | Execute the real watchdog method without importing Windows/audio backe |
@@ -4345,8 +4529,10 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_window_targets.py` | 294 | code | Тесты выбора окна: голосовое имя → процессы → окно. |
 | `check_all.py` | 170 | code | Единый прогон всех проверок Феникса — движок для check_all.bat. |
 | `check_syntax.py` | 60 | code | Проверяет синтаксис всех .py файлов в проекте. |
-| `launcher.py` | 825 | code | Лаунчер Феникса — полный автозапуск. |
-| `launcher_ui.py` | 332 | code | One bootstrap window. Presentation only: no downloads, pip or process  |
+| `launcher.py` | 815 | code | Лаунчер Феникса — полный автозапуск. |
+| `launcher_download.py` | 156 | code | Verified Python bootstrap download using Windows HTTPS (no third-party |
+| `launcher_ollama.py` | 327 | code | Optional Ollama setup: explicit consent, local inventory/pull, safe co |
+| `launcher_ui.py` | 416 | code | One bootstrap window. Presentation only: no downloads, pip or process  |
 | `snapshot.py` | 727 | code | Собирает снимок проекта в один SNAPSHOT.md. |
 
 ---
@@ -26772,6 +26958,83 @@ if __name__ == "__main__":
     raise SystemExit(main())
 ```
 
+### `scripts/bootstrap_ollama_config.py`
+
+```python
+"""Small config bridge run by installed .venv311, never by frozen bootstrap imports. ... [5 строк]"""
+import json
+from pathlib import Path
+import re
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from jarvis import config_manager, paths
+from jarvis.config import DEFAULT_CONFIG
+
+
+def _raw(path):
+    if not path.exists():
+        return {}
+    data = json.loads(path.read_text(encoding='utf-8'))
+    if not isinstance(data, dict):
+        raise ValueError('configuration')
+    return data
+
+
+def _settings(raw):
+    data = {key: raw.get(key, DEFAULT_CONFIG[key]) for key in ('llm_model', 'ollama_url', 'mode')}
+    if any(not isinstance(v, str) or not v or len(v) > 2048 for v in data.values()):
+        raise ValueError('configuration')
+    return data
+
+
+def process(request, path=None):
+    path = Path(path) if path is not None else paths.config_path()
+    if request.get('operation') == 'read':
+        return {'ok': True, **_settings(_raw(path))}
+    if request.get('operation') != 'select':
+        raise ValueError('operation')
+    model = request.get('model')
+    if (not isinstance(model, str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._/:-]{0,199}', model)
+            or model.lower().endswith((':cloud', '-cloud'))):
+        raise ValueError('model')
+    # Reuse the manager's per-path interprocess lock; its FileLock is recursive.
+    path.parent.mkdir(parents=True, exist_ok=True)
+    t_lock, f_lock = config_manager._get_locks(path)
+    with t_lock, f_lock:
+        raw = _raw(path)
+        current = _settings(raw)
+        expected = request.get('expected')
+        if not isinstance(expected, dict) or any(expected.get(k) != v for k, v in current.items()):
+            return {'ok': False, 'error': 'conflict'}
+        if current['llm_model'] == model:
+            return {'ok': True}
+        raw['llm_model'] = model
+        if not config_manager.save(raw, path=path):
+            return {'ok': False, 'error': 'write'}
+        return {'ok': True}
+
+
+def main():
+    try:
+        raw = sys.stdin.buffer.read(16385)
+        if len(raw) > 16384:
+            raise ValueError('request size')
+        request = json.loads(raw.decode('utf-8'))
+        if not isinstance(request, dict):
+            raise ValueError('request')
+        result = process(request)
+    except Exception:
+        result = {'ok': False, 'error': 'configuration'}
+    sys.stdout.write(json.dumps(result, ensure_ascii=True) + '\n')
+    return 0 if result.get('ok') else 1
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())
+```
+
 ### `scripts/build_exe.py`
 
 ```python
@@ -27727,7 +27990,7 @@ import tempfile
 from pathlib import Path
 
 ROOT_FILES = (
-    'launcher.py', 'launcher_ui.py', 'requirements.txt', 'config.example.json', 'README.md',
+    'launcher.py', 'launcher_ui.py', 'launcher_download.py', 'launcher_ollama.py', 'requirements.txt', 'config.example.json', 'README.md',
     'ARCHITECTURE.md', 'CHANGELOG.md', 'LICENSE', 'start_fenix.bat',
     'start_fenix_debug.bat', 'create_shortcut.bat',
 )
@@ -31184,6 +31447,131 @@ def test_stt_does_not_retain_sensitive_recognition(caplog):
         gen.close()
     assert not listener.recent_phrases
     assert '1234' not in caplog.text
+```
+
+### `tests/test_bootstrap_ollama_config.py`
+
+```python
+"""Real config JSON and project atomic writer; never uses personal settings."""
+import json
+from pathlib import Path
+import subprocess
+import shutil
+import venv
+import filelock
+import sys
+
+import pytest
+from jarvis import config_manager
+from jarvis.config import DEFAULT_CONFIG
+from scripts import bootstrap_ollama_config as bridge
+import launcher_ollama
+
+
+@pytest.fixture
+def path(tmp_path):
+    return tmp_path / 'config.json'
+
+
+def read(path):
+    return bridge.process({'operation': 'read'}, path)
+
+
+def expected(path):
+    return {k: v for k, v in read(path).items() if k != 'ok'}
+
+
+def choose(path, model='qwen2.5:1.5b-instruct', snapshot=None):
+    return bridge.process({'operation': 'select', 'model': model,
+                           'expected': snapshot if snapshot is not None else expected(path)}, path)
+
+
+def test_read_missing_config_uses_real_defaults_without_creating_file(path):
+    data = read(path)
+    assert data == {'ok': True, **{k: DEFAULT_CONFIG[k] for k in ('llm_model', 'ollama_url', 'mode')}}
+    assert not path.exists()
+
+
+def test_selected_model_only_is_written_and_other_fields_survive(path):
+    original = {'llm_model': 'old:latest', 'ollama_url': 'http://localhost:12345',
+                'mode': 'commands', 'tts_backend': 'silero', 'private': {'keep': 123}}
+    path.write_text(json.dumps(original), encoding='utf-8')
+    assert choose(path)['ok']
+    assert json.loads(path.read_text()) == {**original, 'llm_model': 'qwen2.5:1.5b-instruct'}
+
+
+@pytest.mark.parametrize('raw', ['{broken', '[]', 'null', '{"llm_model": null}'])
+def test_bad_config_is_never_replaced(path, raw):
+    path.write_text(raw, encoding='utf-8')
+    with pytest.raises((ValueError, TypeError)):
+        read(path)
+    with pytest.raises((ValueError, TypeError)):
+        choose(path, snapshot={})
+    assert path.read_text() == raw
+
+
+@pytest.mark.parametrize('field,value', [('llm_model','changed:latest'),
+    ('ollama_url','http://127.0.0.1:12345'), ('mode','commands')])
+def test_changed_settings_are_not_overwritten(path, field, value):
+    snapshot = expected(path)
+    path.write_text(json.dumps({field: value, 'another_key': 42}), encoding='utf-8')
+    before = path.read_bytes()
+    assert choose(path, snapshot=snapshot) == {'ok': False, 'error': 'conflict'}
+    assert path.read_bytes() == before
+
+
+def test_unrelated_changes_while_downloading_are_preserved(path):
+    snapshot = expected(path)
+    path.write_text('{"another_key": 42}', encoding='utf-8')
+    assert choose(path, snapshot=snapshot)['ok']
+    assert json.loads(path.read_text()) == {'another_key': 42, 'llm_model': 'qwen2.5:1.5b-instruct'}
+
+
+def test_write_error_is_not_success(path, monkeypatch):
+    path.write_text('{"another_key": 1}', encoding='utf-8')
+    monkeypatch.setattr(config_manager, 'save', lambda *a, **kw: False)
+    assert choose(path) == {'ok': False, 'error': 'write'}
+    assert json.loads(path.read_text()) == {'another_key': 1}
+
+
+@pytest.mark.parametrize('name', ['bad;command', 'x\nscript', 'qwen:cloud', 'x:7b-cloud', '', None])
+def test_invalid_or_cloud_model_cannot_be_saved(path, name):
+    with pytest.raises(ValueError):
+        choose(path, model=name)
+    assert not path.exists()
+
+
+def test_existing_same_selection_does_not_write(path, monkeypatch):
+    path.write_text('{"llm_model": "qwen2.5:1.5b-instruct"}', encoding='utf-8')
+    monkeypatch.setattr(config_manager, 'save', lambda *a, **kw: pytest.fail('unneeded write'))
+    assert choose(path)['ok']
+
+
+def test_real_bridge_subprocess_reads_and_writes_appdata_only(tmp_path, monkeypatch):
+    appdata = tmp_path / 'appdata'
+    monkeypatch.setenv('APPDATA', str(appdata))
+    native_run = subprocess.run
+    # Keep the real process/protocol; strip only Windows console flags on Linux.
+    def portable_run(*args, **kwargs):
+        if sys.platform != 'win32': kwargs.pop('creationflags', None)
+        return native_run(*args, **kwargs)
+    monkeypatch.setattr(launcher_ollama.subprocess, 'run', portable_run)
+    root = Path(__file__).resolve().parents[1]
+    runtime = tmp_path / 'runtime'
+    venv.EnvBuilder(with_pip=False).create(runtime)
+    python = runtime / ('Scripts/python.exe' if sys.platform == 'win32' else 'bin/python')
+    # Match the installed runtime: dependency inside venv, not user site ignored by -I.
+    purelib = Path(subprocess.check_output(
+        [str(python), '-I', '-c', 'import sysconfig; print(sysconfig.get_path("purelib"))'],
+        text=True).strip())
+    shutil.copytree(Path(filelock.__file__).parent, purelib / 'filelock')
+    client = launcher_ollama.ConfigBridge(root, None, python_exe=python)
+    snapshot = client.read()
+    file = appdata / 'Phoenix/config.json'
+    assert not file.exists()
+    client.select('qwen2.5:3b-instruct', snapshot)
+    assert json.loads(file.read_text()) == {'llm_model': 'qwen2.5:3b-instruct'}
+    assert client.read()['llm_model'] == 'qwen2.5:3b-instruct'
 ```
 
 ### `tests/test_brain_rag.py`
@@ -36378,6 +36766,687 @@ if __name__ == "__main__":
     main()
 ```
 
+### `tests/test_launcher_download.py`
+
+```python
+"""Python bootstrap: no network/install in default tests; native Windows checks explicit."""
+import base64
+import logging
+import os
+from pathlib import Path
+import subprocess
+import sys
+from types import SimpleNamespace
+from unittest.mock import Mock
+
+import pytest
+import launcher
+import launcher_download as module
+
+LOG = logging.getLogger('bootstrap-test')
+ROOT = Path(__file__).resolve().parents[1]
+
+
+@pytest.fixture
+def native(monkeypatch):
+    monkeypatch.setattr(module, '_powershell_path', lambda: Path('trusted/powershell.exe'))
+    run = Mock()
+    monkeypatch.setattr(module.subprocess, 'run', run)
+    return run
+
+
+def success():
+    return SimpleNamespace(returncode=0, stdout=b'PHOENIX_PYTHON_VERIFIED\r\n', stderr=b'')
+
+
+def test_native_download_is_verified_before_atomic_publish(tmp_path, monkeypatch, native):
+    monkeypatch.setenv('TEMP', str(tmp_path))
+    progress = Mock()
+    def fetch(cmd, **kwargs):
+        part = Path(kwargs['env']['PHOENIX_PYTHON_FILE'])
+        assert part.name.endswith('.part.exe')
+        assert not part.with_name(module.PYTHON_FILE).exists()
+        part.write_bytes(b'test fixture, not an actual executable')
+        script = base64.b64decode(cmd[-1]).decode('utf-16le')
+        assert script.index('Invoke-WebRequest') < script.index('Get-AuthenticodeSignature')
+        assert "-ne 'Valid'" in script
+        assert "-cne 'Python Software Foundation'" in script
+        assert '-MaximumRedirection 0' in script
+        assert kwargs['env']['PHOENIX_PYTHON_URL'] == module.PYTHON_URL
+        assert kwargs['timeout'] == module.DOWNLOAD_TIMEOUT
+        assert kwargs['creationflags'] == 0x08000000
+        assert cmd[1:-1] == ['-NoLogo', '-NoProfile', '-NonInteractive', '-EncodedCommand']
+        assert not kwargs.get('shell', False)
+        return success()
+    native.side_effect = fetch
+    path = module.download_python(module.PYTHON_URL, LOG, progress)
+    assert path.read_bytes().startswith(b'test fixture')
+    assert path.parent.parent == tmp_path
+    assert path.parent.name.startswith('phoenix-python-')
+    assert list(path.parent.iterdir()) == [path]
+    progress.assert_any_call(0, 1, -1)
+    progress.assert_called_with(path.stat().st_size, 1, path.stat().st_size)
+    module.cleanup_download(path)
+    assert list(tmp_path.iterdir()) == []
+
+
+@pytest.mark.parametrize('kind', ['signature', 'certificate', 'dns', 'network'])
+def test_failed_download_or_signature_is_removed(tmp_path, monkeypatch, native, kind):
+    monkeypatch.setenv('TEMP', str(tmp_path))
+    def fail(cmd, **kwargs):
+        Path(kwargs['env']['PHOENIX_PYTHON_FILE']).write_bytes(b'partial/untrusted')
+        return SimpleNamespace(returncode=1, stdout=b'', stderr=f'PHOENIX_FAILURE:{kind}'.encode())
+    native.side_effect = fail
+    with pytest.raises(module.DownloadError) as caught:
+        module.download_python(module.PYTHON_URL, LOG, Mock())
+    assert caught.value.kind == kind
+    assert list(tmp_path.iterdir()) == []
+
+
+@pytest.mark.parametrize('failure', ['empty', 'missing', 'no-marker', 'exit-with-marker'])
+def test_process_exit_alone_does_not_prove_verified_download(tmp_path, monkeypatch, native, failure):
+    monkeypatch.setenv('TEMP', str(tmp_path))
+    def bad(cmd, **kwargs):
+        file = Path(kwargs['env']['PHOENIX_PYTHON_FILE'])
+        if failure != 'missing': file.write_bytes(b'' if failure == 'empty' else b'fixture')
+        return SimpleNamespace(returncode=1 if failure == 'exit-with-marker' else 0,
+                               stdout=b'other text' if failure == 'no-marker' else b'PHOENIX_PYTHON_VERIFIED\n',
+                               stderr=b'')
+    native.side_effect = bad
+    with pytest.raises(module.DownloadError):
+        module.download_python(module.PYTHON_URL, LOG, Mock())
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_timed_out_native_process_cannot_publish_file(tmp_path, monkeypatch, native):
+    monkeypatch.setenv('TEMP', str(tmp_path))
+    native.side_effect = subprocess.TimeoutExpired('powershell', 240)
+    with pytest.raises(module.DownloadError) as caught:
+        module.download_python(module.PYTHON_URL, LOG, Mock())
+    assert caught.value.kind == 'timeout'
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_missing_powershell_fails_closed(tmp_path, monkeypatch, native):
+    monkeypatch.setenv('TEMP', str(tmp_path))
+    native.side_effect = FileNotFoundError('missing')
+    with pytest.raises(module.DownloadError) as caught:
+        module.download_python(module.PYTHON_URL, LOG, Mock())
+    assert caught.value.kind == 'unavailable'
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_untrusted_cached_temp_exe_is_never_reused(tmp_path, monkeypatch, native):
+    monkeypatch.setenv('TEMP', str(tmp_path))
+    old = tmp_path / module.PYTHON_FILE
+    old.write_bytes(b'untrusted old cache')
+    def fetch(cmd, **kwargs):
+        part = Path(kwargs['env']['PHOENIX_PYTHON_FILE'])
+        assert part.parent != old.parent
+        part.write_bytes(b'new verified fixture')
+        return success()
+    native.side_effect = fetch
+    path = module.download_python(module.PYTHON_URL, LOG, Mock())
+    assert path != old and path.read_bytes() == b'new verified fixture'
+    module.cleanup_download(path)
+    assert old.read_bytes() == b'untrusted old cache'
+
+
+@pytest.mark.parametrize('url', ['http://www.python.org/file.exe', 'https://example.com/a.exe',
+                                 module.PYTHON_URL + "'; bad-command"])
+def test_only_fixed_official_url_is_accepted(tmp_path, monkeypatch, native, url):
+    monkeypatch.setenv('TEMP', str(tmp_path))
+    with pytest.raises(module.DownloadError):
+        module.download_python(url, LOG, Mock())
+    native.assert_not_called()
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_paths_and_urls_are_not_powershell_source(tmp_path, native):
+    file = tmp_path / "тест ' $() & установщик.exe"
+    file.write_bytes(b'fixture')
+    native.return_value = success()
+    module.verify_python_installer(file, LOG)
+    cmd, = native.call_args.args
+    kwargs = native.call_args.kwargs
+    script = base64.b64decode(cmd[-1]).decode('utf-16le')
+    assert str(file) not in script
+    assert kwargs['env']['PHOENIX_PYTHON_FILE'] == str(file.resolve())
+    assert kwargs['timeout'] == module.VERIFY_TIMEOUT
+    assert 'Invoke-WebRequest' not in script
+
+
+def test_cleanup_does_not_remove_arbitrary_directory(tmp_path):
+    file = tmp_path / module.PYTHON_FILE
+    file.write_bytes(b'keep')
+    module.cleanup_download(file)
+    assert file.read_bytes() == b'keep'
+
+
+def test_second_signature_check_blocks_installer_execution(monkeypatch, tmp_path):
+    file = tmp_path / module.PYTHON_FILE
+    file.write_bytes(b'unsigned')
+    monkeypatch.setattr(launcher, 'verify_python_installer', Mock(side_effect=module.DownloadError('signature')))
+    run = Mock(); monkeypatch.setattr(launcher.subprocess, 'run', run)
+    error = Mock(); monkeypatch.setattr(launcher, 'error', error)
+    assert not launcher.run_python_installer(file, LOG)
+    run.assert_not_called()
+    error.assert_called_once()
+
+
+def test_verified_installer_preserves_interactive_command_and_find(monkeypatch, tmp_path):
+    file = tmp_path / module.PYTHON_FILE
+    verify = Mock(); run = Mock(); cleanup = Mock()
+    monkeypatch.setattr(launcher, 'verify_python_installer', verify)
+    monkeypatch.setattr(launcher.subprocess, 'run', run)
+    monkeypatch.setattr(launcher, 'cleanup_download', cleanup)
+    monkeypatch.setattr(launcher.time, 'sleep', lambda _: None)
+    monkeypatch.setattr(launcher, 'find_python', lambda _: 'Python311/python.exe')
+    assert launcher.run_python_installer(file, LOG)
+    verify.assert_called_once_with(file, LOG)
+    run.assert_called_once_with([str(file)], check=False)
+    cleanup.assert_called_once_with(file)
+
+
+def test_installer_cancel_or_not_installed_is_not_success(monkeypatch, tmp_path):
+    monkeypatch.setattr(launcher, 'verify_python_installer', Mock())
+    monkeypatch.setattr(launcher.subprocess, 'run', Mock())
+    monkeypatch.setattr(launcher.time, 'sleep', lambda _: None)
+    monkeypatch.setattr(launcher, 'find_python', lambda _: None)
+    assert not launcher.run_python_installer(tmp_path / module.PYTHON_FILE, LOG)
+
+
+@pytest.mark.parametrize('kind,expected', [('certificate', 'HTTPS-сертификат'), ('dns', 'DNS'),
+    ('signature', 'Подпись'), ('timeout', 'время ожидания'), ('unavailable', 'PowerShell')])
+def test_launcher_reports_actionable_error(monkeypatch, kind, expected):
+    monkeypatch.setattr(launcher, 'info', Mock())
+    monkeypatch.setattr(launcher, 'download_python', Mock(side_effect=module.DownloadError(kind)))
+    error = Mock(); monkeypatch.setattr(launcher, 'error', error)
+    assert launcher.download_python_installer(LOG) is None
+    assert expected in error.call_args.args[0]
+
+
+def test_successful_launcher_download_delegates_without_urllib(monkeypatch, tmp_path):
+    monkeypatch.setattr(launcher, 'info', Mock())
+    file = tmp_path / module.PYTHON_FILE
+    download = Mock(return_value=file)
+    monkeypatch.setattr(launcher, 'download_python', download)
+    monkeypatch.setattr(launcher.urllib.request, 'urlretrieve', Mock(side_effect=AssertionError('old HTTPS path')))
+    assert launcher.download_python_installer(LOG) == file
+    download.assert_called_once_with(launcher.PYTHON_INSTALLER_URL, LOG, launcher._download_progress)
+
+
+def test_helper_shipped_in_source_payload_and_imported_by_frozen_entrypoint():
+    import ast
+    from scripts.release_payload import collect_payload
+    assert 'launcher_download.py' in collect_payload(ROOT, include_exe=False)
+    tree = ast.parse((ROOT / 'launcher.py').read_text(encoding='utf-8'))
+    assert any(isinstance(n, ast.ImportFrom) and n.module == 'launcher_download' for n in tree.body)
+
+
+@pytest.mark.skipif(sys.platform != 'win32', reason='Requires native Windows PowerShell')
+def test_native_powershell_rejects_unsigned_exe(tmp_path):
+    file = tmp_path / 'unsigned.exe'
+    file.write_bytes(b'MZ unsigned test fixture')
+    with pytest.raises(module.DownloadError) as caught:
+        module.verify_python_installer(file, LOG)
+    assert caught.value.kind == 'signature'
+
+
+@pytest.mark.skipif(sys.platform != 'win32' or os.environ.get('PHOENIX_TEST_PYTHON_DOWNLOAD') != '1',
+                    reason='Opt-in Windows HTTPS download, about 25 MB; no installation')
+def test_live_windows_python_download():
+    path = module.download_python(module.PYTHON_URL, LOG, lambda *_: None)
+    try:
+        module.verify_python_installer(path, LOG)
+        assert path.stat().st_size > 0
+    finally:
+        module.cleanup_download(path)
+```
+
+### `tests/test_launcher_ollama.py`
+
+```python
+"""Optional model setup + real loopback HTTP protocol. No models/inference/Windows install."""
+import base64
+import json
+import logging
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+import queue
+import threading
+from types import SimpleNamespace
+from unittest.mock import Mock
+
+import pytest
+import launcher
+import launcher_ollama as module
+from launcher_ui import ModelQuestion, PreparationWindow, Session
+
+LOG = logging.getLogger('ollama-bootstrap-test')
+SMALL = module.MODEL_OPTIONS[0][0]
+DEFAULT = module.MODEL_OPTIONS[-1][0]
+
+
+def settings(**overrides):
+    return {'llm_model': DEFAULT, 'ollama_url': module.DEFAULT_URL, 'mode': 'combo', **overrides}
+
+
+@pytest.fixture
+def flow(tmp_path):
+    api = SimpleNamespace(url=module.DEFAULT_URL, inventory=Mock(return_value=[]),
+                          pull=Mock(), check_completion=Mock())
+    bridge = SimpleNamespace(read=Mock(return_value=settings()), select=Mock())
+    session = SimpleNamespace(ask=Mock(return_value=False), choose_model=Mock(return_value=None),
+                              stage=Mock(), detail=Mock(), progress_update=Mock())
+    find_exe, start_server, open_site = Mock(return_value=None), Mock(), Mock()
+    def run():
+        return module.prepare_models(tmp_path, session, LOG, find_exe, start_server,
+                                     open_site, bridge=bridge, api_factory=lambda _: api)
+    return SimpleNamespace(api=api, bridge=bridge, session=session, run=run,
+                           find=find_exe, start=start_server, site=open_site)
+
+
+def test_configured_installed_model_is_not_changed_or_downloaded(flow):
+    flow.api.inventory.return_value = [DEFAULT]
+    flow.run()
+    flow.session.choose_model.assert_not_called()
+    flow.bridge.select.assert_not_called()
+    flow.api.pull.assert_not_called()
+    flow.api.check_completion.assert_not_called()  # no new work on every launch
+
+
+def test_skip_model_is_not_global_decline_and_has_no_side_effect(flow):
+    flow.run()
+    flow.session.choose_model.assert_called_once()
+    flow.api.pull.assert_not_called()
+    flow.bridge.select.assert_not_called()
+
+
+def test_successful_pull_is_verified_before_saving_explicit_choice(flow):
+    installed = []
+    flow.api.inventory.side_effect = lambda: list(installed)
+    flow.api.pull.side_effect = lambda name, progress: installed.append(name)
+    flow.session.choose_model.return_value = SMALL
+    flow.run()
+    flow.api.pull.assert_called_once_with(SMALL, flow.session.progress_update)
+    flow.api.check_completion.assert_called_once_with(SMALL)
+    flow.bridge.select.assert_called_once_with(SMALL, settings())
+
+
+def test_existing_alternative_does_not_download(flow):
+    flow.api.inventory.return_value = ['my-local-model:latest']
+    flow.session.choose_model.return_value = 'my-local-model:latest'
+    flow.run()
+    flow.api.pull.assert_not_called()
+    flow.api.check_completion.assert_called_once()
+    flow.bridge.select.assert_called_once_with('my-local-model:latest', settings())
+
+
+def test_failed_pull_never_changes_config_and_can_skip(flow):
+    flow.session.choose_model.return_value = SMALL
+    flow.api.pull.side_effect = module.SetupError('pull')
+    flow.run()
+    flow.bridge.select.assert_not_called()
+    flow.session.ask.assert_called_once()
+    assert flow.session.ask.call_args.args[-1] == 'Продолжить без ИИ'
+
+
+def test_success_status_without_inventory_cannot_change_config(flow):
+    flow.session.choose_model.return_value = SMALL
+    flow.run()
+    flow.api.pull.assert_called_once()
+    flow.bridge.select.assert_not_called()
+
+
+def test_embedding_only_model_is_rejected_before_save(flow):
+    flow.api.inventory.return_value = ['nomic-embed-text:latest']
+    flow.session.choose_model.return_value = 'nomic-embed-text:latest'
+    flow.api.check_completion.side_effect = module.SetupError('capabilities')
+    flow.run()
+    flow.bridge.select.assert_not_called()
+    assert 'генерации текста' in flow.session.ask.call_args.args[0]
+
+
+def test_write_conflict_is_not_reported_as_ready(flow):
+    flow.api.inventory.return_value = [SMALL]
+    flow.session.choose_model.return_value = SMALL
+    flow.bridge.select.side_effect = module.SetupError('configuration')
+    flow.run()
+    assert not any(c.args[0] == 'Модель подготовлена' for c in flow.session.stage.call_args_list)
+    flow.session.ask.assert_called_once()
+
+
+def test_command_only_mode_does_not_offer_or_download_models(flow):
+    flow.bridge.read.return_value = settings(mode='commands')
+    flow.run()
+    flow.api.inventory.assert_not_called()
+    flow.site.assert_not_called()
+    flow.session.choose_model.assert_not_called()
+
+
+@pytest.mark.parametrize('url', ['https://example.com', 'http://192.168.1.2:11434',
+    'http://user:password@localhost:11434', 'http://localhost:11434/path'])
+def test_custom_remote_endpoint_is_not_contacted_or_overwritten(flow, url):
+    flow.bridge.read.return_value = settings(ollama_url=url)
+    flow.run()
+    flow.api.inventory.assert_not_called()
+    flow.bridge.select.assert_not_called()
+    flow.site.assert_not_called()
+
+
+def test_absent_ollama_can_be_skipped_without_browser(flow):
+    flow.api.inventory.side_effect = module.SetupError('inventory')
+    flow.run()
+    flow.site.assert_not_called()
+    flow.session.choose_model.assert_not_called()
+    flow.bridge.select.assert_not_called()
+
+
+def test_site_install_then_recheck_continues_to_model_choice(flow):
+    flow.api.inventory.side_effect = [module.SetupError('inventory'), []]
+    flow.session.ask.side_effect = [True, True]
+    flow.run()
+    flow.site.assert_called_once_with(module.DOWNLOAD_PAGE)
+    flow.session.choose_model.assert_called_once()
+
+
+def test_server_start_waits_for_readiness_before_model_choice(flow, monkeypatch):
+    flow.api.inventory.side_effect = module.SetupError('inventory')
+    flow.find.return_value = Path('ollama.exe')
+    monkeypatch.setattr(module, '_wait_inventory', lambda _: [])
+    flow.run()
+    flow.start.assert_called_once()
+    flow.session.choose_model.assert_called_once()
+
+
+def test_explicit_retry_uses_refreshed_settings_not_stale_snapshot(flow):
+    installed = []
+    flow.api.inventory.side_effect = lambda: list(installed)
+    attempts = []
+    def pull(name, progress):
+        attempts.append(name)
+        if len(attempts) == 1: raise module.SetupError('pull')
+        installed.append(name)
+    flow.api.pull.side_effect = pull
+    flow.session.ask.return_value = True
+    flow.session.choose_model.return_value = SMALL
+    newer = settings(llm_model='new-setting:latest')
+    flow.bridge.read.side_effect = [settings(), newer]
+    flow.run()
+    assert len(attempts) == 2
+    flow.bridge.select.assert_called_once_with(SMALL, newer)
+
+
+def test_invalid_ui_choice_is_never_pulled(flow):
+    flow.session.choose_model.return_value = 'not-in-options'
+    with pytest.raises(module.SetupError): flow.run()
+    flow.api.pull.assert_not_called()
+    flow.bridge.select.assert_not_called()
+
+
+def test_choices_preserve_installed_but_exclude_cloud_and_command_strings():
+    options = module.choices(['my-local:latest', 'x:cloud', 'x:7b-cloud', 'bad;command'])
+    assert options[0] == {'value': 'my-local:latest', 'label': 'my-local:latest — уже скачана', 'installed': True}
+    assert len(options) == 4
+    assert [o['value'] for o in options[1:]] == [name for name, _ in module.MODEL_OPTIONS]
+
+
+@pytest.mark.parametrize('url', ['http://example.com', 'http://localhost@evil.com',
+    'https://localhost', 'file:///tmp/x', 'http://localhost:bad',
+    'http://localhost:11434?q=1', 'http://localhost:11434/#x'])
+def test_endpoint_validator_rejects_remote_or_ambiguous_url(url):
+    with pytest.raises(module.SetupError): module.OllamaAPI(url)
+
+
+@pytest.fixture
+def server():
+    state = SimpleNamespace(names=[], records=[], events=[{'status':'success'}],
+                            tags_override=None, show={'capabilities':['completion']}, redirect=None)
+    class Handler(BaseHTTPRequestHandler):
+        def log_message(self, *args): pass
+        def do_GET(self):
+            state.records.append(('GET', self.path, None))
+            if state.redirect:
+                self.send_response(302); self.send_header('Location', state.redirect); self.end_headers(); return
+            data = state.tags_override if state.tags_override is not None else {'models':[{'name':n} for n in state.names]}
+            self.send_response(200); self.end_headers(); self.wfile.write(json.dumps(data).encode())
+        def do_POST(self):
+            body = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+            state.records.append(('POST', self.path, body))
+            self.send_response(200); self.end_headers()
+            if self.path == '/api/show':
+                self.wfile.write(json.dumps(state.show).encode()); return
+            for event in state.events:
+                if isinstance(event, dict) and event.get('status') == 'success':
+                    state.names.append(body['model'])
+                self.wfile.write(event if isinstance(event, bytes) else json.dumps(event).encode()+b'\n')
+    http = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+    thread = threading.Thread(target=http.serve_forever, daemon=True);thread.start()
+    state.url = f'http://127.0.0.1:{http.server_port}'
+    yield state
+    http.shutdown();http.server_close();thread.join(3)
+
+
+def test_real_loopback_pull_streams_actual_layer_progress_and_checks_tags(server, monkeypatch):
+    monkeypatch.setenv('HTTP_PROXY', 'http://invalid-proxy.invalid:1')
+    monkeypatch.setenv('NO_PROXY', '')
+    server.events = [{'status':'pulling manifest'}, {'status':'pulling abc', 'total':100, 'completed':40},
+                     {'status':'verifying sha256 digest'}, {'status':'success'}]
+    api = module.OllamaAPI(server.url)
+    progress = Mock()
+    api.pull(SMALL, progress)
+    api.check_completion(SMALL)
+    assert ('POST','/api/pull',{'model':SMALL,'stream':True,'insecure':False}) in server.records
+    assert ('GET','/api/tags',None) in server.records
+    assert ('POST','/api/show',{'model':SMALL,'verbose':False}) in server.records
+    assert any(call.args[0] == .4 for call in progress.call_args_list)
+    assert all(call.args[0] in (None,.4) for call in progress.call_args_list)
+    assert 'Текущий слой' in progress.call_args_list[1].args[1]
+
+
+@pytest.mark.parametrize('events', [[{'error':'private-server-error'}], [{'status':'pulling manifest'}],
+    [b'not json\n'], [b'x'*(module.MAX_LINE+1)], [{'total':100,'completed':40}], [b'[]\n']])
+def test_real_loopback_pull_rejects_errors_incomplete_and_bad_data(server, events):
+    server.events = events
+    with pytest.raises(module.SetupError):
+        module.OllamaAPI(server.url).pull(SMALL, Mock())
+
+
+def test_pull_rejects_success_without_installed_tag(server, monkeypatch):
+    api = module.OllamaAPI(server.url)
+    monkeypatch.setattr(api, 'inventory', lambda: [])
+    with pytest.raises(module.SetupError, match='not installed'):
+        api.pull(SMALL, Mock())
+
+
+@pytest.mark.parametrize('data', [[], {'models':'bad'}, {'models':[1]}])
+def test_real_loopback_inventory_rejects_invalid_shape(server, data):
+    server.tags_override = data
+    with pytest.raises(module.SetupError): module.OllamaAPI(server.url).inventory()
+
+
+def test_loopback_cannot_redirect_to_remote_server(server):
+    server.redirect = 'https://example.com/private'
+    with pytest.raises(module.SetupError): module.OllamaAPI(server.url).inventory()
+    assert len(server.records) == 1
+
+
+@pytest.mark.parametrize('data', [{'capabilities':['embedding']}, {'capabilities':['completion'],'remote_host':'cloud'}, {}])
+def test_completion_check_rejects_embedding_cloud_and_unknown(server, data):
+    server.show = data
+    with pytest.raises(module.SetupError, match='capabilities'):
+        module.OllamaAPI(server.url).check_completion('installed:latest')
+
+
+def test_arbitrary_model_cannot_be_pulled(server):
+    with pytest.raises(module.SetupError): module.OllamaAPI(server.url).pull('arbitrary/model:latest', Mock())
+    assert server.records == []
+
+
+def test_model_choice_queue_waits_for_explicit_answer_and_skip_is_optional():
+    session = Session();answers=[]
+    thread = threading.Thread(target=lambda: answers.append(session.choose_model('title','text',module.choices([]))))
+    thread.start()
+    kind, data = session.events.get(timeout=2)
+    assert kind == 'model_choice' and thread.is_alive()
+    data['question'].resolve(None)
+    thread.join(2)
+    assert answers == [None] and not session.declined
+
+
+def test_model_question_rejects_values_outside_options():
+    question = ModelQuestion('title','text',module.choices([]))
+    with pytest.raises(ValueError): question.resolve('arbitrary')
+    assert not question.ready.is_set()
+    question.resolve(SMALL)
+    assert question.answer == SMALL and question.ready.is_set()
+
+
+@pytest.fixture
+def window():
+    w = PreparationWindow(Path('.'), Path('launcher.log'))
+    for name in ('primary_button','cancel_button','stage_label','progress_label','root'):
+        setattr(w,name,Mock())
+    w._show = Mock();w._detail=Mock();w._build_model_choices=Mock()
+    return w
+
+
+def test_window_choice_confirm_routes_exact_model_not_boolean(window):
+    question = ModelQuestion('title','text',module.choices([]))
+    window._event('model_choice',{'question':question})
+    window.model_choice = SimpleNamespace(current=lambda:1)
+    window._primary()
+    assert window.state == 'busy' and question.answer == module.MODEL_OPTIONS[1][0]
+    assert question.ready.is_set() and window.question is None
+    window._primary()  # double click cannot resolve another question
+
+
+def test_window_choice_close_skips_without_closing_live_worker(window):
+    question = ModelQuestion('title','text',module.choices([]))
+    window._event('model_choice',{'question':question})
+    window._secondary()
+    assert question.ready.is_set() and question.answer is None
+    assert window.state == 'busy'
+    window.root.destroy.assert_not_called()
+
+
+def test_progress_updates_use_supplied_value_and_are_throttled(monkeypatch):
+    session=Session()
+    monkeypatch.setattr('launcher_ui.time.monotonic', lambda: 100.)
+    session.progress_update(.25,'Текущий слой')
+    session.progress_update(.26,'Текущий слой')
+    session.progress_update(None,'Проверяем…')
+    assert session.events.qsize() == 2
+    assert session.events.get()[1]['value'] == .25
+    assert session.events.get()[1]['value'] is None
+
+
+def test_bootstrap_helper_is_in_payload_and_entrypoint_imports_it():
+    import ast
+    from scripts.release_payload import collect_payload
+    root=Path(__file__).resolve().parents[1]
+    files=collect_payload(root,False)
+    assert 'launcher_ollama.py' in files and 'scripts/bootstrap_ollama_config.py' in files
+    tree=ast.parse((root/'launcher.py').read_text(encoding='utf-8'))
+    assert any(isinstance(n,ast.ImportFrom) and n.module=='launcher_ollama' for n in tree.body)
+
+
+def test_bad_config_skips_setup_without_network_or_write(flow):
+    flow.bridge.read.side_effect = module.SetupError('configuration')
+    flow.run()
+    flow.api.inventory.assert_not_called()
+    flow.bridge.select.assert_not_called()
+
+
+def test_loopback_inventory_omits_cloud_metadata(server):
+    server.tags_override = {'models': [{'name':'local:latest'},
+        {'name':'custom:latest','remote_host':'https://cloud.invalid'}, {'name':'x:cloud'}]}
+    assert module.OllamaAPI(server.url).inventory() == ['local:latest']
+
+
+def test_pull_has_an_overall_deadline(server, monkeypatch):
+    monkeypatch.setattr(module, 'PULL_DEADLINE', -1)
+    with pytest.raises(module.SetupError, match='timeout'):
+        module.OllamaAPI(server.url).pull(SMALL, Mock())
+
+
+def test_wait_inventory_accepts_empty_ready_server():
+    api = SimpleNamespace(inventory=Mock(return_value=[]))
+    assert module._wait_inventory(api, seconds=0) == []
+
+
+def test_wait_inventory_timeout_is_not_ready():
+    api = SimpleNamespace(inventory=Mock(side_effect=module.SetupError('inventory')))
+    assert module._wait_inventory(api, seconds=0) is None
+
+
+def test_handle_ollama_keeps_session_and_project_context(monkeypatch, tmp_path):
+    session = Session()
+    monkeypatch.setattr(launcher, '_PREPARATION', session)
+    prepare = Mock()
+    monkeypatch.setattr(launcher, 'prepare_models', prepare)
+    launcher.handle_ollama(LOG, tmp_path)
+    assert prepare.call_args.args[:3] == (tmp_path, session, LOG)
+
+
+def test_bad_config_skips_setup_without_network_or_write(flow):
+    flow.bridge.read.side_effect = module.SetupError('configuration')
+    flow.run()
+    flow.api.inventory.assert_not_called()
+    flow.bridge.select.assert_not_called()
+
+
+def test_loopback_inventory_omits_cloud_metadata(server):
+    server.tags_override = {'models': [{'name':'local:latest'},
+        {'name':'custom:latest','remote_host':'https://cloud.invalid'}, {'name':'x:cloud'}]}
+    assert module.OllamaAPI(server.url).inventory() == ['local:latest']
+
+
+def test_pull_has_an_overall_deadline(server, monkeypatch):
+    monkeypatch.setattr(module, 'PULL_DEADLINE', -1)
+    with pytest.raises(module.SetupError, match='timeout'):
+        module.OllamaAPI(server.url).pull(SMALL, Mock())
+
+
+def test_wait_inventory_accepts_empty_ready_server():
+    api = SimpleNamespace(inventory=Mock(return_value=[]))
+    assert module._wait_inventory(api, seconds=0) == []
+
+
+def test_wait_inventory_timeout_is_not_ready():
+    api = SimpleNamespace(inventory=Mock(side_effect=module.SetupError('inventory')))
+    assert module._wait_inventory(api, seconds=0) is None
+
+
+def test_handle_ollama_keeps_session_and_project_context(monkeypatch, tmp_path):
+    session = Session()
+    monkeypatch.setattr(launcher, '_PREPARATION', session)
+    prepare = Mock()
+    monkeypatch.setattr(launcher, 'prepare_models', prepare)
+    launcher.handle_ollama(LOG, tmp_path)
+    assert prepare.call_args.args[:3] == (tmp_path, session, LOG)
+
+
+def test_model_dropdown_is_readonly_bounded_and_has_no_download_side_effect(window, monkeypatch):
+    import sys
+    combo = Mock()
+    combo.current.return_value = 0
+    constructor = Mock(return_value=combo)
+    monkeypatch.setitem(sys.modules, 'tkinter', SimpleNamespace(ttk=SimpleNamespace(Combobox=constructor)))
+    window.question = ModelQuestion('title','text',module.choices([]))
+    window.choice_frame = Mock()
+    window.choice_frame.winfo_children.return_value = []
+    window.bar = object()
+    PreparationWindow._build_model_choices(window)
+    assert constructor.call_args.kwargs['state'] == 'readonly'
+    assert constructor.call_args.kwargs['height'] == 8
+    combo.current.assert_any_call(0)
+    window.choice_frame.pack.assert_called_once_with(fill='x', before=window.bar)
+    window.primary_button.configure.assert_called_with(text='Скачать и использовать')
+    assert not window.question.ready.is_set()  # viewing choices is not consent
+```
+
 ### `tests/test_launcher_ui.py`
 
 ```python
@@ -36565,8 +37634,10 @@ def test_retry_double_click_schedules_only_once(window):
 
 
 def test_ui_patch_preserves_210_process_commands():
-    # Presentation-only patch: all 9 subprocess call ASTs remain byte-for-byte equivalent.
-    # Revisit intentionally when a later task changes the installation engine.
+    # The 2.1.0 process commands stay intact, including interactive Python install.
+    # New HTTPS/signature and config-bridge subprocesses live in launcher_download.py
+    # and launcher_ollama.py. Their behavioral tests are separate; this hash is NOT
+    # coverage of the new bootstrap engine.
     import hashlib
     tree=ast.parse((ROOT/'launcher.py').read_text(encoding='utf-8'))
     # Python 3.13 omits empty lists by default; 3.11 includes them.
@@ -43073,6 +44144,12 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
+from launcher_download import (
+    DownloadError, cleanup_download, download_python, verify_python_installer,
+)
+
+from launcher_ollama import prepare_models
+
 # ============================================================
 # Константы
 # ============================================================
@@ -43340,42 +44417,35 @@ def find_python(logger) -> str | None:
 
 
 def download_python_installer(logger) -> Path | None:
-    """Скачивает официальный installer Python в temp."""
-    temp_dir = Path(os.environ.get("TEMP", "."))
-    installer = temp_dir / PYTHON_INSTALLER_FILE
-
-    if installer.exists():
-        logger.info("Installer уже есть: %s", installer)
-        return installer
-
+    """Загрузка через Windows HTTPS с обязательной проверкой подписи."""
     info(
         "Сейчас будет скачан установщик Python 3.11 (~25 МБ).\n\n"
-        "После скачивания откроется окно установки — "
-        "нажми «Install Now» и дождись завершения.\n\n"
+        "Загрузка средствами Windows; затем проверка подписи издателя.\n"
+        "После скачивания нажми «Install Now» в установщике Python.\n\n"
         "Подготовка продолжится в этом окне.",
         "Феникс — установка Python",
     )
-
     logger.info("Скачиваю installer: %s", PYTHON_INSTALLER_URL)
-    part = installer.with_name(installer.name + ".part")
     try:
-        # Качаем в .part и переименовываем только после успеха: обрыв
-        # оставлял обрезанный exe, который следующий запуск молча
-        # переиспользовал («installer уже есть»).
-        urllib.request.urlretrieve(PYTHON_INSTALLER_URL, part, reporthook=_download_progress)
-        part.replace(installer)
-        logger.info("Installer скачан: %s", installer)
+        installer = download_python(PYTHON_INSTALLER_URL, logger, _download_progress)
+        logger.info("Installer скачан и подпись проверена: %s", installer)
         return installer
-    except Exception:
-        try:
-            part.unlink()
-        except OSError:
-            pass
-        logger.exception("Не удалось скачать installer Python")
+    except Exception as exc:
+        logger.exception("Не удалось скачать или проверить installer Python")
+        reasons = {
+            "certificate": "Windows не смогла проверить HTTPS-сертификат сервера.",
+            "dns": "Не удалось определить адрес сервера загрузки Python (DNS).",
+            "signature": "Подпись установщика недействительна или издатель не Python Software Foundation.",
+            "timeout": "Истекло время ожидания загрузки или проверки установщика Python.",
+            "unavailable": "Не удалось запустить системный Windows PowerShell для безопасной загрузки.",
+            "verification": "Не удалось подтвердить успешную загрузку и проверку установщика Python.",
+        }
+        reason = reasons.get(getattr(exc, "kind", ""), "Не удалось скачать Python средствами Windows.")
         error(
-            "Не удалось скачать Python.\n\n"
-            "Проверь интернет или скачай вручную:\n"
-            "https://www.python.org/downloads/release/python-3119/\n\n"
+            f"{reason}\n\n"
+            "Установка Python не запущена. Проверка безопасности не отключалась.\n"
+            "Проверь подключение и нажми «Повторить».\n"
+            "Официальная страница: https://www.python.org/downloads/release/python-3119/\n\n"
             "Логи: logs\\launcher.log",
         )
         return None
@@ -43383,17 +44453,26 @@ def download_python_installer(logger) -> Path | None:
 
 def run_python_installer(installer: Path, logger) -> bool:
     """Запускает installer Python. Ждёт завершения."""
-    logger.info("Запускаю installer: %s", installer)
     try:
-        subprocess.run([str(installer)], check=False)
-    except Exception:
-        logger.exception("Ошибка запуска installer")
-        return False
+        verify_python_installer(installer, logger)
+        logger.info("Запускаю installer: %s", installer)
+        try:
+            subprocess.run([str(installer)], check=False)
+        except Exception:
+            logger.exception("Ошибка запуска installer")
+            return False
 
-    logger.info("Installer завершён, ищу Python заново")
-    time.sleep(2)
-    python = find_python(logger)
-    return python is not None
+        logger.info("Installer завершён, ищу Python заново")
+        time.sleep(2)
+        python = find_python(logger)
+        return python is not None
+    except DownloadError:
+        logger.exception("Установщик Python не прошёл повторную проверку подписи")
+        error("Не удалось подтвердить подпись установщика Python перед запуском.\n"
+              "Установка не запущена. Нажми «Повторить».\n\nЛоги: logs\\launcher.log")
+        return False
+    finally:
+        cleanup_download(installer)
 
 
 # ============================================================
@@ -43693,44 +44772,26 @@ def find_ollama_exe(logger) -> Path | None:
     return None
 
 
-def handle_ollama(logger) -> None:
-    """Проверяет Ollama. Если нет — предлагает поставить."""
-    if check_ollama_running(logger):
-        return
-
-    ollama_exe = find_ollama_exe(logger)
-    if ollama_exe:
-        logger.info("Ollama найден, запускаю serve")
-        try:
-            subprocess.Popen(
+def start_ollama_server(ollama_exe, logger):
+    """Start the existing local service; readiness is checked by the setup worker."""
+    logger.info("Ollama найден, запускаю serve")
+    return subprocess.Popen(
                 [str(ollama_exe), "serve"],
                 creationflags=CREATE_NO_WINDOW,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
-            return
-        except Exception:
-            logger.exception("Не удалось запустить ollama serve")
 
-    logger.warning("Ollama не найдена")
-    reply = msg_box(
-        "Ollama не найдена.\n\n"
-        "Без неё Феникс работает в УРЕЗАННОМ режиме:\n"
-        "  ✓ Команды\n"
-        "  ✓ Распознавание речи\n"
-        "  ✓ Синтез речи\n"
-        "  ✗ Свободный диалог с ИИ\n"
-        "  ✗ Разбор сложных фраз\n\n"
-        "Поставить Ollama?\n"
-        "(откроется ollama.com/download)",
-        "Феникс — Ollama",
-        MB_YESNO | MB_ICONQUESTION,
+
+def handle_ollama(logger, project_dir=None) -> None:
+    """Optional server installation/recheck and explicit model choice in one window."""
+    if _PREPARATION is None:
+        logger.warning("Настройка Ollama требует окна подготовки; пропускаю без изменений")
+        return
+    prepare_models(
+        project_dir or find_project_dir(logger), _PREPARATION, logger,
+        find_ollama_exe, start_ollama_server, lambda url: os.startfile(url),
     )
-    if reply == IDYES:
-        try:
-            os.startfile(OLLAMA_DOWNLOAD_PAGE)
-        except Exception:
-            logger.exception("Не удалось открыть ollama.com")
 
 
 # ============================================================
@@ -43840,7 +44901,7 @@ def _main() -> None:
             return
 
     ensure_local_caps(project_dir, logger)
-    handle_ollama(logger)
+    handle_ollama(logger, project_dir)
 
     run_jarvis(project_dir, pythonw, logger)
 
@@ -43871,6 +44932,490 @@ if __name__ == "__main__":
     main()
 ```
 
+### `launcher_download.py`
+
+```python
+"""Verified Python bootstrap download using Windows HTTPS (no third-party packages). ... [5 строк]"""
+import base64
+import os
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+
+
+PYTHON_URL = "https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe"
+PYTHON_FILE = "python-3.11.9-amd64.exe"
+DOWNLOAD_TIMEOUT = 240
+VERIFY_TIMEOUT = 60
+_SUCCESS = "PHOENIX_PYTHON_VERIFIED"
+
+
+class DownloadError(RuntimeError):
+    def __init__(self, kind):
+        self.kind = kind
+        super().__init__(kind)
+
+
+# Values are passed in the child environment, never interpolated into commands.
+# No profile, browser, shell=True, execution-policy override or TLS bypass.
+_VERIFY = r"""
+$phase = 'signature'
+$sig = Get-AuthenticodeSignature -LiteralPath $env:PHOENIX_PYTHON_FILE
+if ($sig.Status -ne 'Valid' -or $null -eq $sig.SignerCertificate) {
+    throw 'Invalid Authenticode signature'
+}
+$signer = $sig.SignerCertificate.GetNameInfo(
+    [System.Security.Cryptography.X509Certificates.X509NameType]::SimpleName, $false)
+if ($signer -cne 'Python Software Foundation') {
+    throw 'Unexpected installer signer'
+}
+Write-Output 'PHOENIX_PYTHON_VERIFIED'
+"""
+_DOWNLOAD = r"""
+$phase = 'download'
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+Invoke-WebRequest -Uri $env:PHOENIX_PYTHON_URL -OutFile $env:PHOENIX_PYTHON_FILE `
+    -UseBasicParsing -TimeoutSec 60 -MaximumRedirection 0
+"""
+_HEADER = r"""
+$ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
+[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
+$phase = 'download'
+try {
+"""
+_FOOTER = r"""
+} catch {
+    $kind = 'network'
+    if ($phase -eq 'signature') {
+        $kind = 'signature'
+    } else {
+        $cause = $_.Exception
+        while ($null -ne $cause) {
+            if ($cause -is [System.Net.WebException]) {
+                if ($cause.Status -in @('TrustFailure', 'SecureChannelFailure')) {
+                    $kind = 'certificate'
+                } elseif ($cause.Status -in @('NameResolutionFailure', 'ProxyNameResolutionFailure')) {
+                    $kind = 'dns'
+                }
+            }
+            $cause = $cause.InnerException
+        }
+    }
+    [Console]::Error.WriteLine('PHOENIX_FAILURE:' + $kind)
+    exit 1
+}
+"""
+
+
+def _powershell_path():
+    if sys.platform != 'win32':
+        raise DownloadError('unavailable')
+    path = (Path(os.environ.get('SystemRoot', r'C:\Windows')) / 'System32' /
+            'WindowsPowerShell' / 'v1.0' / 'powershell.exe')
+    if not path.is_file():
+        raise DownloadError('unavailable')
+    return path
+
+
+def _run_windows(script, installer, url, timeout, logger):
+    encoded = base64.b64encode((_HEADER + script + _FOOTER).encode('utf-16le')).decode('ascii')
+    env = os.environ.copy()
+    env['PHOENIX_PYTHON_FILE'] = str(installer.resolve())
+    env['PHOENIX_PYTHON_URL'] = url
+    try:
+        result = subprocess.run(
+            [str(_powershell_path()), '-NoLogo', '-NoProfile', '-NonInteractive',
+             '-EncodedCommand', encoded],
+            env=env, capture_output=True, timeout=timeout, creationflags=0x08000000,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise DownloadError('timeout') from exc
+    except OSError as exc:
+        raise DownloadError('unavailable') from exc
+    stdout = result.stdout.decode('utf-8', errors='replace').splitlines()
+    stderr = result.stderr.decode('utf-8', errors='replace')
+    if result.returncode != 0 or _SUCCESS not in stdout:
+        kind = next((k for k in ('signature', 'certificate', 'dns', 'network')
+                     if f'PHOENIX_FAILURE:{k}' in stderr), 'verification')
+        logger.error('Python bootstrap: Windows helper failed (exit=%s, kind=%s)',
+                     result.returncode, kind)
+        raise DownloadError(kind)
+    if not installer.is_file() or installer.stat().st_size == 0:
+        raise DownloadError('verification')
+
+
+def verify_python_installer(installer, logger):
+    """Fail closed; verify again immediately before the installer is started."""
+    _run_windows(_VERIFY, Path(installer), '', VERIFY_TIMEOUT, logger)
+
+
+def cleanup_download(installer):
+    """Remove only our known files in a private attempt directory, never recurse."""
+    installer = Path(installer)
+    if installer.name != PYTHON_FILE or not installer.parent.name.startswith('phoenix-python-'):
+        return
+    for name in (PYTHON_FILE, PYTHON_FILE + '.part.exe'):
+        try:
+            (installer.parent / name).unlink()
+        except OSError:
+            pass
+    try:
+        installer.parent.rmdir()
+    except OSError:
+        pass
+
+
+def download_python(url, logger, reporthook):
+    """Return a verified EXE in a private directory; never trust an old temp EXE."""
+    if url != PYTHON_URL:
+        raise DownloadError('url')
+    folder = Path(tempfile.mkdtemp(prefix='phoenix-python-', dir=os.environ.get('TEMP') or None))
+    installer = folder / PYTHON_FILE
+    part = folder / (PYTHON_FILE + '.part.exe')
+    try:
+        reporthook(0, 1, -1)  # native downloader has no reliable byte progress here
+        logger.info('Python bootstrap: Windows HTTPS; Authenticode verification required')
+        _run_windows(_DOWNLOAD + _VERIFY, part, url, DOWNLOAD_TIMEOUT, logger)
+        part.replace(installer)  # publish only after successful verification
+        size = installer.stat().st_size
+        reporthook(size, 1, size)
+        logger.info('Python bootstrap: signature Valid, signer Python Software Foundation')
+        return installer
+    except Exception:
+        cleanup_download(installer)
+        raise
+```
+
+### `launcher_ollama.py`
+
+```python
+"""Optional Ollama setup: explicit consent, local inventory/pull, safe config bridge. ... [4 строк]"""
+import json
+from pathlib import Path
+import re
+import subprocess
+import time
+import urllib.request
+from urllib.parse import urlsplit
+
+
+# Approximate download sizes: https://ollama.com/library/qwen2.5/tags (2026-10).
+# This is a size catalog, not measured quality/speed or a RAM requirement.
+# Approximate download sizes: https://ollama.com/library/qwen2.5/tags (2026-10).
+# This is a size catalog, not measured quality/speed or a RAM requirement.
+MODEL_OPTIONS = (
+    ('qwen2.5:1.5b-instruct', 'Qwen2.5 1.5B — около 986 МБ'),
+    ('qwen2.5:3b-instruct', 'Qwen2.5 3B — около 1,9 ГБ'),
+    ('qwen2.5:7b-instruct', 'Qwen2.5 7B — около 4,7 ГБ'),
+)
+DEFAULT_URL = 'http://127.0.0.1:11434'
+DOWNLOAD_PAGE = 'https://ollama.com/download/windows'
+MAX_JSON = 2 * 1024 * 1024
+MAX_LINE = 65536
+PULL_DEADLINE = 7200
+
+
+class SetupError(RuntimeError):
+    pass
+
+
+def local_model(name):
+    return (isinstance(name, str) and
+            re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._/:-]{0,199}', name) is not None and
+            not name.lower().endswith((':cloud', '-cloud')))
+
+
+def canonical(name):
+    return name if ':' in name.rsplit('/', 1)[-1] else name + ':latest'
+
+
+def local_endpoint(url):
+    try:
+        parts = urlsplit(url)
+        if (parts.scheme != 'http' or parts.hostname not in ('127.0.0.1', 'localhost', '::1')
+                or parts.username is not None or parts.password is not None
+                or parts.path not in ('', '/') or parts.query or parts.fragment):
+            raise ValueError('not local')
+        _ = parts.port  # validate port before any network access
+        return url.rstrip('/')
+    except (ValueError, TypeError) as exc:
+        raise SetupError('endpoint') from exc
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise SetupError('redirect')
+
+
+class OllamaAPI:
+    def __init__(self, url):
+        self.url = local_endpoint(url)
+        # Loopback only; don't send local setup requests via environment proxies.
+        self.opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), _NoRedirect())
+
+    def inventory(self):
+        try:
+            with self.opener.open(self.url + '/api/tags', timeout=2) as response:
+                raw = response.read(MAX_JSON + 1)
+            if len(raw) > MAX_JSON:
+                raise ValueError('inventory size')
+            data = json.loads(raw)
+            if not isinstance(data, dict) or not isinstance(data.get('models'), list):
+                raise ValueError('inventory')
+            names = []
+            for item in data['models']:
+                if not isinstance(item, dict):
+                    raise ValueError('inventory entry')
+                name = item.get('name', item.get('model'))
+                if local_model(name) and not item.get('remote_host') and not item.get('remote_model'):
+                    names.append(name)
+            return sorted(set(names))
+        except Exception as exc:
+            raise SetupError('inventory') from exc
+
+    def check_completion(self, name):
+        if not local_model(name):
+            raise SetupError('model')
+        request = urllib.request.Request(
+            self.url + '/api/show',
+            data=json.dumps({'model': name, 'verbose': False}).encode('utf-8'),
+            headers={'Content-Type': 'application/json'},
+        )
+        try:
+            with self.opener.open(request, timeout=5) as response:
+                raw = response.read(MAX_JSON + 1)
+            if len(raw) > MAX_JSON:
+                raise ValueError('show size')
+            data = json.loads(raw)
+            if (not isinstance(data, dict) or data.get('remote_host') or data.get('remote_model')
+                    or not isinstance(data.get('capabilities'), list)
+                    or 'completion' not in data['capabilities']):
+                raise SetupError('capabilities')
+        except Exception as exc:
+            if isinstance(exc, SetupError):
+                raise
+            raise SetupError('capabilities') from exc
+
+    def pull(self, name, progress):
+        if name not in dict(MODEL_OPTIONS):
+            raise SetupError('model')
+        body = json.dumps({'model': name, 'stream': True, 'insecure': False}).encode('utf-8')
+        request = urllib.request.Request(self.url + '/api/pull', data=body,
+                                         headers={'Content-Type': 'application/json'})
+        deadline = time.monotonic() + PULL_DEADLINE
+        success = False
+        try:
+            with self.opener.open(request, timeout=30) as response:
+                while True:
+                    if time.monotonic() > deadline:
+                        raise SetupError('timeout')
+                    line = response.readline(MAX_LINE + 1)
+                    if not line:
+                        break
+                    if len(line) > MAX_LINE:
+                        raise SetupError('pull data')
+                    if not line.strip():
+                        continue
+                    event = json.loads(line)
+                    if not isinstance(event, dict) or event.get('error'):
+                        raise SetupError('pull')
+                    if event.get('status') == 'success':
+                        success = True
+                        break
+                    total, completed = event.get('total'), event.get('completed')
+                    if (type(total) is int and type(completed) is int and
+                            0 < total <= 2**63 - 1 and 0 <= completed <= total):
+                        progress(completed / total,
+                                 f'Текущий слой: {completed/1000000:.1f} из {total/1000000:.1f} МБ')
+                    else:
+                        progress(None, 'Получаем манифест / проверяем файлы модели…')
+            if not success:
+                raise SetupError('incomplete')
+            progress(None, 'Проверяем наличие модели в Ollama…')
+            if canonical(name) not in {canonical(n) for n in self.inventory()}:
+                raise SetupError('not installed')
+        except Exception as exc:
+            if isinstance(exc, SetupError):
+                raise
+            raise SetupError('pull') from exc
+
+
+class ConfigBridge:
+    """Use installed runtime's paths/config_manager, without bundling its dependencies."""
+    def __init__(self, root, logger, python_exe=None):
+        self.root = Path(root)
+        self.logger = logger
+        self.python = Path(python_exe) if python_exe else self.root / '.venv311/Scripts/python.exe'
+
+    def _call(self, payload):
+        try:
+            result = subprocess.run(
+                [str(self.python), '-I', str(self.root / 'scripts/bootstrap_ollama_config.py')],
+                input=json.dumps(payload).encode('utf-8'), capture_output=True, timeout=20,
+                creationflags=0x08000000,
+            )
+            if len(result.stdout) > 16384:
+                raise ValueError('bridge size')
+            data = json.loads(result.stdout)
+            if result.returncode or not isinstance(data, dict) or data.get('ok') is not True:
+                raise ValueError('bridge failed')
+            return data
+        except Exception as exc:
+            raise SetupError('configuration') from exc
+
+    def read(self):
+        data = self._call({'operation': 'read'})
+        if any(not isinstance(data.get(key), str) or not data[key] for key in ('llm_model', 'ollama_url', 'mode')):
+            raise SetupError('configuration')
+        return {key: data[key] for key in ('llm_model', 'ollama_url', 'mode')}
+
+    def select(self, name, expected):
+        self._call({'operation': 'select', 'model': name, 'expected': expected})
+
+
+def choices(installed):
+    result = []
+    seen = set()
+    # Existing local models first; no forced replacement by the bundled catalog.
+    for name in installed[:100]:
+        if local_model(name) and canonical(name) not in seen:
+            result.append({'value': name, 'label': name + ' — уже скачана', 'installed': True})
+            seen.add(canonical(name))
+    for name, label in MODEL_OPTIONS:
+        if canonical(name) not in seen:
+            result.append({'value': name, 'label': label, 'installed': False})
+    return result
+
+
+def _wait_inventory(api, seconds=15):
+    deadline = time.monotonic() + seconds
+    while True:
+        try:
+            return api.inventory()
+        except SetupError:
+            if time.monotonic() >= deadline:
+                return None
+            time.sleep(.5)
+
+
+def ensure_server(api, session, logger, find_exe, start_server, open_site):
+    try:
+        return api.inventory()
+    except SetupError:
+        pass
+    is_default = api.url in (DEFAULT_URL, 'http://localhost:11434')
+    site_opened = False
+    while True:
+        exe = find_exe(logger) if is_default else None
+        if exe is not None:
+            session.stage('Запускаем Ollama', 'Ждём готовности локального сервера…', show=True)
+            try:
+                start_server(exe, logger)
+                installed = _wait_inventory(api)
+                if installed is not None:
+                    return installed
+            except Exception:
+                logger.exception('Не удалось запустить локальную Ollama')
+        elif is_default and not site_opened:
+            if not session.ask(
+                'Для свободного диалога нужна Ollama и отдельная языковая модель.\n\n'
+                'Откроется официальный сайт. Установи Ollama, затем вернись сюда: '
+                'мы предложим модели и скачаем выбранную без команд в терминале.\n\n'
+                'Можно продолжить без ИИ: обычные команды и голос останутся доступны.',
+                'Феникс — установка Ollama', 'Открыть сайт', 'Продолжить без ИИ'):
+                return None
+            try:
+                open_site(DOWNLOAD_PAGE)
+                site_opened = True
+            except Exception:
+                logger.exception('Не удалось открыть сайт Ollama')
+                session.detail('Сайт не открылся. Адрес: ' + DOWNLOAD_PAGE)
+        server_note = (('Сайт установки: ' + DOWNLOAD_PAGE + '\n') if is_default else
+                       ('Запусти локальный сервер по адресу ' + api.url + '. Адрес не меняем.\n'))
+        if not session.ask(
+            server_note + 'Заверши установку и запусти Ollama. Нажми «Проверить», когда будешь готов.\n\n'
+            'Если Ollama пока недоступна, можно продолжить без ИИ. '
+            'Настройки модели не изменятся.',
+            'Феникс — ожидаем Ollama', 'Проверить', 'Продолжить без ИИ'):
+            return None
+        try:
+            return api.inventory()
+        except SetupError:
+            session.detail('Сервер пока не отвечает или вернул некорректный список моделей.')
+
+
+def prepare_models(root, session, logger, find_exe, start_server, open_site,
+                   bridge=None, api_factory=OllamaAPI):
+    bridge = bridge or ConfigBridge(root, logger)
+    try:
+        settings = bridge.read()
+        if settings['mode'] == 'commands':
+            logger.info('Режим команд: подготовка ИИ не требуется')
+            return
+        url = local_endpoint(settings['ollama_url'])
+    except SetupError:
+        session.ask('Не удалось прочитать настройки или указан нестандартный/удалённый сервер.\n'
+                    'Ничего не меняем. Сервер и модель можно настроить в Фениксе.',
+                    'Настройка ИИ пропущена', 'Продолжить', 'Продолжить без ИИ')
+        return
+    api = api_factory(url)
+    installed = ensure_server(api, session, logger, find_exe, start_server, open_site)
+    if installed is None:
+        logger.info('Настройка Ollama пропущена пользователем; конфигурация сохранена')
+        return
+    if canonical(settings['llm_model']) in {canonical(n) for n in installed}:
+        logger.info('Выбранная модель Ollama уже установлена')
+        return
+    while True:
+        options = choices(installed)
+        selected = session.choose_model(
+            'Феникс — модель для диалога',
+            'Ollama готова. Выбери локальную модель. Размеры загрузки примерные; '
+            'для работы потребуется дополнительная память. GPU не обязателен, '
+            'скорость зависит от компьютера.\n\n'
+            f'Текущая модель: {settings["llm_model"]} (не найдена локально).\n'
+            'Скачаем только выбранную модель. Отказ не меняет настройки.',
+            options,
+        )
+        if selected is None:
+            return
+        option = next((o for o in options if o['value'] == selected), None)
+        if option is None:
+            raise SetupError('choice')
+        try:
+            current = api.inventory()
+            if canonical(selected) not in {canonical(n) for n in current}:
+                session.stage('Скачиваем модель Ollama', selected + '\nПроцент относится к текущему слою, не ко всей модели.', show=True)
+                api.pull(selected, session.progress_update)
+            # Recheck both inventory and config after download; never publish a fake success.
+            if canonical(selected) not in {canonical(n) for n in api.inventory()}:
+                raise SetupError('not installed')
+            api.check_completion(selected)
+            bridge.select(selected, settings)
+            session.stage('Модель подготовлена', selected + '\nВыбор сохранён. Это проверка наличия, не тест генерации.', show=True)
+            logger.info('Модель Ollama выбрана и сохранена: %s', selected)
+            return
+        except SetupError as exc:
+            logger.exception('Не удалось скачать модель или сохранить выбор')
+            reason = ('Модель не подтвердила поддержку генерации текста. Выбери другую модель.\n'
+                      if str(exc) == 'capabilities' else '')
+            if not session.ask(
+                reason + 'Не удалось завершить загрузку, подтвердить наличие модели или сохранить настройки.\n'
+                'Выбор не объявлен успешным. Можно повторить или продолжить без настройки ИИ.\n'
+                'Если настройки менялись в другом окне, сначала проверь их в Фениксе.',
+                'Подготовка модели не завершена', 'Повторить', 'Продолжить без ИИ'):
+                return
+            try:
+                settings = bridge.read()
+                if local_endpoint(settings['ollama_url']) != api.url:
+                    return  # don't send requests to a newly changed endpoint
+                installed = api.inventory()
+            except SetupError:
+                return
+```
+
 ### `launcher_ui.py`
 
 ```python
@@ -43899,6 +45444,23 @@ class Question:
         self.ready.set()
 
 
+class ModelQuestion:
+    """Choice data only; worker waits, Tk thread resolves a model name or None."""
+    def __init__(self, title, text, options):
+        self.title, self.text = title, text
+        self.options = tuple(dict(o) for o in options)
+        if not self.options or len({o['value'] for o in self.options}) != len(self.options):
+            raise ValueError('Invalid model options')
+        self.ready = threading.Event()
+        self.answer = None
+
+    def resolve(self, value):
+        if value is not None and value not in {o['value'] for o in self.options}:
+            raise ValueError('Unknown model choice')
+        self.answer = value
+        self.ready.set()
+
+
 class Session:
     """A queue boundary, not an installer engine. No widget access from workers."""
     def __init__(self):
@@ -43922,6 +45484,21 @@ class Session:
         self.emit('question', question=question)
         question.ready.wait()
         return question.answer
+
+    def choose_model(self, title, text, options):
+        question = ModelQuestion(title, text, options)
+        self.emit('model_choice', question=question)
+        question.ready.wait()
+        return question.answer
+
+    def progress_update(self, value, text):
+        now = time.monotonic()
+        if value not in (None, 0, 1) and now - self._last_progress < .1:
+            return
+        if value is None and getattr(self, '_last_progress_text', None) == text and now - self._last_progress < .1:
+            return
+        self._last_progress, self._last_progress_text = now, text
+        self.emit('progress', value=value, text=text)
 
     def download_progress(self, block, block_size, total):
         received = max(0, block*block_size)
@@ -44037,6 +45614,8 @@ class PreparationWindow:
             font=('Segoe UI',10), wrap='word', relief='flat', borderwidth=0,
             highlightthickness=0, state='disabled', takefocus=True)
         self.detail_text.pack(fill='x', pady=(10,12))
+        self.choice_frame = tk.Frame(card, bg=self.CARD)
+        self.model_choice = None
         self.bar = tk.Canvas(card, bg=self.CARD, height=6, highlightthickness=0, width=540)
         self.bar.pack(fill='x')
         self.progress_label = tk.Label(card, text='Проверка компонентов', bg=self.CARD,
@@ -44086,7 +45665,34 @@ class PreparationWindow:
         except (OSError,AttributeError):
             self._detail(f'Журнал: {self.log_file}')
 
+    def _clear_choices(self):
+        frame = getattr(self, 'choice_frame', None)
+        if frame is not None:
+            for child in frame.winfo_children():
+                child.destroy()
+            frame.pack_forget()
+        self.model_choice = None
+
+    def _build_model_choices(self):
+        from tkinter import ttk
+        self._clear_choices()
+        options = self.question.options
+        self.model_choice = ttk.Combobox(
+            self.choice_frame, state='readonly', height=8,
+            values=[o['label'] for o in options], font=('Segoe UI', 10))
+        self.model_choice.current(0)
+        self.model_choice.pack(fill='x', pady=(0, 12))
+        self.model_choice.bind('<<ComboboxSelected>>', self._choice_changed)
+        self.choice_frame.pack(fill='x', before=self.bar)
+        self._choice_changed()
+
+    def _choice_changed(self, _=None):
+        index = self.model_choice.current()
+        installed = self.question.options[index].get('installed', False)
+        self.primary_button.configure(text='Использовать модель' if installed else 'Скачать и использовать')
+
     def _busy(self):
+        self._clear_choices()
         self.state = 'busy'
         self.primary_button.configure(state='disabled')
         self.cancel_button.configure(state='disabled', text='Дождись завершения')
@@ -44094,7 +45700,13 @@ class PreparationWindow:
         self.progress_label.configure(text='Выполняется…')
 
     def _primary(self):
-        if self.state == 'question' and self.question is not None:
+        if self.state == 'model_choice' and self.question is not None:
+            index = self.model_choice.current()
+            question, self.question = self.question, None
+            value = question.options[index]['value']
+            self._busy()
+            question.resolve(value)
+        elif self.state == 'question' and self.question is not None:
             question, self.question = self.question, None
             self._busy()
             question.resolve(True)
@@ -44105,7 +45717,11 @@ class PreparationWindow:
             self._start()
 
     def _secondary(self):
-        if self.state == 'question' and self.question is not None:
+        if self.state == 'model_choice' and self.question is not None:
+            question, self.question = self.question, None
+            self._busy()
+            question.resolve(None)
+        elif self.state == 'question' and self.question is not None:
             question, self.question = self.question, None
             self._busy()
             question.resolve(False)
@@ -44137,6 +45753,7 @@ class PreparationWindow:
 
     def _event(self, kind, data):
         if kind == 'finished':
+            self._clear_choices()
             self.question = None
             self.state = data['status']
             if self.state == 'ok':
@@ -44161,6 +45778,18 @@ class PreparationWindow:
         elif kind == 'progress':
             self.progress = data['value']
             self.progress_label.configure(text=data['text'])
+        elif kind == 'model_choice':
+            self.question = data['question']
+            self.state = 'model_choice'
+            self._show()
+            self.stage_label.configure(text=self.question.title)
+            self._detail(self.question.text)
+            self.progress = 0
+            self.progress_label.configure(text='Загрузка — только после нажатия кнопки. Размеры примерные.')
+            self.primary_button.configure(state='normal')
+            self.cancel_button.configure(text='Продолжить без ИИ', state='normal')
+            self._build_model_choices()
+            self.primary_button.focus_set()
         elif kind == 'question':
             self.question = data['question']
             self.state = 'question'
@@ -44885,15 +46514,16 @@ if __name__ == "__main__":
 #
 # Что делает:
 #   1. Windows-раннер, Python 3.11, кэш pip.
-#   2. Ставит PyInstaller + Pillow (зависимости проекта НЕ нужны).
+#   2. Ставит PyInstaller + Pillow + filelock для bootstrap-тестов (без моделей).
 #   3. Ставит Inno Setup 6 через Chocolatey (choco install innosetup).
 #   4. python scripts\build_setup.py --version <версия из тега>
 #        → Феникс.exe + dist\Феникс_Setup.exe
 #   5. Оба файла всегда уходят в артефакты запуска.
 #   6. На теге — gh release create: релиз с заметками и двумя вложениями.
 #
-# Почему хватает PyInstaller + Pillow:
-#   Феникс.exe — лёгкий лаунчер (launcher.py, только stdlib).
+# Почему сборка остаётся лёгкой:
+#   Феникс.exe — лёгкий лаунчер (stdlib + системный PowerShell).
+#   filelock нужен тестам моста настроек; сам мост работает в установленной venv.
 #   Тяжёлые пакеты (vosk, faster-whisper, torch…) он ставит сам при первом
 #   запуске, поэтому в CI их тянуть не нужно (~2 ГБ экономии).
 #
@@ -44938,8 +46568,11 @@ jobs:
           python-version: "3.11"
           cache: "pip"
 
-      - name: Install build tools (PyInstaller + Pillow)
-        run: pip install -r requirements-dev.txt Pillow
+      - name: Install build and bootstrap test tools
+        run: pip install -r requirements-dev.txt Pillow filelock
+
+      - name: Bootstrap downloader regressions (no models or installation)
+        run: python -m pytest tests/test_launcher_download.py tests/test_launcher_ollama.py tests/test_bootstrap_ollama_config.py tests/test_launcher_ui.py tests/test_build_setup.py tests/test_release_payload.py -q
 
       - name: Install Inno Setup 6
         run: choco install innosetup --no-progress -y
@@ -46325,9 +47958,11 @@ pymorphy3>=2.0.3,<3
 
 - Фирменные ресурсы Феникса
 
-#### `tests/README.md` — 27 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `tests/README.md` — 29 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Тесты Феникса
+  - Общий bootstrap Python + Ollama
+  - Python bootstrap HTTPS — исходный патч
   - Карта
   - Персона и Настройки — 16.10.2026
   - Главная GUI
@@ -46432,9 +48067,11 @@ pymorphy3>=2.0.3,<3
     - `.venv311`
     - Git
 
-#### `CHANGELOG.md` — 108 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 110 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
+  - Не выпущено — единая подготовка Python и модели Ollama
+  - Не выпущено — Python bootstrap HTTPS в Windows Sandbox
   - Не выпущено — план надёжности и улучшений
   - Стартовый handoff для нового чата (документация)
   - Опциональные виджеты Главной
@@ -46472,8 +48109,6 @@ pymorphy3>=2.0.3,<3
       - Уточнение README и восстановление модулей пароля
       - Добавлено
       - Исправлено
-      - Документация и проверка
-    - 📅 Сессия 14.10.2026 (вечерняя)
 
 #### `CI.md` — 16 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -46533,7 +48168,7 @@ pymorphy3>=2.0.3,<3
 #### `PLAN.md` — 25 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - 📋 План развития «Феникс»
-  - 🚧 Текущий P0: сбой установленного приложения
+  - 🚧 Текущий P0: Windows-приёмка Python и модели Ollama
   - ⏭ Следующая задача после P0: потоковый TTS рядом с Ollama
   - 🎯 Курс: сначала сам Феникс
   - 📊 Статусы
@@ -46591,6 +48226,16 @@ pymorphy3>=2.0.3,<3
 - Звуковые реакции: источники и использование
   - Ограничения
   - Прослушивание
+
+#### `docs/BOOTSTRAP_PYTHON_OLLAMA_UPDATE.md` — 7 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Общее обновление подготовки: Python HTTPS + выбор модели Ollama
+  - Применение одним архивом
+  - 1. Python — исправление HTTPS-bootstrap
+  - 2. Ollama и модель — в том же окне подготовки
+  - Проверка исходников
+  - Чистая Windows-приёмка
+  - Официальные справочные источники
 
 #### `docs/BOOTSTRAP_WINDOW_UPDATE.md` — 4 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -46705,12 +48350,21 @@ pymorphy3>=2.0.3,<3
 #### `docs/NEXT_STEPS.md` — 7 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Дальнейшие действия после 2.1.0
-  - Текущий блокер и дополненный бэклог
-  - 0. Выпустить и проверить 2.1.0
+  - Текущий шаг: общее обновление Python + Ollama
+  - 0. Исторический чек-лист 2.1.0 (не повторять опубликованный тег)
   - 1. Ближайшая patch-версия: только реальные регрессии
   - 2. Следующий функциональный этап: лёгкая локальная озвучка
   - 3. Надёжность повседневной работы
   - 4. После стабилизации
+
+#### `docs/PYTHON_BOOTSTRAP_TLS_FIX.md` — 6 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Исправление загрузки Python в чистой Windows
+  - Что доказано и что ещё не доказано
+  - Что изменено
+  - Применение — прямо в корень jarvis
+  - Приёмка в Windows Sandbox
+  - Проверено при подготовке патча
 
 #### `docs/USER_GUIDE.md` — 48 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -46765,4 +48419,4 @@ pymorphy3>=2.0.3,<3
 
 ---
 
-_Итого по категориям — code: 196, data: 44, doc: 31, pack: 5. Режим `lean`._
+_Итого по категориям — code: 202, data: 44, doc: 33, pack: 5. Режим `lean`._

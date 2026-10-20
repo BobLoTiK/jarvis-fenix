@@ -8,15 +8,16 @@
 #
 # Что делает:
 #   1. Windows-раннер, Python 3.11, кэш pip.
-#   2. Ставит PyInstaller + Pillow (зависимости проекта НЕ нужны).
+#   2. Ставит PyInstaller + Pillow + filelock для bootstrap-тестов (без моделей).
 #   3. Ставит Inno Setup 6 через Chocolatey (choco install innosetup).
 #   4. python scripts\build_setup.py --version <версия из тега>
 #        → Феникс.exe + dist\Феникс_Setup.exe
 #   5. Оба файла всегда уходят в артефакты запуска.
 #   6. На теге — gh release create: релиз с заметками и двумя вложениями.
 #
-# Почему хватает PyInstaller + Pillow:
-#   Феникс.exe — лёгкий лаунчер (launcher.py, только stdlib).
+# Почему сборка остаётся лёгкой:
+#   Феникс.exe — лёгкий лаунчер (stdlib + системный PowerShell).
+#   filelock нужен тестам моста настроек; сам мост работает в установленной venv.
 #   Тяжёлые пакеты (vosk, faster-whisper, torch…) он ставит сам при первом
 #   запуске, поэтому в CI их тянуть не нужно (~2 ГБ экономии).
 #
@@ -61,8 +62,11 @@ jobs:
           python-version: "3.11"
           cache: "pip"
 
-      - name: Install build tools (PyInstaller + Pillow)
-        run: pip install -r requirements-dev.txt Pillow
+      - name: Install build and bootstrap test tools
+        run: pip install -r requirements-dev.txt Pillow filelock
+
+      - name: Bootstrap downloader regressions (no models or installation)
+        run: python -m pytest tests/test_launcher_download.py tests/test_launcher_ollama.py tests/test_bootstrap_ollama_config.py tests/test_launcher_ui.py tests/test_build_setup.py tests/test_release_payload.py -q
 
       - name: Install Inno Setup 6
         run: choco install innosetup --no-progress -y

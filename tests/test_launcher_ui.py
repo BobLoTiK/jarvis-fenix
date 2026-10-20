@@ -182,8 +182,10 @@ def test_retry_double_click_schedules_only_once(window):
 
 
 def test_ui_patch_preserves_210_process_commands():
-    # Presentation-only patch: all 9 subprocess call ASTs remain byte-for-byte equivalent.
-    # Revisit intentionally when a later task changes the installation engine.
+    # The 2.1.0 process commands stay intact, including interactive Python install.
+    # New HTTPS/signature and config-bridge subprocesses live in launcher_download.py
+    # and launcher_ollama.py. Their behavioral tests are separate; this hash is NOT
+    # coverage of the new bootstrap engine.
     import hashlib
     tree=ast.parse((ROOT/'launcher.py').read_text(encoding='utf-8'))
     # Python 3.13 omits empty lists by default; 3.11 includes them.
