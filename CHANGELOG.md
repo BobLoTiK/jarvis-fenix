@@ -13,6 +13,37 @@
 
 ---
 
+## Не выпущено — надёжность первого запуска Windows
+
+- VC++ x64: проверка системных DLL, явное согласие, официальный HTTPS download,
+  Valid Authenticode/Microsoft Corporation дважды, интерактивный installer и recheck.
+- Process-local certifi для штатного -m jarvis; private CA не заменяются,
+  TLS/hostname verification не отключается. Flet client готовится в окне подготовки.
+- Убран синхронный повтор TTS init после ожидания фона; готовность до 1 с,
+  затем текстовый ответ. Stop/deadline обычной реплики освобождает ожидание.
+- run_spec failure для известного приложения/браузера/Steam не маскируется успехом.
+- Whisper: CUDA failure при list(segments) → одна CPU int8 попытка той же
+  локальной модели; без нового download и без ослабления ASR confidence gate.
+- Исторический AST-хеш subprocess заменён поведенческими контрактами запуска:
+  venv -m jarvis, интерактивный подписанный Python, prerequisite/client gating.
+- README/assets, Vosk, auto-порядок TTS и стриминг не переделаны. Новая TTS-очередь
+  и GUI readiness handshake не реализованы. Пересборка и Windows-приёмка впереди.
+- Инструкция и границы: docs/WINDOWS_STARTUP_RELIABILITY.md.
+
+## Не выпущено — необязательный Whisper не блокирует старт при DLL-ошибке
+
+- main.py перехватывает ImportError и OSError, включая FileNotFoundError,
+  при предзагрузке faster-whisper/CTranslate2. Сохраняет порядок успешных импортов,
+  пишет исходный traceback и продолжает инициализацию на Vosk.
+- При отказе backend Whisper не создаётся и не повторяет загрузку в этом запуске;
+  use_whisper/другой пользовательский конфиг не изменяются, пакеты не удаляются.
+- 30 headless-регрессий: отказ каждого импорта, отсутствующая DLL, WinError-подобные
+  126/193, сохранение порядка, отсутствие повторов, создание Vosk/GUI и передача
+  whisper=None в ядро. Не live Windows/Flet/audio-проверка.
+- В этом предшествующем патче DLL-зависимости не устанавливались. Причина конкретного сбоя
+  CTranslate2 ещё не доказана; для текущей Sandbox предложен официальный VC++ x64.
+  Readiness лаунчера, Диалог, TTS, Ollama и защита действий не менялись.
+
 ## Не выпущено — визуальный ритм README
 
 - Добавлены отдельные широкие/мобильные иллюстрации трёх команд и палитр

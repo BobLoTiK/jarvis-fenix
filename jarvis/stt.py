@@ -597,6 +597,9 @@ class WhisperTranscriber:
                  *, local_files_only=False):
         self._model = None
         self._load_error: Exception | None = None
+        self._infer_lock = threading.RLock()
+        self._active_device = None
+        self._active_model_name = None
         self._loading = False
         self._load_lock = threading.Lock()
         self._loaded = threading.Event()
@@ -646,13 +649,19 @@ class WhisperTranscriber:
         """Гарантирует загруженную модель: ждёт фон, иначе грузит сам."""
         if self._model is not None:
             return
-        if self._loading:
-            self._loaded.wait()
+        if self._loading and not self._loaded.wait(timeout=1.0):
+            raise RuntimeError("Whisper ещё готовится; допустим только уверенный Vosk")
         if self._model is None:
+            if self._load_error is not None:
+                raise RuntimeError("Whisper недоступен в этом запуске") from self._load_error
             self._load()
             self._loaded.set()
 
     def _load(self) -> None:
+        with self._infer_lock:
+            self._load_locked()
+
+    def _load_locked(self) -> None:
         """Загрузка модели. Работает и из фонового потока, и синхронно."""
         if self._model is not None:
             return
@@ -690,21 +699,27 @@ class WhisperTranscriber:
                 name = TURBO_MODEL if model_name == "auto" else model_name
                 try:
                     log.info("Загрузка Whisper (%s) на GPU...", name)
-                    self._model = WhisperModel(
+                    model = WhisperModel(
                         name, device="cuda", compute_type="int8_float16",
                         local_files_only=self._local_files_only,
                     )
-                    log.info("Whisper готов (GPU)")
+                    self._active_device = "cuda"
+                    self._active_model_name = name
+                    self._model = model
+                    log.info("Whisper: модель загружена на GPU; инференс проверяется при распознавании")
                 except Exception:
                     log.exception("GPU не завёлся, откатываюсь на CPU")
 
             if self._model is None:
                 name = "small" if model_name == "auto" else model_name
                 log.info("Загрузка Whisper (%s) на CPU...", name)
-                self._model = WhisperModel(
+                model = WhisperModel(
                     name, device="cpu", compute_type="int8",
                     local_files_only=self._local_files_only,
                 )
+                self._active_device = "cpu"
+                self._active_model_name = name
+                self._model = model
                 log.info("Whisper готов (CPU)")
         finally:
             # Восстанавливаем — чтобы Piper не качал в наш ASCII-кэш.
@@ -716,6 +731,38 @@ class WhisperTranscriber:
                 os.environ.pop("HUGGINGFACE_HUB_CACHE", None)
             else:
                 os.environ["HUGGINGFACE_HUB_CACHE"] = _old_hf_cache
+
+    def _retry_on_cpu(self, audio):
+        """One CPU retry of the same cached model; no CUDA installs/downloads."""
+        name = self._active_model_name
+        self._model = None  # do not keep an unusable GPU model alive
+        self._active_device = None
+        try:
+            from faster_whisper import WhisperModel
+            from jarvis import paths as _paths
+            if Path(name).is_dir():
+                local = str(Path(name))
+            else:
+                from faster_whisper.utils import download_model
+                local = download_model(
+                    name, cache_dir=str(_paths.program_whisper_cache_dir()),
+                    local_files_only=True,
+                )
+            self._model = WhisperModel(local, device="cpu", compute_type="int8",
+                                       local_files_only=True)
+            self._active_device = "cpu"
+            segments, _ = self._model.transcribe(
+                audio, language="ru", beam_size=5, temperature=0.0, vad_filter=True,
+                condition_on_previous_text=False, initial_prompt=None,
+            )
+            result = list(segments)
+            log.info("Whisper: CPU-повтор успешно декодировал аудио; далее проверка уверенности")
+            return result
+        except Exception as exc:
+            self._model = None
+            self._active_device = None
+            self._load_error = exc
+            raise RuntimeError("Whisper: GPU и локальный CPU недоступны; только уверенный Vosk") from exc
 
     def transcribe(self, pcm, sample_rate=16000):
         from jarvis.recognition import assess_pcm, assess_whisper
@@ -732,11 +779,21 @@ class WhisperTranscriber:
                 np.linspace(0, len(audio) - 1, n),
                 np.arange(len(audio)), audio
             ).astype(np.float32)
-        segments, _ = self._model.transcribe(
-            audio, language="ru", beam_size=5, temperature=0.0, vad_filter=True,
-            condition_on_previous_text=False, initial_prompt=None,
-        )
-        segments = list(segments)
+        from contextlib import nullcontext
+        with getattr(self, "_infer_lock", nullcontext()):
+            try:
+                segments, _ = self._model.transcribe(
+                    audio, language="ru", beam_size=5, temperature=0.0, vad_filter=True,
+                    condition_on_previous_text=False, initial_prompt=None,
+                )
+                segments = list(segments)  # CUDA can fail here, not at model construction
+            except (RuntimeError, OSError) as exc:
+                message = str(exc).lower()
+                cuda_failure = any(part in message for part in ("cublas", "cudnn", "cuda"))
+                if getattr(self, "_active_device", None) != "cuda" or not cuda_failure:
+                    raise
+                log.warning("Whisper: GPU-инференс недоступен; пробую ту же модель из кэша на CPU")
+                segments = self._retry_on_cpu(audio)
         self.last_quality = assess_whisper(segments, self._config)
         if not self.last_quality.accepted:
             log.info("Whisper: фраза требует повтора (%s)", self.last_quality.reason)

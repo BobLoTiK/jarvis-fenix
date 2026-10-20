@@ -136,14 +136,26 @@ class Jarvis:
                 reason,
             )
             text = safety.SAFE_REPLY
-        self.speaker.play_async(text, allow_nonverbal=allow_nonverbal and ok)
+        started = self.speaker.play_async(text, allow_nonverbal=allow_nonverbal and ok)
+        if started is False:
+            # Text is already visible in Dialog. Pending voice preparation must
+            # not hold cmd_lock/_say_lock or replay an obsolete reply later.
+            return
+        deadline = time.monotonic() + 120.0
+        stop_requested = getattr(self.speaker, "stop_requested", None)
         while self.speaker.is_playing():
+            if (stop_requested is not None and stop_requested() is True):
+                break
+            if time.monotonic() >= deadline:
+                log.error("TTS: превышен предел ожидания одной реплики; отменяю озвучку")
+                self.speaker.stop()
+                break
             if self.barge_enabled and self.listener is not None and self.listener.barge_flag:
                 log.info("Barge-in сработал — прерываю TTS")
                 self.speaker.stop()
                 break
             time.sleep(0.05)
-        self.speaker.wait_end(timeout=30.0)
+        self.speaker.wait_end(timeout=2.0)
 
     def _say_stream(self, gen, *, allow_nonverbal=False) -> None:
         """Озвучивает стрим и показывает чанки в GUI.
@@ -632,6 +644,31 @@ def _single_instance() -> bool:
         time.sleep(0.1)
 
 
+def _preload_whisper_backend() -> bool:
+    """Предзагрузка необязательного Whisper без фатального DLL-failure.
+
+    Порядок faster_whisper → ctranslate2 сохраняется перед WinRT/TTS.
+    Установленный wheel может не загрузиться из-за отсутствующей native DLL:
+    ctypes в этом случае поднимает OSError (включая FileNotFoundError),
+    а не обязательно ImportError. После отказа не повторяем импорт/загрузку
+    Whisper в этом запуске; Vosk остаётся основным распознавателем.
+    Это не защита от нативного access violation или ошибки другого движка.
+    """
+    for module in ("faster_whisper", "ctranslate2"):
+        try:
+            __import__(module)
+        except (ImportError, OSError):
+            log.warning(
+                "Whisper недоступен: не удалось загрузить %s или его DLL. "
+                "Продолжаю запуск на Vosk; Whisper в этом запуске отключён. "
+                "Для Windows проверь Microsoft Visual C++ Runtime x64. "
+                "Причина загрузки ниже; автоматическая переустановка не выполняется.",
+                module, exc_info=True,
+            )
+            return False
+    return True
+
+
 def main() -> None:
     setup_logging()
     log.info("%s v%s запускается", APP_NAME, __version__)
@@ -640,19 +677,8 @@ def main() -> None:
         log.warning("Феникс уже запущен — второй экземпляр не стартую")
         return
 
-    # Порядок импортов критичен для Windows:
-    #   faster_whisper → ctranslate2 → winrt.
-    # Если faster_whisper нет — ctranslate2 нет — winrt может дать
-    # access violation. Поэтому логируем явно, что отсутствует.
-    for _mod in ("faster_whisper", "ctranslate2"):
-        try:
-            __import__(_mod)
-        except ImportError:
-            log.warning(
-                "Модуль %s не установлен. Whisper будет недоступен, "
-                "работаю только на Vosk. Установи: pip install %s",
-                _mod, _mod.replace("_", "-"),
-            )
+    # Сохраняем порядок native-import до инициализации WinRT/TTS.
+    whisper_backend_ready = _preload_whisper_backend()
 
     config: Config = load_config(BASE_DIR)
     from jarvis import profile as _profile
@@ -670,7 +696,7 @@ def main() -> None:
     model_dir = ensure_model(local_models)
 
     whisper = None
-    if config.get("use_whisper", True):
+    if config.get("use_whisper", True) and whisper_backend_ready:
         try:
             from jarvis.stt import WhisperTranscriber
             # lazy=True: large-v3-turbo грузится в фоне (~5 с на GPU,

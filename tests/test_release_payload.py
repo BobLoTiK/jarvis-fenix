@@ -165,3 +165,10 @@ def test_cancel_dependencies_has_no_network(tmp_path, monkeypatch):
     monkeypatch.setattr(launcher, 'msg_box', lambda *_: 2)
     monkeypatch.setattr(launcher.subprocess, 'run', lambda *_,**__: pytest.fail('network after cancel'))
     assert not launcher.install_dependencies(tmp_path, logging.getLogger('test'))
+
+
+def test_startup_reliability_helpers_are_shipped(release_tree):
+    files = rp.collect_payload(release_tree, False)
+    for name in ('launcher_runtime.py', 'jarvis/https_trust.py',
+                 'scripts/prepare_flet_client.py'):
+        assert name in files

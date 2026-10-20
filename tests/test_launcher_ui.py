@@ -181,19 +181,30 @@ def test_retry_double_click_schedules_only_once(window):
     assert window.state=='retry_pending'
 
 
-def test_ui_patch_preserves_210_process_commands():
-    # The 2.1.0 process commands stay intact, including interactive Python install.
-    # New HTTPS/signature and config-bridge subprocesses live in launcher_download.py
-    # and launcher_ollama.py. Their behavioral tests are separate; this hash is NOT
-    # coverage of the new bootstrap engine.
-    import hashlib
-    tree=ast.parse((ROOT/'launcher.py').read_text(encoding='utf-8'))
-    # Python 3.13 omits empty lists by default; 3.11 includes them.
-    # Normalize to the 3.11 representation, preserving the command guard.
-    dump_options = {'show_empty': True} if sys.version_info >= (3, 13) else {}
-    calls=sorted(ast.dump(n, **dump_options) for n in ast.walk(tree)
-                 if isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute)
-                 and isinstance(n.func.value,ast.Name) and n.func.value.id=='subprocess')
-    assert len(calls)==9
-    assert hashlib.sha256('\n'.join(calls).encode()).hexdigest()==\
-        '8bf329cc14ffd9398c08f01d6c995f04df5ff6955e9dd7be0dba02c833cdb727'
+def test_native_launch_still_uses_project_venv_and_module(tmp_path, monkeypatch):
+    proc = Mock(pid=123)
+    popen = Mock(return_value=proc)
+    monkeypatch.setattr(launcher.subprocess, 'Popen', popen)
+    logger = Mock()
+    pythonw = tmp_path / '.venv311' / 'Scripts' / 'pythonw.exe'
+    launcher.run_jarvis(tmp_path, pythonw, logger)
+    argv = popen.call_args.args[0]
+    assert argv == [str(pythonw), '-m', 'jarvis']
+    assert popen.call_args.kwargs['cwd'] == str(tmp_path)
+    assert not popen.call_args.kwargs.get('shell', False)
+
+
+def test_python_installer_is_still_interactive_and_verified(tmp_path, monkeypatch):
+    installer = tmp_path / 'python.exe'
+    calls = []
+    monkeypatch.setattr(launcher, 'verify_python_installer', lambda *a: calls.append('verified'))
+    monkeypatch.setattr(launcher, 'cleanup_download', lambda *a: None)
+    def run(argv, **kwargs):
+        calls.append(argv)
+        return SimpleNamespace(returncode=0)
+    monkeypatch.setattr(launcher.subprocess, 'run', run)
+    monkeypatch.setattr(launcher, 'find_python', lambda *a: 'python.exe')
+    monkeypatch.setattr(launcher.time, 'sleep', lambda *a: None)
+    assert launcher.run_python_installer(installer, Mock())
+    assert calls[0] == 'verified'
+    assert calls[1] == [str(installer)]

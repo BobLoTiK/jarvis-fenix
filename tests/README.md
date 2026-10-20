@@ -4,6 +4,37 @@
 входа: `check_all.bat` (запускает всё) и `check_syntax.py` (проверка
 синтаксиса — им пользуется и CI, и `install.bat`).
 
+## Пакет надёжности запуска Windows — текущая проверка
+
+Linux/Python **3.13.14**; целевой Windows runtime остаётся **3.11.9**.
+Финальный доступный pytest-набор: **1401 passed, 18 skipped**.
+Команда (два Windows-only модуля требуют winreg и не собираются на Linux):
+
+```bash
+PYTHONUSERBASE=/home/vercel-sandbox/.local python -m pytest tests/ --ignore=tests/test_browser_target.py --ignore=tests/test_window_targets.py -q
+```
+
+PYTHONUSERBASE нужен только в этой Linux-среде: subprocess-тесты меняют HOME,
+а установленные для проверки пакеты находятся в user site. Это не настройка
+приложения и не команда для Windows. В Windows CI оба winreg-модуля остаются.
+Пропуски включают opt-in/native проверки, не успешную Windows-приёмку.
+147 предупреждений — прежнее deprecated Flet InputBorder.NONE; не traceback.
+
+Новые модули: test_launcher_runtime, test_startup_https, test_tts_readiness,
+test_whisper_cpu_fallback, test_open_results. **56 passed** в пяти новых модулях. Отдельный bootstrap/build набор:
+**211 passed, 2 skipped**, без моделей и установки. Они проверяют фактические функции
+с подменой native installer/сети/аудио/декодера; DLL loading и UAC здесь не выполнялись.
+Проверены отказ/согласие/двойная подпись/таймаут/реальный recheck VC++,
+CA без обхода TLS, gating основного запуска по готовности клиента Flet,
+ограниченное ожидание TTS без второго init, освобождение idle/следующая реплика,
+Stop/deadline, CUDA failure из iterator → local-only CPU и прежний quality gate,
+ошибка вместо ложного успеха run_spec. Прежние optional Whisper startup регрессии
+включены в общий набор. Синтаксис 211 Python-файлов проверен; изменённые Python-
+файлы дополнительно разобраны с grammar Python 3.11, это не исполнение на 3.11.
+Preflight: 223 public files, без компиляции Windows EXE и без запуска Inno.
+Windows first-run и живой звук новой сборки ещё не проверены.
+Инструкция: [WINDOWS_STARTUP_RELIABILITY](../docs/WINDOWS_STARTUP_RELIABILITY.md).
+
 ## Общий bootstrap Python + Ollama
 
 Шесть файлов `test_launcher_download`, `test_launcher_ollama`,
@@ -27,8 +58,9 @@ Tk-очередь и dropdown проверены с контролируемым
 Windows-сеть/подпись/процессы в переносимых тестах подменены.
 Пропущены native PowerShell unsigned-EXE test и opt-in live download.
 Инструкция Windows-приёмки: `docs/PYTHON_BOOTSTRAP_TLS_FIX.md`.
-Старый AST-хеш в UI-тесте сохранён только для прежних девяти команд;
-он не заменяет новые поведенческие регрессии Windows downloader.
+В пакете надёжности запуска старый AST-хеш заменён поведенческими проверками:
+venv -m jarvis, interactive verified Python installer, prerequisite/client gating.
+Добавление необходимых subprocess helper-команд больше не требует подгонки хеша.
 
 ## Карта
 

@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=fbe70b890d8ec139` · режим `lean` · файлов `289` · строк `52348` · источник `2401 КБ`
+`sha256=811ca26fe91346ad` · режим `lean` · файлов `300` · строк `53577` · источник `2475 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -13,7 +13,22 @@
 ````
 # PROJECT.md — источник правды о «Феникс»
 
-**Текущий P0 — Windows-приёмка общего bootstrap-патча.** После ручной
+**Текущий P0 — надёжность первого запуска, исходный пакет ещё не принят на Windows.**
+В старой Sandbox после ручных VC++ x64, CA bundle и выбора Piper пользователь
+подтвердил Explorer, повторную команду и голос. Это не чистая установка.
+Логи также подтвердили TLS-ошибки Flet/Silero, зависание ожидания TTS,
+ложное «Открываю Блокнот» при WinError 2 и CUDA-ошибку уже внутри Whisper decode.
+В исходниках: согласуемый VC++ prerequisite с проверкой подписи Microsoft,
+process-scoped certifi до импорта приложения, подготовка Flet до передачи запуска,
+ограниченное ожидание голоса без синхронного повторного init, честный run_spec,
+CPU-повтор той же кэшированной Whisper-модели при CUDA decode failure.
+Vosk и confidence gate сохранены. Auto: Silero → Piper → WinRT → SAPI без смены
+приоритета; новая TTS-очередь не реализована. Полный GUI-readiness handshake
+лаунчера по-прежнему не реализован. Самостоятельное падение Sandbox при Ollama
+не диагностировано. Правки требуют пересборки EXE/Setup и новой чистой приёмки.
+Инструкция и ограничения: docs/WINDOWS_STARTUP_RELIABILITY.md.
+
+**Предшествующий bootstrap-этап; общая Windows-приёмка остаётся открытой.** После ручной
 подготовки Python старая Sandbox-установка дошла до предложения Ollama.
 В исходниках подготовлены Windows HTTPS + Authenticode для Python и явный выбор/
 загрузка одной локальной модели Ollama в том же окне. Существующий выбор не
@@ -22,10 +37,11 @@ docs/BOOTSTRAP_PYTHON_OLLAMA_UPDATE.md. 149 bootstrap/build тестов про�
 2 Windows-проверки пропущены. Пользователь сообщил о готовой новой сборке;
 её чистая Windows-приёмка ещё не выполнена. Результаты старой установки
 не переносятся на новую сборку.
-Readiness основного GUI, Диалог и TTS этим пакетом не исправлялись.
+Это описание прежнего Python/Ollama-пакета; текущие дополнения — выше.
+Полный GUI-readiness handshake по-прежнему не реализован.
 
 
-**Интерфейс подготовки:** `launcher_ui.py` (Tk + очередь), дополнен выбором модели. Прежние основные process-команды сохранены; добавлены HTTPS/config helpers. Активной отмены нет. Пользователь сообщил о новой сборке; Windows UI-приёмка ожидается.
+**Интерфейс подготовки:** `launcher_ui.py` (Tk + очередь), дополнен выбором модели. Сохранён запуск -m jarvis из venv; добавлены HTTPS/config helpers, VC++ и подготовка Flet. Активной отмены нет. Пользователь сообщил о новой сборке; Windows UI-приёмка ожидается.
 
 **Подготовленная версия: 2.1.0, тег `v2.1.0`.** Создание/push тега из этой рабочей копии не выполнялись (нет `.git` и GitHub-подключения). Дальнейшие действия: `docs/NEXT_STEPS.md`.
 
@@ -515,7 +531,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── README.md  (74 стр)
 │   │   ├── release.yml  (132 стр)
 │   │   ├── test.yml  (71 стр)
-├── AGENTS.md  (165 стр)
+├── AGENTS.md  (181 стр)
 ├── ARCHITECTURE.md  (1091 стр)
 ├── assets/
 │   ├── nonverbal/
@@ -529,7 +545,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── README.md  (17 стр)
 │   │   ├── themes-mobile.svg  (19 стр)
 │   │   ├── themes.svg  (19 стр)
-├── CHANGELOG.md  (1627 стр)
+├── CHANGELOG.md  (1658 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -561,12 +577,14 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── PYTHON_BOOTSTRAP_TLS_FIX.md  (98 стр)
 │   ├── releases/
 │   │   ├── v2.1.0.md  (34 стр)
-│   ├── USER_GUIDE.md  (993 стр)
+│   ├── USER_GUIDE.md  (1004 стр)
+│   ├── WHISPER_STARTUP_DLL_FIX.md  (85 стр)
+│   ├── WINDOWS_STARTUP_RELIABILITY.md  (108 стр)
 ├── install.bat  (342 стр)
 ├── installer.iss  (106 стр)
 ├── jarvis/
 │   ├── __init__.py  (8 стр)
-│   ├── __main__.py  (4 стр)
+│   ├── __main__.py  (9 стр)
 │   ├── actions.py  (1504 стр)
 │   ├── apps.py  (114 стр)
 │   ├── assets/
@@ -608,12 +626,13 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── gui_sidebar.py  (429 стр)
 │   ├── gui_widgets.py  (373 стр)
 │   ├── history.py  (75 стр)
+│   ├── https_trust.py  (22 стр)
 │   ├── installed.py  (51 стр)
 │   ├── intents/
 │   │   ├── __init__.py  (10 стр)
 │   │   ├── clarification.py  (262 стр)
 │   │   ├── context.py  (19 стр)
-│   │   ├── execute.py  (1041 стр)
+│   │   ├── execute.py  (1044 стр)
 │   │   ├── fast/
 │   │   │   ├── __init__.py  (54 стр)
 │   │   │   ├── correction.py  (28 стр)
@@ -663,7 +682,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── time.py  (84 стр)
 │   │   ├── units.py  (85 стр)
 │   ├── learning.py  (178 стр)
-│   ├── main.py  (919 стр)
+│   ├── main.py  (945 стр)
 │   ├── matching.py  (118 стр)
 │   ├── memory.py  (147 стр)
 │   ├── memory_context.py  (124 стр)
@@ -682,12 +701,12 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── reply.py  (26 стр)
 │   ├── safety.py  (213 стр)
 │   ├── steam.py  (67 стр)
-│   ├── stt.py  (746 стр)
+│   ├── stt.py  (803 стр)
 │   ├── tasks.py  (278 стр)
 │   ├── text_utils.py  (98 стр)
 │   ├── timers.py  (326 стр)
 │   ├── tray.py  (223 стр)
-│   ├── tts.py  (384 стр)
+│   ├── tts.py  (393 стр)
 │   ├── tts_engines/
 │   │   ├── __init__.py  (12 стр)
 │   │   ├── base.py  (73 стр)
@@ -702,9 +721,10 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── voices.py  (220 стр)
 │   ├── weather.py  (400 стр)
 ├── jarvis-fenix.code-workspace  (8 стр)
-├── launcher.py  (815 стр)
+├── launcher.py  (850 стр)
 ├── launcher_download.py  (156 стр)
 ├── launcher_ollama.py  (327 стр)
+├── launcher_runtime.py  (116 стр)
 ├── launcher_ui.py  (416 стр)
 ├── LICENSE  (25 стр)
 ├── packs/
@@ -713,14 +733,14 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── sites.json  (22 стр)
 │   ├── system.json  (17 стр)
 │   ├── work.json  (11 стр)
-├── PLAN.md  (351 стр)
-├── PROJECT.md  (486 стр)
-├── PROMPT.md  (191 стр)
+├── PLAN.md  (370 стр)
+├── PROJECT.md  (502 стр)
+├── PROMPT.md  (207 стр)
 ├── pytest.ini  (20 стр)
 ├── README.md  (188 стр)
-├── requirements-ci.txt  (36 стр)
+├── requirements-ci.txt  (39 стр)
 ├── requirements-dev.txt  (10 стр)
-├── requirements.txt  (63 стр)
+├── requirements.txt  (66 стр)
 ├── scripts/
 │   ├── __init__.py  (7 стр)
 │   ├── audio_regression.py  (11 стр)
@@ -734,6 +754,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── make_icon.py  (32 стр)
 │   ├── make_installer_images.py  (125 стр)
 │   ├── mics.py  (52 стр)
+│   ├── prepare_flet_client.py  (31 стр)
 │   ├── release_payload.py  (88 стр)
 │   ├── selftest.py  (49 стр)
 │   ├── set_llm_model.py  (52 стр)
@@ -762,7 +783,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── uia_manual.py  (61 стр)
 │   │   ├── vad_debug.py  (61 стр)
 │   │   ├── vad_live.py  (41 стр)
-│   ├── README.md  (506 стр)
+│   ├── README.md  (538 стр)
 │   ├── stress_intents.py  (552 стр)
 │   ├── test_audio_regression.py  (556 стр)
 │   ├── test_audit_regressions.py  (265 стр)
@@ -791,30 +812,36 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_intents.py  (485 стр)
 │   ├── test_launcher_download.py  (233 стр)
 │   ├── test_launcher_ollama.py  (438 стр)
-│   ├── test_launcher_ui.py  (199 стр)
+│   ├── test_launcher_runtime.py  (122 стр)
+│   ├── test_launcher_ui.py  (210 стр)
 │   ├── test_main_wiring.py  (202 стр)
 │   ├── test_memory_scope.py  (132 стр)
 │   ├── test_mic_watchdog.py  (36 стр)
 │   ├── test_mood.py  (386 стр)
 │   ├── test_nonverbal.py  (403 стр)
 │   ├── test_numeric_language.py  (521 стр)
+│   ├── test_open_results.py  (32 стр)
+│   ├── test_optional_whisper_startup.py  (131 стр)
 │   ├── test_password_imports.py  (109 стр)
 │   ├── test_persona.py  (155 стр)
 │   ├── test_prosody.py  (83 стр)
 │   ├── test_recognition_quality.py  (357 стр)
-│   ├── test_release_payload.py  (167 стр)
+│   ├── test_release_payload.py  (174 стр)
 │   ├── test_safety.py  (170 стр)
 │   ├── test_speech_gate.py  (86 стр)
+│   ├── test_startup_https.py  (96 стр)
 │   ├── test_stt.py  (451 стр)
 │   ├── test_test_portability.py  (44 стр)
 │   ├── test_tray.py  (249 стр)
 │   ├── test_tts.py  (243 стр)
+│   ├── test_tts_readiness.py  (94 стр)
 │   ├── test_uia.py  (788 стр)
 │   ├── test_uia_fast.py  (238 стр)
 │   ├── test_vad.py  (333 стр)
 │   ├── test_vad_model.py  (314 стр)
 │   ├── test_vectormem.py  (405 стр)
 │   ├── test_weather.py  (237 стр)
+│   ├── test_whisper_cpu_fallback.py  (92 стр)
 │   ├── test_window_targets.py  (294 стр)
 ```
 
@@ -1251,6 +1278,13 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def peek()
   def clear()
   def size()
+```
+
+**`jarvis/https_trust.py`**
+
+```
+  # Process-scoped CA bundle for urllib/Flet/torch; never disables TLS checks.
+  def configure_https_trust()
 ```
 
 **`jarvis/installed.py`**
@@ -2123,6 +2157,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
     def play_async(self, text: str, *, allow_nonverbal=False)
     def speak_stream(self, text_iter: Iterator[str], timeout: float=30.0, *, allow_nonverbal=False)
     def stop(self)
+    def stop_requested(self)
     def is_playing(self)
     def wait_end(self, timeout: float=30.0)
   def available_backends()
@@ -2501,6 +2536,14 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   # Подбор микрофона: показывает устройства ввода и уровень сигнала.
   BASE = ...
   FS = ...
+  def main()
+```
+
+**`scripts/prepare_flet_client.py`**
+
+```
+  # Prepare the native Flet client inside the consented bootstrap stage.
+  def prepare()
   def main()
 ```
 
@@ -3468,6 +3511,23 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_model_dropdown_is_readonly_bounded_and_has_no_download_side_effect(window, monkeypatch)
 ```
 
+**`tests/test_launcher_runtime.py`**
+
+```
+  # Prerequisite contracts: no real downloads, native installer or system edits.
+  def test_system_probe_loads_only_system_dlls(monkeypatch, tmp_path)
+  def test_missing_native_dependency_is_not_ready(monkeypatch)
+  def test_other_platform_not_misreported(monkeypatch)
+  def test_no_download_without_need_and_consent(monkeypatch, ready, consent)
+  def test_no_session_does_not_silently_install(monkeypatch)
+  def test_signed_twice_then_opened_and_rechecked(monkeypatch, tmp_path)
+  def test_failed_signature_never_executes(monkeypatch, tmp_path, fail_at)
+  def test_verified_requires_exit_exact_marker_and_nonempty_file(monkeypatch, tmp_path, status, marker, size)
+  def test_powershell_is_fixed_safe_and_tls_is_not_disabled(monkeypatch, tmp_path)
+  def test_download_timeout_never_reports_ready(monkeypatch, tmp_path)
+  def test_finishing_native_installer_is_not_assumed_from_open(monkeypatch, tmp_path)
+```
+
 **`tests/test_launcher_ui.py`**
 
 ```
@@ -3494,7 +3554,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_source_payload_requires_bootstrap_ui()
   def test_supported_windows_minimum_is_explicit()
   def test_retry_double_click_schedules_only_once(window)
-  def test_ui_patch_preserves_210_process_commands()
+  def test_native_launch_still_uses_project_venv_and_module(tmp_path, monkeypatch)
+  def test_python_installer_is_still_interactive_and_verified(tmp_path, monkeypatch)
 ```
 
 **`tests/test_main_wiring.py`**
@@ -3660,6 +3721,29 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_standalone_negative_survives_wake_extraction()
 ```
 
+**`tests/test_open_results.py`**
+
+```
+  # Actual dispatch function isolated from Windows imports; no apps launched.
+  ROOT = ...
+  def dispatch(monkeypatch, ok=True, kind='app')
+  def test_run_spec_result_controls_confirmation(monkeypatch, target, kind, ok)
+```
+
+**`tests/test_optional_whisper_startup.py`**
+
+```
+  # Execute real startup functions with stub peripherals, no models/mic/Windows.
+  ROOT = ...
+  def functions(importer, **extra)
+  def dll_error(kind)
+  def test_optional_import_failure_returns_false_with_original_traceback(bad_module, kind, caplog)
+  def test_success_preserves_import_order()
+  def test_unrelated_errors_are_not_swallowed(error)
+  class CoreReached(BaseException)
+  def test_real_main_continues_to_vosk_gui_and_core_without_retry(tmp_path, bad_module, kind, use_whisper)
+```
+
 **`tests/test_password_imports.py`**
 
 ```
@@ -3759,6 +3843,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_caps_skip_valid_only(tmp_path, monkeypatch)
   def test_caps_probe_failure_does_not_block_launch(monkeypatch, tmp_path)
   def test_cancel_dependencies_has_no_network(tmp_path, monkeypatch)
+  def test_startup_reliability_helpers_are_shipped(release_tree)
 ```
 
 **`tests/test_safety.py`**
@@ -3798,6 +3883,23 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_negative_blocks_clamped_to_zero()
   def test_reset_clears_hangover()
   def test_max_blocks_property()
+```
+
+**`tests/test_startup_https.py`**
+
+```
+  # Process-local CA and native-client prep without network/GUI.
+  ROOT = ...
+  def clean_ca(monkeypatch)
+  def test_explicit_ca_is_preserved(monkeypatch, clean_ca, key)
+  def test_certifi_enables_verified_default_context(monkeypatch, clean_ca)
+  def test_missing_bundle_does_not_disable_tls(monkeypatch, tmp_path, clean_ca)
+  def test_entry_sets_ca_before_main_import()
+  def helper()
+  def test_flet_marker_requires_native_exe(monkeypatch, tmp_path, capsys, present)
+  def test_launcher_checks_complete_client(monkeypatch, tmp_path, result, expected)
+  def test_bootstrap_timeout_reports_failure(monkeypatch, tmp_path)
+  def test_main_requires_prerequisites_before_launch(monkeypatch, tmp_path, vc, flet, expected)
 ```
 
 **`tests/test_stt.py`**
@@ -3918,6 +4020,23 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_switch_voice_aliases_winrt(said, expected)
   def test_do_change_voice_without_voice_key()
   def test_do_change_voice_switch_and_history()
+```
+
+**`tests/test_tts_readiness.py`**
+
+```
+  # Bounded voice readiness and command release; no synthesis/audio devices.
+  def pending_speaker()
+  def test_readiness_is_bounded_and_never_reinitializes(timeout, expected)
+  def test_play_declines_without_spawning_worker()
+  def test_ready_engine_does_not_wait()
+  def test_live_switch_does_not_wait_behind_loader()
+  def test_pending_real_background_loader_does_not_start_again(monkeypatch)
+  def core(speaker)
+  def test_unready_voice_releases_state_and_next_command()
+  def test_stop_breaks_wait_even_if_native_worker_still_alive()
+  def test_plain_reply_deadline_stops_worker()
+  def test_busy_old_worker_does_not_start_new_playback(monkeypatch)
 ```
 
 **`tests/test_uia.py`**
@@ -4112,6 +4231,22 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_cache_different_cities()
 ```
 
+**`tests/test_whisper_cpu_fallback.py`**
+
+```
+  # CUDA iterator failure -> same locally cached CPU model -> unchanged quality gate.
+  def transcriber(tmp_path)
+  def models(monkeypatch, tmp_path, segments=None, fail=False)
+  def test_cuda_encode_failure_retries_cpu_local_only(monkeypatch, tmp_path)
+  def test_cpu_retry_does_not_relax_confidence(monkeypatch, tmp_path)
+  def test_cpu_failure_disables_retry_in_this_session(monkeypatch, tmp_path)
+  def test_cache_miss_does_not_request_online_download(monkeypatch, tmp_path)
+  def test_explicit_model_directory_does_not_resolve_other_model(monkeypatch, tmp_path)
+  def test_unrelated_or_cpu_errors_not_hidden(monkeypatch, tmp_path, device, message)
+  def test_pending_background_load_is_bounded(tmp_path)
+  def test_successful_cpu_model_is_reused_on_next_phrase(monkeypatch, tmp_path)
+```
+
 **`tests/test_window_targets.py`**
 
 ```
@@ -4222,6 +4357,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def record_dependency_receipt(project_dir)
   def check_dependencies(project_dir: Path, logger)
   def ensure_local_caps(project_dir, logger)
+  def prepare_flet_client(project_dir, logger)
   def install_dependencies(project_dir: Path, logger)
   def check_vosk_model(project_dir: Path, logger)
   def download_vosk_model(project_dir: Path, logger)
@@ -4281,6 +4417,21 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def choices(installed)
   def ensure_server(api, session, logger, find_exe, start_server, open_site)
   def prepare_models(root, session, logger, find_exe, start_server, open_site, bridge=None, api_factory=OllamaAPI)
+```
+
+**`launcher_runtime.py`**
+
+```
+  # Consented Microsoft VC++ x64 prerequisite; no silent installs or TLS bypass.
+  VC_URL = ...
+  VC_FILE = ...
+  VC_DLLS = ...
+  MARKER = ...
+  class RuntimePreparationError(RuntimeError)
+  def runtime_present()
+  VERIFY = ...
+  DOWNLOAD = ...
+  def ensure_vc_runtime(session, logger, *, opener=None)
 ```
 
 **`launcher_ui.py`**
@@ -4352,7 +4503,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | Файл | Строк | Категория | О чём модуль |
 |---|---:|---|---|
 | `jarvis/__init__.py` | 8 | code | Феникс — локальный голосовой ассистент для Windows. |
-| `jarvis/__main__.py` | 4 | code |  |
+| `jarvis/__main__.py` | 9 | code |  |
 | `jarvis/actions.py` | 1504 | code | Действия: запуск приложений, открытие сайтов, скриншоты, медиа, печать |
 | `jarvis/apps.py` | 114 | code | Каталог известных приложений: как их зовут голосом, как открыть и как  |
 | `jarvis/audio_output.py` | 133 | code | Shared cancellable PCM output for Speaker and the three WAV-based TTS  |
@@ -4373,11 +4524,12 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/gui_sidebar.py` | 429 | code | Native, persistent hover rail. Bounded UI-loop animation; no WebView o |
 | `jarvis/gui_widgets.py` | 373 | code | Opt-in Home widgets: responsive order/size editor, real tasks and guar |
 | `jarvis/history.py` | 75 | code | История последних действий для отмены («стоп, не то»). |
+| `jarvis/https_trust.py` | 22 | code | Process-scoped CA bundle for urllib/Flet/torch; never disables TLS che |
 | `jarvis/installed.py` | 51 | code | Индекс установленных программ по ярлыкам меню «Пуск». |
 | `jarvis/intents/__init__.py` | 10 | code | Разбор команд Феникса — пакет. |
 | `jarvis/intents/clarification.py` | 262 | code | Bounded, session-only slot filling shared by GUI and voice. |
 | `jarvis/intents/context.py` | 19 | code | Контекст, который передаётся между стадиями pipeline. |
-| `jarvis/intents/execute.py` | 1041 | code | Dispatch: action → функция-обработчик. |
+| `jarvis/intents/execute.py` | 1044 | code | Dispatch: action → функция-обработчик. |
 | `jarvis/intents/fast/__init__.py` | 54 | code | Реестр быстрых обработчиков. |
 | `jarvis/intents/fast/correction.py` | 28 | code | Коррекция: «это не то, я сказал логи». |
 | `jarvis/intents/fast/custom.py` | 114 | code | Пользовательские команды: из config.json и из паков. |
@@ -4424,7 +4576,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/language/time.py` | 84 | code | Duration grammar with source spans. Uses the shared numeral/unit vocab |
 | `jarvis/language/units.py` | 85 | code | Semantic unit lexicon shared by input and output; spelling is data, no |
 | `jarvis/learning.py` | 178 | code | Самообучение Феникса: факты и коррекции. |
-| `jarvis/main.py` | 919 | code | Точка входа: связывает распознавание, интенты, синтез речи и GUI. |
+| `jarvis/main.py` | 945 | code | Точка входа: связывает распознавание, интенты, синтез речи и GUI. |
 | `jarvis/matching.py` | 118 | code | Нечёткое сопоставление речи с названиями: транслитерация + difflib. |
 | `jarvis/memory.py` | 147 | code | Память диалога — на профиль. |
 | `jarvis/memory_context.py` | 124 | code | Query-scoped personal memory. Absence/uncertainty never means 'send ev |
@@ -4443,12 +4595,12 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/reply.py` | 26 | code | Reply — результат IntentHandler.handle(). |
 | `jarvis/safety.py` | 213 | code | Постфильтр ответов LLM — вторая линия «красной черты». |
 | `jarvis/steam.py` | 67 | code | Индекс установленных игр Steam: appmanifest -> (название, appid). |
-| `jarvis/stt.py` | 746 | code | Распознавание речи. |
+| `jarvis/stt.py` | 803 | code | Распознавание речи. |
 | `jarvis/tasks.py` | 278 | code | Списки задач. |
 | `jarvis/text_utils.py` | 98 | code | Общие текстовые утилиты для Феникса. |
 | `jarvis/timers.py` | 326 | code | Таймеры и напоминания. |
 | `jarvis/tray.py` | 223 | code | Иконка в системном трее (pystray). |
-| `jarvis/tts.py` | 384 | code | Синтез речи — фасад над tts_engines. |
+| `jarvis/tts.py` | 393 | code | Синтез речи — фасад над tts_engines. |
 | `jarvis/tts_engines/__init__.py` | 12 | code | TTS-движки Феникса — абстракция над Piper, Silero, WinRT, SAPI. |
 | `jarvis/tts_engines/base.py` | 73 | code | Базовый класс TTS-движка. |
 | `jarvis/tts_engines/factory.py` | 159 | code | Фабрика TTS-движков. |
@@ -4473,6 +4625,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `scripts/make_icon.py` | 32 | code | Build the Windows/tray phoenix icon from the project's transparent mas |
 | `scripts/make_installer_images.py` | 125 | code | Генерация картинок для Inno Setup установщика Феникса. |
 | `scripts/mics.py` | 52 | code | Подбор микрофона: показывает устройства ввода и уровень сигнала. |
+| `scripts/prepare_flet_client.py` | 31 | code | Prepare the native Flet client inside the consented bootstrap stage. |
 | `scripts/release_payload.py` | 88 | code | Curated installer payload; never recurse over the developer's entire w |
 | `scripts/selftest.py` | 49 | code | Самопроверка без микрофона: TTS -> Vosk -> разбор команды. |
 | `scripts/set_llm_model.py` | 52 | code | Устанавливает llm_model в config.json. |
@@ -4521,36 +4674,43 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_intents.py` | 485 | code | Автотест Феникса без микрофона. |
 | `tests/test_launcher_download.py` | 233 | code | Python bootstrap: no network/install in default tests; native Windows  |
 | `tests/test_launcher_ollama.py` | 438 | code | Optional model setup + real loopback HTTP protocol. No models/inferenc |
-| `tests/test_launcher_ui.py` | 199 | code | Bootstrap presentation tests; no Tk display, installation, downloads o |
+| `tests/test_launcher_runtime.py` | 122 | code | Prerequisite contracts: no real downloads, native installer or system  |
+| `tests/test_launcher_ui.py` | 210 | code | Bootstrap presentation tests; no Tk display, installation, downloads o |
 | `tests/test_main_wiring.py` | 202 | code | config → живое ядро: подписчик make_config_listener. |
 | `tests/test_memory_scope.py` | 132 | code | Personalization should serve a question, not choose its topic. |
 | `tests/test_mic_watchdog.py` | 36 | code | Execute the real watchdog method without importing Windows/audio backe |
 | `tests/test_mood.py` | 386 | code | Тесты jarvis.mood — состояние, детекция, decay, влияние. |
 | `tests/test_nonverbal.py` | 403 | code | Nonverbal policy/mixing: synthetic PCM and fake output, no TTS weights |
 | `tests/test_numeric_language.py` | 521 | code | Executable Russian language corpus: understanding, morphology and spee |
+| `tests/test_open_results.py` | 32 | code | Actual dispatch function isolated from Windows imports; no apps launch |
+| `tests/test_optional_whisper_startup.py` | 131 | code | Execute real startup functions with stub peripherals, no models/mic/Wi |
 | `tests/test_password_imports.py` | 109 | code | Import boundaries must work in a fresh interpreter, before any pytest  |
 | `tests/test_persona.py` | 155 | code | Тесты jarvis.persona — стиль, tone, prompt-блок. |
 | `tests/test_prosody.py` | 83 | code | Тесты jarvis.prosody — эмоции из голоса (эвристика). |
 | `tests/test_recognition_quality.py` | 357 | code | Recognition policy and integration tested without a microphone or mode |
-| `tests/test_release_payload.py` | 167 | code | Public payload, reproducible manifest and bootstrap regression checks. |
+| `tests/test_release_payload.py` | 174 | code | Public payload, reproducible manifest and bootstrap regression checks. |
 | `tests/test_safety.py` | 170 | code | Тесты jarvis.safety — постфильтр «красной черты». |
 | `tests/test_speech_gate.py` | 86 | code | Тесты jarvis.vad.SpeechHangover — «хвост» тишины после речи. |
+| `tests/test_startup_https.py` | 96 | code | Process-local CA and native-client prep without network/GUI. |
 | `tests/test_stt.py` | 451 | code | stt.Listener: живое применение настроек (то, что раньше не работало). |
 | `tests/test_test_portability.py` | 44 | code | Audio fixture contents must never become Windows environment-variable  |
 | `tests/test_tray.py` | 249 | code | Трей (jarvis.tray): пункты меню реально дёргают ядро и GUI. |
 | `tests/test_tts.py` | 243 | code | Тесты jarvis.tts_engines — движки и фабрика. С моками. |
+| `tests/test_tts_readiness.py` | 94 | code | Bounded voice readiness and command release; no synthesis/audio device |
 | `tests/test_uia.py` | 788 | code | Тесты jarvis.uia — логика обёртки. С моками. |
 | `tests/test_uia_fast.py` | 238 | code | Тесты быстрых UIA-команд — `jarvis/intents/fast/uia.py`. |
 | `tests/test_vad.py` | 333 | code | Тесты jarvis.vad — Silero VAD ONNX. |
 | `tests/test_vad_model.py` | 314 | code | Авто-скачивание модели Silero VAD (jarvis.vad). |
 | `tests/test_vectormem.py` | 405 | code | Векторная память фактов (jarvis.vectormem, №51–53). |
 | `tests/test_weather.py` | 237 | code | Тесты weather: структура ответов, describe_*, geocode с моками. |
+| `tests/test_whisper_cpu_fallback.py` | 92 | code | CUDA iterator failure -> same locally cached CPU model -> unchanged qu |
 | `tests/test_window_targets.py` | 294 | code | Тесты выбора окна: голосовое имя → процессы → окно. |
 | `check_all.py` | 170 | code | Единый прогон всех проверок Феникса — движок для check_all.bat. |
 | `check_syntax.py` | 60 | code | Проверяет синтаксис всех .py файлов в проекте. |
-| `launcher.py` | 815 | code | Лаунчер Феникса — полный автозапуск. |
+| `launcher.py` | 850 | code | Лаунчер Феникса — полный автозапуск. |
 | `launcher_download.py` | 156 | code | Verified Python bootstrap download using Windows HTTPS (no third-party |
 | `launcher_ollama.py` | 327 | code | Optional Ollama setup: explicit consent, local inventory/pull, safe co |
+| `launcher_runtime.py` | 116 | code | Consented Microsoft VC++ x64 prerequisite; no silent installs or TLS b |
 | `launcher_ui.py` | 416 | code | One bootstrap window. Presentation only: no downloads, pip or process  |
 | `snapshot.py` | 727 | code | Собирает снимок проекта в один SNAPSHOT.md. |
 
@@ -4570,6 +4730,11 @@ APP_NAME = "Феникс"
 ### `jarvis/__main__.py`
 
 ```python
+from jarvis.https_trust import configure_https_trust
+
+# Must run before Flet/torch and before any first-use download.
+configure_https_trust()
+
 from jarvis.main import main
 
 if __name__ == "__main__":
@@ -12426,6 +12591,33 @@ def size() -> int:
         return len(_stack)
 ```
 
+### `jarvis/https_trust.py`
+
+```python
+"""Process-scoped CA bundle for urllib/Flet/torch; never disables TLS checks."""
+import logging
+import os
+from pathlib import Path
+
+log = logging.getLogger("jarvis.https")
+
+
+def configure_https_trust() -> str:
+    # Honour explicitly managed/private trust stores. Do not replace enterprise CAs.
+    if os.environ.get("SSL_CERT_FILE") or os.environ.get("SSL_CERT_DIR"):
+        return "explicit"
+    try:
+        import certifi
+        bundle = Path(certifi.where())
+        if not bundle.is_file():
+            raise FileNotFoundError("certifi CA bundle is missing")
+    except (ImportError, OSError):
+        log.warning("HTTPS: certifi недоступен; используется штатная проверка TLS")
+        return "system"
+    os.environ["SSL_CERT_FILE"] = str(bundle.resolve())
+    return "certifi"
+```
+
 ### `jarvis/installed.py`
 
 ```python
@@ -13517,7 +13709,8 @@ def _do_open(handler, target: str) -> str:
         app = find_app(handler.apps, named)
         spec = app.resolve_open() if app else None
         if spec is not None:
-            actions.run_spec(spec)
+            if not actions.run_spec(spec):
+                return f"Не удалось открыть {named}. Windows не подтвердила запуск."
             return f"Открываю {named}."
         actions.open_browser(process)
         return f"Открываю {named}."
@@ -13533,7 +13726,8 @@ def _do_open(handler, target: str) -> str:
         spec = app.resolve_open()
         if spec is None:
             return f"{app.title} не найден на этом компьютере."
-        actions.run_spec(spec)
+        if not actions.run_spec(spec):
+            return f"Не удалось открыть {app.title}. Проверь, установлено ли приложение."
         return f"Открываю {app.title}."
 
     for key, (title, url) in get_sites().items():
@@ -13550,7 +13744,8 @@ def _do_open(handler, target: str) -> str:
     game = find_game(handler.steam_games, target)
     if game:
         title, appid = game
-        actions.run_spec(("uri", f"steam://rungameid/{appid}"))
+        if not actions.run_spec(("uri", f"steam://rungameid/{appid}")):
+            return "Не удалось передать запуск игры в Steam."
         return f"Запускаю {title}."
 
     hit = find_installed(handler.installed, target)
@@ -17903,14 +18098,26 @@ class Jarvis:
                 reason,
             )
             text = safety.SAFE_REPLY
-        self.speaker.play_async(text, allow_nonverbal=allow_nonverbal and ok)
+        started = self.speaker.play_async(text, allow_nonverbal=allow_nonverbal and ok)
+        if started is False:
+            # Text is already visible in Dialog. Pending voice preparation must
+            # not hold cmd_lock/_say_lock or replay an obsolete reply later.
+            return
+        deadline = time.monotonic() + 120.0
+        stop_requested = getattr(self.speaker, "stop_requested", None)
         while self.speaker.is_playing():
+            if (stop_requested is not None and stop_requested() is True):
+                break
+            if time.monotonic() >= deadline:
+                log.error("TTS: превышен предел ожидания одной реплики; отменяю озвучку")
+                self.speaker.stop()
+                break
             if self.barge_enabled and self.listener is not None and self.listener.barge_flag:
                 log.info("Barge-in сработал — прерываю TTS")
                 self.speaker.stop()
                 break
             time.sleep(0.05)
-        self.speaker.wait_end(timeout=30.0)
+        self.speaker.wait_end(timeout=2.0)
 
     def _say_stream(self, gen, *, allow_nonverbal=False) -> None:
         """Озвучивает стрим и показывает чанки в GUI. ... [7 строк]"""
@@ -18360,6 +18567,23 @@ def _single_instance() -> bool:
         time.sleep(0.1)
 
 
+def _preload_whisper_backend() -> bool:
+    """Предзагрузка необязательного Whisper без фатального DLL-failure. ... [8 строк]"""
+    for module in ("faster_whisper", "ctranslate2"):
+        try:
+            __import__(module)
+        except (ImportError, OSError):
+            log.warning(
+                "Whisper недоступен: не удалось загрузить %s или его DLL. "
+                "Продолжаю запуск на Vosk; Whisper в этом запуске отключён. "
+                "Для Windows проверь Microsoft Visual C++ Runtime x64. "
+                "Причина загрузки ниже; автоматическая переустановка не выполняется.",
+                module, exc_info=True,
+            )
+            return False
+    return True
+
+
 def main() -> None:
     setup_logging()
     log.info("%s v%s запускается", APP_NAME, __version__)
@@ -18368,19 +18592,8 @@ def main() -> None:
         log.warning("Феникс уже запущен — второй экземпляр не стартую")
         return
 
-    # Порядок импортов критичен для Windows:
-    #   faster_whisper → ctranslate2 → winrt.
-    # Если faster_whisper нет — ctranslate2 нет — winrt может дать
-    # access violation. Поэтому логируем явно, что отсутствует.
-    for _mod in ("faster_whisper", "ctranslate2"):
-        try:
-            __import__(_mod)
-        except ImportError:
-            log.warning(
-                "Модуль %s не установлен. Whisper будет недоступен, "
-                "работаю только на Vosk. Установи: pip install %s",
-                _mod, _mod.replace("_", "-"),
-            )
+    # Сохраняем порядок native-import до инициализации WinRT/TTS.
+    whisper_backend_ready = _preload_whisper_backend()
 
     config: Config = load_config(BASE_DIR)
     from jarvis import profile as _profile
@@ -18398,7 +18611,7 @@ def main() -> None:
     model_dir = ensure_model(local_models)
 
     whisper = None
-    if config.get("use_whisper", True):
+    if config.get("use_whisper", True) and whisper_backend_ready:
         try:
             from jarvis.stt import WhisperTranscriber
             # lazy=True: large-v3-turbo грузится в фоне (~5 с на GPU,
@@ -22117,6 +22330,9 @@ class WhisperTranscriber:
                  *, local_files_only=False):
         self._model = None
         self._load_error: Exception | None = None
+        self._infer_lock = threading.RLock()
+        self._active_device = None
+        self._active_model_name = None
         self._loading = False
         self._load_lock = threading.Lock()
         self._loaded = threading.Event()
@@ -22166,13 +22382,19 @@ class WhisperTranscriber:
         """Гарантирует загруженную модель: ждёт фон, иначе грузит сам."""
         if self._model is not None:
             return
-        if self._loading:
-            self._loaded.wait()
+        if self._loading and not self._loaded.wait(timeout=1.0):
+            raise RuntimeError("Whisper ещё готовится; допустим только уверенный Vosk")
         if self._model is None:
+            if self._load_error is not None:
+                raise RuntimeError("Whisper недоступен в этом запуске") from self._load_error
             self._load()
             self._loaded.set()
 
     def _load(self) -> None:
+        with self._infer_lock:
+            self._load_locked()
+
+    def _load_locked(self) -> None:
         """Загрузка модели. Работает и из фонового потока, и синхронно."""
         if self._model is not None:
             return
@@ -22210,21 +22432,27 @@ class WhisperTranscriber:
                 name = TURBO_MODEL if model_name == "auto" else model_name
                 try:
                     log.info("Загрузка Whisper (%s) на GPU...", name)
-                    self._model = WhisperModel(
+                    model = WhisperModel(
                         name, device="cuda", compute_type="int8_float16",
                         local_files_only=self._local_files_only,
                     )
-                    log.info("Whisper готов (GPU)")
+                    self._active_device = "cuda"
+                    self._active_model_name = name
+                    self._model = model
+                    log.info("Whisper: модель загружена на GPU; инференс проверяется при распознавании")
                 except Exception:
                     log.exception("GPU не завёлся, откатываюсь на CPU")
 
             if self._model is None:
                 name = "small" if model_name == "auto" else model_name
                 log.info("Загрузка Whisper (%s) на CPU...", name)
-                self._model = WhisperModel(
+                model = WhisperModel(
                     name, device="cpu", compute_type="int8",
                     local_files_only=self._local_files_only,
                 )
+                self._active_device = "cpu"
+                self._active_model_name = name
+                self._model = model
                 log.info("Whisper готов (CPU)")
         finally:
             # Восстанавливаем — чтобы Piper не качал в наш ASCII-кэш.
@@ -22236,6 +22464,38 @@ class WhisperTranscriber:
                 os.environ.pop("HUGGINGFACE_HUB_CACHE", None)
             else:
                 os.environ["HUGGINGFACE_HUB_CACHE"] = _old_hf_cache
+
+    def _retry_on_cpu(self, audio):
+        """One CPU retry of the same cached model; no CUDA installs/downloads."""
+        name = self._active_model_name
+        self._model = None  # do not keep an unusable GPU model alive
+        self._active_device = None
+        try:
+            from faster_whisper import WhisperModel
+            from jarvis import paths as _paths
+            if Path(name).is_dir():
+                local = str(Path(name))
+            else:
+                from faster_whisper.utils import download_model
+                local = download_model(
+                    name, cache_dir=str(_paths.program_whisper_cache_dir()),
+                    local_files_only=True,
+                )
+            self._model = WhisperModel(local, device="cpu", compute_type="int8",
+                                       local_files_only=True)
+            self._active_device = "cpu"
+            segments, _ = self._model.transcribe(
+                audio, language="ru", beam_size=5, temperature=0.0, vad_filter=True,
+                condition_on_previous_text=False, initial_prompt=None,
+            )
+            result = list(segments)
+            log.info("Whisper: CPU-повтор успешно декодировал аудио; далее проверка уверенности")
+            return result
+        except Exception as exc:
+            self._model = None
+            self._active_device = None
+            self._load_error = exc
+            raise RuntimeError("Whisper: GPU и локальный CPU недоступны; только уверенный Vosk") from exc
 
     def transcribe(self, pcm, sample_rate=16000):
         from jarvis.recognition import assess_pcm, assess_whisper
@@ -22252,11 +22512,21 @@ class WhisperTranscriber:
                 np.linspace(0, len(audio) - 1, n),
                 np.arange(len(audio)), audio
             ).astype(np.float32)
-        segments, _ = self._model.transcribe(
-            audio, language="ru", beam_size=5, temperature=0.0, vad_filter=True,
-            condition_on_previous_text=False, initial_prompt=None,
-        )
-        segments = list(segments)
+        from contextlib import nullcontext
+        with getattr(self, "_infer_lock", nullcontext()):
+            try:
+                segments, _ = self._model.transcribe(
+                    audio, language="ru", beam_size=5, temperature=0.0, vad_filter=True,
+                    condition_on_previous_text=False, initial_prompt=None,
+                )
+                segments = list(segments)  # CUDA can fail here, not at model construction
+            except (RuntimeError, OSError) as exc:
+                message = str(exc).lower()
+                cuda_failure = any(part in message for part in ("cublas", "cudnn", "cuda"))
+                if getattr(self, "_active_device", None) != "cuda" or not cuda_failure:
+                    raise
+                log.warning("Whisper: GPU-инференс недоступен; пробую ту же модель из кэша на CPU")
+                segments = self._retry_on_cpu(audio)
         self.last_quality = assess_whisper(segments, self._config)
         if not self.last_quality.accepted:
             log.info("Whisper: фраза требует повтора (%s)", self.last_quality.reason)
@@ -23173,19 +23443,15 @@ class Speaker:
         finally:
             self._engine_ready.set()
 
-    def _ensure_engine(self, timeout: float | None = 60.0) -> bool:
-        """Дожидается движка. True — движок есть. ... [4 строк]"""
+    def _ensure_engine(self, timeout: float = 1.0) -> bool:
+        """Bounded readiness wait only; never re-enter native initialization. ... [5 строк]"""
         if self._engine is not None:
             return True
-        if not self._engine_ready.is_set():
-            self._engine_ready.wait(timeout)
-        if self._engine is None and not self._engine_ready.is_set():
-            # Фон не уложился в timeout — пробуем синхронно.
-            log.warning("TTS: движок не готов за %.0f с — гружу синхронно",
-                        timeout or 0)
-            self._init_engine()
-            self._engine_ready.set()
-        return self._engine is not None
+        self._engine_ready.wait(max(0.0, min(float(timeout), 60.0)))
+        if self._engine is None:
+            log.warning("TTS: голос ещё не готов или недоступен; ответ остаётся текстовым")
+            return False
+        return True
 
     def _init_engine(self):
         with self._init_lock:
@@ -23243,24 +23509,30 @@ class Speaker:
         return self._recreate_engine()
 
     def _recreate_engine(self) -> bool:
-        """Пересоздаёт движок с текущими backend/voice/quality/rate."""
-        old_name = self._engine_name
-        self.stop()
-        self.wait_end(timeout=2.0)
-        engine = get_engine(self._backend, self.voice, self.quality, self.rate)
-        if engine is None:
-            log.warning("TTS: не удалось пересоздать движок %s", self._backend)
+        """Serialize engine replacement; never block GUI behind pending init."""
+        if not self._init_lock.acquire(blocking=False):
+            log.warning("TTS: текущий движок ещё готовится; смена в этом запуске не выполнена")
             return False
-        if hasattr(engine, "set_wav_player"):
-            engine.set_wav_player(self._play_wav)
-        with self._init_lock:
+        try:
+            old_name = self._engine_name
+            self.stop()
+            if not self.wait_end(timeout=2.0):
+                log.warning("TTS: предыдущая озвучка не завершилась; движок не заменён")
+                return False
+            engine = get_engine(self._backend, self.voice, self.quality, self.rate)
+            if engine is None:
+                log.warning("TTS: не удалось пересоздать движок %s", self._backend)
+                return False
+            if hasattr(engine, "set_wav_player"):
+                engine.set_wav_player(self._play_wav)
             self._engine = engine
             self._engine_name = engine.name
-        # Если шла ленивая загрузка — считаем её завершённой.
-        self._engine_ready.set()
-        log.info("TTS: движок пересоздан %s → %s (quality=%s)",
-                 old_name, self._engine_name, self.quality)
-        return True
+            self._engine_ready.set()
+            log.info("TTS: движок пересоздан %s → %s (quality=%s)",
+                     old_name, self._engine_name, self.quality)
+            return True
+        finally:
+            self._init_lock.release()
 
     # ------------------------------------------------------------------
     # Сеттеры (для Config.subscribe)
@@ -23328,13 +23600,13 @@ class Speaker:
         except Exception:
             log.exception("TTS: ошибка в speak()")
 
-    def play_async(self, text: str, *, allow_nonverbal=False) -> None:
+    def play_async(self, text: str, *, allow_nonverbal=False) -> bool:
         """Асинхронная озвучка одного текста."""
         if not text:
-            return
+            return False
         text = prepare_text(text)
         if not self._ensure_engine():
-            return
+            return False
 
         self.stop()
         finished = self.wait_end(timeout=2.0)
@@ -23343,7 +23615,7 @@ class Speaker:
                 "TTS: старый поток не завершился за 2 сек — пропускаю новый "
                 "(иначе наложение)"
             )
-            return
+            return False
 
         token = self._new_token(allow_nonverbal)
         with self._play_lock:
@@ -23369,6 +23641,8 @@ class Speaker:
         self._play_thread = threading.Thread(target=_run, daemon=True,
                                              name="tts-play")
         self._play_thread.start()
+
+        return True
 
     def speak_stream(self, text_iter: Iterator[str],
                      timeout: float = 30.0, *, allow_nonverbal=False) -> str:
@@ -23411,6 +23685,10 @@ class Speaker:
                 self._engine.stop()
             except Exception:
                 pass
+
+    def stop_requested(self) -> bool:
+        """Cancellation of the current call, not completion of a native worker."""
+        return self._current_stop().is_set()
 
     def is_playing(self) -> bool:
         with self._play_lock:
@@ -27998,6 +28276,42 @@ if __name__ == "__main__":
     main()
 ```
 
+### `scripts/prepare_flet_client.py`
+
+```python
+"""Prepare the native Flet client inside the consented bootstrap stage."""
+from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+
+def prepare():
+    from jarvis.https_trust import configure_https_trust
+    configure_https_trust()
+    # Public API present in the supported Flet 1.0.3+ line. No GUI is opened.
+    from flet_desktop import ensure_client_cached
+    cache = Path(ensure_client_cached())
+    if not cache.is_dir() or not (cache / "flet" / "flet.exe").is_file():
+        raise RuntimeError("Native Flet client is missing after preparation")
+    return cache
+
+
+def main():
+    try:
+        cache = prepare()
+    except Exception as exc:
+        print("FLET_CLIENT_FAILED:" + type(exc).__name__, file=sys.stderr)
+        return 1
+    print("FLET_CLIENT_READY")
+    print(cache)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+```
+
 ### `scripts/release_payload.py`
 
 ```python
@@ -28009,7 +28323,7 @@ import tempfile
 from pathlib import Path
 
 ROOT_FILES = (
-    'launcher.py', 'launcher_ui.py', 'launcher_download.py', 'launcher_ollama.py', 'requirements.txt', 'config.example.json', 'README.md',
+    'launcher.py', 'launcher_ui.py', 'launcher_download.py', 'launcher_ollama.py', 'launcher_runtime.py', 'requirements.txt', 'config.example.json', 'README.md',
     'ARCHITECTURE.md', 'CHANGELOG.md', 'LICENSE', 'start_fenix.bat',
     'start_fenix_debug.bat', 'create_shortcut.bat',
 )
@@ -37468,6 +37782,133 @@ def test_model_dropdown_is_readonly_bounded_and_has_no_download_side_effect(wind
     assert not window.question.ready.is_set()  # viewing choices is not consent
 ```
 
+### `tests/test_launcher_runtime.py`
+
+```python
+"""Prerequisite contracts: no real downloads, native installer or system edits."""
+import base64
+from pathlib import Path
+from types import SimpleNamespace as NS
+from unittest.mock import Mock
+import pytest
+import launcher_runtime as rt
+
+
+def test_system_probe_loads_only_system_dlls(monkeypatch, tmp_path):
+    monkeypatch.setattr(rt.sys, 'platform', 'win32')
+    monkeypatch.setenv('SystemRoot', str(tmp_path))
+    load = Mock(return_value=object())
+    monkeypatch.setattr(rt.ctypes, 'WinDLL', load, raising=False)
+    assert rt.runtime_present()
+    assert [c.args[0] for c in load.call_args_list] == [str(tmp_path/'System32'/n) for n in rt.VC_DLLS]
+
+
+def test_missing_native_dependency_is_not_ready(monkeypatch):
+    monkeypatch.setattr(rt.sys, 'platform', 'win32')
+    monkeypatch.setattr(rt.ctypes, 'WinDLL', Mock(side_effect=OSError('126')), raising=False)
+    assert not rt.runtime_present()
+
+
+def test_other_platform_not_misreported(monkeypatch):
+    monkeypatch.setattr(rt.sys, 'platform', 'linux')
+    with pytest.raises(rt.RuntimePreparationError):
+        rt.runtime_present()
+
+
+@pytest.mark.parametrize('ready,consent', [(True,False),(False,False)])
+def test_no_download_without_need_and_consent(monkeypatch,ready,consent):
+    monkeypatch.setattr(rt, 'runtime_present', lambda: ready)
+    download = Mock(side_effect=AssertionError('download'))
+    monkeypatch.setattr(rt, '_verified', download)
+    session = NS(ask=Mock(return_value=consent),declined=False)
+    assert rt.ensure_vc_runtime(session,Mock()) is ready
+    download.assert_not_called()
+    if ready: session.ask.assert_not_called()
+    else: assert session.declined
+
+
+def test_no_session_does_not_silently_install(monkeypatch):
+    monkeypatch.setattr(rt,'runtime_present',lambda:False)
+    with pytest.raises(rt.RuntimePreparationError):
+        rt.ensure_vc_runtime(None,Mock())
+
+
+def test_signed_twice_then_opened_and_rechecked(monkeypatch, tmp_path):
+    monkeypatch.setattr(rt.tempfile,'mkdtemp',lambda **k:str(tmp_path))
+    monkeypatch.setattr(rt,'runtime_present',Mock(side_effect=[False,False,True]))
+    events=[]
+    def verified(script,path,timeout):
+        assert rt.VERIFY in script
+        events.append(('verify',Path(path).name))
+        Path(path).write_bytes(b'signed test fixture')
+    monkeypatch.setattr(rt,'_verified',verified)
+    def opened(path):
+        assert Path(path).is_file()
+        events.append(('open',Path(path).name))
+    s=NS(ask=Mock(side_effect=[True,True,True]),stage=Mock(),detail=Mock())
+    assert rt.ensure_vc_runtime(s,Mock(),opener=opened)
+    assert [e[0] for e in events]==['verify','verify','open']
+    assert s.detail.call_count==1
+    assert not (tmp_path/rt.VC_FILE).exists()
+
+
+@pytest.mark.parametrize('fail_at',[1,2])
+def test_failed_signature_never_executes(monkeypatch,tmp_path,fail_at):
+    monkeypatch.setattr(rt.tempfile,'mkdtemp',lambda **k:str(tmp_path))
+    monkeypatch.setattr(rt,'runtime_present',lambda:False)
+    calls=[]
+    def verified(script,path,timeout):
+        calls.append(path);Path(path).write_bytes(b'not signed')
+        if len(calls)==fail_at:raise rt.RuntimePreparationError('signature')
+    monkeypatch.setattr(rt,'_verified',verified)
+    opener=Mock()
+    with pytest.raises(rt.RuntimePreparationError):
+        rt.ensure_vc_runtime(NS(ask=Mock(return_value=True),stage=Mock()),Mock(),opener=opener)
+    opener.assert_not_called()
+    assert not list(tmp_path.glob('*.exe'))
+
+
+@pytest.mark.parametrize('status,marker,size',[(1,rt.MARKER,1),(0,'wrong',1),(0,rt.MARKER,0)])
+def test_verified_requires_exit_exact_marker_and_nonempty_file(monkeypatch,tmp_path,status,marker,size):
+    path=tmp_path/'vc.exe';path.write_bytes(b'x'*size)
+    monkeypatch.setattr(rt,'_powershell_path',lambda:Path('powershell.exe'))
+    monkeypatch.setattr(rt.subprocess,'run',Mock(return_value=NS(returncode=status,stdout=marker.encode())))
+    with pytest.raises(rt.RuntimePreparationError):rt._verified(rt.VERIFY,path,60)
+
+
+def test_powershell_is_fixed_safe_and_tls_is_not_disabled(monkeypatch,tmp_path):
+    path=tmp_path/'vc.exe';path.write_bytes(b'x')
+    monkeypatch.setattr(rt,'_powershell_path',lambda:Path('powershell.exe'))
+    run=Mock(return_value=NS(returncode=0,stdout=(rt.MARKER+'\n').encode()))
+    monkeypatch.setattr(rt.subprocess,'run',run)
+    rt._verified(rt.DOWNLOAD+rt.VERIFY,path,240)
+    argv=run.call_args.args[0];kw=run.call_args.kwargs
+    script=base64.b64decode(argv[-1]).decode('utf-16le')
+    assert '-NoProfile' in argv and '-NonInteractive' in argv
+    assert not kw.get('shell') and kw['timeout']==240
+    assert kw['env']['PHOENIX_VC_URL']=='https://aka.ms/vc14/vc_redist.x64.exe'
+    assert "'Valid'" in script and 'Microsoft Corporation' in script
+    assert 'Tls12' in script and 'SkipCertificateCheck' not in script
+    assert 'ServerCertificateValidationCallback' not in script
+
+
+def test_download_timeout_never_reports_ready(monkeypatch,tmp_path):
+    path=tmp_path/'vc.exe'
+    monkeypatch.setattr(rt,'_powershell_path',lambda:Path('powershell.exe'))
+    monkeypatch.setattr(rt.subprocess,'run',Mock(side_effect=rt.subprocess.TimeoutExpired('powershell',240)))
+    with pytest.raises(rt.RuntimePreparationError):rt._verified(rt.DOWNLOAD+rt.VERIFY,path,240)
+
+
+def test_finishing_native_installer_is_not_assumed_from_open(monkeypatch,tmp_path):
+    monkeypatch.setattr(rt.tempfile,'mkdtemp',lambda **k:str(tmp_path))
+    monkeypatch.setattr(rt,'runtime_present',lambda:False)
+    monkeypatch.setattr(rt,'_verified',lambda script,path,timeout:Path(path).write_bytes(b'fixture'))
+    s=NS(ask=Mock(side_effect=[True,False]),stage=Mock(),declined=False)
+    opener=Mock()
+    assert not rt.ensure_vc_runtime(s,Mock(),opener=opener)
+    assert s.declined and opener.call_count==1
+```
+
 ### `tests/test_launcher_ui.py`
 
 ```python
@@ -37654,22 +38095,33 @@ def test_retry_double_click_schedules_only_once(window):
     assert window.state=='retry_pending'
 
 
-def test_ui_patch_preserves_210_process_commands():
-    # The 2.1.0 process commands stay intact, including interactive Python install.
-    # New HTTPS/signature and config-bridge subprocesses live in launcher_download.py
-    # and launcher_ollama.py. Their behavioral tests are separate; this hash is NOT
-    # coverage of the new bootstrap engine.
-    import hashlib
-    tree=ast.parse((ROOT/'launcher.py').read_text(encoding='utf-8'))
-    # Python 3.13 omits empty lists by default; 3.11 includes them.
-    # Normalize to the 3.11 representation, preserving the command guard.
-    dump_options = {'show_empty': True} if sys.version_info >= (3, 13) else {}
-    calls=sorted(ast.dump(n, **dump_options) for n in ast.walk(tree)
-                 if isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute)
-                 and isinstance(n.func.value,ast.Name) and n.func.value.id=='subprocess')
-    assert len(calls)==9
-    assert hashlib.sha256('\n'.join(calls).encode()).hexdigest()==\
-        '8bf329cc14ffd9398c08f01d6c995f04df5ff6955e9dd7be0dba02c833cdb727'
+def test_native_launch_still_uses_project_venv_and_module(tmp_path, monkeypatch):
+    proc = Mock(pid=123)
+    popen = Mock(return_value=proc)
+    monkeypatch.setattr(launcher.subprocess, 'Popen', popen)
+    logger = Mock()
+    pythonw = tmp_path / '.venv311' / 'Scripts' / 'pythonw.exe'
+    launcher.run_jarvis(tmp_path, pythonw, logger)
+    argv = popen.call_args.args[0]
+    assert argv == [str(pythonw), '-m', 'jarvis']
+    assert popen.call_args.kwargs['cwd'] == str(tmp_path)
+    assert not popen.call_args.kwargs.get('shell', False)
+
+
+def test_python_installer_is_still_interactive_and_verified(tmp_path, monkeypatch):
+    installer = tmp_path / 'python.exe'
+    calls = []
+    monkeypatch.setattr(launcher, 'verify_python_installer', lambda *a: calls.append('verified'))
+    monkeypatch.setattr(launcher, 'cleanup_download', lambda *a: None)
+    def run(argv, **kwargs):
+        calls.append(argv)
+        return SimpleNamespace(returncode=0)
+    monkeypatch.setattr(launcher.subprocess, 'run', run)
+    monkeypatch.setattr(launcher, 'find_python', lambda *a: 'python.exe')
+    monkeypatch.setattr(launcher.time, 'sleep', lambda *a: None)
+    assert launcher.run_python_installer(installer, Mock())
+    assert calls[0] == 'verified'
+    assert calls[1] == [str(installer)]
 ```
 
 ### `tests/test_main_wiring.py`
@@ -39359,6 +39811,174 @@ def test_standalone_negative_survives_wake_extraction():
     assert method(app, "Феникс, -5") == "-5"
 ```
 
+### `tests/test_open_results.py`
+
+```python
+"""Actual dispatch function isolated from Windows imports; no apps launched."""
+import ast
+import logging
+from pathlib import Path
+import sys
+from types import SimpleNamespace as NS
+from unittest.mock import Mock
+import pytest
+
+ROOT=Path(__file__).resolve().parents[1]
+
+def dispatch(monkeypatch,ok=True,kind='app'):
+    app=NS(title='Блокнот',resolve_open=lambda:('cmd','notepad.exe'))
+    monkeypatch.setitem(sys.modules,'jarvis.apps',NS(find_app=lambda *a:app if kind!='game' else None))
+    monkeypatch.setitem(sys.modules,'jarvis.installed',NS(find_installed=lambda *a:None))
+    monkeypatch.setitem(sys.modules,'jarvis.steam',NS(find_game=lambda *a:('Игра','123') if kind=='game' else None))
+    monkeypatch.setitem(sys.modules,'jarvis.intents.sites',NS(get_sites=lambda:{}))
+    actions=NS(run_spec=Mock(return_value=ok),focus_browser=lambda *a:False)
+    env=dict(actions=actions,files=NS(resolve_folder=lambda *a,**k:None),_BROWSER_PROCS={'хром':'chrome.exe'},BROWSER_WORDS=set())
+    tree=ast.parse((ROOT/'jarvis/intents/execute.py').read_text())
+    fn=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='_do_open')
+    exec(compile(ast.Module(body=[fn],type_ignores=[]),'execute.py','exec'),env)
+    return env['_do_open'],actions
+
+@pytest.mark.parametrize('target,kind',[('блокнот','app'),('хром','app'),('игра','game')])
+@pytest.mark.parametrize('ok',[True,False])
+def test_run_spec_result_controls_confirmation(monkeypatch,target,kind,ok):
+    fn,actions=dispatch(monkeypatch,ok,kind)
+    response=fn(NS(apps={},steam_games={},installed={}),target)
+    assert ('Не удалось' in response) is (not ok)
+    if not ok: assert not response.startswith(('Открываю','Запускаю'))
+    actions.run_spec.assert_called_once()
+```
+
+### `tests/test_optional_whisper_startup.py`
+
+```python
+"""Execute real startup functions with stub peripherals, no models/mic/Windows. ... [5 строк]"""
+import ast
+import builtins
+import logging
+from pathlib import Path
+from types import SimpleNamespace as NS
+from unittest.mock import Mock
+
+import pytest
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def functions(importer, **extra):
+    path = ROOT / 'jarvis/main.py'
+    tree = ast.parse(path.read_text(encoding='utf-8'))
+    names = {'_preload_whisper_backend', 'main'}
+    nodes = [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name in names]
+    assert {n.name for n in nodes} == names
+    env = {'__builtins__': {**vars(builtins), '__import__': importer},
+           'log': logging.getLogger('test.optional_whisper'), **extra}
+    exec(compile(ast.Module(body=nodes, type_ignores=[]), str(path), 'exec'), env)
+    return env
+
+
+def dll_error(kind):
+    return {'import': ImportError('DLL load failed'),
+            'missing': FileNotFoundError('ctranslate2.dll or one of its dependencies'),
+            'win126': OSError(126, 'The specified module could not be found'),
+            'win193': OSError(193, 'Not a valid Win32 application')}[kind]
+
+
+@pytest.mark.parametrize('bad_module', ['faster_whisper', 'ctranslate2'])
+@pytest.mark.parametrize('kind', ['import', 'missing', 'win126', 'win193'])
+def test_optional_import_failure_returns_false_with_original_traceback(bad_module, kind, caplog):
+    calls = []
+    failure = dll_error(kind)
+    def importer(name, *args, **kwargs):
+        calls.append(name)
+        if name == bad_module:
+            raise failure
+        return NS()
+    with caplog.at_level(logging.WARNING, logger='test.optional_whisper'):
+        assert functions(importer)['_preload_whisper_backend']() is False
+    assert calls == (['faster_whisper'] if bad_module == 'faster_whisper'
+                     else ['faster_whisper', 'ctranslate2'])
+    record, = caplog.records
+    assert record.exc_info[1] is failure
+    assert bad_module in record.getMessage() and 'Vosk' in record.getMessage()
+
+
+def test_success_preserves_import_order():
+    calls = []
+    assert functions(lambda name: calls.append(name))['_preload_whisper_backend']() is True
+    assert calls == ['faster_whisper', 'ctranslate2']
+
+
+@pytest.mark.parametrize('error', [RuntimeError('unrelated bug'), KeyboardInterrupt(), SystemExit(4)])
+def test_unrelated_errors_are_not_swallowed(error):
+    def importer(name):
+        raise error
+    with pytest.raises(type(error)) as caught:
+        functions(importer)['_preload_whisper_backend']()
+    assert caught.value is error
+
+
+class CoreReached(BaseException):
+    pass
+
+
+@pytest.mark.parametrize('bad_module', [None, 'faster_whisper', 'ctranslate2'])
+@pytest.mark.parametrize('kind', ['import', 'missing', 'win126'])
+@pytest.mark.parametrize('use_whisper', [True, False])
+def test_real_main_continues_to_vosk_gui_and_core_without_retry(
+        tmp_path, bad_module, kind, use_whisper):
+    calls = []
+    config = {'use_whisper': use_whisper, 'use_llm': False,
+              'sample_rate': 16000, 'gui_enabled': True}
+    before = dict(config)
+    transcriber = Mock()
+    modules = {
+        'profile': NS(init=Mock()),
+        'vectormem': NS(set_config=Mock(), warmup_async=Mock()),
+        'weather': NS(set_config=Mock()),
+    }
+    def importer(name, globals=None, locals=None, fromlist=(), level=0):
+        calls.append(name)
+        if name in ('faster_whisper', 'ctranslate2'):
+            if name == bad_module:
+                raise dll_error(kind)
+            return NS()
+        if name == 'jarvis':
+            assert all(k in modules for k in fromlist)
+            return NS(**modules)
+        if name == 'jarvis.stt':
+            assert bad_module is None, 'Failed backend must not be retried'
+            return NS(WhisperTranscriber=transcriber)
+        raise AssertionError(f'Unexpected import {name}')
+    model_dir = tmp_path / 'vosk-model'
+    vosk = Mock()
+    gui = Mock()
+    speaker = Mock()
+    core = Mock(side_effect=CoreReached)
+    env = functions(
+        importer, setup_logging=Mock(), APP_NAME='Феникс', __version__='test',
+        _single_instance=lambda: True, BASE_DIR=tmp_path, load_config=lambda _: config,
+        ensure_model=Mock(return_value=model_dir), Speaker=speaker, Listener=vosk,
+        FenixGUI=gui, IntentHandler=Mock(), build_apps=Mock(return_value={}), Jarvis=core,
+    )
+    with pytest.raises(CoreReached):
+        env['main']()
+    vosk.assert_called_once_with(model_dir, 16000, None, config=config)
+    gui.assert_called_once_with(None, config)
+    speaker.assert_called_once_with(config, lazy=True)
+    enabled = bad_module is None and use_whisper
+    if enabled:
+        transcriber.assert_called_once_with('auto', 'auto', lazy=True, config=config)
+        transcriber.return_value.preload_async.assert_called_once_with()
+    else:
+        transcriber.assert_not_called()
+    assert core.call_args.args[5] is (transcriber.return_value if enabled else None)
+    assert core.call_args.kwargs['gui'] is gui.return_value
+    native = [n for n in calls if n in ('faster_whisper', 'ctranslate2')]
+    assert native == (['faster_whisper'] if bad_module == 'faster_whisper'
+                      else ['faster_whisper', 'ctranslate2'])
+    assert config == before  # fallback is per-process; no permanent settings edit
+```
+
 ### `tests/test_password_imports.py`
 
 ```python
@@ -40249,6 +40869,13 @@ def test_cancel_dependencies_has_no_network(tmp_path, monkeypatch):
     monkeypatch.setattr(launcher, 'msg_box', lambda *_: 2)
     monkeypatch.setattr(launcher.subprocess, 'run', lambda *_,**__: pytest.fail('network after cancel'))
     assert not launcher.install_dependencies(tmp_path, logging.getLogger('test'))
+
+
+def test_startup_reliability_helpers_are_shipped(release_tree):
+    files = rp.collect_payload(release_tree, False)
+    for name in ('launcher_runtime.py', 'jarvis/https_trust.py',
+                 'scripts/prepare_flet_client.py'):
+        assert name in files
 ```
 
 ### `tests/test_safety.py`
@@ -40493,6 +41120,107 @@ def test_reset_clears_hangover():
 
 def test_max_blocks_property():
     assert SpeechHangover(blocks=4).max_blocks == 4
+```
+
+### `tests/test_startup_https.py`
+
+```python
+"""Process-local CA and native-client prep without network/GUI."""
+import ast
+import importlib.util
+from pathlib import Path
+import ssl
+import sys
+from types import SimpleNamespace as NS
+from unittest.mock import Mock
+import pytest
+import launcher
+from jarvis import https_trust
+
+ROOT=Path(__file__).resolve().parents[1]
+
+@pytest.fixture
+def clean_ca(monkeypatch):
+    monkeypatch.delenv('SSL_CERT_FILE',raising=False)
+    monkeypatch.delenv('SSL_CERT_DIR',raising=False)
+
+@pytest.mark.parametrize('key',['SSL_CERT_FILE','SSL_CERT_DIR'])
+def test_explicit_ca_is_preserved(monkeypatch,clean_ca,key):
+    monkeypatch.setenv(key,'private-enterprise-ca')
+    assert https_trust.configure_https_trust()=='explicit'
+    assert https_trust.os.environ[key]=='private-enterprise-ca'
+
+
+def test_certifi_enables_verified_default_context(monkeypatch,clean_ca):
+    import certifi
+    assert https_trust.configure_https_trust()=='certifi'
+    assert Path(https_trust.os.environ['SSL_CERT_FILE'])==Path(certifi.where()).resolve()
+    context=ssl.create_default_context()
+    assert context.check_hostname and context.verify_mode==ssl.CERT_REQUIRED
+
+
+def test_missing_bundle_does_not_disable_tls(monkeypatch,tmp_path,clean_ca):
+    monkeypatch.setitem(sys.modules,'certifi',NS(where=lambda:str(tmp_path/'missing')))
+    assert https_trust.configure_https_trust()=='system'
+    assert 'SSL_CERT_FILE' not in https_trust.os.environ
+
+
+def test_entry_sets_ca_before_main_import():
+    tree=ast.parse((ROOT/'jarvis/__main__.py').read_text())
+    calls=[n for n in tree.body if isinstance(n,ast.Expr) and isinstance(n.value,ast.Call)]
+    main=next(n for n in tree.body if isinstance(n,ast.ImportFrom) and n.module=='jarvis.main')
+    assert calls[0].value.func.id=='configure_https_trust'
+    assert calls[0].lineno<main.lineno
+
+
+def helper():
+    spec=importlib.util.spec_from_file_location('prepare_client_test',ROOT/'scripts/prepare_flet_client.py')
+    mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod);return mod
+
+@pytest.mark.parametrize('present',[True,False])
+def test_flet_marker_requires_native_exe(monkeypatch,tmp_path,capsys,present):
+    monkeypatch.setattr(https_trust,'configure_https_trust',lambda:'test')
+    (tmp_path/'flet').mkdir()
+    if present:(tmp_path/'flet/flet.exe').write_bytes(b'test')
+    monkeypatch.setitem(sys.modules,'flet_desktop',NS(ensure_client_cached=lambda:tmp_path))
+    assert helper().main()==(0 if present else 1)
+    out=capsys.readouterr()
+    assert ('FLET_CLIENT_READY' in out.out)==present
+    if not present: assert 'FLET_CLIENT_FAILED:RuntimeError' in out.err
+
+
+@pytest.mark.parametrize('result,expected',[(NS(returncode=0,stdout='FLET_CLIENT_READY\n',stderr=''),True),(NS(returncode=0,stdout='not ready',stderr=''),False),(NS(returncode=1,stdout='',stderr='tls error'),False)])
+def test_launcher_checks_complete_client(monkeypatch,tmp_path,result,expected):
+    monkeypatch.setattr(launcher,'_PREPARATION',None)
+    run=Mock(return_value=result);error=Mock()
+    monkeypatch.setattr(launcher.subprocess,'run',run);monkeypatch.setattr(launcher,'error',error)
+    assert launcher.prepare_flet_client(tmp_path,Mock()) is expected
+    argv=run.call_args.args[0];kw=run.call_args.kwargs
+    assert argv==[str(tmp_path/'.venv311/Scripts/python.exe'),str(tmp_path/'scripts/prepare_flet_client.py')]
+    assert kw['timeout']==240 and not kw.get('shell')
+    assert error.called is (not expected)
+
+
+def test_bootstrap_timeout_reports_failure(monkeypatch,tmp_path):
+    monkeypatch.setattr(launcher,'_PREPARATION',None)
+    monkeypatch.setattr(launcher.subprocess,'run',Mock(side_effect=launcher.subprocess.TimeoutExpired('flet',240)))
+    error=Mock();monkeypatch.setattr(launcher,'error',error)
+    assert not launcher.prepare_flet_client(tmp_path,Mock())
+    error.assert_called_once()
+
+
+@pytest.mark.parametrize('vc,flet,expected',[(False,True,False),(True,False,False),(True,True,True)])
+def test_main_requires_prerequisites_before_launch(monkeypatch,tmp_path,vc,flet,expected):
+    (tmp_path/'jarvis').mkdir();(tmp_path/'jarvis/__init__.py').write_text('')
+    monkeypatch.setattr(launcher,'_PREPARATION',None)
+    monkeypatch.setattr(launcher,'_setup_logging',lambda *a:tmp_path/'launcher.log')
+    for name,result in [('already_running',False),('find_project_dir',tmp_path),('find_python','python.exe'),('ensure_vc_runtime',vc),('find_venv_pythonw',tmp_path/'pythonw.exe'),('check_dependencies',True),('check_vosk_model',True),('prepare_flet_client',flet),('ensure_local_caps',None),('handle_ollama',None)]:
+        monkeypatch.setattr(launcher,name,Mock(return_value=result))
+    launch=Mock();monkeypatch.setattr(launcher,'run_jarvis',launch)
+    launcher._main()
+    assert launch.called is expected
+    if not vc:launcher.find_venv_pythonw.assert_not_called()
+    if not flet and vc:launcher.handle_ollama.assert_not_called()
 ```
 
 ### `tests/test_stt.py`
@@ -41460,6 +42188,105 @@ def test_do_change_voice_switch_and_history():
     assert "Pavel" in reply
     assert state["tts_voice"] == "Pavel"
     hist.push.assert_called_once()
+```
+
+### `tests/test_tts_readiness.py`
+
+```python
+"""Bounded voice readiness and command release; no synthesis/audio devices."""
+import threading
+from types import SimpleNamespace as NS
+from unittest.mock import Mock
+import pytest
+from jarvis import tts
+from jarvis.reply import Reply
+from tests.test_recognition_quality import method
+
+
+def pending_speaker():
+    s=tts.Speaker.__new__(tts.Speaker)
+    s._engine=None;s._engine_ready=Mock();s._init_engine=Mock(side_effect=AssertionError('second initialization'))
+    return s
+
+@pytest.mark.parametrize('timeout,expected',[(-1,0),(0,0),(.01,.01),(100,60)])
+def test_readiness_is_bounded_and_never_reinitializes(timeout,expected):
+    s=pending_speaker()
+    assert not s._ensure_engine(timeout)
+    s._engine_ready.wait.assert_called_once_with(expected)
+    s._init_engine.assert_not_called()
+
+
+def test_play_declines_without_spawning_worker():
+    s=pending_speaker()
+    s.stop=Mock(side_effect=AssertionError('should not start'))
+    assert s.play_async('Готово') is False
+    s._engine_ready.wait.assert_called_once_with(1.0)
+
+
+def test_ready_engine_does_not_wait():
+    s=pending_speaker();s._engine=object()
+    assert s._ensure_engine()
+    s._engine_ready.wait.assert_not_called()
+
+
+def test_live_switch_does_not_wait_behind_loader():
+    s=pending_speaker();s._init_lock=threading.Lock();s._init_lock.acquire()
+    try:assert not s._recreate_engine()
+    finally:s._init_lock.release()
+
+
+def test_pending_real_background_loader_does_not_start_again(monkeypatch):
+    started=threading.Event();release=threading.Event();calls=[]
+    def get_engine(*a):
+        calls.append(a);started.set();release.wait(3);return None
+    monkeypatch.setattr(tts,'get_engine',get_engine)
+    s=tts.Speaker({},lazy=True)
+    try:
+        assert started.wait(1)
+        assert not s._ensure_engine(.01)
+        assert len(calls)==1
+    finally:
+        release.set();assert s._engine_ready.wait(2)
+
+
+def core(speaker):
+    c=NS(speaker=speaker,gui=Mock(),listener=NS(muted=False,flush=Mock()),barge_enabled=False,_say_lock=threading.RLock())
+    c._say_text=method('jarvis/main.py','Jarvis','_say_text',safety=NS(check_response=lambda t:(True,''),SAFE_REPLY='safe')).__get__(c)
+    c._say_locked=method('jarvis/main.py','Jarvis','_say_locked').__get__(c)
+    c.say=method('jarvis/main.py','Jarvis','say').__get__(c)
+    return c
+
+
+def test_unready_voice_releases_state_and_next_command():
+    speaker=NS(play_async=Mock(return_value=False))
+    c=core(speaker)
+    assert c.say(Reply(text='Открываю')) is False
+    assert c.say(Reply(text='Следующая команда')) is False
+    assert speaker.play_async.call_count==2
+    assert c.gui.set_state.call_args.args==('idle',)
+    assert not c.listener.muted
+    assert c.listener.flush.call_count==2
+
+
+def test_stop_breaks_wait_even_if_native_worker_still_alive():
+    s=NS(play_async=Mock(return_value=True),is_playing=lambda:True,stop_requested=lambda:True,wait_end=Mock())
+    c=core(s);c.say(Reply(text='Ответ'))
+    s.wait_end.assert_called_once_with(timeout=2.0)
+    assert c.gui.set_state.call_args.args==('idle',)
+
+
+def test_plain_reply_deadline_stops_worker():
+    clock=NS(monotonic=Mock(side_effect=[0,121]),sleep=Mock())
+    s=NS(play_async=Mock(return_value=True),is_playing=lambda:True,stop_requested=lambda:False,wait_end=Mock(),stop=Mock())
+    c=core(s)
+    fn=method('jarvis/main.py','Jarvis','_say_text',safety=NS(check_response=lambda t:(True,'')),time=clock)
+    fn(c,'Ответ');s.stop.assert_called_once();s.wait_end.assert_called_once_with(timeout=2.0)
+
+
+def test_busy_old_worker_does_not_start_new_playback(monkeypatch):
+    s=pending_speaker();s._engine=object();s.stop=Mock();s.wait_end=Mock(return_value=False)
+    assert s.play_async('Новый ответ') is False
+    s.wait_end.assert_called_once_with(timeout=2.0)
 ```
 
 ### `tests/test_uia.py`
@@ -43640,6 +44467,103 @@ def test_cache_different_cities():
     assert mock.call_count == 2
 ```
 
+### `tests/test_whisper_cpu_fallback.py`
+
+```python
+"""CUDA iterator failure -> same locally cached CPU model -> unchanged quality gate."""
+import sys
+import threading
+from pathlib import Path
+from types import SimpleNamespace as NS
+from unittest.mock import Mock
+import pytest
+from jarvis import stt, paths
+from tests.test_recognition_quality import PCM,segment
+
+
+def transcriber(tmp_path):
+    w=stt.WhisperTranscriber.__new__(stt.WhisperTranscriber)
+    w._infer_lock=threading.RLock();w._active_device='cuda';w._active_model_name='deepdml/cached-model'
+    w._config={};w._load_error=None;w._loading=False;w._loaded=threading.Event()
+    def broken(*a,**k):
+        def iterator():
+            raise RuntimeError('Library cublas64_12.dll is not found or cannot be loaded')
+            yield
+        return iterator(),None
+    w._model=NS(transcribe=broken)
+    return w
+
+
+def models(monkeypatch,tmp_path,segments=None,fail=False):
+    download=Mock(return_value=str(tmp_path/'cached'))
+    cpu=NS(transcribe=Mock(side_effect=RuntimeError('CPU failure')) if fail else Mock(return_value=(iter(segments or [segment()]),None)))
+    constructor=Mock(return_value=cpu)
+    monkeypatch.setitem(sys.modules,'faster_whisper',NS(WhisperModel=constructor))
+    monkeypatch.setitem(sys.modules,'faster_whisper.utils',NS(download_model=download))
+    monkeypatch.setattr(paths,'program_whisper_cache_dir',lambda:tmp_path/'cache')
+    return download,constructor,cpu
+
+
+def test_cuda_encode_failure_retries_cpu_local_only(monkeypatch,tmp_path):
+    w=transcriber(tmp_path);download,constructor,cpu=models(monkeypatch,tmp_path)
+    assert w.transcribe(PCM)=='Открой блокнот'
+    assert w.last_quality.accepted and w._active_device=='cpu'
+    download.assert_called_once_with('deepdml/cached-model',cache_dir=str(tmp_path/'cache'),local_files_only=True)
+    constructor.assert_called_once_with(str(tmp_path/'cached'),device='cpu',compute_type='int8',local_files_only=True)
+
+
+def test_cpu_retry_does_not_relax_confidence(monkeypatch,tmp_path):
+    w=transcriber(tmp_path);models(monkeypatch,tmp_path,[segment(avg_logprob=-3)])
+    assert w.transcribe(PCM)=='' and not w.last_quality.accepted
+
+
+def test_cpu_failure_disables_retry_in_this_session(monkeypatch,tmp_path):
+    w=transcriber(tmp_path);download,constructor,cpu=models(monkeypatch,tmp_path,fail=True)
+    with pytest.raises(RuntimeError,match='GPU и локальный CPU'):w.transcribe(PCM)
+    assert w.last_quality is None and w._model is None and w._load_error
+    with pytest.raises(RuntimeError):w.transcribe(PCM)
+    assert constructor.call_count==1 and download.call_count==1
+
+
+def test_cache_miss_does_not_request_online_download(monkeypatch,tmp_path):
+    w=transcriber(tmp_path);download,constructor,cpu=models(monkeypatch,tmp_path)
+    download.side_effect=FileNotFoundError('not cached')
+    with pytest.raises(RuntimeError):w.transcribe(PCM)
+    assert download.call_args.kwargs['local_files_only'] is True
+    constructor.assert_not_called()
+
+
+def test_explicit_model_directory_does_not_resolve_other_model(monkeypatch,tmp_path):
+    w=transcriber(tmp_path);w._active_model_name=str(tmp_path)
+    download,constructor,cpu=models(monkeypatch,tmp_path)
+    assert w.transcribe(PCM)
+    download.assert_not_called()
+    assert constructor.call_args.args==(str(tmp_path),)
+
+
+@pytest.mark.parametrize('device,message',[('cpu','cuda missing'),('cuda','unrelated decoder error')])
+def test_unrelated_or_cpu_errors_not_hidden(monkeypatch,tmp_path,device,message):
+    w=transcriber(tmp_path);w._active_device=device
+    w._model=NS(transcribe=Mock(side_effect=RuntimeError(message)))
+    retry=Mock();w._retry_on_cpu=retry
+    with pytest.raises(RuntimeError,match=message):w.transcribe(PCM)
+    retry.assert_not_called()
+
+
+def test_pending_background_load_is_bounded(tmp_path):
+    w=transcriber(tmp_path);w._model=None;w._loading=True;w._loaded=Mock();w._loaded.wait.return_value=False
+    with pytest.raises(RuntimeError,match='готовится'):w._ensure_loaded()
+    w._loaded.wait.assert_called_once_with(timeout=1.0)
+
+
+def test_successful_cpu_model_is_reused_on_next_phrase(monkeypatch,tmp_path):
+    w=transcriber(tmp_path);download,constructor,cpu=models(monkeypatch,tmp_path)
+    cpu.transcribe.side_effect=lambda *a,**k:(iter([segment()]),None)
+    assert w.transcribe(PCM) and w.transcribe(PCM)
+    assert constructor.call_count==1 and download.call_count==1
+    assert cpu.transcribe.call_count==2
+```
+
 ### `tests/test_window_targets.py`
 
 ```python
@@ -44178,6 +45102,7 @@ from launcher_download import (
 )
 
 from launcher_ollama import prepare_models
+from launcher_runtime import ensure_vc_runtime
 
 # ============================================================
 # Константы
@@ -44638,6 +45563,28 @@ def ensure_local_caps(project_dir, logger):
         logger.warning("Локальная диагностика недоступна; запуск продолжается",exc_info=True)
 
 
+def prepare_flet_client(project_dir, logger):
+    """Prepare the native UI while the bootstrap window can report failure/retry."""
+    if _PREPARATION is not None:
+        _PREPARATION.stage("Готовим интерфейс", "Проверяем клиент Flet. При первой загрузке нужен интернет.", show=True)
+    try:
+        result = subprocess.run(
+            [str(project_dir / ".venv311" / "Scripts" / "python.exe"),
+             str(project_dir / "scripts" / "prepare_flet_client.py")],
+            cwd=str(project_dir), capture_output=True, text=True,
+            encoding="utf-8", errors="replace", timeout=240, creationflags=CREATE_NO_WINDOW,
+        )
+        if result.returncode == 0 and "FLET_CLIENT_READY" in result.stdout.splitlines():
+            logger.info("Клиент Flet подготовлен и проверен")
+            return True
+        logger.error("Подготовка Flet не завершена: exit=%s; %s", result.returncode, result.stderr[-1200:])
+    except (OSError, subprocess.TimeoutExpired):
+        logger.exception("Подготовка клиента Flet не завершилась")
+    error("Не удалось подготовить интерфейс Flet. Проверь интернет и HTTPS-сертификаты. "
+          "Проверка TLS не отключалась. Логи: logs\\launcher.log")
+    return False
+
+
 def install_dependencies(project_dir: Path, logger) -> bool:
     """Устанавливает зависимости из requirements.txt."""
     python = project_dir / ".venv311" / "Scripts" / "python.exe"
@@ -44912,6 +45859,15 @@ def _main() -> None:
             return
         logger.info("Python после установки: %s", python_exe)
 
+    try:
+        if not ensure_vc_runtime(_PREPARATION, logger):
+            return
+    except Exception:
+        logger.exception("Не удалось подготовить Microsoft VC++ Runtime x64")
+        error("Не удалось подготовить Microsoft VC++ Runtime x64. "
+              "Проверь интернет и заверши официальный установщик Microsoft. Логи: logs\\launcher.log")
+        return
+
     pythonw = find_venv_pythonw(project_dir, logger)
     if pythonw is None:
         if not create_venv(project_dir, python_exe, logger):
@@ -44928,6 +45884,9 @@ def _main() -> None:
     if not check_vosk_model(project_dir, logger):
         if not download_vosk_model(project_dir, logger):
             return
+
+    if not prepare_flet_client(project_dir, logger):
+        return
 
     ensure_local_caps(project_dir, logger)
     handle_ollama(logger, project_dir)
@@ -45443,6 +46402,127 @@ def prepare_models(root, session, logger, find_exe, start_server, open_site,
                 installed = api.inventory()
             except SetupError:
                 return
+```
+
+### `launcher_runtime.py`
+
+```python
+"""Consented Microsoft VC++ x64 prerequisite; no silent installs or TLS bypass."""
+import base64
+import ctypes
+import os
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+
+from launcher_download import _powershell_path
+
+VC_URL = 'https://aka.ms/vc14/vc_redist.x64.exe'
+VC_FILE = 'vc_redist.x64.exe'
+VC_DLLS = ('msvcp140.dll', 'vcruntime140.dll', 'vcruntime140_1.dll')
+MARKER = 'PHOENIX_VC_VERIFIED'
+
+
+class RuntimePreparationError(RuntimeError):
+    pass
+
+
+def runtime_present():
+    """Probe x64 system DLLs, not PyInstaller's private bundled runtime."""
+    if sys.platform != 'win32':
+        raise RuntimePreparationError('VC++ check requires Windows')
+    system = Path(os.environ.get('SystemRoot', r'C:\Windows')) / 'System32'
+    try:
+        libraries = [ctypes.WinDLL(str(system / name)) for name in VC_DLLS]
+        return len(libraries) == len(VC_DLLS)
+    except OSError:
+        return False
+
+
+VERIFY = r"""
+$sig = Get-AuthenticodeSignature -LiteralPath $env:PHOENIX_VC_FILE
+if ($sig.Status -ne 'Valid' -or $null -eq $sig.SignerCertificate) {
+    throw 'Invalid Microsoft installer signature'
+}
+$name = $sig.SignerCertificate.GetNameInfo(
+    [System.Security.Cryptography.X509Certificates.X509NameType]::SimpleName, $false)
+if ($name -cne 'Microsoft Corporation') { throw 'Unexpected signer' }
+Write-Output 'PHOENIX_VC_VERIFIED'
+"""
+DOWNLOAD = r"""
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+Invoke-WebRequest -Uri $env:PHOENIX_VC_URL -OutFile $env:PHOENIX_VC_FILE `
+    -UseBasicParsing -TimeoutSec 60 -MaximumRedirection 5
+"""
+
+
+def _verified(script, path, timeout):
+    body = "$ErrorActionPreference='Stop'\n$ProgressPreference='SilentlyContinue'\n" + script
+    env = os.environ.copy()
+    env.update(PHOENIX_VC_FILE=str(Path(path).resolve()), PHOENIX_VC_URL=VC_URL)
+    try:
+        result = subprocess.run(
+            [str(_powershell_path()), '-NoLogo', '-NoProfile', '-NonInteractive',
+             '-EncodedCommand', base64.b64encode(body.encode('utf-16le')).decode('ascii')],
+            capture_output=True, env=env, timeout=timeout, creationflags=0x08000000,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise RuntimePreparationError('Microsoft download/signature check failed') from exc
+    if (result.returncode != 0 or MARKER not in result.stdout.decode('utf-8', errors='replace').splitlines()
+            or not Path(path).is_file() or Path(path).stat().st_size == 0):
+        raise RuntimePreparationError('Microsoft installer is not verified')
+
+
+def ensure_vc_runtime(session, logger, *, opener=None):
+    """Download only on consent; launch verified native UI and recheck readiness."""
+    if runtime_present():
+        logger.info('VC++ Runtime x64: системные DLL доступны')
+        return True
+    if session is None:
+        raise RuntimePreparationError('Открой Феникс через окно подготовки для установки VC++ x64.')
+    if not session.ask(
+        'Для голосовых компонентов нужен Microsoft Visual C++ Runtime x64.\n'
+        'Необходимые системные DLL не удалось загрузить.\n\n'
+        'Скачать официальный установщик Microsoft и открыть его? '
+        'Установка и разрешение Windows потребуют твоего подтверждения.',
+        'Феникс — компонент Windows', 'Скачать и открыть', 'Не устанавливать'):
+        logger.info('Установка VC++ отклонена; запуск остановлен без изменений')
+        session.declined = True
+        return False
+    folder = Path(tempfile.mkdtemp(prefix='phoenix-vc-', dir=os.environ.get('TEMP') or None))
+    exe, part = folder / VC_FILE, folder / 'vc_redist.x64.part.exe'
+    try:
+        session.stage('Готовим компонент Windows',
+                      'Скачиваем VC++ x64 с сайта Microsoft и проверяем цифровую подпись.', show=True)
+        _verified(DOWNLOAD + VERIFY, part, 240)
+        part.replace(exe)
+        _verified(VERIFY, exe, 60)  # verify again immediately before execution
+        logger.info('VC++ Runtime: подпись Valid, Microsoft Corporation; открываю установщик')
+        (opener or os.startfile)(str(exe))
+        while session.ask(
+            'Заверши установку Microsoft Visual C++ Runtime в отдельном окне.\n'
+            'Затем нажми «Проверить». Если Windows требует перезагрузку, '
+            'сохрани логи; закрытие Sandbox удаляет её данные.\n\n'
+            'Готовность проверяется загрузкой системных DLL, а не фактом открытия установщика.',
+            'Феникс — проверка компонента Windows', 'Проверить', 'Завершить подготовку'):
+            if runtime_present():
+                logger.info('VC++ Runtime x64: проверка после установки пройдена')
+                return True
+            session.detail('Системные DLL пока недоступны. Заверши установку; возможно, Windows требует перезапуск.')
+        session.declined = True
+        return False
+    finally:
+        # Only our known files; a running installer may keep its file locked.
+        for path in (part, exe):
+            try:
+                path.unlink()
+            except OSError:
+                pass
+        try:
+            folder.rmdir()
+        except OSError:
+            pass
 ```
 
 ### `launcher_ui.py`
@@ -46598,10 +47678,10 @@ jobs:
           cache: "pip"
 
       - name: Install build and bootstrap test tools
-        run: pip install -r requirements-dev.txt Pillow filelock
+        run: pip install -r requirements-dev.txt Pillow filelock certifi
 
       - name: Bootstrap downloader regressions (no models or installation)
-        run: python -m pytest tests/test_launcher_download.py tests/test_launcher_ollama.py tests/test_bootstrap_ollama_config.py tests/test_launcher_ui.py tests/test_build_setup.py tests/test_release_payload.py -q
+        run: python -m pytest tests/test_launcher_download.py tests/test_launcher_ollama.py tests/test_bootstrap_ollama_config.py tests/test_launcher_ui.py tests/test_build_setup.py tests/test_release_payload.py tests/test_launcher_runtime.py tests/test_startup_https.py tests/test_optional_whisper_startup.py -q
 
       - name: Install Inno Setup 6
         run: choco install innosetup --no-progress -y
@@ -48030,6 +49110,9 @@ pytest-asyncio>=0.23
 # --- Языковой слой: формы чисел и русская морфология (офлайн) ---
 num2words>=0.5.14,<0.6
 pymorphy3>=2.0.3,<3
+
+# Проверенные CA для urllib/Flet/torch, без отключения TLS.
+certifi>=2024.8.30
 ```
 
 ### `requirements-dev.txt`
@@ -48113,6 +49196,9 @@ onnxruntime>=1.17
 # --- Языковой слой: формы чисел и русская морфология (офлайн) ---
 num2words>=0.5.14,<0.6
 pymorphy3>=2.0.3,<3
+
+# Проверенные CA для urllib/Flet/torch, без отключения TLS.
+certifi>=2024.8.30
 ```
 
 ## 5. Документация (только оглавления)
@@ -48121,9 +49207,10 @@ pymorphy3>=2.0.3,<3
 
 - Фирменные ресурсы Феникса
 
-#### `tests/README.md` — 29 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `tests/README.md` — 30 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Тесты Феникса
+  - Пакет надёжности запуска Windows — текущая проверка
   - Общий bootstrap Python + Ollama
   - Python bootstrap HTTPS — исходный патч
   - Карта
@@ -48230,9 +49317,11 @@ pymorphy3>=2.0.3,<3
     - `.venv311`
     - Git
 
-#### `CHANGELOG.md` — 112 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 114 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
+  - Не выпущено — надёжность первого запуска Windows
+  - Не выпущено — необязательный Whisper не блокирует старт при DLL-ошибке
   - Не выпущено — визуальный ритм README
   - Не выпущено — новая страница проекта
   - Не выпущено — единая подготовка Python и модели Ollama
@@ -48270,8 +49359,6 @@ pymorphy3>=2.0.3,<3
       - Гигиена репозитория и локальная проверка коммита
       - Локальные аудиорегрессии и следующая очередь
       - Ядро Феникса: первый блок уточнений
-      - Переносимость аудиотестов на Windows
-      - Уточнение README и восстановление модулей пароля
 
 #### `CI.md` — 16 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -48328,10 +49415,11 @@ pymorphy3>=2.0.3,<3
   - 🤝 Как задавать вопросы
   - 🎯 Философия
 
-#### `PLAN.md` — 26 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `PLAN.md` — 27 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - 📋 План развития «Феникс»
-  - 🚧 Текущий P0: Windows-приёмка Python и модели Ollama
+  - 🚧 Текущий P0: запуск на чистой Windows
+  - Предшествующий этап: Python и модель Ollama
   - ⏭ Следующая задача после P0: потоковый TTS рядом с Ollama
   - 🎯 Курс: сначала сам Феникс
   - 📊 Статусы
@@ -48575,6 +49663,24 @@ pymorphy3>=2.0.3,<3
   - 🔄 Автозапуск
   - 🧰 Инструменты разработчика
 
+#### `docs/WHISPER_STARTUP_DLL_FIX.md` — 6 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Запуск без рабочего Whisper: DLL-ошибка CTranslate2
+  - Что подтверждено
+  - Исходный патч
+  - Продолжить текущую Sandbox без изменения старой сборки
+  - Применение файлов
+  - Проверки
+
+#### `docs/WINDOWS_STARTUP_RELIABILITY.md` — 6 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Первый запуск Windows: пакет исправлений
+  - Что известно из Sandbox
+  - Что изменено в исходниках
+  - Применение
+  - Windows-приёмка новой сборки — ещё не выполнена
+  - Проверки
+
 #### `docs/releases/v2.1.0.md` — 5 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Феникс 2.1.0
@@ -48585,4 +49691,4 @@ pymorphy3>=2.0.3,<3
 
 ---
 
-_Итого по категориям — code: 202, data: 48, doc: 34, pack: 5. Режим `lean`._
+_Итого по категориям — code: 211, data: 48, doc: 36, pack: 5. Режим `lean`._

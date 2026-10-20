@@ -5,7 +5,26 @@
 Локальный голосовой ассистент для Windows; форк [jsys12/jarvis](https://github.com/jsys12/jarvis).
 История и attribution оригинального автора сохраняются; см. LICENSE и CHANGELOG.md.
 
-## 🚧 Текущий P0: Windows-приёмка Python и модели Ollama
+## 🚧 Текущий P0: запуск на чистой Windows
+
+- [x] Логи: CTranslate2 DLL, TLS Flet/Silero, ожидание TTS, WinError 2 для
+  отсутствующего Блокнота, cublas64_12.dll при настоящем Whisper inference.
+- [x] Старый Setup с ручными VC++, process-local CA и Piper: пользователь
+  подтвердил Explorer, следующую команду и озвучку. Не чистый автоматический путь.
+- [x] В исходниках: безопасная подготовка VC++/Flet/HTTPS, bounded TTS readiness,
+  проверка результата run_spec и локальный CPU-повтор GPU-Whisper.
+- [x] Fallback ImportError/OSError необязательного backend → Vosk без изменения
+  пользовательского конфига включён в тот же набор исходников.
+- [ ] Пересобрать EXE/Setup; на чистой Windows пройти обычным ярлыком без
+  диагностических BAT: согласие/отказ VC++, загрузка Flet, пропуск Ollama,
+  Explorer, повторная команда, Piper/auto, выход и повторный запуск.
+- [ ] Отдельно проверить GPU decode failure → cached CPU / уверенный Vosk;
+  Windows подпись Microsoft, UAC, перезапуск и обработку TLS/private CA.
+- [ ] Полный readiness/early-exit handshake основного GUI остаётся отдельной задачей.
+
+Инструкция: [docs/WINDOWS_STARTUP_RELIABILITY.md](docs/WINDOWS_STARTUP_RELIABILITY.md).
+
+## Предшествующий этап: Python и модель Ollama
 
 После подготовки Python вручную старая установка в Sandbox дошла до Ollama.
 Подготовлен общий исходный патч: Windows HTTPS + Authenticode для Python,
@@ -20,7 +39,7 @@
 - [ ] Чистая Sandbox: Python → venv → pip → Vosk → Ollama/модель → GUI.
 
 Точные причины различия сертификатов frozen Python/Windows не объявлены
-установленными. Старый сбой ярлыка, readiness, Диалог и TTS не менялись.
+установленными. Предшествующий пакет не менял TTS; текущий P0 выше. Полный readiness всё ещё открыт.
 
 Полный приоритизированный список улучшений после обзора пяти проектов:
 [docs/IMPROVEMENT_BACKLOG.md](docs/IMPROVEMENT_BACKLOG.md).

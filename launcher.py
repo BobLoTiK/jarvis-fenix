@@ -32,6 +32,7 @@ from launcher_download import (
 )
 
 from launcher_ollama import prepare_models
+from launcher_runtime import ensure_vc_runtime
 
 # ============================================================
 # Константы
@@ -492,6 +493,28 @@ def ensure_local_caps(project_dir, logger):
         logger.warning("Локальная диагностика недоступна; запуск продолжается",exc_info=True)
 
 
+def prepare_flet_client(project_dir, logger):
+    """Prepare the native UI while the bootstrap window can report failure/retry."""
+    if _PREPARATION is not None:
+        _PREPARATION.stage("Готовим интерфейс", "Проверяем клиент Flet. При первой загрузке нужен интернет.", show=True)
+    try:
+        result = subprocess.run(
+            [str(project_dir / ".venv311" / "Scripts" / "python.exe"),
+             str(project_dir / "scripts" / "prepare_flet_client.py")],
+            cwd=str(project_dir), capture_output=True, text=True,
+            encoding="utf-8", errors="replace", timeout=240, creationflags=CREATE_NO_WINDOW,
+        )
+        if result.returncode == 0 and "FLET_CLIENT_READY" in result.stdout.splitlines():
+            logger.info("Клиент Flet подготовлен и проверен")
+            return True
+        logger.error("Подготовка Flet не завершена: exit=%s; %s", result.returncode, result.stderr[-1200:])
+    except (OSError, subprocess.TimeoutExpired):
+        logger.exception("Подготовка клиента Flet не завершилась")
+    error("Не удалось подготовить интерфейс Flet. Проверь интернет и HTTPS-сертификаты. "
+          "Проверка TLS не отключалась. Логи: logs\\launcher.log")
+    return False
+
+
 def install_dependencies(project_dir: Path, logger) -> bool:
     """Устанавливает зависимости из requirements.txt."""
     python = project_dir / ".venv311" / "Scripts" / "python.exe"
@@ -766,6 +789,15 @@ def _main() -> None:
             return
         logger.info("Python после установки: %s", python_exe)
 
+    try:
+        if not ensure_vc_runtime(_PREPARATION, logger):
+            return
+    except Exception:
+        logger.exception("Не удалось подготовить Microsoft VC++ Runtime x64")
+        error("Не удалось подготовить Microsoft VC++ Runtime x64. "
+              "Проверь интернет и заверши официальный установщик Microsoft. Логи: logs\\launcher.log")
+        return
+
     pythonw = find_venv_pythonw(project_dir, logger)
     if pythonw is None:
         if not create_venv(project_dir, python_exe, logger):
@@ -782,6 +814,9 @@ def _main() -> None:
     if not check_vosk_model(project_dir, logger):
         if not download_vosk_model(project_dir, logger):
             return
+
+    if not prepare_flet_client(project_dir, logger):
+        return
 
     ensure_local_caps(project_dir, logger)
     handle_ollama(logger, project_dir)

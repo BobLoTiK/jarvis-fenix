@@ -63,10 +63,10 @@ jobs:
           cache: "pip"
 
       - name: Install build and bootstrap test tools
-        run: pip install -r requirements-dev.txt Pillow filelock
+        run: pip install -r requirements-dev.txt Pillow filelock certifi
 
       - name: Bootstrap downloader regressions (no models or installation)
-        run: python -m pytest tests/test_launcher_download.py tests/test_launcher_ollama.py tests/test_bootstrap_ollama_config.py tests/test_launcher_ui.py tests/test_build_setup.py tests/test_release_payload.py -q
+        run: python -m pytest tests/test_launcher_download.py tests/test_launcher_ollama.py tests/test_bootstrap_ollama_config.py tests/test_launcher_ui.py tests/test_build_setup.py tests/test_release_payload.py tests/test_launcher_runtime.py tests/test_startup_https.py tests/test_optional_whisper_startup.py -q
 
       - name: Install Inno Setup 6
         run: choco install innosetup --no-progress -y

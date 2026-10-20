@@ -6,7 +6,7 @@ import tempfile
 from pathlib import Path
 
 ROOT_FILES = (
-    'launcher.py', 'launcher_ui.py', 'launcher_download.py', 'launcher_ollama.py', 'requirements.txt', 'config.example.json', 'README.md',
+    'launcher.py', 'launcher_ui.py', 'launcher_download.py', 'launcher_ollama.py', 'launcher_runtime.py', 'requirements.txt', 'config.example.json', 'README.md',
     'ARCHITECTURE.md', 'CHANGELOG.md', 'LICENSE', 'start_fenix.bat',
     'start_fenix_debug.bat', 'create_shortcut.bat',
 )

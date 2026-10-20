@@ -80,23 +80,20 @@ class Speaker:
         finally:
             self._engine_ready.set()
 
-    def _ensure_engine(self, timeout: float | None = 60.0) -> bool:
-        """Дожидается движка. True — движок есть.
+    def _ensure_engine(self, timeout: float = 1.0) -> bool:
+        """Bounded readiness wait only; never re-enter native initialization.
 
-        Нужно из-за lazy=True: первый say() может прийти, пока движок
-        ещё грузится (приветствие стартует параллельно с GUI).
+        Slow first-use downloads stay on the existing tts-init thread. An
+        unanswered loader must not trap a command behind _init_lock forever.
+        This does not terminate a native loader thread or select another voice.
         """
         if self._engine is not None:
             return True
-        if not self._engine_ready.is_set():
-            self._engine_ready.wait(timeout)
-        if self._engine is None and not self._engine_ready.is_set():
-            # Фон не уложился в timeout — пробуем синхронно.
-            log.warning("TTS: движок не готов за %.0f с — гружу синхронно",
-                        timeout or 0)
-            self._init_engine()
-            self._engine_ready.set()
-        return self._engine is not None
+        self._engine_ready.wait(max(0.0, min(float(timeout), 60.0)))
+        if self._engine is None:
+            log.warning("TTS: голос ещё не готов или недоступен; ответ остаётся текстовым")
+            return False
+        return True
 
     def _init_engine(self):
         with self._init_lock:
@@ -158,24 +155,30 @@ class Speaker:
         return self._recreate_engine()
 
     def _recreate_engine(self) -> bool:
-        """Пересоздаёт движок с текущими backend/voice/quality/rate."""
-        old_name = self._engine_name
-        self.stop()
-        self.wait_end(timeout=2.0)
-        engine = get_engine(self._backend, self.voice, self.quality, self.rate)
-        if engine is None:
-            log.warning("TTS: не удалось пересоздать движок %s", self._backend)
+        """Serialize engine replacement; never block GUI behind pending init."""
+        if not self._init_lock.acquire(blocking=False):
+            log.warning("TTS: текущий движок ещё готовится; смена в этом запуске не выполнена")
             return False
-        if hasattr(engine, "set_wav_player"):
-            engine.set_wav_player(self._play_wav)
-        with self._init_lock:
+        try:
+            old_name = self._engine_name
+            self.stop()
+            if not self.wait_end(timeout=2.0):
+                log.warning("TTS: предыдущая озвучка не завершилась; движок не заменён")
+                return False
+            engine = get_engine(self._backend, self.voice, self.quality, self.rate)
+            if engine is None:
+                log.warning("TTS: не удалось пересоздать движок %s", self._backend)
+                return False
+            if hasattr(engine, "set_wav_player"):
+                engine.set_wav_player(self._play_wav)
             self._engine = engine
             self._engine_name = engine.name
-        # Если шла ленивая загрузка — считаем её завершённой.
-        self._engine_ready.set()
-        log.info("TTS: движок пересоздан %s → %s (quality=%s)",
-                 old_name, self._engine_name, self.quality)
-        return True
+            self._engine_ready.set()
+            log.info("TTS: движок пересоздан %s → %s (quality=%s)",
+                     old_name, self._engine_name, self.quality)
+            return True
+        finally:
+            self._init_lock.release()
 
     # ------------------------------------------------------------------
     # Сеттеры (для Config.subscribe)
@@ -243,13 +246,13 @@ class Speaker:
         except Exception:
             log.exception("TTS: ошибка в speak()")
 
-    def play_async(self, text: str, *, allow_nonverbal=False) -> None:
+    def play_async(self, text: str, *, allow_nonverbal=False) -> bool:
         """Асинхронная озвучка одного текста."""
         if not text:
-            return
+            return False
         text = prepare_text(text)
         if not self._ensure_engine():
-            return
+            return False
 
         self.stop()
         finished = self.wait_end(timeout=2.0)
@@ -258,7 +261,7 @@ class Speaker:
                 "TTS: старый поток не завершился за 2 сек — пропускаю новый "
                 "(иначе наложение)"
             )
-            return
+            return False
 
         token = self._new_token(allow_nonverbal)
         with self._play_lock:
@@ -284,6 +287,8 @@ class Speaker:
         self._play_thread = threading.Thread(target=_run, daemon=True,
                                              name="tts-play")
         self._play_thread.start()
+
+        return True
 
     def speak_stream(self, text_iter: Iterator[str],
                      timeout: float = 30.0, *, allow_nonverbal=False) -> str:
@@ -329,6 +334,10 @@ class Speaker:
                 self._engine.stop()
             except Exception:
                 pass
+
+    def stop_requested(self) -> bool:
+        """Cancellation of the current call, not completion of a native worker."""
+        return self._current_stop().is_set()
 
     def is_playing(self) -> bool:
         with self._play_lock:

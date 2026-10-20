@@ -773,7 +773,8 @@ def _do_open(handler, target: str) -> str:
         app = find_app(handler.apps, named)
         spec = app.resolve_open() if app else None
         if spec is not None:
-            actions.run_spec(spec)
+            if not actions.run_spec(spec):
+                return f"Не удалось открыть {named}. Windows не подтвердила запуск."
             return f"Открываю {named}."
         actions.open_browser(process)
         return f"Открываю {named}."
@@ -789,7 +790,8 @@ def _do_open(handler, target: str) -> str:
         spec = app.resolve_open()
         if spec is None:
             return f"{app.title} не найден на этом компьютере."
-        actions.run_spec(spec)
+        if not actions.run_spec(spec):
+            return f"Не удалось открыть {app.title}. Проверь, установлено ли приложение."
         return f"Открываю {app.title}."
 
     for key, (title, url) in get_sites().items():
@@ -806,7 +808,8 @@ def _do_open(handler, target: str) -> str:
     game = find_game(handler.steam_games, target)
     if game:
         title, appid = game
-        actions.run_spec(("uri", f"steam://rungameid/{appid}"))
+        if not actions.run_spec(("uri", f"steam://rungameid/{appid}")):
+            return "Не удалось передать запуск игры в Steam."
         return f"Запускаю {title}."
 
     hit = find_installed(handler.installed, target)
