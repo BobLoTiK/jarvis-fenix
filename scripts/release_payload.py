@@ -37,6 +37,8 @@ def collect_payload(root, include_exe=True):
     paths.update(f'assets/nonverbal/{name}' for name in
                  ('README.md', 'sources.json', 'hmm.wav', 'laugh.wav', 'sigh.wav', 'yawn.wav'))
     paths.update(('assets/readme/hero.svg', 'assets/readme/hero-mobile.svg', 'docs/USER_GUIDE.md'))
+    paths.update(f'assets/readme/{name}.svg' for name in
+                 ('commands', 'commands-mobile', 'themes', 'themes-mobile'))
     # Only public Markdown documentation, not screenshots, logs or audio recordings.
     paths.update(p.relative_to(root).as_posix() for p in (root/'docs').glob('*.md'))
     paths.update(p.relative_to(root).as_posix() for p in (root/'docs/releases').glob('*.md'))

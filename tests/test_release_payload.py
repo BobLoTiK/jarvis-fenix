@@ -34,6 +34,14 @@ def test_only_public_files(release_tree):
     assert not any('private' in p or 'secret' in p or p in ('config.json','system_caps.json','tasks.json') for p in files)
 
 
+
+def test_readme_illustrations_are_shipped(release_tree):
+    files = rp.collect_payload(release_tree, False)
+    for name in ('hero', 'hero-mobile', 'commands', 'commands-mobile',
+                 'themes', 'themes-mobile'):
+        assert f'assets/readme/{name}.svg' in files
+
+
 def test_stage_clean_manifest(release_tree):
     root = release_tree
     dest = root/'build/release-payload'

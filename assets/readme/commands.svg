@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="380" viewBox="0 0 1200 380" role="img" aria-labelledby="title desc">
+<title id="title">Три команды для первого знакомства</title>
+<desc id="desc">Скажи «Феникс, открой блокнот», «Феникс, таймер на пять минут» или «Феникс, громкость пятьдесят». Обычным командам не нужна LLM.</desc>
+<rect width="1200" height="380" rx="18" fill="#12121c"/>
+<text x="36" y="49" fill="#abaac1" font-family="Arial,sans-serif" font-size="24" font-weight="400" letter-spacing="2">СКАЖИ: «ФЕНИКС…»</text>
+<rect x="32" y="78" width="368" height="226" rx="12" fill="#1d1e2d" stroke="#343149"/>
+<g transform="translate(56 100) scale(2.0)"><ns0:g xmlns:ns0="http://www.w3.org/2000/svg" fill="none" stroke="#e7ad7b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ns0:rect x="3" y="4" width="18" height="16" rx="2" /><ns0:path d="M3 9h18M9 9v11M13 13h4M13 16h2" /></ns0:g></g>
+<text x="350" y="131" fill="#abaac1" font-family="Arial,sans-serif" font-size="23" font-weight="400" >01</text>
+<text x="56" y="213" fill="#eeedf7" font-family="Arial,sans-serif" font-size="28" font-weight="700" >Открой блокнот</text>
+<text x="56" y="263" fill="#abaac1" font-family="Arial,sans-serif" font-size="24" font-weight="400" >Запуск приложения</text>
+<rect x="416" y="78" width="368" height="226" rx="12" fill="#1d1e2d" stroke="#343149"/>
+<g transform="translate(440 100) scale(2.0)"><ns0:g xmlns:ns0="http://www.w3.org/2000/svg" fill="none" stroke="#e7ad7b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ns0:circle cx="12" cy="14" r="8" /><ns0:path d="M12 14V9M9 2h6M12 2v4M18 5l2 2M6 14h1M17 14h1M12 19v1" /></ns0:g></g>
+<text x="734" y="131" fill="#abaac1" font-family="Arial,sans-serif" font-size="23" font-weight="400" >02</text>
+<text x="440" y="213" fill="#eeedf7" font-family="Arial,sans-serif" font-size="28" font-weight="700" >Таймер на пять минут</text>
+<text x="440" y="263" fill="#abaac1" font-family="Arial,sans-serif" font-size="24" font-weight="400" >Отсчёт времени</text>
+<rect x="800" y="78" width="368" height="226" rx="12" fill="#1d1e2d" stroke="#343149"/>
+<g transform="translate(824 100) scale(2.0)"><ns0:g xmlns:ns0="http://www.w3.org/2000/svg" fill="none" stroke="#e7ad7b" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><ns0:path d="M5 12h5l6-5v18l-6-5H5zM21 12l2 4-2 4M26 8l3 8-3 8" /></ns0:g></g>
+<text x="1118" y="131" fill="#abaac1" font-family="Arial,sans-serif" font-size="23" font-weight="400" >03</text>
+<text x="824" y="213" fill="#eeedf7" font-family="Arial,sans-serif" font-size="28" font-weight="700" >Громкость пятьдесят</text>
+<text x="824" y="263" fill="#abaac1" font-family="Arial,sans-serif" font-size="24" font-weight="400" >Управление звуком</text>
+<text x="36" y="350" fill="#d8a786" font-family="Arial,sans-serif" font-size="22" font-weight="700" >БЕЗ LLM</text>
+<text x="192" y="350" fill="#abaac1" font-family="Arial,sans-serif" font-size="24" font-weight="400" >Голосом или текстом во вкладке «Диалог»</text>
+</svg>

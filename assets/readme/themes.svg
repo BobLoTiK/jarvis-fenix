@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="208" viewBox="0 0 1200 208" role="img" aria-labelledby="title desc">
+<title id="title">Две темы Феникса: Сумерки и Фарфор</title>
+<desc id="desc">Образцы реальных цветов интерфейса: тёмный графит с медью и светлый фарфор с медью. Это палитры, а не снимки приложения.</desc>
+<rect x="0" y="0" width="588" height="208" rx="14" fill="#12121c"/>
+<text x="32" y="52" fill="#eeedf7" font-family="Arial,sans-serif" font-size="38" font-weight="700" >Сумерки</text>
+<text x="32" y="93" fill="#abaac1" font-family="Arial,sans-serif" font-size="26" font-weight="400" >Графит и мягкая медь</text>
+<path d="M32 127H556" stroke="#abaac1" stroke-opacity=".35"/>
+<circle cx="48" cy="165" r="16" fill="#12121c" stroke="#abaac1"/>
+<circle cx="104" cy="165" r="16" fill="#1d1e2d" stroke="#abaac1"/>
+<circle cx="160" cy="165" r="16" fill="#d8a786"/>
+<text x="556" y="174" fill="#d8a786" font-family="Arial,sans-serif" font-size="22" font-weight="700" text-anchor="end" letter-spacing="3">ФЕНИКС</text><rect x="612" y="0" width="588" height="208" rx="14" fill="#f5f2ed"/>
+<text x="644" y="52" fill="#282b30" font-family="Arial,sans-serif" font-size="38" font-weight="700" >Фарфор</text>
+<text x="644" y="93" fill="#5c6570" font-family="Arial,sans-serif" font-size="26" font-weight="400" >Тёплый свет и медь</text>
+<path d="M644 127H1168" stroke="#5c6570" stroke-opacity=".35"/>
+<circle cx="660" cy="165" r="16" fill="#f5f2ed" stroke="#5c6570"/>
+<circle cx="716" cy="165" r="16" fill="#fffefc" stroke="#5c6570"/>
+<circle cx="772" cy="165" r="16" fill="#92532f"/>
+<text x="1168" y="174" fill="#92532f" font-family="Arial,sans-serif" font-size="22" font-weight="700" text-anchor="end" letter-spacing="3">ФЕНИКС</text>
+</svg>

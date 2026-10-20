@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=f001507bf61e095f` · режим `lean` · файлов `285` · строк `52251` · источник `2391 КБ`
+`sha256=fbe70b890d8ec139` · режим `lean` · файлов `289` · строк `52348` · источник `2401 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -41,6 +41,9 @@ README — короткая публичная страница, не копия
 установка, диагностика и границы локальности. SVG-обложки assets/readme используют
 фирменную птицу, графит/медь и отдельную мобильную композицию. Уникальность подачи
 не заменяет точность: без фиктивных скриншотов, бенчмарков и будущих возможностей.
+Витрина дополнена адаптивными иллюстрациями команд и образцами реальных палитр;
+длинные инструкции и технические детали убраны под раскрывающиеся блоки.
+Шесть SVG включены явным списком в public payload; логика установки не менялась.
 Изменение README не меняет runtime и не требует пересборки установленного EXE.
 
 ## Текущий следующий шаг — лёгкая потоковая озвучка (ещё не реализован)
@@ -519,10 +522,14 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── README.md  (40 стр)
 │   │   ├── sources.json  (53 стр)
 │   ├── readme/
+│   │   ├── commands-mobile.svg  (19 стр)
+│   │   ├── commands.svg  (23 стр)
 │   │   ├── hero-mobile.svg  (28 стр)
 │   │   ├── hero.svg  (33 стр)
-│   │   ├── README.md  (13 стр)
-├── CHANGELOG.md  (1617 стр)
+│   │   ├── README.md  (17 стр)
+│   │   ├── themes-mobile.svg  (19 стр)
+│   │   ├── themes.svg  (19 стр)
+├── CHANGELOG.md  (1627 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -706,11 +713,11 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── sites.json  (22 стр)
 │   ├── system.json  (17 стр)
 │   ├── work.json  (11 стр)
-├── PLAN.md  (349 стр)
-├── PROJECT.md  (483 стр)
+├── PLAN.md  (351 стр)
+├── PROJECT.md  (486 стр)
 ├── PROMPT.md  (191 стр)
 ├── pytest.ini  (20 стр)
-├── README.md  (200 стр)
+├── README.md  (188 стр)
 ├── requirements-ci.txt  (36 стр)
 ├── requirements-dev.txt  (10 стр)
 ├── requirements.txt  (63 стр)
@@ -727,7 +734,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── make_icon.py  (32 стр)
 │   ├── make_installer_images.py  (125 стр)
 │   ├── mics.py  (52 стр)
-│   ├── release_payload.py  (86 стр)
+│   ├── release_payload.py  (88 стр)
 │   ├── selftest.py  (49 стр)
 │   ├── set_llm_model.py  (52 стр)
 │   ├── startup_probe.py  (196 стр)
@@ -795,7 +802,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_persona.py  (155 стр)
 │   ├── test_prosody.py  (83 стр)
 │   ├── test_recognition_quality.py  (357 стр)
-│   ├── test_release_payload.py  (159 стр)
+│   ├── test_release_payload.py  (167 стр)
 │   ├── test_safety.py  (170 стр)
 │   ├── test_speech_gate.py  (86 стр)
 │   ├── test_stt.py  (451 стр)
@@ -3738,6 +3745,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   ROOT = ...
   def release_tree(tmp_path)
   def test_only_public_files(release_tree)
+  def test_readme_illustrations_are_shipped(release_tree)
   def test_stage_clean_manifest(release_tree)
   def test_failed_validation_keeps_previous_payload(release_tree)
   def test_reject_unsafe_destination(release_tree, path)
@@ -4465,7 +4473,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `scripts/make_icon.py` | 32 | code | Build the Windows/tray phoenix icon from the project's transparent mas |
 | `scripts/make_installer_images.py` | 125 | code | Генерация картинок для Inno Setup установщика Феникса. |
 | `scripts/mics.py` | 52 | code | Подбор микрофона: показывает устройства ввода и уровень сигнала. |
-| `scripts/release_payload.py` | 86 | code | Curated installer payload; never recurse over the developer's entire w |
+| `scripts/release_payload.py` | 88 | code | Curated installer payload; never recurse over the developer's entire w |
 | `scripts/selftest.py` | 49 | code | Самопроверка без микрофона: TTS -> Vosk -> разбор команды. |
 | `scripts/set_llm_model.py` | 52 | code | Устанавливает llm_model в config.json. |
 | `scripts/startup_probe.py` | 196 | code | Замер старта Феникса по этапам — что именно тормозит запуск. |
@@ -4524,7 +4532,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_persona.py` | 155 | code | Тесты jarvis.persona — стиль, tone, prompt-блок. |
 | `tests/test_prosody.py` | 83 | code | Тесты jarvis.prosody — эмоции из голоса (эвристика). |
 | `tests/test_recognition_quality.py` | 357 | code | Recognition policy and integration tested without a microphone or mode |
-| `tests/test_release_payload.py` | 159 | code | Public payload, reproducible manifest and bootstrap regression checks. |
+| `tests/test_release_payload.py` | 167 | code | Public payload, reproducible manifest and bootstrap regression checks. |
 | `tests/test_safety.py` | 170 | code | Тесты jarvis.safety — постфильтр «красной черты». |
 | `tests/test_speech_gate.py` | 86 | code | Тесты jarvis.vad.SpeechHangover — «хвост» тишины после речи. |
 | `tests/test_stt.py` | 451 | code | stt.Listener: живое применение настроек (то, что раньше не работало). |
@@ -28032,6 +28040,8 @@ def collect_payload(root, include_exe=True):
     paths.update(f'assets/nonverbal/{name}' for name in
                  ('README.md', 'sources.json', 'hmm.wav', 'laugh.wav', 'sigh.wav', 'yawn.wav'))
     paths.update(('assets/readme/hero.svg', 'assets/readme/hero-mobile.svg', 'docs/USER_GUIDE.md'))
+    paths.update(f'assets/readme/{name}.svg' for name in
+                 ('commands', 'commands-mobile', 'themes', 'themes-mobile'))
     # Only public Markdown documentation, not screenshots, logs or audio recordings.
     paths.update(p.relative_to(root).as_posix() for p in (root/'docs').glob('*.md'))
     paths.update(p.relative_to(root).as_posix() for p in (root/'docs/releases').glob('*.md'))
@@ -40108,6 +40118,14 @@ def test_only_public_files(release_tree):
     assert not any('private' in p or 'secret' in p or p in ('config.json','system_caps.json','tasks.json') for p in files)
 
 
+
+def test_readme_illustrations_are_shipped(release_tree):
+    files = rp.collect_payload(release_tree, False)
+    for name in ('hero', 'hero-mobile', 'commands', 'commands-mobile',
+                 'themes', 'themes-mobile'):
+        assert f'assets/readme/{name}.svg' in files
+
+
 def test_stage_clean_manifest(release_tree):
     root = release_tree
     dest = root/'build/release-payload'
@@ -47773,6 +47791,58 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
+### `assets/readme/commands-mobile.svg`
+
+```
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="636" viewBox="0 0 600 636" role="img" aria-labelledby="title desc">
+<title id="title">Три команды для первого знакомства</title>
+<desc id="desc">Команды: открыть блокнот, поставить таймер на пять минут, установить громкость пятьдесят. Обращение — «Феникс».</desc>
+<rect width="600" height="636" rx="18" fill="#12121c"/>
+<text x="32" y="48" fill="#abaac1" font-family="Arial,sans-serif" font-size="26" font-weight="400" letter-spacing="1">СКАЖИ: «ФЕНИКС…»</text>
+<rect x="24" y="78" width="552" height="144" rx="12" fill="#1d1e2d" stroke="#343149"/>
+<g transform="translate(48 106) scale(1.6666666666666667)"><ns0:g xmlns:ns0="http://www.w3.org/2000/svg" fill="none" stroke="#e7ad7b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ns0:rect x="3" y="4" width="18" height="16" rx="2" /><ns0:path d="M3 9h18M9 9v11M13 13h4M13 16h2" /></ns0:g></g>
+<text x="112" y="131" fill="#eeedf7" font-family="Arial,sans-serif" font-size="32" font-weight="700" >Открой блокнот</text>
+<text x="112" y="181" fill="#abaac1" font-family="Arial,sans-serif" font-size="26" font-weight="400" >Запуск приложения</text>
+<rect x="24" y="242" width="552" height="144" rx="12" fill="#1d1e2d" stroke="#343149"/>
+<g transform="translate(48 270) scale(1.6666666666666667)"><ns0:g xmlns:ns0="http://www.w3.org/2000/svg" fill="none" stroke="#e7ad7b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ns0:circle cx="12" cy="14" r="8" /><ns0:path d="M12 14V9M9 2h6M12 2v4M18 5l2 2M6 14h1M17 14h1M12 19v1" /></ns0:g></g>
+<text x="112" y="295" fill="#eeedf7" font-family="Arial,sans-serif" font-size="32" font-weight="700" >Таймер на пять минут</text>
+<text x="112" y="345" fill="#abaac1" font-family="Arial,sans-serif" font-size="26" font-weight="400" >Отсчёт времени</text>
+<rect x="24" y="406" width="552" height="144" rx="12" fill="#1d1e2d" stroke="#343149"/>
+<g transform="translate(48 434) scale(1.6666666666666667)"><ns0:g xmlns:ns0="http://www.w3.org/2000/svg" fill="none" stroke="#e7ad7b" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><ns0:path d="M5 12h5l6-5v18l-6-5H5zM21 12l2 4-2 4M26 8l3 8-3 8" /></ns0:g></g>
+<text x="112" y="459" fill="#eeedf7" font-family="Arial,sans-serif" font-size="32" font-weight="700" >Громкость пятьдесят</text>
+<text x="112" y="509" fill="#abaac1" font-family="Arial,sans-serif" font-size="26" font-weight="400" >Управление звуком</text>
+<text x="32" y="607" fill="#d8a786" font-family="Arial,sans-serif" font-size="26" font-weight="400" >Без LLM · голосом или текстом</text>
+</svg>
+```
+
+### `assets/readme/commands.svg`
+
+```
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="380" viewBox="0 0 1200 380" role="img" aria-labelledby="title desc">
+<title id="title">Три команды для первого знакомства</title>
+<desc id="desc">Скажи «Феникс, открой блокнот», «Феникс, таймер на пять минут» или «Феникс, громкость пятьдесят». Обычным командам не нужна LLM.</desc>
+<rect width="1200" height="380" rx="18" fill="#12121c"/>
+<text x="36" y="49" fill="#abaac1" font-family="Arial,sans-serif" font-size="24" font-weight="400" letter-spacing="2">СКАЖИ: «ФЕНИКС…»</text>
+<rect x="32" y="78" width="368" height="226" rx="12" fill="#1d1e2d" stroke="#343149"/>
+<g transform="translate(56 100) scale(2.0)"><ns0:g xmlns:ns0="http://www.w3.org/2000/svg" fill="none" stroke="#e7ad7b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ns0:rect x="3" y="4" width="18" height="16" rx="2" /><ns0:path d="M3 9h18M9 9v11M13 13h4M13 16h2" /></ns0:g></g>
+<text x="350" y="131" fill="#abaac1" font-family="Arial,sans-serif" font-size="23" font-weight="400" >01</text>
+<text x="56" y="213" fill="#eeedf7" font-family="Arial,sans-serif" font-size="28" font-weight="700" >Открой блокнот</text>
+<text x="56" y="263" fill="#abaac1" font-family="Arial,sans-serif" font-size="24" font-weight="400" >Запуск приложения</text>
+<rect x="416" y="78" width="368" height="226" rx="12" fill="#1d1e2d" stroke="#343149"/>
+<g transform="translate(440 100) scale(2.0)"><ns0:g xmlns:ns0="http://www.w3.org/2000/svg" fill="none" stroke="#e7ad7b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ns0:circle cx="12" cy="14" r="8" /><ns0:path d="M12 14V9M9 2h6M12 2v4M18 5l2 2M6 14h1M17 14h1M12 19v1" /></ns0:g></g>
+<text x="734" y="131" fill="#abaac1" font-family="Arial,sans-serif" font-size="23" font-weight="400" >02</text>
+<text x="440" y="213" fill="#eeedf7" font-family="Arial,sans-serif" font-size="28" font-weight="700" >Таймер на пять минут</text>
+<text x="440" y="263" fill="#abaac1" font-family="Arial,sans-serif" font-size="24" font-weight="400" >Отсчёт времени</text>
+<rect x="800" y="78" width="368" height="226" rx="12" fill="#1d1e2d" stroke="#343149"/>
+<g transform="translate(824 100) scale(2.0)"><ns0:g xmlns:ns0="http://www.w3.org/2000/svg" fill="none" stroke="#e7ad7b" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><ns0:path d="M5 12h5l6-5v18l-6-5H5zM21 12l2 4-2 4M26 8l3 8-3 8" /></ns0:g></g>
+<text x="1118" y="131" fill="#abaac1" font-family="Arial,sans-serif" font-size="23" font-weight="400" >03</text>
+<text x="824" y="213" fill="#eeedf7" font-family="Arial,sans-serif" font-size="28" font-weight="700" >Громкость пятьдесят</text>
+<text x="824" y="263" fill="#abaac1" font-family="Arial,sans-serif" font-size="24" font-weight="400" >Управление звуком</text>
+<text x="36" y="350" fill="#d8a786" font-family="Arial,sans-serif" font-size="22" font-weight="700" >БЕЗ LLM</text>
+<text x="192" y="350" fill="#abaac1" font-family="Arial,sans-serif" font-size="24" font-weight="400" >Голосом или текстом во вкладке «Диалог»</text>
+</svg>
+```
+
 ### `assets/readme/hero-mobile.svg`
 
 ```
@@ -47841,6 +47911,54 @@ SOFTWARE.
 <text x="404" y="321" fill="#eeedf7" font-family="Arial,sans-serif" font-size="22" letter-spacing="1">ДИАЛОГ</text>
 <text x="660" y="321" fill="#d8a786" font-family="Arial,sans-serif" font-size="22">03</text>
 <text x="704" y="321" fill="#eeedf7" font-family="Arial,sans-serif" font-size="22" letter-spacing="1">СВОИ СЦЕНАРИИ</text>
+</svg>
+```
+
+### `assets/readme/themes-mobile.svg`
+
+```
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="436" viewBox="0 0 600 436" role="img" aria-labelledby="title desc">
+<title id="title">Темы Сумерки и Фарфор</title>
+<desc id="desc">Образцы цветов интерфейса, не снимки приложения.</desc>
+<rect x="0" y="0" width="600" height="208" rx="14" fill="#12121c"/>
+<text x="32" y="52" fill="#eeedf7" font-family="Arial,sans-serif" font-size="38" font-weight="700" >Сумерки</text>
+<text x="32" y="93" fill="#abaac1" font-family="Arial,sans-serif" font-size="26" font-weight="400" >Графит и мягкая медь</text>
+<path d="M32 127H568" stroke="#abaac1" stroke-opacity=".35"/>
+<circle cx="48" cy="165" r="16" fill="#12121c" stroke="#abaac1"/>
+<circle cx="104" cy="165" r="16" fill="#1d1e2d" stroke="#abaac1"/>
+<circle cx="160" cy="165" r="16" fill="#d8a786"/>
+<text x="568" y="174" fill="#d8a786" font-family="Arial,sans-serif" font-size="22" font-weight="700" text-anchor="end" letter-spacing="3">ФЕНИКС</text><rect x="0" y="228" width="600" height="208" rx="14" fill="#f5f2ed"/>
+<text x="32" y="280" fill="#282b30" font-family="Arial,sans-serif" font-size="38" font-weight="700" >Фарфор</text>
+<text x="32" y="321" fill="#5c6570" font-family="Arial,sans-serif" font-size="26" font-weight="400" >Тёплый свет и медь</text>
+<path d="M32 355H568" stroke="#5c6570" stroke-opacity=".35"/>
+<circle cx="48" cy="393" r="16" fill="#f5f2ed" stroke="#5c6570"/>
+<circle cx="104" cy="393" r="16" fill="#fffefc" stroke="#5c6570"/>
+<circle cx="160" cy="393" r="16" fill="#92532f"/>
+<text x="568" y="402" fill="#92532f" font-family="Arial,sans-serif" font-size="22" font-weight="700" text-anchor="end" letter-spacing="3">ФЕНИКС</text>
+</svg>
+```
+
+### `assets/readme/themes.svg`
+
+```
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="208" viewBox="0 0 1200 208" role="img" aria-labelledby="title desc">
+<title id="title">Две темы Феникса: Сумерки и Фарфор</title>
+<desc id="desc">Образцы реальных цветов интерфейса: тёмный графит с медью и светлый фарфор с медью. Это палитры, а не снимки приложения.</desc>
+<rect x="0" y="0" width="588" height="208" rx="14" fill="#12121c"/>
+<text x="32" y="52" fill="#eeedf7" font-family="Arial,sans-serif" font-size="38" font-weight="700" >Сумерки</text>
+<text x="32" y="93" fill="#abaac1" font-family="Arial,sans-serif" font-size="26" font-weight="400" >Графит и мягкая медь</text>
+<path d="M32 127H556" stroke="#abaac1" stroke-opacity=".35"/>
+<circle cx="48" cy="165" r="16" fill="#12121c" stroke="#abaac1"/>
+<circle cx="104" cy="165" r="16" fill="#1d1e2d" stroke="#abaac1"/>
+<circle cx="160" cy="165" r="16" fill="#d8a786"/>
+<text x="556" y="174" fill="#d8a786" font-family="Arial,sans-serif" font-size="22" font-weight="700" text-anchor="end" letter-spacing="3">ФЕНИКС</text><rect x="612" y="0" width="588" height="208" rx="14" fill="#f5f2ed"/>
+<text x="644" y="52" fill="#282b30" font-family="Arial,sans-serif" font-size="38" font-weight="700" >Фарфор</text>
+<text x="644" y="93" fill="#5c6570" font-family="Arial,sans-serif" font-size="26" font-weight="400" >Тёплый свет и медь</text>
+<path d="M644 127H1168" stroke="#5c6570" stroke-opacity=".35"/>
+<circle cx="660" cy="165" r="16" fill="#f5f2ed" stroke="#5c6570"/>
+<circle cx="716" cy="165" r="16" fill="#fffefc" stroke="#5c6570"/>
+<circle cx="772" cy="165" r="16" fill="#92532f"/>
+<text x="1168" y="174" fill="#92532f" font-family="Arial,sans-serif" font-size="22" font-weight="700" text-anchor="end" letter-spacing="3">ФЕНИКС</text>
 </svg>
 ```
 
@@ -48112,9 +48230,10 @@ pymorphy3>=2.0.3,<3
     - `.venv311`
     - Git
 
-#### `CHANGELOG.md` — 111 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 112 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
+  - Не выпущено — визуальный ритм README
   - Не выпущено — новая страница проекта
   - Не выпущено — единая подготовка Python и модели Ollama
   - Не выпущено — Python bootstrap HTTPS в Windows Sandbox
@@ -48153,7 +48272,6 @@ pymorphy3>=2.0.3,<3
       - Ядро Феникса: первый блок уточнений
       - Переносимость аудиотестов на Windows
       - Уточнение README и восстановление модулей пароля
-      - Добавлено
 
 #### `CI.md` — 16 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -48251,18 +48369,16 @@ pymorphy3>=2.0.3,<3
   - 5. Контракты, которые нельзя сломать
   - 6. Как проверять и отдавать изменения
 
-#### `README.md` — 13 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `README.md` — 11 заголовков, полный текст не включён (дублирует PROJECT.md)
 
-  - Начни с того, что и так делаешь каждый день
-    - Повторяется каждый день? Дай этому свою фразу
+  - Начни с одной фразы
+    - Одна фраза — несколько действий
   - Главная — не чат
   - Запустить у себя
-    - Через установщик
-    - Из исходников
-    - Если хочется разговаривать, а не только давать команды
-  - Что остаётся на компьютере, а что использует сеть
+    - Разговор — по желанию
+  - Локальный — не значит «без интернета вообще»
   - Если что-то пошло не так
-  - Для тех, кто хочет менять Феникса
+  - Под капотом
 - Синтаксис, pytest, интент-сценарии и стресс-тесты
 - Снимок обновляется после изменений
 - Preflight ресурсов, без сборки EXE
@@ -48275,7 +48391,7 @@ pymorphy3>=2.0.3,<3
 
 #### `assets/readme/README.md` — 1 заголовков, полный текст не включён (дублирует PROJECT.md)
 
-- Обложки README
+- Графика README
 
 #### `docs/BOOTSTRAP_PYTHON_OLLAMA_UPDATE.md` — 7 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -48469,4 +48585,4 @@ pymorphy3>=2.0.3,<3
 
 ---
 
-_Итого по категориям — code: 202, data: 44, doc: 34, pack: 5. Режим `lean`._
+_Итого по категориям — code: 202, data: 48, doc: 34, pack: 5. Режим `lean`._
