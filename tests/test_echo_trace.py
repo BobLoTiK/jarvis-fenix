@@ -17,8 +17,8 @@ from tests.test_echo import listener, Processor, render, PCM
 
 def read_trace(trace):
     assert trace.done.wait(3)
-    summary = json.loads((trace.folder / 'summary.json').read_text())
-    events = [json.loads(line) for line in (trace.folder / 'events.jsonl').read_text().splitlines()]
+    summary = json.loads((trace.folder / 'summary.json').read_text(encoding="utf-8"))
+    events = [json.loads(line) for line in (trace.folder / 'events.jsonl').read_text(encoding="utf-8").splitlines()]
     assert trace.error is None
     with zipfile.ZipFile(trace.archive) as archive:
         assert archive.testzip() is None
@@ -110,7 +110,7 @@ def test_queue_overflow_is_bounded_and_explicit_not_a_capture_wait(tmp_path):
 
 def test_disk_failure_disables_only_trace(tmp_path):
     blocked = tmp_path / 'not_a_directory'
-    blocked.write_text('file')
+    blocked.write_text('file', encoding="utf-8")
     t = EchoTrace(blocked)
     assert t.done.wait(2) and t.error is not None
     assert t.note('anything') is None
@@ -239,11 +239,11 @@ def test_trace_does_not_change_barge_decisions_or_asr_audio(tmp_path, similarity
 
 def test_manual_launcher_keeps_recording_environment_local_to_process():
     from pathlib import Path
-    batch = (Path(__file__).parents[1] / 'start_aec_diagnostics.bat').read_text()
+    batch = (Path(__file__).parents[1] / 'start_aec_diagnostics.bat').read_text(encoding="utf-8")
     assert 'setlocal' in batch and 'choice /C YN' in batch
     assert 'set "FENIX_AEC_DIAGNOSTICS=1"' in batch
     assert '-m jarvis' in batch and 'setx' not in batch.lower()
-    normal = (Path(__file__).parents[1] / 'start_fenix.bat').read_text()
+    normal = (Path(__file__).parents[1] / 'start_fenix.bat').read_text(encoding="utf-8")
     assert 'FENIX_AEC_DIAGNOSTICS' not in normal
 
 

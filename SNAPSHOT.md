@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=b1edae8c897f4d98` · режим `lean` · файлов `320` · строк `56110` · источник `2635 КБ`
+`sha256=cb07c45cbfc10b6c` · режим `lean` · файлов `320` · строк `56353` · источник `2626 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -46,6 +46,8 @@ WinRT удалён только из TTS. `tts_backend=winrt` читается �
 
 Следующий инженерный блок: [NEXT_STEPS](docs/NEXT_STEPS.md).
 Снимок исключает локальные .env/.env.*/.envrc; их содержимое не редактируется.
+Текстовые read_text/write_text тестов явно используют UTF-8; кодировка Windows
+и Python runtime не меняются. AST guard ловит возвращение неявного encoding.
 Свежая проверка этого комплекта: [HANDOFF_VALIDATION](docs/HANDOFF_VALIDATION.md).
 Детальные контракты GUI/команд: [приёмка](docs/ACCEPTANCE_CHECKLIST.md).
 
@@ -464,7 +466,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── README.md  (17 стр)
 │   │   ├── themes-mobile.svg  (19 стр)
 │   │   ├── themes.svg  (19 стр)
-├── CHANGELOG.md  (1712 стр)
+├── CHANGELOG.md  (1733 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -493,7 +495,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── GUI_SOLAR_AURA_UPDATE.md  (52 стр)
 │   ├── GUI_STARTUP_TRAY_FIX.md  (55 стр)
 │   ├── GUI_WIDGETS_UPDATE.md  (58 стр)
-│   ├── HANDOFF_VALIDATION.md  (76 стр)
+│   ├── HANDOFF_VALIDATION.md  (98 стр)
 │   ├── IMPROVEMENT_BACKLOG.md  (120 стр)
 │   ├── INSTALLER_UPDATE.md  (47 стр)
 │   ├── LOCAL_VOICE_OPTIONS.md  (67 стр)
@@ -501,9 +503,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── PHOENIX_JASTIN_RECONCILIATION.md  (268 стр)
 │   ├── PYTHON_BOOTSTRAP_TLS_FIX.md  (98 стр)
 │   ├── reference/
-│   │   ├── J-A-S-T-i-n_v1_1_6_0.docx  (338 стр)
-│   │   ├── Phoenix_JASTIN_Integration_Plan.1.docx  (155 стр)
-│   │   ├── README.md  (17 стр)
+│   │   ├── README.md  (20 стр)
 │   ├── releases/
 │   │   ├── v2.1.0.md  (34 стр)
 │   ├── USER_GUIDE.md  (1012 стр)
@@ -514,7 +514,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ├── install_aec.bat  (27 стр)
 ├── installer.iss  (106 стр)
 ├── jarvis/
-│   ├── __init__.py  (12 стр)
+│   ├── __init__.py  (8 стр)
 │   ├── __main__.py  (9 стр)
 │   ├── actions.py  (1504 стр)
 │   ├── apps.py  (114 стр)
@@ -562,8 +562,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── https_trust.py  (22 стр)
 │   ├── installed.py  (51 стр)
 │   ├── intents/
-│   │   ├── __init__.py  (47 стр)
-│   │   ├── clarification.py  (11 стр)
+│   │   ├── __init__.py  (10 стр)
+│   │   ├── clarification.py  (262 стр)
 │   │   ├── context.py  (19 стр)
 │   │   ├── execute.py  (1044 стр)
 │   │   ├── fast/
@@ -587,7 +587,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   │   ├── voices.py  (10 стр)
 │   │   │   ├── weather.py  (113 стр)
 │   │   ├── handler.py  (307 стр)
-│   │   ├── password.py  (124 стр)
+│   │   ├── password.py  (99 стр)
 │   │   ├── sites.py  (62 стр)
 │   │   ├── stages/
 │   │   │   ├── __init__.py  (47 стр)
@@ -667,7 +667,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── system.json  (17 стр)
 │   ├── work.json  (11 стр)
 ├── PLAN.md  (93 стр)
-├── PROJECT.md  (421 стр)
+├── PROJECT.md  (423 стр)
 ├── PROMPT.md  (72 стр)
 ├── pytest.ini  (20 стр)
 ├── README.md  (188 стр)
@@ -696,13 +696,13 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── vadbench.py  (185 стр)
 │   ├── voicedemo.py  (34 стр)
 │   ├── wakebench.py  (88 стр)
-├── snapshot.py  (730 стр)
+├── snapshot.py  (731 стр)
 ├── start_aec_diagnostics.bat  (31 стр)
 ├── start_fenix.bat  (13 стр)
 ├── start_fenix_debug.bat  (16 стр)
 ├── START_HERE.md  (36 стр)
 ├── tests/
-│   ├── __init__.py  (1 стр)
+│   ├── __init__.py  (0 стр)
 │   ├── audio/
 │   │   ├── __init__.py  (1 стр)
 │   │   ├── corpus.py  (187 стр)
@@ -719,7 +719,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── uia_manual.py  (61 стр)
 │   │   ├── vad_debug.py  (61 стр)
 │   │   ├── vad_live.py  (41 стр)
-│   ├── README.md  (183 стр)
+│   ├── README.md  (565 стр)
 │   ├── stress_intents.py  (552 стр)
 │   ├── test_audio_regression.py  (556 стр)
 │   ├── test_audit_regressions.py  (265 стр)
@@ -736,7 +736,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_echo_multibackend.py  (162 стр)
 │   ├── test_echo_trace.py  (264 стр)
 │   ├── test_engine_probe.py  (100 стр)
-│   ├── test_git_hygiene.py  (336 стр)
+│   ├── test_git_hygiene.py  (348 стр)
 │   ├── test_gui_audio.py  (269 стр)
 │   ├── test_gui_chat.py  (287 стр)
 │   ├── test_gui_commands.py  (126 стр)
@@ -767,10 +767,12 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_recognition_quality.py  (357 стр)
 │   ├── test_release_payload.py  (181 стр)
 │   ├── test_safety.py  (170 стр)
+│   ├── test_source_layout.py  (63 стр)
 │   ├── test_speech_gate.py  (86 стр)
 │   ├── test_startup_https.py  (96 стр)
 │   ├── test_stt.py  (451 стр)
 │   ├── test_test_portability.py  (44 стр)
+│   ├── test_text_encoding.py  (46 стр)
 │   ├── test_tray.py  (249 стр)
 │   ├── test_tts.py  (243 стр)
 │   ├── test_tts_readiness.py  (94 стр)
@@ -790,7 +792,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 **`jarvis/__init__.py`**
 
 ```
-  # TTS-движки Феникса — абстракция над Piper, Silero, SAPI.
+  # Феникс — локальный голосовой ассистент для Windows.
+  APP_NAME = ...
 ```
 
 **`jarvis/actions.py`**
@@ -1278,16 +1281,23 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 **`jarvis/intents/__init__.py`**
 
 ```
-  # Стадии обработки команды. Порядок = приоритет.
-  def build_pipeline(handler) -> [CancelStage(), PendingStage(), OnboardingStage(), CorrectionStage(), PasswordStage(), MemoryStage(), ClipboardStage(), ModesStage(), CompoundStage(), ClarificationStage(), FastHandlersStage(), LLMStage()]
+  # Разбор команд Феникса — пакет.
 ```
 
 **`jarvis/intents/clarification.py`**
 
 ```
-  # Запрос недостающего слота до fast/LLM, без выполнения догадок.
-  class ClarificationStage(Stage)
-    def handle(self, ctx)
+  # Bounded, session-only slot filling shared by GUI and voice.
+  TIMEOUT = ...
+  MAX_ATTEMPTS = ...
+  OPEN = ...
+  TIMER = ...
+  CORRECTION = ...
+  PROMPTS = ...
+  class TimeSlot
+  def pending_alive(pending)
+  def begin(ctx)
+  def resume(ctx)
 ```
 
 **`jarvis/intents/context.py`**
@@ -1474,10 +1484,15 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 **`jarvis/intents/password.py`**
 
 ```
-  # Стадия pipeline: jarvis.intents.stages.password.
-  class PasswordStage(Stage)
-    def handle(self, ctx)
-  def build_ask_password(intent: dict, expires_sec: int=30)
+  # Парольные примитивы: jarvis.intents.password (не стадия pipeline).
+  _PASSWORD_PREFIX = ...
+  def hash_password(password: str)
+  def is_hashed(value: str)
+  def verify_password(candidate: str, stored: str)
+  def migrate_password_if_needed(config)
+  DANGER_ACTIONS = ...
+  def is_danger(intent: dict, stored_password: str)
+  ACTION_HUMAN = ...
 ```
 
 **`jarvis/intents/sites.py`**
@@ -2582,12 +2597,6 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def main()
 ```
 
-**`tests/__init__.py`**
-
-```
-  # Optional offline audio regression tools, not part of the live assistant.
-```
-
 **`tests/audio/__init__.py`**
 
 ```
@@ -3118,6 +3127,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_tracked_log_requires_explicit_untracking(repo)
   def test_test_log_is_ignored_and_does_not_change_snapshot(repo)
   def test_dotenv_does_not_enter_snapshot(repo, name)
+  def test_optional_word_files_do_not_change_snapshot(repo, name)
   def test_staged_doc_change_is_checked(repo)
   def test_spaces_and_unicode_paths(repo)
   def test_index_symlink_input_is_rejected_without_creating_symlink(repo)
@@ -3934,6 +3944,16 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_observer_disabled_by_default()
 ```
 
+**`tests/test_source_layout.py`**
+
+```
+  # Same-named package files have different roles; test real imports in fresh Python.
+  ROOT = ...
+  def test_fresh_package_imports(first, tmp_path)
+  def test_root_and_intents_init_keep_their_own_exports()
+  def test_password_primitives_are_not_replaced_by_password_stage()
+```
+
 **`tests/test_speech_gate.py`**
 
 ```
@@ -4036,6 +4056,16 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   AUDIO_TESTS = ...
   def test_audio_case_ids_are_short_without_dumping_pcm()
   def test_audio_source_reads_have_explicit_utf8()
+```
+
+**`tests/test_text_encoding.py`**
+
+```
+  # Test sources/fixtures are UTF-8, independent of Windows ANSI code page.
+  ROOT = ...
+  def explicit_encoding(call)
+  def test_encoding_guard_recognizes_positional_and_keyword_arguments(expression, expected)
+  def test_test_files_do_not_use_locale_dependent_path_text_io()
 ```
 
 **`tests/test_tray.py`**
@@ -4584,7 +4614,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 
 | Файл | Строк | Категория | О чём модуль |
 |---|---:|---|---|
-| `jarvis/__init__.py` | 12 | code | TTS-движки Феникса — абстракция над Piper, Silero, SAPI. |
+| `jarvis/__init__.py` | 8 | code | Феникс — локальный голосовой ассистент для Windows. |
 | `jarvis/__main__.py` | 9 | code |  |
 | `jarvis/actions.py` | 1504 | code | Действия: запуск приложений, открытие сайтов, скриншоты, медиа, печать |
 | `jarvis/apps.py` | 114 | code | Каталог известных приложений: как их зовут голосом, как открыть и как  |
@@ -4610,8 +4640,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/history.py` | 75 | code | История последних действий для отмены («стоп, не то»). |
 | `jarvis/https_trust.py` | 22 | code | Process-scoped CA bundle for urllib/Flet/torch; never disables TLS che |
 | `jarvis/installed.py` | 51 | code | Индекс установленных программ по ярлыкам меню «Пуск». |
-| `jarvis/intents/__init__.py` | 47 | code | Стадии обработки команды. Порядок = приоритет. |
-| `jarvis/intents/clarification.py` | 11 | code | Запрос недостающего слота до fast/LLM, без выполнения догадок. |
+| `jarvis/intents/__init__.py` | 10 | code | Разбор команд Феникса — пакет. |
+| `jarvis/intents/clarification.py` | 262 | code | Bounded, session-only slot filling shared by GUI and voice. |
 | `jarvis/intents/context.py` | 19 | code | Контекст, который передаётся между стадиями pipeline. |
 | `jarvis/intents/execute.py` | 1044 | code | Dispatch: action → функция-обработчик. |
 | `jarvis/intents/fast/__init__.py` | 54 | code | Реестр быстрых обработчиков. |
@@ -4634,7 +4664,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/intents/fast/voices.py` | 10 | code | Голоса Piper — обёртка над модулем `voices`. |
 | `jarvis/intents/fast/weather.py` | 113 | code | Простые правила для погоды и курса — без LLM. |
 | `jarvis/intents/handler.py` | 307 | code | IntentHandler — оркестрация. |
-| `jarvis/intents/password.py` | 124 | code | Стадия pipeline: jarvis.intents.stages.password. |
+| `jarvis/intents/password.py` | 99 | code | Парольные примитивы: jarvis.intents.password (не стадия pipeline). |
 | `jarvis/intents/sites.py` | 62 | code | Сайты для открытия голосом — ленивая загрузка из packs/sites.json. |
 | `jarvis/intents/stages/__init__.py` | 47 | code | Стадии обработки команды. Порядок = приоритет. |
 | `jarvis/intents/stages/base.py` | 19 | code | Базовая стадия pipeline. |
@@ -4717,7 +4747,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `scripts/vadbench.py` | 185 | code | Бенчмарк VAD: сколько latency он добавляет к ответу (Vosk-endpoint). |
 | `scripts/voicedemo.py` | 34 | code | Прослушка голосов: проигрывает одну фразу всеми доступными голосами. |
 | `scripts/wakebench.py` | 88 | code | Бенчмарк кандидатов в wake-слово: TTS (Pavel) -> Vosk-small -> что усл |
-| `tests/__init__.py` | 1 | code | Optional offline audio regression tools, not part of the live assistan |
+| `tests/__init__.py` | 0 | code |  |
 | `tests/audio/__init__.py` | 1 | code | Optional offline audio regression tools, not part of the live assistan |
 | `tests/audio/corpus.py` | 187 | code | Local-only WAV preparation. No playback, recordings or model downloads |
 | `tests/audio/runner.py` | 216 | code | CLI orchestration; blocked resources always exit 2, never a fake pass. |
@@ -4746,7 +4776,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_echo_multibackend.py` | 162 | code | Diagnostic-only PCM support; normal production backend scope stays unc |
 | `tests/test_echo_trace.py` | 264 | code | Local diagnostic contracts: no devices or external services. |
 | `tests/test_engine_probe.py` | 100 | code | Заглушка движка TTS (factory._probe_engine). |
-| `tests/test_git_hygiene.py` | 336 | code | Exercise real temporary Git indexes/hooks; never commit or alter the u |
+| `tests/test_git_hygiene.py` | 348 | code | Exercise real temporary Git indexes/hooks; never commit or alter the u |
 | `tests/test_gui_audio.py` | 269 | code | Native sound settings + real worker boundaries; no microphone or actua |
 | `tests/test_gui_chat.py` | 287 | code | Imported Flet controls + real GUI worker threads; no window, ASR or au |
 | `tests/test_gui_commands.py` | 126 | code | Imported native builder controls; no OS actions or real passwords. |
@@ -4777,10 +4807,12 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_recognition_quality.py` | 357 | code | Recognition policy and integration tested without a microphone or mode |
 | `tests/test_release_payload.py` | 181 | code | Public payload, reproducible manifest and bootstrap regression checks. |
 | `tests/test_safety.py` | 170 | code | Тесты jarvis.safety — постфильтр «красной черты». |
+| `tests/test_source_layout.py` | 63 | code | Same-named package files have different roles; test real imports in fr |
 | `tests/test_speech_gate.py` | 86 | code | Тесты jarvis.vad.SpeechHangover — «хвост» тишины после речи. |
 | `tests/test_startup_https.py` | 96 | code | Process-local CA and native-client prep without network/GUI. |
 | `tests/test_stt.py` | 451 | code | stt.Listener: живое применение настроек (то, что раньше не работало). |
 | `tests/test_test_portability.py` | 44 | code | Audio fixture contents must never become Windows environment-variable  |
+| `tests/test_text_encoding.py` | 46 | code | Test sources/fixtures are UTF-8, independent of Windows ANSI code page |
 | `tests/test_tray.py` | 249 | code | Трей (jarvis.tray): пункты меню реально дёргают ядро и GUI. |
 | `tests/test_tts.py` | 243 | code | Тесты jarvis.tts_engines — движки и фабрика. С моками. |
 | `tests/test_tts_readiness.py` | 94 | code | Bounded voice readiness and command release; no synthesis/audio device |
@@ -4800,7 +4832,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `launcher_ollama.py` | 327 | code | Optional Ollama setup: explicit consent, local inventory/pull, safe co |
 | `launcher_runtime.py` | 116 | code | Consented Microsoft VC++ x64 prerequisite; no silent installs or TLS b |
 | `launcher_ui.py` | 416 | code | One bootstrap window. Presentation only: no downloads, pip or process  |
-| `snapshot.py` | 730 | code | Собирает снимок проекта в один SNAPSHOT.md. |
+| `snapshot.py` | 731 | code | Собирает снимок проекта в один SNAPSHOT.md. |
 
 ---
 
@@ -4809,12 +4841,10 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ### `jarvis/__init__.py`
 
 ```python
-"""TTS-движки Феникса — абстракция над Piper, Silero, SAPI. ... [6 строк]"""
+"""Феникс — локальный голосовой ассистент для Windows. ... [4 строк]"""
 
-from jarvis.tts_engines.base import BaseEngine
-from jarvis.tts_engines.factory import get_engine, list_engines
-
-__all__ = ["BaseEngine", "get_engine", "list_engines"]
+__version__ = "2.1.0"
+APP_NAME = "Феникс"
 ```
 
 ### `jarvis/__main__.py`
@@ -13518,54 +13548,274 @@ def find_installed(index: dict[str, Path], spoken: str,
 ### `jarvis/intents/__init__.py`
 
 ```python
-"""Стадии обработки команды. Порядок = приоритет. ... [15 строк]"""
+"""Разбор команд Феникса — пакет. ... [5 строк]"""
+from jarvis.intents.handler import IntentHandler
+from jarvis.text_utils import normalize
 
-from jarvis.intents.stages.cancel import CancelStage
-from jarvis.intents.stages.onboarding import OnboardingStage
-from jarvis.intents.stages.correction import CorrectionStage
-from jarvis.intents.stages.password import PasswordStage
-from jarvis.intents.stages.memory import MemoryStage
-from jarvis.intents.stages.pending import PendingStage
-from jarvis.intents.stages.clipboard import ClipboardStage
-from jarvis.intents.stages.modes import ModesStage
-from jarvis.intents.stages.compound import CompoundStage
-from jarvis.intents.stages.fast import FastHandlersStage
-from jarvis.intents.stages.llm import LLMStage
-from jarvis.intents.stages.clarification import ClarificationStage
-
-
-def build_pipeline(handler) -> list:
-    """Собирает pipeline стадий. Порядок фиксирован."""
-    return [
-        CancelStage(),
-        PendingStage(),
-        OnboardingStage(),
-        CorrectionStage(),
-        PasswordStage(),
-        MemoryStage(),
-        ClipboardStage(),
-        ModesStage(),
-        CompoundStage(),
-        ClarificationStage(),
-        FastHandlersStage(),
-        LLMStage(),
-    ]
+__all__ = ["IntentHandler", "normalize"]
 ```
 
 ### `jarvis/intents/clarification.py`
 
 ```python
-"""Запрос недостающего слота до fast/LLM, без выполнения догадок."""
+"""Bounded, session-only slot filling shared by GUI and voice. ... [4 строк]"""
 
-from jarvis.intents.clarification import begin
-from jarvis.intents.stages.base import Stage
+from dataclasses import dataclass
+import re
+import time
+
+from jarvis.language import analyze_command
+from jarvis.language.numbers import digit_numbers, word_numbers
+from jarvis.language.time import HALF, parse_duration
+from jarvis.language.units import TOKEN, unit_at
+from jarvis.intents.verbs import COMMAND_VERBS
+from jarvis.text_utils import normalize
+
+TIMEOUT = 30.0
+MAX_ATTEMPTS = 3
+OPEN = re.compile(r"^(?:открой|открывай|запусти|включи|врубай)$")
+TIMER = re.compile(
+    r"^(?:(?:поставь|установи)\s+)?(?:таймер|напоминание|напомни|напоминай)\b\s*",
+    re.I,
+)
+CORRECTION = re.compile(r"(?:^|[\s,;.…]+)(?:нет|точнее)\s*[,;:.…]?\s+", re.I)
+PROMPTS = {
+    "target": "Какое приложение открыть? Назови приложение или скажи «отмена».",
+    "time": "На сколько поставить таймер или в какое время напомнить?",
+    "unit": "В каких единицах: секундах, минутах или часах?",
+}
 
 
-class ClarificationStage(Stage):
-    name = "clarification"
+@dataclass(frozen=True)
+class TimeSlot:
+    command: str = ""
+    body: str = ""
+    partial: str = ""
+    issue: str = ""
 
-    def handle(self, ctx):
-        return begin(ctx)
+
+def pending_alive(pending):
+    if not isinstance(pending, dict):
+        return False
+    if pending.get("type") == "command_slot":
+        return time.monotonic() < pending.get("deadline", 0)
+    return time.time() < pending.get("expires_at", 0)
+
+
+def _ask(handler, slot, **data):
+    handler._pending_question = {
+        "type": "command_slot",
+        "slot": slot,
+        "deadline": time.monotonic() + TIMEOUT,
+        # Совместимость окна голосового ввода; проверка срока — монотонная.
+        "expires_at": time.time() + TIMEOUT,
+        "attempts": 0,
+        **data,
+    }
+    return PROMPTS[slot]
+
+
+def _retry(handler, pending, prompt):
+    pending["attempts"] += 1
+    if pending["attempts"] >= MAX_ATTEMPTS:
+        handler._pending_question = None
+        return "Не удалось уточнить команду. Действие отменено; скажи команду заново."
+    # Не продлеваем срок при каждом непонятном ответе.
+    return prompt
+
+
+def _last_version(text):
+    return CORRECTION.split(text)[-1].strip().rstrip(" .!?…")
+
+
+def _has_duration_unit(text):
+    if HALF.search(text):
+        return True
+    for token in TOKEN.finditer(text):
+        unit = unit_at(text, token.start())
+        if unit and unit[0].dimension == "duration":
+            return True
+    return False
+
+
+def _time_slot(text):
+    """Use shared numeric grammar; a bare number never defaults to minutes."""
+    text = text.strip().rstrip(" .!?…")
+    if re.match(r"^[.,]\d", text):
+        return TimeSlot(issue="Укажи ноль перед десятичным разделителем.")
+    if not text:
+        return TimeSlot()
+    if re.fullmatch(r"\d{1,2}[:.]\d{2}", text):
+        text = "в " + text
+    if normalize(text).startswith("не "):
+        return TimeSlot(issue="Укажи время без отрицания.")
+    analysis = analyze_command("таймер " + text)
+    if analysis.issue:
+        return TimeSlot(issue=analysis.issue)
+    clock = re.match(r"^в\s+(\d{1,2}:\d{2})\b\s*", analysis.command[7:], re.I)
+    if clock:
+        rest = analysis.command[7:][clock.end() :].strip()
+        return TimeSlot(command="в " + clock[1], body=rest)
+    duration = parse_duration(text)
+    if duration and _has_duration_unit(text[: duration.end]):
+        if duration.issue:
+            return TimeSlot(issue=duration.issue)
+        seconds = duration.seconds
+        if seconds <= 0 or seconds != seconds.to_integral_value():
+            return TimeSlot(issue="Укажи положительное время с точностью до секунды.")
+        return TimeSlot(
+            command=f"через {int(seconds)} секунд",
+            body=text[duration.end :].strip(" ,.!?…"),
+        )
+    number_text = re.sub(r"^(?:на|через)\s+", "", text, flags=re.I)
+    numbers = (*word_numbers(number_text), *digit_numbers(number_text))
+    whole = [n for n in numbers if n.start == 0 and n.end == len(number_text)]
+    if len(whole) == 1 and whole[0].kind == "cardinal" and whole[0].value > 0:
+        return TimeSlot(partial=number_text)
+    return TimeSlot()
+
+
+def _new_turn(cmd):
+    tokens = cmd.split()
+    if not tokens:
+        return False
+    return tokens[0] in COMMAND_VERBS or tokens[0] in {
+        "установи",
+        "таймер",
+        "напоминание",
+        "расскажи",
+        "почему",
+        "зачем",
+        "как",
+        "кто",
+        "что",
+        "какие",
+        "список",
+        "погода",
+        "привет",
+        "спасибо",
+        "режим",
+        "пауза",
+        "продолжи",
+        "следующий",
+        "предыдущий",
+        "отмени",
+        "сбрось",
+        "который",
+        "громкость",
+        "яркость",
+        "плей",
+        "play",
+        "pause",
+        "дальше",
+        "останови",
+    }
+
+
+def _known_target(handler, answer):
+    """Only an exact known name: a slot answer must not guess an arbitrary site."""
+    target = normalize(answer)
+    if not target or len(target) > 100:
+        return None
+    for app in handler.apps:
+        names = (app.key, app.title, *app.aliases)
+        if any(target == normalize(name) for name in names):
+            return normalize(app.aliases[0]) if app.aliases else normalize(app.title)
+    # Installed indexes are already warmed by IntentHandler; no extra scan/cache.
+    for name in handler.installed:
+        if normalize(name) == target:
+            return target
+    for title, _appid in handler.steam_games:
+        if normalize(title) == target:
+            return target
+    return None
+
+
+def begin(ctx):
+    """Start only supported, explicitly incomplete commands; other intents pass."""
+    h = ctx.handler
+    from jarvis.intents.fast.custom import find_custom
+
+    if OPEN.fullmatch(ctx.cmd):
+        if find_custom(getattr(h, "custom", []), ctx.cmd) is not None:
+            return None
+        return _ask(h, "target", action="open")
+    raw = (getattr(h, "_raw_cmd", "") or ctx.cmd).strip()
+    # Reuse analysis already done by handle(); do not parse every command twice.
+    analysis = getattr(h, "_number_analysis", None)
+    if analysis is None or normalize(analysis.command) != ctx.cmd:
+        raw = ctx.cmd
+    match = TIMER.match(raw)
+    if not match:
+        return None
+    if find_custom(getattr(h, "custom", []), ctx.cmd) is not None:
+        return None
+    tail = raw[match.end() :].strip()
+    corrected = _last_version(tail)
+    value = _time_slot(corrected)
+    if value.command:
+        if re.match(r"^(?:или|либо)\b", value.body, re.I):
+            return _ask(h, "time", action="timer", text="") + " Назови одно время."
+        if corrected != tail.strip(" ,.!?…"):
+            # Only an explicit replacement of a time, not "say no" in a reminder.
+            if not value.body:
+                original = _time_slot(CORRECTION.split(tail)[0].strip())
+                body = original.body if original.command else ""
+                ctx.cmd = normalize("таймер " + value.command + " " + body)
+        return None
+    if value.issue:
+        return _ask(h, "time", action="timer", text="") + " " + value.issue
+    if value.partial:
+        return _ask(h, "unit", action="timer", text="", partial=value.partial)
+    # Preserve the payload of an incomplete reminder, but not malformed time.
+    body = tail if tail and not re.match(r"^(?:на|через|в)\b", tail, re.I) else ""
+    return _ask(h, "time", action="timer", text=body)
+
+
+def resume(ctx):
+    h = ctx.handler
+    pending = h._pending_question
+    if not pending_alive(pending):
+        h._pending_question = None
+        # New full commands still work; a stale slot answer never reaches LLM.
+        if _new_turn(ctx.cmd):
+            return None
+        return "Время уточнения истекло. Скажи команду заново."
+    answer = _last_version(getattr(h, "_raw_cmd", "") or ctx.cmd)
+    clean = normalize(answer)
+    if clean in {"нет", "не надо", "не нужно", "отмени"}:
+        h._pending_question = None
+        return "Действие отменено."
+    if _new_turn(clean):
+        h._pending_question = None
+        return None
+    if pending["slot"] == "target":
+        target = _known_target(h, answer)
+        if not target:
+            return _retry(
+                h,
+                pending,
+                "Не нашёл однозначное название приложения. " + PROMPTS["target"],
+            )
+        command = "открой " + target
+    else:
+        if pending["slot"] == "unit":
+            unit = unit_at(answer, 0)
+            if unit and unit[0].dimension == "duration" and unit[1] == len(answer):
+                answer = pending["partial"] + " " + answer
+        value = _time_slot(answer)
+        if value.partial:
+            pending.update(slot="unit", partial=value.partial)
+            return _retry(h, pending, PROMPTS["unit"])
+        if not value.command or value.body:
+            return _retry(h, pending, value.issue or PROMPTS["time"])
+        command = "таймер " + value.command
+        if pending.get("text"):
+            command += " " + pending["text"]
+    h._pending_question = None
+    ctx.cmd = normalize(command)
+    ctx.state["clarification_resumed"] = True
+    return None
 ```
 
 ### `jarvis/intents/context.py`
@@ -16206,124 +16456,90 @@ class IntentHandler:
 ### `jarvis/intents/password.py`
 
 ```python
-"""Стадия pipeline: jarvis.intents.stages.password. ... [6 строк]"""
+"""Парольные примитивы: jarvis.intents.password (не стадия pipeline). ... [6 строк]"""
 
+import hashlib
+import hmac
 import logging
-import re
-import time
-
-from jarvis import profile
-from jarvis.intents.password import ACTION_HUMAN, verify_password
-from jarvis.intents.stages.base import Stage
-from jarvis.intents.verbs import CANCEL
 
 log = logging.getLogger("jarvis.intents")
 
 
-class PasswordStage(Stage):
-    name = "password"
-
-    def handle(self, ctx):
-        h = ctx.handler
-
-        # Ввод пароля имеет приоритет над всеми другими командами.
-        if h._pending_password:
-            if time.time() >= h._pending_password.get("expires_at", 0):
-                h._pending_password = None
-                return "Время ввода пароля истекло. Повторите команду."
-            return self._handle_answer(ctx)
-
-        reply = self._maybe_delete_profile(ctx)
-        if reply is not None:
-            return reply
-
-        # 3. Опасные fast-команды («очисти список», «отмени все напоминания»):
-        # fast-реестр идёт после этой стадии, а проверка is_danger живёт
-        # только в LLMStage — без гейта здесь такие команды выполнялись
-        # без пароля, хотя входят в DANGER_ACTIONS.
-        return self._maybe_gate_fast_danger(ctx)
-
-    # ----------------------------------------------------------------
-
-    def _maybe_gate_fast_danger(self, ctx) -> str | None:
-        """Пароль для опасных fast-команд (clear_tasks / cancel_timers)."""
-        h = ctx.handler
-        if not h._danger_password():
-            return None
-        from jarvis import tasks as _tasks
-        from jarvis import timers as _timers
-        if _tasks.is_clear_command(ctx.cmd):
-            return h._ask_password({"action": "clear_tasks"})
-        if _timers.is_cancel_all_command(ctx.cmd):
-            return h._ask_password({"action": "cancel_timers"})
-        return None
-
-    # ----------------------------------------------------------------
-
-    def _maybe_delete_profile(self, ctx) -> str | None:
-        """«удали профиль X» → пароль или удаление."""
-        h = ctx.handler
-        m = re.match(r"^удали\s+профиль\s+(\S+)$", ctx.cmd)
-        if not m:
-            return None
-
-        name = m.group(1)
-
-        if h._danger_password():
-            # Пароль задан — спрашиваем.
-            return h._ask_password({"action": "delete_profile", "target": name})
-
-        # Пароля нет — удаляем сразу.
-        if profile.delete(name):
-            return f"Профиль {name} удалён."
-        return f"Профиль {name} не найден или активен."
-
-    # ----------------------------------------------------------------
-
-    def _handle_answer(self, ctx) -> str:
-        h = ctx.handler
-        pending = h._pending_password
-        h._pending_password = None
-
-        if ctx.cmd in CANCEL:
-            h._pending_question = None
-            h._reset_requested = True
-            return "Жду обращение, сэр."
-
-        # Убираем «пароль», «код», «пин», если сказали.
-        raw = ctx.original_cmd or ctx.cmd
-        candidate = re.sub(r"^(?:пароль|код|пин)\s+", "", raw.strip(),
-                           count=1, flags=re.IGNORECASE).strip()
-
-        stored = str(h.config.get("danger_password") or "").strip()
-        if not verify_password(candidate, stored):
-            log.warning("Пароль неверный")
-            return "Пароль неверный. Действие отменено."
-
-        from jarvis.intents.execute import execute_intent, execute_steps
-
-        intent = pending.get("intent") or {}
-        if intent.get("action") == "custom_command":
-            from jarvis.intents.fast.custom import execute_custom
-            result = execute_custom(h, intent["spec"],
-                                    intent.get("reply", "Выполняю."),
-                                    authorized=True)
-        elif isinstance(intent.get("steps"), list):
-            result = execute_steps(h, intent["steps"])
-        else:
-            result = execute_intent(h, intent)
-        return result or "Готово."
+_PASSWORD_PREFIX = "sha256:"
 
 
-def build_ask_password(intent: dict, expires_sec: int = 30) -> tuple[dict, str]:
-    """Готовит данные для _pending_password и текст запроса."""
-    pending = {
-        "intent": intent,
-        "expires_at": time.time() + expires_sec,
-    }
-    action = intent.get("action")
-    human = ACTION_HUMAN.get(action, "это действие")
-    return pending, f"Для этого нужен пароль ({human}). Назовите пароль."
+def hash_password(password: str) -> str:
+    """SHA-256 с префиксом. Префикс отличает хеш от legacy-plaintext."""
+    digest = hashlib.sha256(password.encode("utf-8")).hexdigest()
+    return f"{_PASSWORD_PREFIX}{digest}"
+
+
+def is_hashed(value: str) -> bool:
+    """Уже захеширован?"""
+    return bool(value) and value.startswith(_PASSWORD_PREFIX)
+
+
+def verify_password(candidate: str, stored: str) -> bool:
+    """Сравнивает введённый пароль с сохранённым. ... [4 строк]"""
+    if not stored:
+        return False
+    if is_hashed(stored):
+        # compare_digest — постоянное по времени сравнение.
+        # Обычный == утекает длиной совпавшего префикса.
+        return hmac.compare_digest(hash_password(candidate), stored)
+    # Legacy plaintext — мигрируется в sha256 при старте.
+    return hmac.compare_digest(candidate.encode("utf-8"), stored.encode("utf-8"))
+
+
+def migrate_password_if_needed(config) -> None:
+    """Если danger_password в plaintext — захешировать (№81)."""
+    raw = str(config.get("danger_password") or "").strip()
+    if not raw or is_hashed(raw):
+        return
+    config.set("danger_password", hash_password(raw))
+    log.info("Пароль миграции: plaintext → sha256")
+
+
+# Действия, требующие пароля (если danger_password задан).
+DANGER_ACTIONS = frozenset({
+    "shutdown_pc", "reboot_pc", "kill_process",
+    "clear_tasks", "cancel_timers", "delete_profile",
+})
+
+
+def _action_is_danger(action, target) -> bool:
+    if action in DANGER_ACTIONS:
+        return True
+    if action == "open_app":
+        t = str(target or "").lower()
+        if any(word in t for word in ("shutdown", "taskkill", "выключ", "перезагруз")):
+            return True
+    return False
+
+
+def is_danger(intent: dict, stored_password: str) -> bool:
+    """Проверяет, опасно ли действие. ... [5 строк]"""
+    if not stored_password:
+        return False
+    if _action_is_danger(intent.get("action"), intent.get("target")):
+        return True
+    for step in intent.get("steps") or []:
+        if isinstance(step, dict) and _action_is_danger(step.get("action"),
+                                                        step.get("target")):
+            return True
+    return False
+
+
+# Человеческие названия для озвучки — при запросе пароля.
+ACTION_HUMAN = {
+    "shutdown_pc": "выключение компьютера",
+    "reboot_pc": "перезагрузку",
+    "kill_process": "закрытие процесса",
+    "clear_tasks": "очистку списка задач",
+    "cancel_timers": "отмену напоминаний",
+    "delete_profile": "удаление профиля",
+    "open_app": "это действие",
+}
 ```
 
 ### `jarvis/intents/sites.py`
@@ -29760,12 +29976,6 @@ if __name__ == "__main__":
     main()
 ```
 
-### `tests/__init__.py`
-
-```python
-"""Optional offline audio regression tools, not part of the live assistant."""
-```
-
 ### `tests/audio/__init__.py`
 
 ```python
@@ -32629,7 +32839,7 @@ def test_selected_model_only_is_written_and_other_fields_survive(path):
                 'mode': 'commands', 'tts_backend': 'silero', 'private': {'keep': 123}}
     path.write_text(json.dumps(original), encoding='utf-8')
     assert choose(path)['ok']
-    assert json.loads(path.read_text()) == {**original, 'llm_model': 'qwen2.5:1.5b-instruct'}
+    assert json.loads(path.read_text(encoding="utf-8")) == {**original, 'llm_model': 'qwen2.5:1.5b-instruct'}
 
 
 @pytest.mark.parametrize('raw', ['{broken', '[]', 'null', '{"llm_model": null}'])
@@ -32639,7 +32849,7 @@ def test_bad_config_is_never_replaced(path, raw):
         read(path)
     with pytest.raises((ValueError, TypeError)):
         choose(path, snapshot={})
-    assert path.read_text() == raw
+    assert path.read_text(encoding="utf-8") == raw
 
 
 @pytest.mark.parametrize('field,value', [('llm_model','changed:latest'),
@@ -32656,14 +32866,14 @@ def test_unrelated_changes_while_downloading_are_preserved(path):
     snapshot = expected(path)
     path.write_text('{"another_key": 42}', encoding='utf-8')
     assert choose(path, snapshot=snapshot)['ok']
-    assert json.loads(path.read_text()) == {'another_key': 42, 'llm_model': 'qwen2.5:1.5b-instruct'}
+    assert json.loads(path.read_text(encoding="utf-8")) == {'another_key': 42, 'llm_model': 'qwen2.5:1.5b-instruct'}
 
 
 def test_write_error_is_not_success(path, monkeypatch):
     path.write_text('{"another_key": 1}', encoding='utf-8')
     monkeypatch.setattr(config_manager, 'save', lambda *a, **kw: False)
     assert choose(path) == {'ok': False, 'error': 'write'}
-    assert json.loads(path.read_text()) == {'another_key': 1}
+    assert json.loads(path.read_text(encoding="utf-8")) == {'another_key': 1}
 
 
 @pytest.mark.parametrize('name', ['bad;command', 'x\nscript', 'qwen:cloud', 'x:7b-cloud', '', None])
@@ -32702,7 +32912,7 @@ def test_real_bridge_subprocess_reads_and_writes_appdata_only(tmp_path, monkeypa
     file = appdata / 'Phoenix/config.json'
     assert not file.exists()
     client.select('qwen2.5:3b-instruct', snapshot)
-    assert json.loads(file.read_text()) == {'llm_model': 'qwen2.5:3b-instruct'}
+    assert json.loads(file.read_text(encoding="utf-8")) == {'llm_model': 'qwen2.5:3b-instruct'}
     assert client.read()['llm_model'] == 'qwen2.5:3b-instruct'
 ```
 
@@ -34824,8 +35034,8 @@ from tests.test_echo import listener, Processor, render, PCM
 
 def read_trace(trace):
     assert trace.done.wait(3)
-    summary = json.loads((trace.folder / 'summary.json').read_text())
-    events = [json.loads(line) for line in (trace.folder / 'events.jsonl').read_text().splitlines()]
+    summary = json.loads((trace.folder / 'summary.json').read_text(encoding="utf-8"))
+    events = [json.loads(line) for line in (trace.folder / 'events.jsonl').read_text(encoding="utf-8").splitlines()]
     assert trace.error is None
     with zipfile.ZipFile(trace.archive) as archive:
         assert archive.testzip() is None
@@ -34917,7 +35127,7 @@ def test_queue_overflow_is_bounded_and_explicit_not_a_capture_wait(tmp_path):
 
 def test_disk_failure_disables_only_trace(tmp_path):
     blocked = tmp_path / 'not_a_directory'
-    blocked.write_text('file')
+    blocked.write_text('file', encoding="utf-8")
     t = EchoTrace(blocked)
     assert t.done.wait(2) and t.error is not None
     assert t.note('anything') is None
@@ -35046,11 +35256,11 @@ def test_trace_does_not_change_barge_decisions_or_asr_audio(tmp_path, similarity
 
 def test_manual_launcher_keeps_recording_environment_local_to_process():
     from pathlib import Path
-    batch = (Path(__file__).parents[1] / 'start_aec_diagnostics.bat').read_text()
+    batch = (Path(__file__).parents[1] / 'start_aec_diagnostics.bat').read_text(encoding="utf-8")
     assert 'setlocal' in batch and 'choice /C YN' in batch
     assert 'set "FENIX_AEC_DIAGNOSTICS=1"' in batch
     assert '-m jarvis' in batch and 'setx' not in batch.lower()
-    normal = (Path(__file__).parents[1] / 'start_fenix.bat').read_text()
+    normal = (Path(__file__).parents[1] / 'start_fenix.bat').read_text(encoding="utf-8")
     assert 'FENIX_AEC_DIAGNOSTICS' not in normal
 
 
@@ -35328,6 +35538,18 @@ def test_dotenv_does_not_enter_snapshot(repo, name):
     assert private.read_text(encoding="utf-8") == content
     assert (repo / "SNAPSHOT.md").read_bytes() == before
     assert b"dotenv_regression_fixture" not in (repo / "SNAPSHOT.md").read_bytes()
+    assert check(repo).returncode == 0
+
+
+@pytest.mark.parametrize("name", ["docs/reference/spec.docx", "docs/reference/SPEC.DOCX"])
+def test_optional_word_files_do_not_change_snapshot(repo, name):
+    before = (repo / "SNAPSHOT.md").read_bytes()
+    document = repo / name
+    document.parent.mkdir(parents=True, exist_ok=True)
+    document.write_bytes(b"PK\x03\x04optional-word-fixture")
+    snapshot(repo)
+    assert document.read_bytes() == b"PK\x03\x04optional-word-fixture"
+    assert (repo / "SNAPSHOT.md").read_bytes() == before
     assert check(repo).returncode == 0
 
 
@@ -37672,7 +37894,7 @@ def test_tray_state_is_applied_by_gui_worker(gui):
 
 
 def source_function(name):
-    tree = ast.parse((ROOT/'jarvis/main.py').read_text())
+    tree = ast.parse((ROOT/'jarvis/main.py').read_text(encoding="utf-8"))
     node = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == name)
     return node
 
@@ -39908,7 +40130,7 @@ def test_completed_launch_closes_preparation_window(window):
 
 
 def test_ui_module_has_no_installation_or_process_engine():
-    source=(ROOT/'launcher_ui.py').read_text()
+    source=(ROOT/'launcher_ui.py').read_text(encoding="utf-8")
     tree=ast.parse(source)
     imports=[n for n in ast.walk(tree) if isinstance(n,(ast.Import,ast.ImportFrom))]
     assert not any('subprocess' in ast.dump(n) or 'urllib' in ast.dump(n) for n in imports)
@@ -39936,7 +40158,7 @@ def test_source_payload_requires_bootstrap_ui():
 
 
 def test_supported_windows_minimum_is_explicit():
-    assert "MinVersion=10.0" in (ROOT/"installer.iss").read_text()
+    assert "MinVersion=10.0" in (ROOT/"installer.iss").read_text(encoding="utf-8")
 
 
 def test_retry_double_click_schedules_only_once(window):
@@ -41683,7 +41905,7 @@ def dispatch(monkeypatch,ok=True,kind='app'):
     monkeypatch.setitem(sys.modules,'jarvis.intents.sites',NS(get_sites=lambda:{}))
     actions=NS(run_spec=Mock(return_value=ok),focus_browser=lambda *a:False)
     env=dict(actions=actions,files=NS(resolve_folder=lambda *a,**k:None),_BROWSER_PROCS={'хром':'chrome.exe'},BROWSER_WORDS=set())
-    tree=ast.parse((ROOT/'jarvis/intents/execute.py').read_text())
+    tree=ast.parse((ROOT/'jarvis/intents/execute.py').read_text(encoding="utf-8"))
     fn=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='_do_open')
     exec(compile(ast.Module(body=[fn],type_ignores=[]),'execute.py','exec'),env)
     return env['_do_open'],actions
@@ -42581,7 +42803,7 @@ def test_only_public_files(release_tree):
                  'jarvis/__pycache__/secret.py', 'models/private.py', 'tasks.json'):
         p = root/name
         p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text('private')
+        p.write_text('private', encoding="utf-8")
     files = rp.collect_payload(root, False)
     assert 'jarvis/gui_widgets.py' in files
     assert 'jarvis/gui_home_actions.py' in files
@@ -42600,7 +42822,7 @@ def test_stage_clean_manifest(release_tree):
     root = release_tree
     dest = root/'build/release-payload'
     dest.mkdir(parents=True)
-    (dest/'obsolete.txt').write_text('old')
+    (dest/'obsolete.txt').write_text('old', encoding="utf-8")
     files = rp.stage_payload(root, dest, False)
     assert not (dest/'obsolete.txt').exists()
     manifest = (dest/'release-manifest.json').read_bytes()
@@ -42614,11 +42836,11 @@ def test_stage_clean_manifest(release_tree):
 def test_failed_validation_keeps_previous_payload(release_tree):
     dest = release_tree/'build/payload'
     dest.mkdir(parents=True)
-    (dest/'previous').write_text('keep')
+    (dest/'previous').write_text('keep', encoding="utf-8")
     (release_tree/'jarvis/gui_widgets.py').unlink()
     with pytest.raises(ValueError, match='Missing'):
         rp.stage_payload(release_tree, dest, False)
-    assert (dest/'previous').read_text() == 'keep'
+    assert (dest/'previous').read_text(encoding="utf-8") == 'keep'
 
 
 @pytest.mark.parametrize('path', ['..', '.', 'build', 'profiles/payload'])
@@ -42631,7 +42853,7 @@ def test_reject_linked_resource(release_tree, tmp_path):
     p = release_tree/'jarvis/gui_widgets.py'
     p.unlink()
     outside = tmp_path/'outside.py'
-    outside.write_text('secret')
+    outside.write_text('secret', encoding="utf-8")
     try:
         p.symlink_to(outside)
     except OSError:
@@ -42642,9 +42864,9 @@ def test_reject_linked_resource(release_tree, tmp_path):
 
 def test_no_default_user_widgets(release_tree):
     p = release_tree/'config.example.json'
-    cfg = json.loads(p.read_text())
+    cfg = json.loads(p.read_text(encoding="utf-8"))
     cfg['gui_home_widgets'] = ['tasks']
-    p.write_text(json.dumps(cfg))
+    p.write_text(json.dumps(cfg), encoding="utf-8")
     with pytest.raises(ValueError, match='empty list'):
         rp.collect_payload(release_tree, False)
 
@@ -42662,7 +42884,7 @@ def test_preflight_requires_installer(monkeypatch, tmp_path):
 
 
 def test_installer_curated_and_both_mutexes():
-    s = (ROOT/'installer.iss').read_text()
+    s = (ROOT/'installer.iss').read_text(encoding="utf-8")
     assert '{#PayloadDir}\\*' in s
     assert 'AppMutex=Local\\JarvisPhoenixSingleInstance,Local\\JarvisPhoenixLauncherSetup' in s
     assert 'Source: "system_caps.json"' not in s
@@ -42679,7 +42901,7 @@ def test_receipt_changed_requirements_and_corrupt_receipt(tmp_path, monkeypatch)
     assert launcher.check_dependencies(tmp_path, log)
     req.write_bytes(b'flet>=1.0.3,<1.1\n')
     assert launcher.check_dependencies(tmp_path, log)
-    req.write_text('changed')
+    req.write_text('changed', encoding="utf-8")
     assert not launcher.check_dependencies(tmp_path, log)
     (tmp_path/'.venv311/phoenix-requirements.sha256').write_bytes(b'\xff')
     assert not launcher.check_dependencies(tmp_path, log)
@@ -42687,23 +42909,23 @@ def test_receipt_changed_requirements_and_corrupt_receipt(tmp_path, monkeypatch)
 
 def test_caps_atomic_failure_preserves_old(tmp_path, monkeypatch):
     p = tmp_path/'system_caps.json'
-    p.write_text('previous')
+    p.write_text('previous', encoding="utf-8")
     def fail(*_):
         raise OSError('disk failure')
     monkeypatch.setattr(check_caps.os, 'replace', fail)
     with pytest.raises(OSError):
         check_caps.write_caps({'cpu':{}}, p)
-    assert p.read_text() == 'previous'
+    assert p.read_text(encoding="utf-8") == 'previous'
     assert list(tmp_path.iterdir()) == [p]
 
 
 def test_caps_skip_valid_only(tmp_path, monkeypatch):
     p = tmp_path/'system_caps.json'
-    p.write_text(json.dumps({k:{} for k in ('volume','brightness','layout','cpu')}))
+    p.write_text(json.dumps({k:{} for k in ('volume','brightness','layout','cpu')}), encoding="utf-8")
     monkeypatch.setattr(check_caps, 'OUTPUT', p)
     monkeypatch.setattr(check_caps, 'check_cpu', lambda: pytest.fail('must skip valid cache'))
     assert check_caps.main(['--if-missing']) == 0
-    p.write_text('{broken')
+    p.write_text('{broken', encoding="utf-8")
     assert not check_caps.caps_valid(p)
 
 
@@ -42715,7 +42937,7 @@ def test_caps_probe_failure_does_not_block_launch(monkeypatch, tmp_path):
 
 
 def test_cancel_dependencies_has_no_network(tmp_path, monkeypatch):
-    (tmp_path/'requirements.txt').write_text('test')
+    (tmp_path/'requirements.txt').write_text('test', encoding="utf-8")
     monkeypatch.setattr(launcher, 'msg_box', lambda *_: 2)
     monkeypatch.setattr(launcher.subprocess, 'run', lambda *_,**__: pytest.fail('network after cancel'))
     assert not launcher.install_dependencies(tmp_path, logging.getLogger('test'))
@@ -42731,8 +42953,8 @@ def test_startup_reliability_helpers_are_shipped(release_tree):
 def test_optional_aec_files_shipped_but_not_required_by_base_dependencies(release_tree):
     files=rp.collect_payload(release_tree,False)
     assert {'install_aec.bat','requirements-aec.txt','jarvis/echo.py'}<=set(files)
-    assert 'pywebrtc-audio==0.2.0' in (release_tree/'requirements-aec.txt').read_text()
-    assert 'pywebrtc' not in (release_tree/'requirements.txt').read_text()
+    assert 'pywebrtc-audio==0.2.0' in (release_tree/'requirements-aec.txt').read_text(encoding="utf-8")
+    assert 'pywebrtc' not in (release_tree/'requirements.txt').read_text(encoding="utf-8")
 ```
 
 ### `tests/test_safety.py`
@@ -42896,6 +43118,74 @@ def test_observer_disabled_by_default():
     assert DEFAULT_CONFIG["observer_enabled"] is False
 ```
 
+### `tests/test_source_layout.py`
+
+```python
+"""Same-named package files have different roles; test real imports in fresh Python."""
+import ast
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+import pytest
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+@pytest.mark.parametrize("first", [
+    "import jarvis",
+    "from jarvis.intents import IntentHandler",
+    "import jarvis.weather",
+])
+def test_fresh_package_imports(first, tmp_path):
+    script = first + "\n" + """
+import jarvis
+from jarvis.intents import IntentHandler
+from jarvis.intents.password import ACTION_HUMAN, hash_password, verify_password
+from jarvis.intents.stages.password import PasswordStage
+from jarvis.intents.stages import build_pipeline
+import jarvis.weather
+assert isinstance(jarvis.__version__, str) and jarvis.__version__
+assert 'shutdown_pc' in ACTION_HUMAN
+assert verify_password('synthetic-layout-test', hash_password('synthetic-layout-test'))
+assert not verify_password('wrong', hash_password('synthetic-layout-test'))
+assert callable(build_pipeline)
+print('COLD_IMPORT_OK')
+"""
+    env = dict(os.environ, PYTHONPATH=str(ROOT), PYTHONUTF8="1", PYSTRAY_BACKEND="dummy")
+    for key in ("HOME", "USERPROFILE", "APPDATA", "LOCALAPPDATA", "PROGRAMDATA"):
+        folder = tmp_path / key
+        folder.mkdir()
+        env[key] = str(folder)
+    result = subprocess.run(
+        [sys.executable, "-c", script], cwd=ROOT, env=env,
+        capture_output=True, text=True, encoding="utf-8", timeout=30,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "COLD_IMPORT_OK" in result.stdout
+
+
+def test_root_and_intents_init_keep_their_own_exports():
+    root = ast.parse((ROOT / "jarvis/__init__.py").read_text(encoding="utf-8"))
+    assert any(isinstance(n, ast.Assign) and any(
+        isinstance(t, ast.Name) and t.id == "__version__" for t in n.targets
+    ) for n in root.body), "jarvis/__init__.py must define __version__; do not copy another __init__.py over it"
+    package = ast.parse((ROOT / "jarvis/intents/__init__.py").read_text(encoding="utf-8"))
+    assert any(isinstance(n, ast.ImportFrom) and n.module == "jarvis.intents.handler"
+               and any(a.name == "IntentHandler" for a in n.names) for n in package.body)
+    assert not any(isinstance(n, ast.ImportFrom) and (n.module or "").startswith("jarvis.intents.stages")
+                   for n in package.body), "Stage registry belongs in intents/stages/__init__.py"
+
+
+def test_password_primitives_are_not_replaced_by_password_stage():
+    tree = ast.parse((ROOT / "jarvis/intents/password.py").read_text(encoding="utf-8"))
+    functions = {n.name for n in tree.body if isinstance(n, ast.FunctionDef)}
+    assert {"hash_password", "verify_password", "is_danger"} <= functions
+    assert not any(isinstance(n, ast.ImportFrom) and n.module == "jarvis.intents.password"
+                   for n in ast.walk(tree)), "Primitive module must not import itself; stages/password.py is a different file"
+```
+
 ### `tests/test_speech_gate.py`
 
 ```python
@@ -43023,7 +43313,7 @@ def test_missing_bundle_does_not_disable_tls(monkeypatch,tmp_path,clean_ca):
 
 
 def test_entry_sets_ca_before_main_import():
-    tree=ast.parse((ROOT/'jarvis/__main__.py').read_text())
+    tree=ast.parse((ROOT/'jarvis/__main__.py').read_text(encoding="utf-8"))
     calls=[n for n in tree.body if isinstance(n,ast.Expr) and isinstance(n.value,ast.Call)]
     main=next(n for n in tree.body if isinstance(n,ast.ImportFrom) and n.module=='jarvis.main')
     assert calls[0].value.func.id=='configure_https_trust'
@@ -43068,7 +43358,7 @@ def test_bootstrap_timeout_reports_failure(monkeypatch,tmp_path):
 
 @pytest.mark.parametrize('vc,flet,expected',[(False,True,False),(True,False,False),(True,True,True)])
 def test_main_requires_prerequisites_before_launch(monkeypatch,tmp_path,vc,flet,expected):
-    (tmp_path/'jarvis').mkdir();(tmp_path/'jarvis/__init__.py').write_text('')
+    (tmp_path/'jarvis').mkdir();(tmp_path/'jarvis/__init__.py').write_text('', encoding="utf-8")
     monkeypatch.setattr(launcher,'_PREPARATION',None)
     monkeypatch.setattr(launcher,'_setup_logging',lambda *a:tmp_path/'launcher.log')
     for name,result in [('already_running',False),('find_project_dir',tmp_path),('find_python','python.exe'),('ensure_vc_runtime',vc),('find_venv_pythonw',tmp_path/'pythonw.exe'),('check_dependencies',True),('check_vosk_model',True),('prepare_flet_client',flet),('ensure_local_caps',None),('handle_ollama',None)]:
@@ -43562,6 +43852,57 @@ def test_audio_source_reads_have_explicit_utf8():
                         and kw.value.value == "utf-8"
                         for kw in node.keywords
                     ), f"{name}:{node.lineno} relies on the OS default encoding"
+```
+
+### `tests/test_text_encoding.py`
+
+```python
+"""Test sources/fixtures are UTF-8, independent of Windows ANSI code page."""
+import ast
+from pathlib import Path
+
+import pytest
+
+ROOT = Path(__file__).resolve().parent
+
+
+def explicit_encoding(call):
+    """Path.read_text(encoding, ...) / write_text(data, encoding, ...)."""
+    for keyword in call.keywords:
+        if keyword.arg == 'encoding':
+            return not (isinstance(keyword.value, ast.Constant) and keyword.value.value is None)
+    index = 0 if call.func.attr == 'read_text' else 1
+    if len(call.args) > index:
+        value = call.args[index]
+        return not (isinstance(value, ast.Constant) and value.value is None)
+    return False
+
+
+@pytest.mark.parametrize('expression,expected', [
+    ('p.read_text()', False),
+    ('p.read_text(None)', False),
+    ('p.read_text(encoding=None)', False),
+    ('p.read_text("utf-8")', True),
+    ('p.read_text(encoding="utf-8")', True),
+    ('p.write_text("text")', False),
+    ('p.write_text("text", None)', False),
+    ('p.write_text("text", encoding=None)', False),
+    ('p.write_text("text", "utf-8")', True),
+    ('p.write_text("text", encoding="utf-8")', True),
+])
+def test_encoding_guard_recognizes_positional_and_keyword_arguments(expression, expected):
+    assert explicit_encoding(ast.parse(expression, mode='eval').body) is expected
+
+
+def test_test_files_do_not_use_locale_dependent_path_text_io():
+    failures = []
+    for path in sorted(ROOT.rglob('*.py')):
+        tree = ast.parse(path.read_text(encoding='utf-8'), filename=str(path))
+        for node in ast.walk(tree):
+            if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                    and node.func.attr in {'read_text', 'write_text'} and not explicit_encoding(node)):
+                failures.append(f'{path.relative_to(ROOT)}:{node.lineno}: {node.func.attr} requires encoding')
+    assert not failures, '\n'.join(failures)
 ```
 
 ### `tests/test_tray.py`
@@ -46730,11 +47071,11 @@ from jarvis import voices
 def test_legacy_config_is_normalized_without_rewriting_file(tmp_path, caplog):
     path = tmp_path / 'config.json'
     original = json.dumps({'tts_backend':'winrt', 'tts_voice':'Pavel', 'voice_rate':1.2})
-    path.write_text(original)
+    path.write_text(original, encoding="utf-8")
     config = Config(path)
     assert config.get('tts_backend') == 'auto'
     assert config.get('tts_voice') == 'Pavel' and config.get('voice_rate') == 1.2
-    assert path.read_text() == original
+    assert path.read_text(encoding="utf-8") == original
     assert 'WinRT speech removed' in caplog.text
 
 
@@ -46794,14 +47135,14 @@ def test_removed_module_is_an_explicit_overlay_marker():
 def test_gui_and_runtime_dependencies_do_not_offer_speech_winrt():
     from jarvis.gui import TTS_BACKENDS
     assert TTS_BACKENDS == ['auto', 'piper', 'silero', 'sapi']
-    requirements = (Path(__file__).parents[1] / 'requirements.txt').read_text()
+    requirements = (Path(__file__).parents[1] / 'requirements.txt').read_text(encoding="utf-8")
     assert 'winrt-Windows.Media.SpeechSynthesis' not in requirements
     assert 'winrt-Windows.Media.Control' in requirements  # media controls are not TTS
 
 
 def test_offline_corpus_does_not_import_retired_tts_engine():
     from tests.audio import corpus
-    source = Path(corpus.__file__).read_text()
+    source = Path(corpus.__file__).read_text(encoding="utf-8")
     assert 'jarvis.tts_engines.winrt' not in source
     assert 'class LocalSynth' in source
 ```
@@ -48956,6 +49297,7 @@ EXCLUDE_EXT = {
     ".onnx", ".wav", ".mp3", ".zip", ".7z", ".rar",
     ".jpg", ".jpeg", ".png", ".gif", ".ico", ".bmp",
     ".tmp", ".lock", ".log",
+    ".docx",  # Optional source specifications, not application code.
 }
 
 TEXT_EXT = {
@@ -51043,14 +51385,6 @@ SOFTWARE.
 </svg>
 ```
 
-### `docs/reference/J-A-S-T-i-n_v1_1_6_0.docx`
-
-_Нетекстовый файл: .docx_
-
-### `docs/reference/Phoenix_JASTIN_Integration_Plan.1.docx`
-
-_Нетекстовый файл: .docx_
-
 ### `jarvis-fenix.code-workspace`
 
 _Нетекстовый файл: .code-workspace_
@@ -51226,15 +51560,39 @@ certifi>=2024.8.30
 
 - Фирменные ресурсы Феникса
 
-#### `tests/README.md` — 7 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `tests/README.md` — 31 заголовков, полный текст не включён (дублирует PROJECT.md)
 
-- Аудиорегрессии Феникса
-  - Быстрый старт — Windows, активная .venv311
-  - Модели — уже установленные, без сетевых скачиваний
-  - Корпус: синтез и собственный голос
-  - Что именно проверяется
-  - Результат и приватность
-  - Границы и следующий этап
+- Тесты Феникса
+  - Экспериментальный AEC Piper — текущая проверка
+  - Пакет надёжности запуска Windows — предыдущая проверка
+  - Общий bootstrap Python + Ollama
+  - Python bootstrap HTTPS — исходный патч
+  - Карта
+  - Персона и Настройки — 16.10.2026
+  - Главная GUI
+    - Проверка GUI с конструктором команд
+  - Граница импортов уточнений
+  - Локальная гигиена Git
+  - Автоматический аудиопрогон
+    - Проверка реализации аудиопрогона
+  - Уточнения команд: актуальная проверка
+  - Регрессии последних изменений
+    - Ручная приёмка Non-verbal
+  - Правила
+  - Ручные прогоны (`tests/manual/`)
+  - Зависимость от окружения
+  - Логи
+  - См. также
+  - Микрофон / Голос и звук
+  - Интерактивная боковая панель
+    - Обновление push на любой ширине
+  - Минималистичная Главная
+  - Солнечная корона и mic_watchdog
+    - Startup/tray regression
+    - Кольцо действий Главной
+    - Опциональные виджеты Главной — текущая проверка
+  - Аудит установщика
+  - Окно подготовки (после 2.1.0)
 
 #### `tests/audio/README.md` — 7 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -51306,9 +51664,11 @@ certifi>=2024.8.30
     - `.venv311`
     - Git
 
-#### `CHANGELOG.md` — 118 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 120 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
+  - Не выпущено — UTF-8-чтение тестов на Windows
+  - Не выпущено — пакет восстановления структуры модулей
   - Не выпущено — накопительное source-обновление и приватность снимка
   - Не выпущено — чистый комплект разработки и передачи в новый чат
   - Не выпущено — JASTIN принят как целевое видение (только документация)
@@ -51346,8 +51706,6 @@ certifi>=2024.8.30
       - SNAPSHOT: смешанные переносы строк Windows/Git
       - GUI: птица и конструктор «Мои команды»
       - GUI: графитово-медный Диалог
-      - GUI: обновление Главной
-      - Новая главная страница и пользовательское руководство
 
 #### `CI.md` — 16 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -51586,14 +51944,16 @@ certifi>=2024.8.30
   - Нагрузка
   - Что проверить на Windows
 
-#### `docs/HANDOFF_VALIDATION.md` — 7 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `docs/HANDOFF_VALIDATION.md` — 9 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Проверка комплекта передачи Феникса
   - Что это за комплект
   - Свежая переносимая проверка
     - Что не выполнялось в этом наборе
+  - Проверка локальной кодировки Windows
   - Другие проверки
   - Приёмка комплекта
+  - Восстановление модулей после ошибки копирования
   - Что остаётся пользователю / целевой Windows
 
 #### `docs/IMPROVEMENT_BACKLOG.md` — 9 заголовков, полный текст не включён (дублирует PROJECT.md)
@@ -51748,4 +52108,4 @@ certifi>=2024.8.30
 
 ---
 
-_Итого по категориям — code: 217, data: 53, doc: 45, pack: 5. Режим `lean`._
+_Итого по категориям — code: 219, data: 51, doc: 45, pack: 5. Режим `lean`._

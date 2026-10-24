@@ -27,7 +27,7 @@ def test_only_public_files(release_tree):
                  'jarvis/__pycache__/secret.py', 'models/private.py', 'tasks.json'):
         p = root/name
         p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text('private')
+        p.write_text('private', encoding="utf-8")
     files = rp.collect_payload(root, False)
     assert 'jarvis/gui_widgets.py' in files
     assert 'jarvis/gui_home_actions.py' in files
@@ -46,7 +46,7 @@ def test_stage_clean_manifest(release_tree):
     root = release_tree
     dest = root/'build/release-payload'
     dest.mkdir(parents=True)
-    (dest/'obsolete.txt').write_text('old')
+    (dest/'obsolete.txt').write_text('old', encoding="utf-8")
     files = rp.stage_payload(root, dest, False)
     assert not (dest/'obsolete.txt').exists()
     manifest = (dest/'release-manifest.json').read_bytes()
@@ -60,11 +60,11 @@ def test_stage_clean_manifest(release_tree):
 def test_failed_validation_keeps_previous_payload(release_tree):
     dest = release_tree/'build/payload'
     dest.mkdir(parents=True)
-    (dest/'previous').write_text('keep')
+    (dest/'previous').write_text('keep', encoding="utf-8")
     (release_tree/'jarvis/gui_widgets.py').unlink()
     with pytest.raises(ValueError, match='Missing'):
         rp.stage_payload(release_tree, dest, False)
-    assert (dest/'previous').read_text() == 'keep'
+    assert (dest/'previous').read_text(encoding="utf-8") == 'keep'
 
 
 @pytest.mark.parametrize('path', ['..', '.', 'build', 'profiles/payload'])
@@ -77,7 +77,7 @@ def test_reject_linked_resource(release_tree, tmp_path):
     p = release_tree/'jarvis/gui_widgets.py'
     p.unlink()
     outside = tmp_path/'outside.py'
-    outside.write_text('secret')
+    outside.write_text('secret', encoding="utf-8")
     try:
         p.symlink_to(outside)
     except OSError:
@@ -88,9 +88,9 @@ def test_reject_linked_resource(release_tree, tmp_path):
 
 def test_no_default_user_widgets(release_tree):
     p = release_tree/'config.example.json'
-    cfg = json.loads(p.read_text())
+    cfg = json.loads(p.read_text(encoding="utf-8"))
     cfg['gui_home_widgets'] = ['tasks']
-    p.write_text(json.dumps(cfg))
+    p.write_text(json.dumps(cfg), encoding="utf-8")
     with pytest.raises(ValueError, match='empty list'):
         rp.collect_payload(release_tree, False)
 
@@ -108,7 +108,7 @@ def test_preflight_requires_installer(monkeypatch, tmp_path):
 
 
 def test_installer_curated_and_both_mutexes():
-    s = (ROOT/'installer.iss').read_text()
+    s = (ROOT/'installer.iss').read_text(encoding="utf-8")
     assert '{#PayloadDir}\\*' in s
     assert 'AppMutex=Local\\JarvisPhoenixSingleInstance,Local\\JarvisPhoenixLauncherSetup' in s
     assert 'Source: "system_caps.json"' not in s
@@ -125,7 +125,7 @@ def test_receipt_changed_requirements_and_corrupt_receipt(tmp_path, monkeypatch)
     assert launcher.check_dependencies(tmp_path, log)
     req.write_bytes(b'flet>=1.0.3,<1.1\n')
     assert launcher.check_dependencies(tmp_path, log)
-    req.write_text('changed')
+    req.write_text('changed', encoding="utf-8")
     assert not launcher.check_dependencies(tmp_path, log)
     (tmp_path/'.venv311/phoenix-requirements.sha256').write_bytes(b'\xff')
     assert not launcher.check_dependencies(tmp_path, log)
@@ -133,23 +133,23 @@ def test_receipt_changed_requirements_and_corrupt_receipt(tmp_path, monkeypatch)
 
 def test_caps_atomic_failure_preserves_old(tmp_path, monkeypatch):
     p = tmp_path/'system_caps.json'
-    p.write_text('previous')
+    p.write_text('previous', encoding="utf-8")
     def fail(*_):
         raise OSError('disk failure')
     monkeypatch.setattr(check_caps.os, 'replace', fail)
     with pytest.raises(OSError):
         check_caps.write_caps({'cpu':{}}, p)
-    assert p.read_text() == 'previous'
+    assert p.read_text(encoding="utf-8") == 'previous'
     assert list(tmp_path.iterdir()) == [p]
 
 
 def test_caps_skip_valid_only(tmp_path, monkeypatch):
     p = tmp_path/'system_caps.json'
-    p.write_text(json.dumps({k:{} for k in ('volume','brightness','layout','cpu')}))
+    p.write_text(json.dumps({k:{} for k in ('volume','brightness','layout','cpu')}), encoding="utf-8")
     monkeypatch.setattr(check_caps, 'OUTPUT', p)
     monkeypatch.setattr(check_caps, 'check_cpu', lambda: pytest.fail('must skip valid cache'))
     assert check_caps.main(['--if-missing']) == 0
-    p.write_text('{broken')
+    p.write_text('{broken', encoding="utf-8")
     assert not check_caps.caps_valid(p)
 
 
@@ -161,7 +161,7 @@ def test_caps_probe_failure_does_not_block_launch(monkeypatch, tmp_path):
 
 
 def test_cancel_dependencies_has_no_network(tmp_path, monkeypatch):
-    (tmp_path/'requirements.txt').write_text('test')
+    (tmp_path/'requirements.txt').write_text('test', encoding="utf-8")
     monkeypatch.setattr(launcher, 'msg_box', lambda *_: 2)
     monkeypatch.setattr(launcher.subprocess, 'run', lambda *_,**__: pytest.fail('network after cancel'))
     assert not launcher.install_dependencies(tmp_path, logging.getLogger('test'))
@@ -177,5 +177,5 @@ def test_startup_reliability_helpers_are_shipped(release_tree):
 def test_optional_aec_files_shipped_but_not_required_by_base_dependencies(release_tree):
     files=rp.collect_payload(release_tree,False)
     assert {'install_aec.bat','requirements-aec.txt','jarvis/echo.py'}<=set(files)
-    assert 'pywebrtc-audio==0.2.0' in (release_tree/'requirements-aec.txt').read_text()
-    assert 'pywebrtc' not in (release_tree/'requirements.txt').read_text()
+    assert 'pywebrtc-audio==0.2.0' in (release_tree/'requirements-aec.txt').read_text(encoding="utf-8")
+    assert 'pywebrtc' not in (release_tree/'requirements.txt').read_text(encoding="utf-8")

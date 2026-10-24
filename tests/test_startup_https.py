@@ -39,7 +39,7 @@ def test_missing_bundle_does_not_disable_tls(monkeypatch,tmp_path,clean_ca):
 
 
 def test_entry_sets_ca_before_main_import():
-    tree=ast.parse((ROOT/'jarvis/__main__.py').read_text())
+    tree=ast.parse((ROOT/'jarvis/__main__.py').read_text(encoding="utf-8"))
     calls=[n for n in tree.body if isinstance(n,ast.Expr) and isinstance(n.value,ast.Call)]
     main=next(n for n in tree.body if isinstance(n,ast.ImportFrom) and n.module=='jarvis.main')
     assert calls[0].value.func.id=='configure_https_trust'
@@ -84,7 +84,7 @@ def test_bootstrap_timeout_reports_failure(monkeypatch,tmp_path):
 
 @pytest.mark.parametrize('vc,flet,expected',[(False,True,False),(True,False,False),(True,True,True)])
 def test_main_requires_prerequisites_before_launch(monkeypatch,tmp_path,vc,flet,expected):
-    (tmp_path/'jarvis').mkdir();(tmp_path/'jarvis/__init__.py').write_text('')
+    (tmp_path/'jarvis').mkdir();(tmp_path/'jarvis/__init__.py').write_text('', encoding="utf-8")
     monkeypatch.setattr(launcher,'_PREPARATION',None)
     monkeypatch.setattr(launcher,'_setup_logging',lambda *a:tmp_path/'launcher.log')
     for name,result in [('already_running',False),('find_project_dir',tmp_path),('find_python','python.exe'),('ensure_vc_runtime',vc),('find_venv_pythonw',tmp_path/'pythonw.exe'),('check_dependencies',True),('check_vosk_model',True),('prepare_flet_client',flet),('ensure_local_caps',None),('handle_ollama',None)]:

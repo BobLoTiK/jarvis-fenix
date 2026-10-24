@@ -17,7 +17,7 @@ def dispatch(monkeypatch,ok=True,kind='app'):
     monkeypatch.setitem(sys.modules,'jarvis.intents.sites',NS(get_sites=lambda:{}))
     actions=NS(run_spec=Mock(return_value=ok),focus_browser=lambda *a:False)
     env=dict(actions=actions,files=NS(resolve_folder=lambda *a,**k:None),_BROWSER_PROCS={'хром':'chrome.exe'},BROWSER_WORDS=set())
-    tree=ast.parse((ROOT/'jarvis/intents/execute.py').read_text())
+    tree=ast.parse((ROOT/'jarvis/intents/execute.py').read_text(encoding="utf-8"))
     fn=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='_do_open')
     exec(compile(ast.Module(body=[fn],type_ignores=[]),'execute.py','exec'),env)
     return env['_do_open'],actions

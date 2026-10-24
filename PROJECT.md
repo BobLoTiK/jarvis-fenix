@@ -33,6 +33,8 @@ WinRT удалён только из TTS. `tts_backend=winrt` читается �
 
 Следующий инженерный блок: [NEXT_STEPS](docs/NEXT_STEPS.md).
 Снимок исключает локальные .env/.env.*/.envrc; их содержимое не редактируется.
+Текстовые read_text/write_text тестов явно используют UTF-8; кодировка Windows
+и Python runtime не меняются. AST guard ловит возвращение неявного encoding.
 Свежая проверка этого комплекта: [HANDOFF_VALIDATION](docs/HANDOFF_VALIDATION.md).
 Детальные контракты GUI/команд: [приёмка](docs/ACCEPTANCE_CHECKLIST.md).
 

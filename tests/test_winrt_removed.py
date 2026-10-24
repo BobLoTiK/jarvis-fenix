@@ -16,11 +16,11 @@ from jarvis import voices
 def test_legacy_config_is_normalized_without_rewriting_file(tmp_path, caplog):
     path = tmp_path / 'config.json'
     original = json.dumps({'tts_backend':'winrt', 'tts_voice':'Pavel', 'voice_rate':1.2})
-    path.write_text(original)
+    path.write_text(original, encoding="utf-8")
     config = Config(path)
     assert config.get('tts_backend') == 'auto'
     assert config.get('tts_voice') == 'Pavel' and config.get('voice_rate') == 1.2
-    assert path.read_text() == original
+    assert path.read_text(encoding="utf-8") == original
     assert 'WinRT speech removed' in caplog.text
 
 
@@ -80,13 +80,13 @@ def test_removed_module_is_an_explicit_overlay_marker():
 def test_gui_and_runtime_dependencies_do_not_offer_speech_winrt():
     from jarvis.gui import TTS_BACKENDS
     assert TTS_BACKENDS == ['auto', 'piper', 'silero', 'sapi']
-    requirements = (Path(__file__).parents[1] / 'requirements.txt').read_text()
+    requirements = (Path(__file__).parents[1] / 'requirements.txt').read_text(encoding="utf-8")
     assert 'winrt-Windows.Media.SpeechSynthesis' not in requirements
     assert 'winrt-Windows.Media.Control' in requirements  # media controls are not TTS
 
 
 def test_offline_corpus_does_not_import_retired_tts_engine():
     from tests.audio import corpus
-    source = Path(corpus.__file__).read_text()
+    source = Path(corpus.__file__).read_text(encoding="utf-8")
     assert 'jarvis.tts_engines.winrt' not in source
     assert 'class LocalSynth' in source

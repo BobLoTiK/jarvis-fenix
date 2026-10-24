@@ -159,6 +159,18 @@ def test_dotenv_does_not_enter_snapshot(repo, name):
     assert check(repo).returncode == 0
 
 
+@pytest.mark.parametrize("name", ["docs/reference/spec.docx", "docs/reference/SPEC.DOCX"])
+def test_optional_word_files_do_not_change_snapshot(repo, name):
+    before = (repo / "SNAPSHOT.md").read_bytes()
+    document = repo / name
+    document.parent.mkdir(parents=True, exist_ok=True)
+    document.write_bytes(b"PK\x03\x04optional-word-fixture")
+    snapshot(repo)
+    assert document.read_bytes() == b"PK\x03\x04optional-word-fixture"
+    assert (repo / "SNAPSHOT.md").read_bytes() == before
+    assert check(repo).returncode == 0
+
+
 def test_staged_doc_change_is_checked(repo):
     (repo / "GUIDE.md").write_text("# Test guide\n", encoding="utf-8")
     git(repo, "add", "GUIDE.md")

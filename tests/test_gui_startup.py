@@ -53,7 +53,7 @@ def test_tray_state_is_applied_by_gui_worker(gui):
 
 
 def source_function(name):
-    tree = ast.parse((ROOT/'jarvis/main.py').read_text())
+    tree = ast.parse((ROOT/'jarvis/main.py').read_text(encoding="utf-8"))
     node = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == name)
     return node
 

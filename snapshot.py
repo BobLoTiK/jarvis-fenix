@@ -87,6 +87,7 @@ EXCLUDE_EXT = {
     ".onnx", ".wav", ".mp3", ".zip", ".7z", ".rar",
     ".jpg", ".jpeg", ".png", ".gif", ".ico", ".bmp",
     ".tmp", ".lock", ".log",
+    ".docx",  # Optional source specifications, not application code.
 }
 
 TEXT_EXT = {

@@ -143,7 +143,7 @@ def test_completed_launch_closes_preparation_window(window):
 
 
 def test_ui_module_has_no_installation_or_process_engine():
-    source=(ROOT/'launcher_ui.py').read_text()
+    source=(ROOT/'launcher_ui.py').read_text(encoding="utf-8")
     tree=ast.parse(source)
     imports=[n for n in ast.walk(tree) if isinstance(n,(ast.Import,ast.ImportFrom))]
     assert not any('subprocess' in ast.dump(n) or 'urllib' in ast.dump(n) for n in imports)
@@ -171,7 +171,7 @@ def test_source_payload_requires_bootstrap_ui():
 
 
 def test_supported_windows_minimum_is_explicit():
-    assert "MinVersion=10.0" in (ROOT/"installer.iss").read_text()
+    assert "MinVersion=10.0" in (ROOT/"installer.iss").read_text(encoding="utf-8")
 
 
 def test_retry_double_click_schedules_only_once(window):
