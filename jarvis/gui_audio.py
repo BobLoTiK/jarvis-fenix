@@ -308,7 +308,8 @@ class SoundSettings:
 
     def build_audio(self):
         g, p = self.gui, _ui().P
-        backend = ft.Dropdown(label="Движок речи", value=g.config.get("tts_backend", "auto"),
+        backend = ft.Dropdown(label="Движок речи", value=(g.config.get("tts_backend", "auto")
+                   if g.config.get("tts_backend", "auto") in _ui().TTS_BACKENDS else "auto"),
             options=[ft.dropdown.Option(k) for k in _ui().TTS_BACKENDS], expand=True,
             border_color=p.border, focused_border_color=p.brand, on_select=g._on_tts_change)
         current = g.config.get("tts_voice", "ruslan")
@@ -336,7 +337,7 @@ class SoundSettings:
         ], "audio")
         reactions = card("Живое звучание", "Необязательные реакции и анализ интонации — настройте под себя.", [
             ft.Checkbox(label="Звуковые реакции (смех, вздохи, хм, зевок)", value=bool(g.config.get("nonverbal_enabled", False)), on_change=g._on_nonverbal_enabled),
-            note("Только в помеченном диалоге. Silero, Piper и WinRT; SAPI — без реакций. На голосовую пробу не добавляются."),
+            note("Только в помеченном диалоге. Silero и Piper; SAPI — без реакций. На голосовую пробу не добавляются."),
             ft.Checkbox(label="Анализировать интонацию голоса (Prosody)", value=bool(g.config.get("prosody_enabled", True)), on_change=g._on_prosody_enabled),
             ft.Dropdown(label="Приоритет оценки интонации", value=g.config.get("prosody_priority", "prosody"), options=[
                 ft.dropdown.Option("prosody", "Голос важнее текста"), ft.dropdown.Option("text", "Текст важнее голоса"),
@@ -360,6 +361,10 @@ class SoundSettings:
                 g._vad_hangover_label, g._vad_hangover_slider,
                 note("Короткий хвост может ускорить ответ, но Vosk должен успеть завершить фразу."),
                 ft.Checkbox(label="Прерывать Феникса голосом (barge-in)", value=bool(g.config.get("barge_enabled", True)), on_change=g._on_barge_enabled),
+                ft.Checkbox(label="AEC: эхо колонок — Piper, эксперимент (после перезапуска)",
+                    value=bool(g.config.get("aec_enabled", False)),
+                    on_change=lambda e: g.config.set("aec_enabled", bool(e.control.value))),
+                note("AEC требует optional-пакет: install_aec.bat в папке Феникса. Выберите Piper и перезапустите приложение. Без пакета остаётся прежний тракт; кабель/драйвер не нужен."),
                 ft.Checkbox(label="Ждать обращения «Феникс»", value=bool(g.config.get("wake_word_required", True)), on_change=g._on_wake_required),
                 note("Без ожидания обращения любая распознанная речь может стать командой. Изменения применяются сразу."),
             ], spacing=12))])

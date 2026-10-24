@@ -3,10 +3,9 @@
 TTS-движки живут в `jarvis/tts_engines/` (абстракция `BaseEngine` + фабрика
 `get_engine()`). Активный движок задаётся в `config.json` → `"tts_backend"`:
 
-- `"auto"` (по умолчанию) — первый доступный: **Silero → Piper → WinRT → SAPI**;
+- `"auto"` (по умолчанию) — первый доступный: **Silero → Piper → SAPI**;
 - `"silero"` — **Silero TTS v5_5** (torch, ~150 МБ, чище звук, офлайн);
 - `"piper"` — **Piper** (быстрый, ~60 МБ, модель тянется с HuggingFace);
-- `"winrt"` — системный Windows-синтез (без внешних моделей);
 - `"sapi"` — старый SAPI через `pyttsx3`.
 
 **Голоса по движку** (`"tts_voice"`):
@@ -15,7 +14,6 @@ TTS-движки живут в `jarvis/tts_engines/` (абстракция `Base
 |---|---|
 | Silero | `aidar`, `baya`, `kseniya`, `xenia`, `eugene` |
 | Piper | `ruslan`, `dmitri`, `irina`, `denis` |
-| WinRT | `Pavel`, `Irina` |
 | SAPI | зависит от системы |
 
 **Важно:** голоса разных движков НЕ пересекаются — при смене `tts_backend`
@@ -32,3 +30,6 @@ TTS-движки живут в `jarvis/tts_engines/` (абстракция `Base
 > убран, вместо него добавлен Silero TTS. Ключ `xtts_ref` и файл
 > `voices/jarvis.wav` **удалены** из конфига — это был мёртвый остаток XTTS.
 
+
+WinRT TTS удалён из выбора и auto. Старое значение `winrt` читается как `auto`
+с предупреждением; модели и остальные параметры не удаляются.

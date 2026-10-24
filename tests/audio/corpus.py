@@ -66,12 +66,10 @@ def framed_pcm(audio, seed=42):
 
 
 class LocalSynth:
-    """Use the real WinRT WAV engine, never Speaker/playback/download fallback."""
+    """Optional test-only Windows WAV generator; never a live TTS engine."""
 
     def __init__(self, voice="auto"):
         from winrt.windows.media.speechsynthesis import SpeechSynthesizer
-
-        from jarvis.tts_engines.winrt import WinRTEngine
 
         russian = [
             v
@@ -89,10 +87,26 @@ class LocalSynth:
         if selected is None:
             raise Blocked("Нет запрошенного русского системного голоса Windows")
         self.name = selected.display_name
-        self.engine = WinRTEngine(voice=voice, rate=1.0)
+        self._voice = selected
+
+    async def _synthesize(self, text):
+        from winrt.windows.media.speechsynthesis import SpeechSynthesizer
+        from winrt.windows.storage.streams import DataReader
+        synth = SpeechSynthesizer()
+        synth.voice = self._voice
+        stream = await synth.synthesize_text_to_stream_async(text)
+        reader = DataReader(stream.get_input_stream_at(0))
+        try:
+            await reader.load_async(stream.size)
+            return bytes(reader.read_buffer(stream.size))
+        finally:
+            reader.close()
+            stream.close()
+            synth.close()
 
     def __call__(self, text):
-        return self.engine.synthesize(text, rate=1.0)
+        import asyncio
+        return asyncio.run(self._synthesize(text))
 
 
 def prepare(

@@ -248,7 +248,6 @@ def test_speaker_routes_sample_through_common_player(policy):
     [
         ("piper", "PiperEngine", ("Привет.",)),
         ("silero", "SileroEngine", ("Привет.", "aidar", 1.0)),
-        ("winrt", "WinRTEngine", ("Привет.", "Pavel", 1.0)),
     ],
 )
 def test_stream_engines_share_speakers_mixer(module, cls, args):

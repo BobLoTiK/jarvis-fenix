@@ -1,4 +1,4 @@
-"""TTS-движки Феникса — абстракция над Piper, Silero, WinRT, SAPI.
+"""TTS-движки Феникса — абстракция над Piper, Silero, SAPI.
 
 Публичный API:
     BaseEngine   — абстрактный класс

@@ -225,6 +225,7 @@ def test_listener_level_heartbeat_updates_even_when_muted():
     from jarvis.stt import Listener
     listener = NS(peak=0, current_rms=0, level_updated_at=0,
                   muted=True, _process_barge=Mock())
+    listener._accept_capture = Listener._accept_capture.__get__(listener)
     Listener._callback(listener, np.full(32, 600, dtype="<i2").tobytes(), 32, None, None)
     assert listener.current_rms == 600
     assert listener.level_updated_at > 0
@@ -247,3 +248,22 @@ def test_disappeared_listener_clears_old_meter_metadata(gui):
     assert "слушатель не запущен" in gui._mic_device_text.value
     assert gui._mic_peak_text.value.endswith("—")
     assert gui._mic_utt_text.value.endswith("—")
+
+
+def test_aec_toggle_is_opt_in_restart_only_and_never_selects_voice(gui):
+    def controls(node):
+        yield node
+        content=getattr(node,'content',None)
+        if isinstance(content,ft.Control):yield from controls(content)
+        for child in getattr(node,'controls',[]) or []:
+            if isinstance(child,ft.Control):yield from controls(child)
+    root=gui._sound().build_audio()
+    check=next(c for c in controls(root) if isinstance(c,ft.Checkbox) and str(c.label).startswith('AEC:'))
+    assert check.value is False and 'после перезапуска' in check.label
+    before=gui.config.get('tts_backend')
+    check.on_change(NS(control=NS(value=True)))
+    assert gui.config.get('aec_enabled') is True
+    assert gui.config.get('tts_backend')==before
+    assert getattr(gui.jarvis.listener,'_echo_path',None) is None
+    check.on_change(NS(control=NS(value=False)))
+    assert gui.config.get('aec_enabled') is False

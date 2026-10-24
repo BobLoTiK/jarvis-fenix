@@ -219,6 +219,9 @@ class Jarvis:
 
     def shutdown(self) -> None:
         self.stop_event.set()
+        path = getattr(self.listener, "_echo_path", None)
+        if path is not None:
+            path.close()
 
     def mic_watchdog(self) -> None:
         """One passive startup diagnostic in the log; never speak or steal a tab.
@@ -744,6 +747,13 @@ def main() -> None:
         config.get("input_device"),
         config=config,
     )
+
+    if config.get("aec_enabled", False):
+        from jarvis.echo import make_echo_path
+        echo = make_echo_path(config)
+        if echo is not None:
+            speaker.set_echo_path(echo)
+            listener.set_echo_path(echo)
 
     gui = None
     if config.get("gui_enabled", True):

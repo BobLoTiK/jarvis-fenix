@@ -107,10 +107,10 @@ def test_silero_engine_interface():
 # WinRT — интерфейс
 # =================================================================
 
-def test_winrt_engine_interface():
-    from jarvis.tts_engines.winrt import WinRTEngine
-    assert WinRTEngine.name == "winrt"
-    assert "auto" in WinRTEngine.voices
+def test_retired_winrt_module_cannot_be_loaded():
+    import importlib
+    with pytest.raises(ImportError, match="WinRT TTS removed"):
+        importlib.import_module("jarvis.tts_engines.winrt")
 
 
 # =================================================================
@@ -157,12 +157,12 @@ def test_switch_voice_not_found():
 
 
 # =================================================================
-# voices.switch — регистронезависимость ключей (winrt/sapi)
+# voices.switch — регистронезависимость ключей (sapi)
 # =================================================================
 
-def _winrt_config(initial=None):
-    """Fake config с backend=winrt для тестов switch."""
-    state = {"tts_backend": "winrt", "tts_voice": "auto"}
+def _sapi_config(initial=None):
+    """Fake config с backend=sapi для тестов switch."""
+    state = {"tts_backend": "sapi", "tts_voice": "auto"}
     if initial:
         state.update(initial)
     cfg = MagicMock()
@@ -171,12 +171,12 @@ def _winrt_config(initial=None):
     return cfg, state
 
 
-def test_switch_voice_case_insensitive_winrt():
-    """Ключи winrt — с заглавной («Pavel»), а команда приходит строчными."""
+def test_switch_voice_case_insensitive_sapi():
+    """Ключи sapi — с заглавной («Pavel»), а команда приходит строчными."""
     from jarvis import voices
     fake_engine = MagicMock()
     fake_engine.voices = {"auto": "Авто", "Pavel": "Павел", "Irina": "Ирина"}
-    cfg, state = _winrt_config()
+    cfg, state = _sapi_config()
 
     with patch("jarvis.voices._try_create", return_value=fake_engine), \
          patch("jarvis.voices._VOICES_CACHE", {}):
@@ -191,12 +191,12 @@ def test_switch_voice_case_insensitive_winrt():
     ("ирину", "Irina"),   # алиас «ирину» → irina → Irina
     ("павел", "Pavel"),   # алиас «павел» → pavel → Pavel
 ])
-def test_switch_voice_aliases_winrt(said, expected):
-    """Русские алиасы и любой регистр находят системный голос winrt."""
+def test_switch_voice_aliases_sapi(said, expected):
+    """Русские алиасы и любой регистр находят системный голос sapi."""
     from jarvis import voices
     fake_engine = MagicMock()
     fake_engine.voices = {"auto": "Авто", "Pavel": "Павел", "Irina": "Ирина"}
-    cfg, state = _winrt_config()
+    cfg, state = _sapi_config()
 
     with patch("jarvis.voices._try_create", return_value=fake_engine), \
          patch("jarvis.voices._VOICES_CACHE", {}):
@@ -228,7 +228,7 @@ def test_do_change_voice_switch_and_history():
 
     fake_engine = MagicMock()
     fake_engine.voices = {"auto": "Авто", "Pavel": "Павел", "Irina": "Ирина"}
-    cfg, state = _winrt_config()
+    cfg, state = _sapi_config()
     handler = MagicMock()
     handler.config = cfg
 

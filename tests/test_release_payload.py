@@ -172,3 +172,10 @@ def test_startup_reliability_helpers_are_shipped(release_tree):
     for name in ('launcher_runtime.py', 'jarvis/https_trust.py',
                  'scripts/prepare_flet_client.py'):
         assert name in files
+
+
+def test_optional_aec_files_shipped_but_not_required_by_base_dependencies(release_tree):
+    files=rp.collect_payload(release_tree,False)
+    assert {'install_aec.bat','requirements-aec.txt','jarvis/echo.py'}<=set(files)
+    assert 'pywebrtc-audio==0.2.0' in (release_tree/'requirements-aec.txt').read_text()
+    assert 'pywebrtc' not in (release_tree/'requirements.txt').read_text()

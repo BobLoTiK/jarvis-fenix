@@ -137,7 +137,7 @@ LLM_MODELS = [
     "gemma2:2b", "gemma2:9b", "llama3.1:8b", "mistral:7b",
 ]
 
-TTS_BACKENDS = ["auto", "piper", "silero", "winrt", "sapi"]
+TTS_BACKENDS = ["auto", "piper", "silero", "sapi"]
 
 
 @lru_cache(maxsize=32)
@@ -1475,7 +1475,8 @@ class FenixGUI:
         self.config.set("ollama_url", value)
 
     def _on_tts_change(self, e) -> None:
-        backend = e.control.value
+        from jarvis.tts_engines.factory import normalize_backend
+        backend = normalize_backend(e.control.value)
         self.config.set("tts_backend", backend)
         try:
             from jarvis import voices as _voices
@@ -1492,13 +1493,11 @@ class FenixGUI:
             )
         elif backend == "auto":
             self._show_status(
-                "auto: выбираю движок по приоритету silero → piper → winrt → sapi. "
+                "auto: выбираю движок по приоритету silero → piper → sapi. "
                 "Если silero не установлен — уйдёт на piper."
             )
         elif backend == "piper":
             self._show_status("Piper: голоса ruslan/dmitri/irina/denis, ~60 МБ.")
-        elif backend == "winrt":
-            self._show_status("WinRT: системные голоса Windows (Pavel, Irina).")
         elif backend == "sapi":
             self._show_status("SAPI: старые системные голоса Windows.")
 

@@ -28,13 +28,6 @@ def main() -> None:
         print(f"piper/{v}...")
         winsound.PlaySound(buf.getvalue(), winsound.SND_MEMORY)
 
-    import asyncio
-
-    from jarvis.tts import Speaker
-
-    s = Speaker({"tts_backend": "winrt", "voice": "Pavel", "voice_rate": 1.15})
-    print("winrt/Pavel...")
-    winsound.PlaySound(asyncio.run(s._synthesize(TEXT)), winsound.SND_MEMORY)
 
 
 if __name__ == "__main__":

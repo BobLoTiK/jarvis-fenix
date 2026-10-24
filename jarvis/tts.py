@@ -1,6 +1,6 @@
 """Синтез речи — фасад над tts_engines.
 
-Speaker не знает о Piper/Silero/WinRT/SAPI напрямую — работает через
+Speaker не знает о Piper/Silero/SAPI напрямую — работает через
 BaseEngine из jarvis.tts_engines.
 
 Возможности:
@@ -23,6 +23,7 @@ import threading
 from typing import Iterator
 
 from jarvis.tts_engines import get_engine, list_engines
+from jarvis.tts_engines.factory import normalize_backend
 from jarvis.text_utils import prepare_text
 
 log = logging.getLogger("jarvis.tts")
@@ -38,8 +39,9 @@ class Speaker:
         self.voice = cfg.get("tts_voice") or "ruslan"
         self.rate = float(cfg.get("voice_rate", 1.15))
         self.quality = cfg.get("tts_voice_quality", "medium")
-        self._backend = cfg.get("tts_backend", "auto")
+        self._backend = normalize_backend(cfg.get("tts_backend", "auto"))
 
+        self._echo_path = None
         self._engine = None
         self._engine_name = "none"
         # Инициализация движка — под локом: ленивая загрузка в фоне и
@@ -106,7 +108,7 @@ class Speaker:
         if self._backend == "silero":
             log.info("TTS: Silero — первая загрузка может занять 1–3 минуты")
         elif self._backend == "auto":
-            log.info("TTS: auto — пробую silero → piper → winrt → sapi")
+            log.info("TTS: auto — пробую silero → piper → sapi")
         engine = get_engine(self._backend, self.voice, self.quality,
                             self.rate)
         if engine is None:
@@ -121,6 +123,7 @@ class Speaker:
 
     def switch_backend(self, backend: str) -> bool:
         """Переключить движок на лету."""
+        backend = normalize_backend(backend)
         if backend == self._backend and self._engine is not None:
             return True
 
@@ -207,7 +210,28 @@ class Speaker:
     # Stop-token
     # ------------------------------------------------------------------
 
+    def set_echo_path(self, path):
+        self._echo_path = path
+
+    def _pcm_echo_path(self):
+        """Normal AEC remains Piper-only; diagnostic sessions accept WAV engines."""
+        path = getattr(self, "_echo_path", None)
+        if path is None:
+            return None
+        if self._engine_name == "piper":
+            return path
+        if (getattr(path, "diagnostic_mode", False) is True
+                and self._engine_name == "silero"):
+            return path
+        return None
+
     def _new_token(self, allow_nonverbal=False) -> threading.Event:
+        path = getattr(self, "_echo_path", None)
+        if path is not None:
+            if getattr(path, "diagnostic_mode", False) is True:
+                path.set_trace_backend(self._engine_name, getattr(self, "voice", None))
+            if self._pcm_echo_path() is None:
+                path.suspend_render()
         with self._token_lock:
             self._current_token = threading.Event()
             policy = getattr(self, "_nonverbal", None)
@@ -377,7 +401,13 @@ class Speaker:
                 reaction = policy.take(token)
             except Exception:
                 log.exception("Non-verbal: ошибка необязательной реакции; продолжаю речь")
-        play_wav(wav_bytes, token, reaction)
+        path = self._pcm_echo_path()
+        if path is not None:
+            if getattr(path, "diagnostic_mode", False) is True:
+                path.set_trace_backend(self._engine_name, getattr(self, "voice", None))
+            play_wav(wav_bytes, token, reaction, echo=path)
+        else:
+            play_wav(wav_bytes, token, reaction)
 
 
 # Список доступных движков — для GUI/CLI

@@ -148,6 +148,9 @@ def should_skip_dir(path: Path) -> bool:
 
 
 def should_skip_file(path: Path) -> bool:
+    name = path.name.casefold()
+    if name in {".env", ".envrc"} or name.startswith(".env."):
+        return True  # Local dotenv files may contain non-JSON secrets.
     if path.name in EXCLUDE_FILES:
         return True
     if path.suffix.lower() in EXCLUDE_EXT:

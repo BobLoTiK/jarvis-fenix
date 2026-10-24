@@ -83,7 +83,7 @@ def encode_wav(audio, rate):
     return buf.getvalue()
 
 
-def play_wav(wav_bytes, token, reaction=None):
+def play_wav(wav_bytes, token, reaction=None, *, echo=None):
     if token.is_set() or not wav_bytes:
         return
     audio, rate = decode_wav(wav_bytes)
@@ -91,6 +91,7 @@ def play_wav(wav_bytes, token, reaction=None):
     if token.is_set() or not len(audio):
         return
     played = False
+    tap = None
     try:
         import sounddevice as sd
 
@@ -98,18 +99,40 @@ def play_wav(wav_bytes, token, reaction=None):
         with sd.OutputStream(
             samplerate=rate, channels=audio.shape[1], dtype="float32"
         ) as stream:
+            if echo is not None:
+                tap = echo.begin_render()
+            cursor = 0.0
             for i in range(0, len(audio), chunk):
                 if token.is_set():
                     break
                 # If write fails after consuming some samples, don't replay from the beginning.
+                block = audio[i : i + chunk]
+                if tap is not None:
+                    try:
+                        latency = float(stream.latency)
+                        if not 0 <= latency <= 2:
+                            latency = 0.0
+                        at = max(time.monotonic() + latency, cursor)
+                        tap.feed(block, rate, at)
+                        cursor = at + len(block) / rate
+                    except Exception:
+                        # Optional reference must not break normal playback.
+                        logging.getLogger("jarvis.echo").warning("AEC: reference недоступен для этого вывода", exc_info=True)
+                        echo.suspend_render()
+                        tap = None
                 played = True
-                stream.write(audio[i : i + chunk])
+                stream.write(block)
     except (ImportError, OSError):
         if token.is_set():
             return
         if played:
             raise
+        if echo is not None:
+            echo.suspend_render()  # winsound has no timed render reference
         _play_windows(audio, rate, token)
+    finally:
+        if tap is not None:
+            tap.finish(time.monotonic())
 
 
 def _play_windows(audio, rate, token):

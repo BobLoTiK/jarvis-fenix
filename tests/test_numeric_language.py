@@ -440,7 +440,7 @@ def test_speaker_async_path_uses_same_preparation():
     )
 
 
-@pytest.mark.parametrize("engine", ["piper", "silero", "winrt", "sapi"])
+@pytest.mark.parametrize("engine", ["piper", "silero", "sapi"])
 def test_all_streaming_engines_use_shared_preparation(engine):
     path = (
         Path(__file__).resolve().parents[1]

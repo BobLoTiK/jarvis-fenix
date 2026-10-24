@@ -145,6 +145,20 @@ def test_test_log_is_ignored_and_does_not_change_snapshot(repo):
     assert check(repo).returncode == 0
 
 
+@pytest.mark.parametrize("name", [".env", ".env.local", ".ENV", ".envrc", "nested/.env.production"])
+def test_dotenv_does_not_enter_snapshot(repo, name):
+    before = (repo / "SNAPSHOT.md").read_bytes()
+    private = repo / name
+    private.parent.mkdir(parents=True, exist_ok=True)
+    content = "FAKE_LOCAL_SECRET=dotenv_regression_fixture\n"
+    private.write_text(content, encoding="utf-8")
+    snapshot(repo)
+    assert private.read_text(encoding="utf-8") == content
+    assert (repo / "SNAPSHOT.md").read_bytes() == before
+    assert b"dotenv_regression_fixture" not in (repo / "SNAPSHOT.md").read_bytes()
+    assert check(repo).returncode == 0
+
+
 def test_staged_doc_change_is_checked(repo):
     (repo / "GUIDE.md").write_text("# Test guide\n", encoding="utf-8")
     git(repo, "add", "GUIDE.md")

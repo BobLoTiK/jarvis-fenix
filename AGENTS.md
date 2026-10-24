@@ -1,181 +1,88 @@
-# AGENTS.md — навигация для помощника по «Феникс»
+# AGENTS — правила работы с Фениксом
 
-**Текущий P0 — надёжность первого запуска, исходный пакет ещё не принят на Windows.**
-В старой Sandbox после ручных VC++ x64, CA bundle и выбора Piper пользователь
-подтвердил Explorer, повторную команду и голос. Это не чистая установка.
-Логи также подтвердили TLS-ошибки Flet/Silero, зависание ожидания TTS,
-ложное «Открываю Блокнот» при WinError 2 и CUDA-ошибку уже внутри Whisper decode.
-В исходниках: согласуемый VC++ prerequisite с проверкой подписи Microsoft,
-process-scoped certifi до импорта приложения, подготовка Flet до передачи запуска,
-ограниченное ожидание голоса без синхронного повторного init, честный run_spec,
-CPU-повтор той же кэшированной Whisper-модели при CUDA decode failure.
-Vosk и confidence gate сохранены. Auto: Silero → Piper → WinRT → SAPI без смены
-приоритета; новая TTS-очередь не реализована. Полный GUI-readiness handshake
-лаунчера по-прежнему не реализован. Самостоятельное падение Sandbox при Ollama
-не диагностировано. Правки требуют пересборки EXE/Setup и новой чистой приёмки.
-Инструкция и ограничения: docs/WINDOWS_STARTUP_RELIABILITY.md.
+## Цель и навигация
 
-**Предшествующий bootstrap-этап; общая Windows-приёмка остаётся открытой.** После ручной
-подготовки Python старая Sandbox-установка дошла до предложения Ollama.
-В исходниках подготовлены Windows HTTPS + Authenticode для Python и явный выбор/
-загрузка одной локальной модели Ollama в том же окне. Существующий выбор не
-заменяется молча; пропуск не пишет настройки. Инструкция обоих изменений:
-docs/BOOTSTRAP_PYTHON_OLLAMA_UPDATE.md. 149 bootstrap/build тестов прошли на Linux;
-2 Windows-проверки пропущены. Пользователь сообщил о готовой новой сборке;
-её чистая Windows-приёмка ещё не выполнена. Результаты старой установки
-не переносятся на новую сборку.
-Это описание прежнего Python/Ollama-пакета; текущие дополнения — выше.
-Полный GUI-readiness handshake по-прежнему не реализован.
+JASTIN — целевое видение Феникса от работодателя. Реализуем максимально,
+с небольшими обоснованными оговорками. Различие нынешнего стека и цели —
+задача перехода, не причина исключать биометрию, SDK, память, router или GUI.
+Изменения требований и конфликтующие технологии согласовывать.
 
+- Вход: [START_HERE](START_HERE.md), [PROMPT](PROMPT.md).
+- Факты/непроверенное: [PROJECT](PROJECT.md).
+- Цель/очередь: [PLAN](PLAN.md), [NEXT_STEPS](docs/NEXT_STEPS.md).
+- Детали цели: [разбор](docs/PHOENIX_JASTIN_RECONCILIATION.md),
+  [оригиналы](docs/reference/README.md).
+- Устройство кода: [ARCHITECTURE](ARCHITECTURE.md).
+- Проверки: [текущий отчёт](docs/HANDOFF_VALIDATION.md),
+  [тестовый справочник](tests/README.md), [приёмка](docs/ACCEPTANCE_CHECKLIST.md).
 
-**Интерфейс подготовки:** `launcher_ui.py` (Tk + очередь), дополнен выбором модели. Сохранён запуск -m jarvis из venv; добавлены HTTPS/config helpers, VC++ и подготовка Flet. Активной отмены нет. Пользователь сообщил о новой сборке; Windows UI-приёмка ожидается.
+## Среда и фактическая база
 
-**Подготовленная версия: 2.1.0, тег `v2.1.0`.** Создание/push тега из этой рабочей копии не выполнялись (нет `.git` и GitHub-подключения). Дальнейшие действия: `docs/NEXT_STEPS.md`.
+Target: Windows x64 / Python 3.11.9 / .venv311; Flet 1.0.x.
+VAD → Vosk → опциональный faster-whisper; Ollama локально;
+auto TTS Silero → Piper → SAPI. WinRT TTS удалён, WinRT Media Control сохранён.
+Обычный optional AEC — Piper; ручная PCM-диагностика Piper/Silero;
+SAPI без PCM — метаданные. Последний пакет ещё не принят пользователем.
+Linux/Python 3.13 пригоден для portable tests, не доказывает Windows runtime.
 
-**Поставка обновлена:** `docs/INSTALLER_UPDATE.md` — curated payload/manifest, Python 3.11/Flet 1.0.x, fingerprint зависимостей, caps в USER_DIR. EXE/Setup здесь не собраны; Windows acceptance обязательна. TTS-оптимизация ещё не реализована.
-Актуализировано 16.10.2026. Сначала нужный раздел `PROJECT.md`, затем поиск
-по файлам и чтение небольшого диапазона. Не загружать целиком `SNAPSHOT.md`:
-это генерируемый контекст, а не место правки кода. Историю не выдавать за текущий статус.
+## Основные контракты
 
-## Среда и запуск
+- IntentHandler.handle(raw) → Reply(text | stream, allow_nonverbal=False).
+  Сохранять safety до TTS/истории и finalize_stream; отмена не сохраняет
+  выдуманно произнесённую часть ответа. Сомнительный ASR → повтор, не действие.
+- Не обходить pending password/question. parse action=none — не отправлять
+  на вторую догадку в свободный чат. Observer opt-in, не учится на ассистенте.
+- Числовые слоты language.analyze_command до потери исходной пунктуации.
+  prepare_text уже обрабатывает числа/даты/единицы — не создавать второй слой.
+- cmd_lock — команды GUI/голоса; _say_lock — речь/таймеры/уведомления.
+  Per-call stop-token, wait_end возвращает bool; нет второго плеера/capture.
+- Flet меняется в GUI owner через очередь. Vosk API — только listener owner.
+  UIA — STA/COM и lock. Epoch/profile guards отсекают поздние callbacks.
+- Nonverbal opt-in в Speaker: один PCM/общий token/cooldown, без отдельного
+  проигрывателя. SAPI без PCM-реакций. Output/AEC получают итоговый mixed PCM.
+- Config/profile пишутся атомарно через существующие интерфейсы, expected_values/
+  expected_profile сохраняются. Ошибка записи не становится успехом; черновики
+  не пишутся на каждый ввод. Пути только через paths.py.
+- Риск всех custom/pack шагов проверяется до исполнения; секреты не логировать.
+  Текущий SHA-256 пароль не выдавать за современную KDF; усиление — отдельная задача.
+- RAG не найден/сломался — не раскрывать весь профиль. Смена LLM не стирает знания.
 
-Windows, Python 3.11.9, `.venv311`, Flet 1.0.x, Vosk + Whisper, Ollama.
-TTS: Silero/Piper/WinRT/SAPI. Python 3.13/3.14 не брать для Windows/Vosk-runtime.
+Эти контракты могут развиваться в целевой архитектуре, но не исчезать молча.
+Subprocess — crash isolation, не обещание OS sandbox для недоверенного кода.
+
+## Изменения
+
+Один вертикальный срез, сначала чтение владельца подсистемы и соседних тестов.
+Сейчас основной ASR/GUI не заменять попутно; целевые адаптеры/миграции — этапы
+R2/R5. Vosk сохраняется как минимум wake/fallback. Новые зависимости/модели,
+сеть и миграция данных — явно, с целью, лицензией, проверкой и rollback.
+Без маскировки дефекта случайным порогом, запрещённым словом или fake success.
+
+UTF-8 без BOM, CRLF для изменяемых Windows-текстов; shell hook остаётся LF.
+Не нормализовать весь репозиторий. Сохранять MIT/attribution jsys12 и лицензии
+ресурсов. Не включать config.json, profiles, историю, models, venv, logs,
+локальные аудиозаписи и секреты в Git/ZIP/snapshot.
+
+## Проверки и передача
+
+Целевые команды Windows, из корня:
 
 ```powershell
 .\.venv311\Scripts\python.exe check_all.py
-.\.venv311\Scripts\python.exe -m pytest tests/ -q
-.\.venv311\Scripts\python.exe tests/test_intents.py
-.\.venv311\Scripts\python.exe tests/stress_intents.py
-.\.venv311\Scripts\python.exe check_syntax.py
 .\.venv311\Scripts\python.exe snapshot.py
 .\.venv311\Scripts\python.exe snapshot.py --check
-.\.venv311\Scripts\python.exe launcher.py
+.\.venv311\Scripts\python.exe scripts/build_setup.py --check
 ```
 
-41 интент-сценарий (34 без LLM/сети), 102 стресс-сценария.
-Число pytest не фиксировать как вечную константу; свежая проверка — `tests/README.md`.
-`check_all` — четыре шага; workflow CI отдельно требует актуальный snapshot.
+check_all: syntax → pytest → intent runner → stress runner.
+Linux portable: PYSTRAY_BACKEND=dummy, исключаются два winreg-модуля
+(test_browser_target.py/test_window_targets.py); точная команда в отчёте.
+Опциональные native/model тесты могут быть skipped — перечислить ограничения.
+Audio regression prepare/run — отдельный opt-in, без реальных побочных эффектов;
+BLOCKED не считать pass. WAV и транскрипты остаются вне архива.
 
-## Карта
-
-| Модуль | Роль |
-|---|---|
-| `jarvis/main.py` | голосовой цикл, ASR gate, cmd_lock, _say_lock, barge-in |
-| `jarvis/gui.py`, `gui_commands.py`, `gui_audio.py`, `gui_preferences.py`, `gui_sidebar.py`, `gui_home.py`, `gui_home_fx.py` | Flet, вкладки, конструктор, очередь событий |
-| `jarvis/command_builder.py` | Typed custom_commands, валидация/CRUD без исполнения |
-| `jarvis/intents/` | handler, pipeline, fast-правила, исполнение |
-| `jarvis/language/` | числовые слоты команд, чтение чисел/римских цифр, морфология |
-| `jarvis/recognition.py`, `stt.py`, `vad.py` | уверенность ASR, Vosk/Whisper, VAD |
-| `jarvis/brain.py` | Ollama parse/chat, системные правила |
-| `jarvis/memory_context.py`, `learning.py`, `vectormem.py` | отбор личных фактов и RAG |
-| `jarvis/observer.py` | извлечение прямых утверждений пользователя; opt-in |
-| `jarvis/tts.py`, `tts_engines/` | Speaker и движки, per-call token |
-| `jarvis/audio_output.py`, `nonverbal.py` | единый PCM-микшер и политика реакций |
-| `assets/nonverbal/` | четыре CC0 WAV + источники/лицензия/хеши |
-| `jarvis/mood.py`, `prosody.py`, `persona.py` | состояние, эвристика голоса, стиль |
-| `jarvis/safety.py` | фильтр ответов перед TTS/историей стрима |
-| `jarvis/uia.py`, `actions.py` | COM, окна, браузеры, системные действия |
-| `jarvis/paths.py`, `config.py`, `profile.py` | пути, настройки, профили/кэш |
-| `snapshot.py`, `check_all.py`, `scripts/build_setup.py` | снимок, проверки, выпуск |
-
-## Контракты, которые легко сломать
-
-- `IntentHandler.handle(raw)` → `Reply(text | stream, allow_nonverbal=False)`.
-  Для стрима вызвать `finalize_stream()` после завершения безопасной озвучки.
-- Не удалять исходную пунктуацию до `language.analyze_command()`.
-  `normalize()` не заменяет семантический разбор чисел; пароли проходят раньше.
-- Сомнительную расшифровку не передавать handler/Observer/истории; запросить повтор.
-  Отказ JSON-parser (`none`) не отправлять в чат на вторую догадку.
-- `learning.build_context(query=...)` и `memory_context.select_memory()` ограничивают
-  личные факты. Пустой/сломанный RAG не означает «отправь всё».
-- Observer не учится на репликах ассистента, выключен без согласия.
-- Nonverbal принадлежит Speaker: opt-in, только помеченный диалог, одна попытка
-  на ответ, общий cooldown. Silero/Piper/WinRT используют один WAV-output callback;
-  SAPI остаётся без PCM-реакций. Никаких дополнительных проигрывающих потоков.
-
-## Зафиксированный выбор ASR
-
-Vosk остаётся в проекте. Удаление/замена и A/B альтернатив ASR не являются
-задачами текущего плана. Развиваем существующий VAD/Vosk/Whisper и сохраняем gate.
-
-## Конвенции и безопасность
-
-UTF-8 без BOM, CRLF. Не менять кодировки всего проекта случайной командой.
-Config читать через `get`, писать через `set`/config_manager, данные — атомарно.
-Пути только через `paths.py`: ASCII PROGRAM_DIR для моделей, USER_DIR для личного.
-Flet главный поток; cmd_lock и _say_lock сохранять; Vosk только listener-поток.
-Stop-token per-call; `wait_end` возвращает bool. UIA STA/COM под lock.
-Опасность custom/pack-макроса проверять до первого шага. Пароли не логировать.
-Личные JSON, модели, окружения, логи, build/dist не коммитить.
-Новые зависимости не добавлять без согласования; `num2words`/`pymorphy3` уже согласованы.
-Лицензию/attribution jsys12 не удалять. CC0-активы хранить вместе с происхождением.
-
-## После правки
-
-Добавить регрессии, прогнать доступные проверки, явно назвать пропуски и платформу.
-Не называть mock/headless-проверку живым Windows-аудиотестом.
-Обновить соответствующие руководства и PROJECT/PLAN/CHANGELOG, затем сгенерировать
-SNAPSHOT. README оставлять витриной проекта: не вставлять в начало датированные
-обновления/отчёты; возможности описывать в тематических разделах, историю — в CHANGELOG. Внешний graphify-отчёт без запуска graphify не объявлять пересобранным.
-Один фокус за раз: аудиорегрессии → GUI (функции/удобство → оформление)
-→ проверенные исправления/самообучение
-→ память → измеряемая оптимизация. Облако/Telegram/Hermes/MCP/VLM — дальний бэклог.
-`intents/clarification.py` использует существующий `_pending_question`: target/time/unit,
-30 с по monotonic, три неудачных ответа. Не считать это универсальным диалоговым
-планировщиком или дообучением модели. Проверенный слот возвращается в pipeline;
-custom/password остаются обязательными. Pipeline: cancel → pending → onboarding
-→ correction → password → memory → clipboard → modes → compound → clarification
-→ fast → llm. Ответы на слоты не направлять в Observer. Метрики handler/stages
-не включают STT/генерацию стрима/TTS и не содержат текст или пароль.
-
-
-## Аудиорегрессии
-
-Отдельный opt-in CLI `scripts/audio_regression.py prepare|run`, инструкции в
-`tests/audio/README.md`. Обычный pytest не запускает модели/микрофон/TTS.
-File-mode Listener и микрофон используют один `_consume_audio`; не подменять
-ASR ожидаемым текстом сценария, не форсировать FinalResult ради зелёного теста.
-Hybrid/VAD fallback или отсутствующая модель = BLOCKED/2, а не pass/skip.
-Не расширять ограниченный sandbox до выполнения реальных действий. Не включать
-WAV/транскрипты/модели в ZIP/Git/snapshot. GUI: Диалог, «Мои команды», «Микрофон», «Голос и звук», «Персона» и «Настройки» реализованы; native Windows-приёмка остаётся.
-
-
-## Перед коммитом
-
-Опциональная одноразовая установка: `python scripts/install_git_hooks.py`.
-Hook проверяет **Git index** через `scripts/check_staged_snapshot.py`, включая
-частичный staging; не запускает git add/commit/push, не меняет рабочие файлы.
-Чужой pre-commit/core.hooksPath не перезаписывается. При устаревшем снимке —
-`python snapshot.py`, затем явно подготовить нужные файлы и SNAPSHOT.md.
-pytest-log.txt исключён из Git/Cline/snapshot; если уже tracked — пользователь
-сам выполняет `git rm --cached -- pytest-log.txt`, локальный лог сохраняется.
-
-## Персона и Настройки
-
-Редактор: gui_preferences.py. Черновик не писать в Config/profile на каждый ввод.
-Имя и persona — одна profile-scoped compare-and-save запись; глобальный name
-не подставлять и не мигрировать молча. Факты/историю/onboarding сохранять.
-Config.update(expected_values=...) защищает пакет от конфликтов; ошибки записи
-не превращать в успех. Тема сразу, Observer/launch_mode после перезапуска.
-Ollama inventory — только по кнопке, worker → preferences_result в штатной очереди;
-никаких pull/inference, raw exception, stale success или fake-online.
-
-### Кольцо Главной
-`jarvis/gui_home_actions.py` — конечные переходы и 3 реальных Home-действия.
-Не добавлять frame-loop или поток аудио; сохранять 300px footprint и общий
-hover-мост. Скрытые действия должны быть недоступны для Tab и screen reader.
-
-### Виджеты Главной
-`jarvis/gui_widgets.py`, `tests/test_gui_widgets.py`: opt-in задачи и команды,
-пустой default. Сохранять guards/atomic draft/capture-restore и общий tasks store.
-Рендер проверять Flet-клиентом: unit не ловит Wrap+Expanded и ранний scroll_to.
-Установка/приёмка — docs/GUI_WIDGETS_UPDATE.md; голос — LOCAL_VOICE_OPTIONS.md,
-не выдавать предложения за реализованную модель клонирования.
-
-### Новый чат / активная озвучка
-PROMPT.md — актуальный handoff без истории. Следующая задача согласована,
-не реализована: лёгкий пакет Piper, ограниченные CPU/буфер, фразы одновременно
-с дальнейшей генерацией Ollama, stop очищает остаток. Не ждать всего ответа.
-Speaker.speak_stream уже существует — исследовать поведение, а не дублировать.
-Клонирование/обучение/облако отложены. TTS default/приоритет auto ещё прежние.
+После шага: регрессии → актуальные PROJECT/PLAN/руководство/CHANGELOG →
+сгенерировать snapshot.py → --check → проверить состав/применение ZIP к копии.
+Не читать/печатать весь SNAPSHOT при доступных исходниках. README — витрина,
+не журнал патчей. Не выполнять commit/push/tag без разрешения; не выдумывать их.
+В handoff назвать выполненное, файл, способ применения и непроверенные границы.

@@ -3,6 +3,12 @@
 > Документ описывает модули проекта, их роль и связи.
 > Помогает быстро вникнуть в проект — человеку или LLM.
 
+JASTIN — целевое видение Феникса от работодателя, а этот документ описывает
+**текущую реализацию**. Путь к цели и разрывы:
+[план перехода](docs/PHOENIX_JASTIN_RECONCILIATION.md), этапы R0–R6 в PLAN.md.
+Пока нет совместимого Uvoxus API, ZeroMQ event bus, SQLCipher и голосовой
+биометрии; это целевые работы, не основание отвергать видение.
+
 ---
 
 ## 📑 Содержание
@@ -375,7 +381,7 @@ vectormem._worker_loop (daemon «vectormem-index»)
 `Reply.allow_nonverbal` — явное разрешение диалогового ответа, default false.
 Speaker создаёт per-call token и регистрирует его в своей политике Nonverbal.
 `BaseEngine.set_wav_player(Speaker._play_wav)` направляет прямую и streaming-озвучку
-Silero/Piper/WinRT в один `audio_output.play_wav`. Самостоятельно созданный движок
+Silero/Piper в один `audio_output.play_wav`. Самостоятельно созданный движок
 пользуется тем же PCM-плеером без реакции.
 
 `Nonverbal.take(token)` атомарно делает максимум одну попытку на ответ: opt-in,

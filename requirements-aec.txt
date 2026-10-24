@@ -1,0 +1,3 @@
+# Optional experimental echo cancellation. No ASR/TTS model downloads.
+# Apache-2.0 wrapper; bundled WebRTC notices ship in the upstream wheel.
+pywebrtc-audio==0.2.0

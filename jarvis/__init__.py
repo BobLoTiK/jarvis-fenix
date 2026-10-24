@@ -1,8 +1,12 @@
-"""Феникс — локальный голосовой ассистент для Windows.
+"""TTS-движки Феникса — абстракция над Piper, Silero, SAPI.
 
-Ассистент: Vosk (wake) + Whisper (расшифровка) + Ollama (LLM) + Piper (TTS).
-Ключевые модули: jarvis.main, jarvis.intents, jarvis.brain, jarvis.tts, jarvis.stt.
+Публичный API:
+    BaseEngine   — абстрактный класс
+    get_engine   — фабрика по имени бэкенда
+    list_engines — список доступных движков
 """
 
-__version__ = "2.1.0"
-APP_NAME = "Феникс"
+from jarvis.tts_engines.base import BaseEngine
+from jarvis.tts_engines.factory import get_engine, list_engines
+
+__all__ = ["BaseEngine", "get_engine", "list_engines"]

@@ -11,7 +11,7 @@ import logging
 import re
 
 from jarvis import config_manager
-from jarvis.tts_engines.factory import _try_create
+from jarvis.tts_engines.factory import _try_create, normalize_backend
 
 
 log = logging.getLogger("jarvis.voices")
@@ -21,7 +21,6 @@ log = logging.getLogger("jarvis.voices")
 _BACKEND_HINT = {
     "piper":  "Piper: ruslan, dmitri, irina, denis",
     "silero": "Silero: aidar, baya, kseniya, xenia, eugene",
-    "winrt":  "WinRT: Pavel, Irina",
     "sapi":   "SAPI: зависит от системы",
 }
 
@@ -45,7 +44,7 @@ _VOICE_ALIASES = {
     "бая": "baya", "баю": "baya",
     "ксения": "kseniya", "ксению": "kseniya",
     "евгений": "eugene", "евгения": "eugene",
-    # WinRT / SAPI (системные голоса Windows, ключи с заглавной)
+    # SAPI (системные голоса Windows, ключи с заглавной)
     "павел": "pavel", "павла": "pavel",
 }
 
@@ -77,11 +76,6 @@ _FALLBACK_VOICES = {
         "xenia":   "Ксения (v5)",
         "eugene":  "Евгений",
     },
-    "winrt": {
-        "auto":  "Авто",
-        "Pavel": "Павел",
-        "Irina": "Ирина",
-    },
     "sapi": {"auto": "Авто"},
 }
 
@@ -93,13 +87,14 @@ def _voices_for_backend(backend: str) -> dict:
     fallback-словарь из _FALLBACK_VOICES — чтобы переключение голоса
     в тестах работало без реального синтеза.
     """
+    backend = normalize_backend(backend)
     if backend in _VOICES_CACHE:
         return _VOICES_CACHE[backend]
 
     result: dict = {}
 
     if backend == "auto":
-        for name in ("silero", "piper", "winrt", "sapi"):
+        for name in ("silero", "piper", "sapi"):
             eng = _try_create(name, "", "medium", 1.15)
             if eng is not None and eng.voices:
                 result = dict(eng.voices)
@@ -128,7 +123,7 @@ def _match_voice(key: str, voices: dict) -> str | None:
     """Ищет ключ голоса в словаре движка без учёта регистра.
 
     Ключи движков неоднородны: piper/silero — строчные («irina»),
-    winrt/sapi — с заглавной («Pavel»). Возвращает ключ ровно таким,
+    sapi — с заглавной («Pavel»). Возвращает ключ ровно таким,
     как он записан в движке, либо None, если голоса нет.
     """
     if key in voices:
@@ -148,8 +143,8 @@ def current_voice(config=None) -> str:
 
 def current_backend(config=None) -> str:
     if config is not None:
-        return config.get("tts_backend", "auto")
-    return config_manager.load().get("tts_backend", "auto")
+        return normalize_backend(config.get("tts_backend", "auto"))
+    return normalize_backend(config_manager.load().get("tts_backend", "auto"))
 
 
 def switch(voice: str, config=None) -> str:
@@ -163,7 +158,7 @@ def switch(voice: str, config=None) -> str:
     # Алиасы: «ирину» → «irina», «руслан» → «ruslan»
     key = _normalize_voice(voice)
 
-    # Регистронезависимый матчинг: у winrt/sapi ключи с заглавной
+    # Регистронезависимый матчинг: у sapi ключи с заглавной
     # («Pavel», «Irina»), а алиасы приводят имя к нижнему регистру.
     matched = _match_voice(key, voices)
     if matched is None:

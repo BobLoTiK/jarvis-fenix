@@ -29,8 +29,8 @@ DEFAULT_CONFIG = {
     # только с его согласия. Чекбокс — вкладка «Настройки» →
     # «Приватность»; ход извлечения — в logs/observer.log.
     "observer_enabled": False,
-    # TTS backend: "auto" | "piper" | "silero" | "winrt" | "sapi"
-    # auto — Silero → Piper → WinRT → SAPI (первый доступный).
+    # TTS backend: "auto" | "piper" | "silero" | "sapi"
+    # auto — Silero → Piper → SAPI (первый доступный).
     # ВАЖНО: при смене backend голос тоже надо менять — они не пересекаются.
     "tts_backend": "auto",
     "tts_voice": "ruslan",
@@ -58,6 +58,8 @@ DEFAULT_CONFIG = {
     "whisper_device": "auto",
     "mode": "combo",
     "barge_enabled": True,
+    "aec_enabled": False,  # experimental Piper PCM; restart + optional package
+    "aec_stream_delay_ms": 40,  # residual delay hint, not hardware calibration
 
     # VAD (Silero ONNX, ~2.3 МБ). Отсекает тишину/шум ДО Vosk.
     # Wake-слово работает как раньше — VAD только фильтрует вход.
@@ -179,6 +181,9 @@ class Config:
             merged = dict(DEFAULT_CONFIG)
             merged.update(raw)
             log.info("Конфиг загружен: %d ключей из %s", len(merged), self.path.name)
+        if merged.get("tts_backend") == "winrt":
+            from jarvis.tts_engines.factory import normalize_backend
+            merged["tts_backend"] = normalize_backend("winrt")
         self._data = merged
 
     # --- чтение ----------------------------------------------------------

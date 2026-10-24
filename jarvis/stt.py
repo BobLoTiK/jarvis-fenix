@@ -77,6 +77,13 @@ class Listener:
             raise RuntimeError("Vosk не установлен: требуется пакет vosk")
         if not file_mode and sd is None:
             raise RuntimeError("Микрофон недоступен: требуется sounddevice/PortAudio")
+        self._echo_path = None
+        self._aec_preroll = deque(maxlen=4)  # <=512 ms cleaned audio, RAM only
+        self._aec_barge = False
+        self._aec_last_reason = "idle"
+        self._aec_residual_levels = deque(maxlen=24)
+        self._aec_level_threshold = 20
+        self._aec_trigger_metrics = None
         self._file_mode = bool(file_mode)
         self.file_vad_errors = 0
         SetLogLevel(-1)
@@ -187,7 +194,13 @@ class Listener:
 
     def barge_start(self):
         self.barge_flag = False
+        self._aec_barge = False
+        history = getattr(self, "_aec_preroll", None)
+        if history is not None:
+            history.clear()
         self._barge_speech_ms = 0
+        self._aec_last_reason = "warming"
+        self._aec_trigger_metrics = None
         self._speech_active = True
         self._speech_started_at = time.time()
         self._echo_done = False
@@ -196,8 +209,20 @@ class Listener:
 
     def barge_end(self):
         self._speech_active = False
-        log.info("Barge-in: стоп (echo=%d, thr=%d, речь=%d мс)",
-                 self._echo_baseline, self._barge_threshold, self._barge_speech_ms)
+        path = getattr(self, "_echo_path", None)
+        diagnostics = getattr(path, "diagnostics", lambda: None)()
+        if diagnostics is not None:
+            log.info(
+                "Barge-in AEC: завершение контроля (reason=%s, speech=%d мс, threshold=%d, trigger=%s, %s)",
+                self._aec_last_reason,
+                self._barge_speech_ms,
+                getattr(self, "_aec_level_threshold", 20),
+                getattr(self, "_aec_trigger_metrics", None),
+                diagnostics,
+            )
+        else:
+            log.info("Barge-in: стоп (echo=%d, thr=%d, речь=%d мс)",
+                     self._echo_baseline, self._barge_threshold, self._barge_speech_ms)
 
     def _process_barge(self, rms):
         if not self._speech_active or not self.barge_enabled:
@@ -285,7 +310,62 @@ class Listener:
         except Exception:
             return True
 
+    def set_echo_path(self, path):
+        if self._file_mode:
+            raise RuntimeError("AEC не подключается к WAV replay")
+        self._echo_path = path
+        # LCM(160 WebRTC samples, 512 Silero samples) at 16 kHz: no
+        # artificial zero padding between capture blocks in either DSP.
+        self._block_size = 2560  # 160 ms, only this opt-in prototype
+        self._block_ms = 160
+        self._aec_preroll = deque(maxlen=3)  # <=480 ms cleaned PCM in RAM
+        if self._vad_gate is not None:
+            self._vad_gate = SpeechHangover(self._hangover_blocks())
+        path.start(self._accept_capture)
+
     def _callback(self, indata, frames, time_info, status):
+        path = getattr(self, "_echo_path", None)
+        if path is not None:
+            now = time.monotonic()
+            age = frames / max(1, self._sample_rate)
+            try:
+                delta = float(time_info.currentTime - time_info.inputBufferAdcTime)
+                if 0 <= delta <= 2:
+                    age = delta
+            except (AttributeError, TypeError, ValueError):
+                pass
+            if status:
+                path.discontinuity()
+            if path.submit(bytes(indata), now - age):
+                return
+        gap = path.take_gap() if path is not None else False
+        guarded = bool(
+            path is not None
+            and getattr(path, "render_guard_active", lambda: False)()
+        )
+        self._accept_capture(
+            indata,
+            status=status,
+            aec_reset=gap,
+            inhibit_for_render=guarded,
+        )
+
+    def _accept_capture(self, indata, status=None, *, aec_probability=None, source_pcm=None,
+                        aec_echo_similarity=None, aec_raw_similarity=None,
+                        aec_verified=False,
+                        aec_attenuation=None, aec_best_attenuation=None,
+                        aec_reset=False, inhibit_for_render=False, aec_trace_id=None):
+        if aec_reset:
+            self._barge_speech_ms = 0
+            # A sentinel is consumed by the Vosk owner, never Reset() here.
+            self._audio.put(None)
+            if self.vad is not None:
+                try:
+                    self.vad.reset()
+                except Exception:
+                    pass
+            if self._vad_gate is not None:
+                self._vad_gate.reset()
         if status:
             log.warning("Аудиопоток: %s", status)
         arr = np.frombuffer(indata, dtype=np.int16)
@@ -297,16 +377,31 @@ class Listener:
             rms = 0
             self.current_rms = 0
         self.level_updated_at = time.monotonic()
-        self._process_barge(rms)
-
-        if self.muted:
+        clean_rms = rms
+        if source_pcm is not None:
+            source = np.frombuffer(source_pcm, dtype=np.int16).astype(np.float32)
+            if source.size:
+                self.current_rms = int(np.sqrt(np.mean(source ** 2)))
+                self.peak = max(self.peak, int(np.abs(source).max()))
+        if inhibit_for_render:
+            # Optional AEC missing/starting/failed: never fall back to legacy
+            # RMS barge-in while Piper is audible.  Drop recognition for this
+            # block too, otherwise the assistant can hear its own reply as the
+            # next command.  Physical mic level above remains visible.
+            self._barge_speech_ms = 0
+            self._aec_last_reason = "aec_unavailable"
             return
+        if aec_probability is None:
+            self._process_barge(rms)
+            if self.muted:
+                return
 
         # VAD: пропускаем чанк в Vosk ТОЛЬКО если в нём есть речь.
         # Тишина и шум отсекаются — Vosk не крутит AcceptWaveform зря.
         # ВАЖНО: после речи отдаём ещё «хвост» тишины (vad_hangover_ms),
         # иначе Vosk не увидит паузу и не отдаст финальную фразу.
         raw = bytes(indata)
+        speech = True
         if self.vad is not None:
             try:
                 speech = self.vad.is_speech(raw)
@@ -314,11 +409,103 @@ class Listener:
                 self.file_vad_errors = getattr(self, "file_vad_errors", 0) + 1
                 log.exception("VAD.is_speech упал — пропускаю чанк как есть")
                 speech = True
-            if self._vad_gate is not None and not self._vad_gate.feed(speech):
-                # Тишина дольше «хвоста» — в Vosk не пушим.
-                # Barge/peak/current_rms уже обновлены.
+        if aec_probability is not None:
+            history = getattr(self, "_aec_preroll", None)
+            if history is not None and self._speech_active:
+                history.append(raw)
+            # Learn the cleaned residual level only from blocks where AEC has
+            # demonstrably attenuated the render.  This adapts to quiet mics
+            # without learning the user's interruption as "background".
+            residual_levels = getattr(self, "_aec_residual_levels", None)
+            if (residual_levels is not None and aec_attenuation is not None
+                    and aec_attenuation <= .20):
+                residual_levels.append(clean_rms)
+                ordered = sorted(residual_levels)
+                floor = ordered[len(ordered) // 2]
+                self._aec_level_threshold = max(12, min(180, int(floor * 1.8 + 8)))
+            # This decision sees cleaned PCM, not raw speaker echo. The native
+            # speech probability is an additional gate, not speaker identity.
+            # The current render must first prove cancellation, and correlated
+            # residual render audio must never be accepted as a second talker.
+            trace_active = self._speech_active and self.barge_enabled
+            trace_triggered = False
+            if self._speech_active and self.barge_enabled and not self.barge_flag:
+                level_threshold = getattr(self, "_aec_level_threshold", 20)
+                ratio_threshold = max(
+                    .06,
+                    min(.25, (aec_best_attenuation or 0.0) * 2.5),
+                )
+                if not aec_verified:
+                    candidate = False
+                    self._aec_last_reason = "warming"
+                elif aec_echo_similarity is None:
+                    candidate = False
+                    self._aec_last_reason = "no_reference"
+                elif (aec_raw_similarity is not None
+                      and aec_raw_similarity >= .45
+                      and aec_echo_similarity >= .22
+                      and clean_rms >= max(60, level_threshold * 3)):
+                    candidate = False
+                    self._aec_last_reason = "acoustic_path_change"
+                elif aec_echo_similarity >= .35:
+                    candidate = False
+                    self._aec_last_reason = "speaker_echo"
+                elif not speech:
+                    candidate = False
+                    self._aec_last_reason = "vad"
+                elif aec_probability < .60:
+                    candidate = False
+                    self._aec_last_reason = "probability"
+                elif clean_rms < level_threshold:
+                    candidate = False
+                    self._aec_last_reason = "level"
+                elif (aec_attenuation is not None
+                      and aec_attenuation < ratio_threshold
+                      and aec_echo_similarity >= .08):
+                    candidate = False
+                    self._aec_last_reason = "attenuation"
+                else:
+                    candidate = True
+                    self._aec_last_reason = "near_speech"
+                if candidate:
+                    self._barge_speech_ms += len(raw) * 1000 / (2 * self._sample_rate)
+                    if self._barge_speech_ms >= 320:
+                        trace_triggered = True
+                        self.barge_flag = True
+                        self._aec_barge = True
+                        self._aec_last_reason = "triggered"
+                        self._aec_trigger_metrics = {
+                            "rms": clean_rms,
+                            "probability": round(float(aec_probability), 3),
+                            "similarity": round(float(aec_echo_similarity), 3),
+                            "raw_similarity": (
+                                None if aec_raw_similarity is None
+                                else round(float(aec_raw_similarity), 3)
+                            ),
+                            "attenuation": (
+                                None if aec_attenuation is None
+                                else round(float(aec_attenuation), 3)
+                            ),
+                        }
+                else:
+                    self._barge_speech_ms = 0
+            if aec_trace_id is not None:
+                path = getattr(self, "_echo_path", None)
+                if path is not None:
+                    path.record_trace_decision(
+                        aec_trace_id,
+                        reason=getattr(self, "_aec_last_reason", "unknown") if trace_active else "inactive",
+                        triggered=trace_triggered,
+                        speech_ms=self._barge_speech_ms,
+                        threshold=getattr(self, "_aec_level_threshold", 20),
+                        rms=clean_rms, raw_rms=self.current_rms,
+                        vad=bool(speech), muted=bool(self.muted),
+                        trigger=getattr(self, "_aec_trigger_metrics", None),
+                    )
+            if self.muted:
                 return
-
+        if self._vad_gate is not None and not self._vad_gate.feed(speech):
+            return
         self._audio.put(raw)
 
     def _drain_audio(self) -> None:
@@ -346,7 +533,23 @@ class Listener:
         Vosk-контекст сбрасывает сам listener в phrases() через Reset(),
         когда накапливается слишком много тишины.
         """
+        path = getattr(self, "_echo_path", None)
+        if path is not None:
+            path.flush()
+        history = getattr(self, "_aec_preroll", None)
+        saved = list(history) if history is not None and getattr(self, "_aec_barge", False) else []
+        if history is not None:
+            history.clear()
+        self._aec_barge = False
         self._drain_audio()
+        if saved:
+            # Reset stays on the recognizer owner. Preserve the cleaned onset
+            # that triggered AEC barge-in instead of throwing it away at stop.
+            if path is not None:
+                path.take_gap()
+            self._audio.put(None)
+            for raw in saved:
+                self._audio.put(raw)
         # Сброс VAD state — после barge/wake/flush детекция должна начаться заново.
         if self.vad is not None:
             try:
@@ -451,6 +654,9 @@ class Listener:
                      new_device)
             return
 
+        path = getattr(self, "_echo_path", None)
+        if path is not None:
+            path.flush(reset=True)
         self._device = new_device
         self.device_name = self._current_device_name()
         self._device_reload = True
@@ -465,6 +671,13 @@ class Listener:
 
     def _consume_audio(self, data):
         """Один и тот же endpoint/quality путь для микрофона и WAV replay."""
+        if data is None:
+            # AEC overload/device/error gap must not join two partial commands.
+            self._rec.Reset()
+            self._utt_buf.clear()
+            self._utt_len = 0
+            self.last_quality = None
+            return None
         max_buf = self._sample_rate * 2 * 30
         self._utt_buf.append(data)
         self._utt_len += len(data)

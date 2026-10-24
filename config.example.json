@@ -23,6 +23,8 @@
   "command_window_sec": 8,
   "mode": "combo",
   "barge_enabled": true,
+  "aec_enabled": false,
+  "aec_stream_delay_ms": 40,
   "vad_enabled": true,
   "vad_threshold": 0.5,
   "vad_adaptive": true,

@@ -13,7 +13,6 @@ log = logging.getLogger("jarvis.tts")
 _ENGINE_IMPORTS = {
     "silero": ("jarvis.tts_engines.silero", "SileroEngine"),
     "piper":  ("jarvis.tts_engines.piper", "PiperEngine"),
-    "winrt":  ("jarvis.tts_engines.winrt", "WinRTEngine"),
     "sapi":   ("jarvis.tts_engines.sapi", "SAPIEngine"),
 }
 
@@ -21,7 +20,6 @@ _ENGINE_IMPORTS = {
 _ENGINE_REQUIRES = {
     "silero": "torch",
     "piper":  "piper",
-    "winrt":  "winrt.windows.media.speechsynthesis",
     "sapi":   "pyttsx3",
 }
 
@@ -66,6 +64,8 @@ def _dependency_present(module_name: str) -> bool:
 
 def _probe_engine(name: str):
     """Заглушка движка по имени. None — модуля/зависимости нет."""
+    if name not in _ENGINE_IMPORTS:
+        return None
     if name in _PROBE_CACHE:
         return _PROBE_CACHE[name]
 
@@ -85,18 +85,27 @@ def _probe_engine(name: str):
     return probe
 
 
+def normalize_backend(backend):
+    """Retired stored WinRT selection falls back without loading the old engine."""
+    if backend == "winrt":
+        log.warning("TTS: WinRT speech removed; using auto (Silero -> Piper -> SAPI)")
+        return "auto"
+    return backend
+
+
 def get_engine(backend: str, voice: str, quality: str = "medium",
                rate: float = 1.15):
     """Возвращает engine по имени.
 
-    backend: "auto" | "piper" | "silero" | "winrt" | "sapi"
+    backend: "auto" | "piper" | "silero" | "sapi"
     При "auto" — первый доступный из списка приоритета.
 
     ВАЖНО: voice="" — служебный вызов (список голосов / список движков),
     движок при этом НЕ создаётся, см. _probe_engine.
     """
+    backend = normalize_backend(backend)
     if backend == "auto":
-        for name in ("silero", "piper", "winrt", "sapi"):
+        for name in ("silero", "piper", "sapi"):
             engine = _try_create(name, voice, quality, rate)
             if engine is not None:
                 log.info("TTS auto: выбран движок %s", name)
@@ -119,6 +128,8 @@ def _try_create(name: str, voice: str, quality: str, rate: float):
     при проверке доступных движков (voice=""). В этом же случае
     возвращаем дешёвую заглушку — движок не создаём.
     """
+    if name not in _ENGINE_IMPORTS:
+        return None  # retired names cannot be revived through either cache
     if voice == "":
         return _probe_engine(name)
 
@@ -134,9 +145,6 @@ def _try_create(name: str, voice: str, quality: str, rate: float):
         elif name == "piper":
             from jarvis.tts_engines.piper import PiperEngine
             engine = PiperEngine(voice or "ruslan", quality, rate)
-        elif name == "winrt":
-            from jarvis.tts_engines.winrt import WinRTEngine
-            engine = WinRTEngine(voice or "Pavel", quality, rate)
         elif name == "sapi":
             from jarvis.tts_engines.sapi import SAPIEngine
             engine = SAPIEngine(voice or "auto", quality, rate)
@@ -153,7 +161,7 @@ def _try_create(name: str, voice: str, quality: str, rate: float):
 def list_engines() -> list[str]:
     """Список доступных движков (по факту импорта)."""
     available = []
-    for name in ("silero", "piper", "winrt", "sapi"):
+    for name in ("silero", "piper", "sapi"):
         if _try_create(name, "", "medium", 1.15) is not None:
             available.append(name)
     return available

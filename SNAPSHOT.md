@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=811ca26fe91346ad` · режим `lean` · файлов `300` · строк `53577` · источник `2475 КБ`
+`sha256=b1edae8c897f4d98` · режим `lean` · файлов `320` · строк `56110` · источник `2635 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -11,124 +11,43 @@
 ## 0. PROJECT.md — что это, как устроено, чего нельзя делать
 
 ````
-# PROJECT.md — источник правды о «Феникс»
+# PROJECT — текущее состояние Феникса
 
-**Текущий P0 — надёжность первого запуска, исходный пакет ещё не принят на Windows.**
-В старой Sandbox после ручных VC++ x64, CA bundle и выбора Piper пользователь
-подтвердил Explorer, повторную команду и голос. Это не чистая установка.
-Логи также подтвердили TLS-ошибки Flet/Silero, зависание ожидания TTS,
-ложное «Открываю Блокнот» при WinError 2 и CUDA-ошибку уже внутри Whisper decode.
-В исходниках: согласуемый VC++ prerequisite с проверкой подписи Microsoft,
-process-scoped certifi до импорта приложения, подготовка Flet до передачи запуска,
-ограниченное ожидание голоса без синхронного повторного init, честный run_spec,
-CPU-повтор той же кэшированной Whisper-модели при CUDA decode failure.
-Vosk и confidence gate сохранены. Auto: Silero → Piper → WinRT → SAPI без смены
-приоритета; новая TTS-очередь не реализована. Полный GUI-readiness handshake
-лаунчера по-прежнему не реализован. Самостоятельное падение Sandbox при Ollama
-не диагностировано. Правки требуют пересборки EXE/Setup и новой чистой приёмки.
-Инструкция и ограничения: docs/WINDOWS_STARTUP_RELIABILITY.md.
+## Цель и источники правды
 
-**Предшествующий bootstrap-этап; общая Windows-приёмка остаётся открытой.** После ручной
-подготовки Python старая Sandbox-установка дошла до предложения Ollama.
-В исходниках подготовлены Windows HTTPS + Authenticode для Python и явный выбор/
-загрузка одной локальной модели Ollama в том же окне. Существующий выбор не
-заменяется молча; пропуск не пишет настройки. Инструкция обоих изменений:
-docs/BOOTSTRAP_PYTHON_OLLAMA_UPDATE.md. 149 bootstrap/build тестов прошли на Linux;
-2 Windows-проверки пропущены. Пользователь сообщил о готовой новой сборке;
-её чистая Windows-приёмка ещё не выполнена. Результаты старой установки
-не переносятся на новую сборку.
-Это описание прежнего Python/Ollama-пакета; текущие дополнения — выше.
-Полный GUI-readiness handshake по-прежнему не реализован.
+Феникс развивается к JASTIN — видению работодателя. Максимально реализуем
+целевые возможности, не выдавая их за существующие. Детали/источники:
+[PLAN](PLAN.md), [целевая матрица](docs/PHOENIX_JASTIN_RECONCILIATION.md),
+[оригиналы требований](docs/reference/README.md).
 
+Этот документ — фактическая база; AGENTS — контракты, NEXT_STEPS — ближайший
+блок, ARCHITECTURE — карта кода. История — CHANGELOG, не обязательна для входа.
 
-**Интерфейс подготовки:** `launcher_ui.py` (Tk + очередь), дополнен выбором модели. Сохранён запуск -m jarvis из venv; добавлены HTTPS/config helpers, VC++ и подготовка Flet. Активной отмены нет. Пользователь сообщил о новой сборке; Windows UI-приёмка ожидается.
+## Статус текущей рабочей копии
 
-**Подготовленная версия: 2.1.0, тег `v2.1.0`.** Создание/push тега из этой рабочей копии не выполнялись (нет `.git` и GitHub-подключения). Дальнейшие действия: `docs/NEXT_STEPS.md`.
+| Область | В исходниках | Не подтверждено / следующий шаг |
+|---|---|---|
+| Запуск Windows | Bootstrap Python/Ollama, VC++/HTTPS/Flet preparation, TTS readiness и Whisper CPU fallback | Чистая установка/новые EXE/Setup; полный GUI-readiness handshake ещё не реализован |
+| Аудио | Optional Piper AEC3, bounded capture worker/epoch/gap/pre-roll; диагностика Piper/Silero | Последний пакет пользователь ещё не проверял; живое AEC не принято |
+| TTS | Silero → Piper → SAPI, общий PCM и per-call token; WinRT TTS удалён | Новый bounded streaming и fade-out не реализованы; применение Silero rate проверить |
+| GUI/команды | Flet, Главная/Диалог/редактор/звук/профиль/настройки, typed static steps и уточнения | Целевая Windows UI/DPI/tray/audio-приёмка остаётся |
+| Память | JSON, ограниченный контекст, опциональный local RAG/Observer | SQLite/SQLCipher/DPAPI, целевые embeddings и контролируемое обучение по R4 |
+| Целевая архитектура | Рабочие внутренние модули и существующий pipeline | voice_core/Event Bus/SDK/биометрия/Trust/новый GUI/router — план R2–R6 |
 
-**Поставка обновлена:** `docs/INSTALLER_UPDATE.md` — curated payload/manifest, Python 3.11/Flet 1.0.x, fingerprint зависимостей, caps в USER_DIR. EXE/Setup здесь не собраны; Windows acceptance обязательна. TTS-оптимизация ещё не реализована.
-Курируемый документ. Обновлён 16.10.2026. `snapshot.py` включает его целиком;
-остальные руководства раскрывают пользовательские и технические детали.
-История версий — в `CHANGELOG.md`, порядок развития — в `PLAN.md`.
+Пользователь отложил Windows-аудио и Setup-проверки; это не их отмена.
+Предыдущие AEC-пробы улучшили работу, но оставались ложные перебивания;
+«х» в «их» — гипотеза для воспроизведения, не доказанная причина.
+Ни новая документация, ни portable tests не подтверждают установку последнего пакета.
 
-## README как страница проекта
+WinRT удалён только из TTS. `tts_backend=winrt` читается как auto с предупреждением
+без записи конфига при чтении. WinRT Media Control сохранён. SAPI без PCM —
+диагностические метаданные, не полный AEC reference. Оценочный render timestamp
+не является аппаратной DAC/ADC синхронизацией; loopback/виртуального кабеля нет.
 
-README — короткая публичная страница, не копия PROJECT/PLAN и не отчёт сборки.
-В центре — реальные команды, редактор сценариев, отдельные Главная/Диалог,
-установка, диагностика и границы локальности. SVG-обложки assets/readme используют
-фирменную птицу, графит/медь и отдельную мобильную композицию. Уникальность подачи
-не заменяет точность: без фиктивных скриншотов, бенчмарков и будущих возможностей.
-Витрина дополнена адаптивными иллюстрациями команд и образцами реальных палитр;
-длинные инструкции и технические детали убраны под раскрывающиеся блоки.
-Шесть SVG включены явным списком в public payload; логика установки не менялась.
-Изменение README не меняет runtime и не требует пересборки установленного EXE.
-
-## Текущий следующий шаг — лёгкая потоковая озвучка (ещё не реализован)
-
-Продукт распространяется на разные ПК. Не делать железо автора/установленный
-системный голос обязательной базой. Следующий кандидат — пакет Piper;
-системный голос только fallback при наличии. Текущий auto по-прежнему
-Silero → Piper → WinRT → SAPI: его приоритет в этом документационном шаге не менялся.
-Существующий speak_stream уже есть; проверить фактическое чтение генератора,
-первую безопасную фразу/PCM, блокировку на синтезе и воспроизведении.
-Согласована озвучка готовых фраз одновременно с дальнейшей генерацией Ollama,
-маленький bounded buffer/backpressure, ограничение CPU TTS и отмена очереди
-per-call token. Ожидание ВСЕГО ответа перед озвучкой явно отклонено.
-Сохранять safety/finalize_stream, историю, cmd_lock/_say_lock, barge-in и единый
-PCM/nonverbal. Не менять выбор пользователя/параметры Ollama молча.
-Пакеты, CPU-ограничения и новый буфер ещё не реализованы; сначала baseline,
-потом минимальный патч и повторный замер. Silero rate сейчас читается, но не
-применяется: известная неисправленная проблема. Клоны/XTTS/обучение/облако отложены.
-Точный handoff и критерии — PROMPT.md; детали вариантов — LOCAL_VOICE_OPTIONS.md.
-
-## Опциональные виджеты Главной
-
-`gui_widgets.py`: WidgetBoard; config gui_home_widgets/gui_home_shortcuts —
-пустые списки по умолчанию. Черновик редактора, atomic Config.update с
-expected_values, адаптивный порядок/ширина, drag handle + стрелки.
-Задачи используют tasks.list_items/set_done по точному ID и общее tasks.json.
-Обновление через существующий Home clock, stat перед чтением; до 100 строк.
-Быстрые действия только по клику вне редактора → Dialog → _run_command;
-guards core/busy/pending-password/question, никаких прямых процессов.
-Смена темы переносит capture/restore, включая текст полей. Удаление карточки
-не удаляет данные. Скрытый/размонтированный board не запускает таймеры.
-Нативные TextField подписаны на on_change для синхронизации; не помещать
-Expanded в Row(wrap=True): Flutter Wrap выдаёт invalid ParentData/серую область.
-При None→AUTO scroll нельзя немедленно вызывать scroll_to до монтажа:
-Flet ScrollableControl ещё отсутствует (Bad state: No element).
-См. docs/GUI_WIDGETS_UPDATE.md и docs/LOCAL_VOICE_OPTIONS.md (только предложения).
-
-## Кольцо действий Главной
-
-`gui_home_actions.py` — PhoenixActions: обёртка над существующей аурой с тем же
-фиксированным размером 300×300. Триггер 120px над птицей открывает три кнопки
-48px на окружности. Только нативные Flet Stack/Container/IconButton/Semantics,
-без нового Canvas или собственного animation-loop. Конечные opacity/scale
-переходы 220ms, уход курсора с общей зоны — задержка 240ms. Внешняя зона сама
-по себе не раскрывает меню: нужен hover птицы, focus с клавиатуры или активация.
-Реальные callbacks: `_select_tab(0)`, `_on_mic_toggle`, `_on_stop_speech`.
-В закрытом меню действия disabled+hidden semantics; без ядра аудио disabled,
-без speaking stop disabled. Состояние синхронизируется событиями и существующим
-5Hz RMS-poll, без повторных update при неизменных данных. Обновляется локальный
-контрол кольца, а не вся Page. Reduced motion берётся у той же PhoenixAura.
-Home keyboard-dispatch сохраняет обработчик боковой панели; Escape закрывает
-кольцо до обработки Escape панели. Dispose сбрасывает меню и отменяет таймер.
-Отдельный раздел Планы не реализован; опциональные виджеты описаны выше.
-Инструкция: `docs/GUI_HOME_ACTION_RING.md`.
-
-## Исправления запуска окна / трея
-
-`FenixGUI.run_main/_run` используют `AppView.FLET_APP_HIDDEN` (Flet 1.0.3+).
-`_main` применяет название, ICO и первую раскладку при visible=False, затем
-явно показывает окно только для обычного GUI-старта. Tray-ошибки возвращают
-окно через очередь, включая ошибки до создания Flet Page. `prevent_close`
-меняется GUI-worker, не потоком трея. Трей readiness ограничен 3 секундами;
-Windows-адаптер pystray проверяет Shell_NotifyIconW и повторяет NIM_ADD до 2 с.
-Windows решает, положить значок в видимую область или под стрелку «^» —
-приложение не меняет системные настройки видимости значков.
-Основной mutex имеет Win64 HANDLE-сигнатуру и ограниченное 3-секундное ожидание
-освобождения старым launcher.exe; новый исходник launcher использует отдельное
-имя setup-mutex. В обновлении нет пересобранного EXE, старый EXE поддержан.
-Инструкция и ручная приёмка: `docs/GUI_STARTUP_TRAY_FIX.md`.
+Следующий инженерный блок: [NEXT_STEPS](docs/NEXT_STEPS.md).
+Снимок исключает локальные .env/.env.*/.envrc; их содержимое не редактируется.
+Свежая проверка этого комплекта: [HANDOFF_VALIDATION](docs/HANDOFF_VALIDATION.md).
+Детальные контракты GUI/команд: [приёмка](docs/ACCEPTANCE_CHECKLIST.md).
 
 ## 1. Назначение и стек
 
@@ -139,7 +58,7 @@ MIT и attribution оригинального автора сохраняютс�
 
 - GUI: Flet 1.0.x в главном потоке.
 - STT: Vosk + faster-whisper; VAD: Silero ONNX.
-- TTS: `auto` выбирает Silero → Piper → WinRT → SAPI.
+- TTS: `auto` выбирает Silero → Piper → SAPI.
 - LLM и эмбеддинги: Ollama, опционально; по умолчанию локальный адрес.
 - Язык: `num2words` + `pymorphy3`, офлайн после установки зависимостей.
 - Сборка: `scripts/build_exe.py` собирает лёгкий launcher, не автономный Python-runtime.
@@ -259,7 +178,7 @@ Observer выключен без согласия (`observer_enabled=false`); и
   happy/excited → laugh; neutral/bored → hmm; tired → sigh или yawn;
   annoyed/неизвестное состояние → без реакции. Это эвристика, не ML-классификатор.
 - Максимум одна попытка на ответ, не на предложение; общий cooldown между ответами.
-- `BaseEngine.set_wav_player()` направляет WAV из Silero/Piper/WinRT в Speaker;
+- `BaseEngine.set_wav_player()` направляет WAV из Silero/Piper в Speaker;
   `audio_output.py` декодирует/ресэмплирует/микширует PCM и выводит одним потоком.
 - Уровень относительно RMS активной речи, ресэмплинг под частоту TTS, защита от
   клиппинга. Один stop-token обрывает речь и реакцию; реакция не создаёт второй плеер.
@@ -503,15 +422,15 @@ staging учитывается: свежий рабочий SNAPSHOT не мас
 WAV/отчёты: `paths.audio_regression_dir()` → USER_DIR/audio-regression.
 См. tests/audio/README.md: покрытие ограничено open/timer/cancel, это не весь реестр.
 
-## 9. Дальше
+## 10. Направление развития
 
-Vosk сохраняем; замену/удаление и сравнение альтернатив ASR не планируем.
-Текущий курс — развитие самого Феникса, см. PLAN.md: приёмка аудиорегрессий,
-затем GUI (удобство/функции → оформление), далее контекст исправлений, подтверждаемое самообучение поверх существующего learning,
-качество памяти и измеряемая оптимизация. Облако, Telegram/веб, Hermes, MCP,
-плагины, VLM и новые интерфейсы — дальний бэклог, не следующий обязательный этап.
-Сначала исправляем поведение приложения; дообучение весов возможно позже,
-для конкретной базовой модели и только на проверенных примерах.
+Цель — максимальная реализация видения JASTIN от работодателя, с обоснованными
+оговорками и согласованием изменений. Этапы R0–R6 в PLAN.md; полный переход —
+docs/PHOENIX_JASTIN_RECONCILIATION.md. Сначала рабочая аудиобаза и потоковый TTS,
+затем модульность/skills, consensus/Trust, защищённая память и обучение,
+целевые SDK/сценарии/UI/router/TTS, поставка. Это план, не готовые функции.
+Vosk сейчас не удаляется, целевой wake/fallback сохраняется. Не фиксировать
+Flet/JSON/Ollama-only как вечные ограничения против целевого документа.
 Non-verbal/микрофон/установщик по-прежнему требуют ручной Windows-приёмки.
 ````
 
@@ -522,7 +441,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ```
 ./
 ├── .clineignore  (53 стр)
-├── .clinerules  (44 стр)
+├── .clinerules  (18 стр)
 ├── .gitattributes  (2 стр)
 ├── .githooks/
 │   ├── pre-commit  (18 стр)
@@ -531,8 +450,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── README.md  (74 стр)
 │   │   ├── release.yml  (132 стр)
 │   │   ├── test.yml  (71 стр)
-├── AGENTS.md  (181 стр)
-├── ARCHITECTURE.md  (1091 стр)
+├── AGENTS.md  (88 стр)
+├── ARCHITECTURE.md  (1097 стр)
 ├── assets/
 │   ├── nonverbal/
 │   │   ├── README.md  (40 стр)
@@ -545,7 +464,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── README.md  (17 стр)
 │   │   ├── themes-mobile.svg  (19 стр)
 │   │   ├── themes.svg  (19 стр)
-├── CHANGELOG.md  (1658 стр)
+├── CHANGELOG.md  (1712 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -554,10 +473,14 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ├── cmds/
 │   ├── open_terminal.bat  (3 стр)
 │   ├── show_ip.bat  (3 стр)
-├── config.example.json  (89 стр)
+├── config.example.json  (91 стр)
 ├── CONTRIBUTING.md  (438 стр)
 ├── create_shortcut.bat  (52 стр)
 ├── docs/
+│   ├── ACCEPTANCE_CHECKLIST.md  (209 стр)
+│   ├── AEC_LOCAL_DIAGNOSTICS.md  (121 стр)
+│   ├── AEC_PIPER_PROTOTYPE.md  (120 стр)
+│   ├── AEC_SAMPLE_ALIGNMENT_UPDATE.md  (55 стр)
 │   ├── BOOTSTRAP_PYTHON_OLLAMA_UPDATE.md  (119 стр)
 │   ├── BOOTSTRAP_WINDOW_UPDATE.md  (50 стр)
 │   ├── GUI_HOME_ACTION_RING.md  (45 стр)
@@ -570,20 +493,28 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── GUI_SOLAR_AURA_UPDATE.md  (52 стр)
 │   ├── GUI_STARTUP_TRAY_FIX.md  (55 стр)
 │   ├── GUI_WIDGETS_UPDATE.md  (58 стр)
-│   ├── IMPROVEMENT_BACKLOG.md  (113 стр)
+│   ├── HANDOFF_VALIDATION.md  (76 стр)
+│   ├── IMPROVEMENT_BACKLOG.md  (120 стр)
 │   ├── INSTALLER_UPDATE.md  (47 стр)
 │   ├── LOCAL_VOICE_OPTIONS.md  (67 стр)
-│   ├── NEXT_STEPS.md  (55 стр)
+│   ├── NEXT_STEPS.md  (116 стр)
+│   ├── PHOENIX_JASTIN_RECONCILIATION.md  (268 стр)
 │   ├── PYTHON_BOOTSTRAP_TLS_FIX.md  (98 стр)
+│   ├── reference/
+│   │   ├── J-A-S-T-i-n_v1_1_6_0.docx  (338 стр)
+│   │   ├── Phoenix_JASTIN_Integration_Plan.1.docx  (155 стр)
+│   │   ├── README.md  (17 стр)
 │   ├── releases/
 │   │   ├── v2.1.0.md  (34 стр)
-│   ├── USER_GUIDE.md  (1004 стр)
+│   ├── USER_GUIDE.md  (1012 стр)
 │   ├── WHISPER_STARTUP_DLL_FIX.md  (85 стр)
 │   ├── WINDOWS_STARTUP_RELIABILITY.md  (108 стр)
+│   ├── WINRT_TTS_REMOVAL.md  (43 стр)
 ├── install.bat  (342 стр)
+├── install_aec.bat  (27 стр)
 ├── installer.iss  (106 стр)
 ├── jarvis/
-│   ├── __init__.py  (8 стр)
+│   ├── __init__.py  (12 стр)
 │   ├── __main__.py  (9 стр)
 │   ├── actions.py  (1504 стр)
 │   ├── apps.py  (114 стр)
@@ -608,16 +539,18 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   │   ├── settings-light.svg  (1 стр)
 │   │   │   ├── timer-dark.svg  (1 стр)
 │   │   │   ├── timer-light.svg  (1 стр)
-│   ├── audio_output.py  (133 стр)
+│   ├── audio_output.py  (156 стр)
 │   ├── brain.py  (868 стр)
 │   ├── celebrations.py  (165 стр)
 │   ├── command_builder.py  (152 стр)
-│   ├── config.py  (269 стр)
+│   ├── config.py  (274 стр)
 │   ├── config_manager.py  (156 стр)
+│   ├── echo.py  (508 стр)
+│   ├── echo_trace.py  (229 стр)
 │   ├── files.py  (109 стр)
 │   ├── first_run.py  (26 стр)
-│   ├── gui.py  (1643 стр)
-│   ├── gui_audio.py  (378 стр)
+│   ├── gui.py  (1642 стр)
+│   ├── gui_audio.py  (383 стр)
 │   ├── gui_commands.py  (305 стр)
 │   ├── gui_home.py  (191 стр)
 │   ├── gui_home_actions.py  (225 стр)
@@ -629,8 +562,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── https_trust.py  (22 стр)
 │   ├── installed.py  (51 стр)
 │   ├── intents/
-│   │   ├── __init__.py  (10 стр)
-│   │   ├── clarification.py  (262 стр)
+│   │   ├── __init__.py  (47 стр)
+│   │   ├── clarification.py  (11 стр)
 │   │   ├── context.py  (19 стр)
 │   │   ├── execute.py  (1044 стр)
 │   │   ├── fast/
@@ -654,7 +587,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   │   ├── voices.py  (10 стр)
 │   │   │   ├── weather.py  (113 стр)
 │   │   ├── handler.py  (307 стр)
-│   │   ├── password.py  (99 стр)
+│   │   ├── password.py  (124 стр)
 │   │   ├── sites.py  (62 стр)
 │   │   ├── stages/
 │   │   │   ├── __init__.py  (47 стр)
@@ -682,7 +615,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── time.py  (84 стр)
 │   │   ├── units.py  (85 стр)
 │   ├── learning.py  (178 стр)
-│   ├── main.py  (945 стр)
+│   ├── main.py  (955 стр)
 │   ├── matching.py  (118 стр)
 │   ├── memory.py  (147 стр)
 │   ├── memory_context.py  (124 стр)
@@ -701,24 +634,24 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── reply.py  (26 стр)
 │   ├── safety.py  (213 стр)
 │   ├── steam.py  (67 стр)
-│   ├── stt.py  (803 стр)
+│   ├── stt.py  (1016 стр)
 │   ├── tasks.py  (278 стр)
 │   ├── text_utils.py  (98 стр)
 │   ├── timers.py  (326 стр)
 │   ├── tray.py  (223 стр)
-│   ├── tts.py  (393 стр)
+│   ├── tts.py  (423 стр)
 │   ├── tts_engines/
 │   │   ├── __init__.py  (12 стр)
 │   │   ├── base.py  (73 стр)
-│   │   ├── factory.py  (159 стр)
+│   │   ├── factory.py  (167 стр)
 │   │   ├── piper.py  (190 стр)
 │   │   ├── sapi.py  (118 стр)
 │   │   ├── silero.py  (203 стр)
-│   │   ├── winrt.py  (137 стр)
+│   │   ├── winrt.py  (6 стр)
 │   ├── uia.py  (1027 стр)
 │   ├── vad.py  (584 стр)
 │   ├── vectormem.py  (788 стр)
-│   ├── voices.py  (220 стр)
+│   ├── voices.py  (215 стр)
 │   ├── weather.py  (400 стр)
 ├── jarvis-fenix.code-workspace  (8 стр)
 ├── launcher.py  (850 стр)
@@ -733,14 +666,15 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── sites.json  (22 стр)
 │   ├── system.json  (17 стр)
 │   ├── work.json  (11 стр)
-├── PLAN.md  (370 стр)
-├── PROJECT.md  (502 стр)
-├── PROMPT.md  (207 стр)
+├── PLAN.md  (93 стр)
+├── PROJECT.md  (421 стр)
+├── PROMPT.md  (72 стр)
 ├── pytest.ini  (20 стр)
 ├── README.md  (188 стр)
+├── requirements-aec.txt  (3 стр)
 ├── requirements-ci.txt  (39 стр)
-├── requirements-dev.txt  (10 стр)
-├── requirements.txt  (66 стр)
+├── requirements-dev.txt  (13 стр)
+├── requirements.txt  (65 стр)
 ├── scripts/
 │   ├── __init__.py  (7 стр)
 │   ├── audio_regression.py  (11 стр)
@@ -760,17 +694,19 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── set_llm_model.py  (52 стр)
 │   ├── startup_probe.py  (196 стр)
 │   ├── vadbench.py  (185 стр)
-│   ├── voicedemo.py  (41 стр)
+│   ├── voicedemo.py  (34 стр)
 │   ├── wakebench.py  (88 стр)
-├── snapshot.py  (727 стр)
+├── snapshot.py  (730 стр)
+├── start_aec_diagnostics.bat  (31 стр)
 ├── start_fenix.bat  (13 стр)
 ├── start_fenix_debug.bat  (16 стр)
+├── START_HERE.md  (36 стр)
 ├── tests/
-│   ├── __init__.py  (0 стр)
+│   ├── __init__.py  (1 стр)
 │   ├── audio/
 │   │   ├── __init__.py  (1 стр)
-│   │   ├── corpus.py  (173 стр)
-│   │   ├── README.md  (179 стр)
+│   │   ├── corpus.py  (187 стр)
+│   │   ├── README.md  (183 стр)
 │   │   ├── runner.py  (216 стр)
 │   │   ├── runtime.py  (370 стр)
 │   │   ├── scenarios.json  (217 стр)
@@ -783,7 +719,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── uia_manual.py  (61 стр)
 │   │   ├── vad_debug.py  (61 стр)
 │   │   ├── vad_live.py  (41 стр)
-│   ├── README.md  (538 стр)
+│   ├── README.md  (183 стр)
 │   ├── stress_intents.py  (552 стр)
 │   ├── test_audio_regression.py  (556 стр)
 │   ├── test_audit_regressions.py  (265 стр)
@@ -796,9 +732,12 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_clarification_imports.py  (110 стр)
 │   ├── test_command_builder.py  (213 стр)
 │   ├── test_config_manager.py  (47 стр)
+│   ├── test_echo.py  (579 стр)
+│   ├── test_echo_multibackend.py  (162 стр)
+│   ├── test_echo_trace.py  (264 стр)
 │   ├── test_engine_probe.py  (100 стр)
-│   ├── test_git_hygiene.py  (322 стр)
-│   ├── test_gui_audio.py  (249 стр)
+│   ├── test_git_hygiene.py  (336 стр)
+│   ├── test_gui_audio.py  (269 стр)
 │   ├── test_gui_chat.py  (287 стр)
 │   ├── test_gui_commands.py  (126 стр)
 │   ├── test_gui_home.py  (154 стр)
@@ -818,7 +757,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_memory_scope.py  (132 стр)
 │   ├── test_mic_watchdog.py  (36 стр)
 │   ├── test_mood.py  (386 стр)
-│   ├── test_nonverbal.py  (403 стр)
+│   ├── test_nonverbal.py  (402 стр)
 │   ├── test_numeric_language.py  (521 стр)
 │   ├── test_open_results.py  (32 стр)
 │   ├── test_optional_whisper_startup.py  (131 стр)
@@ -826,7 +765,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_persona.py  (155 стр)
 │   ├── test_prosody.py  (83 стр)
 │   ├── test_recognition_quality.py  (357 стр)
-│   ├── test_release_payload.py  (174 стр)
+│   ├── test_release_payload.py  (181 стр)
 │   ├── test_safety.py  (170 стр)
 │   ├── test_speech_gate.py  (86 стр)
 │   ├── test_startup_https.py  (96 стр)
@@ -843,6 +782,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_weather.py  (237 стр)
 │   ├── test_whisper_cpu_fallback.py  (92 стр)
 │   ├── test_window_targets.py  (294 стр)
+│   ├── test_winrt_removed.py  (92 стр)
 ```
 
 ## 2. Смысл из кода (сигнатуры, константы, порядок)
@@ -850,8 +790,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 **`jarvis/__init__.py`**
 
 ```
-  # Феникс — локальный голосовой ассистент для Windows.
-  APP_NAME = ...
+  # TTS-движки Феникса — абстракция над Piper, Silero, SAPI.
 ```
 
 **`jarvis/actions.py`**
@@ -935,7 +874,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def decode_wav(data)
   def mix_reaction(audio, rate, reaction)
   def encode_wav(audio, rate)
-  def play_wav(wav_bytes, token, reaction=None)
+  def play_wav(wav_bytes, token, reaction=None, *, echo=None)
 ```
 
 **`jarvis/brain.py`**
@@ -1009,6 +948,46 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def load(path: Path | None=None)
   def save(data: dict, path: Path | None=None)
   def update(key: str, value, path: Path | None=None)
+```
+
+**`jarvis/echo.py`**
+
+```
+  # Opt-in Piper AEC prototype. No devices, drivers or downloads.
+  def make_echo_path(config)
+  class RenderTap
+    def __init__(self, owner, serial)
+    def feed(self, samples, rate, when)
+    def finish(self, when)
+  class EchoPath
+    def __init__(self, delay_ms=40, *, factory=None, clock=time.monotonic, trace=None)
+    def diagnostic_mode(self)
+    def set_trace_backend(self, name, voice=None)
+    def start(self, deliver)
+    def begin_render(self)
+    def suspend_render(self)
+    def record_trace_decision(self, trace_id, **fields)
+    def render_guard_active(self)
+    def diagnostics(self)
+    def submit(self, pcm, when)
+    def take_gap(self)
+    def discontinuity(self)
+    def flush(self, *, reset=False)
+    def close(self)
+```
+
+**`jarvis/echo_trace.py`**
+
+```
+  # Explicitly opted-in, bounded local AEC trace; never uploads audio.
+  class EchoTrace
+    def __init__(self, root, *, clock=time.monotonic, duration=90.0, byte_limit=32 * 1024 * 1024, queue_size=64, after_trigg...)
+    def active(self)
+    def backend(self, name, voice=None, *, reference_available)
+    def render(self, audio, rate, when, serial, *, backend='unknown')
+    def capture(self, raw, reference, cleaned, when, **fields)
+    def note(self, kind, **fields)
+    def close(self)
 ```
 
 **`jarvis/files.py`**
@@ -1299,23 +1278,16 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 **`jarvis/intents/__init__.py`**
 
 ```
-  # Разбор команд Феникса — пакет.
+  # Стадии обработки команды. Порядок = приоритет.
+  def build_pipeline(handler) -> [CancelStage(), PendingStage(), OnboardingStage(), CorrectionStage(), PasswordStage(), MemoryStage(), ClipboardStage(), ModesStage(), CompoundStage(), ClarificationStage(), FastHandlersStage(), LLMStage()]
 ```
 
 **`jarvis/intents/clarification.py`**
 
 ```
-  # Bounded, session-only slot filling shared by GUI and voice.
-  TIMEOUT = ...
-  MAX_ATTEMPTS = ...
-  OPEN = ...
-  TIMER = ...
-  CORRECTION = ...
-  PROMPTS = ...
-  class TimeSlot
-  def pending_alive(pending)
-  def begin(ctx)
-  def resume(ctx)
+  # Запрос недостающего слота до fast/LLM, без выполнения догадок.
+  class ClarificationStage(Stage)
+    def handle(self, ctx)
 ```
 
 **`jarvis/intents/context.py`**
@@ -1502,15 +1474,10 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 **`jarvis/intents/password.py`**
 
 ```
-  # Парольные примитивы: jarvis.intents.password (не стадия pipeline).
-  _PASSWORD_PREFIX = ...
-  def hash_password(password: str)
-  def is_hashed(value: str)
-  def verify_password(candidate: str, stored: str)
-  def migrate_password_if_needed(config)
-  DANGER_ACTIONS = ...
-  def is_danger(intent: dict, stored_password: str)
-  ACTION_HUMAN = ...
+  # Стадия pipeline: jarvis.intents.stages.password.
+  class PasswordStage(Stage)
+    def handle(self, ctx)
+  def build_ask_password(intent: dict, expires_sec: int=30)
 ```
 
 **`jarvis/intents/sites.py`**
@@ -2071,6 +2038,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
     def barge_start(self)
     def barge_end(self)
     def resolve_device(device)
+    def set_echo_path(self, path)
     def flush(self)
     def set_vad_enabled(self, enabled: bool)
     def reload_vad(self)
@@ -2153,6 +2121,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
     def set_quality(self, quality: str)
     def set_voice(self, voice: str)
     def set_rate(self, rate: float)
+    def set_echo_path(self, path)
     def speak(self, text: str, *, allow_nonverbal=False)
     def play_async(self, text: str, *, allow_nonverbal=False)
     def speak_stream(self, text_iter: Iterator[str], timeout: float=30.0, *, allow_nonverbal=False)
@@ -2167,7 +2136,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 **`jarvis/tts_engines/__init__.py`**
 
 ```
-  # TTS-движки Феникса — абстракция над Piper, Silero, WinRT, SAPI.
+  # TTS-движки Феникса — абстракция над Piper, Silero, SAPI.
 ```
 
 **`jarvis/tts_engines/base.py`**
@@ -2194,6 +2163,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
     def __init__(self, name: str, cls)
     def is_available(self)
   _PROBE_CACHE: ...
+  def normalize_backend(backend)
   def get_engine(backend: str, voice: str, quality: str='medium', rate: float=1.15)
   _ENGINE_CACHE: ...
   def list_engines()
@@ -2248,15 +2218,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 **`jarvis/tts_engines/winrt.py`**
 
 ```
-  # WinRT TTS — системный синтез Windows, без внешних моделей.
-  _SENTENCE_END = ...
-  class WinRTEngine(BaseEngine)
-    def __init__(self, voice: str='Pavel', quality: str='medium', rate: float=1.15)
-    def is_available(self)
-    def set_voice(self, voice: str)
-    def set_rate(self, rate: float)
-    def synthesize(self, text: str, voice: str | None=None, rate: float | None=None)
-    def speak_stream(self, text_iter, voice: str, rate: float, token)
+  # Retired WinRT speech backend.
 ```
 
 **`jarvis/uia.py`**
@@ -2618,6 +2580,12 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   TEMPLATES = ...
   def recognize(model: Model, wav_bytes: bytes)
   def main()
+```
+
+**`tests/__init__.py`**
+
+```
+  # Optional offline audio regression tools, not part of the live assistant.
 ```
 
 **`tests/audio/__init__.py`**
@@ -3020,6 +2988,102 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_load_broken(tmp_path)
 ```
 
+**`tests/test_echo.py`**
+
+```
+  # AEC contracts: bounded synthetic PCM and controlled native transport; no devices.
+  PCM = ...
+  class Processor
+    def __init__(self)
+    def process(self, near, far)
+  def path()
+  def render(p, at=100, rate=16000, n=3200)
+  def test_disabled_means_no_path_or_native_import()
+  def test_unsupported_capture_rate_keeps_old_path(rate)
+  def test_delay_is_validated_without_config_writes(delay, expected)
+  def test_missing_native_package_does_not_block_or_receive_pcm(error)
+  def test_cleaned_capture_uses_reference_and_one_worker(path)
+  def test_idle_keeps_original_pcm_without_calling_processor(path)
+  def test_non_piper_suspends_previous_reference(path)
+  def test_reference_resamples_and_mixes_channels(path)
+  def test_future_reference_not_used_early_and_cancel_trims_it(path)
+  def test_old_render_end_cannot_close_new_render(path)
+  def test_bad_or_oversized_reference_rejected(path, bad)
+  def test_reference_is_bounded_and_purges_old_audio(path)
+  def test_invalid_capture_not_queued(path, raw, when)
+  def test_queue_full_drops_instead_of_growing_or_injecting_raw()
+  def test_stale_capture_not_delivered(path)
+  def test_flush_invalidates_inflight_capture_without_native_calls_on_caller()
+  def test_native_error_falls_back_next_block_without_replaying_old_audio()
+  def test_close_is_idempotent_and_disables_capture(path)
+  def listener()
+  def test_callback_only_queues_when_aec_ready()
+  def test_callback_missing_native_is_guarded_during_piper_render()
+  def test_callback_missing_native_keeps_original_path_when_piper_is_idle()
+  def test_aec_barge_requires_clean_energy_and_speech(prob, rms, vad, expected)
+  def test_aec_barge_rejects_unverified_or_correlated_render_residual()
+  def test_aec_barge_adapts_to_quiet_microphone_without_learning_user_as_noise()
+  def test_aec_barge_rejects_low_attenuation_echo_above_adaptive_level()
+  def test_aec_barge_rejects_close_speaker_acoustic_path_change()
+  def test_verified_render_is_revoked_when_acoustic_path_changes()
+  def test_clean_pcm_reaches_vad_and_asr_not_raw_echo()
+  def test_muted_aec_does_not_enqueue_recognition()
+  def test_wav_replay_cannot_accidentally_use_live_aec()
+  def test_normal_session_only_piper_registers_reference_with_common_output(monkeypatch, engine, has_echo)
+  def test_reference_matches_actual_mixed_blocks_and_stop_token(monkeypatch)
+  def test_bad_optional_reference_does_not_break_playback(monkeypatch)
+  def test_native_linux_api_smoke_without_devices()
+  def test_asr_gap_resets_recognizer_only_when_consumed()
+  def test_aec_barge_preserves_cleaned_onset_across_stop_flush()
+  def test_preroll_is_bounded_and_not_replayed_without_barge()
+  def test_live_aec_blocks_match_both_webrtc_and_silero_frame_sizes()
+  def test_discontinuity_keeps_current_render_but_invalidates_capture(path)
+  def test_real_native_synthetic_echo_through_timestamped_reference()
+  def reference_history(p, samples, at=100.0, rate=16000)
+  def test_waveform_echo_match_checks_between_old_20ms_grid_points(delay_samples)
+  def test_echo_match_resamples_reference_before_sample_lag_search(rate)
+  def test_echo_match_missing_reference_and_dc_cannot_create_false_match()
+  def test_echo_match_does_not_use_uncovered_zero_padded_windows()
+  def test_sample_aligned_echo_rejects_residual_but_allows_double_talk()
+  def test_capture_attenuation_is_current_even_below_calibration_energy()
+  def test_reference_chunk_boundaries_do_not_create_one_sample_holes()
+```
+
+**`tests/test_echo_multibackend.py`**
+
+```
+  # Diagnostic-only PCM support; normal production backend scope stays unchanged.
+  def speaker(engine, path)
+  def test_diagnostic_wav_engines_register_reference_and_do_not_suspend(monkeypatch, tmp_path, engine)
+  def test_normal_session_scope_and_backend_guard_are_unchanged(monkeypatch, engine, reference)
+  def test_sapi_is_marked_unsupported_without_fake_audio(tmp_path, caplog)
+  def test_switching_backend_records_actual_resolved_engine_and_invalidates_sapi_reference(tmp_path)
+  def test_each_wav_backend_records_exact_common_output_and_capture(monkeypatch, tmp_path, engine, rate)
+  def test_diagnostic_backend_scope_remains_stable_after_recording_timeout(tmp_path)
+```
+
+**`tests/test_echo_trace.py`**
+
+```
+  # Local diagnostic contracts: no devices or external services.
+  def read_trace(trace)
+  def test_three_aligned_channels_and_original_render_with_timestamps(tmp_path)
+  def test_timer_starts_at_first_audio_and_stops_without_more_audio(tmp_path)
+  def test_first_trigger_auto_finishes_after_tail_without_app_shutdown(tmp_path)
+  def test_audio_size_limit_and_no_late_writes(tmp_path)
+  def test_queue_overflow_is_bounded_and_explicit_not_a_capture_wait(tmp_path)
+  def test_disk_failure_disables_only_trace(tmp_path)
+  def test_normal_launch_does_not_create_trace_or_audio_files(monkeypatch, tmp_path)
+  def test_environment_does_not_enable_aec_or_rewrite_config(monkeypatch)
+  def test_opted_in_launch_uses_user_logs_folder(monkeypatch, tmp_path)
+  def test_echo_worker_capture_and_listener_decision_share_same_id(tmp_path)
+  def test_recording_does_not_capture_idle_microphone(tmp_path)
+  def test_trace_keeps_unrounded_trigger_and_native_reset_reason(tmp_path)
+  def test_trace_does_not_change_barge_decisions_or_asr_audio(tmp_path, similarity, probability)
+  def test_manual_launcher_keeps_recording_environment_local_to_process()
+  def test_trigger_stop_deadline_survives_a_full_diagnostic_queue(tmp_path)
+```
+
 **`tests/test_engine_probe.py`**
 
 ```
@@ -3053,6 +3117,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_missing_staged_snapshot_blocks(repo)
   def test_tracked_log_requires_explicit_untracking(repo)
   def test_test_log_is_ignored_and_does_not_change_snapshot(repo)
+  def test_dotenv_does_not_enter_snapshot(repo, name)
   def test_staged_doc_change_is_checked(repo)
   def test_spaces_and_unicode_paths(repo)
   def test_index_symlink_input_is_rejected_without_creating_symlink(repo)
@@ -3093,6 +3158,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_listener_level_heartbeat_updates_even_when_muted()
   def test_voice_preview_does_not_interrupt_existing_speech(gui)
   def test_disappeared_listener_clears_old_meter_metadata(gui)
+  def test_aec_toggle_is_opt_in_restart_only_and_never_selects_voice(gui)
 ```
 
 **`tests/test_gui_chat.py`**
@@ -3844,6 +3910,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_caps_probe_failure_does_not_block_launch(monkeypatch, tmp_path)
   def test_cancel_dependencies_has_no_network(tmp_path, monkeypatch)
   def test_startup_reliability_helpers_are_shipped(release_tree)
+  def test_optional_aec_files_shipped_but_not_required_by_base_dependencies(release_tree)
 ```
 
 **`tests/test_safety.py`**
@@ -4011,13 +4078,13 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_piper_engine_interface()
   def test_piper_voice_not_in_dict()
   def test_silero_engine_interface()
-  def test_winrt_engine_interface()
+  def test_retired_winrt_module_cannot_be_loaded()
   def test_sapi_engine_interface()
   def test_voices_for_backend_unknown()
   def test_voices_for_backend_ok()
   def test_switch_voice_not_found()
-  def test_switch_voice_case_insensitive_winrt()
-  def test_switch_voice_aliases_winrt(said, expected)
+  def test_switch_voice_case_insensitive_sapi()
+  def test_switch_voice_aliases_sapi(said, expected)
   def test_do_change_voice_without_voice_key()
   def test_do_change_voice_switch_and_history()
 ```
@@ -4282,6 +4349,21 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_hotkey_action_is_dispatched()
 ```
 
+**`tests/test_winrt_removed.py`**
+
+```
+  # Retired speech backend must not return through config, probes or caches.
+  def test_legacy_config_is_normalized_without_rewriting_file(tmp_path, caplog)
+  def test_direct_legacy_factory_call_uses_auto_without_trying_winrt(monkeypatch)
+  def test_old_cache_entries_cannot_revive_removed_engine(monkeypatch)
+  def test_auto_and_list_have_no_winrt_even_if_all_engines_available(monkeypatch)
+  def test_speaker_legacy_selection_uses_auto_and_leaves_input_config_intact(monkeypatch)
+  def test_old_voice_cache_does_not_offer_winrt(monkeypatch)
+  def test_removed_module_is_an_explicit_overlay_marker()
+  def test_gui_and_runtime_dependencies_do_not_offer_speech_winrt()
+  def test_offline_corpus_does_not_import_retired_tts_engine()
+```
+
 **`check_all.py`**
 
 ```
@@ -4502,20 +4584,22 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 
 | Файл | Строк | Категория | О чём модуль |
 |---|---:|---|---|
-| `jarvis/__init__.py` | 8 | code | Феникс — локальный голосовой ассистент для Windows. |
+| `jarvis/__init__.py` | 12 | code | TTS-движки Феникса — абстракция над Piper, Silero, SAPI. |
 | `jarvis/__main__.py` | 9 | code |  |
 | `jarvis/actions.py` | 1504 | code | Действия: запуск приложений, открытие сайтов, скриншоты, медиа, печать |
 | `jarvis/apps.py` | 114 | code | Каталог известных приложений: как их зовут голосом, как открыть и как  |
-| `jarvis/audio_output.py` | 133 | code | Shared cancellable PCM output for Speaker and the three WAV-based TTS  |
+| `jarvis/audio_output.py` | 156 | code | Shared cancellable PCM output for Speaker and the three WAV-based TTS  |
 | `jarvis/brain.py` | 868 | code | LLM-фолбэк: локальная нейронка (Ollama) разбирает команду в структурны |
 | `jarvis/celebrations.py` | 165 | code | Праздничные триггеры — поздравление с ДР + двойной салют. |
 | `jarvis/command_builder.py` | 152 | code | Typed custom commands. No execution, model calls or shell parsing in t |
-| `jarvis/config.py` | 269 | code | Загрузка конфигурации и объект Config в памяти. |
+| `jarvis/config.py` | 274 | code | Загрузка конфигурации и объект Config в памяти. |
 | `jarvis/config_manager.py` | 156 | code | Единый менеджер записи в config.json. |
+| `jarvis/echo.py` | 508 | code | Opt-in Piper AEC prototype. No devices, drivers or downloads. |
+| `jarvis/echo_trace.py` | 229 | code | Explicitly opted-in, bounded local AEC trace; never uploads audio. |
 | `jarvis/files.py` | 109 | code | Файлы и папки: открыть, посмотреть содержимое, создать. |
 | `jarvis/first_run.py` | 26 | code | Первый запуск — знакомство через LLM-диалог. |
-| `jarvis/gui.py` | 1643 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
-| `jarvis/gui_audio.py` | 378 | code | Native sound settings. Diagnostics use the existing listener/Speaker,  |
+| `jarvis/gui.py` | 1642 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
+| `jarvis/gui_audio.py` | 383 | code | Native sound settings. Diagnostics use the existing listener/Speaker,  |
 | `jarvis/gui_commands.py` | 305 | code | Flet editor for the existing custom_commands pipeline. Never executes  |
 | `jarvis/gui_home.py` | 191 | code | Minimal native Home: local clock, real assistant state and opt-in widg |
 | `jarvis/gui_home_actions.py` | 225 | code | Three real Home actions. Native controls, finite transitions, no extra |
@@ -4526,8 +4610,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/history.py` | 75 | code | История последних действий для отмены («стоп, не то»). |
 | `jarvis/https_trust.py` | 22 | code | Process-scoped CA bundle for urllib/Flet/torch; never disables TLS che |
 | `jarvis/installed.py` | 51 | code | Индекс установленных программ по ярлыкам меню «Пуск». |
-| `jarvis/intents/__init__.py` | 10 | code | Разбор команд Феникса — пакет. |
-| `jarvis/intents/clarification.py` | 262 | code | Bounded, session-only slot filling shared by GUI and voice. |
+| `jarvis/intents/__init__.py` | 47 | code | Стадии обработки команды. Порядок = приоритет. |
+| `jarvis/intents/clarification.py` | 11 | code | Запрос недостающего слота до fast/LLM, без выполнения догадок. |
 | `jarvis/intents/context.py` | 19 | code | Контекст, который передаётся между стадиями pipeline. |
 | `jarvis/intents/execute.py` | 1044 | code | Dispatch: action → функция-обработчик. |
 | `jarvis/intents/fast/__init__.py` | 54 | code | Реестр быстрых обработчиков. |
@@ -4550,7 +4634,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/intents/fast/voices.py` | 10 | code | Голоса Piper — обёртка над модулем `voices`. |
 | `jarvis/intents/fast/weather.py` | 113 | code | Простые правила для погоды и курса — без LLM. |
 | `jarvis/intents/handler.py` | 307 | code | IntentHandler — оркестрация. |
-| `jarvis/intents/password.py` | 99 | code | Парольные примитивы: jarvis.intents.password (не стадия pipeline). |
+| `jarvis/intents/password.py` | 124 | code | Стадия pipeline: jarvis.intents.stages.password. |
 | `jarvis/intents/sites.py` | 62 | code | Сайты для открытия голосом — ленивая загрузка из packs/sites.json. |
 | `jarvis/intents/stages/__init__.py` | 47 | code | Стадии обработки команды. Порядок = приоритет. |
 | `jarvis/intents/stages/base.py` | 19 | code | Базовая стадия pipeline. |
@@ -4576,7 +4660,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/language/time.py` | 84 | code | Duration grammar with source spans. Uses the shared numeral/unit vocab |
 | `jarvis/language/units.py` | 85 | code | Semantic unit lexicon shared by input and output; spelling is data, no |
 | `jarvis/learning.py` | 178 | code | Самообучение Феникса: факты и коррекции. |
-| `jarvis/main.py` | 945 | code | Точка входа: связывает распознавание, интенты, синтез речи и GUI. |
+| `jarvis/main.py` | 955 | code | Точка входа: связывает распознавание, интенты, синтез речи и GUI. |
 | `jarvis/matching.py` | 118 | code | Нечёткое сопоставление речи с названиями: транслитерация + difflib. |
 | `jarvis/memory.py` | 147 | code | Память диалога — на профиль. |
 | `jarvis/memory_context.py` | 124 | code | Query-scoped personal memory. Absence/uncertainty never means 'send ev |
@@ -4595,23 +4679,23 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/reply.py` | 26 | code | Reply — результат IntentHandler.handle(). |
 | `jarvis/safety.py` | 213 | code | Постфильтр ответов LLM — вторая линия «красной черты». |
 | `jarvis/steam.py` | 67 | code | Индекс установленных игр Steam: appmanifest -> (название, appid). |
-| `jarvis/stt.py` | 803 | code | Распознавание речи. |
+| `jarvis/stt.py` | 1016 | code | Распознавание речи. |
 | `jarvis/tasks.py` | 278 | code | Списки задач. |
 | `jarvis/text_utils.py` | 98 | code | Общие текстовые утилиты для Феникса. |
 | `jarvis/timers.py` | 326 | code | Таймеры и напоминания. |
 | `jarvis/tray.py` | 223 | code | Иконка в системном трее (pystray). |
-| `jarvis/tts.py` | 393 | code | Синтез речи — фасад над tts_engines. |
-| `jarvis/tts_engines/__init__.py` | 12 | code | TTS-движки Феникса — абстракция над Piper, Silero, WinRT, SAPI. |
+| `jarvis/tts.py` | 423 | code | Синтез речи — фасад над tts_engines. |
+| `jarvis/tts_engines/__init__.py` | 12 | code | TTS-движки Феникса — абстракция над Piper, Silero, SAPI. |
 | `jarvis/tts_engines/base.py` | 73 | code | Базовый класс TTS-движка. |
-| `jarvis/tts_engines/factory.py` | 159 | code | Фабрика TTS-движков. |
+| `jarvis/tts_engines/factory.py` | 167 | code | Фабрика TTS-движков. |
 | `jarvis/tts_engines/piper.py` | 190 | code | Piper TTS — быстрый, ~60 МБ, 4 голоса для русского. |
 | `jarvis/tts_engines/sapi.py` | 118 | code | SAPI TTS — старый Windows-синтез через pyttsx3. |
 | `jarvis/tts_engines/silero.py` | 203 | code | Silero TTS v5_5 — русский голос, ~150 МБ, требует PyTorch. |
-| `jarvis/tts_engines/winrt.py` | 137 | code | WinRT TTS — системный синтез Windows, без внешних моделей. |
+| `jarvis/tts_engines/winrt.py` | 6 | code | Retired WinRT speech backend. |
 | `jarvis/uia.py` | 1027 | code | UI Automation — видим окна и элементы интерфейса. |
 | `jarvis/vad.py` | 584 | code | Silero VAD — детекция речи в аудио-потоке с адаптивным порогом. |
 | `jarvis/vectormem.py` | 788 | code | Векторная память фактов (RAG) — на профиль. |
-| `jarvis/voices.py` | 220 | code | Управление голосами TTS — работает через tts_engines. |
+| `jarvis/voices.py` | 215 | code | Управление голосами TTS — работает через tts_engines. |
 | `jarvis/weather.py` | 400 | code | Погода и курс валют. |
 | `scripts/__init__.py` | 7 | code | Пакет scripts: утилиты разработчика. |
 | `scripts/audio_regression.py` | 11 | code | Run optional local audio regression tools; ordinary pytest never loads |
@@ -4631,11 +4715,11 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `scripts/set_llm_model.py` | 52 | code | Устанавливает llm_model в config.json. |
 | `scripts/startup_probe.py` | 196 | code | Замер старта Феникса по этапам — что именно тормозит запуск. |
 | `scripts/vadbench.py` | 185 | code | Бенчмарк VAD: сколько latency он добавляет к ответу (Vosk-endpoint). |
-| `scripts/voicedemo.py` | 41 | code | Прослушка голосов: проигрывает одну фразу всеми доступными голосами. |
+| `scripts/voicedemo.py` | 34 | code | Прослушка голосов: проигрывает одну фразу всеми доступными голосами. |
 | `scripts/wakebench.py` | 88 | code | Бенчмарк кандидатов в wake-слово: TTS (Pavel) -> Vosk-small -> что усл |
-| `tests/__init__.py` | 0 | code |  |
+| `tests/__init__.py` | 1 | code | Optional offline audio regression tools, not part of the live assistan |
 | `tests/audio/__init__.py` | 1 | code | Optional offline audio regression tools, not part of the live assistan |
-| `tests/audio/corpus.py` | 173 | code | Local-only WAV preparation. No playback, recordings or model downloads |
+| `tests/audio/corpus.py` | 187 | code | Local-only WAV preparation. No playback, recordings or model downloads |
 | `tests/audio/runner.py` | 216 | code | CLI orchestration; blocked resources always exit 2, never a fake pass. |
 | `tests/audio/runtime.py` | 370 | code | Real ASR + production _process; only a bounded, side-effect-free comma |
 | `tests/audio/suite.py` | 122 | code | Strict, versioned audio scenarios. Expected text never reaches an ASR  |
@@ -4658,9 +4742,12 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_clarification_imports.py` | 110 | code | The slot engine and pipeline stage share a basename, not their content |
 | `tests/test_command_builder.py` | 213 | code | Builder persistence, exact matching and runtime protection; no real OS |
 | `tests/test_config_manager.py` | 47 | code | Тесты config_manager: параллельная запись не рвёт файл. |
+| `tests/test_echo.py` | 579 | code | AEC contracts: bounded synthetic PCM and controlled native transport;  |
+| `tests/test_echo_multibackend.py` | 162 | code | Diagnostic-only PCM support; normal production backend scope stays unc |
+| `tests/test_echo_trace.py` | 264 | code | Local diagnostic contracts: no devices or external services. |
 | `tests/test_engine_probe.py` | 100 | code | Заглушка движка TTS (factory._probe_engine). |
-| `tests/test_git_hygiene.py` | 322 | code | Exercise real temporary Git indexes/hooks; never commit or alter the u |
-| `tests/test_gui_audio.py` | 249 | code | Native sound settings + real worker boundaries; no microphone or actua |
+| `tests/test_git_hygiene.py` | 336 | code | Exercise real temporary Git indexes/hooks; never commit or alter the u |
+| `tests/test_gui_audio.py` | 269 | code | Native sound settings + real worker boundaries; no microphone or actua |
 | `tests/test_gui_chat.py` | 287 | code | Imported Flet controls + real GUI worker threads; no window, ASR or au |
 | `tests/test_gui_commands.py` | 126 | code | Imported native builder controls; no OS actions or real passwords. |
 | `tests/test_gui_home.py` | 154 | code | Native minimal Home; no OS/model/mic/network. Old navigation IDs stay  |
@@ -4680,7 +4767,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_memory_scope.py` | 132 | code | Personalization should serve a question, not choose its topic. |
 | `tests/test_mic_watchdog.py` | 36 | code | Execute the real watchdog method without importing Windows/audio backe |
 | `tests/test_mood.py` | 386 | code | Тесты jarvis.mood — состояние, детекция, decay, влияние. |
-| `tests/test_nonverbal.py` | 403 | code | Nonverbal policy/mixing: synthetic PCM and fake output, no TTS weights |
+| `tests/test_nonverbal.py` | 402 | code | Nonverbal policy/mixing: synthetic PCM and fake output, no TTS weights |
 | `tests/test_numeric_language.py` | 521 | code | Executable Russian language corpus: understanding, morphology and spee |
 | `tests/test_open_results.py` | 32 | code | Actual dispatch function isolated from Windows imports; no apps launch |
 | `tests/test_optional_whisper_startup.py` | 131 | code | Execute real startup functions with stub peripherals, no models/mic/Wi |
@@ -4688,7 +4775,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_persona.py` | 155 | code | Тесты jarvis.persona — стиль, tone, prompt-блок. |
 | `tests/test_prosody.py` | 83 | code | Тесты jarvis.prosody — эмоции из голоса (эвристика). |
 | `tests/test_recognition_quality.py` | 357 | code | Recognition policy and integration tested without a microphone or mode |
-| `tests/test_release_payload.py` | 174 | code | Public payload, reproducible manifest and bootstrap regression checks. |
+| `tests/test_release_payload.py` | 181 | code | Public payload, reproducible manifest and bootstrap regression checks. |
 | `tests/test_safety.py` | 170 | code | Тесты jarvis.safety — постфильтр «красной черты». |
 | `tests/test_speech_gate.py` | 86 | code | Тесты jarvis.vad.SpeechHangover — «хвост» тишины после речи. |
 | `tests/test_startup_https.py` | 96 | code | Process-local CA and native-client prep without network/GUI. |
@@ -4705,6 +4792,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_weather.py` | 237 | code | Тесты weather: структура ответов, describe_*, geocode с моками. |
 | `tests/test_whisper_cpu_fallback.py` | 92 | code | CUDA iterator failure -> same locally cached CPU model -> unchanged qu |
 | `tests/test_window_targets.py` | 294 | code | Тесты выбора окна: голосовое имя → процессы → окно. |
+| `tests/test_winrt_removed.py` | 92 | code | Retired speech backend must not return through config, probes or cache |
 | `check_all.py` | 170 | code | Единый прогон всех проверок Феникса — движок для check_all.bat. |
 | `check_syntax.py` | 60 | code | Проверяет синтаксис всех .py файлов в проекте. |
 | `launcher.py` | 850 | code | Лаунчер Феникса — полный автозапуск. |
@@ -4712,7 +4800,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `launcher_ollama.py` | 327 | code | Optional Ollama setup: explicit consent, local inventory/pull, safe co |
 | `launcher_runtime.py` | 116 | code | Consented Microsoft VC++ x64 prerequisite; no silent installs or TLS b |
 | `launcher_ui.py` | 416 | code | One bootstrap window. Presentation only: no downloads, pip or process  |
-| `snapshot.py` | 727 | code | Собирает снимок проекта в один SNAPSHOT.md. |
+| `snapshot.py` | 730 | code | Собирает снимок проекта в один SNAPSHOT.md. |
 
 ---
 
@@ -4721,10 +4809,12 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ### `jarvis/__init__.py`
 
 ```python
-"""Феникс — локальный голосовой ассистент для Windows. ... [4 строк]"""
+"""TTS-движки Феникса — абстракция над Piper, Silero, SAPI. ... [6 строк]"""
 
-__version__ = "2.1.0"
-APP_NAME = "Феникс"
+from jarvis.tts_engines.base import BaseEngine
+from jarvis.tts_engines.factory import get_engine, list_engines
+
+__all__ = ["BaseEngine", "get_engine", "list_engines"]
 ```
 
 ### `jarvis/__main__.py`
@@ -6471,7 +6561,7 @@ def encode_wav(audio, rate):
     return buf.getvalue()
 
 
-def play_wav(wav_bytes, token, reaction=None):
+def play_wav(wav_bytes, token, reaction=None, *, echo=None):
     if token.is_set() or not wav_bytes:
         return
     audio, rate = decode_wav(wav_bytes)
@@ -6479,6 +6569,7 @@ def play_wav(wav_bytes, token, reaction=None):
     if token.is_set() or not len(audio):
         return
     played = False
+    tap = None
     try:
         import sounddevice as sd
 
@@ -6486,18 +6577,40 @@ def play_wav(wav_bytes, token, reaction=None):
         with sd.OutputStream(
             samplerate=rate, channels=audio.shape[1], dtype="float32"
         ) as stream:
+            if echo is not None:
+                tap = echo.begin_render()
+            cursor = 0.0
             for i in range(0, len(audio), chunk):
                 if token.is_set():
                     break
                 # If write fails after consuming some samples, don't replay from the beginning.
+                block = audio[i : i + chunk]
+                if tap is not None:
+                    try:
+                        latency = float(stream.latency)
+                        if not 0 <= latency <= 2:
+                            latency = 0.0
+                        at = max(time.monotonic() + latency, cursor)
+                        tap.feed(block, rate, at)
+                        cursor = at + len(block) / rate
+                    except Exception:
+                        # Optional reference must not break normal playback.
+                        logging.getLogger("jarvis.echo").warning("AEC: reference недоступен для этого вывода", exc_info=True)
+                        echo.suspend_render()
+                        tap = None
                 played = True
-                stream.write(audio[i : i + chunk])
+                stream.write(block)
     except (ImportError, OSError):
         if token.is_set():
             return
         if played:
             raise
+        if echo is not None:
+            echo.suspend_render()  # winsound has no timed render reference
         _play_windows(audio, rate, token)
+    finally:
+        if tap is not None:
+            tap.finish(time.monotonic())
 
 
 def _play_windows(audio, rate, token):
@@ -7703,8 +7816,8 @@ DEFAULT_CONFIG = {
     # только с его согласия. Чекбокс — вкладка «Настройки» →
     # «Приватность»; ход извлечения — в logs/observer.log.
     "observer_enabled": False,
-    # TTS backend: "auto" | "piper" | "silero" | "winrt" | "sapi"
-    # auto — Silero → Piper → WinRT → SAPI (первый доступный).
+    # TTS backend: "auto" | "piper" | "silero" | "sapi"
+    # auto — Silero → Piper → SAPI (первый доступный).
     # ВАЖНО: при смене backend голос тоже надо менять — они не пересекаются.
     "tts_backend": "auto",
     "tts_voice": "ruslan",
@@ -7732,6 +7845,8 @@ DEFAULT_CONFIG = {
     "whisper_device": "auto",
     "mode": "combo",
     "barge_enabled": True,
+    "aec_enabled": False,  # experimental Piper PCM; restart + optional package
+    "aec_stream_delay_ms": 40,  # residual delay hint, not hardware calibration
 
     # VAD (Silero ONNX, ~2.3 МБ). Отсекает тишину/шум ДО Vosk.
     # Wake-слово работает как раньше — VAD только фильтрует вход.
@@ -7853,6 +7968,9 @@ class Config:
             merged = dict(DEFAULT_CONFIG)
             merged.update(raw)
             log.info("Конфиг загружен: %d ключей из %s", len(merged), self.path.name)
+        if merged.get("tts_backend") == "winrt":
+            from jarvis.tts_engines.factory import normalize_backend
+            merged["tts_backend"] = normalize_backend("winrt")
         self._data = merged
 
     # --- чтение ----------------------------------------------------------
@@ -8073,6 +8191,729 @@ def update(key: str, value, path: Path | None = None) -> bool:
     except Exception:
         log.exception("Не удалось обновить %s", p)
         return False
+```
+
+### `jarvis/echo.py`
+
+```python
+"""Opt-in Piper AEC prototype. No devices, drivers or downloads. ... [6 строк]"""
+from collections import deque
+import logging
+import math
+import os
+import queue
+import threading
+import time
+
+import numpy as np
+
+log = logging.getLogger("jarvis.echo")
+
+
+def make_echo_path(config):
+    if not config.get("aec_enabled", False):
+        return None
+    rate = config.get("sample_rate", 16000)
+    if rate != 16000:
+        log.warning("AEC: прототип только для микрофона 16000 Гц; остаётся прежний тракт")
+        return None
+    try:
+        delay = float(config.get("aec_stream_delay_ms", 40))
+        if not math.isfinite(delay):
+            raise ValueError("nonfinite delay")
+        delay = int(min(500, max(0, delay)))
+    except (TypeError, ValueError, OverflowError):
+        delay = 40
+    trace = None
+    if os.environ.get("FENIX_AEC_DIAGNOSTICS") == "1":
+        try:
+            from jarvis.echo_trace import EchoTrace
+            from jarvis.paths import user_dir
+            trace = EchoTrace(user_dir() / "logs" / "aec_diagnostics")
+        except Exception:
+            log.warning("AEC diagnostic unavailable; audio processing continues", exc_info=True)
+    return EchoPath(delay_ms=delay, trace=trace)
+
+
+class RenderTap:
+    def __init__(self, owner, serial):
+        self.owner, self.serial = owner, serial
+
+    def feed(self, samples, rate, when):
+        self.owner._publish(self.serial, samples, rate, when)
+
+    def finish(self, when):
+        self.owner._finish_render(self.serial, when)
+
+
+class EchoPath:
+    """Single native owner, max 4 capture blocks and 2 seconds of reference."""
+    rate = 16000
+
+    def __init__(self, delay_ms=40, *, factory=None, clock=time.monotonic, trace=None):
+        self.delay_ms, self._factory, self.clock = delay_ms, factory, clock
+        self._trace = trace
+        self._backend_name = "unknown"
+        self._lock = threading.RLock()
+        self._delivery_lock = threading.RLock()
+        self._queue = queue.Queue(maxsize=4)
+        self._references = deque(maxlen=80)
+        self._epoch = 0
+        self._reset = False
+        self._gap = False
+        self._serial = 0
+        self._rendering = False
+        self._tail_until = float("-inf")
+        self._render_blocks = 0
+        self._good_cancellation_blocks = 0
+        self._barge_verified = False
+        self._last_attenuation = None
+        self._best_attenuation = None
+        self._last_similarity = None
+        self._last_raw_similarity = None
+        self._path_change_blocks = 0
+        self._readaptations = 0
+        self._healthy = False
+        self._closed = threading.Event()
+        self.ready = threading.Event()
+        self.thread = None
+        self._deliver = None
+        self.state = "not_started"
+        self.dropped = self.processed = 0
+
+    @property
+    def diagnostic_mode(self):
+        # Stable for this process, including after the trace time limit.
+        return self._trace is not None
+
+    def set_trace_backend(self, name, voice=None):
+        if self._trace is None:
+            return
+        name = str(name)[:32]
+        with self._lock:
+            self._backend_name = name
+        supported = name in ("piper", "silero")
+        changed = self._trace.backend(name, voice, reference_available=supported)
+        if changed:
+            if supported:
+                log.warning("AEC diagnostic backend=%s: common PCM reference; "
+                            "AEC active in this diagnostic session", name)
+            else:
+                log.warning("AEC diagnostic backend=%s: NO PCM REFERENCE; full AEC "
+                            "recording unavailable, no fake reference is recorded. "
+                            "Close normally to save metadata; loopback capture is required.", name)
+
+    def start(self, deliver):
+        if self.thread is not None or self._closed.is_set():
+            return
+        self._deliver = deliver
+        self.state = "starting"
+        self.thread = threading.Thread(target=self._run, daemon=True, name="aec-capture")
+        self.thread.start()
+
+    def begin_render(self):
+        with self._lock:
+            if self._closed.is_set():
+                return None
+            self._serial += 1
+            self._rendering = True
+            self._render_blocks = 0
+            self._good_cancellation_blocks = 0
+            self._barge_verified = False
+            self._last_attenuation = None
+            self._best_attenuation = None
+            self._last_similarity = None
+            self._last_raw_similarity = None
+            self._path_change_blocks = 0
+            self._trace_note("render_begin", serial=self._serial, backend=self._backend_name)
+            return RenderTap(self, self._serial)
+
+    def _publish(self, serial, samples, rate, when):
+        audio = np.asarray(samples, dtype=np.float32)
+        if audio.ndim == 2:
+            audio = audio.mean(axis=1)
+        if (audio.ndim != 1 or not len(audio) or not 8000 <= rate <= 192000
+                or len(audio) > rate // 4 or not math.isfinite(when)
+                or not np.isfinite(audio).all()):
+            raise ValueError("Invalid/oversized render reference")
+        audio = np.clip(audio, -1, 1).copy()
+        with self._lock:
+            if serial != self._serial or self._closed.is_set():
+                return
+            self._references.append((when, int(rate), audio))
+            cutoff = self.clock() - 2.0
+            while self._references and self._references[0][0] < cutoff:
+                self._references.popleft()
+        if self._trace is not None:
+            self._trace.render(audio, int(rate), when, serial, backend=self._backend_name)
+
+    def _finish_render(self, serial, when):
+        with self._lock:
+            if serial != self._serial:
+                return
+            self._rendering = False
+            self._tail_until = when + .4
+            # A cancelled/failed write must not leave future samples scheduled.
+            kept = deque(maxlen=80)
+            for start, rate, audio in self._references:
+                n = min(len(audio), max(0, int(round((when - start) * rate))))
+                if n:
+                    kept.append((start, rate, audio[:n]))
+            self._references = kept
+            blocks = self._render_blocks
+            verified = self._barge_verified
+            attenuation = self._last_attenuation
+            similarity = self._last_similarity
+        self._trace_note("render_end", serial=serial, when=when)
+        log.info(
+            "AEC render: state=%s, blocks=%d, barge=%s, attenuation=%s, similarity=%s",
+            self.state,
+            blocks,
+            "ready" if verified else "guarded",
+            "-" if attenuation is None else f"{attenuation:.2f}",
+            "-" if similarity is None else f"{similarity:.2f}",
+        )
+
+    def suspend_render(self):
+        self._trace_note("render_suspend", when=self.clock())
+        with self._lock:
+            self._serial += 1
+            self._rendering = False
+            self._tail_until = float("-inf")
+            self._references.clear()
+            self._reset = True
+            self._barge_verified = False
+
+    def _trace_note(self, kind, **fields):
+        trace = self._trace
+        if trace is not None:
+            trace.note(kind, **fields)
+
+    def record_trace_decision(self, trace_id, **fields):
+        self._trace_note("decision", capture_id=trace_id, **fields)
+
+    def render_guard_active(self):
+        """True while Piper can be audible, even when native AEC is unavailable. ... [5 строк]"""
+        with self._lock:
+            return self._rendering or self.clock() <= self._tail_until
+
+    def diagnostics(self):
+        """Small audio-free status snapshot for logs and future UI wiring."""
+        with self._lock:
+            return {
+                "state": self.state,
+                "render_blocks": self._render_blocks,
+                "barge_verified": self._barge_verified,
+                "attenuation": self._last_attenuation,
+                "best_attenuation": self._best_attenuation,
+                "similarity": self._last_similarity,
+                "raw_similarity": self._last_raw_similarity,
+                "readaptations": self._readaptations,
+            }
+
+    def _reference(self, when, count):
+        with self._lock:
+            if not self._rendering and when > self._tail_until:
+                return None
+            refs = tuple(self._references)
+        # Map the played mono reference to the capture clock and rate. Native
+        # AEC handles the residual delay; this is NOT a loopback measurement.
+        far, _ = self._render_window(refs, when, count)
+        return np.round(far * 32767).astype(np.int16)
+
+    def _render_window(self, refs, when, count):
+        """Rasterize timestamped chunks without floating-point boundary holes."""
+        far = np.zeros(count, dtype=np.float64)
+        covered = np.zeros(count, dtype=bool)
+        offsets = np.arange(count, dtype=np.float64) / self.rate
+        for start, rate, audio in refs:
+            positions = ((when - start) + offsets) * rate
+            # Clock arithmetic at a chunk boundary can be off by ~1e-8
+            # samples. A tolerance far below one sample assigns that point
+            # to the next chunk rather than leaving a fabricated silence.
+            mask = (positions >= -1e-6) & (positions < len(audio) - 1e-6)
+            if mask.any():
+                far[mask] = np.interp(positions[mask], np.arange(len(audio)), audio)
+                covered[mask] = True
+        return far, covered
+
+    def _echo_similarities(self, signals, when):
+        """Normalized cross-correlation at EVERY sample lag (-100..500 ms). ... [8 строк]"""
+        with self._lock:
+            refs = tuple(self._references)
+        if not signals:
+            return ()
+        count = len(signals[0])
+        if not refs or not count:
+            return tuple(None for _ in signals)
+        if any(len(signal) != count for signal in signals):
+            raise ValueError("Correlation signals must have equal lengths")
+        lag_span = int(round(.6 * self.rate))
+        far, covered = self._render_window(refs, when - .5, count + lag_span)
+
+        def window_sum(values):
+            sums = np.concatenate(([0.], np.cumsum(values, dtype=np.float64)))
+            return sums[count:] - sums[:-count]
+
+        squared = window_sum(far * far)
+        energy = np.maximum(0., squared - window_sum(far) ** 2 / count)
+        # Centered constant windows have zero energy; cumsum roundoff must
+        # not turn them into a valid waveform observation.
+        usable = ((window_sum(covered) == count)
+                  & (energy > np.maximum(1e-12, squared * 1e-10)))
+        if not usable.any():
+            return tuple(None for _ in signals)
+        fft_size = 1 << (len(far) + count - 2).bit_length()
+        far_fft = np.fft.rfft(far, n=fft_size)
+        scores = []
+        for signal in signals:
+            near = np.array(signal, dtype=np.float64, copy=True)
+            near -= near.mean()
+            near_energy = float(np.dot(near, near))
+            if near_energy < 1:
+                scores.append(0.0)
+                continue
+            convolution = np.fft.irfft(
+                far_fft * np.fft.rfft(near[::-1], n=fft_size), n=fft_size
+            )
+            dots = convolution[count - 1:len(far)]
+            normalized = np.abs(dots[usable]) / np.sqrt(near_energy * energy[usable])
+            scores.append(float(np.clip(normalized.max(), 0., 1.)))
+        return tuple(scores)
+
+    def _echo_similarity(self, cleaned, when):
+        return self._echo_similarities((cleaned,), when)[0]
+
+    def submit(self, pcm, when):
+        if not self._healthy or self._closed.is_set():
+            return False  # normal listener path, including missing native DLL
+        if len(pcm) % 2 or len(pcm) > self.rate // 2 or not math.isfinite(when):
+            return False
+        item = (self._epoch, bytes(pcm), when, self.clock())
+        try:
+            self._queue.put_nowait(item)
+        except queue.Full:
+            # Never substitute unfiltered audio out of order on overload.
+            self.dropped += 1
+            self.discontinuity()
+        return True
+
+    def take_gap(self):
+        with self._lock:
+            value, self._gap = self._gap, False
+            return value
+
+    def discontinuity(self):
+        # PortAudio callback: no waiting on VAD/delivery/native processing.
+        with self._lock:
+            self._epoch += 1
+            self._gap = self._reset = True
+
+    def flush(self, *, reset=False):
+        # No native calls here. In-flight output is invalidated before the
+        # listener drains its ASR queue; late pre-flush PCM cannot return.
+        with self._delivery_lock:
+            self._epoch += 1
+            self._gap = True
+            if reset:
+                self.suspend_render()
+            while True:
+                try:
+                    self._queue.get_nowait()
+                except queue.Empty:
+                    break
+
+    def close(self):
+        self._closed.set()
+        self.flush(reset=True)
+        if self.thread and self.thread is not threading.current_thread():
+            self.thread.join(timeout=.5)
+        if self._trace is not None:
+            self._trace.close()
+
+    def _create_processor(self):
+        if self._factory is not None:
+            return self._factory()
+        from pywebrtc_audio import AudioProcessor
+        return AudioProcessor(sample_rate=self.rate, num_channels=1,
+                              echo_cancellation=True, noise_suppression=False,
+                              auto_gain_control=False, stream_delay_ms=self.delay_ms)
+
+    def _run(self):
+        try:
+            processor = self._create_processor()
+            if self._closed.is_set():
+                return
+            self._healthy = True
+            self.state = "ready"
+            log.info("AEC: %s, WebRTC AEC3 готов; delay hint=%d мс. Windows-приёмка требуется",
+                     "diagnostic common PCM (Piper/Silero)" if self.diagnostic_mode else "Piper PCM",
+                     self.delay_ms)
+        except Exception:
+            self.state = "unavailable"
+            log.warning("AEC недоступен; остаётся прежний тракт. Установи optional-пакет через install_aec.bat", exc_info=True)
+            return
+        finally:
+            self.ready.set()
+        try:
+            while not self._closed.is_set():
+                try:
+                    epoch, raw, when, queued_at = self._queue.get(timeout=.1)
+                except queue.Empty:
+                    continue
+                if epoch != self._epoch or self.clock() - queued_at > .3:
+                    self.dropped += 1
+                    with self._lock:
+                        self._gap = self._reset = True
+                    continue
+                with self._lock:
+                    reset, self._reset = self._reset, False
+                if reset:
+                    self._trace_note("native_reset", reason="discontinuity", when=when,
+                                     epoch=epoch, phase="before_current_block")
+                    processor.reset()
+                far = self._reference(when, len(raw) // 2)
+                probability = None
+                if far is None:
+                    cleaned = raw  # unsupported backend / idle: original behavior
+                else:
+                    near = np.frombuffer(raw, dtype=np.int16).copy()
+                    result = np.asarray(processor.process(near, far))
+                    if result.shape != near.shape or result.dtype != np.int16:
+                        raise ValueError("AEC returned invalid PCM")
+                    cleaned = result.tobytes()
+                    p = float(processor.speech_probability)
+                    probability = p if math.isfinite(p) and 0 <= p <= 1 else 0.0
+                    raw_rms = float(np.sqrt(np.mean(near.astype(np.float64) ** 2)))
+                    clean_rms = float(np.sqrt(np.mean(result.astype(np.float64) ** 2)))
+                    far_rms = float(np.sqrt(np.mean(far.astype(np.float64) ** 2)))
+                    similarity, raw_similarity = self._echo_similarities(
+                        (result, near), when
+                    )
+                    with self._lock:
+                        self._render_blocks += 1
+                        # This ratio belongs to THIS capture block. Quiet blocks
+                        # must never inherit a previous phoneme's attenuation.
+                        self._last_attenuation = (
+                            clean_rms / raw_rms if raw_rms >= 1.0 else None
+                        )
+                        # Fail closed: barge-in becomes available only after the
+                        # current render has demonstrated actual cancellation.
+                        if far_rms >= 150 and raw_rms >= 150:
+                            if clean_rms <= raw_rms * .65:
+                                self._good_cancellation_blocks += 1
+                                if (self._best_attenuation is None
+                                        or self._last_attenuation < self._best_attenuation):
+                                    self._best_attenuation = self._last_attenuation
+                            else:
+                                self._good_cancellation_blocks = 0
+                            if self._good_cancellation_blocks >= 2:
+                                self._barge_verified = True
+                        self._last_similarity = similarity
+                        self._last_raw_similarity = raw_similarity
+                        # Moving a microphone towards a speaker changes the
+                        # acoustic impulse response abruptly.  Do not keep a
+                        # previously latched "verified" state through that
+                        # change: two strongly render-correlated degraded
+                        # blocks force a native re-adaptation window.
+                        path_changed = bool(
+                            self._barge_verified
+                            and self._last_attenuation is not None
+                            and self._last_attenuation >= max(
+                                .30, (self._best_attenuation or .05) * 5
+                            )
+                            and clean_rms >= 60
+                            and raw_similarity is not None
+                            and raw_similarity >= .45
+                            and similarity is not None
+                            and similarity >= .22
+                        )
+                        if path_changed:
+                            self._path_change_blocks += 1
+                        else:
+                            self._path_change_blocks = max(
+                                0, self._path_change_blocks - 1
+                            )
+                        if self._path_change_blocks >= 2:
+                            self._barge_verified = False
+                            self._good_cancellation_blocks = 0
+                            self._best_attenuation = None
+                            self._path_change_blocks = 0
+                            self._readaptations += 1
+                            self._trace_note("native_reset", reason="acoustic_path_change",
+                                             when=when, epoch=epoch,
+                                             readaptations=self._readaptations,
+                                             phase="after_current_block")
+                            processor.reset()
+                            log.info(
+                                "AEC: акустический путь изменился; "
+                                "barge-in временно защищён до переадаптации"
+                            )
+                        verified = self._barge_verified
+                    self.processed += 1
+                with self._delivery_lock:
+                    if epoch == self._epoch and not self._closed.is_set():
+                        gap = self.take_gap()
+                        if epoch != self._epoch:
+                            self._gap = True
+                            continue
+                        trace_id = None
+                        if self._trace is not None and far is not None:
+                            trace_id = self._trace.capture(
+                                raw, far, cleaned, when, epoch=epoch, gap=gap,
+                                capture_queue_dropped=self.dropped,
+                                backend=self._backend_name, render_serial=self._serial,
+                                probability=probability, **self.diagnostics()
+                            )
+                        self._deliver(
+                            cleaned,
+                            aec_probability=probability,
+                            aec_echo_similarity=similarity if far is not None else None,
+                            aec_raw_similarity=raw_similarity if far is not None else None,
+                            aec_verified=verified if far is not None else False,
+                            aec_attenuation=self._last_attenuation if far is not None else None,
+                            aec_best_attenuation=self._best_attenuation if far is not None else None,
+                            source_pcm=raw,
+                            aec_reset=gap,
+                            **({"aec_trace_id": trace_id} if trace_id is not None else {}),
+                        )
+        except Exception:
+            self.state = "failed"
+            log.warning("AEC: обработка остановлена; следующий микрофонный блок идёт прежним путём", exc_info=True)
+        finally:
+            self._healthy = False
+            self.flush(reset=True)
+            if self._closed.is_set():
+                self.state = "closed"
+```
+
+### `jarvis/echo_trace.py`
+
+```python
+"""Explicitly opted-in, bounded local AEC trace; never uploads audio. ... [5 строк]"""
+from datetime import datetime, timezone
+import json
+import logging
+from pathlib import Path
+import queue
+import threading
+import time
+import uuid
+import wave
+import zipfile
+
+import numpy as np
+
+log = logging.getLogger("jarvis.echo.trace")
+
+
+class EchoTrace:
+    rate = 16000
+
+    def __init__(self, root, *, clock=time.monotonic, duration=90.,
+                 byte_limit=32 * 1024 * 1024, queue_size=64, after_trigger=2.):
+        self.clock = clock
+        self.created_at = datetime.now(timezone.utc)
+        self.created_monotonic = clock()
+        self.duration = max(.1, min(90., float(duration)))
+        self.byte_limit = max(1, min(32 * 1024 * 1024, int(byte_limit)))
+        self.after_trigger = max(0., min(2., float(after_trigger)))
+        name = self.created_at.strftime("aec-%Y%m%d-%H%M%S-") + uuid.uuid4().hex[:8]
+        self.folder = Path(root) / name
+        self.archive = self.folder.with_suffix(".zip")
+        self._queue = queue.Queue(maxsize=max(1, min(64, int(queue_size))))
+        self._lock = threading.Lock()
+        self._stop = threading.Event()
+        self.done = threading.Event()
+        self._started = None
+        self._deadline = None
+        self._bytes = self._seq = self._events = self._dropped = 0
+        self._reason = "manual_close"
+        self._backend_states = {}
+        self._current_backend = None
+        self._closed = False
+        self.error = None
+        self.thread = threading.Thread(target=self._run, name="aec-trace-writer", daemon=True)
+        self.thread.start()
+        log.warning("AEC diagnostic ARMED: local microphone recording during PCM TTS (Piper/Silero), max %.0f s; %s",
+                    self.duration, self.folder)
+
+    @property
+    def active(self):
+        return not self._stop.is_set() and not self.done.is_set()
+
+    def _offer(self, kind, fields, payload=(), *, audio=False):
+        # No disk operations, native calls or waiting for queue capacity here.
+        with self._lock:
+            if self._closed or self._stop.is_set() or self.done.is_set():
+                return None
+            now = self.clock()
+            if self._deadline is not None and now >= self._deadline:
+                self._reason = "time_limit" if self._reason == "manual_close" else self._reason
+                self._stop.set()
+                return None
+            size = sum(len(part) for part in payload)
+            if self._events >= 20000 or self._bytes + size > self.byte_limit:
+                self._reason = "size_limit"
+                self._stop.set()
+                return None
+            if audio and self._started is None:
+                self._started = now
+                self._deadline = min(self._deadline or now + self.duration, now + self.duration)
+            self._seq += 1
+            event = dict(fields, kind=kind, seq=self._seq, observed_at=now)
+            # Stop timing must survive a full diagnostic queue: a lost JSON
+            # event must not prolong microphone recording after a trigger.
+            if kind == "decision" and fields.get("triggered"):
+                self._deadline = min(self._deadline or now + self.duration,
+                                     now + self.after_trigger)
+                self._reason = "after_first_trigger"
+            try:
+                self._queue.put_nowait((event, payload))
+            except queue.Full:
+                self._dropped += 1
+                return None
+            self._events += 1
+            self._bytes += size
+            return self._seq
+
+    def backend(self, name, voice=None, *, reference_available):
+        state = {"backend": str(name)[:32],
+                 "voice": str(voice)[:128] if voice is not None else None,
+                 "reference_available": bool(reference_available)}
+        with self._lock:
+            if self._closed or self._stop.is_set() or state == self._current_backend:
+                return False
+            self._current_backend = state
+            if len(self._backend_states) < 16 or state["backend"] in self._backend_states:
+                self._backend_states[state["backend"]] = state
+        self.note("backend", **state)
+        return True
+
+    def render(self, audio, rate, when, serial, *, backend="unknown"):
+        if not self.active:
+            return None
+        pcm = np.asarray(audio, dtype="<f4").tobytes()
+        return self._offer("render", {"when": when, "rate": rate, "serial": serial,
+                                       "samples": len(audio), "backend": backend},
+                           (pcm,), audio=True)
+
+    def capture(self, raw, reference, cleaned, when, **fields):
+        if not self.active:
+            return None
+        # Explicit little endian representation, independent of host byte order.
+        far = np.asarray(reference, dtype="<i2").tobytes()
+        return self._offer("capture", dict(fields, when=when, samples=len(raw) // 2),
+                           (bytes(raw), far, bytes(cleaned)), audio=True)
+
+    def note(self, kind, **fields):
+        return self._offer(kind, fields)
+
+    def close(self):
+        with self._lock:
+            self._closed = True
+            self._stop.set()
+        # Never join an I/O thread from a real-time capture/render path.
+        if threading.current_thread() is not self.thread:
+            self.thread.join(timeout=5.)
+
+    def _run(self):
+        frames = render_bytes = 0
+        wavs = []
+        events = render = None
+        try:
+            self.folder.mkdir(parents=True, exist_ok=False)
+            for name in ("microphone", "reference", "cleaned"):
+                stream = wave.open(str(self.folder / (name + ".wav")), "wb")
+                stream.setparams((1, 2, self.rate, 0, "NONE", "not compressed"))
+                wavs.append(stream)
+            events = (self.folder / "events.jsonl").open("w", encoding="utf-8")
+            render = (self.folder / "render.f32").open("wb")
+            while True:
+                with self._lock:
+                    if self._deadline is not None and self.clock() >= self._deadline:
+                        if self._reason == "manual_close":
+                            self._reason = "time_limit"
+                        self._stop.set()
+                try:
+                    event, payload = self._queue.get(timeout=.05)
+                except queue.Empty:
+                    if self._stop.is_set():
+                        break
+                    continue
+                if event["kind"] == "capture":
+                    if not (len(payload[0]) == len(payload[1]) == len(payload[2])):
+                        raise ValueError("Diagnostic channel lengths differ")
+                    event["frame_offset"] = frames
+                    for stream, data in zip(wavs, payload):
+                        stream.writeframesraw(data)
+                    frames += event["samples"]
+                elif event["kind"] == "render":
+                    event["byte_offset"] = render_bytes
+                    render.write(payload[0])
+                    render_bytes += len(payload[0])
+                events.write(json.dumps(event, ensure_ascii=False, allow_nan=False) + "\n")
+        except Exception as exc:
+            self.error = str(exc)
+            self._stop.set()
+            log.warning("AEC diagnostic failed; audio processing continues: %s", exc)
+        finally:
+            for stream in wavs:
+                try:
+                    stream.close()
+                except Exception:
+                    pass
+            for stream in (events, render):
+                if stream is not None:
+                    try:
+                        stream.close()
+                    except Exception:
+                        pass
+            # Block late producers before taking final counts or creating ZIP.
+            with self._lock:
+                self._closed = True
+                summary = {
+                    "format_version": 2, "sample_rate": self.rate,
+                    "backends": list(self._backend_states.values()),
+                    "trace_status": ("pcm_trace" if frames else
+                                     "render_only_no_capture" if render_bytes else
+                                     "metadata_only_no_pcm"),
+                    "clock_anchor_utc": self.created_at.isoformat(),
+                    "clock_anchor_local": self.created_at.astimezone().isoformat(),
+                    "clock_anchor_monotonic": self.created_monotonic,
+                    "channels": ["microphone.wav", "reference.wav", "cleaned.wav"],
+                    "capture_frames": frames, "render_bytes": render_bytes,
+                    "queued_events": self._events, "dropped_events": self._dropped,
+                    "audio_bytes_reserved": self._bytes, "byte_limit": self.byte_limit,
+                    "duration_limit_seconds": self.duration,
+                    "stop_reason": self._reason, "error": self.error,
+                    "privacy": "Local only; includes microphone audio; no upload.",
+                    "alignment": "WAV channels share frame offsets. Use capture.when for gaps; "
+                                 "do not treat appended blocks as a continuous wall clock.",
+                    "render_format": "Little-endian float32 mono. Each render event gives "
+                                     "byte_offset, samples, rate, estimated playback when and serial. "
+                                     "render_end events trim cancelled writes at when.",
+                    "timestamps": "Monotonic seconds; playback/capture timestamps are estimates, "
+                                  "not hardware loopback measurements.",
+                }
+            try:
+                if self.folder.exists():
+                    (self.folder / "summary.json").write_text(
+                        json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
+                    if self.error is None:
+                        pending = self.archive.with_suffix(".zip.partial")
+                        with zipfile.ZipFile(pending, "w", zipfile.ZIP_DEFLATED,
+                                             compresslevel=1) as archive:
+                            for file in sorted(self.folder.iterdir()):
+                                archive.write(file, file.name)
+                        pending.replace(self.archive)
+                        log.warning("AEC diagnostic SAVED: %s (stop=%s, dropped=%d); recording OFF",
+                                    self.archive, self._reason, self._dropped)
+            except Exception as exc:
+                self.error = str(exc)
+                log.warning("AEC diagnostic finalization failed: %s; files: %s", exc, self.folder)
+            finally:
+                self.done.set()
 ```
 
 ### `jarvis/files.py`
@@ -8342,7 +9183,7 @@ LLM_MODELS = [
     "gemma2:2b", "gemma2:9b", "llama3.1:8b", "mistral:7b",
 ]
 
-TTS_BACKENDS = ["auto", "piper", "silero", "winrt", "sapi"]
+TTS_BACKENDS = ["auto", "piper", "silero", "sapi"]
 
 
 @lru_cache(maxsize=32)
@@ -9621,7 +10462,8 @@ class FenixGUI:
         self.config.set("ollama_url", value)
 
     def _on_tts_change(self, e) -> None:
-        backend = e.control.value
+        from jarvis.tts_engines.factory import normalize_backend
+        backend = normalize_backend(e.control.value)
         self.config.set("tts_backend", backend)
         try:
             from jarvis import voices as _voices
@@ -9638,13 +10480,11 @@ class FenixGUI:
             )
         elif backend == "auto":
             self._show_status(
-                "auto: выбираю движок по приоритету silero → piper → winrt → sapi. "
+                "auto: выбираю движок по приоритету silero → piper → sapi. "
                 "Если silero не установлен — уйдёт на piper."
             )
         elif backend == "piper":
             self._show_status("Piper: голоса ruslan/dmitri/irina/denis, ~60 МБ.")
-        elif backend == "winrt":
-            self._show_status("WinRT: системные голоса Windows (Pavel, Irina).")
         elif backend == "sapi":
             self._show_status("SAPI: старые системные голоса Windows.")
 
@@ -10102,7 +10942,8 @@ class SoundSettings:
 
     def build_audio(self):
         g, p = self.gui, _ui().P
-        backend = ft.Dropdown(label="Движок речи", value=g.config.get("tts_backend", "auto"),
+        backend = ft.Dropdown(label="Движок речи", value=(g.config.get("tts_backend", "auto")
+                   if g.config.get("tts_backend", "auto") in _ui().TTS_BACKENDS else "auto"),
             options=[ft.dropdown.Option(k) for k in _ui().TTS_BACKENDS], expand=True,
             border_color=p.border, focused_border_color=p.brand, on_select=g._on_tts_change)
         current = g.config.get("tts_voice", "ruslan")
@@ -10130,7 +10971,7 @@ class SoundSettings:
         ], "audio")
         reactions = card("Живое звучание", "Необязательные реакции и анализ интонации — настройте под себя.", [
             ft.Checkbox(label="Звуковые реакции (смех, вздохи, хм, зевок)", value=bool(g.config.get("nonverbal_enabled", False)), on_change=g._on_nonverbal_enabled),
-            note("Только в помеченном диалоге. Silero, Piper и WinRT; SAPI — без реакций. На голосовую пробу не добавляются."),
+            note("Только в помеченном диалоге. Silero и Piper; SAPI — без реакций. На голосовую пробу не добавляются."),
             ft.Checkbox(label="Анализировать интонацию голоса (Prosody)", value=bool(g.config.get("prosody_enabled", True)), on_change=g._on_prosody_enabled),
             ft.Dropdown(label="Приоритет оценки интонации", value=g.config.get("prosody_priority", "prosody"), options=[
                 ft.dropdown.Option("prosody", "Голос важнее текста"), ft.dropdown.Option("text", "Текст важнее голоса"),
@@ -10154,6 +10995,10 @@ class SoundSettings:
                 g._vad_hangover_label, g._vad_hangover_slider,
                 note("Короткий хвост может ускорить ответ, но Vosk должен успеть завершить фразу."),
                 ft.Checkbox(label="Прерывать Феникса голосом (barge-in)", value=bool(g.config.get("barge_enabled", True)), on_change=g._on_barge_enabled),
+                ft.Checkbox(label="AEC: эхо колонок — Piper, эксперимент (после перезапуска)",
+                    value=bool(g.config.get("aec_enabled", False)),
+                    on_change=lambda e: g.config.set("aec_enabled", bool(e.control.value))),
+                note("AEC требует optional-пакет: install_aec.bat в папке Феникса. Выберите Piper и перезапустите приложение. Без пакета остаётся прежний тракт; кабель/драйвер не нужен."),
                 ft.Checkbox(label="Ждать обращения «Феникс»", value=bool(g.config.get("wake_word_required", True)), on_change=g._on_wake_required),
                 note("Без ожидания обращения любая распознанная речь может стать командой. Изменения применяются сразу."),
             ], spacing=12))])
@@ -12673,274 +13518,54 @@ def find_installed(index: dict[str, Path], spoken: str,
 ### `jarvis/intents/__init__.py`
 
 ```python
-"""Разбор команд Феникса — пакет. ... [5 строк]"""
-from jarvis.intents.handler import IntentHandler
-from jarvis.text_utils import normalize
+"""Стадии обработки команды. Порядок = приоритет. ... [15 строк]"""
 
-__all__ = ["IntentHandler", "normalize"]
+from jarvis.intents.stages.cancel import CancelStage
+from jarvis.intents.stages.onboarding import OnboardingStage
+from jarvis.intents.stages.correction import CorrectionStage
+from jarvis.intents.stages.password import PasswordStage
+from jarvis.intents.stages.memory import MemoryStage
+from jarvis.intents.stages.pending import PendingStage
+from jarvis.intents.stages.clipboard import ClipboardStage
+from jarvis.intents.stages.modes import ModesStage
+from jarvis.intents.stages.compound import CompoundStage
+from jarvis.intents.stages.fast import FastHandlersStage
+from jarvis.intents.stages.llm import LLMStage
+from jarvis.intents.stages.clarification import ClarificationStage
+
+
+def build_pipeline(handler) -> list:
+    """Собирает pipeline стадий. Порядок фиксирован."""
+    return [
+        CancelStage(),
+        PendingStage(),
+        OnboardingStage(),
+        CorrectionStage(),
+        PasswordStage(),
+        MemoryStage(),
+        ClipboardStage(),
+        ModesStage(),
+        CompoundStage(),
+        ClarificationStage(),
+        FastHandlersStage(),
+        LLMStage(),
+    ]
 ```
 
 ### `jarvis/intents/clarification.py`
 
 ```python
-"""Bounded, session-only slot filling shared by GUI and voice. ... [4 строк]"""
+"""Запрос недостающего слота до fast/LLM, без выполнения догадок."""
 
-from dataclasses import dataclass
-import re
-import time
-
-from jarvis.language import analyze_command
-from jarvis.language.numbers import digit_numbers, word_numbers
-from jarvis.language.time import HALF, parse_duration
-from jarvis.language.units import TOKEN, unit_at
-from jarvis.intents.verbs import COMMAND_VERBS
-from jarvis.text_utils import normalize
-
-TIMEOUT = 30.0
-MAX_ATTEMPTS = 3
-OPEN = re.compile(r"^(?:открой|открывай|запусти|включи|врубай)$")
-TIMER = re.compile(
-    r"^(?:(?:поставь|установи)\s+)?(?:таймер|напоминание|напомни|напоминай)\b\s*",
-    re.I,
-)
-CORRECTION = re.compile(r"(?:^|[\s,;.…]+)(?:нет|точнее)\s*[,;:.…]?\s+", re.I)
-PROMPTS = {
-    "target": "Какое приложение открыть? Назови приложение или скажи «отмена».",
-    "time": "На сколько поставить таймер или в какое время напомнить?",
-    "unit": "В каких единицах: секундах, минутах или часах?",
-}
+from jarvis.intents.clarification import begin
+from jarvis.intents.stages.base import Stage
 
 
-@dataclass(frozen=True)
-class TimeSlot:
-    command: str = ""
-    body: str = ""
-    partial: str = ""
-    issue: str = ""
+class ClarificationStage(Stage):
+    name = "clarification"
 
-
-def pending_alive(pending):
-    if not isinstance(pending, dict):
-        return False
-    if pending.get("type") == "command_slot":
-        return time.monotonic() < pending.get("deadline", 0)
-    return time.time() < pending.get("expires_at", 0)
-
-
-def _ask(handler, slot, **data):
-    handler._pending_question = {
-        "type": "command_slot",
-        "slot": slot,
-        "deadline": time.monotonic() + TIMEOUT,
-        # Совместимость окна голосового ввода; проверка срока — монотонная.
-        "expires_at": time.time() + TIMEOUT,
-        "attempts": 0,
-        **data,
-    }
-    return PROMPTS[slot]
-
-
-def _retry(handler, pending, prompt):
-    pending["attempts"] += 1
-    if pending["attempts"] >= MAX_ATTEMPTS:
-        handler._pending_question = None
-        return "Не удалось уточнить команду. Действие отменено; скажи команду заново."
-    # Не продлеваем срок при каждом непонятном ответе.
-    return prompt
-
-
-def _last_version(text):
-    return CORRECTION.split(text)[-1].strip().rstrip(" .!?…")
-
-
-def _has_duration_unit(text):
-    if HALF.search(text):
-        return True
-    for token in TOKEN.finditer(text):
-        unit = unit_at(text, token.start())
-        if unit and unit[0].dimension == "duration":
-            return True
-    return False
-
-
-def _time_slot(text):
-    """Use shared numeric grammar; a bare number never defaults to minutes."""
-    text = text.strip().rstrip(" .!?…")
-    if re.match(r"^[.,]\d", text):
-        return TimeSlot(issue="Укажи ноль перед десятичным разделителем.")
-    if not text:
-        return TimeSlot()
-    if re.fullmatch(r"\d{1,2}[:.]\d{2}", text):
-        text = "в " + text
-    if normalize(text).startswith("не "):
-        return TimeSlot(issue="Укажи время без отрицания.")
-    analysis = analyze_command("таймер " + text)
-    if analysis.issue:
-        return TimeSlot(issue=analysis.issue)
-    clock = re.match(r"^в\s+(\d{1,2}:\d{2})\b\s*", analysis.command[7:], re.I)
-    if clock:
-        rest = analysis.command[7:][clock.end() :].strip()
-        return TimeSlot(command="в " + clock[1], body=rest)
-    duration = parse_duration(text)
-    if duration and _has_duration_unit(text[: duration.end]):
-        if duration.issue:
-            return TimeSlot(issue=duration.issue)
-        seconds = duration.seconds
-        if seconds <= 0 or seconds != seconds.to_integral_value():
-            return TimeSlot(issue="Укажи положительное время с точностью до секунды.")
-        return TimeSlot(
-            command=f"через {int(seconds)} секунд",
-            body=text[duration.end :].strip(" ,.!?…"),
-        )
-    number_text = re.sub(r"^(?:на|через)\s+", "", text, flags=re.I)
-    numbers = (*word_numbers(number_text), *digit_numbers(number_text))
-    whole = [n for n in numbers if n.start == 0 and n.end == len(number_text)]
-    if len(whole) == 1 and whole[0].kind == "cardinal" and whole[0].value > 0:
-        return TimeSlot(partial=number_text)
-    return TimeSlot()
-
-
-def _new_turn(cmd):
-    tokens = cmd.split()
-    if not tokens:
-        return False
-    return tokens[0] in COMMAND_VERBS or tokens[0] in {
-        "установи",
-        "таймер",
-        "напоминание",
-        "расскажи",
-        "почему",
-        "зачем",
-        "как",
-        "кто",
-        "что",
-        "какие",
-        "список",
-        "погода",
-        "привет",
-        "спасибо",
-        "режим",
-        "пауза",
-        "продолжи",
-        "следующий",
-        "предыдущий",
-        "отмени",
-        "сбрось",
-        "который",
-        "громкость",
-        "яркость",
-        "плей",
-        "play",
-        "pause",
-        "дальше",
-        "останови",
-    }
-
-
-def _known_target(handler, answer):
-    """Only an exact known name: a slot answer must not guess an arbitrary site."""
-    target = normalize(answer)
-    if not target or len(target) > 100:
-        return None
-    for app in handler.apps:
-        names = (app.key, app.title, *app.aliases)
-        if any(target == normalize(name) for name in names):
-            return normalize(app.aliases[0]) if app.aliases else normalize(app.title)
-    # Installed indexes are already warmed by IntentHandler; no extra scan/cache.
-    for name in handler.installed:
-        if normalize(name) == target:
-            return target
-    for title, _appid in handler.steam_games:
-        if normalize(title) == target:
-            return target
-    return None
-
-
-def begin(ctx):
-    """Start only supported, explicitly incomplete commands; other intents pass."""
-    h = ctx.handler
-    from jarvis.intents.fast.custom import find_custom
-
-    if OPEN.fullmatch(ctx.cmd):
-        if find_custom(getattr(h, "custom", []), ctx.cmd) is not None:
-            return None
-        return _ask(h, "target", action="open")
-    raw = (getattr(h, "_raw_cmd", "") or ctx.cmd).strip()
-    # Reuse analysis already done by handle(); do not parse every command twice.
-    analysis = getattr(h, "_number_analysis", None)
-    if analysis is None or normalize(analysis.command) != ctx.cmd:
-        raw = ctx.cmd
-    match = TIMER.match(raw)
-    if not match:
-        return None
-    if find_custom(getattr(h, "custom", []), ctx.cmd) is not None:
-        return None
-    tail = raw[match.end() :].strip()
-    corrected = _last_version(tail)
-    value = _time_slot(corrected)
-    if value.command:
-        if re.match(r"^(?:или|либо)\b", value.body, re.I):
-            return _ask(h, "time", action="timer", text="") + " Назови одно время."
-        if corrected != tail.strip(" ,.!?…"):
-            # Only an explicit replacement of a time, not "say no" in a reminder.
-            if not value.body:
-                original = _time_slot(CORRECTION.split(tail)[0].strip())
-                body = original.body if original.command else ""
-                ctx.cmd = normalize("таймер " + value.command + " " + body)
-        return None
-    if value.issue:
-        return _ask(h, "time", action="timer", text="") + " " + value.issue
-    if value.partial:
-        return _ask(h, "unit", action="timer", text="", partial=value.partial)
-    # Preserve the payload of an incomplete reminder, but not malformed time.
-    body = tail if tail and not re.match(r"^(?:на|через|в)\b", tail, re.I) else ""
-    return _ask(h, "time", action="timer", text=body)
-
-
-def resume(ctx):
-    h = ctx.handler
-    pending = h._pending_question
-    if not pending_alive(pending):
-        h._pending_question = None
-        # New full commands still work; a stale slot answer never reaches LLM.
-        if _new_turn(ctx.cmd):
-            return None
-        return "Время уточнения истекло. Скажи команду заново."
-    answer = _last_version(getattr(h, "_raw_cmd", "") or ctx.cmd)
-    clean = normalize(answer)
-    if clean in {"нет", "не надо", "не нужно", "отмени"}:
-        h._pending_question = None
-        return "Действие отменено."
-    if _new_turn(clean):
-        h._pending_question = None
-        return None
-    if pending["slot"] == "target":
-        target = _known_target(h, answer)
-        if not target:
-            return _retry(
-                h,
-                pending,
-                "Не нашёл однозначное название приложения. " + PROMPTS["target"],
-            )
-        command = "открой " + target
-    else:
-        if pending["slot"] == "unit":
-            unit = unit_at(answer, 0)
-            if unit and unit[0].dimension == "duration" and unit[1] == len(answer):
-                answer = pending["partial"] + " " + answer
-        value = _time_slot(answer)
-        if value.partial:
-            pending.update(slot="unit", partial=value.partial)
-            return _retry(h, pending, PROMPTS["unit"])
-        if not value.command or value.body:
-            return _retry(h, pending, value.issue or PROMPTS["time"])
-        command = "таймер " + value.command
-        if pending.get("text"):
-            command += " " + pending["text"]
-    h._pending_question = None
-    ctx.cmd = normalize(command)
-    ctx.state["clarification_resumed"] = True
-    return None
+    def handle(self, ctx):
+        return begin(ctx)
 ```
 
 ### `jarvis/intents/context.py`
@@ -15581,90 +16206,124 @@ class IntentHandler:
 ### `jarvis/intents/password.py`
 
 ```python
-"""Парольные примитивы: jarvis.intents.password (не стадия pipeline). ... [6 строк]"""
+"""Стадия pipeline: jarvis.intents.stages.password. ... [6 строк]"""
 
-import hashlib
-import hmac
 import logging
+import re
+import time
+
+from jarvis import profile
+from jarvis.intents.password import ACTION_HUMAN, verify_password
+from jarvis.intents.stages.base import Stage
+from jarvis.intents.verbs import CANCEL
 
 log = logging.getLogger("jarvis.intents")
 
 
-_PASSWORD_PREFIX = "sha256:"
+class PasswordStage(Stage):
+    name = "password"
+
+    def handle(self, ctx):
+        h = ctx.handler
+
+        # Ввод пароля имеет приоритет над всеми другими командами.
+        if h._pending_password:
+            if time.time() >= h._pending_password.get("expires_at", 0):
+                h._pending_password = None
+                return "Время ввода пароля истекло. Повторите команду."
+            return self._handle_answer(ctx)
+
+        reply = self._maybe_delete_profile(ctx)
+        if reply is not None:
+            return reply
+
+        # 3. Опасные fast-команды («очисти список», «отмени все напоминания»):
+        # fast-реестр идёт после этой стадии, а проверка is_danger живёт
+        # только в LLMStage — без гейта здесь такие команды выполнялись
+        # без пароля, хотя входят в DANGER_ACTIONS.
+        return self._maybe_gate_fast_danger(ctx)
+
+    # ----------------------------------------------------------------
+
+    def _maybe_gate_fast_danger(self, ctx) -> str | None:
+        """Пароль для опасных fast-команд (clear_tasks / cancel_timers)."""
+        h = ctx.handler
+        if not h._danger_password():
+            return None
+        from jarvis import tasks as _tasks
+        from jarvis import timers as _timers
+        if _tasks.is_clear_command(ctx.cmd):
+            return h._ask_password({"action": "clear_tasks"})
+        if _timers.is_cancel_all_command(ctx.cmd):
+            return h._ask_password({"action": "cancel_timers"})
+        return None
+
+    # ----------------------------------------------------------------
+
+    def _maybe_delete_profile(self, ctx) -> str | None:
+        """«удали профиль X» → пароль или удаление."""
+        h = ctx.handler
+        m = re.match(r"^удали\s+профиль\s+(\S+)$", ctx.cmd)
+        if not m:
+            return None
+
+        name = m.group(1)
+
+        if h._danger_password():
+            # Пароль задан — спрашиваем.
+            return h._ask_password({"action": "delete_profile", "target": name})
+
+        # Пароля нет — удаляем сразу.
+        if profile.delete(name):
+            return f"Профиль {name} удалён."
+        return f"Профиль {name} не найден или активен."
+
+    # ----------------------------------------------------------------
+
+    def _handle_answer(self, ctx) -> str:
+        h = ctx.handler
+        pending = h._pending_password
+        h._pending_password = None
+
+        if ctx.cmd in CANCEL:
+            h._pending_question = None
+            h._reset_requested = True
+            return "Жду обращение, сэр."
+
+        # Убираем «пароль», «код», «пин», если сказали.
+        raw = ctx.original_cmd or ctx.cmd
+        candidate = re.sub(r"^(?:пароль|код|пин)\s+", "", raw.strip(),
+                           count=1, flags=re.IGNORECASE).strip()
+
+        stored = str(h.config.get("danger_password") or "").strip()
+        if not verify_password(candidate, stored):
+            log.warning("Пароль неверный")
+            return "Пароль неверный. Действие отменено."
+
+        from jarvis.intents.execute import execute_intent, execute_steps
+
+        intent = pending.get("intent") or {}
+        if intent.get("action") == "custom_command":
+            from jarvis.intents.fast.custom import execute_custom
+            result = execute_custom(h, intent["spec"],
+                                    intent.get("reply", "Выполняю."),
+                                    authorized=True)
+        elif isinstance(intent.get("steps"), list):
+            result = execute_steps(h, intent["steps"])
+        else:
+            result = execute_intent(h, intent)
+        return result or "Готово."
 
 
-def hash_password(password: str) -> str:
-    """SHA-256 с префиксом. Префикс отличает хеш от legacy-plaintext."""
-    digest = hashlib.sha256(password.encode("utf-8")).hexdigest()
-    return f"{_PASSWORD_PREFIX}{digest}"
-
-
-def is_hashed(value: str) -> bool:
-    """Уже захеширован?"""
-    return bool(value) and value.startswith(_PASSWORD_PREFIX)
-
-
-def verify_password(candidate: str, stored: str) -> bool:
-    """Сравнивает введённый пароль с сохранённым. ... [4 строк]"""
-    if not stored:
-        return False
-    if is_hashed(stored):
-        # compare_digest — постоянное по времени сравнение.
-        # Обычный == утекает длиной совпавшего префикса.
-        return hmac.compare_digest(hash_password(candidate), stored)
-    # Legacy plaintext — мигрируется в sha256 при старте.
-    return hmac.compare_digest(candidate.encode("utf-8"), stored.encode("utf-8"))
-
-
-def migrate_password_if_needed(config) -> None:
-    """Если danger_password в plaintext — захешировать (№81)."""
-    raw = str(config.get("danger_password") or "").strip()
-    if not raw or is_hashed(raw):
-        return
-    config.set("danger_password", hash_password(raw))
-    log.info("Пароль миграции: plaintext → sha256")
-
-
-# Действия, требующие пароля (если danger_password задан).
-DANGER_ACTIONS = frozenset({
-    "shutdown_pc", "reboot_pc", "kill_process",
-    "clear_tasks", "cancel_timers", "delete_profile",
-})
-
-
-def _action_is_danger(action, target) -> bool:
-    if action in DANGER_ACTIONS:
-        return True
-    if action == "open_app":
-        t = str(target or "").lower()
-        if any(word in t for word in ("shutdown", "taskkill", "выключ", "перезагруз")):
-            return True
-    return False
-
-
-def is_danger(intent: dict, stored_password: str) -> bool:
-    """Проверяет, опасно ли действие. ... [5 строк]"""
-    if not stored_password:
-        return False
-    if _action_is_danger(intent.get("action"), intent.get("target")):
-        return True
-    for step in intent.get("steps") or []:
-        if isinstance(step, dict) and _action_is_danger(step.get("action"),
-                                                        step.get("target")):
-            return True
-    return False
-
-
-# Человеческие названия для озвучки — при запросе пароля.
-ACTION_HUMAN = {
-    "shutdown_pc": "выключение компьютера",
-    "reboot_pc": "перезагрузку",
-    "kill_process": "закрытие процесса",
-    "clear_tasks": "очистку списка задач",
-    "cancel_timers": "отмену напоминаний",
-    "delete_profile": "удаление профиля",
-    "open_app": "это действие",
-}
+def build_ask_password(intent: dict, expires_sec: int = 30) -> tuple[dict, str]:
+    """Готовит данные для _pending_password и текст запроса."""
+    pending = {
+        "intent": intent,
+        "expires_at": time.time() + expires_sec,
+    }
+    action = intent.get("action")
+    human = ACTION_HUMAN.get(action, "это действие")
+    return pending, f"Для этого нужен пароль ({human}). Назовите пароль."
 ```
 
 ### `jarvis/intents/sites.py`
@@ -18174,6 +18833,9 @@ class Jarvis:
 
     def shutdown(self) -> None:
         self.stop_event.set()
+        path = getattr(self.listener, "_echo_path", None)
+        if path is not None:
+            path.close()
 
     def mic_watchdog(self) -> None:
         """One passive startup diagnostic in the log; never speak or steal a tab. ... [4 строк]"""
@@ -18659,6 +19321,13 @@ def main() -> None:
         config.get("input_device"),
         config=config,
     )
+
+    if config.get("aec_enabled", False):
+        from jarvis.echo import make_echo_path
+        echo = make_echo_path(config)
+        if echo is not None:
+            speaker.set_echo_path(echo)
+            listener.set_echo_path(echo)
 
     gui = None
     if config.get("gui_enabled", True):
@@ -21849,6 +22518,13 @@ class Listener:
             raise RuntimeError("Vosk не установлен: требуется пакет vosk")
         if not file_mode and sd is None:
             raise RuntimeError("Микрофон недоступен: требуется sounddevice/PortAudio")
+        self._echo_path = None
+        self._aec_preroll = deque(maxlen=4)  # <=512 ms cleaned audio, RAM only
+        self._aec_barge = False
+        self._aec_last_reason = "idle"
+        self._aec_residual_levels = deque(maxlen=24)
+        self._aec_level_threshold = 20
+        self._aec_trigger_metrics = None
         self._file_mode = bool(file_mode)
         self.file_vad_errors = 0
         SetLogLevel(-1)
@@ -21959,7 +22635,13 @@ class Listener:
 
     def barge_start(self):
         self.barge_flag = False
+        self._aec_barge = False
+        history = getattr(self, "_aec_preroll", None)
+        if history is not None:
+            history.clear()
         self._barge_speech_ms = 0
+        self._aec_last_reason = "warming"
+        self._aec_trigger_metrics = None
         self._speech_active = True
         self._speech_started_at = time.time()
         self._echo_done = False
@@ -21968,8 +22650,20 @@ class Listener:
 
     def barge_end(self):
         self._speech_active = False
-        log.info("Barge-in: стоп (echo=%d, thr=%d, речь=%d мс)",
-                 self._echo_baseline, self._barge_threshold, self._barge_speech_ms)
+        path = getattr(self, "_echo_path", None)
+        diagnostics = getattr(path, "diagnostics", lambda: None)()
+        if diagnostics is not None:
+            log.info(
+                "Barge-in AEC: завершение контроля (reason=%s, speech=%d мс, threshold=%d, trigger=%s, %s)",
+                self._aec_last_reason,
+                self._barge_speech_ms,
+                getattr(self, "_aec_level_threshold", 20),
+                getattr(self, "_aec_trigger_metrics", None),
+                diagnostics,
+            )
+        else:
+            log.info("Barge-in: стоп (echo=%d, thr=%d, речь=%d мс)",
+                     self._echo_baseline, self._barge_threshold, self._barge_speech_ms)
 
     def _process_barge(self, rms):
         if not self._speech_active or not self.barge_enabled:
@@ -22052,7 +22746,62 @@ class Listener:
         except Exception:
             return True
 
+    def set_echo_path(self, path):
+        if self._file_mode:
+            raise RuntimeError("AEC не подключается к WAV replay")
+        self._echo_path = path
+        # LCM(160 WebRTC samples, 512 Silero samples) at 16 kHz: no
+        # artificial zero padding between capture blocks in either DSP.
+        self._block_size = 2560  # 160 ms, only this opt-in prototype
+        self._block_ms = 160
+        self._aec_preroll = deque(maxlen=3)  # <=480 ms cleaned PCM in RAM
+        if self._vad_gate is not None:
+            self._vad_gate = SpeechHangover(self._hangover_blocks())
+        path.start(self._accept_capture)
+
     def _callback(self, indata, frames, time_info, status):
+        path = getattr(self, "_echo_path", None)
+        if path is not None:
+            now = time.monotonic()
+            age = frames / max(1, self._sample_rate)
+            try:
+                delta = float(time_info.currentTime - time_info.inputBufferAdcTime)
+                if 0 <= delta <= 2:
+                    age = delta
+            except (AttributeError, TypeError, ValueError):
+                pass
+            if status:
+                path.discontinuity()
+            if path.submit(bytes(indata), now - age):
+                return
+        gap = path.take_gap() if path is not None else False
+        guarded = bool(
+            path is not None
+            and getattr(path, "render_guard_active", lambda: False)()
+        )
+        self._accept_capture(
+            indata,
+            status=status,
+            aec_reset=gap,
+            inhibit_for_render=guarded,
+        )
+
+    def _accept_capture(self, indata, status=None, *, aec_probability=None, source_pcm=None,
+                        aec_echo_similarity=None, aec_raw_similarity=None,
+                        aec_verified=False,
+                        aec_attenuation=None, aec_best_attenuation=None,
+                        aec_reset=False, inhibit_for_render=False, aec_trace_id=None):
+        if aec_reset:
+            self._barge_speech_ms = 0
+            # A sentinel is consumed by the Vosk owner, never Reset() here.
+            self._audio.put(None)
+            if self.vad is not None:
+                try:
+                    self.vad.reset()
+                except Exception:
+                    pass
+            if self._vad_gate is not None:
+                self._vad_gate.reset()
         if status:
             log.warning("Аудиопоток: %s", status)
         arr = np.frombuffer(indata, dtype=np.int16)
@@ -22064,16 +22813,31 @@ class Listener:
             rms = 0
             self.current_rms = 0
         self.level_updated_at = time.monotonic()
-        self._process_barge(rms)
-
-        if self.muted:
+        clean_rms = rms
+        if source_pcm is not None:
+            source = np.frombuffer(source_pcm, dtype=np.int16).astype(np.float32)
+            if source.size:
+                self.current_rms = int(np.sqrt(np.mean(source ** 2)))
+                self.peak = max(self.peak, int(np.abs(source).max()))
+        if inhibit_for_render:
+            # Optional AEC missing/starting/failed: never fall back to legacy
+            # RMS barge-in while Piper is audible.  Drop recognition for this
+            # block too, otherwise the assistant can hear its own reply as the
+            # next command.  Physical mic level above remains visible.
+            self._barge_speech_ms = 0
+            self._aec_last_reason = "aec_unavailable"
             return
+        if aec_probability is None:
+            self._process_barge(rms)
+            if self.muted:
+                return
 
         # VAD: пропускаем чанк в Vosk ТОЛЬКО если в нём есть речь.
         # Тишина и шум отсекаются — Vosk не крутит AcceptWaveform зря.
         # ВАЖНО: после речи отдаём ещё «хвост» тишины (vad_hangover_ms),
         # иначе Vosk не увидит паузу и не отдаст финальную фразу.
         raw = bytes(indata)
+        speech = True
         if self.vad is not None:
             try:
                 speech = self.vad.is_speech(raw)
@@ -22081,11 +22845,103 @@ class Listener:
                 self.file_vad_errors = getattr(self, "file_vad_errors", 0) + 1
                 log.exception("VAD.is_speech упал — пропускаю чанк как есть")
                 speech = True
-            if self._vad_gate is not None and not self._vad_gate.feed(speech):
-                # Тишина дольше «хвоста» — в Vosk не пушим.
-                # Barge/peak/current_rms уже обновлены.
+        if aec_probability is not None:
+            history = getattr(self, "_aec_preroll", None)
+            if history is not None and self._speech_active:
+                history.append(raw)
+            # Learn the cleaned residual level only from blocks where AEC has
+            # demonstrably attenuated the render.  This adapts to quiet mics
+            # without learning the user's interruption as "background".
+            residual_levels = getattr(self, "_aec_residual_levels", None)
+            if (residual_levels is not None and aec_attenuation is not None
+                    and aec_attenuation <= .20):
+                residual_levels.append(clean_rms)
+                ordered = sorted(residual_levels)
+                floor = ordered[len(ordered) // 2]
+                self._aec_level_threshold = max(12, min(180, int(floor * 1.8 + 8)))
+            # This decision sees cleaned PCM, not raw speaker echo. The native
+            # speech probability is an additional gate, not speaker identity.
+            # The current render must first prove cancellation, and correlated
+            # residual render audio must never be accepted as a second talker.
+            trace_active = self._speech_active and self.barge_enabled
+            trace_triggered = False
+            if self._speech_active and self.barge_enabled and not self.barge_flag:
+                level_threshold = getattr(self, "_aec_level_threshold", 20)
+                ratio_threshold = max(
+                    .06,
+                    min(.25, (aec_best_attenuation or 0.0) * 2.5),
+                )
+                if not aec_verified:
+                    candidate = False
+                    self._aec_last_reason = "warming"
+                elif aec_echo_similarity is None:
+                    candidate = False
+                    self._aec_last_reason = "no_reference"
+                elif (aec_raw_similarity is not None
+                      and aec_raw_similarity >= .45
+                      and aec_echo_similarity >= .22
+                      and clean_rms >= max(60, level_threshold * 3)):
+                    candidate = False
+                    self._aec_last_reason = "acoustic_path_change"
+                elif aec_echo_similarity >= .35:
+                    candidate = False
+                    self._aec_last_reason = "speaker_echo"
+                elif not speech:
+                    candidate = False
+                    self._aec_last_reason = "vad"
+                elif aec_probability < .60:
+                    candidate = False
+                    self._aec_last_reason = "probability"
+                elif clean_rms < level_threshold:
+                    candidate = False
+                    self._aec_last_reason = "level"
+                elif (aec_attenuation is not None
+                      and aec_attenuation < ratio_threshold
+                      and aec_echo_similarity >= .08):
+                    candidate = False
+                    self._aec_last_reason = "attenuation"
+                else:
+                    candidate = True
+                    self._aec_last_reason = "near_speech"
+                if candidate:
+                    self._barge_speech_ms += len(raw) * 1000 / (2 * self._sample_rate)
+                    if self._barge_speech_ms >= 320:
+                        trace_triggered = True
+                        self.barge_flag = True
+                        self._aec_barge = True
+                        self._aec_last_reason = "triggered"
+                        self._aec_trigger_metrics = {
+                            "rms": clean_rms,
+                            "probability": round(float(aec_probability), 3),
+                            "similarity": round(float(aec_echo_similarity), 3),
+                            "raw_similarity": (
+                                None if aec_raw_similarity is None
+                                else round(float(aec_raw_similarity), 3)
+                            ),
+                            "attenuation": (
+                                None if aec_attenuation is None
+                                else round(float(aec_attenuation), 3)
+                            ),
+                        }
+                else:
+                    self._barge_speech_ms = 0
+            if aec_trace_id is not None:
+                path = getattr(self, "_echo_path", None)
+                if path is not None:
+                    path.record_trace_decision(
+                        aec_trace_id,
+                        reason=getattr(self, "_aec_last_reason", "unknown") if trace_active else "inactive",
+                        triggered=trace_triggered,
+                        speech_ms=self._barge_speech_ms,
+                        threshold=getattr(self, "_aec_level_threshold", 20),
+                        rms=clean_rms, raw_rms=self.current_rms,
+                        vad=bool(speech), muted=bool(self.muted),
+                        trigger=getattr(self, "_aec_trigger_metrics", None),
+                    )
+            if self.muted:
                 return
-
+        if self._vad_gate is not None and not self._vad_gate.feed(speech):
+            return
         self._audio.put(raw)
 
     def _drain_audio(self) -> None:
@@ -22100,7 +22956,23 @@ class Listener:
 
     def flush(self):
         """Сброс аудио-буфера. ... [8 строк]"""
+        path = getattr(self, "_echo_path", None)
+        if path is not None:
+            path.flush()
+        history = getattr(self, "_aec_preroll", None)
+        saved = list(history) if history is not None and getattr(self, "_aec_barge", False) else []
+        if history is not None:
+            history.clear()
+        self._aec_barge = False
         self._drain_audio()
+        if saved:
+            # Reset stays on the recognizer owner. Preserve the cleaned onset
+            # that triggered AEC barge-in instead of throwing it away at stop.
+            if path is not None:
+                path.take_gap()
+            self._audio.put(None)
+            for raw in saved:
+                self._audio.put(raw)
         # Сброс VAD state — после barge/wake/flush детекция должна начаться заново.
         if self.vad is not None:
             try:
@@ -22191,6 +23063,9 @@ class Listener:
                      new_device)
             return
 
+        path = getattr(self, "_echo_path", None)
+        if path is not None:
+            path.flush(reset=True)
         self._device = new_device
         self.device_name = self._current_device_name()
         self._device_reload = True
@@ -22205,6 +23080,13 @@ class Listener:
 
     def _consume_audio(self, data):
         """Один и тот же endpoint/quality путь для микрофона и WAV replay."""
+        if data is None:
+            # AEC overload/device/error gap must not join two partial commands.
+            self._rec.Reset()
+            self._utt_buf.clear()
+            self._utt_len = 0
+            self.last_quality = None
+            return None
         max_buf = self._sample_rate * 2 * 30
         self._utt_buf.append(data)
         self._utt_len += len(data)
@@ -23386,6 +24268,7 @@ import threading
 from typing import Iterator
 
 from jarvis.tts_engines import get_engine, list_engines
+from jarvis.tts_engines.factory import normalize_backend
 from jarvis.text_utils import prepare_text
 
 log = logging.getLogger("jarvis.tts")
@@ -23401,8 +24284,9 @@ class Speaker:
         self.voice = cfg.get("tts_voice") or "ruslan"
         self.rate = float(cfg.get("voice_rate", 1.15))
         self.quality = cfg.get("tts_voice_quality", "medium")
-        self._backend = cfg.get("tts_backend", "auto")
+        self._backend = normalize_backend(cfg.get("tts_backend", "auto"))
 
+        self._echo_path = None
         self._engine = None
         self._engine_name = "none"
         # Инициализация движка — под локом: ленивая загрузка в фоне и
@@ -23464,7 +24348,7 @@ class Speaker:
         if self._backend == "silero":
             log.info("TTS: Silero — первая загрузка может занять 1–3 минуты")
         elif self._backend == "auto":
-            log.info("TTS: auto — пробую silero → piper → winrt → sapi")
+            log.info("TTS: auto — пробую silero → piper → sapi")
         engine = get_engine(self._backend, self.voice, self.quality,
                             self.rate)
         if engine is None:
@@ -23479,6 +24363,7 @@ class Speaker:
 
     def switch_backend(self, backend: str) -> bool:
         """Переключить движок на лету."""
+        backend = normalize_backend(backend)
         if backend == self._backend and self._engine is not None:
             return True
 
@@ -23561,7 +24446,28 @@ class Speaker:
     # Stop-token
     # ------------------------------------------------------------------
 
+    def set_echo_path(self, path):
+        self._echo_path = path
+
+    def _pcm_echo_path(self):
+        """Normal AEC remains Piper-only; diagnostic sessions accept WAV engines."""
+        path = getattr(self, "_echo_path", None)
+        if path is None:
+            return None
+        if self._engine_name == "piper":
+            return path
+        if (getattr(path, "diagnostic_mode", False) is True
+                and self._engine_name == "silero"):
+            return path
+        return None
+
     def _new_token(self, allow_nonverbal=False) -> threading.Event:
+        path = getattr(self, "_echo_path", None)
+        if path is not None:
+            if getattr(path, "diagnostic_mode", False) is True:
+                path.set_trace_backend(self._engine_name, getattr(self, "voice", None))
+            if self._pcm_echo_path() is None:
+                path.suspend_render()
         with self._token_lock:
             self._current_token = threading.Event()
             policy = getattr(self, "_nonverbal", None)
@@ -23728,7 +24634,13 @@ class Speaker:
                 reaction = policy.take(token)
             except Exception:
                 log.exception("Non-verbal: ошибка необязательной реакции; продолжаю речь")
-        play_wav(wav_bytes, token, reaction)
+        path = self._pcm_echo_path()
+        if path is not None:
+            if getattr(path, "diagnostic_mode", False) is True:
+                path.set_trace_backend(self._engine_name, getattr(self, "voice", None))
+            play_wav(wav_bytes, token, reaction, echo=path)
+        else:
+            play_wav(wav_bytes, token, reaction)
 
 
 # Список доступных движков — для GUI/CLI
@@ -23747,7 +24659,7 @@ def engine_voices(backend: str) -> dict:
 ### `jarvis/tts_engines/__init__.py`
 
 ```python
-"""TTS-движки Феникса — абстракция над Piper, Silero, WinRT, SAPI. ... [6 строк]"""
+"""TTS-движки Феникса — абстракция над Piper, Silero, SAPI. ... [6 строк]"""
 
 from jarvis.tts_engines.base import BaseEngine
 from jarvis.tts_engines.factory import get_engine, list_engines
@@ -23834,7 +24746,6 @@ log = logging.getLogger("jarvis.tts")
 _ENGINE_IMPORTS = {
     "silero": ("jarvis.tts_engines.silero", "SileroEngine"),
     "piper":  ("jarvis.tts_engines.piper", "PiperEngine"),
-    "winrt":  ("jarvis.tts_engines.winrt", "WinRTEngine"),
     "sapi":   ("jarvis.tts_engines.sapi", "SAPIEngine"),
 }
 
@@ -23842,7 +24753,6 @@ _ENGINE_IMPORTS = {
 _ENGINE_REQUIRES = {
     "silero": "torch",
     "piper":  "piper",
-    "winrt":  "winrt.windows.media.speechsynthesis",
     "sapi":   "pyttsx3",
 }
 
@@ -23877,6 +24787,8 @@ def _dependency_present(module_name: str) -> bool:
 
 def _probe_engine(name: str):
     """Заглушка движка по имени. None — модуля/зависимости нет."""
+    if name not in _ENGINE_IMPORTS:
+        return None
     if name in _PROBE_CACHE:
         return _PROBE_CACHE[name]
 
@@ -23896,11 +24808,20 @@ def _probe_engine(name: str):
     return probe
 
 
+def normalize_backend(backend):
+    """Retired stored WinRT selection falls back without loading the old engine."""
+    if backend == "winrt":
+        log.warning("TTS: WinRT speech removed; using auto (Silero -> Piper -> SAPI)")
+        return "auto"
+    return backend
+
+
 def get_engine(backend: str, voice: str, quality: str = "medium",
                rate: float = 1.15):
     """Возвращает engine по имени. ... [7 строк]"""
+    backend = normalize_backend(backend)
     if backend == "auto":
-        for name in ("silero", "piper", "winrt", "sapi"):
+        for name in ("silero", "piper", "sapi"):
             engine = _try_create(name, voice, quality, rate)
             if engine is not None:
                 log.info("TTS auto: выбран движок %s", name)
@@ -23918,6 +24839,8 @@ _ENGINE_CACHE: dict[tuple[str, str], object] = {}
 
 def _try_create(name: str, voice: str, quality: str, rate: float):
     """Создаёт движок или возвращает из кэша. ... [5 строк]"""
+    if name not in _ENGINE_IMPORTS:
+        return None  # retired names cannot be revived through either cache
     if voice == "":
         return _probe_engine(name)
 
@@ -23933,9 +24856,6 @@ def _try_create(name: str, voice: str, quality: str, rate: float):
         elif name == "piper":
             from jarvis.tts_engines.piper import PiperEngine
             engine = PiperEngine(voice or "ruslan", quality, rate)
-        elif name == "winrt":
-            from jarvis.tts_engines.winrt import WinRTEngine
-            engine = WinRTEngine(voice or "Pavel", quality, rate)
         elif name == "sapi":
             from jarvis.tts_engines.sapi import SAPIEngine
             engine = SAPIEngine(voice or "auto", quality, rate)
@@ -23952,7 +24872,7 @@ def _try_create(name: str, voice: str, quality: str, rate: float):
 def list_engines() -> list[str]:
     """Список доступных движков (по факту импорта)."""
     available = []
-    for name in ("silero", "piper", "winrt", "sapi"):
+    for name in ("silero", "piper", "sapi"):
         if _try_create(name, "", "medium", 1.15) is not None:
             available.append(name)
     return available
@@ -24464,139 +25384,8 @@ class SileroEngine(BaseEngine):
 ### `jarvis/tts_engines/winrt.py`
 
 ```python
-"""WinRT TTS — системный синтез Windows, без внешних моделей. ... [4 строк]"""
-
-import asyncio
-import logging
-
-from jarvis.tts_engines.base import BaseEngine
-import re
-
-log = logging.getLogger("jarvis.tts")
-
-_SENTENCE_END = re.compile(r"[.!?…]+\s+")
-
-
-class WinRTEngine(BaseEngine):
-    name = "winrt"
-
-    voices = {
-        "Pavel":  "Павел — мужской (системный)",
-        "Irina":  "Ирина — женский (системный)",
-        "auto":   "Авто (системный по языку)",
-    }
-
-    default_quality = "medium"
-    default_rate = 1.15
-
-    def __init__(self, voice: str = "Pavel", quality: str = "medium",
-                 rate: float = 1.15):
-        from winrt.windows.media.speechsynthesis import SpeechSynthesizer  # noqa
-
-        if voice not in self.voices:
-            voice = "auto"
-
-        self.voice = voice
-        self.quality = quality
-        self.rate = float(rate)
-
-    def is_available(self) -> bool:
-        try:
-            from winrt.windows.media.speechsynthesis import SpeechSynthesizer
-            return bool(SpeechSynthesizer.all_voices)
-        except Exception:
-            return False
-
-    def set_voice(self, voice: str):
-        if voice in self.voices:
-            self.voice = voice
-
-    def set_rate(self, rate: float):
-        self.rate = float(rate)
-
-    async def _synthesize_async(self, text: str) -> bytes:
-        from winrt.windows.media.speechsynthesis import SpeechSynthesizer
-        from winrt.windows.storage.streams import DataReader
-
-        synth = SpeechSynthesizer()
-        voices = list(SpeechSynthesizer.all_voices)
-
-        if self.voice != "auto":
-            hint = self.voice.lower()
-            voice = next(
-                (v for v in voices if hint in v.display_name.lower()),
-                None,
-            )
-        else:
-            voice = next(
-                (v for v in voices if v.language.lower().startswith("ru")),
-                None,
-            )
-
-        if voice is not None:
-            synth.voice = voice
-        try:
-            synth.options.speaking_rate = self.rate
-        except Exception:
-            pass
-
-        stream = await synth.synthesize_text_to_stream_async(text)
-        reader = DataReader(stream.get_input_stream_at(0))
-        await reader.load_async(stream.size)
-        return bytes(reader.read_buffer(stream.size))
-
-    def synthesize(self, text: str, voice: str | None = None,
-                   rate: float | None = None) -> bytes:
-        if not text.strip():
-            return b""
-        if voice:
-            self.set_voice(voice)
-        if rate is not None:
-            self.set_rate(rate)
-        return asyncio.run(self._synthesize_async(text))
-
-    def speak_stream(self, text_iter, voice: str, rate: float,
-                     token) -> str:
-        """WinRT стриминг (наивный — по предложениям)."""
-
-        buffer = ""
-        full_parts = []
-
-        def _flush(force: bool = False):
-            nonlocal buffer
-            while True:
-                m = _SENTENCE_END.search(buffer)
-                if not m:
-                    break
-                sent = buffer[:m.end()].strip()
-                buffer = buffer[m.end():]
-                if sent and not token.is_set():
-                    self._play(sent, voice, rate, token)
-            if force and buffer.strip() and not token.is_set():
-                self._play(buffer.strip(), voice, rate, token)
-                buffer = ""
-
-        for chunk in text_iter:
-            if chunk:
-                full_parts.append(chunk)
-                buffer += chunk
-            if token.is_set():
-                break
-            _flush()
-        if not token.is_set():
-            _flush(force=True)
-        return "".join(full_parts).strip()
-
-    def _play(self, sentence: str, voice: str, rate: float, token):
-        from jarvis.text_utils import prepare_text
-
-        text = prepare_text(sentence)
-        if not text.strip().strip("\u200b\u200c\u200d\ufeff\u00ad"):
-            return
-        wav = self.synthesize(text, voice, rate)
-        if not wav or token.is_set():
-            return
-        self._output_wav(wav, token)
+"""Retired WinRT speech backend. ... [4 строк]"""
+raise ImportError("WinRT TTS removed; select Piper, Silero, SAPI or auto")
 ```
 
 ### `jarvis/uia.py`
@@ -26682,7 +27471,7 @@ import logging
 import re
 
 from jarvis import config_manager
-from jarvis.tts_engines.factory import _try_create
+from jarvis.tts_engines.factory import _try_create, normalize_backend
 
 
 log = logging.getLogger("jarvis.voices")
@@ -26692,7 +27481,6 @@ log = logging.getLogger("jarvis.voices")
 _BACKEND_HINT = {
     "piper":  "Piper: ruslan, dmitri, irina, denis",
     "silero": "Silero: aidar, baya, kseniya, xenia, eugene",
-    "winrt":  "WinRT: Pavel, Irina",
     "sapi":   "SAPI: зависит от системы",
 }
 
@@ -26716,7 +27504,7 @@ _VOICE_ALIASES = {
     "бая": "baya", "баю": "baya",
     "ксения": "kseniya", "ксению": "kseniya",
     "евгений": "eugene", "евгения": "eugene",
-    # WinRT / SAPI (системные голоса Windows, ключи с заглавной)
+    # SAPI (системные голоса Windows, ключи с заглавной)
     "павел": "pavel", "павла": "pavel",
 }
 
@@ -26745,24 +27533,20 @@ _FALLBACK_VOICES = {
         "xenia":   "Ксения (v5)",
         "eugene":  "Евгений",
     },
-    "winrt": {
-        "auto":  "Авто",
-        "Pavel": "Павел",
-        "Irina": "Ирина",
-    },
     "sapi": {"auto": "Авто"},
 }
 
 
 def _voices_for_backend(backend: str) -> dict:
     """Голоса движка. Кэшируется, чтобы не грузить движок на каждый вызов. ... [5 строк]"""
+    backend = normalize_backend(backend)
     if backend in _VOICES_CACHE:
         return _VOICES_CACHE[backend]
 
     result: dict = {}
 
     if backend == "auto":
-        for name in ("silero", "piper", "winrt", "sapi"):
+        for name in ("silero", "piper", "sapi"):
             eng = _try_create(name, "", "medium", 1.15)
             if eng is not None and eng.voices:
                 result = dict(eng.voices)
@@ -26806,8 +27590,8 @@ def current_voice(config=None) -> str:
 
 def current_backend(config=None) -> str:
     if config is not None:
-        return config.get("tts_backend", "auto")
-    return config_manager.load().get("tts_backend", "auto")
+        return normalize_backend(config.get("tts_backend", "auto"))
+    return normalize_backend(config_manager.load().get("tts_backend", "auto"))
 
 
 def switch(voice: str, config=None) -> str:
@@ -26821,7 +27605,7 @@ def switch(voice: str, config=None) -> str:
     # Алиасы: «ирину» → «irina», «руслан» → «ruslan»
     key = _normalize_voice(voice)
 
-    # Регистронезависимый матчинг: у winrt/sapi ключи с заглавной
+    # Регистронезависимый матчинг: у sapi ключи с заглавной
     # («Pavel», «Irina»), а алиасы приводят имя к нижнему регистру.
     matched = _match_voice(key, voices)
     if matched is None:
@@ -28325,7 +29109,7 @@ from pathlib import Path
 ROOT_FILES = (
     'launcher.py', 'launcher_ui.py', 'launcher_download.py', 'launcher_ollama.py', 'launcher_runtime.py', 'requirements.txt', 'config.example.json', 'README.md',
     'ARCHITECTURE.md', 'CHANGELOG.md', 'LICENSE', 'start_fenix.bat',
-    'start_fenix_debug.bat', 'create_shortcut.bat',
+    'start_fenix_debug.bat', 'create_shortcut.bat', 'install_aec.bat', 'requirements-aec.txt',
 )
 PACKS = ('apps.json', 'games.json', 'sites.json', 'system.json', 'work.json')
 BRANDS = ('app', 'audio', 'commands', 'dialog', 'microphone', 'persona', 'phoenix', 'settings', 'timer')
@@ -28881,13 +29665,6 @@ def main() -> None:
         print(f"piper/{v}...")
         winsound.PlaySound(buf.getvalue(), winsound.SND_MEMORY)
 
-    import asyncio
-
-    from jarvis.tts import Speaker
-
-    s = Speaker({"tts_backend": "winrt", "voice": "Pavel", "voice_rate": 1.15})
-    print("winrt/Pavel...")
-    winsound.PlaySound(asyncio.run(s._synthesize(TEXT)), winsound.SND_MEMORY)
 
 
 if __name__ == "__main__":
@@ -28983,6 +29760,12 @@ if __name__ == "__main__":
     main()
 ```
 
+### `tests/__init__.py`
+
+```python
+"""Optional offline audio regression tools, not part of the live assistant."""
+```
+
 ### `tests/audio/__init__.py`
 
 ```python
@@ -29060,12 +29843,10 @@ def framed_pcm(audio, seed=42):
 
 
 class LocalSynth:
-    """Use the real WinRT WAV engine, never Speaker/playback/download fallback."""
+    """Optional test-only Windows WAV generator; never a live TTS engine."""
 
     def __init__(self, voice="auto"):
         from winrt.windows.media.speechsynthesis import SpeechSynthesizer
-
-        from jarvis.tts_engines.winrt import WinRTEngine
 
         russian = [
             v
@@ -29083,10 +29864,26 @@ class LocalSynth:
         if selected is None:
             raise Blocked("Нет запрошенного русского системного голоса Windows")
         self.name = selected.display_name
-        self.engine = WinRTEngine(voice=voice, rate=1.0)
+        self._voice = selected
+
+    async def _synthesize(self, text):
+        from winrt.windows.media.speechsynthesis import SpeechSynthesizer
+        from winrt.windows.storage.streams import DataReader
+        synth = SpeechSynthesizer()
+        synth.voice = self._voice
+        stream = await synth.synthesize_text_to_stream_async(text)
+        reader = DataReader(stream.get_input_stream_at(0))
+        try:
+            await reader.load_async(stream.size)
+            return bytes(reader.read_buffer(stream.size))
+        finally:
+            reader.close()
+            stream.close()
+            synth.close()
 
     def __call__(self, text):
-        return self.engine.synthesize(text, rate=1.0)
+        import asyncio
+        return asyncio.run(self._synthesize(text))
 
 
 def prepare(
@@ -33254,6 +34051,1026 @@ def test_load_broken(tmp_path):
     assert config_manager.load(path=bad) == {}
 ```
 
+### `tests/test_echo.py`
+
+```python
+"""AEC contracts: bounded synthetic PCM and controlled native transport; no devices."""
+from collections import deque
+import queue
+import sys
+import threading
+from types import SimpleNamespace as NS
+from unittest.mock import Mock
+
+import numpy as np
+import pytest
+
+from jarvis.echo import EchoPath, make_echo_path
+from jarvis import audio_output, stt
+from jarvis.tts import Speaker
+from tests.test_nonverbal import wav
+
+PCM = np.full(2048, 1000, dtype=np.int16).tobytes()
+
+class Processor:
+    speech_probability = .8
+    def __init__(self):
+        self.calls = []
+        self.reset = Mock()
+    def process(self, near, far):
+        self.calls.append((threading.get_ident(),near.copy(),far.copy()))
+        return (near // 2).astype(np.int16)
+
+
+@pytest.fixture
+def path():
+    proc=Processor();received=queue.Queue()
+    p=EchoPath(factory=lambda:proc,clock=lambda:100.0)
+    p.start(lambda data,**kw:received.put((data,kw)))
+    assert p.ready.wait(1) and p._healthy
+    yield p,proc,received
+    p.close();assert not p.thread.is_alive()
+
+
+def render(p,at=100,rate=16000,n=3200):
+    tap=p.begin_render();assert tap is not None
+    tap.feed(np.full((n,1),.25,dtype=np.float32),rate,at)
+    return tap
+
+
+def test_disabled_means_no_path_or_native_import():
+    cfg={};assert make_echo_path(cfg) is None;assert cfg=={}
+
+
+@pytest.mark.parametrize('rate',[8000,22050,48000,'16000'])
+def test_unsupported_capture_rate_keeps_old_path(rate):
+    assert make_echo_path({'aec_enabled':True,'sample_rate':rate}) is None
+
+
+@pytest.mark.parametrize('delay,expected',[(float('nan'),40),(float('inf'),40),('bad',40),(-1,0),(900,500),(75,75)])
+def test_delay_is_validated_without_config_writes(delay,expected):
+    cfg={'aec_enabled':True,'aec_stream_delay_ms':delay}
+    p=make_echo_path(cfg);assert p.delay_ms==expected
+    assert len(cfg)==2 and cfg['aec_stream_delay_ms'] is delay
+    p.close()
+
+
+@pytest.mark.parametrize('error',[ImportError('missing optional package'),OSError('native DLL unavailable')])
+def test_missing_native_package_does_not_block_or_receive_pcm(error):
+    factory=Mock(side_effect=error);p=EchoPath(factory=factory,clock=lambda:100)
+    p.start(Mock());assert p.ready.wait(1);p.thread.join(1)
+    assert p.state=='unavailable' and not p.submit(PCM,100)
+    tap=p.begin_render();assert tap is not None and p.render_guard_active()
+    tap.finish(100);assert p.render_guard_active()  # 400 ms acoustic tail
+    p.clock=lambda:101;assert not p.render_guard_active()
+    factory.assert_called_once();p.close()
+
+
+def test_cleaned_capture_uses_reference_and_one_worker(path):
+    p,proc,received=path;render(p)
+    assert p.submit(PCM,100)
+    data,kw=received.get(timeout=1)
+    assert data==np.full(2048,500,dtype=np.int16).tobytes()
+    assert kw['source_pcm']==PCM and kw['aec_probability']==.8
+    owner,near,far=proc.calls[0]
+    assert owner!=threading.get_ident() and near.dtype==far.dtype==np.int16
+    assert near.shape==far.shape==(2048,)
+    assert np.all(np.abs(far.astype(int)-8192)<=1)
+
+
+def test_idle_keeps_original_pcm_without_calling_processor(path):
+    p,proc,received=path
+    assert p.submit(PCM,100)
+    data,kw=received.get(timeout=1)
+    assert data==PCM and kw['aec_probability'] is None
+    assert not proc.calls
+
+
+def test_non_piper_suspends_previous_reference(path):
+    p,proc,received=path;render(p);p.suspend_render()
+    assert p.submit(PCM,100)
+    data,kw=received.get(timeout=1)
+    assert data==PCM and kw['aec_probability'] is None
+    assert not proc.calls;proc.reset.assert_called_once()
+
+
+def test_reference_resamples_and_mixes_channels(path):
+    p,_,_=path;tap=p.begin_render()
+    stereo=np.column_stack([np.full(4410,.2),np.full(4410,.4)])
+    tap.feed(stereo,22050,100)
+    far=p._reference(100,1600)
+    assert far.shape==(1600,) and np.max(np.abs(far.astype(int)-9830))<=1
+
+
+def test_future_reference_not_used_early_and_cancel_trims_it(path):
+    p,_,_=path;tap=render(p,100.1)
+    assert not p._reference(100,800).any()
+    tap.finish(100.15)
+    assert p._reference(100.12,160).any()
+    assert not p._reference(100.2,160).any()
+    assert p._reference(101,160) is None
+
+
+def test_old_render_end_cannot_close_new_render(path):
+    p,_,_=path;old=render(p);new=render(p,100.1)
+    old.finish(100.05)
+    assert p._rendering
+    new.finish(100.2);assert not p._rendering
+
+
+@pytest.mark.parametrize('bad',[np.array([np.nan]),np.zeros((2,2,2)),np.zeros(5000)])
+def test_bad_or_oversized_reference_rejected(path,bad):
+    p,_,_=path;tap=p.begin_render()
+    with pytest.raises(ValueError):tap.feed(bad,16000,100)
+
+
+def test_reference_is_bounded_and_purges_old_audio(path):
+    p,_,_=path;tap=p.begin_render()
+    for _ in range(200):tap.feed(np.zeros(800),16000,100)
+    assert len(p._references)==80
+    p.clock=lambda:104
+    tap.feed(np.zeros(800),16000,104)
+    assert len(p._references)==1
+
+
+@pytest.mark.parametrize('raw,when',[(b'x',100),(b'x'*16002,100),(PCM,float('nan'))])
+def test_invalid_capture_not_queued(path,raw,when):
+    p,_,_=path;assert p.submit(raw,when) is False
+
+
+def test_queue_full_drops_instead_of_growing_or_injecting_raw():
+    p=EchoPath();p._healthy=True
+    for _ in range(20):assert p.submit(PCM,100)
+    assert p._queue.qsize()==4 and p.dropped==16
+    p.close()
+
+
+def test_stale_capture_not_delivered(path):
+    p,proc,received=path;render(p)
+    # Put a deliberately old block followed by a fresh synchronization marker.
+    p._queue.put_nowait((p._epoch,PCM,100,99))
+    p.submit(PCM,100)
+    received.get(timeout=1)
+    assert p.dropped==1 and received.empty() and len(proc.calls)==1
+
+
+def test_flush_invalidates_inflight_capture_without_native_calls_on_caller():
+    entered=threading.Event();release=threading.Event();outputs=queue.Queue()
+    class Slow(Processor):
+        def process(self,near,far):
+            entered.set();assert release.wait(2);return near
+    proc=Slow();p=EchoPath(factory=lambda:proc,clock=lambda:100)
+    p.start(lambda data,**kw:outputs.put(data));assert p.ready.wait(1)
+    try:
+        render(p);p.submit(PCM,100);assert entered.wait(1)
+        p.flush();release.set()
+        marker=np.full(2048,2000,dtype=np.int16).tobytes();p.submit(marker,100)
+        assert outputs.get(timeout=1)==marker
+        assert outputs.empty()
+    finally:release.set();p.close()
+
+
+def test_native_error_falls_back_next_block_without_replaying_old_audio():
+    proc=Processor();proc.process=Mock(side_effect=RuntimeError('native failed'))
+    delivered=Mock();p=EchoPath(factory=lambda:proc,clock=lambda:100)
+    p.start(delivered);assert p.ready.wait(1)
+    render(p);p.submit(PCM,100);p.thread.join(1)
+    assert not p.thread.is_alive() and p.state=='failed'
+    delivered.assert_not_called();assert not p.submit(PCM,100);p.close()
+
+
+def test_close_is_idempotent_and_disables_capture(path):
+    p,_,_=path;p.close();p.close()
+    assert not p.submit(PCM,100) and p.begin_render() is None
+
+
+def listener():
+    x=stt.Listener.__new__(stt.Listener)
+    x._echo_path=None;x._sample_rate=16000;x.peak=x.current_rms=0
+    x.muted=False;x._speech_active=True;x.barge_enabled=True;x.barge_flag=False
+    x._echo_baseline=0;x._barge_threshold=150
+    x._barge_speech_ms=0;x._audio=queue.Queue();x.vad=None;x._vad_gate=None
+    x._process_barge=Mock()
+    return x
+
+
+def test_callback_only_queues_when_aec_ready():
+    x=listener();x._echo_path=NS(submit=Mock(return_value=True))
+    x._accept_capture=Mock()
+    x._callback(PCM,2048,NS(currentTime=10.,inputBufferAdcTime=9.9),None)
+    x._accept_capture.assert_not_called();x._process_barge.assert_not_called()
+    x._echo_path.submit.assert_called_once()
+    assert x._echo_path.submit.call_args.args[0]==PCM
+
+
+def test_callback_missing_native_is_guarded_during_piper_render():
+    x=listener();x._echo_path=NS(submit=Mock(return_value=False),take_gap=lambda:False,
+                                 render_guard_active=lambda:True)
+    x._callback(PCM,2048,None,None)
+    x._process_barge.assert_not_called()
+    assert x._audio.empty() and x.current_rms==1000
+
+
+def test_callback_missing_native_keeps_original_path_when_piper_is_idle():
+    x=listener();x._echo_path=NS(submit=Mock(return_value=False),take_gap=lambda:False,
+                                 render_guard_active=lambda:False)
+    x._callback(PCM,2048,None,None)
+    x._process_barge.assert_called_once_with(1000)
+    assert x._audio.get_nowait()==PCM
+
+
+@pytest.mark.parametrize('prob,rms,vad,expected',[(.8,1000,True,True),(.2,1000,True,False),(.8,0,True,False),(.8,1000,False,False)])
+def test_aec_barge_requires_clean_energy_and_speech(prob,rms,vad,expected):
+    x=listener();x.vad=NS(is_speech=lambda b:vad)
+    cleaned=np.full(2048,rms,dtype=np.int16).tobytes()
+    for _ in range(3):
+        x._accept_capture(cleaned,aec_probability=prob,source_pcm=PCM,
+                          aec_echo_similarity=.05,aec_verified=True)
+    assert x.barge_flag is expected
+    x._process_barge.assert_not_called()
+    assert x.current_rms==1000  # meter/watchdog reports physical mic, not cleaned silence
+
+
+def test_aec_barge_rejects_unverified_or_correlated_render_residual():
+    x=listener();x.vad=NS(is_speech=lambda b:True)
+    cleaned=np.full(2560,1000,dtype=np.int16).tobytes()
+    for verified,similarity in [(False,.01),(True,.35)]:
+        for _ in range(4):
+            x._accept_capture(cleaned,aec_probability=.95,source_pcm=cleaned,
+                              aec_echo_similarity=similarity,aec_verified=verified)
+        assert not x.barge_flag
+    assert x._aec_last_reason=='speaker_echo'
+
+
+def test_aec_barge_adapts_to_quiet_microphone_without_learning_user_as_noise():
+    x=listener();x.vad=NS(is_speech=lambda b:True)
+    x._aec_residual_levels=deque(maxlen=24);x._aec_level_threshold=20
+    residual=np.full(2560,4,dtype=np.int16).tobytes()
+    for _ in range(4):
+        x._accept_capture(residual,aec_probability=.2,source_pcm=PCM,
+                          aec_echo_similarity=.05,aec_verified=True,
+                          aec_attenuation=.01,aec_best_attenuation=.01)
+    assert x._aec_level_threshold==15 and not x.barge_flag
+    quiet_user=np.full(2560,37,dtype=np.int16).tobytes()
+    for _ in range(2):
+        x._accept_capture(quiet_user,aec_probability=.8,source_pcm=PCM,
+                          aec_echo_similarity=.12,aec_verified=True,
+                          aec_attenuation=.5,aec_best_attenuation=.01)
+    assert x.barge_flag and x._aec_last_reason=='triggered'
+    assert x._aec_trigger_metrics['rms']==37
+
+
+def test_aec_barge_rejects_low_attenuation_echo_above_adaptive_level():
+    x=listener();x.vad=NS(is_speech=lambda b:True)
+    echo=np.full(2560,80,dtype=np.int16).tobytes()
+    for _ in range(3):
+        x._accept_capture(echo,aec_probability=.9,source_pcm=PCM,
+                          aec_echo_similarity=.2,aec_verified=True,
+                          aec_attenuation=.03,aec_best_attenuation=.02)
+    assert not x.barge_flag and x._aec_last_reason=='attenuation'
+
+
+def test_aec_barge_rejects_close_speaker_acoustic_path_change():
+    x=listener();x.vad=NS(is_speech=lambda b:True)
+    close_echo=np.full(2560,400,dtype=np.int16).tobytes()
+    for _ in range(3):
+        x._accept_capture(close_echo,aec_probability=.95,source_pcm=PCM,
+                          aec_echo_similarity=.25,aec_raw_similarity=.7,
+                          aec_verified=True,aec_attenuation=.5,
+                          aec_best_attenuation=.01)
+    assert not x.barge_flag
+    assert x._aec_last_reason=='acoustic_path_change'
+
+
+def test_verified_render_is_revoked_when_acoustic_path_changes():
+    rng=np.random.default_rng(81)
+    signal=rng.integers(-6000,6000,size=2560,dtype=np.int16)
+    class Changing(Processor):
+        speech_probability=.9
+        def __init__(self):self.count=0;self.reset=Mock()
+        def process(self,near,far):
+            self.count+=1
+            return (near//(100 if self.count<=2 else 2)).astype(np.int16)
+    proc=Changing();received=queue.Queue()
+    p=EchoPath(factory=lambda:proc,clock=lambda:100)
+    p.start(lambda data,**kw:received.put(kw));assert p.ready.wait(1)
+    tap=p.begin_render();tap.feed(signal.astype(np.float32)/32767,16000,100)
+    try:
+        states=[]
+        for _ in range(4):
+            assert p.submit(signal.tobytes(),100)
+            states.append(received.get(timeout=2)['aec_verified'])
+        assert states==[False,True,True,False]
+        assert proc.reset.call_count==1
+        assert p.diagnostics()['readaptations']==1
+    finally:p.close()
+
+
+def test_clean_pcm_reaches_vad_and_asr_not_raw_echo():
+    x=listener();x.vad=NS(is_speech=Mock(return_value=True))
+    cleaned=np.full(2048,500,dtype=np.int16).tobytes()
+    x._accept_capture(cleaned,aec_probability=.8,source_pcm=PCM)
+    x.vad.is_speech.assert_called_once_with(cleaned)
+    assert x._audio.get_nowait()==cleaned
+
+
+def test_muted_aec_does_not_enqueue_recognition():
+    x=listener();x.muted=True
+    x._accept_capture(PCM,aec_probability=.8,source_pcm=PCM)
+    assert x._audio.empty()
+
+
+def test_wav_replay_cannot_accidentally_use_live_aec():
+    x=listener();x._file_mode=True
+    with pytest.raises(RuntimeError):x.set_echo_path(Mock())
+
+
+@pytest.mark.parametrize('engine,has_echo',[('piper',True),('silero',False),('winrt',False)])
+def test_normal_session_only_piper_registers_reference_with_common_output(monkeypatch,engine,has_echo):
+    p=Mock();s=Speaker.__new__(Speaker);s._engine_name=engine;s._echo_path=p;s._nonverbal=None
+    play=Mock();monkeypatch.setattr(audio_output,'play_wav',play)
+    token=threading.Event();s._play_wav(b'wav',token)
+    assert ('echo' in play.call_args.kwargs) is has_echo
+    if has_echo:assert play.call_args.kwargs['echo'] is p
+
+
+def test_reference_matches_actual_mixed_blocks_and_stop_token(monkeypatch):
+    records=[];tap=NS(feed=lambda data,rate,when:records.append(('ref',data.copy(),rate,when)),finish=Mock())
+    echo=NS(begin_render=lambda:tap,suspend_render=Mock())
+    token=threading.Event()
+    class Output:
+        latency=.02
+        def __enter__(self):return self
+        def __exit__(self,*a):pass
+        def write(self,data):records.append(('write',data.copy()));token.set()
+    constructor=Mock(return_value=Output())
+    monkeypatch.setitem(sys.modules,'sounddevice',NS(OutputStream=constructor))
+    monkeypatch.setattr(audio_output.time,'monotonic',lambda:100.)
+    audio_output.play_wav(wav(),token,echo=echo)
+    assert constructor.call_count==1
+    assert [r[0] for r in records]==['ref','write']
+    assert np.array_equal(records[0][1],records[1][1])
+    assert len(records[0][1])==800 and records[0][3]==100.02
+    tap.finish.assert_called_once()
+
+
+def test_bad_optional_reference_does_not_break_playback(monkeypatch):
+    tap=NS(feed=Mock(side_effect=RuntimeError('ref')),finish=Mock())
+    echo=NS(begin_render=lambda:tap,suspend_render=Mock())
+    writes=[]
+    class Output:
+        latency=.01
+        def __enter__(self):return self
+        def __exit__(self,*a):pass
+        def write(self,data):writes.append(data)
+    monkeypatch.setitem(sys.modules,'sounddevice',NS(OutputStream=lambda **k:Output()))
+    audio_output.play_wav(wav(),threading.Event(),echo=echo)
+    assert writes;echo.suspend_render.assert_called_once()
+
+
+def test_native_linux_api_smoke_without_devices():
+    native=pytest.importorskip('pywebrtc_audio')
+    p=native.AudioProcessor(sample_rate=16000,echo_cancellation=True,
+        noise_suppression=False,auto_gain_control=False,stream_delay_ms=40)
+    rng=np.random.default_rng(7)
+    for _ in range(8):
+        far=rng.integers(-2000,2000,size=2560,dtype=np.int16)
+        out=p.process((far//2).astype(np.int16),far)
+        assert out.shape==far.shape and out.dtype==np.int16
+        assert 0<=p.speech_probability<=1
+    p.reset()
+
+
+def test_asr_gap_resets_recognizer_only_when_consumed():
+    x=listener();x._rec=NS(Reset=Mock(),AcceptWaveform=Mock())
+    x._utt_buf=[PCM];x._utt_len=len(PCM);x.last_quality=object()
+    x._accept_capture(PCM,aec_probability=.8,source_pcm=PCM,aec_reset=True)
+    x._rec.Reset.assert_not_called()
+    assert x._audio.get_nowait() is None
+    x._consume_audio(None)
+    x._rec.Reset.assert_called_once();x._rec.AcceptWaveform.assert_not_called()
+    assert x._utt_buf==[] and x._utt_len==0 and x.last_quality is None
+
+
+def test_aec_barge_preserves_cleaned_onset_across_stop_flush():
+    from collections import deque
+    x=listener();x._aec_preroll=deque(maxlen=4);x._aec_barge=False
+    x._utt_buf=[];x._utt_len=0;x._vad_gate=None
+    x._echo_path=NS(flush=Mock(),take_gap=Mock())
+    clean=np.full(2048,600,dtype=np.int16).tobytes()
+    for _ in range(3):
+        x._accept_capture(clean,aec_probability=.8,source_pcm=PCM,
+                          aec_echo_similarity=.05,aec_verified=True)
+    assert x.barge_flag and x._aec_barge
+    x.barge_end();x.flush()
+    assert x._audio.get_nowait() is None
+    assert [x._audio.get_nowait() for _ in range(3)]==[clean,clean,clean]
+    assert x._audio.empty() and not x._aec_preroll
+    x._echo_path.take_gap.assert_called_once()
+
+
+def test_preroll_is_bounded_and_not_replayed_without_barge():
+    from collections import deque
+    x=listener();x._aec_preroll=deque(maxlen=4);x._aec_barge=False
+    x._utt_buf=[];x._utt_len=0
+    for _ in range(12):x._accept_capture(PCM,aec_probability=.1,source_pcm=PCM)
+    assert len(x._aec_preroll)==4 and not x.barge_flag
+    x.barge_end();x.flush()
+    assert x._audio.empty() and not x._aec_preroll
+
+
+def test_live_aec_blocks_match_both_webrtc_and_silero_frame_sizes():
+    x=listener();x._file_mode=False;path=NS(start=Mock())
+    x.set_echo_path(path)
+    assert x._block_size==2560 and x._block_size%160==x._block_size%512==0
+    assert x._block_ms==160 and x._aec_preroll.maxlen==3
+    path.start.assert_called_once_with(x._accept_capture)
+
+
+def test_discontinuity_keeps_current_render_but_invalidates_capture(path):
+    p,proc,received=path;render(p)
+    before=p._epoch;p.discontinuity()
+    assert p._epoch>before and p._rendering and p._references
+    assert p.submit(PCM,100)
+    _,kw=received.get(timeout=1)
+    assert kw['aec_reset'] is True
+    proc.reset.assert_called_once()
+
+
+def test_real_native_synthetic_echo_through_timestamped_reference():
+    # A deterministic DSP sanity check, NOT a room/Windows audio benchmark.
+    native=pytest.importorskip('pywebrtc_audio')
+    rng=np.random.default_rng(12);n=2560;blocks=45;delay=640
+    far=rng.integers(-5000,5000,size=n*blocks,dtype=np.int16)
+    near=np.concatenate([np.zeros(delay,dtype=np.int16),far[:-delay]//2])
+    clock=NS(now=100.)
+    received=queue.Queue()
+    path=EchoPath(factory=lambda:native.AudioProcessor(sample_rate=16000,
+        echo_cancellation=True,stream_delay_ms=40),clock=lambda:clock.now)
+    path.start(lambda data,**kw:received.put(data));assert path.ready.wait(2)
+    tap=path.begin_render();assert tap is not None
+    outputs=[]
+    try:
+        for i in range(blocks):
+            clock.now=100+i*n/16000
+            chunk=far[i*n:(i+1)*n]
+            tap.feed(chunk.astype(np.float32)/32767,16000,clock.now)
+            assert path.submit(near[i*n:(i+1)*n].tobytes(),clock.now)
+            outputs.append(np.frombuffer(received.get(timeout=2),dtype=np.int16).copy())
+        original=near[-n*10:].astype(np.float64)
+        cleaned=np.concatenate(outputs[-10:]).astype(np.float64)
+        assert np.mean(cleaned**2)<np.mean(original**2)*.8
+    finally:path.close()
+
+
+def reference_history(p, samples, at=100., rate=16000):
+    tap = p.begin_render()
+    for offset in range(0, len(samples), rate // 10):
+        tap.feed(samples[offset:offset + rate // 10], rate, at + offset / rate)
+    return tap
+
+
+@pytest.mark.parametrize('delay_samples', [0, 1, 117, 597, 641, 1599, 7999, -1599])
+def test_waveform_echo_match_checks_between_old_20ms_grid_points(delay_samples):
+    rng = np.random.default_rng(502)
+    far = rng.uniform(-.4, .4, 16000).astype(np.float32)
+    p = EchoPath(clock=lambda:100.6)
+    reference_history(p, far)
+    offset = 9600 - delay_samples
+    near = np.round(far[offset:offset + 2560] * 32767 * .07).astype(np.int16)
+    before = near.copy()
+    assert p._echo_similarity(near, 100.6) > .999
+    assert np.array_equal(near, before)
+    p.close()
+
+
+@pytest.mark.parametrize('rate', [22050, 48000])
+def test_echo_match_resamples_reference_before_sample_lag_search(rate):
+    rng = np.random.default_rng(115)
+    far = rng.uniform(-.4, .4, rate).astype(np.float32)
+    p = EchoPath(clock=lambda:100.6)
+    reference_history(p, far, rate=rate)
+    times = .6 - 597 / 16000 + np.arange(2560) / 16000
+    near = np.round(np.interp(times * rate, np.arange(len(far)), far) * 10000).astype(np.int16)
+    assert p._echo_similarity(near, 100.6) > .999
+    p.close()
+
+
+def test_echo_match_missing_reference_and_dc_cannot_create_false_match():
+    p = EchoPath(clock=lambda:100.6)
+    assert p._echo_similarity(np.ones(2560), 100.6) is None
+    reference_history(p, np.ones(16000, dtype=np.float32) * .2)
+    assert p._echo_similarity(np.ones(2560), 100.6) is None
+    p.close()
+
+
+def test_echo_match_does_not_use_uncovered_zero_padded_windows():
+    rng = np.random.default_rng(33)
+    p = EchoPath(clock=lambda:100.6)
+    # A tiny reference fragment is not a full correlation observation.
+    reference_history(p, rng.uniform(-.4, .4, 100).astype(np.float32), at=100.6)
+    assert p._echo_similarity(rng.normal(size=2560), 100.6) is None
+    p.close()
+
+
+def test_sample_aligned_echo_rejects_residual_but_allows_double_talk():
+    rng = np.random.default_rng(803)
+    p = EchoPath(clock=lambda:100.6)
+    far = rng.uniform(-.4, .4, 16000).astype(np.float32)
+    reference_history(p, far)
+    echo = far[9600 - 597:9600 - 597 + 2560]
+    # Short multipath response: not simply a byte-identical render block.
+    room_echo = np.convolve(echo, [.65, .20, -.08], mode='full')[:2560]
+    residual = np.round(room_echo * 300).astype(np.int16)
+    # Near-end speech dominates the residual after successful cancellation,
+    # while the physical microphone is still dominated by loud speaker echo.
+    user = rng.normal(0, 280, 2560)
+    mixed = np.round(residual + user).astype(np.int16)
+    source = np.round(room_echo * 10000 + user).astype(np.int16)
+    echo_similarity, mixed_similarity, raw_similarity = p._echo_similarities(
+        (residual, mixed, source), 100.6
+    )
+    assert echo_similarity > .8 and raw_similarity > .8
+    assert mixed_similarity < .22
+    for signal, similarity, expected in [(residual, echo_similarity, False),
+                                          (mixed, mixed_similarity, True)]:
+        x = listener(); x.vad = NS(is_speech=lambda b:True)
+        for _ in range(2):
+            x._accept_capture(signal.tobytes(), aec_probability=.99,
+                              source_pcm=source.tobytes(),
+                              aec_echo_similarity=similarity,
+                              aec_raw_similarity=raw_similarity,
+                              aec_verified=True,
+                              aec_attenuation=float(np.linalg.norm(signal.astype(float))
+                                                    / np.linalg.norm(source.astype(float))),
+                              aec_best_attenuation=.01)
+        assert x.barge_flag is expected
+    p.close()
+
+
+def test_capture_attenuation_is_current_even_below_calibration_energy():
+    class Quiet(Processor):
+        def process(self, near, far):
+            return (near // 5).astype(np.int16)
+    proc = Quiet(); received = queue.Queue()
+    p = EchoPath(factory=lambda:proc, clock=lambda:100.)
+    p.start(lambda data, **kw:received.put(kw)); assert p.ready.wait(1)
+    render(p)
+    try:
+        p._last_attenuation = .01
+        quiet = np.full(2560, 60, dtype=np.int16).tobytes()
+        assert p.submit(quiet, 100.)
+        assert received.get(timeout=1)['aec_attenuation'] == pytest.approx(.2)
+        assert p.submit(bytes(5120), 100.)
+        assert received.get(timeout=1)['aec_attenuation'] is None
+    finally:
+        p.close()
+
+
+def test_reference_chunk_boundaries_do_not_create_one_sample_holes():
+    p = EchoPath(clock=lambda:100.6)
+    reference_history(p, np.full(16000, .25, dtype=np.float32))
+    far = p._reference(100.5, 5120)
+    assert np.all(np.abs(far.astype(int) - 8192) <= 1)
+    p.close()
+```
+
+### `tests/test_echo_multibackend.py`
+
+```python
+"""Diagnostic-only PCM support; normal production backend scope stays unchanged."""
+import io
+import json
+import queue
+import sys
+import threading
+import wave
+from types import SimpleNamespace as NS
+from unittest.mock import Mock
+
+import numpy as np
+import pytest
+
+from jarvis import audio_output
+from jarvis.echo import EchoPath
+from jarvis.echo_trace import EchoTrace
+from jarvis.tts import Speaker
+from tests.test_echo import Processor, PCM
+from tests.test_echo_trace import read_trace
+from tests.test_nonverbal import wav
+
+
+def speaker(engine, path):
+    obj = Speaker.__new__(Speaker)
+    obj._engine_name = engine
+    obj._echo_path = path
+    obj._nonverbal = None
+    obj._token_lock = threading.Lock()
+    obj.voice = 'test-voice'
+    return obj
+
+
+@pytest.mark.parametrize('engine', ['piper', 'silero'])
+def test_diagnostic_wav_engines_register_reference_and_do_not_suspend(monkeypatch, tmp_path, engine):
+    trace = EchoTrace(tmp_path)
+    path = EchoPath(trace=trace)
+    path.suspend_render = Mock()
+    play = Mock(); monkeypatch.setattr(audio_output, 'play_wav', play)
+    obj = speaker(engine, path)
+    try:
+        token = obj._new_token()
+        obj._play_wav(b'placeholder', token)
+        assert play.call_args.kwargs['echo'] is path
+        path.suspend_render.assert_not_called()
+    finally:
+        path.close()
+    summary, events = read_trace(trace)
+    assert summary['backends'] == [{'backend':engine, 'voice':'test-voice',
+                                    'reference_available':True}]
+    assert len([e for e in events if e['kind'] == 'backend']) == 1
+
+
+@pytest.mark.parametrize('engine,reference', [('piper', True), ('silero', False), ('winrt', False), ('sapi', False)])
+def test_normal_session_scope_and_backend_guard_are_unchanged(monkeypatch, engine, reference):
+    path = EchoPath()
+    path.suspend_render = Mock()
+    play = Mock(); monkeypatch.setattr(audio_output, 'play_wav', play)
+    obj = speaker(engine, path)
+    try:
+        token = obj._new_token()
+        if engine != 'sapi':
+            obj._play_wav(b'placeholder', token)
+            assert ('echo' in play.call_args.kwargs) is reference
+        assert path.suspend_render.call_count == (0 if reference else 1)
+        assert not path.diagnostic_mode
+    finally:
+        path.close()
+
+
+def test_sapi_is_marked_unsupported_without_fake_audio(tmp_path, caplog):
+    trace = EchoTrace(tmp_path)
+    path = EchoPath(trace=trace)
+    obj = speaker('sapi', path)
+    try:
+        obj._new_token()
+        assert obj._pcm_echo_path() is None
+        assert not path._rendering
+    finally:
+        path.close()
+    summary, events = read_trace(trace)
+    assert summary['trace_status'] == 'metadata_only_no_pcm'
+    assert summary['capture_frames'] == summary['render_bytes'] == 0
+    assert summary['backends'][0]['reference_available'] is False
+    assert not [e for e in events if e['kind'] in ('capture', 'render')]
+    assert 'NO PCM REFERENCE' in caplog.text
+
+
+def test_switching_backend_records_actual_resolved_engine_and_invalidates_sapi_reference(tmp_path):
+    trace = EchoTrace(tmp_path)
+    path = EchoPath(trace=trace)
+    obj = speaker('silero', path)
+    try:
+        obj._new_token()
+        path.begin_render()
+        obj._engine_name = 'sapi'
+        obj._new_token()
+        assert not path._rendering and not path._references
+        obj._engine_name = 'piper'
+        obj._new_token()
+        assert obj._pcm_echo_path() is path
+    finally:
+        path.close()
+    summary, events = read_trace(trace)
+    assert [e['backend'] for e in events if e['kind'] == 'backend'] == ['silero', 'sapi', 'piper']
+    assert [e['backend'] for e in summary['backends']] == ['silero', 'sapi', 'piper']
+
+
+@pytest.mark.parametrize('engine,rate', [('piper', 22050), ('silero', 48000)])
+def test_each_wav_backend_records_exact_common_output_and_capture(monkeypatch, tmp_path, engine, rate):
+    trace = EchoTrace(tmp_path)
+    received = queue.Queue()
+    path = EchoPath(factory=Processor, trace=trace, clock=lambda:100.)
+    path.start(lambda data, **kw:received.put((data, kw)))
+    assert path.ready.wait(1)
+    obj = speaker(engine, path)
+    writes = []
+    class Output:
+        latency = 0.
+        def __enter__(self):return self
+        def __exit__(self,*args):pass
+        def write(self, data):writes.append(data.copy())
+    monkeypatch.setitem(sys.modules, 'sounddevice', NS(OutputStream=lambda **kw:Output()))
+    monkeypatch.setattr(audio_output.time, 'monotonic', lambda:100.)
+    count = rate // 5
+    audio = np.sin(2 * np.pi * 800 * np.arange(count) / rate).astype(np.float32)[:, None] * .2
+    wav_bytes = audio_output.encode_wav(audio, rate)
+    try:
+        obj._new_token()
+        # Leave render active until capture delivery, as live playback does.
+        # Output here runs synchronously; its estimated finish is controlled.
+        monkeypatch.setattr(path, '_finish_render', lambda serial, when:None)
+        obj._play_wav(wav_bytes, threading.Event())
+        assert path.submit(PCM, 100.)
+        data, kw = received.get(timeout=2)
+        assert data == np.full(2048, 500, dtype=np.int16).tobytes()
+        assert kw['aec_trace_id'] is not None
+    finally:
+        path.close()
+    summary, events = read_trace(trace)
+    render_events = [e for e in events if e['kind'] == 'render']
+    captures = [e for e in events if e['kind'] == 'capture']
+    assert render_events and captures
+    assert all(e['backend'] == engine for e in render_events + captures)
+    assert all(e['rate'] == rate for e in render_events)
+    recorded = np.fromfile(trace.folder / 'render.f32', dtype='<f4')
+    assert np.array_equal(recorded, np.concatenate(writes)[:, 0])
+    assert summary['trace_status'] == 'pcm_trace'
+    assert summary['backends'][0]['backend'] == engine
+    assert summary['capture_frames'] == 2048
+
+
+def test_diagnostic_backend_scope_remains_stable_after_recording_timeout(tmp_path):
+    trace = EchoTrace(tmp_path)
+    path = EchoPath(trace=trace)
+    trace.close()
+    obj = speaker('silero', path)
+    try:
+        assert path.diagnostic_mode and obj._pcm_echo_path() is path
+        obj._new_token()  # no new recording and no mid-session DSP mode switch
+        assert trace.done.is_set()
+    finally:
+        path.close()
+```
+
+### `tests/test_echo_trace.py`
+
+```python
+"""Local diagnostic contracts: no devices or external services."""
+import json
+import queue
+import threading
+import wave
+import zipfile
+from types import SimpleNamespace as NS
+from unittest.mock import Mock
+
+import numpy as np
+import pytest
+
+from jarvis.echo import EchoPath, make_echo_path
+from jarvis.echo_trace import EchoTrace
+from tests.test_echo import listener, Processor, render, PCM
+
+
+def read_trace(trace):
+    assert trace.done.wait(3)
+    summary = json.loads((trace.folder / 'summary.json').read_text())
+    events = [json.loads(line) for line in (trace.folder / 'events.jsonl').read_text().splitlines()]
+    assert trace.error is None
+    with zipfile.ZipFile(trace.archive) as archive:
+        assert archive.testzip() is None
+        assert set(archive.namelist()) == {
+            'microphone.wav', 'reference.wav', 'cleaned.wav', 'render.f32',
+            'events.jsonl', 'summary.json'}
+    return summary, events
+
+
+def test_three_aligned_channels_and_original_render_with_timestamps(tmp_path):
+    t = EchoTrace(tmp_path)
+    raw = np.arange(2560, dtype=np.int16)
+    far = (raw // 2).astype(np.int16)
+    clean = (raw // 4).astype(np.int16)
+    audio = np.linspace(-.2, .2, 2205, dtype=np.float32)
+    t.render(audio, 22050, 100., 4)
+    one = t.capture(raw.tobytes(), far, clean.tobytes(), 100., epoch=1, gap=False)
+    two = t.capture(raw.tobytes(), far, clean.tobytes(), 100.7, epoch=2, gap=True)
+    t.note('decision', capture_id=two, triggered=False, reason='speaker_echo')
+    t.note('render_end', serial=4, when=100.75)
+    t.close()
+    summary, events = read_trace(t)
+    assert summary['capture_frames'] == 5120
+    captures = [e for e in events if e['kind'] == 'capture']
+    assert [e['frame_offset'] for e in captures] == [0, 2560]
+    assert [e['when'] for e in captures] == [100., 100.7]  # gap is not hidden
+    assert [e['seq'] for e in captures] == [one, two]
+    assert [e for e in events if e['kind'] == 'decision'][0]['capture_id'] == two
+    for name, expected in [('microphone', raw), ('reference', far), ('cleaned', clean)]:
+        with wave.open(str(t.folder / (name + '.wav')), 'rb') as f:
+            assert f.getparams()[:3] == (1, 2, 16000)
+            assert np.array_equal(np.frombuffer(f.readframes(5120), dtype='<i2'),
+                                  np.tile(expected, 2))
+    assert np.array_equal(np.fromfile(t.folder / 'render.f32', dtype='<f4'), audio)
+
+
+def test_timer_starts_at_first_audio_and_stops_without_more_audio(tmp_path):
+    clock = NS(now=100.)
+    t = EchoTrace(tmp_path, clock=lambda:clock.now, duration=.2)
+    clock.now = 500.
+    t.note('render_begin', serial=1)
+    assert not t.done.wait(.1)  # idle startup is not the recording interval
+    t.render(np.zeros(160, dtype=np.float32), 16000, 500., 1)
+    clock.now = 501.
+    summary, _ = read_trace(t)
+    assert summary['stop_reason'] == 'time_limit'
+    assert not t.active and t.capture(PCM, np.ones(2048, dtype=np.int16), PCM, 501.) is None
+
+
+def test_first_trigger_auto_finishes_after_tail_without_app_shutdown(tmp_path):
+    clock = NS(now=100.)
+    t = EchoTrace(tmp_path, clock=lambda:clock.now, after_trigger=.2)
+    t.capture(PCM, np.ones(2048, dtype=np.int16), PCM, 100.)
+    t.note('decision', capture_id=1, triggered=True, reason='triggered')
+    clock.now = 100.3
+    summary, _ = read_trace(t)
+    assert summary['stop_reason'] == 'after_first_trigger'
+
+
+def test_audio_size_limit_and_no_late_writes(tmp_path):
+    t = EchoTrace(tmp_path, byte_limit=13000)
+    assert t.capture(PCM, np.ones(2048, dtype=np.int16), PCM, 100.) is not None
+    assert t.capture(PCM, np.ones(2048, dtype=np.int16), PCM, 100.2) is None
+    summary, _ = read_trace(t)
+    assert summary['audio_bytes_reserved'] == 12288
+    assert summary['stop_reason'] == 'size_limit'
+    before = t.archive.read_bytes()
+    t.note('decision', reason='late', triggered=False)
+    t.close(); t.close()
+    assert t.archive.read_bytes() == before
+
+
+def test_queue_overflow_is_bounded_and_explicit_not_a_capture_wait(tmp_path):
+    gate = threading.Event()
+    class Paused(EchoTrace):
+        def _run(self):
+            assert gate.wait(2)
+            super()._run()
+    t = Paused(tmp_path, queue_size=2)
+    try:
+        for i in range(20):
+            t.note('test', index=i)
+        assert t._queue.qsize() == 2 and t._dropped == 18
+    finally:
+        gate.set(); t.close()
+    summary, events = read_trace(t)
+    assert summary['dropped_events'] == 18 and len(events) == 2
+
+
+def test_disk_failure_disables_only_trace(tmp_path):
+    blocked = tmp_path / 'not_a_directory'
+    blocked.write_text('file')
+    t = EchoTrace(blocked)
+    assert t.done.wait(2) and t.error is not None
+    assert t.note('anything') is None
+    # The capture processor still delivers its normal output.
+    received = queue.Queue(); p = EchoPath(factory=Processor, trace=t, clock=lambda:100.)
+    p.start(lambda data, **kw:received.put(data)); assert p.ready.wait(1)
+    try:
+        render(p); assert p.submit(PCM, 100.)
+        assert received.get(timeout=2) == np.full(2048, 500, dtype=np.int16).tobytes()
+        assert p.state == 'ready'
+    finally:
+        p.close()
+
+
+def test_normal_launch_does_not_create_trace_or_audio_files(monkeypatch, tmp_path):
+    monkeypatch.delenv('FENIX_AEC_DIAGNOSTICS', raising=False)
+    constructor = Mock(side_effect=AssertionError('normal launch must not construct recorder'))
+    monkeypatch.setattr('jarvis.echo_trace.EchoTrace', constructor)
+    p = make_echo_path({'aec_enabled':True})
+    assert p._trace is None
+    p.close()
+    constructor.assert_not_called()
+    assert not list(tmp_path.iterdir())
+
+
+def test_environment_does_not_enable_aec_or_rewrite_config(monkeypatch):
+    monkeypatch.setenv('FENIX_AEC_DIAGNOSTICS', '1')
+    constructor = Mock()
+    monkeypatch.setattr('jarvis.echo_trace.EchoTrace', constructor)
+    config = {'aec_enabled':False}
+    assert make_echo_path(config) is None and config == {'aec_enabled':False}
+    constructor.assert_not_called()
+
+
+def test_opted_in_launch_uses_user_logs_folder(monkeypatch, tmp_path):
+    monkeypatch.setenv('FENIX_AEC_DIAGNOSTICS', '1')
+    monkeypatch.setattr('jarvis.paths.user_dir', lambda:tmp_path)
+    p = make_echo_path({'aec_enabled':True})
+    assert p._trace is not None
+    p.close()
+    read_trace(p._trace)
+    assert p._trace.folder.parent == tmp_path / 'logs' / 'aec_diagnostics'
+
+
+def test_echo_worker_capture_and_listener_decision_share_same_id(tmp_path):
+    t = EchoTrace(tmp_path)
+    x = listener(); x.vad = NS(is_speech=lambda b:True)
+    p = EchoPath(factory=Processor, trace=t, clock=lambda:100.)
+    x._echo_path = p
+    received = queue.Queue()
+    def deliver(data, **kw):
+        x._accept_capture(data, **kw)
+        received.put(kw)
+    p.start(deliver); assert p.ready.wait(1)
+    try:
+        render(p); assert p.submit(PCM, 100.)
+        kw = received.get(timeout=2)
+        assert kw['aec_trace_id'] is not None
+    finally:
+        p.close()
+    summary, events = read_trace(t)
+    capture = [e for e in events if e['kind'] == 'capture'][0]
+    decision = [e for e in events if e['kind'] == 'decision'][0]
+    assert decision['capture_id'] == capture['seq'] == kw['aec_trace_id']
+    assert decision['reason'] == 'warming' and not decision['triggered']
+    assert summary['capture_frames'] == 2048
+
+
+def test_recording_does_not_capture_idle_microphone(tmp_path):
+    t = EchoTrace(tmp_path)
+    p = EchoPath(factory=Processor, trace=t, clock=lambda:100.)
+    received = queue.Queue()
+    p.start(lambda data, **kw:received.put(data)); assert p.ready.wait(1)
+    try:
+        assert p.submit(PCM, 100.)
+        assert received.get(timeout=2) == PCM
+    finally:
+        p.close()
+    summary, events = read_trace(t)
+    assert summary['capture_frames'] == 0 and not [e for e in events if e['kind'] == 'capture']
+
+
+def test_trace_keeps_unrounded_trigger_and_native_reset_reason(tmp_path):
+    t = EchoTrace(tmp_path, after_trigger=2.)
+    x = listener(); x.vad = NS(is_speech=lambda b:True)
+    x._echo_path = EchoPath(trace=t)
+    try:
+        clean = np.full(2560, 100, dtype=np.int16).tobytes()
+        for seq in (17, 18):
+            x._accept_capture(clean, aec_probability=.99, source_pcm=PCM,
+                              aec_echo_similarity=.05, aec_verified=True,
+                              aec_attenuation=.3, aec_best_attenuation=.01,
+                              aec_trace_id=seq)
+        x._echo_path._trace_note('native_reset', reason='acoustic_path_change', when=100.)
+    finally:
+        x._echo_path.close()
+    _, events = read_trace(t)
+    decisions = [e for e in events if e['kind'] == 'decision']
+    assert decisions[-1]['triggered'] and decisions[-1]['reason'] == 'triggered'
+    assert decisions[-1]['speech_ms'] == 320
+    assert [e for e in events if e['kind'] == 'native_reset'][0]['reason'] == 'acoustic_path_change'
+
+
+@pytest.mark.parametrize("similarity,probability", [(.05, .99), (.65, .99), (.05, .1)])
+def test_trace_does_not_change_barge_decisions_or_asr_audio(tmp_path, similarity, probability):
+    plain = listener(); traced = listener()
+    trace = EchoTrace(tmp_path)
+    traced._echo_path = EchoPath(trace=trace)
+    plain.vad = traced.vad = NS(is_speech=lambda b:True)
+    clean = np.full(2560, 100, dtype=np.int16).tobytes()
+    try:
+        for index in range(4):
+            kwargs = dict(aec_probability=probability, source_pcm=PCM,
+                          aec_echo_similarity=similarity, aec_verified=True,
+                          aec_attenuation=.3, aec_best_attenuation=.01)
+            plain._accept_capture(clean, **kwargs)
+            traced._accept_capture(clean, **kwargs, aec_trace_id=index + 1)
+            assert plain.barge_flag == traced.barge_flag
+            assert plain._barge_speech_ms == traced._barge_speech_ms
+            assert plain._aec_last_reason == traced._aec_last_reason
+            assert plain._audio.get_nowait() == traced._audio.get_nowait() == clean
+    finally:
+        traced._echo_path.close()
+    read_trace(trace)
+
+
+def test_manual_launcher_keeps_recording_environment_local_to_process():
+    from pathlib import Path
+    batch = (Path(__file__).parents[1] / 'start_aec_diagnostics.bat').read_text()
+    assert 'setlocal' in batch and 'choice /C YN' in batch
+    assert 'set "FENIX_AEC_DIAGNOSTICS=1"' in batch
+    assert '-m jarvis' in batch and 'setx' not in batch.lower()
+    normal = (Path(__file__).parents[1] / 'start_fenix.bat').read_text()
+    assert 'FENIX_AEC_DIAGNOSTICS' not in normal
+
+
+def test_trigger_stop_deadline_survives_a_full_diagnostic_queue(tmp_path):
+    clock = NS(now=100.)
+    gate = threading.Event()
+    class Paused(EchoTrace):
+        def _run(self):
+            assert gate.wait(2)
+            super()._run()
+    t = Paused(tmp_path, clock=lambda:clock.now, queue_size=1, after_trigger=.2)
+    t.note('render_begin', serial=1)
+    assert t.note('decision', capture_id=1, triggered=True) is None
+    clock.now = 101.
+    gate.set()
+    summary, _ = read_trace(t)
+    assert summary['stop_reason'] == 'after_first_trigger' and summary['dropped_events'] == 1
+    assert not t.archive.with_suffix('.zip.partial').exists()
+```
+
 ### `tests/test_engine_probe.py`
 
 ```python
@@ -33497,6 +35314,20 @@ def test_test_log_is_ignored_and_does_not_change_snapshot(repo):
     assert git(repo, "check-ignore", "pytest-log.txt").strip() == b"pytest-log.txt"
     snapshot(repo)
     assert (repo / "SNAPSHOT.md").read_bytes() == before
+    assert check(repo).returncode == 0
+
+
+@pytest.mark.parametrize("name", [".env", ".env.local", ".ENV", ".envrc", "nested/.env.production"])
+def test_dotenv_does_not_enter_snapshot(repo, name):
+    before = (repo / "SNAPSHOT.md").read_bytes()
+    private = repo / name
+    private.parent.mkdir(parents=True, exist_ok=True)
+    content = "FAKE_LOCAL_SECRET=dotenv_regression_fixture\n"
+    private.write_text(content, encoding="utf-8")
+    snapshot(repo)
+    assert private.read_text(encoding="utf-8") == content
+    assert (repo / "SNAPSHOT.md").read_bytes() == before
+    assert b"dotenv_regression_fixture" not in (repo / "SNAPSHOT.md").read_bytes()
     assert check(repo).returncode == 0
 
 
@@ -33907,6 +35738,7 @@ def test_listener_level_heartbeat_updates_even_when_muted():
     from jarvis.stt import Listener
     listener = NS(peak=0, current_rms=0, level_updated_at=0,
                   muted=True, _process_barge=Mock())
+    listener._accept_capture = Listener._accept_capture.__get__(listener)
     Listener._callback(listener, np.full(32, 600, dtype="<i2").tobytes(), 32, None, None)
     assert listener.current_rms == 600
     assert listener.level_updated_at > 0
@@ -33929,6 +35761,25 @@ def test_disappeared_listener_clears_old_meter_metadata(gui):
     assert "слушатель не запущен" in gui._mic_device_text.value
     assert gui._mic_peak_text.value.endswith("—")
     assert gui._mic_utt_text.value.endswith("—")
+
+
+def test_aec_toggle_is_opt_in_restart_only_and_never_selects_voice(gui):
+    def controls(node):
+        yield node
+        content=getattr(node,'content',None)
+        if isinstance(content,ft.Control):yield from controls(content)
+        for child in getattr(node,'controls',[]) or []:
+            if isinstance(child,ft.Control):yield from controls(child)
+    root=gui._sound().build_audio()
+    check=next(c for c in controls(root) if isinstance(c,ft.Checkbox) and str(c.label).startswith('AEC:'))
+    assert check.value is False and 'после перезапуска' in check.label
+    before=gui.config.get('tts_backend')
+    check.on_change(NS(control=NS(value=True)))
+    assert gui.config.get('aec_enabled') is True
+    assert gui.config.get('tts_backend')==before
+    assert getattr(gui.jarvis.listener,'_echo_path',None) is None
+    check.on_change(NS(control=NS(value=False)))
+    assert gui.config.get('aec_enabled') is False
 ```
 
 ### `tests/test_gui_chat.py`
@@ -39134,7 +40985,6 @@ def test_speaker_routes_sample_through_common_player(policy):
     [
         ("piper", "PiperEngine", ("Привет.",)),
         ("silero", "SileroEngine", ("Привет.", "aidar", 1.0)),
-        ("winrt", "WinRTEngine", ("Привет.", "Pavel", 1.0)),
     ],
 )
 def test_stream_engines_share_speakers_mixer(module, cls, args):
@@ -39730,7 +41580,7 @@ def test_speaker_async_path_uses_same_preparation():
     )
 
 
-@pytest.mark.parametrize("engine", ["piper", "silero", "winrt", "sapi"])
+@pytest.mark.parametrize("engine", ["piper", "silero", "sapi"])
 def test_all_streaming_engines_use_shared_preparation(engine):
     path = (
         Path(__file__).resolve().parents[1]
@@ -40876,6 +42726,13 @@ def test_startup_reliability_helpers_are_shipped(release_tree):
     for name in ('launcher_runtime.py', 'jarvis/https_trust.py',
                  'scripts/prepare_flet_client.py'):
         assert name in files
+
+
+def test_optional_aec_files_shipped_but_not_required_by_base_dependencies(release_tree):
+    files=rp.collect_payload(release_tree,False)
+    assert {'install_aec.bat','requirements-aec.txt','jarvis/echo.py'}<=set(files)
+    assert 'pywebrtc-audio==0.2.0' in (release_tree/'requirements-aec.txt').read_text()
+    assert 'pywebrtc' not in (release_tree/'requirements.txt').read_text()
 ```
 
 ### `tests/test_safety.py`
@@ -42054,10 +43911,10 @@ def test_silero_engine_interface():
 # WinRT — интерфейс
 # =================================================================
 
-def test_winrt_engine_interface():
-    from jarvis.tts_engines.winrt import WinRTEngine
-    assert WinRTEngine.name == "winrt"
-    assert "auto" in WinRTEngine.voices
+def test_retired_winrt_module_cannot_be_loaded():
+    import importlib
+    with pytest.raises(ImportError, match="WinRT TTS removed"):
+        importlib.import_module("jarvis.tts_engines.winrt")
 
 
 # =================================================================
@@ -42104,12 +43961,12 @@ def test_switch_voice_not_found():
 
 
 # =================================================================
-# voices.switch — регистронезависимость ключей (winrt/sapi)
+# voices.switch — регистронезависимость ключей (sapi)
 # =================================================================
 
-def _winrt_config(initial=None):
-    """Fake config с backend=winrt для тестов switch."""
-    state = {"tts_backend": "winrt", "tts_voice": "auto"}
+def _sapi_config(initial=None):
+    """Fake config с backend=sapi для тестов switch."""
+    state = {"tts_backend": "sapi", "tts_voice": "auto"}
     if initial:
         state.update(initial)
     cfg = MagicMock()
@@ -42118,12 +43975,12 @@ def _winrt_config(initial=None):
     return cfg, state
 
 
-def test_switch_voice_case_insensitive_winrt():
-    """Ключи winrt — с заглавной («Pavel»), а команда приходит строчными."""
+def test_switch_voice_case_insensitive_sapi():
+    """Ключи sapi — с заглавной («Pavel»), а команда приходит строчными."""
     from jarvis import voices
     fake_engine = MagicMock()
     fake_engine.voices = {"auto": "Авто", "Pavel": "Павел", "Irina": "Ирина"}
-    cfg, state = _winrt_config()
+    cfg, state = _sapi_config()
 
     with patch("jarvis.voices._try_create", return_value=fake_engine), \
          patch("jarvis.voices._VOICES_CACHE", {}):
@@ -42138,12 +43995,12 @@ def test_switch_voice_case_insensitive_winrt():
     ("ирину", "Irina"),   # алиас «ирину» → irina → Irina
     ("павел", "Pavel"),   # алиас «павел» → pavel → Pavel
 ])
-def test_switch_voice_aliases_winrt(said, expected):
-    """Русские алиасы и любой регистр находят системный голос winrt."""
+def test_switch_voice_aliases_sapi(said, expected):
+    """Русские алиасы и любой регистр находят системный голос sapi."""
     from jarvis import voices
     fake_engine = MagicMock()
     fake_engine.voices = {"auto": "Авто", "Pavel": "Павел", "Irina": "Ирина"}
-    cfg, state = _winrt_config()
+    cfg, state = _sapi_config()
 
     with patch("jarvis.voices._try_create", return_value=fake_engine), \
          patch("jarvis.voices._VOICES_CACHE", {}):
@@ -42175,7 +44032,7 @@ def test_do_change_voice_switch_and_history():
 
     fake_engine = MagicMock()
     fake_engine.voices = {"auto": "Авто", "Pavel": "Павел", "Irina": "Ирина"}
-    cfg, state = _winrt_config()
+    cfg, state = _sapi_config()
     handler = MagicMock()
     handler.config = cfg
 
@@ -44852,6 +46709,103 @@ def test_hotkey_action_is_dispatched():
     assert execute._DISPATCH["hotkey"] is execute._do_hotkey
 ```
 
+### `tests/test_winrt_removed.py`
+
+```python
+"""Retired speech backend must not return through config, probes or caches."""
+import importlib
+import json
+from pathlib import Path
+from types import SimpleNamespace as NS
+from unittest.mock import Mock
+
+import pytest
+
+from jarvis.config import Config
+from jarvis.tts import Speaker
+from jarvis.tts_engines import factory
+from jarvis import voices
+
+
+def test_legacy_config_is_normalized_without_rewriting_file(tmp_path, caplog):
+    path = tmp_path / 'config.json'
+    original = json.dumps({'tts_backend':'winrt', 'tts_voice':'Pavel', 'voice_rate':1.2})
+    path.write_text(original)
+    config = Config(path)
+    assert config.get('tts_backend') == 'auto'
+    assert config.get('tts_voice') == 'Pavel' and config.get('voice_rate') == 1.2
+    assert path.read_text() == original
+    assert 'WinRT speech removed' in caplog.text
+
+
+def test_direct_legacy_factory_call_uses_auto_without_trying_winrt(monkeypatch):
+    calls = []
+    engine = NS(name='piper')
+    def create(name, *args):
+        calls.append(name)
+        return engine if name == 'piper' else None
+    monkeypatch.setattr(factory, '_try_create', create)
+    assert factory.get_engine('winrt', 'Pavel') is engine
+    assert calls == ['silero', 'piper']
+
+
+def test_old_cache_entries_cannot_revive_removed_engine(monkeypatch):
+    monkeypatch.setitem(factory._ENGINE_CACHE, ('winrt', 'Pavel'), object())
+    monkeypatch.setitem(factory._PROBE_CACHE, 'winrt', object())
+    assert factory._try_create('winrt', 'Pavel', 'medium', 1.15) is None
+    assert factory._try_create('winrt', '', 'medium', 1.15) is None
+    assert factory._probe_engine('winrt') is None
+
+
+def test_auto_and_list_have_no_winrt_even_if_all_engines_available(monkeypatch):
+    calls = []
+    def create(name, *args):
+        calls.append(name)
+        return NS(name=name)
+    monkeypatch.setattr(factory, '_try_create', create)
+    assert factory.list_engines() == ['silero', 'piper', 'sapi']
+    assert factory.get_engine('auto', 'ruslan').name == 'silero'
+    assert 'winrt' not in calls
+
+
+def test_speaker_legacy_selection_uses_auto_and_leaves_input_config_intact(monkeypatch):
+    monkeypatch.setattr(Speaker, '_init_engine', lambda self:None)
+    config = {'tts_backend':'winrt', 'tts_voice':'Pavel'}
+    obj = Speaker(config)
+    assert obj._backend == 'auto' and config['tts_backend'] == 'winrt'
+    obj._engine = NS(name='piper')
+    assert obj.switch_backend('winrt') is True
+    assert obj._backend == 'auto'
+
+
+def test_old_voice_cache_does_not_offer_winrt(monkeypatch):
+    monkeypatch.setattr(voices, '_VOICES_CACHE', {'winrt':{'Pavel':'retired'}})
+    monkeypatch.setattr(voices, '_try_create', lambda *args:NS(voices={'ruslan':'Руслан'}))
+    assert voices.current_backend({'tts_backend':'winrt'}) == 'auto'
+    assert voices._voices_for_backend('winrt') == {'ruslan':'Руслан'}
+    assert 'winrt' not in voices._BACKEND_HINT and 'winrt' not in voices._FALLBACK_VOICES
+
+
+def test_removed_module_is_an_explicit_overlay_marker():
+    with pytest.raises(ImportError, match='WinRT TTS removed'):
+        importlib.import_module('jarvis.tts_engines.winrt')
+
+
+def test_gui_and_runtime_dependencies_do_not_offer_speech_winrt():
+    from jarvis.gui import TTS_BACKENDS
+    assert TTS_BACKENDS == ['auto', 'piper', 'silero', 'sapi']
+    requirements = (Path(__file__).parents[1] / 'requirements.txt').read_text()
+    assert 'winrt-Windows.Media.SpeechSynthesis' not in requirements
+    assert 'winrt-Windows.Media.Control' in requirements  # media controls are not TTS
+
+
+def test_offline_corpus_does_not_import_retired_tts_engine():
+    from tests.audio import corpus
+    source = Path(corpus.__file__).read_text()
+    assert 'jarvis.tts_engines.winrt' not in source
+    assert 'class LocalSynth' in source
+```
+
 ### `check_all.py`
 
 ```python
@@ -47060,6 +49014,9 @@ def should_skip_dir(path: Path) -> bool:
 
 
 def should_skip_file(path: Path) -> bool:
+    name = path.name.casefold()
+    if name in {".env", ".envrc"} or name.startswith(".env."):
+        return True  # Local dotenv files may contain non-JSON secrets.
     if path.name in EXCLUDE_FILES:
         return True
     if path.suffix.lower() in EXCLUDE_EXT:
@@ -47966,6 +49923,8 @@ pause
   "command_window_sec": 8,
   "mode": "combo",
   "barge_enabled": true,
+  "aec_enabled": false,
+  "aec_stream_delay_ms": 40,
   "vad_enabled": true,
   "vad_threshold": 0.5,
   "vad_adaptive": true,
@@ -48436,6 +50395,38 @@ echo.
 pause
 ```
 
+### `install_aec.bat`
+
+```batch
+@echo off
+chcp 65001 >nul
+setlocal
+cd /d "%~dp0"
+if not exist ".venv311\Scripts\python.exe" (
+  echo Сначала подготовь Феникс: окружение .venv311 не найдено.
+  pause
+  exit /b 1
+)
+echo Будет установлен необязательный пакет AEC из PyPI в .venv311.
+echo Драйверы, модели и настройки не меняются. Для отмены закрой окно.
+pause
+".venv311\Scripts\python.exe" -m pip install --only-binary=:all: -r requirements-aec.txt
+if errorlevel 1 (
+  echo Установка не завершена. Сохрани текст ошибки. Феникс работает и без AEC.
+  pause
+  exit /b 1
+)
+".venv311\Scripts\python.exe" -c "from pywebrtc_audio import AudioProcessor; p=AudioProcessor(sample_rate=16000, echo_cancellation=True); print('AEC native initialization: OK')"
+if errorlevel 1 (
+  echo Нативный AEC не загрузился. Не включай эксперимент; сохрани ошибку.
+  pause
+  exit /b 1
+)
+echo Готово. В Голосе и звуке выбери Piper, включи эксперимент AEC и перезапусти Феникс.
+echo Автоматического изменения твоих настроек не было.
+pause
+```
+
 ### `installer.iss`
 
 ```ini
@@ -48665,6 +50656,42 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 ]
 ```
 
+### `start_aec_diagnostics.bat`
+
+```batch
+@echo off
+setlocal
+cd /d "%~dp0"
+echo AEC diagnostic mode: LOCAL MICROPHONE RECORDING.
+echo Close any running Fenix instance before continuing.
+echo Supports Piper and Silero through the common PCM output.
+echo Requires the existing AEC setting; it is not enabled automatically.
+echo SAPI direct playback has no PCM reference: metadata only, no full AEC trace.
+echo For SAPI, close normally to save the metadata-only ZIP.
+echo Records the selected PCM voice, microphone and AEC output. No upload.
+echo In this diagnostic run AEC also processes Silero; normal launches are unchanged.
+echo Stops 2 seconds after the first barge-in, or after 90 seconds of the session.
+echo Maximum audio data: 32 MiB. The application keeps running after recording stops.
+echo Normal start_fenix.bat does not enable this mode.
+echo.
+choice /C YN /N /M "Start Fenix with local recording? [Y/N] "
+if errorlevel 2 exit /b 0
+if not exist ".venv311\Scripts\python.exe" (
+    echo ERROR: .venv311\Scripts\python.exe not found. Use the existing Python 3.11 installation.
+    pause
+    exit /b 1
+)
+set "FENIX_AEC_DIAGNOSTICS=1"
+"%~dp0.venv311\Scripts\python.exe" -m jarvis
+set "RESULT=%errorlevel%"
+echo.
+echo Recording is not enabled for normal launches.
+echo Look for the AEC diagnostic SAVED line with the ZIP path.
+echo Default folder: %%APPDATA%%\Phoenix\logs\aec_diagnostics
+pause
+exit /b %RESULT%
+```
+
 ### `start_fenix.bat`
 
 ```batch
@@ -48765,50 +50792,24 @@ audio-regression/
 ### `.clinerules`
 
 ```
-# .clinerules — правила работы в репозитории «Феникс»
+# Правила работы в репозитории Феникса
 
-Стоимость запроса ≈ (число ответов агента) × (весь контекст на каждом шаге).
-Каждый ответ агента — это новый запрос со ВСЕЙ историей. Сокращать надо оба множителя.
-
-## Порядок работы
-
-1. Начало задачи — прочитать `AGENTS.md` (≈8 КБ, там команды, карта, конвенции).
-   Не читать целиком: `README.md`, `PROJECT.md`, `PROMPT.md`, `CONTRIBUTING.md`,
-   `CHANGELOG.md`, `PLAN.md`, `ARCHITECTURE.md`, `CI.md`. `SNAPSHOT.md` (1 МБ) — никогда.
-2. **Батчинг:** все независимые поиски, чтения, команды и правки — в ОДНОМ ответе.
-   Не разносить на «прочитал → подумал → ещё раз прочитал».
-3. Сначала рассказываешь план действий и ждешь согласия человека, потом `search_codebase`, потом чтение **точного диапазона** (`start_line`/`end_line`).
-   Файл > 400 строк целиком не читать никогда — только нужный участок.
-4. Если нужен широкий контекст — **спросить**, что открыть, вместо чтения всего подряд.
-
-5. Не коммитить без разрешения пользователя
-## Вывод и проверки
-
-6. Вывод команд обрезать: `| Select-Object -Last 15`, `-q`, `--stat`, `| Measure-Object`.
-   Полные логи/диффы/дампы — в файл, в чат — 3 строки.
-7. Тесты (`pytest`, `check_all.py`) — только если менялся код, и в ответ — **итоговую строку**.
-8. После правки файл не перечитывать. Верификация: `git --no-pager diff -- <файл>`
-   либо `--stat` + `check_syntax.py`.
-9. Код в чат не дублировать — писать через редактор прямо в файл.
-10. Скриншоты и картинки — только если без них задача не решается (это дорого).
-
-## Ответы
-
-11. Итог — **до 5 строк**: что сделано, где, результат проверки. Подробности — по запросу.
-12. Не пересказывать задачу и не подтверждать понимание абзацами.
-13. Планы и отчёты длиннее 10 строк — в файл, не в чат.
-
-## Конвенции (детали — в AGENTS.md)
-
-14. Сохранять UTF-8 без BOM и CRLF.
-15. Пути — через `jarvis/paths.py`; `PROGRAM_DIR` — только ASCII.
-16. Новые зависимости — только по явной просьбе.
-17. Добавил/удалил файл или поменял код — пересобрать `SNAPSHOT.md`
-    (`.\.venv311\Scripts\python.exe snapshot.py`).
-
-## Для человека
-
-Одна задача = одна сессия. Закрыл задачу — новый чат, не продолжай в раздутой истории.
+- Вход — AGENTS.md; состояние — PROJECT.md, цель — PLAN.md,
+  ближайшая задача — docs/NEXT_STEPS.md. Для нового чата — PROMPT.md.
+- JASTIN — целевое видение работодателя; не трактовать как набор чужих идей.
+- Читать только относящиеся к задаче исходники; не печатать весь SNAPSHOT/логи.
+  Независимые проверки объединять; длинные результаты сохранять в файл.
+- Один законченный срез за раз. Не менять стек/модели/данные попутно.
+  Изменения требований согласовывать; не ослаблять safety ради зелёного теста.
+- Проверять изменённый контракт и соседние интеграции. По запросу стабилизации
+  запускать доступный регресс и явно указывать платформу/пропуски.
+- Сохранять владельцев потоков, токены отмены, атомарные данные, секреты и attribution.
+  UTF-8 без BOM, CRLF для изменённых Windows-текстов; hook остаётся LF.
+- Обновлять соответствующие документы, CHANGELOG и генерируемый SNAPSHOT;
+  snapshot.py --check. README — витрина, не журнал текущих патчей.
+- В ZIP/Git не включать venv, модели, профили, личные JSON, логи и секреты.
+- Не commit/push/tag без разрешения. Не объявлять EXE/Setup/Windows приёмку,
+  если они не выполнялись. Итог краткий: результат, файл, применение, ограничения.
 ```
 
 ### `.gitattributes`
@@ -49042,6 +51043,14 @@ SOFTWARE.
 </svg>
 ```
 
+### `docs/reference/J-A-S-T-i-n_v1_1_6_0.docx`
+
+_Нетекстовый файл: .docx_
+
+### `docs/reference/Phoenix_JASTIN_Integration_Plan.1.docx`
+
+_Нетекстовый файл: .docx_
+
 ### `jarvis-fenix.code-workspace`
 
 _Нетекстовый файл: .code-workspace_
@@ -49069,6 +51078,14 @@ _Нетекстовый файл: .code-workspace_
 ; поэтому эта настройка влияет только на локальный `pytest` без аргументов.
 testpaths = tests
 python_files = test_*.py
+```
+
+### `requirements-aec.txt`
+
+```
+# Optional experimental echo cancellation. No ASR/TTS model downloads.
+# Apache-2.0 wrapper; bundled WebRTC notices ship in the upstream wheel.
+pywebrtc-audio==0.2.0
 ```
 
 ### `requirements-ci.txt`
@@ -49128,6 +51145,9 @@ pytest-cov>=5.0
 
 # --- Линтеры ---
 ruff>=0.4
+
+# Optional legacy offline WAV corpus generator; not a live TTS backend.
+winrt-Windows.Media.SpeechSynthesis>=3.2; sys_platform == "win32"
 ```
 
 ### `requirements.txt`
@@ -49144,11 +51164,10 @@ numpy>=1.26
 piper-tts>=1.8.0
 pyttsx3>=2.99
 
-# === WinRT (для медиа, TTS, уведомлений) ===
+# === WinRT (для управления медиа; не движок речи) ===
 winrt-runtime>=3.2
 winrt-Windows.Foundation>=3.2
 winrt-Windows.Foundation.Collections>=3.2
-winrt-Windows.Media.SpeechSynthesis>=3.2
 winrt-Windows.Media.Control>=3.2
 winrt-Windows.Storage.Streams>=3.2
 
@@ -49207,38 +51226,15 @@ certifi>=2024.8.30
 
 - Фирменные ресурсы Феникса
 
-#### `tests/README.md` — 30 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `tests/README.md` — 7 заголовков, полный текст не включён (дублирует PROJECT.md)
 
-- Тесты Феникса
-  - Пакет надёжности запуска Windows — текущая проверка
-  - Общий bootstrap Python + Ollama
-  - Python bootstrap HTTPS — исходный патч
-  - Карта
-  - Персона и Настройки — 16.10.2026
-  - Главная GUI
-    - Проверка GUI с конструктором команд
-  - Граница импортов уточнений
-  - Локальная гигиена Git
-  - Автоматический аудиопрогон
-    - Проверка реализации аудиопрогона
-  - Уточнения команд: актуальная проверка
-  - Регрессии последних изменений
-    - Ручная приёмка Non-verbal
-  - Правила
-  - Ручные прогоны (`tests/manual/`)
-  - Зависимость от окружения
-  - Логи
-  - См. также
-  - Микрофон / Голос и звук
-  - Интерактивная боковая панель
-    - Обновление push на любой ширине
-  - Минималистичная Главная
-  - Солнечная корона и mic_watchdog
-    - Startup/tray regression
-    - Кольцо действий Главной
-    - Опциональные виджеты Главной — текущая проверка
-  - Аудит установщика
-  - Окно подготовки (после 2.1.0)
+- Аудиорегрессии Феникса
+  - Быстрый старт — Windows, активная .venv311
+  - Модели — уже установленные, без сетевых скачиваний
+  - Корпус: синтез и собственный голос
+  - Что именно проверяется
+  - Результат и приватность
+  - Границы и следующий этап
 
 #### `tests/audio/README.md` — 7 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -49258,21 +51254,14 @@ certifi>=2024.8.30
   - Обновление 15.10.2026: язык, память, Non-verbal
   - Как добавить новый workflow
 
-#### `AGENTS.md` — 13 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `AGENTS.md` — 6 заголовков, полный текст не включён (дублирует PROJECT.md)
 
-- AGENTS.md — навигация для помощника по «Феникс»
-  - Среда и запуск
-  - Карта
-  - Контракты, которые легко сломать
-  - Зафиксированный выбор ASR
-  - Конвенции и безопасность
-  - После правки
-  - Аудиорегрессии
-  - Перед коммитом
-  - Персона и Настройки
-    - Кольцо Главной
-    - Виджеты Главной
-    - Новый чат / активная озвучка
+- AGENTS — правила работы с Фениксом
+  - Цель и навигация
+  - Среда и фактическая база
+  - Основные контракты
+  - Изменения
+  - Проверки и передача
 
 #### `ARCHITECTURE.md` — 52 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -49317,9 +51306,13 @@ certifi>=2024.8.30
     - `.venv311`
     - Git
 
-#### `CHANGELOG.md` — 114 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 118 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
+  - Не выпущено — накопительное source-обновление и приватность снимка
+  - Не выпущено — чистый комплект разработки и передачи в новый чат
+  - Не выпущено — JASTIN принят как целевое видение (только документация)
+  - Не выпущено — экспериментальный AEC Piper
   - Не выпущено — надёжность первого запуска Windows
   - Не выпущено — необязательный Whisper не блокирует старт при DLL-ошибке
   - Не выпущено — визуальный ритм README
@@ -49355,10 +51348,6 @@ certifi>=2024.8.30
       - GUI: графитово-медный Диалог
       - GUI: обновление Главной
       - Новая главная страница и пользовательское руководство
-      - Восстановление границы импортов clarification
-      - Гигиена репозитория и локальная проверка коммита
-      - Локальные аудиорегрессии и следующая очередь
-      - Ядро Феникса: первый блок уточнений
 
 #### `CI.md` — 16 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -49415,47 +51404,26 @@ certifi>=2024.8.30
   - 🤝 Как задавать вопросы
   - 🎯 Философия
 
-#### `PLAN.md` — 27 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `PLAN.md` — 8 заголовков, полный текст не включён (дублирует PROJECT.md)
 
-- 📋 План развития «Феникс»
-  - 🚧 Текущий P0: запуск на чистой Windows
-  - Предшествующий этап: Python и модель Ollama
-  - ⏭ Следующая задача после P0: потоковый TTS рядом с Ollama
-  - 🎯 Курс: сначала сам Феникс
-  - 📊 Статусы
-  - Приоритеты и ближайшие milestones
-  - Публичная страница проекта
-  - Что уже есть
-  - А. 🚧 Уточнения и незавершённая команда — реализовано, приёмка Windows
-    - Реализовано в первом ограниченном наборе
-    - Приёмка на Windows
-  - 🎧 🚧 Аудиорегрессии — текущая приёмка
-  - 🖼 🚧 GUI — Диалог, команды, звук, Персона и Настройки реализованы; требуется приёмка Windows
-    - Дополнение GUI: свой язык команд
-    - Дополнение GUI: микрофон, голос и звук
-    - Дополнение GUI: Персона и Настройки
-  - Б. Контекст исправлений и расширение слотов — после GUI
-  - В. ⏭ Управляемое самообучение приложения
-  - Г. ⏭ Качество памяти и разговора
-  - Д. P1 / M3 — Производительность по измерениям после GUI
-  - Е. Сквозная проверка качества и стабильности
-  - 💤 Дальний бэклог — не текущий план разработки
-  - Правила завершения шага
-  - Готово: кольцо действий Главной
-  - Поставка после обновления GUI
-  - Подготовка приложения — интерфейсный патч после 2.1.0
+- План реализации Феникса → JASTIN
+  - Цель
+  - Порядок реализации
+  - Текущий фокус: R0 / подготовка R1
+  - Принципы перехода
+  - Решения до соответствующего этапа
+  - Дополнительные кандидаты
+  - Завершение каждого шага
 
-#### `PROMPT.md` — 9 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `PROMPT.md` — 7 заголовков, полный текст не включён (дублирует PROJECT.md)
 
-- Феникс — старт для нового чата
-  - 1. Как войти в проект
-  - 2. Что это за продукт
-  - 3. Что уже работает и что сохранить
-    - GUI
-    - Ядро
-  - 4. Текущая согласованная задача: лёгкая потоковая озвучка
-  - 5. Контракты, которые нельзя сломать
-  - 6. Как проверять и отдавать изменения
+- Феникс — задание для нового чата
+  - Сначала прочитай
+  - Что есть
+  - Текущий статус
+  - Ближайшая инженерная задача
+  - Не сломать
+  - Как закончить шаг
 
 #### `README.md` — 11 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -49471,6 +51439,13 @@ certifi>=2024.8.30
 - Снимок обновляется после изменений
 - Preflight ресурсов, без сборки EXE
 
+#### `START_HERE.md` — 4 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Феникс: вход в проект
+  - Прочитать в таком порядке
+  - Суть
+  - Проверки и состав
+
 #### `assets/nonverbal/README.md` — 3 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Звуковые реакции: источники и использование
@@ -49480,6 +51455,48 @@ certifi>=2024.8.30
 #### `assets/readme/README.md` — 1 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Графика README
+
+#### `docs/ACCEPTANCE_CHECKLIST.md` — 14 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Детальные критерии приёмки текущих подсистем
+  - А. 🚧 Уточнения и незавершённая команда — реализовано, приёмка Windows
+    - Реализовано в первом ограниченном наборе
+    - Приёмка на Windows
+  - 🎧 🚧 Аудиорегрессии — текущая приёмка
+  - 🖼 🚧 GUI — Диалог, команды, звук, Персона и Настройки реализованы; требуется приёмка Windows
+    - Дополнение GUI: свой язык команд
+    - Дополнение GUI: микрофон, голос и звук
+    - Дополнение GUI: Персона и Настройки
+  - Б. Контекст исправлений и расширение слотов
+  - В. ⏭ Управляемое самообучение приложения
+  - Г. ⏭ Качество памяти и разговора
+  - Д. Сквозная производительность
+  - Е. Сквозная проверка качества и стабильности
+
+#### `docs/AEC_LOCAL_DIAGNOSTICS.md` — 5 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Ручная локальная диагностика AEC
+  - Поддерживаемые движки
+  - Приватность и ограничения
+  - Как получить запись сбоя
+  - Содержимое диагностического ZIP
+
+#### `docs/AEC_PIPER_PROTOTYPE.md` — 6 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- AEC Piper: экспериментальный прототип
+  - Включить без команд в PowerShell
+  - Реализация
+  - Ограничения и fallback
+  - Проверка через реальные колонки — ещё не выполнена
+  - Проверки и лицензии
+
+#### `docs/AEC_SAMPLE_ALIGNMENT_UPDATE.md` — 5 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- AEC: точность сравнения с воспроизводимым голосом
+  - Что исправлено
+  - Установка поверх предыдущего обновления AEC
+  - Проверки и границы
+  - Проверка на Windows
 
 #### `docs/BOOTSTRAP_PYTHON_OLLAMA_UPDATE.md` — 7 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -49569,10 +51586,20 @@ certifi>=2024.8.30
   - Нагрузка
   - Что проверить на Windows
 
+#### `docs/HANDOFF_VALIDATION.md` — 7 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Проверка комплекта передачи Феникса
+  - Что это за комплект
+  - Свежая переносимая проверка
+    - Что не выполнялось в этом наборе
+  - Другие проверки
+  - Приёмка комплекта
+  - Что остаётся пользователю / целевой Windows
+
 #### `docs/IMPROVEMENT_BACKLOG.md` — 9 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Улучшения после сравнения пяти ассистентов
-  - P0. Установка и запуск — текущий блокер
+  - P0. Установка и запуск — релизный gate, приёмка отложена
   - P1. Отзывчивая локальная озвучка вместе с Ollama
   - P1/P2. Быстрые команды и меньше ложных активаций
   - P2. Удобство для обычного пользователя
@@ -49603,13 +51630,33 @@ certifi>=2024.8.30
 
 #### `docs/NEXT_STEPS.md` — 7 заголовков, полный текст не включён (дублирует PROJECT.md)
 
-- Дальнейшие действия после 2.1.0
-  - Текущий шаг: общее обновление Python + Ollama
-  - 0. Исторический чек-лист 2.1.0 (не повторять опубликованный тег)
-  - 1. Ближайшая patch-версия: только реальные регрессии
-  - 2. Следующий функциональный этап: лёгкая локальная озвучка
-  - 3. Надёжность повседневной работы
-  - 4. После стабилизации
+- Ближайшие действия: R0 / подготовка R1
+  - 0. Что подготовлено и что ещё не принято
+  - 1. Когда вернёмся к аудио: диагностика и один подтверждённый дефект
+  - 2. Следующий функциональный этап: baseline → ограниченный потоковый TTS
+  - 3. Затем — надёжность, исправления, обучение и команды
+  - 4. Затем — целевые этапы JASTIN, не исключённый бэклог
+  - 5. Контроль выпуска (не повторять опубликованный тег)
+
+#### `docs/PHOENIX_JASTIN_RECONCILIATION.md` — 17 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- JASTIN — целевое видение Феникса: план перехода
+  - 1. Роль документов и порядок решений
+  - 2. Текущее → целевое → путь перехода
+  - 3. Десять предложений интеграции S1 — как реализовать цель
+  - 4. Маршрут реализации: от текущего к видению
+    - R0. Рабочая исходная точка и аудио
+    - R1. Измеримость, состояние и плавная потоковая озвучка
+    - R2. Модульное ядро и первая вертикаль skill
+    - R3. Consensus, голосовые профили и Trust
+    - R4. Память, управляемое обучение и защищённые данные
+    - R5. SDK, макросы, сценарии, UI и модельные провайдеры
+    - R6. Поставка и целевая приёмка
+  - 5. SDK из Uvoxus: максимальное использование образца с явными границами
+  - 6. Небольшие оговорки и открытые решения работодателю
+  - 7. Дополнение UX: плавная остановка (остаётся в целевом аудиоконтракте)
+    - Дополнение из присланного совета: плавная остановка речи
+  - 8. Контроль прогресса
 
 #### `docs/PYTHON_BOOTSTRAP_TLS_FIX.md` — 6 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -49620,7 +51667,7 @@ certifi>=2024.8.30
   - Приёмка в Windows Sandbox
   - Проверено при подготовке патча
 
-#### `docs/USER_GUIDE.md` — 48 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `docs/USER_GUIDE.md` — 49 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Руководство пользователя · Феникс
   - Навигация
@@ -49647,6 +51694,7 @@ certifi>=2024.8.30
   - 🔢 Числа и чтение текста
   - 🎭 Звуковые реакции
   - 🎙 Голоса
+  - Эксперимент: эхо колонок с Piper
   - ✋ Barge-in (перебивание)
   - 🎤 Микрофон
   - 🎧 Автоматическая проверка голоса
@@ -49661,7 +51709,6 @@ certifi>=2024.8.30
     - Старый формат и паки
   - 📦 Сборка `.exe` и установщик
   - 🔄 Автозапуск
-  - 🧰 Инструменты разработчика
 
 #### `docs/WHISPER_STARTUP_DLL_FIX.md` — 6 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -49681,6 +51728,16 @@ certifi>=2024.8.30
   - Windows-приёмка новой сборки — ещё не выполнена
   - Проверки
 
+#### `docs/WINRT_TTS_REMOVAL.md` — 3 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Удаление WinRT из рабочего синтеза речи
+  - Изменения
+  - Установка нового архива
+
+#### `docs/reference/README.md` — 1 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Исходные требования
+
 #### `docs/releases/v2.1.0.md` — 5 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Феникс 2.1.0
@@ -49691,4 +51748,4 @@ certifi>=2024.8.30
 
 ---
 
-_Итого по категориям — code: 211, data: 48, doc: 36, pack: 5. Режим `lean`._
+_Итого по категориям — code: 217, data: 53, doc: 45, pack: 5. Режим `lean`._
