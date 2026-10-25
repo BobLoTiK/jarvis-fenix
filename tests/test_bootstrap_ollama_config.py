@@ -107,9 +107,15 @@ def test_real_bridge_subprocess_reads_and_writes_appdata_only(tmp_path, monkeypa
     venv.EnvBuilder(with_pip=False).create(runtime)
     python = runtime / ('Scripts/python.exe' if sys.platform == 'win32' else 'bin/python')
     # Match the installed runtime: dependency inside venv, not user site ignored by -I.
+    # `-X utf8` + encoding обязательны вместе: `-I` изолирует процесс и игнорирует
+    # PYTHONUTF8, поэтому без флага дочерний print уходит в кодировку консоли
+    # (cp1251 для «Максим»), а text=True декодирует UTF-8. На ASCII-имени
+    # пользователя (CI) это незаметно, на кириллическом — UnicodeDecodeError,
+    # а «лечение» через errors=replace даёт битый путь и PermissionError.
     purelib = Path(subprocess.check_output(
-        [str(python), '-I', '-c', 'import sysconfig; print(sysconfig.get_path("purelib"))'],
-        text=True).strip())
+        [str(python), '-X', 'utf8', '-I', '-c',
+         'import sysconfig; print(sysconfig.get_path("purelib"))'],
+        text=True, encoding="utf-8").strip())
     shutil.copytree(Path(filelock.__file__).parent, purelib / 'filelock')
     client = launcher_ollama.ConfigBridge(root, None, python_exe=python)
     snapshot = client.read()

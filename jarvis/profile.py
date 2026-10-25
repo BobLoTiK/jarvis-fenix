@@ -265,13 +265,21 @@ def list_all() -> list[str]:
 
 
 def delete(name: str) -> bool:
-    """Удаляет папку профиля. Активный — нельзя."""
+    """Удаляет папку профиля. Активный — нельзя.
+
+    Сравнивать нужно ИМЕНА ПАПОК, а не сырое имя пользователя: после init()
+    `current()` возвращает `_windows_user()` («Максим», «Maxim»), а папка
+    профиля называется `_sanitize(...)` («maksim», «maxim»). Прежнее
+    `safe == current()` не совпадало никогда, и защита активного профиля
+    не срабатывала — «удали профиль Максим» стирал его же.
+    """
     import shutil
     safe = _sanitize(name)
     with _lock:
-        if safe == current():
-            log.warning("Нельзя удалить активный профиль: %s", safe)
-            return False
+        active = _sanitize(current())
+    if safe == active:
+        log.warning("Нельзя удалить активный профиль: %s", safe)
+        return False
     path = PROFILES_DIR / safe
     if not path.exists() or not path.is_dir():
         return False

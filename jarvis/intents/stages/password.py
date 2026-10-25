@@ -11,7 +11,7 @@ import re
 import time
 
 from jarvis import profile
-from jarvis.intents.password import ACTION_HUMAN, verify_password
+from jarvis.intents.password import ACTION_HUMAN, danger_gate, verify_password
 from jarvis.intents.stages.base import Stage
 from jarvis.intents.verbs import CANCEL
 
@@ -59,7 +59,7 @@ class PasswordStage(Stage):
     # ----------------------------------------------------------------
 
     def _maybe_delete_profile(self, ctx) -> str | None:
-        """«удали профиль X» → пароль или удаление."""
+        """«удали профиль X» → пароль, безопасный отказ или удаление."""
         h = ctx.handler
         m = re.match(r"^удали\s+профиль\s+(\S+)$", ctx.cmd)
         if not m:
@@ -67,11 +67,12 @@ class PasswordStage(Stage):
 
         name = m.group(1)
 
-        if h._danger_password():
-            # Пароль задан — спрашиваем.
-            return h._ask_password({"action": "delete_profile", "target": name})
+        # Пароль задан — спрашиваем. Пароля нет — не удаляем молча:
+        # удаление профиля необратимо (см. danger_gate).
+        gate = danger_gate(h, {"action": "delete_profile", "target": name})
+        if gate:
+            return gate
 
-        # Пароля нет — удаляем сразу.
         if profile.delete(name):
             return f"Профиль {name} удалён."
         return f"Профиль {name} не найден или активен."

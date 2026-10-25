@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=cb07c45cbfc10b6c` · режим `lean` · файлов `320` · строк `56353` · источник `2626 КБ`
+`sha256=2eb0108db398ea4a` · режим `lean` · файлов `323` · строк `56753` · источник `2669 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -373,6 +373,12 @@ Legacy-записи остаются неизменными и read-only в GUI;
 публикуя новый список; находящийся в ожидании пароля сценарий хранит свой snapshot.
 Выключение/перезагрузка — типизированный фиксированный argv, не shell-строка;
 требуют настроенного пароля и preflight всех шагов. Параметры фиксированы.
+Политика пароля действует и вне конструктора: `danger_gate` спрашивает пароль,
+если он задан, и отказывает без него для необратимых действий (`delete_profile`,
+`shutdown_pc`, `reboot_pc`, `kill_process`, а также строковая legacy/пак-команда
+с опасной целью). Отменяемые действия (`clear_tasks`, `cancel_timers`) без
+пароля работают как раньше. Legacy-записи остаются строками: они не «типизированы»,
+но проверяются тем же гейтом и `is_danger` до исполнения.
 `find_custom` — без исполнения, сначала точные совпадения, затем legacy fuzzy.
 Значки: SVG/PNG в `jarvis/assets/brand`, общий знак для Flet/icon.ico/tray.png;
 `make_icon.py` воспроизводит ICO/трей из PNG-мастера. Новых зависимостей нет.
@@ -466,7 +472,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── README.md  (17 стр)
 │   │   ├── themes-mobile.svg  (19 стр)
 │   │   ├── themes.svg  (19 стр)
-├── CHANGELOG.md  (1733 стр)
+├── CHANGELOG.md  (1755 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -506,7 +512,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── README.md  (20 стр)
 │   ├── releases/
 │   │   ├── v2.1.0.md  (34 стр)
-│   ├── USER_GUIDE.md  (1012 стр)
+│   ├── USER_GUIDE.md  (1014 стр)
 │   ├── WHISPER_STARTUP_DLL_FIX.md  (85 стр)
 │   ├── WINDOWS_STARTUP_RELIABILITY.md  (108 стр)
 │   ├── WINRT_TTS_REMOVAL.md  (43 стр)
@@ -569,7 +575,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── fast/
 │   │   │   ├── __init__.py  (54 стр)
 │   │   │   ├── correction.py  (28 стр)
-│   │   │   ├── custom.py  (114 стр)
+│   │   │   ├── custom.py  (116 стр)
 │   │   │   ├── debug.py  (48 стр)
 │   │   │   ├── memory.py  (57 стр)
 │   │   │   ├── music.py  (38 стр)
@@ -587,7 +593,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   │   ├── voices.py  (10 стр)
 │   │   │   ├── weather.py  (113 стр)
 │   │   ├── handler.py  (307 стр)
-│   │   ├── password.py  (99 стр)
+│   │   ├── password.py  (153 стр)
 │   │   ├── sites.py  (62 стр)
 │   │   ├── stages/
 │   │   │   ├── __init__.py  (47 стр)
@@ -598,11 +604,11 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   │   ├── compound.py  (75 стр)
 │   │   │   ├── correction.py  (27 стр)
 │   │   │   ├── fast.py  (29 стр)
-│   │   │   ├── llm.py  (97 стр)
+│   │   │   ├── llm.py  (102 стр)
 │   │   │   ├── memory.py  (21 стр)
 │   │   │   ├── modes.py  (30 стр)
 │   │   │   ├── onboarding.py  (75 стр)
-│   │   │   ├── password.py  (124 стр)
+│   │   │   ├── password.py  (125 стр)
 │   │   │   ├── pending.py  (79 стр)
 │   │   ├── verbs.py  (45 стр)
 │   ├── language/
@@ -627,7 +633,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── packs.py  (117 стр)
 │   ├── paths.py  (240 стр)
 │   ├── persona.py  (226 стр)
-│   ├── profile.py  (522 стр)
+│   ├── profile.py  (530 стр)
 │   ├── prosody.py  (152 стр)
 │   ├── recognition.py  (154 стр)
 │   ├── recorder.py  (171 стр)
@@ -667,7 +673,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── system.json  (17 стр)
 │   ├── work.json  (11 стр)
 ├── PLAN.md  (93 стр)
-├── PROJECT.md  (423 стр)
+├── PROJECT.md  (429 стр)
+├── PROJECT_MEMORY.md  (66 стр)
 ├── PROMPT.md  (72 стр)
 ├── pytest.ini  (20 стр)
 ├── README.md  (188 стр)
@@ -719,11 +726,11 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── uia_manual.py  (61 стр)
 │   │   ├── vad_debug.py  (61 стр)
 │   │   ├── vad_live.py  (41 стр)
-│   ├── README.md  (565 стр)
+│   ├── README.md  (567 стр)
 │   ├── stress_intents.py  (552 стр)
 │   ├── test_audio_regression.py  (556 стр)
 │   ├── test_audit_regressions.py  (265 стр)
-│   ├── test_bootstrap_ollama_config.py  (120 стр)
+│   ├── test_bootstrap_ollama_config.py  (126 стр)
 │   ├── test_brain_rag.py  (125 стр)
 │   ├── test_browser_target.py  (338 стр)
 │   ├── test_build_setup.py  (52 стр)
@@ -732,6 +739,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_clarification_imports.py  (110 стр)
 │   ├── test_command_builder.py  (213 стр)
 │   ├── test_config_manager.py  (47 стр)
+│   ├── test_danger_policy.py  (124 стр)
 │   ├── test_echo.py  (579 стр)
 │   ├── test_echo_multibackend.py  (162 стр)
 │   ├── test_echo_trace.py  (264 стр)
@@ -748,7 +756,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_gui_startup.py  (105 стр)
 │   ├── test_gui_widgets.py  (259 стр)
 │   ├── test_gui_wiring.py  (542 стр)
-│   ├── test_intents.py  (485 стр)
+│   ├── test_intents.py  (487 стр)
 │   ├── test_launcher_download.py  (233 стр)
 │   ├── test_launcher_ollama.py  (438 стр)
 │   ├── test_launcher_runtime.py  (122 стр)
@@ -763,6 +771,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_optional_whisper_startup.py  (131 стр)
 │   ├── test_password_imports.py  (109 стр)
 │   ├── test_persona.py  (155 стр)
+│   ├── test_profile.py  (100 стр)
 │   ├── test_prosody.py  (83 стр)
 │   ├── test_recognition_quality.py  (357 стр)
 │   ├── test_release_payload.py  (181 стр)
@@ -1491,7 +1500,11 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def verify_password(candidate: str, stored: str)
   def migrate_password_if_needed(config)
   DANGER_ACTIONS = ...
-  def is_danger(intent: dict, stored_password: str)
+  IRREVERSIBLE_ACTIONS = ...
+  NO_PASSWORD_REPLY = ...
+  def is_danger(intent: dict, stored_password: str='')
+  def is_irreversible(intent: dict)
+  def danger_gate(handler, intent: dict, pending: dict | None=None)
   ACTION_HUMAN = ...
 ```
 
@@ -2997,6 +3010,22 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_load_broken(tmp_path)
 ```
 
+**`tests/test_danger_policy.py`**
+
+```
+  # Политика опасных действий: пароль решает «можно ли», а не «опасно ли».
+  class FakeHandler
+    def __init__(self, password: str='')
+  def test_danger_classification_ignores_password(intent)
+  def test_safe_action_is_not_danger()
+  def test_irreversible_without_password_is_refused_not_executed(intent)
+  def test_password_set_asks_for_it(intent)
+  def test_reversible_actions_stay_passwordless()
+  def test_custom_command_keeps_its_own_pending_intent()
+  def test_is_irreversible_separates_power_from_cleanup()
+  def test_delete_profile_stage_refuses_without_password(monkeypatch)
+```
+
 **`tests/test_echo.py`**
 
 ```
@@ -3850,6 +3879,19 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_describe()
 ```
 
+**`tests/test_profile.py`**
+
+```
+  # Профили: защита активного профиля и границы удаления.
+  def sandbox(tmp_path, monkeypatch)
+  def test_active_profile_is_not_deleted_when_name_has_uppercase(sandbox)
+  def test_active_profile_guard_works_for_every_spelling(sandbox)
+  def test_other_profile_is_deleted(sandbox)
+  def test_delete_missing_profile_returns_false(sandbox)
+  def test_delete_cannot_escape_profiles_dir(sandbox, tmp_path)
+  def test_profile_dir_uses_sanitized_name(sandbox)
+```
+
 **`tests/test_prosody.py`**
 
 ```
@@ -4646,7 +4688,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/intents/execute.py` | 1044 | code | Dispatch: action → функция-обработчик. |
 | `jarvis/intents/fast/__init__.py` | 54 | code | Реестр быстрых обработчиков. |
 | `jarvis/intents/fast/correction.py` | 28 | code | Коррекция: «это не то, я сказал логи». |
-| `jarvis/intents/fast/custom.py` | 114 | code | Пользовательские команды: из config.json и из паков. |
+| `jarvis/intents/fast/custom.py` | 116 | code | Пользовательские команды: из config.json и из паков. |
 | `jarvis/intents/fast/debug.py` | 48 | code | Диагностика: «что ты слышал», «почему не понял». |
 | `jarvis/intents/fast/memory.py` | 57 | code | Управление памятью диалога. |
 | `jarvis/intents/fast/music.py` | 38 | code | Музыка — ДО open_fast. |
@@ -4664,7 +4706,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/intents/fast/voices.py` | 10 | code | Голоса Piper — обёртка над модулем `voices`. |
 | `jarvis/intents/fast/weather.py` | 113 | code | Простые правила для погоды и курса — без LLM. |
 | `jarvis/intents/handler.py` | 307 | code | IntentHandler — оркестрация. |
-| `jarvis/intents/password.py` | 99 | code | Парольные примитивы: jarvis.intents.password (не стадия pipeline). |
+| `jarvis/intents/password.py` | 153 | code | Парольные примитивы: jarvis.intents.password (не стадия pipeline). |
 | `jarvis/intents/sites.py` | 62 | code | Сайты для открытия голосом — ленивая загрузка из packs/sites.json. |
 | `jarvis/intents/stages/__init__.py` | 47 | code | Стадии обработки команды. Порядок = приоритет. |
 | `jarvis/intents/stages/base.py` | 19 | code | Базовая стадия pipeline. |
@@ -4674,11 +4716,11 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/intents/stages/compound.py` | 75 | code | Многослойные команды: «открой стим и запусти доту». |
 | `jarvis/intents/stages/correction.py` | 27 | code | Применение коррекции «это не то» перед разбором команды. |
 | `jarvis/intents/stages/fast.py` | 29 | code | Вызов реестра быстрых обработчиков. |
-| `jarvis/intents/stages/llm.py` | 97 | code | LLM — последний шанс разобрать команду. |
+| `jarvis/intents/stages/llm.py` | 102 | code | LLM — последний шанс разобрать команду. |
 | `jarvis/intents/stages/memory.py` | 21 | code | Команды памяти диалога. |
 | `jarvis/intents/stages/modes.py` | 30 | code | Режимы работы: commands / llm / combo. |
 | `jarvis/intents/stages/onboarding.py` | 75 | code | Первый запуск — знакомство через LLM-диалог. |
-| `jarvis/intents/stages/password.py` | 124 | code | Стадия pipeline: jarvis.intents.stages.password. |
+| `jarvis/intents/stages/password.py` | 125 | code | Стадия pipeline: jarvis.intents.stages.password. |
 | `jarvis/intents/stages/pending.py` | 79 | code | Ожидание уточнения (pending_question). |
 | `jarvis/intents/verbs.py` | 45 | code | Константы глаголов и слов — единый источник истины. |
 | `jarvis/language/__init__.py` | 17 | code | Russian numeric understanding and speech normalization. |
@@ -4702,7 +4744,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/packs.py` | 117 | code | Загрузка и выгрузка паков команд из папки packs/. |
 | `jarvis/paths.py` | 240 | code | Централизованное определение путей Феникса. |
 | `jarvis/persona.py` | 226 | code | Персона ассистента — стиль общения, черты, backstory, tone. |
-| `jarvis/profile.py` | 522 | code | Профиль пользователя — мультипрофиль. |
+| `jarvis/profile.py` | 530 | code | Профиль пользователя — мультипрофиль. |
 | `jarvis/prosody.py` | 152 | code | Prosody — эмоции из голоса (RMS + pitch + ZCR). |
 | `jarvis/recognition.py` | 154 | code | Measurable ASR acceptance policy, not a blacklist of 'strange' words. |
 | `jarvis/recorder.py` | 171 | code | Запись действий: клавиши, клики, паузы. |
@@ -4763,7 +4805,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/stress_intents.py` | 552 | code | Стресс-тест Феникса: ровно 102 разных ситуаций без микрофона и сети. |
 | `tests/test_audio_regression.py` | 556 | code | Fast contracts only: fake decoders are NOT an audio quality measuremen |
 | `tests/test_audit_regressions.py` | 265 | code | Regression tests for the six audited bugs and related edge cases. |
-| `tests/test_bootstrap_ollama_config.py` | 120 | code | Real config JSON and project atomic writer; never uses personal settin |
+| `tests/test_bootstrap_ollama_config.py` | 126 | code | Real config JSON and project atomic writer; never uses personal settin |
 | `tests/test_brain_rag.py` | 125 | code | Query-scoped memory: unavailable retrieval never means send all facts. |
 | `tests/test_browser_target.py` | 338 | code | №1: Феникс работает в том браузере, в котором сидит пользователь. |
 | `tests/test_build_setup.py` | 52 | code | Версии установщика, поиск Inno и совпадение с версией пакета. |
@@ -4772,6 +4814,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_clarification_imports.py` | 110 | code | The slot engine and pipeline stage share a basename, not their content |
 | `tests/test_command_builder.py` | 213 | code | Builder persistence, exact matching and runtime protection; no real OS |
 | `tests/test_config_manager.py` | 47 | code | Тесты config_manager: параллельная запись не рвёт файл. |
+| `tests/test_danger_policy.py` | 124 | code | Политика опасных действий: пароль решает «можно ли», а не «опасно ли». |
 | `tests/test_echo.py` | 579 | code | AEC contracts: bounded synthetic PCM and controlled native transport;  |
 | `tests/test_echo_multibackend.py` | 162 | code | Diagnostic-only PCM support; normal production backend scope stays unc |
 | `tests/test_echo_trace.py` | 264 | code | Local diagnostic contracts: no devices or external services. |
@@ -4788,7 +4831,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_gui_startup.py` | 105 | code | Startup ordering, tray failure recovery, old EXE mutex handoff; no des |
 | `tests/test_gui_widgets.py` | 259 | code | Opt-in layouts, exact task IDs, safe command path, atomic saves and li |
 | `tests/test_gui_wiring.py` | 542 | code | GUI → config: каждый элемент окна реально отсылает изменение. |
-| `tests/test_intents.py` | 485 | code | Автотест Феникса без микрофона. |
+| `tests/test_intents.py` | 487 | code | Автотест Феникса без микрофона. |
 | `tests/test_launcher_download.py` | 233 | code | Python bootstrap: no network/install in default tests; native Windows  |
 | `tests/test_launcher_ollama.py` | 438 | code | Optional model setup + real loopback HTTP protocol. No models/inferenc |
 | `tests/test_launcher_runtime.py` | 122 | code | Prerequisite contracts: no real downloads, native installer or system  |
@@ -4803,6 +4846,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_optional_whisper_startup.py` | 131 | code | Execute real startup functions with stub peripherals, no models/mic/Wi |
 | `tests/test_password_imports.py` | 109 | code | Import boundaries must work in a fresh interpreter, before any pytest  |
 | `tests/test_persona.py` | 155 | code | Тесты jarvis.persona — стиль, tone, prompt-блок. |
+| `tests/test_profile.py` | 100 | code | Профили: защита активного профиля и границы удаления. |
 | `tests/test_prosody.py` | 83 | code | Тесты jarvis.prosody — эмоции из голоса (эвристика). |
 | `tests/test_recognition_quality.py` | 357 | code | Recognition policy and integration tested without a microphone or mode |
 | `tests/test_release_payload.py` | 181 | code | Public payload, reproducible manifest and bootstrap regression checks. |
@@ -15032,18 +15076,20 @@ def execute_custom(handler, action, reply: str, *, authorized: bool = False) -> 
     """Проверяет весь сценарий ДО первого шага, включая строковые команды."""
     from jarvis import actions
     from jarvis.intents.execute import execute_steps
-    from jarvis.intents.password import is_danger
+    from jarvis.intents.password import danger_gate
 
     intent = ({"steps": action} if isinstance(action, list)
               else {"action": "open_app", "target": action})
-    stored = str(handler.config.get("danger_password") or "").strip()
-    if (isinstance(action, list) and any(isinstance(s, dict) and s.get("action")
-            in {"shutdown_pc", "reboot_pc"} for s in action) and not stored):
-        return "Для этой команды сначала задай пароль опасных действий в разделе «Мои команды»."
-    if not authorized and is_danger(intent, stored):
-        return handler._ask_password({
-            "action": "custom_command", "spec": action, "reply": reply,
-        })
+    if not authorized:
+        # Один гейт на все кастомные команды: пароль задан → спрашиваем;
+        # пароля нет и действие необратимо (питание, kill, строковый
+        # shutdown) → отказ. Раньше здесь проверялся только shutdown/reboot
+        # среди шагов, а строковая ветка уходила в Popen молча.
+        gate = danger_gate(handler, intent,
+                           pending={"action": "custom_command",
+                                    "spec": action, "reply": reply})
+        if gate:
+            return gate
     if isinstance(action, list):
         return execute_steps(handler, action) or reply
     if not actions.run_spec(actions.spec_from_string(action)):
@@ -16506,6 +16552,18 @@ DANGER_ACTIONS = frozenset({
     "clear_tasks", "cancel_timers", "delete_profile",
 })
 
+# Необратимые: без настроенного пароля их нельзя выполнять молча.
+# Обратимые (clear_tasks/cancel_timers) по-прежнему разрешены без пароля —
+# иначе обычная уборка требовала бы настройки, которой ещё нет.
+IRREVERSIBLE_ACTIONS = frozenset({
+    "shutdown_pc", "reboot_pc", "kill_process", "delete_profile",
+})
+
+NO_PASSWORD_REPLY = (
+    "Для этого действия нужен пароль опасных действий. Задай его в разделе "
+    "«Мои команды»: без пароля необратимые команды не выполняются."
+)
+
 
 def _action_is_danger(action, target) -> bool:
     if action in DANGER_ACTIONS:
@@ -16517,10 +16575,8 @@ def _action_is_danger(action, target) -> bool:
     return False
 
 
-def is_danger(intent: dict, stored_password: str) -> bool:
-    """Проверяет, опасно ли действие. ... [5 строк]"""
-    if not stored_password:
-        return False
+def is_danger(intent: dict, stored_password: str = "") -> bool:
+    """Опасно ли действие — чистая классификация, без учёта пароля. ... [9 строк]"""
     if _action_is_danger(intent.get("action"), intent.get("target")):
         return True
     for step in intent.get("steps") or []:
@@ -16528,6 +16584,39 @@ def is_danger(intent: dict, stored_password: str) -> bool:
                                                         step.get("target")):
             return True
     return False
+
+
+def is_irreversible(intent: dict) -> bool:
+    """Действие нельзя отменить (удаление, питание, убийство процесса)."""
+    action, target = intent.get("action"), intent.get("target")
+    if action in IRREVERSIBLE_ACTIONS:
+        return True
+    # Строковая пак-команда приходит как open_app с целью-командой
+    # («shutdown /r /t 10»): тип действия безопасный, а эффект — нет.
+    if action == "open_app" and _action_is_danger(action, target):
+        return True
+    for step in intent.get("steps") or []:
+        if not isinstance(step, dict):
+            continue
+        if step.get("action") in IRREVERSIBLE_ACTIONS:
+            return True
+        if _action_is_danger(step.get("action"), step.get("target")):
+            return True
+    return False
+
+
+def danger_gate(handler, intent: dict, pending: dict | None = None) -> str | None:
+    """Единая точка решения «пускать или нет». ... [7 строк]"""
+    if not is_danger(intent):
+        return None
+    stored = str(handler.config.get("danger_password") or "").strip()
+    if stored:
+        return handler._ask_password(pending if pending is not None else intent)
+    if is_irreversible(intent):
+        log.warning("Опасное действие без настроенного пароля отклонено: %r",
+                    intent.get("action") or "steps")
+        return NO_PASSWORD_REPLY
+    return None
 
 
 # Человеческие названия для озвучки — при запросе пароля.
@@ -16893,11 +16982,11 @@ class FastHandlersStage(Stage):
 ### `jarvis/intents/stages/llm.py`
 
 ```python
-"""LLM — последний шанс разобрать команду. ... [13 строк]"""
+"""LLM — последний шанс разобрать команду. ... [14 строк]"""
 
 import logging
 
-from jarvis.intents.password import is_danger
+from jarvis.intents.password import danger_gate
 from jarvis.intents.stages.base import Stage
 from jarvis.intents.verbs import SEARCH_VERBS
 
@@ -16947,8 +17036,12 @@ class LLMStage(Stage):
             return "Не понял, что ты имеешь в виду. Уточни, пожалуйста."
 
         if intent and intent.get("action") not in ("answer", "none"):
-            if is_danger(intent, str(h.config.get("danger_password") or "").strip()):
-                return h._ask_password(intent)
+            # danger_gate: пароль задан → спрашиваем; не задан и действие
+            # необратимо → безопасный отказ (раньше пустой пароль означал
+            # «ничего не опасно» и shutdown/delete_profile шли сразу).
+            gate = danger_gate(h, intent)
+            if gate:
+                return gate
 
             if (intent.get("action") == "search"
                     and not any(v in cmd for v in SEARCH_VERBS)):
@@ -17115,7 +17208,7 @@ import re
 import time
 
 from jarvis import profile
-from jarvis.intents.password import ACTION_HUMAN, verify_password
+from jarvis.intents.password import ACTION_HUMAN, danger_gate, verify_password
 from jarvis.intents.stages.base import Stage
 from jarvis.intents.verbs import CANCEL
 
@@ -17163,7 +17256,7 @@ class PasswordStage(Stage):
     # ----------------------------------------------------------------
 
     def _maybe_delete_profile(self, ctx) -> str | None:
-        """«удали профиль X» → пароль или удаление."""
+        """«удали профиль X» → пароль, безопасный отказ или удаление."""
         h = ctx.handler
         m = re.match(r"^удали\s+профиль\s+(\S+)$", ctx.cmd)
         if not m:
@@ -17171,11 +17264,12 @@ class PasswordStage(Stage):
 
         name = m.group(1)
 
-        if h._danger_password():
-            # Пароль задан — спрашиваем.
-            return h._ask_password({"action": "delete_profile", "target": name})
+        # Пароль задан — спрашиваем. Пароля нет — не удаляем молча:
+        # удаление профиля необратимо (см. danger_gate).
+        gate = danger_gate(h, {"action": "delete_profile", "target": name})
+        if gate:
+            return gate
 
-        # Пароля нет — удаляем сразу.
         if profile.delete(name):
             return f"Профиль {name} удалён."
         return f"Профиль {name} не найден или активен."
@@ -21711,13 +21805,14 @@ def list_all() -> list[str]:
 
 
 def delete(name: str) -> bool:
-    """Удаляет папку профиля. Активный — нельзя."""
+    """Удаляет папку профиля. Активный — нельзя. ... [7 строк]"""
     import shutil
     safe = _sanitize(name)
     with _lock:
-        if safe == current():
-            log.warning("Нельзя удалить активный профиль: %s", safe)
-            return False
+        active = _sanitize(current())
+    if safe == active:
+        log.warning("Нельзя удалить активный профиль: %s", safe)
+        return False
     path = PROFILES_DIR / safe
     if not path.exists() or not path.is_dir():
         return False
@@ -32903,9 +32998,15 @@ def test_real_bridge_subprocess_reads_and_writes_appdata_only(tmp_path, monkeypa
     venv.EnvBuilder(with_pip=False).create(runtime)
     python = runtime / ('Scripts/python.exe' if sys.platform == 'win32' else 'bin/python')
     # Match the installed runtime: dependency inside venv, not user site ignored by -I.
+    # `-X utf8` + encoding обязательны вместе: `-I` изолирует процесс и игнорирует
+    # PYTHONUTF8, поэтому без флага дочерний print уходит в кодировку консоли
+    # (cp1251 для «Максим»), а text=True декодирует UTF-8. На ASCII-имени
+    # пользователя (CI) это незаметно, на кириллическом — UnicodeDecodeError,
+    # а «лечение» через errors=replace даёт битый путь и PermissionError.
     purelib = Path(subprocess.check_output(
-        [str(python), '-I', '-c', 'import sysconfig; print(sysconfig.get_path("purelib"))'],
-        text=True).strip())
+        [str(python), '-X', 'utf8', '-I', '-c',
+         'import sysconfig; print(sysconfig.get_path("purelib"))'],
+        text=True, encoding="utf-8").strip())
     shutil.copytree(Path(filelock.__file__).parent, purelib / 'filelock')
     client = launcher_ollama.ConfigBridge(root, None, python_exe=python)
     snapshot = client.read()
@@ -34259,6 +34360,123 @@ def test_load_broken(tmp_path):
     bad = tmp_path / "bad.json"
     bad.write_text("{это не json", encoding="utf-8")
     assert config_manager.load(path=bad) == {}
+```
+
+### `tests/test_danger_policy.py`
+
+```python
+"""Политика опасных действий: пароль решает «можно ли», а не «опасно ли». ... [12 строк]"""
+
+import pytest
+
+from jarvis.intents.password import (
+    NO_PASSWORD_REPLY,
+    danger_gate,
+    is_danger,
+    is_irreversible,
+)
+
+
+class FakeHandler:
+    """Минимальный IntentHandler для гейта: только config и _ask_password."""
+
+    def __init__(self, password: str = ""):
+        self.config = {"danger_password": password}
+        self.asked: list[dict] = []
+
+    def _ask_password(self, intent: dict) -> str:
+        self.asked.append(intent)
+        return "ASK_PASSWORD"
+
+
+@pytest.mark.parametrize("intent", [
+    {"action": "delete_profile", "target": "максим"},
+    {"action": "shutdown_pc", "seconds": 10},
+    {"action": "reboot_pc"},
+    {"action": "kill_process", "target": "notepad.exe"},
+    {"action": "open_app", "target": "shutdown /r /t 10"},
+    {"steps": [{"action": "screenshot"}, {"action": "delete_profile"}]},
+])
+def test_danger_classification_ignores_password(intent):
+    """Раньше при пустом пароле is_danger возвращал False — это и был дефект."""
+    assert is_danger(intent) is True
+    assert is_danger(intent, "") is True
+    assert is_danger(intent, "sha256:deadbeef") is True
+
+
+def test_safe_action_is_not_danger():
+    assert is_danger({"action": "open_app", "target": "notepad"}) is False
+    assert danger_gate(FakeHandler(), {"action": "open_app",
+                                       "target": "notepad"}) is None
+
+
+@pytest.mark.parametrize("intent", [
+    {"action": "delete_profile", "target": "максим"},
+    {"action": "shutdown_pc", "seconds": 10},
+    {"action": "open_app", "target": "shutdown /s /t 10"},
+    {"steps": [{"action": "reboot_pc"}]},
+])
+def test_irreversible_without_password_is_refused_not_executed(intent):
+    handler = FakeHandler()  # danger_password пуст
+
+    assert danger_gate(handler, intent) == NO_PASSWORD_REPLY
+    assert handler.asked == [], "нельзя спрашивать пароль, которого нет"
+
+
+@pytest.mark.parametrize("intent", [
+    {"action": "delete_profile", "target": "максим"},
+    {"action": "clear_tasks"},
+])
+def test_password_set_asks_for_it(intent):
+    handler = FakeHandler("sha256:abc")
+
+    assert danger_gate(handler, intent) == "ASK_PASSWORD"
+    assert handler.asked == [intent]
+
+
+def test_reversible_actions_stay_passwordless():
+    """Уборка задач без настроенного пароля должна работать как раньше."""
+    handler = FakeHandler()
+
+    assert danger_gate(handler, {"action": "clear_tasks"}) is None
+    assert danger_gate(handler, {"action": "cancel_timers"}) is None
+    assert handler.asked == []
+
+
+def test_custom_command_keeps_its_own_pending_intent():
+    """После пароля кастомная команда должна исполниться целиком, а не по шагам."""
+    handler = FakeHandler("sha256:abc")
+    steps = [{"action": "shutdown_pc", "seconds": 30}]
+    pending = {"action": "custom_command", "spec": steps, "reply": "Готово."}
+
+    gate = danger_gate(handler, {"steps": steps}, pending=pending)
+
+    assert gate == "ASK_PASSWORD"
+    assert handler.asked == [pending]
+
+
+def test_is_irreversible_separates_power_from_cleanup():
+    assert is_irreversible({"action": "delete_profile"}) is True
+    assert is_irreversible({"action": "clear_tasks"}) is False
+
+
+def test_delete_profile_stage_refuses_without_password(monkeypatch):
+    """Голосовой путь: «удали профиль максим» без пароля не удаляет ничего."""
+    from jarvis.intents.stages.password import PasswordStage
+    from jarvis import profile
+
+    called = []
+    monkeypatch.setattr(profile, "delete", lambda name: called.append(name) or True)
+
+    class Ctx:
+        cmd = "удали профиль максим"
+        handler = FakeHandler()
+
+    stage = PasswordStage()
+    reply = stage._maybe_delete_profile(Ctx())
+
+    assert reply == NO_PASSWORD_REPLY
+    assert called == [], "профиль удалён без пароля"
 ```
 
 ### `tests/test_echo.py`
@@ -38901,9 +39119,11 @@ TESTS = [
     ("undo_otmeni",         "отмени",                     ["Нечего", "Откатываю", "Вернул", "Переключил", "Действие"], False, False, None),
 
     # === Пароль (2.13) ===
-    # danger_no_password: setup ставит пароль пустым — команда уходит в profile.delete.
+    # danger_no_password: setup ставит пароль пустым — удаление профиля
+    # необратимо, поэтому раньше оно стирало профиль сразу. Теперь ответ —
+    # безопасный отказ: без пароля необратимые действия не выполняются.
     ("danger_no_password",  "удали профиль тест",
-     ["не найден", "активен", "удалён"],
+     ["не выполняются", "пароль"],
      False, False, (_no_password_setup, _no_password_teardown)),
 
     # danger_with_password: setup ставит пароль — команда уходит в _ask_password.
@@ -42319,6 +42539,101 @@ def test_describe():
         desc = persona.describe()
     assert "феникс" in desc.lower()
     assert "подстраивается" in desc.lower()
+```
+
+### `tests/test_profile.py`
+
+```python
+"""Профили: защита активного профиля и границы удаления. ... [10 строк]"""
+
+import json
+import sys
+from pathlib import Path
+
+import pytest
+
+from jarvis import profile
+
+
+@pytest.fixture()
+def sandbox(tmp_path, monkeypatch):
+    """Профили — во временной папке; активный пользователь — «Максим»."""
+    profiles = tmp_path / "profiles"
+    profiles.mkdir()
+    monkeypatch.setattr(profile, "PROFILES_DIR", profiles)
+    monkeypatch.setattr(profile, "_cache", {}, raising=False)
+    # Кириллица с заглавной буквы — ровно тот случай, который ломал guard.
+    monkeypatch.setattr(profile, "_current", "Максим", raising=False)
+    # Имитируем отсутствие send2trash: удаление идёт через shutil.rmtree.
+    monkeypatch.setitem(sys.modules, "send2trash", None)
+    return profiles
+
+
+def _make(profiles: Path, folder: str) -> Path:
+    path = profiles / folder
+    path.mkdir()
+    (path / "profile.json").write_text(
+        json.dumps({"facts": {"city": "Тест"}}, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    return path
+
+
+def test_active_profile_is_not_deleted_when_name_has_uppercase(sandbox):
+    """«удали профиль Максим» не должен стирать активный профиль."""
+    active = _make(sandbox, "maksim")
+
+    assert profile.delete("Максим") is False
+
+    assert active.is_dir(), "активный профиль удалён — guard не работает"
+    assert json.loads((active / "profile.json").read_text(encoding="utf-8"))
+
+
+def test_active_profile_guard_works_for_every_spelling(sandbox):
+    """Транслит, регистр и уже безопасное имя — всё это один профиль."""
+    active = _make(sandbox, "maksim")
+
+    for name in ("максим", "МАКСИМ", "maksim", "Maxim", " максим "):
+        assert profile.delete(name) is False, name
+
+    assert active.is_dir()
+
+
+def test_other_profile_is_deleted(sandbox):
+    """Неактивный профиль по-прежнему удаляется."""
+    _make(sandbox, "maksim")
+    other = _make(sandbox, "test")
+
+    assert profile.delete("test") is True
+
+    assert not other.exists()
+    assert (sandbox / "maksim").is_dir()
+
+
+def test_delete_missing_profile_returns_false(sandbox):
+    _make(sandbox, "maksim")
+
+    assert profile.delete("нет_такого") is False
+
+
+def test_delete_cannot_escape_profiles_dir(sandbox, tmp_path):
+    """«../evil» санитизируется в «evil» и не выходит из PROFILES_DIR."""
+    outside = tmp_path / "evil"
+    outside.mkdir()
+    (outside / "keep.txt").write_text("важно", encoding="utf-8")
+    _make(sandbox, "evil")
+
+    assert profile.delete("../evil") is True
+
+    assert not (sandbox / "evil").exists()
+    assert (outside / "keep.txt").exists(), "удаление вышло за пределы профилей"
+
+
+def test_profile_dir_uses_sanitized_name(sandbox):
+    """Папка текущего профиля — ровно то имя, которое сравнивает delete()."""
+    path = profile.profile_dir()
+
+    assert path.name == profile._sanitize("Максим") == "maksim"
 ```
 
 ### `tests/test_prosody.py`
@@ -51664,9 +51979,10 @@ certifi>=2024.8.30
     - `.venv311`
     - Git
 
-#### `CHANGELOG.md` — 120 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 121 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
+  - Не выпущено — защита профиля и необратимых действий (2 P0 из аудита)
   - Не выпущено — UTF-8-чтение тестов на Windows
   - Не выпущено — пакет восстановления структуры модулей
   - Не выпущено — накопительное source-обновление и приватность снимка
@@ -51705,7 +52021,6 @@ certifi>=2024.8.30
       - GUI: Микрофон / Голос и звук
       - SNAPSHOT: смешанные переносы строк Windows/Git
       - GUI: птица и конструктор «Мои команды»
-      - GUI: графитово-медный Диалог
 
 #### `CI.md` — 16 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -51772,6 +52087,13 @@ certifi>=2024.8.30
   - Решения до соответствующего этапа
   - Дополнительные кандидаты
   - Завершение каждого шага
+
+#### `PROJECT_MEMORY.md` — 4 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- 项目持久记忆 Project Memory
+  - 工作记录 Work Log
+  - 经验教训 Lessons Learned
+  - 行动指南 Action Guide
 
 #### `PROMPT.md` — 7 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -52108,4 +52430,4 @@ certifi>=2024.8.30
 
 ---
 
-_Итого по категориям — code: 219, data: 51, doc: 45, pack: 5. Режим `lean`._
+_Итого по категориям — code: 221, data: 51, doc: 46, pack: 5. Режим `lean`._

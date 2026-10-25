@@ -58,6 +58,18 @@ DANGER_ACTIONS = frozenset({
     "clear_tasks", "cancel_timers", "delete_profile",
 })
 
+# Необратимые: без настроенного пароля их нельзя выполнять молча.
+# Обратимые (clear_tasks/cancel_timers) по-прежнему разрешены без пароля —
+# иначе обычная уборка требовала бы настройки, которой ещё нет.
+IRREVERSIBLE_ACTIONS = frozenset({
+    "shutdown_pc", "reboot_pc", "kill_process", "delete_profile",
+})
+
+NO_PASSWORD_REPLY = (
+    "Для этого действия нужен пароль опасных действий. Задай его в разделе "
+    "«Мои команды»: без пароля необратимые команды не выполняются."
+)
+
 
 def _action_is_danger(action, target) -> bool:
     if action in DANGER_ACTIONS:
@@ -69,15 +81,17 @@ def _action_is_danger(action, target) -> bool:
     return False
 
 
-def is_danger(intent: dict, stored_password: str) -> bool:
-    """Проверяет, опасно ли действие.
+def is_danger(intent: dict, stored_password: str = "") -> bool:
+    """Опасно ли действие — чистая классификация, без учёта пароля.
 
-    stored_password — уже захешированный (или пустой).
-    Смотрит и сам intent, и шаги сценария: у steps-интента action=None,
-    и раньше опасный шаг (например clear_tasks) проходил без пароля.
+    Раньше здесь стоял ранний `return False` при пустом пароле: «пароля нет —
+    значит ничего не опасно», и «удали профиль X» / shutdown выполнялись без
+    подтверждения (пункт 2.13). Пароль теперь решает не *что* опасно, а
+    *можно ли это сделать*: см. `danger_gate`.
+
+    stored_password оставлен для совместимости вызовов и на ответ не влияет.
+    Смотрит и сам intent, и шаги сценария: у steps-интента action=None.
     """
-    if not stored_password:
-        return False
     if _action_is_danger(intent.get("action"), intent.get("target")):
         return True
     for step in intent.get("steps") or []:
@@ -85,6 +99,46 @@ def is_danger(intent: dict, stored_password: str) -> bool:
                                                         step.get("target")):
             return True
     return False
+
+
+def is_irreversible(intent: dict) -> bool:
+    """Действие нельзя отменить (удаление, питание, убийство процесса)."""
+    action, target = intent.get("action"), intent.get("target")
+    if action in IRREVERSIBLE_ACTIONS:
+        return True
+    # Строковая пак-команда приходит как open_app с целью-командой
+    # («shutdown /r /t 10»): тип действия безопасный, а эффект — нет.
+    if action == "open_app" and _action_is_danger(action, target):
+        return True
+    for step in intent.get("steps") or []:
+        if not isinstance(step, dict):
+            continue
+        if step.get("action") in IRREVERSIBLE_ACTIONS:
+            return True
+        if _action_is_danger(step.get("action"), step.get("target")):
+            return True
+    return False
+
+
+def danger_gate(handler, intent: dict, pending: dict | None = None) -> str | None:
+    """Единая точка решения «пускать или нет».
+
+    None          — можно исполнять (не опасно, либо опасно, но отменяемо);
+    готовая строка — ответ пользователю: просьба пароля или безопасный отказ.
+
+    `pending` — что запомнить для повторного исполнения после пароля
+    (кастомные команды оборачивают шаги в свой intent).
+    """
+    if not is_danger(intent):
+        return None
+    stored = str(handler.config.get("danger_password") or "").strip()
+    if stored:
+        return handler._ask_password(pending if pending is not None else intent)
+    if is_irreversible(intent):
+        log.warning("Опасное действие без настроенного пароля отклонено: %r",
+                    intent.get("action") or "steps")
+        return NO_PASSWORD_REPLY
+    return None
 
 
 # Человеческие названия для озвучки — при запросе пароля.

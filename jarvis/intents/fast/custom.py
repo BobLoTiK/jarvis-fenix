@@ -95,18 +95,20 @@ def execute_custom(handler, action, reply: str, *, authorized: bool = False) -> 
     """Проверяет весь сценарий ДО первого шага, включая строковые команды."""
     from jarvis import actions
     from jarvis.intents.execute import execute_steps
-    from jarvis.intents.password import is_danger
+    from jarvis.intents.password import danger_gate
 
     intent = ({"steps": action} if isinstance(action, list)
               else {"action": "open_app", "target": action})
-    stored = str(handler.config.get("danger_password") or "").strip()
-    if (isinstance(action, list) and any(isinstance(s, dict) and s.get("action")
-            in {"shutdown_pc", "reboot_pc"} for s in action) and not stored):
-        return "Для этой команды сначала задай пароль опасных действий в разделе «Мои команды»."
-    if not authorized and is_danger(intent, stored):
-        return handler._ask_password({
-            "action": "custom_command", "spec": action, "reply": reply,
-        })
+    if not authorized:
+        # Один гейт на все кастомные команды: пароль задан → спрашиваем;
+        # пароля нет и действие необратимо (питание, kill, строковый
+        # shutdown) → отказ. Раньше здесь проверялся только shutdown/reboot
+        # среди шагов, а строковая ветка уходила в Popen молча.
+        gate = danger_gate(handler, intent,
+                           pending={"action": "custom_command",
+                                    "spec": action, "reply": reply})
+        if gate:
+            return gate
     if isinstance(action, list):
         return execute_steps(handler, action) or reply
     if not actions.run_spec(actions.spec_from_string(action)):

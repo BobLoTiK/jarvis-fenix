@@ -8,14 +8,15 @@
     - мусорный ввод (одна буква, слишком коротко) → отказ
 
 После LLM:
-    - если intent требует пароля → PasswordStage отработает на след. шаге
+    - danger_gate: пароль задан → спрашиваем; пароля нет и действие
+      необратимо → безопасный отказ (см. jarvis/intents/password.py)
     - если search без «найди» → предупреждение
     - если answer → chat_stream
 """
 
 import logging
 
-from jarvis.intents.password import is_danger
+from jarvis.intents.password import danger_gate
 from jarvis.intents.stages.base import Stage
 from jarvis.intents.verbs import SEARCH_VERBS
 
@@ -65,8 +66,12 @@ class LLMStage(Stage):
             return "Не понял, что ты имеешь в виду. Уточни, пожалуйста."
 
         if intent and intent.get("action") not in ("answer", "none"):
-            if is_danger(intent, str(h.config.get("danger_password") or "").strip()):
-                return h._ask_password(intent)
+            # danger_gate: пароль задан → спрашиваем; не задан и действие
+            # необратимо → безопасный отказ (раньше пустой пароль означал
+            # «ничего не опасно» и shutdown/delete_profile шли сразу).
+            gate = danger_gate(h, intent)
+            if gate:
+                return gate
 
             if (intent.get("action") == "search"
                     and not any(v in cmd for v in SEARCH_VERBS)):

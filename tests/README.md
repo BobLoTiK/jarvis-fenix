@@ -313,6 +313,8 @@ WAV/отчёты остаются вне репозитория; синтети�
 |---|---|
 | `test_password_imports.py` | два разных password.py, отсутствие самоимпорта, свежий Python-процесс для каждого порядка импорта |
 | `test_audit_regressions.py` | пароль/custom-макросы, отсутствие утечек, таймеры/задачи |
+| `test_profile.py` | защита активного профиля (папки сравниваются санитизированными), удаление чужого профиля, запрет выхода из `PROFILES_DIR` |
+| `test_danger_policy.py` | `is_danger` не зависит от пароля, `danger_gate`: спросить / отказать / пропустить, legacy-строка с `shutdown` |
 | `test_numeric_language.py` | числа/римские цифры/падежи, слоты команд, одинаковая подготовка TTS |
 | `test_recognition_quality.py` | PCM/ASR-confidence, расхождения, отказ без выполнения/обучения |
 | `test_memory_scope.py`, `test_brain_rag.py` | общие вопросы без личных фактов, ограниченный RAG fallback |
