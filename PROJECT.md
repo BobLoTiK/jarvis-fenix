@@ -10,6 +10,16 @@
 Этот документ — фактическая база; AGENTS — контракты, NEXT_STEPS — ближайший
 блок, ARCHITECTURE — карта кода. История — CHANGELOG, не обязательна для входа.
 
+## Полная сборка Nuitka (подготовленная цепочка)
+
+`build_nuitka_full.bat` компилирует `phoenix_app.py` и runtime приложения,
+не только launcher. Внешний Python/venv на целевом ПК не используется.
+Flet-клиент включается на build-машине. Inno и изолированный offline Sandbox
+сценарий описаны в [FULL_NUITKA_BUILD](docs/FULL_NUITKA_BUILD.md).
+Реальная Windows-сборка/установка/Sandbox в Linux-среде не выполнены;
+portable preflight не считается подтверждением Windows acceptance.
+Модели загружаются отдельно, Ollama не встраивается.
+
 ## Статус текущей рабочей копии
 
 | Область | В исходниках | Не подтверждено / следующий шаг |

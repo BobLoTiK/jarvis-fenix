@@ -343,8 +343,16 @@ class FenixGUI:
         try:
             if self._page is not None:
                 self._page.window.prevent_close = False
-                self._page.window.close()
-                log.info("GUI: окно закрыто (выход)")
+                import inspect
+                close = self._page.window.close
+                if inspect.iscoroutinefunction(close):
+                    async def close_window():
+                        await close()
+                        log.info("GUI: окно закрыто (выход)")
+                    self._page.run_task(close_window)
+                else:
+                    close()  # compatibility with synchronous Flet/test adapters
+                    log.info("GUI: окно закрыто (выход)")
         except Exception:
             log.exception("GUI: не удалось закрыть окно")
 
@@ -672,6 +680,9 @@ class FenixGUI:
     def _on_stop_speech(self, e=None) -> None:
         if self.jarvis is None:
             return
+        sound = getattr(self, "_sound_settings", None)
+        if sound is not None:
+            sound.cancel_preview()
         self.jarvis.speaker.stop()
         # Do not pretend to cancel handle(), a network request or an OS action.
         self._show_status("Озвучка остановлена. Выполненные действия не отменяются.")
@@ -967,6 +978,10 @@ class FenixGUI:
                     continue  # Aura updates only its own controls, never the whole page.
                 elif kind == "mic_level":
                     self._update_mic_level()
+                elif kind == "sound_status":
+                    sound = getattr(self, "_sound_settings", None)
+                    if sound is None or not sound.poll_tts_status():
+                        continue
                 elif kind == "preferences_result":
                     self._preferences().apply_probe(value)
                     continue  # Completion updates only its own status/button, not text inputs.
@@ -1131,6 +1146,8 @@ class FenixGUI:
 
         while self._running:
             try:
+                if getattr(self, "_sound_settings", None) is not None:
+                    self._queue.put(("sound_status", None))
                 if self._rail and self._rail.selected_index == 1:
                     self._queue.put(("mic_level", None))
 
@@ -1397,6 +1414,9 @@ class FenixGUI:
             self.jarvis.handler.mode = mode
 
     def _on_voice_change(self, e) -> None:
+        sound = getattr(self, "_sound_settings", None)
+        if sound is not None:
+            sound.cancel_preview()
         if self.config.set("tts_voice", e.control.value) is False:
             self._show_status("Не удалось сохранить выбранный голос.")
             return
@@ -1477,7 +1497,17 @@ class FenixGUI:
     def _on_tts_change(self, e) -> None:
         from jarvis.tts_engines.factory import normalize_backend
         backend = normalize_backend(e.control.value)
-        self.config.set("tts_backend", backend)
+        sound = getattr(self, "_sound_settings", None)
+        if sound is not None:
+            sound.cancel_preview()
+        # Pick a valid voice in the same persisted batch; no Piper voice on Silero.
+        from jarvis import voices as voice_catalog
+        options = voice_catalog._voices_for_backend(backend)
+        current_voice = self.config.get("tts_voice", "ruslan")
+        voice = current_voice if current_voice in options else next(iter(options), current_voice)
+        if self.config.update({"tts_backend": backend, "tts_voice": voice}) is False:
+            self._show_status("Не удалось сохранить выбранный движок.")
+            return
         try:
             from jarvis import voices as _voices
             _voices.reset_cache()
@@ -1509,6 +1539,9 @@ class FenixGUI:
             log.exception("Не удалось пересобрать вкладки")
 
     def _on_voice_quality_change(self, e) -> None:
+        sound = getattr(self, "_sound_settings", None)
+        if sound is not None:
+            sound.cancel_preview()
         quality = e.control.value
         if quality not in ("medium", "high"):
             quality = "medium"
@@ -1520,6 +1553,9 @@ class FenixGUI:
         self.config.set("tts_voice_quality", quality)
 
     def _on_rate_change(self, e) -> None:
+        sound = getattr(self, "_sound_settings", None)
+        if sound is not None:
+            sound.cancel_preview()
         self.config.set("voice_rate", round(float(e.control.value), 2))
 
     def _on_theme_change(self, e) -> None:

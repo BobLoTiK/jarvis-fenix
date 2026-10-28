@@ -1,0 +1,2 @@
+# Isolated launcher build only; do not install the audio/LLM runtime here.
+Nuitka==4.3.1

@@ -24,9 +24,9 @@ import subprocess
 import sys
 import time
 import urllib.request
-import zipfile
 from pathlib import Path
 
+from jarvis import model as vosk_model
 from launcher_download import (
     DownloadError, cleanup_download, download_python, verify_python_installer,
 )
@@ -46,8 +46,8 @@ _MUTEX_HANDLE = None
 PYTHON_INSTALLER_URL = "https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe"
 PYTHON_INSTALLER_FILE = "python-3.11.9-amd64.exe"
 
-VOSK_MODEL_NAME = "vosk-model-small-ru-0.22"
-VOSK_MODEL_URL = f"https://alphacephei.com/vosk/models/{VOSK_MODEL_NAME}.zip"
+VOSK_MODEL_NAME = vosk_model.MODEL_NAME
+VOSK_MODEL_URL = vosk_model.MODEL_URL
 
 OLLAMA_URL = "http://127.0.0.1:11434"
 OLLAMA_DOWNLOAD_PAGE = "https://ollama.com/download"
@@ -203,23 +203,47 @@ def already_running(logger) -> bool:
 # Поиск папки проекта
 # ============================================================
 
-def find_project_dir(logger) -> Path:
+def launcher_directory() -> Path:
+    """Locate the real executable, not Nuitka onefile's extraction directory."""
+    compiled = globals().get("__compiled__")
+    if compiled is not None:
+        containing_dir = getattr(compiled, "containing_dir", None)
+        if containing_dir:
+            return Path(containing_dir).resolve()
+        return Path(sys.argv[0]).resolve().parent
     if getattr(sys, "frozen", False):
-        exe_dir = Path(sys.executable).resolve().parent
-    else:
-        exe_dir = Path(__file__).resolve().parent
+        return Path(sys.executable).resolve().parent
+    return Path(__file__).resolve().parent
 
-    candidates = [exe_dir, exe_dir.parent, Path.cwd()]
-    for cand in candidates:
-        if (cand / "jarvis" / "__init__.py").exists():
-            logger.info("Проект найден: %s", cand)
+
+def find_project_dir(logger) -> Path:
+    exe_dir = launcher_directory()
+
+    candidates = list(dict.fromkeys(
+        [exe_dir, *exe_dir.parents, Path.cwd().resolve()]
+    ))
+    projects = [
+        cand for cand in candidates
+        if (cand / "jarvis" / "__init__.py").is_file()
+    ]
+
+    for cand in projects:
+        if find_venv_pythonw(cand, logger) is not None:
+            logger.info("Проект с готовым окружением найден: %s", cand)
             return cand
 
-    logger.error("Не найдена папка с jarvis/ (проверены: %s)",
-                 ", ".join(str(c) for c in candidates))
+    if projects:
+        logger.info(
+            "Проект найден (окружение требует подготовки): %s",
+            projects[0],
+        )
+        return projects[0]
+
+    logger.error(
+        "Не найдена папка с jarvis/ (проверены: %s)",
+        ", ".join(str(c) for c in candidates),
+    )
     return exe_dir
-
-
 # ============================================================
 # Python: поиск, скачивание installer
 # ============================================================
@@ -568,82 +592,31 @@ def install_dependencies(project_dir: Path, logger) -> bool:
 # ============================================================
 
 def check_vosk_model(project_dir: Path, logger) -> bool:
-    """Проверяет Vosk-модель в ASCII-пути (C:\\ProgramData\\Phoenix\\models)."""
-    program_data = os.environ.get("PROGRAMDATA", r"C:\ProgramData")
-    model_dir = Path(program_data) / "Phoenix" / "models" / VOSK_MODEL_NAME
-    ok = model_dir.exists() and (model_dir / "am").exists()
+    """Use the application's path selection and complete-model validation."""
+    model_dir = vosk_model.paths.program_models_dir() / VOSK_MODEL_NAME
+    ok = vosk_model.model_is_ready(model_dir)
     logger.info("Vosk-модель в %s: %s", model_dir, "есть" if ok else "нет")
     return ok
 
 
 def download_vosk_model(project_dir: Path, logger) -> bool:
-    """Скачивает и распаковывает Vosk-модель в ASCII-путь."""
-    program_data = os.environ.get("PROGRAMDATA", r"C:\ProgramData")
-    safe_models = Path(program_data) / "Phoenix" / "models"
-
-    try:
-        safe_models.mkdir(parents=True, exist_ok=True)
-    except Exception:
-        safe_models = Path(r"C:\Phoenix\models")
-        safe_models.mkdir(parents=True, exist_ok=True)
-
-    logger.info("Vosk-модель будет в: %s", safe_models)
-
-    zip_path = safe_models / f"{VOSK_MODEL_NAME}.zip"
-    target_dir = safe_models / VOSK_MODEL_NAME
-
-    if target_dir.exists() and (target_dir / "am").exists():
-        logger.info("Vosk-модель уже есть: %s", target_dir)
-        return True
-
+    """Share the safe, staged model installation with the application."""
     info(
-        "Скачиваю модель Vosk (~45 МБ) в C:\\ProgramData\\Phoenix\\models.\n\n"
-        "Это займёт 1–2 минуты.",
+        "Готовлю модель Vosk. Если локальной копии нет, потребуется "
+        "скачать ~45 МБ.\n\nЭто может занять 1–2 минуты.",
         "Феникс — модель Vosk",
     )
-
-    logger.info("Скачиваю Vosk: %s", VOSK_MODEL_URL)
     try:
-        urllib.request.urlretrieve(VOSK_MODEL_URL, zip_path, reporthook=_download_progress)
-        logger.info("Vosk скачан: %s", zip_path)
-    except Exception:
-        logger.exception("Не удалось скачать Vosk")
-        error("Не удалось скачать модель Vosk. Проверь интернет. Смотри logs\\launcher.log")
-        return False
-
-    info("Распаковываю модель Vosk...", "Феникс")
-    logger.info("Распаковываю Vosk")
-    try:
-        with zipfile.ZipFile(zip_path) as zf:
-            for member in zf.namelist():
-                parts = member.split("/", 1)
-                if len(parts) < 2 or not parts[1]:
-                    continue
-                target = target_dir / parts[1]
-                # Защита от Zip Slip: путь должен оставаться внутри target_dir.
-                try:
-                    resolved = target.resolve()
-                    base = target_dir.resolve()
-                    if base not in resolved.parents and resolved != base:
-                        logger.warning("Zip Slip попытка: %r", member)
-                        continue
-                except Exception:
-                    logger.warning("Не удалось проверить путь: %r", member)
-                    continue
-
-                if member.endswith("/"):
-                    target.mkdir(parents=True, exist_ok=True)
-                else:
-                    target.parent.mkdir(parents=True, exist_ok=True)
-                    with zf.open(member) as src, open(target, "wb") as dst:
-                        dst.write(src.read())
-        zip_path.unlink(missing_ok=True)
-        logger.info("Vosk распакован: %s", target_dir)
+        target_dir = vosk_model.ensure_model(
+            project_dir / "models", reporthook=_download_progress,
+        )
+        logger.info("Vosk подготовлен: %s", target_dir)
         info("Модель Vosk готова. OK", "Феникс")
         return True
     except Exception:
-        logger.exception("Ошибка распаковки Vosk")
-        error("Не удалось распаковать модель. Логи: logs\\launcher.log")
+        logger.exception("Не удалось подготовить модель Vosk")
+        error("Не удалось подготовить модель Vosk. Проверь интернет и доступ к "
+              "папке моделей. Логи: logs\\launcher.log")
         return False
 
 
@@ -724,10 +697,7 @@ def run_jarvis(project_dir: Path, pythonw: Path, logger) -> None:
 # ============================================================
 
 def _main() -> None:
-    if getattr(sys, "frozen", False):
-        exe_dir = Path(sys.executable).resolve().parent
-    else:
-        exe_dir = Path(__file__).resolve().parent
+    exe_dir = launcher_directory()
 
     log_file = _setup_logging(exe_dir)
     logger = logging.getLogger("launcher")
@@ -826,7 +796,7 @@ def _main() -> None:
 
 def main() -> None:
     """UI wrapper; the existing bootstrap workflow runs on one worker."""
-    base = Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) else Path(__file__).resolve().parent
+    base = launcher_directory()
     log_file = _setup_logging(base)
     try:
         from launcher_ui import PreparationWindow

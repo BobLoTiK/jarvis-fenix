@@ -101,11 +101,23 @@ class SileroEngine(BaseEngine):
 
             t0 = time.time()
             try:
+                # GUI/native workers must never read a trust answer from stdin.
+                # Honor persisted explicit consent; do not silently trust a new repo.
+                from pathlib import Path
+                trusted = Path(self._torch.hub.get_dir()) / "trusted_list"
+                entries = trusted.read_text(encoding="utf-8").splitlines() if trusted.is_file() else []
+                if "snakers4_silero-models" not in entries:
+                    raise RuntimeError(
+                        "Silero: требуется однократное подтверждение доверия "
+                        "snakers4/silero-models. В автономной сборке запустите "
+                        "Феникс.exe --prepare-silero; для исходников см. docs/TTS_LIFECYCLE_FIX.md"
+                    )
                 model, _ = self._torch.hub.load(
                     repo_or_dir="snakers4/silero-models",
                     model="silero_tts",
                     language="ru",
                     speaker=_VERSION,
+                    trust_repo=True,  # only after verifying stored user consent above
                 )
             except Exception:
                 log.exception("Silero TTS: torch.hub не справился")

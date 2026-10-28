@@ -69,6 +69,9 @@ class SoundSettings:
         self.mic_test_button = self.voice_test_button = None
         self.mic_dropdown = self.mic_refresh_button = None
         self.voice_controls = []
+        self.preview_cancel = threading.Event()
+        self._last_tts_status = None
+        self.backend_dropdown = None
 
     def _result(self, kind, text, color="text_dim", done=False):
         # Workers send plain data only; Flet controls are updated by GUI queue.
@@ -90,9 +93,26 @@ class SoundSettings:
             text, color = self.results["voice"]
             self.voice_result.value = text
             self.voice_result.color = getattr(p, color)
+        speaker = getattr(self.gui.jarvis, "speaker", None)
+        status_fn = getattr(speaker, "configuration_status", None)
+        status = status_fn() if callable(status_fn) else None
+        pending = bool(status and status["pending"])
         if self.engine_label is not None:
-            engine = getattr(getattr(self.gui.jarvis, "speaker", None), "_engine_name", "none")
-            self.engine_label.value = f"Загруженный движок: {engine}" if engine != "none" else "Движок: готовность ещё не подтверждена"
+            engine = getattr(speaker, "_engine_name", "none")
+            if pending:
+                self.engine_label.value = "Движок загружается. Окно доступно; отменённая проба не запустится позже."
+            elif status and status["error"]:
+                self.engine_label.value = status["error"] + f" Активный движок: {engine}."
+            else:
+                self.engine_label.value = f"Загруженный движок: {engine}" if engine != "none" else "Движок: готовность ещё не подтверждена"
+        if status and not pending:
+            if self.backend_dropdown is not None:
+                self.backend_dropdown.value = self.gui.config.get("tts_backend", "auto")
+            options = self.gui._get_voice_options()
+            for dropdown in (self.voice_dropdown, getattr(self.gui, "_main_voice_dropdown", None)):
+                if dropdown is not None:
+                    dropdown.options = options
+                    dropdown.value = self.gui.config.get("tts_voice", "ruslan")
         if self.voice_test_button is not None:
             self.voice_test_button.content.controls[-1].value = "Проба голоса…" if self.busy == "voice" else "Послушать голос"
         if self.mic_test_button is not None:
@@ -101,6 +121,28 @@ class SoundSettings:
                         self.mic_dropdown, self.mic_refresh_button, *self.voice_controls]:
             if control is not None:
                 control.disabled = self.busy is not None
+        if self.voice_test_button is not None and pending:
+            self.voice_test_button.disabled = True
+
+    def poll_tts_status(self):
+        speaker = getattr(self.gui.jarvis, "speaker", None)
+        status_fn = getattr(speaker, "configuration_status", None)
+        if not callable(status_fn):
+            return
+        status = status_fn()
+        marker = (status["pending"], status["error"], status["backend"], status["voice"], status["revision"],
+                  self.gui.config.get("tts_backend"), self.gui.config.get("tts_voice"))
+        if marker != self._last_tts_status:
+            self._last_tts_status = marker
+            self.sync()
+            return True
+        return False
+
+    def cancel_preview(self):
+        self.preview_cancel.set()
+        if self.busy == "voice":
+            self.results["voice"] = ("Проба отменена. Уже начатая загрузка модели может продолжаться в фоне.", "text_dim")
+            self.sync()
 
     def build_mic(self):
         g, p = self.gui, _ui().P
@@ -273,6 +315,14 @@ class SoundSettings:
         if g.jarvis is None or getattr(g.jarvis, "speaker", None) is None:
             self.apply_result("voice", "Звуковое ядро ещё не готово.", "warning")
             return False
+        if self.busy is not None:
+            return False
+        cancel = self.preview_cancel = threading.Event()
+        speaker = g.jarvis.speaker
+        status_fn = getattr(speaker, "configuration_status", None)
+        if callable(status_fn) and status_fn()["pending"]:
+            self.apply_result("voice", "Движок ещё загружается. Дождитесь готовности и запустите пробу снова.", "warning")
+            return False
         def speak():
             core = g.jarvis
             if not g._command_lock.acquire(blocking=False):
@@ -290,12 +340,17 @@ class SoundSettings:
                 if core.speaker.is_playing():
                     self._result("voice", "Дождитесь окончания речи или нажмите «Остановить речь».", "warning", True)
                     return
+                if cancel.is_set():
+                    self._result("voice", "Проба отменена.", "text_dim", True)
+                    return
                 from jarvis.reply import Reply
                 g.set_state("speaking")
                 # Jarvis.say owns _say_lock, listener mute/barge-in and Speaker.
-                interrupted = core.say(Reply(text=TEST_PHRASE, allow_nonverbal=False))
+                interrupted = core.say(Reply(text=TEST_PHRASE, allow_nonverbal=False), cancel_event=cancel)
                 engine = getattr(core.speaker, "_engine_name", "none")
-                if engine == "none":
+                if cancel.is_set():
+                    self._result("voice", "Проба отменена.", "text_dim", True)
+                elif engine == "none":
                     self._result("voice", "Движок не готов. Проверьте выбранный TTS и его модели.", "warning", True)
                 else:
                     text = "Проба прервана." if interrupted else "Проба завершена. Если звука нет, проверьте выход и громкость Windows."
@@ -308,7 +363,7 @@ class SoundSettings:
 
     def build_audio(self):
         g, p = self.gui, _ui().P
-        backend = ft.Dropdown(label="Движок речи", value=(g.config.get("tts_backend", "auto")
+        backend = self.backend_dropdown = ft.Dropdown(label="Движок речи", value=(g.config.get("tts_backend", "auto")
                    if g.config.get("tts_backend", "auto") in _ui().TTS_BACKENDS else "auto"),
             options=[ft.dropdown.Option(k) for k in _ui().TTS_BACKENDS], expand=True,
             border_color=p.border, focused_border_color=p.brand, on_select=g._on_tts_change)

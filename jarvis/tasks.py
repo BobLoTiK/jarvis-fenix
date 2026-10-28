@@ -258,9 +258,13 @@ def _handle_task_command(cmd: str) -> str | None:
         return f"Задачу «{query}» не нашёл."
 
     # удалить одну
-    m = re.match(r"^(?:убери|удали)\s+(?:из\s+списка\s+)?(.+)$", cmd)
+    m = re.match(r"^(?:убери|удали)\s+(.+)$", cmd)
     if m:
         query = m.group(1).strip()
+        query = re.sub(r"^из\s+списка(?:\s+|$)", "", query)
+        query = re.sub(r"\s+из\s+списка$", "", query).strip()
+        if not query:
+            return "Какую задачу убрать из списка?"
         task = remove(query)
         if task:
             return f"Убрал: {task['text']}."

@@ -540,3 +540,20 @@ def test_launch_mode_sends_value(gui, cfg):
 def test_launch_mode_rejects_unknown(gui, cfg):
     gui._on_launch_mode(ev("неведома зверушка"))
     assert cfg["launch_mode"] == "gui"
+
+
+def test_quit_awaits_async_window_close_on_page_loop(gui):
+    import asyncio
+    page = FakePage()
+    async def close():
+        page.window.closed = True
+    page.window.close = close
+    scheduled = []
+    def run_task(fn):
+        scheduled.append(fn)
+        asyncio.run(fn())
+    page.run_task = run_task
+    gui._page = page
+    gui.quit()
+    assert len(scheduled) == 1
+    assert page.window.closed is True

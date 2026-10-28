@@ -352,20 +352,17 @@ def test_whisper_refinement_preserves_original_numeric_punctuation():
     assert method(app, b"", True) == "напомни в 18:30"
 
 
-def test_speaker_direct_path_uses_same_preparation():
-    from jarvis.tts import Speaker
+def test_speaker_direct_path_uses_same_preparation(monkeypatch):
+    from jarvis import tts
 
-    speaker = Speaker.__new__(Speaker)
-    speaker._ensure_engine = Mock(return_value=True)
-    speaker._new_token = Mock(return_value=Mock())
-    speaker._engine_name = "piper"
-    speaker._engine = Mock()
-    speaker._engine.synthesize.return_value = b""
-    speaker.voice = "ruslan"
-    speaker.rate = 1.0
+    engine = Mock()
+    engine.name, engine.voice = "piper", "ruslan"
+    engine.synthesize.return_value = b""
+    monkeypatch.setattr(tts, "get_engine", lambda *args: engine)
+    speaker = tts.Speaker({"tts_backend": "piper", "tts_voice": "ruslan"})
     speaker.speak("в XXI веке")
     assert (
-        plain(speaker._engine.synthesize.call_args.args[0]) == "в двадцать первом веке"
+        plain(engine.synthesize.call_args.args[0]) == "в двадцать первом веке"
     )
 
 

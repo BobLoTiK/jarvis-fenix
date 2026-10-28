@@ -344,7 +344,7 @@ class PreparationWindow:
                 return False
             self._show()
             self.progress = 0
-            self.stage_label.configure(text='Не удалось завершить подготовку' if self.state=='failed' else 'Феникс уже работает')
+            self.stage_label.configure(text='Не удалось завершить подготовку' if self.state=='failed' else 'Подготовка остановлена')
             self._detail(data.get('text',''))
             self.progress_label.configure(text='Подробности доступны в журнале')
             self.primary_button.configure(text='Повторить',state='normal' if self.state=='failed' else 'disabled')

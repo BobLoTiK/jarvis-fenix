@@ -85,7 +85,7 @@ class Jarvis:
         # по wait_end-таймауту). RLock — на случай вложенного вызова.
         self._say_lock = threading.RLock()
 
-    def say(self, reply: Reply) -> bool:
+    def say(self, reply: Reply, *, cancel_event=None) -> bool:
         """Озвучивает Reply. Возвращает True, если сработал barge-in."""
         if reply is None:
             return False
@@ -93,9 +93,9 @@ class Jarvis:
             return False
 
         with self._say_lock:
-            return self._say_locked(reply)
+            return self._say_locked(reply, cancel_event=cancel_event) if cancel_event is not None else self._say_locked(reply)
 
-    def _say_locked(self, reply: Reply) -> bool:
+    def _say_locked(self, reply: Reply, *, cancel_event=None) -> bool:
         """Тело say() — вызывать ТОЛЬКО через say(), под _say_lock."""
         if self.gui is not None:
             self.gui.set_state("speaking")
@@ -110,7 +110,11 @@ class Jarvis:
             if reply.is_stream:
                 self._say_stream(reply.stream, allow_nonverbal=reply.allow_nonverbal)
             else:
-                self._say_text(reply.text, allow_nonverbal=reply.allow_nonverbal)
+                if cancel_event is None:
+                    self._say_text(reply.text, allow_nonverbal=reply.allow_nonverbal)
+                else:
+                    self._say_text(reply.text, allow_nonverbal=reply.allow_nonverbal,
+                                   cancel_event=cancel_event)
             barge_happened = (
                 self.barge_enabled
                 and self.listener is not None
@@ -127,7 +131,7 @@ class Jarvis:
                 self.gui.set_state("idle")
         return barge_happened
 
-    def _say_text(self, text: str, *, allow_nonverbal=False) -> None:
+    def _say_text(self, text: str, *, allow_nonverbal=False, cancel_event=None) -> None:
         # Постфильтр «красной черты»: промпт в brain.py её только просит.
         ok, reason = safety.check_response(text)
         if not ok:
@@ -136,7 +140,10 @@ class Jarvis:
                 reason,
             )
             text = safety.SAFE_REPLY
-        started = self.speaker.play_async(text, allow_nonverbal=allow_nonverbal and ok)
+        kwargs = {"allow_nonverbal": allow_nonverbal and ok}
+        if cancel_event is not None:
+            kwargs["cancel_event"] = cancel_event
+        started = self.speaker.play_async(text, **kwargs)
         if started is False:
             # Text is already visible in Dialog. Pending voice preparation must
             # not hold cmd_lock/_say_lock or replay an obsolete reply later.

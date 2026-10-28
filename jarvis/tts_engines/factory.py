@@ -118,7 +118,7 @@ def get_engine(backend: str, voice: str, quality: str = "medium",
 
 # Кэш созданных движков: (name, voice) → engine.
 # Не создаём каждый раз — Silero грузит модель, Piper тянет HF.
-_ENGINE_CACHE: dict[tuple[str, str], object] = {}
+_ENGINE_CACHE: dict[tuple[str, str, str], object] = {}
 
 
 def _try_create(name: str, voice: str, quality: str, rate: float):
@@ -133,7 +133,7 @@ def _try_create(name: str, voice: str, quality: str, rate: float):
     if voice == "":
         return _probe_engine(name)
 
-    key = (name, voice or "")
+    key = (name, voice or "", quality)
     if key in _ENGINE_CACHE:
         return _ENGINE_CACHE[key]
 

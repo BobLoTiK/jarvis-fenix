@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=2eb0108db398ea4a` · режим `lean` · файлов `323` · строк `56753` · источник `2669 КБ`
+`sha256=4e2b342595093ae9` · режим `lean` · файлов `346` · строк `60465` · источник `2879 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -22,6 +22,16 @@
 
 Этот документ — фактическая база; AGENTS — контракты, NEXT_STEPS — ближайший
 блок, ARCHITECTURE — карта кода. История — CHANGELOG, не обязательна для входа.
+
+## Полная сборка Nuitka (подготовленная цепочка)
+
+`build_nuitka_full.bat` компилирует `phoenix_app.py` и runtime приложения,
+не только launcher. Внешний Python/venv на целевом ПК не используется.
+Flet-клиент включается на build-машине. Inno и изолированный offline Sandbox
+сценарий описаны в [FULL_NUITKA_BUILD](docs/FULL_NUITKA_BUILD.md).
+Реальная Windows-сборка/установка/Sandbox в Linux-среде не выполнены;
+portable preflight не считается подтверждением Windows acceptance.
+Модели загружаются отдельно, Ollama не встраивается.
 
 ## Статус текущей рабочей копии
 
@@ -472,7 +482,9 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── README.md  (17 стр)
 │   │   ├── themes-mobile.svg  (19 стр)
 │   │   ├── themes.svg  (19 стр)
-├── CHANGELOG.md  (1755 стр)
+├── build_nuitka.bat  (12 стр)
+├── build_nuitka_full.bat  (17 стр)
+├── CHANGELOG.md  (1805 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -491,6 +503,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── AEC_SAMPLE_ALIGNMENT_UPDATE.md  (55 стр)
 │   ├── BOOTSTRAP_PYTHON_OLLAMA_UPDATE.md  (119 стр)
 │   ├── BOOTSTRAP_WINDOW_UPDATE.md  (50 стр)
+│   ├── FULL_NUITKA_BUILD.md  (268 стр)
 │   ├── GUI_HOME_ACTION_RING.md  (45 стр)
 │   ├── GUI_HOME_UPDATE.md  (47 стр)
 │   ├── GUI_PERSONA_SETTINGS_UPDATE.md  (62 стр)
@@ -505,13 +518,18 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── IMPROVEMENT_BACKLOG.md  (120 стр)
 │   ├── INSTALLER_UPDATE.md  (47 стр)
 │   ├── LOCAL_VOICE_OPTIONS.md  (67 стр)
-│   ├── NEXT_STEPS.md  (116 стр)
+│   ├── NEXT_STEPS.md  (158 стр)
+│   ├── NUITKA_BUILD.md  (123 стр)
 │   ├── PHOENIX_JASTIN_RECONCILIATION.md  (268 стр)
 │   ├── PYTHON_BOOTSTRAP_TLS_FIX.md  (98 стр)
 │   ├── reference/
 │   │   ├── README.md  (20 стр)
 │   ├── releases/
 │   │   ├── v2.1.0.md  (34 стр)
+│   │   ├── v2.1.1.md  (80 стр)
+│   │   ├── v2.1.2.md  (72 стр)
+│   ├── REVIEW_FIXES.md  (68 стр)
+│   ├── TTS_LIFECYCLE_FIX.md  (89 стр)
 │   ├── USER_GUIDE.md  (1014 стр)
 │   ├── WHISPER_STARTUP_DLL_FIX.md  (85 стр)
 │   ├── WINDOWS_STARTUP_RELIABILITY.md  (108 стр)
@@ -519,6 +537,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ├── install.bat  (342 стр)
 ├── install_aec.bat  (27 стр)
 ├── installer.iss  (106 стр)
+├── installer_nuitka.iss  (60 стр)
 ├── jarvis/
 │   ├── __init__.py  (8 стр)
 │   ├── __main__.py  (9 стр)
@@ -549,14 +568,15 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── brain.py  (868 стр)
 │   ├── celebrations.py  (165 стр)
 │   ├── command_builder.py  (152 стр)
+│   ├── compiled_runtime.py  (252 стр)
 │   ├── config.py  (274 стр)
 │   ├── config_manager.py  (156 стр)
 │   ├── echo.py  (508 стр)
 │   ├── echo_trace.py  (229 стр)
 │   ├── files.py  (109 стр)
 │   ├── first_run.py  (26 стр)
-│   ├── gui.py  (1642 стр)
-│   ├── gui_audio.py  (383 стр)
+│   ├── gui.py  (1678 стр)
+│   ├── gui_audio.py  (438 стр)
 │   ├── gui_commands.py  (305 стр)
 │   ├── gui_home.py  (191 стр)
 │   ├── gui_home_actions.py  (225 стр)
@@ -621,11 +641,11 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── time.py  (84 стр)
 │   │   ├── units.py  (85 стр)
 │   ├── learning.py  (178 стр)
-│   ├── main.py  (955 стр)
+│   ├── main.py  (962 стр)
 │   ├── matching.py  (118 стр)
 │   ├── memory.py  (147 стр)
 │   ├── memory_context.py  (124 стр)
-│   ├── model.py  (102 стр)
+│   ├── model.py  (175 стр)
 │   ├── modes.py  (51 стр)
 │   ├── mood.py  (388 стр)
 │   ├── nonverbal.py  (93 стр)
@@ -641,18 +661,18 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── safety.py  (213 стр)
 │   ├── steam.py  (67 стр)
 │   ├── stt.py  (1016 стр)
-│   ├── tasks.py  (278 стр)
+│   ├── tasks.py  (282 стр)
 │   ├── text_utils.py  (98 стр)
-│   ├── timers.py  (326 стр)
+│   ├── timers.py  (343 стр)
 │   ├── tray.py  (223 стр)
-│   ├── tts.py  (423 стр)
+│   ├── tts.py  (489 стр)
 │   ├── tts_engines/
 │   │   ├── __init__.py  (12 стр)
 │   │   ├── base.py  (73 стр)
 │   │   ├── factory.py  (167 стр)
 │   │   ├── piper.py  (190 стр)
-│   │   ├── sapi.py  (118 стр)
-│   │   ├── silero.py  (203 стр)
+│   │   ├── sapi.py  (180 стр)
+│   │   ├── silero.py  (215 стр)
 │   │   ├── winrt.py  (6 стр)
 │   ├── uia.py  (1027 стр)
 │   ├── vad.py  (584 стр)
@@ -660,7 +680,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── voices.py  (215 стр)
 │   ├── weather.py  (400 стр)
 ├── jarvis-fenix.code-workspace  (8 стр)
-├── launcher.py  (850 стр)
+├── launcher.py  (820 стр)
 ├── launcher_download.py  (156 стр)
 ├── launcher_ollama.py  (327 стр)
 ├── launcher_runtime.py  (116 стр)
@@ -672,21 +692,26 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── sites.json  (22 стр)
 │   ├── system.json  (17 стр)
 │   ├── work.json  (11 стр)
+├── phoenix_app.py  (11 стр)
 ├── PLAN.md  (93 стр)
-├── PROJECT.md  (429 стр)
-├── PROJECT_MEMORY.md  (66 стр)
+├── PROJECT.md  (439 стр)
+├── PROJECT_MEMORY.md  (98 стр)
 ├── PROMPT.md  (72 стр)
 ├── pytest.ini  (20 стр)
 ├── README.md  (188 стр)
 ├── requirements-aec.txt  (3 стр)
 ├── requirements-ci.txt  (39 стр)
 ├── requirements-dev.txt  (13 стр)
+├── requirements-nuitka-app.txt  (8 стр)
+├── requirements-nuitka.txt  (2 стр)
 ├── requirements.txt  (65 стр)
 ├── scripts/
 │   ├── __init__.py  (7 стр)
 │   ├── audio_regression.py  (11 стр)
 │   ├── bootstrap_ollama_config.py  (77 стр)
 │   ├── build_exe.py  (83 стр)
+│   ├── build_nuitka.py  (142 стр)
+│   ├── build_nuitka_app.py  (397 стр)
 │   ├── build_setup.py  (212 стр)
 │   ├── check_caps.py  (205 стр)
 │   ├── check_staged_snapshot.py  (149 стр)
@@ -696,11 +721,13 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── make_installer_images.py  (125 стр)
 │   ├── mics.py  (52 стр)
 │   ├── prepare_flet_client.py  (31 стр)
+│   ├── prepare_nuitka_sandbox.py  (75 стр)
 │   ├── release_payload.py  (88 стр)
 │   ├── selftest.py  (49 стр)
 │   ├── set_llm_model.py  (52 стр)
 │   ├── startup_probe.py  (196 стр)
 │   ├── vadbench.py  (185 стр)
+│   ├── verify_nuitka_sandbox.ps1  (114 стр)
 │   ├── voicedemo.py  (34 стр)
 │   ├── wakebench.py  (88 стр)
 ├── snapshot.py  (731 стр)
@@ -738,6 +765,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_clarification.py  (411 стр)
 │   ├── test_clarification_imports.py  (110 стр)
 │   ├── test_command_builder.py  (213 стр)
+│   ├── test_compiled_runtime.py  (168 стр)
 │   ├── test_config_manager.py  (47 стр)
 │   ├── test_danger_policy.py  (124 стр)
 │   ├── test_echo.py  (579 стр)
@@ -745,7 +773,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_echo_trace.py  (264 стр)
 │   ├── test_engine_probe.py  (100 стр)
 │   ├── test_git_hygiene.py  (348 стр)
-│   ├── test_gui_audio.py  (269 стр)
+│   ├── test_gui_audio.py  (335 стр)
 │   ├── test_gui_chat.py  (287 стр)
 │   ├── test_gui_commands.py  (126 стр)
 │   ├── test_gui_home.py  (154 стр)
@@ -755,7 +783,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_gui_sidebar.py  (283 стр)
 │   ├── test_gui_startup.py  (105 стр)
 │   ├── test_gui_widgets.py  (259 стр)
-│   ├── test_gui_wiring.py  (542 стр)
+│   ├── test_gui_wiring.py  (559 стр)
 │   ├── test_intents.py  (487 стр)
 │   ├── test_launcher_download.py  (233 стр)
 │   ├── test_launcher_ollama.py  (438 стр)
@@ -766,7 +794,9 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_mic_watchdog.py  (36 стр)
 │   ├── test_mood.py  (386 стр)
 │   ├── test_nonverbal.py  (402 стр)
-│   ├── test_numeric_language.py  (521 стр)
+│   ├── test_nuitka_build.py  (147 стр)
+│   ├── test_nuitka_full.py  (359 стр)
+│   ├── test_numeric_language.py  (518 стр)
 │   ├── test_open_results.py  (32 стр)
 │   ├── test_optional_whisper_startup.py  (131 стр)
 │   ├── test_password_imports.py  (109 стр)
@@ -775,7 +805,9 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_prosody.py  (83 стр)
 │   ├── test_recognition_quality.py  (357 стр)
 │   ├── test_release_payload.py  (181 стр)
+│   ├── test_review_regressions.py  (334 стр)
 │   ├── test_safety.py  (170 стр)
+│   ├── test_sapi_owner.py  (123 стр)
 │   ├── test_source_layout.py  (63 стр)
 │   ├── test_speech_gate.py  (86 стр)
 │   ├── test_startup_https.py  (96 стр)
@@ -784,6 +816,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_text_encoding.py  (46 стр)
 │   ├── test_tray.py  (249 стр)
 │   ├── test_tts.py  (243 стр)
+│   ├── test_tts_lifecycle.py  (275 стр)
 │   ├── test_tts_readiness.py  (94 стр)
 │   ├── test_uia.py  (788 стр)
 │   ├── test_uia_fast.py  (238 стр)
@@ -933,6 +966,24 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def describe_steps(steps)
 ```
 
+**`jarvis/compiled_runtime.py`**
+
+```
+  # Standalone app startup and explicit offline probes; no venv/pip bootstrap.
+  PROBE_MODULES = ...
+  RESOURCE_FILES = ...
+  def configure_environment(root)
+  def configure_com_cache()
+  def prepare_native_imports()
+  def write_report(path, report)
+  def self_test(root, *, compiled)
+  def gui_smoke(root, destination, *, compiled)
+  def prepare_silero(session)
+  def prepare_application(root, log_file, *, silero_only=False)
+  def run(argv=None, *, root, compiled)
+  >>> GUI: ft.run(...) - Flet в главном потоке
+```
+
 **`jarvis/config.py`**
 
 ```
@@ -1079,6 +1130,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
     def __init__(self, gui)
     def apply_result(self, kind, text, color='text_dim', done=False)
     def sync(self)
+    def poll_tts_status(self)
+    def cancel_preview(self)
     def build_mic(self)
     def refresh_devices(self, e=None)
     def update_level(self)
@@ -1765,7 +1818,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   _UNCERTAIN = ...
   class Jarvis
     def __init__(self, config, listener, speaker, handler, base_dir: Path, whisper=None, gui=None)
-    def say(self, reply: Reply)
+    def say(self, reply: Reply, *, cancel_event=None)
     def shutdown(self)
     def mic_watchdog(self)
     def run_loop(self)
@@ -1821,7 +1874,9 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   # Скачивание и распаковка модели Vosk для русского языка (~45 МБ).
   MODEL_NAME = ...
   MODEL_URL = ...
-  def ensure_model(local_models_dir: Path | None=None)
+  REQUIRED_MODEL_FILES = ...
+  def model_is_ready(model_dir: Path)
+  def ensure_model(local_models_dir: Path | None=None, *, reporthook: Callable[[int, int, int], None] | None=None)
 ```
 
 **`jarvis/modes.py`**
@@ -2145,13 +2200,14 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   # Синтез речи — фасад над tts_engines.
   class Speaker
     def __init__(self, config, lazy: bool=False)
+    def configuration_status(self)
     def switch_backend(self, backend: str)
     def set_quality(self, quality: str)
     def set_voice(self, voice: str)
     def set_rate(self, rate: float)
     def set_echo_path(self, path)
     def speak(self, text: str, *, allow_nonverbal=False)
-    def play_async(self, text: str, *, allow_nonverbal=False)
+    def play_async(self, text: str, *, allow_nonverbal=False, cancel_event=None)
     def speak_stream(self, text_iter: Iterator[str], timeout: float=30.0, *, allow_nonverbal=False)
     def stop(self)
     def stop_requested(self)
@@ -2215,15 +2271,15 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 **`jarvis/tts_engines/sapi.py`**
 
 ```
-  # SAPI TTS — старый Windows-синтез через pyttsx3.
+  # Windows SAPI: all pyttsx3/COM calls belong to one dedicated thread.
   _SENTENCE_END = ...
   class SAPIEngine
-    def __init__(self, voice: str='auto', quality: str='medium', rate: float=1.15)
+    def __init__(self, voice='auto', quality='medium', rate=1.15)
     def is_available(self)
-    def set_voice(self, voice: str)
-    def set_rate(self, rate: float)
-    def synthesize(self, text: str, voice: str | None=None, rate: float | None=None)
-    def speak_stream(self, text_iter, voice: str, rate: float, token)
+    def set_voice(self, voice)
+    def set_rate(self, rate)
+    def synthesize(self, text, voice=None, rate=None)
+    def speak_stream(self, text_iter, voice, rate, token)
     def stop(self)
 ```
 
@@ -2425,6 +2481,52 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def build()
 ```
 
+**`scripts/build_nuitka.py`**
+
+```
+  # Build the Windows bootstrap launcher with Nuitka, not the complete runtime.
+  BASE = ...
+  EXE_NAME = ...
+  def parse_args(argv=None)
+  def build_directory(root, mode)
+  def command(args, root=BASE)
+  def validate_environment()
+  def publish(root, mode)
+  def main(argv=None)
+```
+
+**`scripts/build_nuitka_app.py`**
+
+```
+  # Build the complete Windows application and its installer, not launcher.py.
+  BASE = ...
+  EXE = ...
+  SETUP = ...
+  INCLUDES = ...
+  DATA_PACKAGES = ...
+  REQUIRES = ...
+  EXCLUDE_METADATA = ...
+  NOFOLLOW = ...
+  FORCED_METADATA = ...
+  def metadata_arguments(distributions)
+  def args_for(argv=None)
+  def resources(root)
+  def command(args, root=BASE, *, distributions=())
+  def validate_environment()
+  TORCH_PROBE_CODE = ...
+  def validate_torch_runtime(output)
+  def environment_versions()
+  def prepare_client()
+  def validate_client(client)
+  def validate_report(report)
+  def validate_native(native)
+  def file_hash(path)
+  def stage(root, native, client, *, versions, version)
+  def installer_command(iscc, payload, args, root=BASE) -> [str(iscc), f'/DPayloadDir={Path(payload).resolve()}', f'/DMyAppVersion={args.version}', str(root / 'installer_nuitka.iss')]
+  def run_probe(executable, report, mode)
+  def main(argv=None)
+```
+
 **`scripts/build_setup.py`**
 
 ```
@@ -2535,6 +2637,16 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   # Prepare the native Flet client inside the consented bootstrap stage.
   def prepare()
   def main()
+```
+
+**`scripts/prepare_nuitka_sandbox.py`**
+
+```
+  # Create a least-scope offline Windows Sandbox test; never enable Windows features.
+  BASE = ...
+  def prepare(root, installer)
+  def launch(config)
+  def main(argv=None)
 ```
 
 **`scripts/release_payload.py`**
@@ -3000,6 +3112,28 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_power_timeout_is_not_reported_as_success(monkeypatch)
 ```
 
+**`tests/test_compiled_runtime.py`**
+
+```
+  # Explicit standalone probes and consent contracts without native Windows imports.
+  def resources(root)
+  def fake_imports(monkeypatch, root)
+  def test_source_python_cannot_report_a_passed_compiled_probe(tmp_path, monkeypatch)
+  def test_probe_checks_embedded_modules_resources_and_dictionaries(tmp_path, monkeypatch)
+  def test_probe_rejects_module_imported_from_external_environment(tmp_path, monkeypatch)
+  def test_probe_rejects_external_python_binary(tmp_path, monkeypatch)
+  def test_report_is_utf8_atomic_and_does_not_leave_temp_files(tmp_path)
+  def test_flet_missing_bundle_is_error_not_download(tmp_path)
+  def test_flet_uses_distribution_path_not_personal_cache(tmp_path, monkeypatch)
+  def test_silero_denial_never_imports_or_executes_torch_hub(monkeypatch)
+  def test_silero_approval_is_explicit_and_uses_fixed_repository(tmp_path, monkeypatch)
+  def test_gui_smoke_awaits_close_and_does_not_start_assistant(tmp_path, monkeypatch)
+  def test_gui_smoke_failure_is_not_success(tmp_path, monkeypatch)
+  def test_runtime_refuses_non_windows_without_launching_core(tmp_path, monkeypatch)
+  def test_com_cache_does_not_write_to_application_directory(tmp_path, monkeypatch)
+  def test_native_preload_precedes_com_initialization(monkeypatch)
+```
+
 **`tests/test_config_manager.py`**
 
 ```
@@ -3198,6 +3332,11 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_voice_preview_does_not_interrupt_existing_speech(gui)
   def test_disappeared_listener_clears_old_meter_metadata(gui)
   def test_aec_toggle_is_opt_in_restart_only_and_never_selects_voice(gui)
+  def test_preview_during_model_load_is_declined_not_queued(gui)
+  def test_stop_before_preview_worker_starts_cancels_it(gui, monkeypatch)
+  def test_loading_status_becomes_ready_without_reopening_tab(gui)
+  def test_speech_test_passes_explicit_cancel_token_to_core(gui)
+  def test_tts_status_poll_is_scheduled_outside_microphone_tab(gui, monkeypatch)
 ```
 
 **`tests/test_gui_chat.py`**
@@ -3512,6 +3651,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_tray_enabled_sends_flag(gui, cfg)
   def test_launch_mode_sends_value(gui, cfg)
   def test_launch_mode_rejects_unknown(gui, cfg)
+  def test_quit_awaits_async_window_close_on_page_loop(gui)
 ```
 
 **`tests/test_intents.py`**
@@ -3790,6 +3930,68 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_windows_fallback_shares_stop_and_removes_temporary_wav(tmp_path, monkeypatch)
 ```
 
+**`tests/test_nuitka_build.py`**
+
+```
+  # Nuitka build plans and staging tests; no compiler, network or Tk display.
+  def test_launcher_source_directory(monkeypatch, tmp_path)
+  def test_launcher_pyinstaller_directory(monkeypatch, tmp_path)
+  def test_launcher_nuitka_onefile_uses_real_executable_directory(monkeypatch, tmp_path)
+  def test_launcher_nuitka_fallback_uses_argv_not_extracted_file(monkeypatch, tmp_path)
+  def test_command_has_native_gui_flags_without_runtime_stack(tmp_path, mode, compiler)
+  def test_debug_console_is_explicit()
+  def test_job_limits(jobs)
+  def test_native_build_rejects_non_windows_without_running_tools(monkeypatch)
+  def test_native_build_rejects_wrong_python(monkeypatch, python_version, bits)
+  def test_native_build_requires_nuitka(monkeypatch)
+  def test_native_build_checks_tk_without_opening_window(monkeypatch)
+  def test_check_does_not_compile_or_require_windows(monkeypatch)
+  def test_publish_keeps_required_payload_and_native_dependencies(tmp_path, monkeypatch, mode)
+  def test_publish_requires_compiler_output(tmp_path, monkeypatch)
+  def test_nuitka_batch_uses_isolated_build_environment()
+```
+
+**`tests/test_nuitka_full.py`**
+
+```
+  # Full application build contracts. No Windows compiler/installers or downloads run.
+  ROOT = ...
+  def write(path, data=b'fixture')
+  def native(tmp_path)
+  def client(tmp_path)
+  def test_full_command_targets_application_and_embeds_runtime()
+  def test_explicit_compilers(compiler, flag)
+  def test_resource_list_never_includes_developer_code_or_config()
+  def test_preflight_never_imports_native_packages_or_runs_tools(monkeypatch)
+  def test_non_windows_build_is_rejected_before_dependency_probe(monkeypatch)
+  def test_invalid_modes_and_limits(argv)
+  def test_report_requires_compiled_application_not_launcher(tmp_path)
+  def test_native_output_rejects_external_interpreter_and_user_files(native, name)
+  def test_native_output_requires_embedded_python_dll(native)
+  def test_stage_includes_whole_runtime_and_client_without_source(tmp_path, native, client, monkeypatch)
+  def test_failed_client_validation_preserves_existing_output(tmp_path, native, client, monkeypatch)
+  def test_probe_requires_exit_success_and_true_compiled_report(tmp_path, monkeypatch)
+  def test_installer_uses_full_payload_not_legacy_bootstrap()
+  def test_sandbox_maps_only_input_and_reports_and_disables_network(tmp_path)
+  def test_sandbox_does_not_launch_on_linux(tmp_path, monkeypatch)
+  def test_sandbox_harness_has_strict_failure_and_scope_guards()
+  def test_sandbox_harness_stays_ascii_for_windows_powershell()
+  def test_full_bat_isolated_env_and_preflight_before_install()
+  def test_locked_previous_build_is_not_deleted(tmp_path, native, client, monkeypatch)
+  def test_publish_failure_rolls_back_previous_build(tmp_path, native, client, monkeypatch)
+  def test_installed_build_packages_do_not_force_unusable_metadata(unrelated)
+  def test_metadata_names_are_canonical_and_deduplicated()
+  def test_metadata_is_not_forced_when_distribution_is_absent()
+  def test_comtypes_single_named_test_package_is_excluded()
+  def test_runtime_critical_packages_are_fully_included()
+  def test_torch_internal_tests_are_excluded_but_jit_is_retained()
+  def test_low_memory_is_explicit_and_jobs_can_be_one()
+  def test_torch_builder_probe_checks_imports_versions_and_jit(tmp_path, monkeypatch)
+  def test_torch_builder_probe_failure_stops_before_compilation(tmp_path, monkeypatch)
+  def test_torch_builder_probe_timeout_is_bounded(tmp_path, monkeypatch)
+  def test_builder_probe_uses_declared_requirements_not_equal_versions(torch_version, audio_version, requirements, ok, monkeypatch, capsys)
+```
+
 **`tests/test_numeric_language.py`**
 
 ```
@@ -3812,7 +4014,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def load_method(filename, classname, name, namespace)
   def test_wake_extraction_preserves_original_numeric_punctuation()
   def test_whisper_refinement_preserves_original_numeric_punctuation()
-  def test_speaker_direct_path_uses_same_preparation()
+  def test_speaker_direct_path_uses_same_preparation(monkeypatch)
   def test_additional_speech_cases(source, expected)
   def test_malformed_quantities_do_not_partially_execute(source)
   def test_entities_include_contextual_roman_value()
@@ -3965,6 +4167,39 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_optional_aec_files_shipped_but_not_required_by_base_dependencies(release_tree)
 ```
 
+**`tests/test_review_regressions.py`**
+
+```
+  # Archive-review regressions: no network, native audio or system automation.
+  def timer_store(tmp_path, monkeypatch)
+  def fail_replace(*args, **kwargs)
+  def test_timer_write_failure_is_not_reported_as_success(timer_store, monkeypatch, phrase)
+  def test_timer_intent_write_failure_does_not_report_success(timer_store, monkeypatch)
+  def test_timer_add_persists_before_scheduling(timer_store, monkeypatch)
+  def test_timer_cancel_write_failure_keeps_running_timers(timer_store, monkeypatch)
+  def test_timer_cancel_success_persists_and_cancels(timer_store, monkeypatch)
+  def test_due_timer_still_notifies_if_removal_cannot_be_saved(timer_store, monkeypatch)
+  def test_documented_task_removal_forms(tmp_path, monkeypatch, phrase)
+  def test_task_removal_without_name_does_not_remove_anything(tmp_path, monkeypatch)
+  def make_model(directory)
+  def fake_download(monkeypatch, missing=None, extra=None)
+  def models_dir(tmp_path, monkeypatch)
+  def test_vosk_incomplete_model_is_repaired(models_dir, monkeypatch, broken)
+  def test_vosk_complete_model_does_not_download(models_dir, monkeypatch)
+  def test_vosk_zip_rejects_unsafe_paths(models_dir, monkeypatch, entry)
+  def test_vosk_zip_rejects_symlinks(models_dir, monkeypatch)
+  def test_vosk_incomplete_download_is_not_published(models_dir, monkeypatch)
+  def test_vosk_failed_download_preserves_previous_directory(models_dir, monkeypatch)
+  def test_vosk_unsafe_zip_preserves_previous_directory(models_dir, monkeypatch)
+  def test_vosk_local_copy_needs_no_network(models_dir, tmp_path, monkeypatch)
+  def test_vosk_failed_local_copy_falls_back_to_clean_download(models_dir, tmp_path, monkeypatch)
+  def test_vosk_launcher_progress_hook_is_passed_to_downloader(models_dir, monkeypatch)
+  def test_vosk_failed_publication_restores_previous_directory(models_dir, tmp_path, monkeypatch)
+  def test_launcher_uses_same_model_validation(models_dir)
+  def test_launcher_prepares_local_model_with_shared_installer(models_dir, tmp_path, monkeypatch)
+  def test_launcher_reports_model_installation_failure(models_dir, tmp_path, monkeypatch)
+```
+
 **`tests/test_safety.py`**
 
 ```
@@ -3984,6 +4219,25 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_stream_state_present_without_caller_dict()
   def test_patterns_have_categories()
   def test_observer_disabled_by_default()
+```
+
+**`tests/test_sapi_owner.py`**
+
+```
+  # COM ownership and cooperative cancellation without Windows/audio hardware.
+  class Native
+    def __init__(self)
+    def record(self, name)
+    def getProperty(self, key)
+    def setProperty(self, key, value)
+    def say(self, text)
+    def startLoop(self, driver)
+    def iterate(self)
+    def isBusy(self)
+    def stop(self)
+    def endLoop(self)
+  def test_sapi_init_speech_and_stop_share_owner_not_gui_thread(monkeypatch)
+  def test_stop_is_signal_only_and_waits_for_native_owner_ack(monkeypatch)
 ```
 
 **`tests/test_source_layout.py`**
@@ -4159,6 +4413,32 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_switch_voice_aliases_sapi(said, expected)
   def test_do_change_voice_without_voice_key()
   def test_do_change_voice_switch_and_history()
+```
+
+**`tests/test_tts_lifecycle.py`**
+
+```
+  # Loader/preview/stop races with controlled events; no network or audio devices.
+  class Engine
+    def __init__(self, name='piper', voice='ruslan')
+  def ready(monkeypatch)
+  def settle(speaker)
+  def wire(config, speaker)
+  def test_switch_returns_before_model_finishes_and_does_not_mutate_active(monkeypatch)
+  def test_initial_loader_cannot_overwrite_newer_voice_and_coalesces_edits(monkeypatch)
+  def test_superseded_download_is_discarded_and_latest_selection_wins(monkeypatch)
+  def test_failed_switch_rolls_config_back_to_actual_runtime(monkeypatch, tmp_path)
+  def test_rollback_cannot_overwrite_a_newer_user_edit(monkeypatch, tmp_path)
+  def test_slow_old_playback_prevents_engine_replacement(monkeypatch)
+  def test_stop_during_readiness_cancels_without_late_playback(monkeypatch)
+  def test_cancelled_preview_is_not_queued_for_model_readiness(monkeypatch)
+  def test_stop_during_synthesis_discards_wav_and_next_play_still_works(monkeypatch)
+  def test_stream_does_not_overlap_a_stuck_worker(monkeypatch)
+  def test_quality_is_part_of_factory_cache_identity(monkeypatch)
+  def test_silero_without_persisted_trust_never_prompts_or_downloads(monkeypatch, tmp_path)
+  def test_silero_uses_only_previously_approved_repo(monkeypatch, tmp_path)
+  def test_thread_start_failure_retains_runtime_and_does_not_leave_pending(monkeypatch)
+  def test_failed_config_rollback_is_visible_in_log(monkeypatch, tmp_path, caplog)
 ```
 
 **`tests/test_tts_readiness.py`**
@@ -4500,6 +4780,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def error(text: str, title: str='Феникс — ошибка')
   def ask_yes_no(text: str, title: str='Феникс')
   def already_running(logger)
+  def launcher_directory()
   def find_project_dir(logger)
   def find_python(logger)
   def download_python_installer(logger)
@@ -4616,6 +4897,12 @@ Non-verbal/микрофон/установщик по-прежнему треб�
     def run(self, job)
 ```
 
+**`phoenix_app.py`**
+
+```
+  # Nuitka application entry. Never starts an external Python interpreter.
+```
+
 **`snapshot.py`**
 
 ```
@@ -4664,14 +4951,15 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/brain.py` | 868 | code | LLM-фолбэк: локальная нейронка (Ollama) разбирает команду в структурны |
 | `jarvis/celebrations.py` | 165 | code | Праздничные триггеры — поздравление с ДР + двойной салют. |
 | `jarvis/command_builder.py` | 152 | code | Typed custom commands. No execution, model calls or shell parsing in t |
+| `jarvis/compiled_runtime.py` | 252 | code | Standalone app startup and explicit offline probes; no venv/pip bootst |
 | `jarvis/config.py` | 274 | code | Загрузка конфигурации и объект Config в памяти. |
 | `jarvis/config_manager.py` | 156 | code | Единый менеджер записи в config.json. |
 | `jarvis/echo.py` | 508 | code | Opt-in Piper AEC prototype. No devices, drivers or downloads. |
 | `jarvis/echo_trace.py` | 229 | code | Explicitly opted-in, bounded local AEC trace; never uploads audio. |
 | `jarvis/files.py` | 109 | code | Файлы и папки: открыть, посмотреть содержимое, создать. |
 | `jarvis/first_run.py` | 26 | code | Первый запуск — знакомство через LLM-диалог. |
-| `jarvis/gui.py` | 1642 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
-| `jarvis/gui_audio.py` | 383 | code | Native sound settings. Diagnostics use the existing listener/Speaker,  |
+| `jarvis/gui.py` | 1678 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
+| `jarvis/gui_audio.py` | 438 | code | Native sound settings. Diagnostics use the existing listener/Speaker,  |
 | `jarvis/gui_commands.py` | 305 | code | Flet editor for the existing custom_commands pipeline. Never executes  |
 | `jarvis/gui_home.py` | 191 | code | Minimal native Home: local clock, real assistant state and opt-in widg |
 | `jarvis/gui_home_actions.py` | 225 | code | Three real Home actions. Native controls, finite transitions, no extra |
@@ -4732,11 +5020,11 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/language/time.py` | 84 | code | Duration grammar with source spans. Uses the shared numeral/unit vocab |
 | `jarvis/language/units.py` | 85 | code | Semantic unit lexicon shared by input and output; spelling is data, no |
 | `jarvis/learning.py` | 178 | code | Самообучение Феникса: факты и коррекции. |
-| `jarvis/main.py` | 955 | code | Точка входа: связывает распознавание, интенты, синтез речи и GUI. |
+| `jarvis/main.py` | 962 | code | Точка входа: связывает распознавание, интенты, синтез речи и GUI. |
 | `jarvis/matching.py` | 118 | code | Нечёткое сопоставление речи с названиями: транслитерация + difflib. |
 | `jarvis/memory.py` | 147 | code | Память диалога — на профиль. |
 | `jarvis/memory_context.py` | 124 | code | Query-scoped personal memory. Absence/uncertainty never means 'send ev |
-| `jarvis/model.py` | 102 | code | Скачивание и распаковка модели Vosk для русского языка (~45 МБ). |
+| `jarvis/model.py` | 175 | code | Скачивание и распаковка модели Vosk для русского языка (~45 МБ). |
 | `jarvis/modes.py` | 51 | code | Режимы работы Феникса: commands, llm, combo. |
 | `jarvis/mood.py` | 388 | code | Mood — эмоциональное состояние ассистента. |
 | `jarvis/nonverbal.py` | 93 | code | Optional, bounded reaction policy. No LLM tags, text rewriting or extr |
@@ -4752,17 +5040,17 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/safety.py` | 213 | code | Постфильтр ответов LLM — вторая линия «красной черты». |
 | `jarvis/steam.py` | 67 | code | Индекс установленных игр Steam: appmanifest -> (название, appid). |
 | `jarvis/stt.py` | 1016 | code | Распознавание речи. |
-| `jarvis/tasks.py` | 278 | code | Списки задач. |
+| `jarvis/tasks.py` | 282 | code | Списки задач. |
 | `jarvis/text_utils.py` | 98 | code | Общие текстовые утилиты для Феникса. |
-| `jarvis/timers.py` | 326 | code | Таймеры и напоминания. |
+| `jarvis/timers.py` | 343 | code | Таймеры и напоминания. |
 | `jarvis/tray.py` | 223 | code | Иконка в системном трее (pystray). |
-| `jarvis/tts.py` | 423 | code | Синтез речи — фасад над tts_engines. |
+| `jarvis/tts.py` | 489 | code | Синтез речи — фасад над tts_engines. |
 | `jarvis/tts_engines/__init__.py` | 12 | code | TTS-движки Феникса — абстракция над Piper, Silero, SAPI. |
 | `jarvis/tts_engines/base.py` | 73 | code | Базовый класс TTS-движка. |
 | `jarvis/tts_engines/factory.py` | 167 | code | Фабрика TTS-движков. |
 | `jarvis/tts_engines/piper.py` | 190 | code | Piper TTS — быстрый, ~60 МБ, 4 голоса для русского. |
-| `jarvis/tts_engines/sapi.py` | 118 | code | SAPI TTS — старый Windows-синтез через pyttsx3. |
-| `jarvis/tts_engines/silero.py` | 203 | code | Silero TTS v5_5 — русский голос, ~150 МБ, требует PyTorch. |
+| `jarvis/tts_engines/sapi.py` | 180 | code | Windows SAPI: all pyttsx3/COM calls belong to one dedicated thread. |
+| `jarvis/tts_engines/silero.py` | 215 | code | Silero TTS v5_5 — русский голос, ~150 МБ, требует PyTorch. |
 | `jarvis/tts_engines/winrt.py` | 6 | code | Retired WinRT speech backend. |
 | `jarvis/uia.py` | 1027 | code | UI Automation — видим окна и элементы интерфейса. |
 | `jarvis/vad.py` | 584 | code | Silero VAD — детекция речи в аудио-потоке с адаптивным порогом. |
@@ -4773,6 +5061,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `scripts/audio_regression.py` | 11 | code | Run optional local audio regression tools; ordinary pytest never loads |
 | `scripts/bootstrap_ollama_config.py` | 77 | code | Small config bridge run by installed .venv311, never by frozen bootstr |
 | `scripts/build_exe.py` | 83 | code | Сборка Феникс.exe (лёгкий лаунчер). |
+| `scripts/build_nuitka.py` | 142 | code | Build the Windows bootstrap launcher with Nuitka, not the complete run |
+| `scripts/build_nuitka_app.py` | 397 | code | Build the complete Windows application and its installer, not launcher |
 | `scripts/build_setup.py` | 212 | code | Полная сборка Феникса: Феникс.exe + Феникс_Setup.exe — одной командой. |
 | `scripts/check_caps.py` | 205 | code | Проверка возможностей системы — запускается из install.bat. |
 | `scripts/check_staged_snapshot.py` | 149 | code | Check the Git index, not an unstaged working-tree snapshot; never stag |
@@ -4782,6 +5072,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `scripts/make_installer_images.py` | 125 | code | Генерация картинок для Inno Setup установщика Феникса. |
 | `scripts/mics.py` | 52 | code | Подбор микрофона: показывает устройства ввода и уровень сигнала. |
 | `scripts/prepare_flet_client.py` | 31 | code | Prepare the native Flet client inside the consented bootstrap stage. |
+| `scripts/prepare_nuitka_sandbox.py` | 75 | code | Create a least-scope offline Windows Sandbox test; never enable Window |
 | `scripts/release_payload.py` | 88 | code | Curated installer payload; never recurse over the developer's entire w |
 | `scripts/selftest.py` | 49 | code | Самопроверка без микрофона: TTS -> Vosk -> разбор команды. |
 | `scripts/set_llm_model.py` | 52 | code | Устанавливает llm_model в config.json. |
@@ -4813,6 +5104,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_clarification.py` | 411 | code | Slot filling uses real handler/pipeline, no devices, models or private |
 | `tests/test_clarification_imports.py` | 110 | code | The slot engine and pipeline stage share a basename, not their content |
 | `tests/test_command_builder.py` | 213 | code | Builder persistence, exact matching and runtime protection; no real OS |
+| `tests/test_compiled_runtime.py` | 168 | code | Explicit standalone probes and consent contracts without native Window |
 | `tests/test_config_manager.py` | 47 | code | Тесты config_manager: параллельная запись не рвёт файл. |
 | `tests/test_danger_policy.py` | 124 | code | Политика опасных действий: пароль решает «можно ли», а не «опасно ли». |
 | `tests/test_echo.py` | 579 | code | AEC contracts: bounded synthetic PCM and controlled native transport;  |
@@ -4820,7 +5112,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_echo_trace.py` | 264 | code | Local diagnostic contracts: no devices or external services. |
 | `tests/test_engine_probe.py` | 100 | code | Заглушка движка TTS (factory._probe_engine). |
 | `tests/test_git_hygiene.py` | 348 | code | Exercise real temporary Git indexes/hooks; never commit or alter the u |
-| `tests/test_gui_audio.py` | 269 | code | Native sound settings + real worker boundaries; no microphone or actua |
+| `tests/test_gui_audio.py` | 335 | code | Native sound settings + real worker boundaries; no microphone or actua |
 | `tests/test_gui_chat.py` | 287 | code | Imported Flet controls + real GUI worker threads; no window, ASR or au |
 | `tests/test_gui_commands.py` | 126 | code | Imported native builder controls; no OS actions or real passwords. |
 | `tests/test_gui_home.py` | 154 | code | Native minimal Home; no OS/model/mic/network. Old navigation IDs stay  |
@@ -4830,7 +5122,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_gui_sidebar.py` | 283 | code | Native controls and bounded asyncio tasks; no desktop, microphone or m |
 | `tests/test_gui_startup.py` | 105 | code | Startup ordering, tray failure recovery, old EXE mutex handoff; no des |
 | `tests/test_gui_widgets.py` | 259 | code | Opt-in layouts, exact task IDs, safe command path, atomic saves and li |
-| `tests/test_gui_wiring.py` | 542 | code | GUI → config: каждый элемент окна реально отсылает изменение. |
+| `tests/test_gui_wiring.py` | 559 | code | GUI → config: каждый элемент окна реально отсылает изменение. |
 | `tests/test_intents.py` | 487 | code | Автотест Феникса без микрофона. |
 | `tests/test_launcher_download.py` | 233 | code | Python bootstrap: no network/install in default tests; native Windows  |
 | `tests/test_launcher_ollama.py` | 438 | code | Optional model setup + real loopback HTTP protocol. No models/inferenc |
@@ -4841,7 +5133,9 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_mic_watchdog.py` | 36 | code | Execute the real watchdog method without importing Windows/audio backe |
 | `tests/test_mood.py` | 386 | code | Тесты jarvis.mood — состояние, детекция, decay, влияние. |
 | `tests/test_nonverbal.py` | 402 | code | Nonverbal policy/mixing: synthetic PCM and fake output, no TTS weights |
-| `tests/test_numeric_language.py` | 521 | code | Executable Russian language corpus: understanding, morphology and spee |
+| `tests/test_nuitka_build.py` | 147 | code | Nuitka build plans and staging tests; no compiler, network or Tk displ |
+| `tests/test_nuitka_full.py` | 359 | code | Full application build contracts. No Windows compiler/installers or do |
+| `tests/test_numeric_language.py` | 518 | code | Executable Russian language corpus: understanding, morphology and spee |
 | `tests/test_open_results.py` | 32 | code | Actual dispatch function isolated from Windows imports; no apps launch |
 | `tests/test_optional_whisper_startup.py` | 131 | code | Execute real startup functions with stub peripherals, no models/mic/Wi |
 | `tests/test_password_imports.py` | 109 | code | Import boundaries must work in a fresh interpreter, before any pytest  |
@@ -4850,7 +5144,9 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_prosody.py` | 83 | code | Тесты jarvis.prosody — эмоции из голоса (эвристика). |
 | `tests/test_recognition_quality.py` | 357 | code | Recognition policy and integration tested without a microphone or mode |
 | `tests/test_release_payload.py` | 181 | code | Public payload, reproducible manifest and bootstrap regression checks. |
+| `tests/test_review_regressions.py` | 334 | code | Archive-review regressions: no network, native audio or system automat |
 | `tests/test_safety.py` | 170 | code | Тесты jarvis.safety — постфильтр «красной черты». |
+| `tests/test_sapi_owner.py` | 123 | code | COM ownership and cooperative cancellation without Windows/audio hardw |
 | `tests/test_source_layout.py` | 63 | code | Same-named package files have different roles; test real imports in fr |
 | `tests/test_speech_gate.py` | 86 | code | Тесты jarvis.vad.SpeechHangover — «хвост» тишины после речи. |
 | `tests/test_startup_https.py` | 96 | code | Process-local CA and native-client prep without network/GUI. |
@@ -4859,6 +5155,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_text_encoding.py` | 46 | code | Test sources/fixtures are UTF-8, independent of Windows ANSI code page |
 | `tests/test_tray.py` | 249 | code | Трей (jarvis.tray): пункты меню реально дёргают ядро и GUI. |
 | `tests/test_tts.py` | 243 | code | Тесты jarvis.tts_engines — движки и фабрика. С моками. |
+| `tests/test_tts_lifecycle.py` | 275 | code | Loader/preview/stop races with controlled events; no network or audio  |
 | `tests/test_tts_readiness.py` | 94 | code | Bounded voice readiness and command release; no synthesis/audio device |
 | `tests/test_uia.py` | 788 | code | Тесты jarvis.uia — логика обёртки. С моками. |
 | `tests/test_uia_fast.py` | 238 | code | Тесты быстрых UIA-команд — `jarvis/intents/fast/uia.py`. |
@@ -4871,11 +5168,12 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_winrt_removed.py` | 92 | code | Retired speech backend must not return through config, probes or cache |
 | `check_all.py` | 170 | code | Единый прогон всех проверок Феникса — движок для check_all.bat. |
 | `check_syntax.py` | 60 | code | Проверяет синтаксис всех .py файлов в проекте. |
-| `launcher.py` | 850 | code | Лаунчер Феникса — полный автозапуск. |
+| `launcher.py` | 820 | code | Лаунчер Феникса — полный автозапуск. |
 | `launcher_download.py` | 156 | code | Verified Python bootstrap download using Windows HTTPS (no third-party |
 | `launcher_ollama.py` | 327 | code | Optional Ollama setup: explicit consent, local inventory/pull, safe co |
 | `launcher_runtime.py` | 116 | code | Consented Microsoft VC++ x64 prerequisite; no silent installs or TLS b |
 | `launcher_ui.py` | 416 | code | One bootstrap window. Presentation only: no downloads, pip or process  |
+| `phoenix_app.py` | 11 | code | Nuitka application entry. Never starts an external Python interpreter. |
 | `snapshot.py` | 731 | code | Собирает снимок проекта в один SNAPSHOT.md. |
 
 ---
@@ -4887,7 +5185,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ```python
 """Феникс — локальный голосовой ассистент для Windows. ... [4 строк]"""
 
-__version__ = "2.1.0"
+__version__ = "2.1.2"
 APP_NAME = "Феникс"
 ```
 
@@ -7864,6 +8162,263 @@ def describe_steps(steps):
                       for s in steps if isinstance(s, dict))
 ```
 
+### `jarvis/compiled_runtime.py`
+
+```python
+"""Standalone app startup and explicit offline probes; no venv/pip bootstrap."""
+import argparse
+import asyncio
+import importlib
+import io
+import json
+import logging
+import os
+from pathlib import Path
+import sys
+import tempfile
+
+log = logging.getLogger("jarvis.compiled")
+
+PROBE_MODULES = (
+    "numpy", "vosk", "sounddevice", "piper", "onnxruntime", "faster_whisper",
+    "ctranslate2", "torch", "torchaudio", "flet", "flet_desktop", "pyttsx3",
+    "pyttsx3.drivers.sapi5", "comtypes", "pycaw.pycaw", "uiautomation",
+    "winrt.windows.media.control", "pymorphy3", "pymorphy3_dicts_ru", "num2words",
+    "certifi", "jarvis.main",
+)
+RESOURCE_FILES = (
+    "jarvis/icon.ico", "jarvis/assets/brand/phoenix-dark.png",
+    "jarvis/assets/brand/phoenix-light.png", "assets/nonverbal/hmm.wav",
+    "packs/games.json", "config.example.json", "LICENSE",
+    "runtime/flet/flet.exe", "runtime/flet/flutter_windows.dll", "runtime/flet/data/icudtl.dat",
+)
+
+
+def configure_environment(root):
+    """Force the packaged Flet client; no ~/.flet cache or host Python needed."""
+    root = Path(root).resolve()
+    client = root / "runtime" / "flet"
+    if not (client / "flet.exe").is_file():
+        raise FileNotFoundError("В сборке отсутствует runtime/flet/flet.exe")
+    os.environ["FLET_VIEW_PATH"] = str(client)
+    os.environ["FLET_DESKTOP_FLAVOR"] = "full"
+    os.environ["FLET_APP_USER_MODEL_ID"] = "Phoenix.Nuitka"
+    from jarvis.https_trust import configure_https_trust
+    configure_https_trust()
+    # Flet checks cwd/build/windows before FLET_VIEW_PATH. Use the curated app root.
+    os.chdir(root)
+
+
+
+def configure_com_cache():
+    """Generate machine-specific COM wrappers in user data, not Program Files."""
+    from importlib.machinery import ModuleSpec
+    from types import ModuleType
+    from jarvis import paths
+    cache = paths.user_dir() / "comtypes-cache"
+    cache.mkdir(parents=True, exist_ok=True)
+    import comtypes
+    try:
+        gen = importlib.import_module("comtypes.gen")
+    except ModuleNotFoundError as exc:
+        if exc.name != "comtypes.gen":
+            raise
+        # comtypes normally creates this dynamic package by writing next to itself.
+        gen = ModuleType("comtypes.gen")
+        gen.__package__ = "comtypes.gen"
+        gen.__spec__ = ModuleSpec("comtypes.gen", loader=None, is_package=True)
+        sys.modules["comtypes.gen"] = gen
+        comtypes.gen = gen
+    gen.__path__ = [str(cache)]
+    client = importlib.import_module("comtypes.client")
+    client.gen_dir = str(cache)
+    return cache
+
+
+def prepare_native_imports():
+    # Native import order matters on Windows; no COM initialization before CT2.
+    from jarvis.main import _preload_whisper_backend
+    _preload_whisper_backend()
+    configure_com_cache()
+
+
+def write_report(path, report):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, temp = tempfile.mkstemp(prefix="phoenix-report-", suffix=".json", dir=path.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as out:
+            json.dump(report, out, ensure_ascii=False, indent=2)
+            out.flush()
+            os.fsync(out.fileno())
+        os.replace(temp, path)
+    finally:
+        if os.path.exists(temp):
+            os.unlink(temp)
+
+
+def self_test(root, *, compiled):
+    """Offline structural/native probe. Does not claim microphone/voice/LLM success."""
+    root = Path(root).resolve()
+    report = {"schema": 1, "kind": "standalone-native-probe", "ok": False,
+              "compiled": bool(compiled), "external_python_required": False,
+              "root": str(root), "checks": {},
+              "not_tested": ["microphone", "physical_audio", "voice_models", "Ollama", "GPU_inference"]}
+    checks = report["checks"]
+    checks["compiled_entry"] = bool(compiled)
+    checks["resources"] = all((root / p).is_file() for p in RESOURCE_FILES)
+    checks["flet_assets"] = (root / "runtime/flet/data/flutter_assets").is_dir()
+    checks["no_external_interpreter"] = not any(
+        (root / name).exists() for name in ("python.exe", "pythonw.exe", ".venv311", "launcher.py"))
+    for name in PROBE_MODULES:
+        try:
+            module = importlib.import_module(name)
+            filename = getattr(module, "__file__", None)
+            if not filename or not Path(filename).resolve().is_relative_to(root):
+                raise RuntimeError("Module loaded outside the standalone distribution")
+            checks[name] = True
+        except Exception as exc:
+            checks[name] = {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
+    try:
+        import torch
+        # Silero needs TorchScript. Default standalone JIT disabling is not acceptable.
+        traced = torch.jit.trace(lambda x: x + 1, torch.zeros(1))
+        buffer = io.BytesIO()
+        torch.jit.save(traced, buffer)
+        buffer.seek(0)
+        loaded = torch.jit.load(buffer, map_location="cpu")
+        checks["torchscript_cpu"] = float(loaded(torch.zeros(1))[0]) == 1.0
+    except Exception as exc:
+        checks["torchscript_cpu"] = {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
+    try:
+        import pymorphy3
+        checks["russian_dictionary"] = bool(pymorphy3.MorphAnalyzer().parse("проверка"))
+    except Exception as exc:
+        checks["russian_dictionary"] = {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
+    report["ok"] = all(value is True for value in checks.values())
+    return report
+
+
+def gui_smoke(root, destination, *, compiled):
+    """Exercise packaged Flet without a Vosk download or opening the microphone."""
+    report = {"schema": 1, "kind": "flet-desktop-smoke", "compiled": bool(compiled),
+              "ok": False, "session_opened": False, "window_close_awaited": False,
+              "not_tested": ["assistant_workflow", "microphone", "physical_audio", "Ollama"]}
+    try:
+        import flet as ft
+        async def page_main(page):
+            page.title = "Феникс — проверка автономной сборки"
+            page.add(ft.Text("Автономный Flet-клиент запущен без внешнего Python."))
+            page.update()
+            report["session_opened"] = True
+            write_report(destination, report)
+            await asyncio.sleep(2)
+            page.window.prevent_close = False
+            await page.window.close()
+            report["window_close_awaited"] = True
+        ft.run(page_main, assets_dir=str(Path(root) / "jarvis/assets"), view=ft.AppView.FLET_APP)
+        report["ok"] = bool(compiled and report["session_opened"] and report["window_close_awaited"])
+    except Exception as exc:
+        report["error"] = f"{type(exc).__name__}: {exc}"
+    write_report(destination, report)
+    return 0 if report["ok"] else 1
+
+
+def prepare_silero(session):
+    """Explicit consent is required before Torch Hub runs a new repository's code."""
+    if not session.ask(
+        "Silero загружает модель и выполняет код репозитория snakers4/silero-models. "
+        "Разрешить загрузку и доверять этому репозиторию?",
+        "Подготовка Silero", "Разрешить", "Отмена",
+    ):
+        session.notice = "Подготовка Silero отменена. Можно использовать Piper или SAPI."
+        return False
+    from jarvis import paths
+    os.environ.setdefault("TORCH_HOME", str(paths.program_dir() / "torch"))
+    import torch
+    session.stage("Подготовка Silero", "Загружаем модель. Внешний Python не требуется.", show=True)
+    torch.hub.load("snakers4/silero-models", "silero_tts", language="ru",
+                   speaker="v5_5_ru", trust_repo=True)
+    return True
+
+
+def prepare_application(root, log_file, *, silero_only=False):
+    from launcher_ui import PreparationWindow
+    completed = {"ok": False}
+    def job(session):
+        if silero_only:
+            completed["ok"] = prepare_silero(session)
+            return
+        from jarvis import model, paths
+        target = paths.program_models_dir() / model.MODEL_NAME
+        if not model.model_is_ready(target):
+            if not session.ask(
+                "Для распознавания речи нужна модель Vosk (~45 МБ). Скачать её? "
+                "Python и зависимости уже находятся внутри приложения.",
+                "Первый запуск", "Скачать модель", "Отмена",
+            ):
+                session.notice = "Загрузка модели отменена."
+                return
+            session.stage("Модель распознавания", "Загрузка Vosk", show=True)
+            model.ensure_model(Path(root) / "models", reporthook=session.download_progress)
+        # Preserve native import order before COM/WinRT capabilities checks.
+        from jarvis.main import _preload_whisper_backend
+        _preload_whisper_backend()
+        from scripts import check_caps
+        session.stage("Проверка возможностей", "Проверяем компоненты этого компьютера.")
+        if check_caps.main(["--if-missing"]) != 0:
+            raise RuntimeError("Не удалось проверить возможности Windows")
+        completed["ok"] = True
+    PreparationWindow(Path(root), Path(log_file)).run(job)
+    return completed["ok"]
+
+
+def run(argv=None, *, root, compiled):
+    parser = argparse.ArgumentParser(description=__doc__)
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument("--self-test", metavar="REPORT_JSON")
+    modes.add_argument("--gui-smoke", metavar="REPORT_JSON")
+    modes.add_argument("--prepare-silero", action="store_true")
+    args = parser.parse_args(argv)
+    if sys.platform != "win32":
+        print("Автономное приложение предназначено для Windows x64.", file=sys.stderr)
+        return 1
+    from jarvis import paths
+    log_file = paths.logs_dir() / "compiled-startup.log"
+    logging.basicConfig(filename=log_file, encoding="utf-8", level=logging.INFO,
+                        format="%(asctime)s %(name)s %(levelname)s %(message)s")
+    try:
+        configure_environment(root)
+        if not args.gui_smoke:
+            prepare_native_imports()
+        if args.self_test:
+            report = self_test(root, compiled=compiled)
+            write_report(args.self_test, report)
+            return 0 if report["ok"] else 1
+        if args.gui_smoke:
+            return gui_smoke(root, args.gui_smoke, compiled=compiled)
+        if not prepare_application(root, log_file, silero_only=args.prepare_silero):
+            return 2
+        if args.prepare_silero:
+            return 0
+        from jarvis.main import main
+        main()
+        return 0
+    except Exception as exc:
+        log.exception("Не удалось запустить автономный Феникс")
+        destination = args.self_test or args.gui_smoke
+        if destination:
+            write_report(destination, {"ok": False, "error": f"{type(exc).__name__}: {exc}"})
+        else:
+            try:
+                import ctypes
+                ctypes.windll.user32.MessageBoxW(
+                    0, f"Не удалось запустить Феникс.\nЖурнал: {log_file}\n\n{exc}", "Феникс", 0x10)
+            except Exception:
+                pass
+        return 1
+```
+
 ### `jarvis/config.py`
 
 ```python
@@ -9443,8 +9998,16 @@ class FenixGUI:
         try:
             if self._page is not None:
                 self._page.window.prevent_close = False
-                self._page.window.close()
-                log.info("GUI: окно закрыто (выход)")
+                import inspect
+                close = self._page.window.close
+                if inspect.iscoroutinefunction(close):
+                    async def close_window():
+                        await close()
+                        log.info("GUI: окно закрыто (выход)")
+                    self._page.run_task(close_window)
+                else:
+                    close()  # compatibility with synchronous Flet/test adapters
+                    log.info("GUI: окно закрыто (выход)")
         except Exception:
             log.exception("GUI: не удалось закрыть окно")
 
@@ -9767,6 +10330,9 @@ class FenixGUI:
     def _on_stop_speech(self, e=None) -> None:
         if self.jarvis is None:
             return
+        sound = getattr(self, "_sound_settings", None)
+        if sound is not None:
+            sound.cancel_preview()
         self.jarvis.speaker.stop()
         # Do not pretend to cancel handle(), a network request or an OS action.
         self._show_status("Озвучка остановлена. Выполненные действия не отменяются.")
@@ -10047,6 +10613,10 @@ class FenixGUI:
                     continue  # Aura updates only its own controls, never the whole page.
                 elif kind == "mic_level":
                     self._update_mic_level()
+                elif kind == "sound_status":
+                    sound = getattr(self, "_sound_settings", None)
+                    if sound is None or not sound.poll_tts_status():
+                        continue
                 elif kind == "preferences_result":
                     self._preferences().apply_probe(value)
                     continue  # Completion updates only its own status/button, not text inputs.
@@ -10201,6 +10771,8 @@ class FenixGUI:
 
         while self._running:
             try:
+                if getattr(self, "_sound_settings", None) is not None:
+                    self._queue.put(("sound_status", None))
                 if self._rail and self._rail.selected_index == 1:
                     self._queue.put(("mic_level", None))
 
@@ -10458,6 +11030,9 @@ class FenixGUI:
             self.jarvis.handler.mode = mode
 
     def _on_voice_change(self, e) -> None:
+        sound = getattr(self, "_sound_settings", None)
+        if sound is not None:
+            sound.cancel_preview()
         if self.config.set("tts_voice", e.control.value) is False:
             self._show_status("Не удалось сохранить выбранный голос.")
             return
@@ -10538,7 +11113,17 @@ class FenixGUI:
     def _on_tts_change(self, e) -> None:
         from jarvis.tts_engines.factory import normalize_backend
         backend = normalize_backend(e.control.value)
-        self.config.set("tts_backend", backend)
+        sound = getattr(self, "_sound_settings", None)
+        if sound is not None:
+            sound.cancel_preview()
+        # Pick a valid voice in the same persisted batch; no Piper voice on Silero.
+        from jarvis import voices as voice_catalog
+        options = voice_catalog._voices_for_backend(backend)
+        current_voice = self.config.get("tts_voice", "ruslan")
+        voice = current_voice if current_voice in options else next(iter(options), current_voice)
+        if self.config.update({"tts_backend": backend, "tts_voice": voice}) is False:
+            self._show_status("Не удалось сохранить выбранный движок.")
+            return
         try:
             from jarvis import voices as _voices
             _voices.reset_cache()
@@ -10570,6 +11155,9 @@ class FenixGUI:
             log.exception("Не удалось пересобрать вкладки")
 
     def _on_voice_quality_change(self, e) -> None:
+        sound = getattr(self, "_sound_settings", None)
+        if sound is not None:
+            sound.cancel_preview()
         quality = e.control.value
         if quality not in ("medium", "high"):
             quality = "medium"
@@ -10581,6 +11169,9 @@ class FenixGUI:
         self.config.set("tts_voice_quality", quality)
 
     def _on_rate_change(self, e) -> None:
+        sound = getattr(self, "_sound_settings", None)
+        if sound is not None:
+            sound.cancel_preview()
         self.config.set("voice_rate", round(float(e.control.value), 2))
 
     def _on_theme_change(self, e) -> None:
@@ -10777,6 +11368,9 @@ class SoundSettings:
         self.mic_test_button = self.voice_test_button = None
         self.mic_dropdown = self.mic_refresh_button = None
         self.voice_controls = []
+        self.preview_cancel = threading.Event()
+        self._last_tts_status = None
+        self.backend_dropdown = None
 
     def _result(self, kind, text, color="text_dim", done=False):
         # Workers send plain data only; Flet controls are updated by GUI queue.
@@ -10798,9 +11392,26 @@ class SoundSettings:
             text, color = self.results["voice"]
             self.voice_result.value = text
             self.voice_result.color = getattr(p, color)
+        speaker = getattr(self.gui.jarvis, "speaker", None)
+        status_fn = getattr(speaker, "configuration_status", None)
+        status = status_fn() if callable(status_fn) else None
+        pending = bool(status and status["pending"])
         if self.engine_label is not None:
-            engine = getattr(getattr(self.gui.jarvis, "speaker", None), "_engine_name", "none")
-            self.engine_label.value = f"Загруженный движок: {engine}" if engine != "none" else "Движок: готовность ещё не подтверждена"
+            engine = getattr(speaker, "_engine_name", "none")
+            if pending:
+                self.engine_label.value = "Движок загружается. Окно доступно; отменённая проба не запустится позже."
+            elif status and status["error"]:
+                self.engine_label.value = status["error"] + f" Активный движок: {engine}."
+            else:
+                self.engine_label.value = f"Загруженный движок: {engine}" if engine != "none" else "Движок: готовность ещё не подтверждена"
+        if status and not pending:
+            if self.backend_dropdown is not None:
+                self.backend_dropdown.value = self.gui.config.get("tts_backend", "auto")
+            options = self.gui._get_voice_options()
+            for dropdown in (self.voice_dropdown, getattr(self.gui, "_main_voice_dropdown", None)):
+                if dropdown is not None:
+                    dropdown.options = options
+                    dropdown.value = self.gui.config.get("tts_voice", "ruslan")
         if self.voice_test_button is not None:
             self.voice_test_button.content.controls[-1].value = "Проба голоса…" if self.busy == "voice" else "Послушать голос"
         if self.mic_test_button is not None:
@@ -10809,6 +11420,28 @@ class SoundSettings:
                         self.mic_dropdown, self.mic_refresh_button, *self.voice_controls]:
             if control is not None:
                 control.disabled = self.busy is not None
+        if self.voice_test_button is not None and pending:
+            self.voice_test_button.disabled = True
+
+    def poll_tts_status(self):
+        speaker = getattr(self.gui.jarvis, "speaker", None)
+        status_fn = getattr(speaker, "configuration_status", None)
+        if not callable(status_fn):
+            return
+        status = status_fn()
+        marker = (status["pending"], status["error"], status["backend"], status["voice"], status["revision"],
+                  self.gui.config.get("tts_backend"), self.gui.config.get("tts_voice"))
+        if marker != self._last_tts_status:
+            self._last_tts_status = marker
+            self.sync()
+            return True
+        return False
+
+    def cancel_preview(self):
+        self.preview_cancel.set()
+        if self.busy == "voice":
+            self.results["voice"] = ("Проба отменена. Уже начатая загрузка модели может продолжаться в фоне.", "text_dim")
+            self.sync()
 
     def build_mic(self):
         g, p = self.gui, _ui().P
@@ -10981,6 +11614,14 @@ class SoundSettings:
         if g.jarvis is None or getattr(g.jarvis, "speaker", None) is None:
             self.apply_result("voice", "Звуковое ядро ещё не готово.", "warning")
             return False
+        if self.busy is not None:
+            return False
+        cancel = self.preview_cancel = threading.Event()
+        speaker = g.jarvis.speaker
+        status_fn = getattr(speaker, "configuration_status", None)
+        if callable(status_fn) and status_fn()["pending"]:
+            self.apply_result("voice", "Движок ещё загружается. Дождитесь готовности и запустите пробу снова.", "warning")
+            return False
         def speak():
             core = g.jarvis
             if not g._command_lock.acquire(blocking=False):
@@ -10998,12 +11639,17 @@ class SoundSettings:
                 if core.speaker.is_playing():
                     self._result("voice", "Дождитесь окончания речи или нажмите «Остановить речь».", "warning", True)
                     return
+                if cancel.is_set():
+                    self._result("voice", "Проба отменена.", "text_dim", True)
+                    return
                 from jarvis.reply import Reply
                 g.set_state("speaking")
                 # Jarvis.say owns _say_lock, listener mute/barge-in and Speaker.
-                interrupted = core.say(Reply(text=TEST_PHRASE, allow_nonverbal=False))
+                interrupted = core.say(Reply(text=TEST_PHRASE, allow_nonverbal=False), cancel_event=cancel)
                 engine = getattr(core.speaker, "_engine_name", "none")
-                if engine == "none":
+                if cancel.is_set():
+                    self._result("voice", "Проба отменена.", "text_dim", True)
+                elif engine == "none":
                     self._result("voice", "Движок не готов. Проверьте выбранный TTS и его модели.", "warning", True)
                 else:
                     text = "Проба прервана." if interrupted else "Проба завершена. Если звука нет, проверьте выход и громкость Windows."
@@ -11016,7 +11662,7 @@ class SoundSettings:
 
     def build_audio(self):
         g, p = self.gui, _ui().P
-        backend = ft.Dropdown(label="Движок речи", value=(g.config.get("tts_backend", "auto")
+        backend = self.backend_dropdown = ft.Dropdown(label="Движок речи", value=(g.config.get("tts_backend", "auto")
                    if g.config.get("tts_backend", "auto") in _ui().TTS_BACKENDS else "auto"),
             options=[ft.dropdown.Option(k) for k in _ui().TTS_BACKENDS], expand=True,
             border_color=p.border, focused_border_color=p.brand, on_select=g._on_tts_change)
@@ -19016,7 +19662,7 @@ class Jarvis:
         # по wait_end-таймауту). RLock — на случай вложенного вызова.
         self._say_lock = threading.RLock()
 
-    def say(self, reply: Reply) -> bool:
+    def say(self, reply: Reply, *, cancel_event=None) -> bool:
         """Озвучивает Reply. Возвращает True, если сработал barge-in."""
         if reply is None:
             return False
@@ -19024,9 +19670,9 @@ class Jarvis:
             return False
 
         with self._say_lock:
-            return self._say_locked(reply)
+            return self._say_locked(reply, cancel_event=cancel_event) if cancel_event is not None else self._say_locked(reply)
 
-    def _say_locked(self, reply: Reply) -> bool:
+    def _say_locked(self, reply: Reply, *, cancel_event=None) -> bool:
         """Тело say() — вызывать ТОЛЬКО через say(), под _say_lock."""
         if self.gui is not None:
             self.gui.set_state("speaking")
@@ -19041,7 +19687,11 @@ class Jarvis:
             if reply.is_stream:
                 self._say_stream(reply.stream, allow_nonverbal=reply.allow_nonverbal)
             else:
-                self._say_text(reply.text, allow_nonverbal=reply.allow_nonverbal)
+                if cancel_event is None:
+                    self._say_text(reply.text, allow_nonverbal=reply.allow_nonverbal)
+                else:
+                    self._say_text(reply.text, allow_nonverbal=reply.allow_nonverbal,
+                                   cancel_event=cancel_event)
             barge_happened = (
                 self.barge_enabled
                 and self.listener is not None
@@ -19058,7 +19708,7 @@ class Jarvis:
                 self.gui.set_state("idle")
         return barge_happened
 
-    def _say_text(self, text: str, *, allow_nonverbal=False) -> None:
+    def _say_text(self, text: str, *, allow_nonverbal=False, cancel_event=None) -> None:
         # Постфильтр «красной черты»: промпт в brain.py её только просит.
         ok, reason = safety.check_response(text)
         if not ok:
@@ -19067,7 +19717,10 @@ class Jarvis:
                 reason,
             )
             text = safety.SAFE_REPLY
-        started = self.speaker.play_async(text, allow_nonverbal=allow_nonverbal and ok)
+        kwargs = {"allow_nonverbal": allow_nonverbal and ok}
+        if cancel_event is not None:
+            kwargs["cancel_event"] = cancel_event
+        started = self.speaker.play_async(text, **kwargs)
         if started is False:
             # Text is already visible in Dialog. Pending voice preparation must
             # not hold cmd_lock/_say_lock or replay an obsolete reply later.
@@ -20210,10 +20863,13 @@ def select_memory(query, profile_values, facts, limit=5):
 
 import logging
 import shutil
+import stat
 import sys
+import tempfile
 import urllib.request
 import zipfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath
+from typing import Callable
 
 from jarvis import paths
 
@@ -20221,6 +20877,88 @@ log = logging.getLogger("jarvis.model")
 
 MODEL_NAME = "vosk-model-small-ru-0.22"
 MODEL_URL = f"https://alphacephei.com/vosk/models/{MODEL_NAME}.zip"
+
+# Required payload of this specific Vosk model, not merely its directory names.
+REQUIRED_MODEL_FILES = (
+    "am/final.mdl",
+    "conf/mfcc.conf",
+    "conf/model.conf",
+    "graph/disambig_tid.int",
+    "graph/Gr.fst",
+    "graph/HCLr.fst",
+    "graph/phones/word_boundary.int",
+    "ivector/final.dubm",
+    "ivector/final.ie",
+    "ivector/final.mat",
+    "ivector/global_cmvn.stats",
+    "ivector/online_cmvn.conf",
+    "ivector/splice.conf",
+)
+
+
+def model_is_ready(model_dir: Path) -> bool:
+    """Reject interrupted copies/extractions and empty required files."""
+    try:
+        return all(
+            (model_dir / name).is_file() and (model_dir / name).stat().st_size > 0
+            for name in REQUIRED_MODEL_FILES
+        )
+    except OSError:
+        return False
+
+
+def _extract_model_archive(archive_path: Path, model_dir: Path) -> None:
+    """Extract only model members; reject traversal, Windows drives and links."""
+    base = model_dir.resolve()
+    with zipfile.ZipFile(archive_path) as archive:
+        for member in archive.infolist():
+            name = member.filename.replace("\\", "/")
+            parts = PurePosixPath(name).parts
+            if (not parts or parts[0] != MODEL_NAME or name.startswith("/")
+                    or any(part == ".." or ":" in part or part.endswith((" ", "."))
+                           for part in parts)
+                    or stat.S_ISLNK(member.external_attr >> 16)):
+                raise ValueError(f"Небезопасный путь в ZIP модели: {member.filename!r}")
+            if len(parts) == 1:
+                if not name.endswith("/"):
+                    raise ValueError("Корень ZIP модели должен быть папкой")
+                continue
+            target = model_dir.joinpath(*parts[1:]).resolve()
+            if not target.is_relative_to(base):
+                raise ValueError(f"Путь вне папки модели: {member.filename!r}")
+            if name.endswith("/"):
+                target.mkdir(parents=True, exist_ok=True)
+            else:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                with archive.open(member) as src, target.open("wb") as dst:
+                    shutil.copyfileobj(src, dst)
+
+
+def _publish_model(staged: Path, target: Path) -> Path:
+    """Publish a complete same-volume staging directory, restoring on failure."""
+    if not model_is_ready(staged):
+        raise RuntimeError("Модель Vosk неполная: отсутствуют обязательные файлы")
+    if model_is_ready(target):
+        return target
+
+    backup = staged.parent / "previous-model"
+    had_previous = target.exists() or target.is_symlink()
+    if had_previous:
+        target.rename(backup)
+    try:
+        staged.replace(target)
+    except OSError:
+        # A concurrent installer may already have published a complete model.
+        if model_is_ready(target):
+            return target
+        if had_previous:
+            try:
+                backup.replace(target)
+            except OSError:
+                log.exception("Не удалось вернуть предыдущий каталог модели")
+        raise
+    log.info("Модель Vosk готова: %s", target)
+    return target
 
 
 def _progress(blocks: int, block_size: int, total: int) -> None:
@@ -20237,64 +20975,52 @@ def _progress(blocks: int, block_size: int, total: int) -> None:
         pass
 
 
-def ensure_model(local_models_dir: Path | None = None) -> Path:
+def ensure_model(
+    local_models_dir: Path | None = None,
+    *,
+    reporthook: Callable[[int, int, int], None] | None = None,
+) -> Path:
     """Возвращает путь к модели Vosk в ASCII-пути. ... [4 строк]"""
     safe_dir = paths.program_models_dir() / MODEL_NAME
 
-    if safe_dir.exists() and (safe_dir / "am").exists():
+    if model_is_ready(safe_dir):
         log.info("Модель Vosk готова: %s", safe_dir)
         return safe_dir
 
-    # Если есть локальная копия (например, C:\jarvis\models\...) — копируем
-    if local_models_dir is not None:
-        local_model = local_models_dir / MODEL_NAME
-        if local_model.exists() and (local_model / "am").exists():
-            log.info("Копирую модель Vosk: %s → %s", local_model, safe_dir)
-            try:
-                if safe_dir.exists():
-                    shutil.rmtree(safe_dir)
-                shutil.copytree(local_model, safe_dir)
-                log.info("Модель скопирована")
-                return safe_dir
-            except Exception:
-                log.exception("Не удалось скопировать модель")
-
-    # Скачиваем
     safe_dir.parent.mkdir(parents=True, exist_ok=True)
-    zip_path = safe_dir.parent / f"{MODEL_NAME}.zip"
-
-    log.info("Скачиваю модель Vosk: %s", MODEL_URL)
-    try:
-        urllib.request.urlretrieve(MODEL_URL, zip_path, reporthook=_progress)
-        if sys.stdout is not None:
-            sys.stdout.write("\n")
-    except Exception:
-        log.exception("Не удалось скачать модель Vosk")
-        raise
-
-    log.info("Распаковка модели...")
-    try:
-        with zipfile.ZipFile(zip_path) as zf:
-            # В архиве одна папка vosk-model-small-ru-0.22/.
-            # Распаковываем её СОДЕРЖИМОЕ в safe_dir, без вложенности.
-            for member in zf.namelist():
-                parts = member.split("/", 1)
-                if len(parts) < 2 or not parts[1]:
-                    continue
-                target = safe_dir / parts[1]
-                if member.endswith("/"):
-                    target.mkdir(parents=True, exist_ok=True)
+    # Unique same-volume staging avoids partial final directories and shared ZIPs.
+    with tempfile.TemporaryDirectory(
+        prefix=f".{MODEL_NAME}-", dir=safe_dir.parent, ignore_cleanup_errors=True
+    ) as temp:
+        staged = Path(temp) / "model"
+        if local_models_dir is not None:
+            local_model = local_models_dir / MODEL_NAME
+            if model_is_ready(local_model):
+                log.info("Копирую модель Vosk: %s → %s", local_model, safe_dir)
+                try:
+                    shutil.copytree(local_model, staged)
+                except OSError:
+                    log.exception("Не удалось скопировать модель; пробую загрузку")
+                    if staged.exists():
+                        shutil.rmtree(staged)
                 else:
-                    target.parent.mkdir(parents=True, exist_ok=True)
-                    with zf.open(member) as src, open(target, "wb") as dst:
-                        dst.write(src.read())
-    finally:
-        zip_path.unlink(missing_ok=True)
+                    return _publish_model(staged, safe_dir)
 
-    if not safe_dir.exists():
-        raise RuntimeError(f"После распаковки не найдена папка {safe_dir}")
-    log.info("Модель готова: %s", safe_dir)
-    return safe_dir
+        zip_path = Path(temp) / "model.zip"
+        log.info("Скачиваю модель Vosk: %s", MODEL_URL)
+        try:
+            urllib.request.urlretrieve(
+                MODEL_URL, zip_path,
+                reporthook=reporthook if reporthook is not None else _progress,
+            )
+            if sys.stdout is not None:
+                sys.stdout.write("\n")
+            staged.mkdir()
+            _extract_model_archive(zip_path, staged)
+            return _publish_model(staged, safe_dir)
+        except Exception:
+            log.exception("Не удалось подготовить модель Vosk")
+            raise
 ```
 
 ### `jarvis/modes.py`
@@ -23963,9 +24689,13 @@ def _handle_task_command(cmd: str) -> str | None:
         return f"Задачу «{query}» не нашёл."
 
     # удалить одну
-    m = re.match(r"^(?:убери|удали)\s+(?:из\s+списка\s+)?(.+)$", cmd)
+    m = re.match(r"^(?:убери|удали)\s+(.+)$", cmd)
     if m:
         query = m.group(1).strip()
+        query = re.sub(r"^из\s+списка(?:\s+|$)", "", query)
+        query = re.sub(r"\s+из\s+списка$", "", query).strip()
+        if not query:
+            return "Какую задачу убрать из списка?"
         task = remove(query)
         if task:
             return f"Убрал: {task['text']}."
@@ -24130,6 +24860,7 @@ def _save(timers: list) -> None:
             raise
     except Exception:
         log.exception("Не удалось сохранить %s", path)
+        raise
 
 
 # ---------------------------------------------------------------
@@ -24206,7 +24937,13 @@ def _fire(timer_id: int) -> None:
             return
         # удаляем из файла
         timers = [t for t in timers if t["id"] != timer_id]
-        _save(timers)
+        try:
+            _save(timers)
+        except OSError:
+            # Ошибка удаления записи не должна заглушить уже наступившее
+            # напоминание. На следующем запуске оно может повториться.
+            log.warning("Таймер #%d не удалён с диска; возможен повтор после перезапуска",
+                        timer_id)
         _scheduled.pop(timer_id, None)
 
     log.info("Таймер #%d сработал: %s", timer_id, timer.get("text") or "(без текста)")
@@ -24252,7 +24989,7 @@ def add(text: str, fire_at: float) -> dict:
         }
         timers.append(timer)
         _save(timers)
-    _schedule_one(timer)
+        _schedule_one(timer)
     return timer
 
 
@@ -24261,10 +24998,12 @@ def remove_all() -> int:
     with _lock:
         timers = _load()
         count = len(timers)
+        # Сначала сохраняем отмену: при ошибке записи действующие таймеры
+        # должны остаться запланированными.
+        _save([])
         for t in _scheduled.values():
             t.cancel()
         _scheduled.clear()
-        _save([])
     return count
 
 
@@ -24319,6 +25058,14 @@ def is_cancel_all_command(cmd: str) -> bool:
 
 
 def handle_timer_command(cmd: str) -> str | None:
+    """Не подтверждает изменение, если запись напоминаний не удалась."""
+    try:
+        return _handle_timer_command(cmd)
+    except OSError:
+        return "Не удалось сохранить напоминания. Изменения не подтверждены."
+
+
+def _handle_timer_command(cmd: str) -> str | None:
     """Разбирает команды таймеров. Возвращает ответ или None."""
     # список
     if re.search(r"(какие|список|покажи)\s*(напоминани|таймер)", cmd) \
@@ -24336,7 +25083,7 @@ def handle_timer_command(cmd: str) -> str | None:
         abs_ts = _parse_absolute_time(cmd)
         if abs_ts:
             text = _extract_reminder_text(cmd)
-            t = add(text, abs_ts)
+            add(text, abs_ts)
             when = datetime.datetime.fromtimestamp(abs_ts).strftime("%H:%M")
             if text:
                 return f"Напомню в {when}: {text}."
@@ -24347,7 +25094,7 @@ def handle_timer_command(cmd: str) -> str | None:
         if dur and dur > 0:
             text = _extract_reminder_text(cmd)
             fire_at = time.time() + dur
-            t = add(text, fire_at)
+            add(text, fire_at)
             # озвучка длительности
             if dur >= 3600:
                 h = dur // 3600
@@ -24604,6 +25351,13 @@ class Speaker:
         # switch_backend из GUI не должны создавать движок одновременно.
         self._init_lock = threading.RLock()
         self._engine_ready = threading.Event()
+        self._settings_lock = threading.RLock()
+        self._settings_revision = 0
+        self._desired_settings = (self._backend, self.voice, self.quality, self.rate)
+        self._active_settings = None
+        self._settings_pending = False
+        self._settings_thread = None
+        self._settings_error = ""
 
         # Глобальное состояние воспроизведения
         self._play_thread = None
@@ -24612,6 +25366,7 @@ class Speaker:
 
         # Per-call stop-token
         self._current_token = threading.Event()
+        self._stop_serial = 0
         self._token_lock = threading.Lock()
 
         # Грузим движок
@@ -24636,14 +25391,16 @@ class Speaker:
         except Exception:
             log.exception("TTS: фоновая инициализация движка упала")
         finally:
-            self._engine_ready.set()
+            with self._settings_lock:
+                if not self._settings_pending:
+                    self._engine_ready.set()
 
     def _ensure_engine(self, timeout: float = 1.0) -> bool:
         """Bounded readiness wait only; never re-enter native initialization. ... [5 строк]"""
-        if self._engine is not None:
+        if self._engine is not None and not getattr(self, "_settings_pending", False):
             return True
         self._engine_ready.wait(max(0.0, min(float(timeout), 60.0)))
-        if self._engine is None:
+        if self._engine is None or getattr(self, "_settings_pending", False):
             log.warning("TTS: голос ещё не готов или недоступен; ответ остаётся текстовым")
             return False
         return True
@@ -24655,103 +25412,150 @@ class Speaker:
             self._init_engine_locked()
 
     def _init_engine_locked(self):
-        log.info("TTS: выбираю движок (backend=%s)", self._backend)
-        if self._backend == "silero":
-            log.info("TTS: Silero — первая загрузка может занять 1–3 минуты")
-        elif self._backend == "auto":
-            log.info("TTS: auto — пробую silero → piper → sapi")
-        engine = get_engine(self._backend, self.voice, self.quality,
-                            self.rate)
-        if engine is None:
-            log.error("TTS: ни один движок не доступен")
-            return
-        if hasattr(engine, "set_wav_player"):
-            engine.set_wav_player(self._play_wav)
-        self._engine = engine
-        self._engine_name = engine.name
-        log.info("TTS: движок %s, голос %s, скорость %.2f",
-                 self._engine_name, self.voice, self.rate)
+        with self._settings_lock:
+            revision = self._settings_revision
+            settings = self._desired_settings
+        engine = self._load_settings(settings)
+        with self._settings_lock:
+            # A slow initial download must never overwrite a newer GUI request.
+            if revision == self._settings_revision:
+                if engine is not None:
+                    self._publish_engine(engine, settings)
+                    self._desired_settings = self._active_settings
+                    active = self._active_settings
+                else:
+                    self._settings_error = "Движок не загрузился. Проверьте модель и журнал ошибок."
+        if engine is not None and revision == self._settings_revision:
+            self._rollback_config(settings, active)
 
-    def switch_backend(self, backend: str) -> bool:
-        """Переключить движок на лету."""
-        backend = normalize_backend(backend)
-        if backend == self._backend and self._engine is not None:
-            return True
-
-        # Сброс кэша голосов — при смене backend голоса другие.
-        try:
-            from jarvis import voices as _voices
-            _voices._VOICES_CACHE.clear()
-        except Exception:
-            pass
-
-        old_backend = self._backend
-        self._backend = backend
-        if not self._recreate_engine():
-            # Возвращаем прежнее имя backend, а не имя загруженного
-            # движка: иначе из «auto» в настройках оседало «silero».
-            self._backend = old_backend
-            return False
-        return True
-
-    def set_quality(self, quality: str) -> bool:
-        """Смена качества голоса: читается только при создании движка. ... [4 строк]"""
-        quality = quality if quality in ("medium", "high") else "medium"
-        if quality == self.quality and self._engine is not None:
-            return True
-        self.quality = quality
-        if self._engine is None:
-            return True  # подхватится при ленивом создании
-        return self._recreate_engine()
-
-    def _recreate_engine(self) -> bool:
-        """Serialize engine replacement; never block GUI behind pending init."""
-        if not self._init_lock.acquire(blocking=False):
-            log.warning("TTS: текущий движок ещё готовится; смена в этом запуске не выполнена")
-            return False
-        try:
-            old_name = self._engine_name
-            self.stop()
-            if not self.wait_end(timeout=2.0):
-                log.warning("TTS: предыдущая озвучка не завершилась; движок не заменён")
-                return False
-            engine = get_engine(self._backend, self.voice, self.quality, self.rate)
-            if engine is None:
-                log.warning("TTS: не удалось пересоздать движок %s", self._backend)
-                return False
+    def _load_settings(self, settings):
+        backend, voice, quality, rate = settings
+        log.info("TTS: подготовка backend=%s, voice=%s, quality=%s", backend, voice, quality)
+        engine = get_engine(backend, voice, quality, rate)
+        if engine is not None:
             if hasattr(engine, "set_wav_player"):
                 engine.set_wav_player(self._play_wav)
-            self._engine = engine
-            self._engine_name = engine.name
-            self._engine_ready.set()
-            log.info("TTS: движок пересоздан %s → %s (quality=%s)",
-                     old_name, self._engine_name, self.quality)
-            return True
-        finally:
-            self._init_lock.release()
+            engine.set_rate(rate)
+        return engine
 
-    # ------------------------------------------------------------------
-    # Сеттеры (для Config.subscribe)
-    # ------------------------------------------------------------------
+    def _publish_engine(self, engine, settings):
+        backend, voice, quality, rate = settings
+        self._engine = engine
+        self._engine_name = engine.name
+        self._backend, self.voice, self.quality, self.rate = settings
+        # Engine constructors may normalize a voice from a different backend.
+        self.voice = getattr(engine, "voice", voice)
+        self._active_settings = (backend, self.voice, quality, rate)
+        log.info("TTS: готов движок %s, голос %s, скорость %.2f",
+                 self._engine_name, self.voice, self.rate)
+
+    def configuration_status(self):
+        """Read-only status; no downloads, engine calls, joins or native locks."""
+        with self._settings_lock:
+            return {"pending": self._settings_pending or not self._engine_ready.is_set(),
+                    "error": self._settings_error, "backend": self._engine_name,
+                    "voice": self.voice, "revision": self._settings_revision}
+
+    def _request_settings(self, **changes):
+        """Coalesce GUI edits into one loader. True means accepted, not ready."""
+        keys = ("backend", "voice", "quality", "rate")
+        with self._settings_lock:
+            settings = dict(zip(keys, self._desired_settings))
+            settings.update(changes)
+            wanted = tuple(settings[k] for k in keys)
+            if wanted == self._desired_settings and (self._settings_pending or self._engine is not None):
+                return True
+            self._desired_settings = wanted
+            self._settings_revision += 1
+            self._settings_pending = True
+            self._settings_error = ""
+            self._engine_ready.clear()
+            # Cancels a preview immediately, even while a model is loading.
+            self.stop()
+            if self._settings_thread is None:
+                worker = threading.Thread(target=self._settings_worker,
+                                          daemon=True, name="tts-settings")
+                self._settings_thread = worker
+                try:
+                    worker.start()
+                except Exception:
+                    self._settings_thread = None
+                    self._settings_pending = False
+                    self._settings_error = "Не удалось запустить подготовку голоса."
+                    self._engine_ready.set()
+                    if self._active_settings is not None:
+                        self._desired_settings = self._active_settings
+                        self._rollback_config(wanted, self._active_settings)
+                    log.exception("TTS: не удалось запустить tts-settings")
+                    return False
+        return True
+
+    def _settings_worker(self):
+        # Waits for the initial loader here, never in a GUI/config callback.
+        with self._init_lock:
+            while True:
+                with self._settings_lock:
+                    revision = self._settings_revision
+                    wanted = self._desired_settings
+                engine = None
+                error = ""
+                try:
+                    if not self.wait_end(timeout=2.0):
+                        error = "Предыдущая озвучка ещё завершается. Повторите выбор после остановки."
+                    else:
+                        engine = self._load_settings(wanted)
+                        if engine is None:
+                            error = "Движок не загрузился. Проверьте модель и журнал ошибок."
+                except Exception:
+                    error = "Не удалось подготовить голос. Подробности в журнале."
+                    log.exception("TTS: ошибка фоновой смены настроек")
+                with self._settings_lock:
+                    if revision != self._settings_revision:
+                        continue  # superseded result must never become active
+                    if engine is not None:
+                        self._publish_engine(engine, wanted)
+                    self._settings_error = error
+                    self._settings_pending = False
+                    self._engine_ready.set()
+                    self._settings_thread = None
+                    active = self._active_settings
+                    # Retain last working runtime if replacement failed.
+                    if active is not None:
+                        self._desired_settings = active
+                if active is not None:
+                    self._rollback_config(wanted, active)
+                return
+
+    def _rollback_config(self, wanted, active):
+        """CAS protects a newer user edit while rolling back a failed request."""
+        keys = ("tts_backend", "tts_voice", "tts_voice_quality", "voice_rate")
+        update = getattr(self._config, "update", None)
+        if wanted == active:
+            return
+        if update is not None and not isinstance(self._config, dict):
+            try:
+                update(dict(zip(keys, active)), expected_values=dict(zip(keys, wanted)))
+            except Exception:
+                log.exception("TTS: не удалось вернуть настройки после отказа движка")
+
+    def switch_backend(self, backend: str) -> bool:
+        return self._request_settings(backend=normalize_backend(backend))
+
+    def set_quality(self, quality: str) -> bool:
+        return self._request_settings(quality=quality if quality in ("medium", "high") else "medium")
+
+    def _recreate_engine(self) -> bool:
+        # Compatibility for callers that explicitly request a reload.
+        if not self._init_lock.acquire(blocking=False):
+            return False
+        self._init_lock.release()
+        return self._request_settings()
 
     def set_voice(self, voice: str) -> None:
-        if voice == self.voice:
-            return
-        log.info("TTS: голос %s → %s", self.voice, voice)
-        self.voice = voice
-        if self._engine is not None:
-            try:
-                self._engine.set_voice(voice)
-            except Exception:
-                log.exception("TTS: не удалось сменить голос на %s", voice)
+        self._request_settings(voice=voice)
 
     def set_rate(self, rate: float) -> None:
-        self.rate = float(rate)
-        if self._engine is not None:
-            try:
-                self._engine.set_rate(self.rate)
-            except Exception:
-                log.exception("TTS: не удалось сменить скорость")
+        self._request_settings(rate=float(rate))
 
     # ------------------------------------------------------------------
     # Stop-token
@@ -24772,7 +25576,8 @@ class Speaker:
             return path
         return None
 
-    def _new_token(self, allow_nonverbal=False) -> threading.Event:
+    def _new_token(self, allow_nonverbal=False, *, cancel_event=None,
+                   expected_serial=None) -> threading.Event | None:
         path = getattr(self, "_echo_path", None)
         if path is not None:
             if getattr(path, "diagnostic_mode", False) is True:
@@ -24780,7 +25585,11 @@ class Speaker:
             if self._pcm_echo_path() is None:
                 path.suspend_render()
         with self._token_lock:
-            self._current_token = threading.Event()
+            if (expected_serial is not None and self._stop_serial != expected_serial):
+                return None
+            if cancel_event is not None and cancel_event.is_set():
+                return None
+            self._current_token = cancel_event if cancel_event is not None else threading.Event()
             policy = getattr(self, "_nonverbal", None)
             if policy is not None:
                 policy.begin(self._current_token, allow_nonverbal)
@@ -24795,37 +25604,27 @@ class Speaker:
     # ------------------------------------------------------------------
 
     def speak(self, text: str, *, allow_nonverbal=False) -> None:
-        """Синхронная озвучка (для тестов и скриптов)."""
-        if not text:
-            return
-        text = prepare_text(text)
-        if not self._ensure_engine():
-            return
-        token = self._new_token(allow_nonverbal)
-        try:
-            if self._engine_name == "sapi":
-                # SAPI играет сам, через стриминг с одним куском.
-                list(self._engine.speak_stream(iter([text]),
-                                               self.voice, self.rate, token))
-                return
-            wav = self._engine.synthesize(text, self.voice, self.rate)
-            # Раньше байты просто выбрасывались — speak() не играл звук
-            # ни на одном движке (SAPI-ветка была недостижима: hasattr
-            # ловил его NotImplementedError раньше проверки имени).
-            if wav:
-                self._play_wav(wav, token)
-        except Exception:
-            log.exception("TTS: ошибка в speak()")
+        """Synchronous facade using the same tracked, cancellable playback worker."""
+        if self.play_async(text, allow_nonverbal=allow_nonverbal):
+            if not self.wait_end(timeout=120.0):
+                self.stop()
+                self.wait_end(timeout=2.0)
 
-    def play_async(self, text: str, *, allow_nonverbal=False) -> bool:
+    def play_async(self, text: str, *, allow_nonverbal=False, cancel_event=None) -> bool:
         """Асинхронная озвучка одного текста."""
         if not text:
             return False
         text = prepare_text(text)
+        serial = getattr(self, "_stop_serial", None)
+        if cancel_event is not None and cancel_event.is_set():
+            return False
         if not self._ensure_engine():
             return False
+        if serial is not None and serial != self._stop_serial:
+            return False  # stop/change happened during readiness wait
 
         self.stop()
+        expected = serial + 1 if serial is not None else None
         finished = self.wait_end(timeout=2.0)
         if not finished:
             log.warning(
@@ -24834,19 +25633,25 @@ class Speaker:
             )
             return False
 
-        token = self._new_token(allow_nonverbal)
+        token = self._new_token(allow_nonverbal, cancel_event=cancel_event,
+                                expected_serial=expected)
+        if token is None:
+            return False
+        engine, engine_name, voice, rate = self._engine, self._engine_name, self.voice, self.rate
         with self._play_lock:
             self._playing = True
 
         def _run():
             try:
                 # SAPI играет сам, у него нет synthesize
-                if self._engine_name == "sapi":
-                    list(self._engine.speak_stream(
-                        iter([text]), self.voice, self.rate, token
+                if token.is_set():
+                    return
+                if engine_name == "sapi":
+                    list(engine.speak_stream(
+                        iter([text]), voice, rate, token
                     ))
                 else:
-                    wav = self._engine.synthesize(text, self.voice, self.rate)
+                    wav = engine.synthesize(text, voice, rate)
                     if wav and not token.is_set():
                         self._play_wav(wav, token)
             except Exception:
@@ -24864,14 +25669,22 @@ class Speaker:
     def speak_stream(self, text_iter: Iterator[str],
                      timeout: float = 30.0, *, allow_nonverbal=False) -> str:
         """Стриминг: озвучивает по предложениям. ... [3 строк]"""
+        serial = getattr(self, "_stop_serial", None)
         if not self._ensure_engine():
             # Просто вычитываем генератор, чтобы ничего не зависло
             return "".join(text_iter)
+        if serial is not None and serial != self._stop_serial:
+            return "".join(text_iter)
 
         self.stop()
-        self.wait_end(timeout=1.0)
+        if not self.wait_end(timeout=1.0):
+            return "".join(text_iter)
 
-        token = self._new_token(allow_nonverbal)
+        token = self._new_token(allow_nonverbal,
+                                expected_serial=serial + 1 if serial is not None else None)
+        if token is None:
+            return "".join(text_iter)
+        engine, voice, rate = self._engine, self.voice, self.rate
         with self._play_lock:
             self._playing = True
             # Публикуем поток: иначе is_playing()/wait_end() во время
@@ -24880,8 +25693,8 @@ class Speaker:
             self._play_thread = threading.current_thread()
 
         try:
-            return self._engine.speak_stream(
-                text_iter, self.voice, self.rate, token
+            return engine.speak_stream(
+                text_iter, voice, rate, token
             )
         except Exception:
             log.exception("TTS: ошибка в speak_stream")
@@ -24893,10 +25706,12 @@ class Speaker:
     def stop(self) -> None:
         """Взводит текущий токен. Старые — не трогает."""
         with self._token_lock:
+            self._stop_serial = getattr(self, "_stop_serial", 0) + 1
             token = self._current_token
-        if not token.is_set():
+            was_stopped = token.is_set()
+            token.set()
+        if not was_stopped:
             log.info("TTS: прерывание")
-        token.set()
         if self._engine is not None:
             try:
                 self._engine.stop()
@@ -24922,6 +25737,8 @@ class Speaker:
             with self._play_lock:
                 self._playing = False
             return True
+        if thread is threading.current_thread():
+            return False
         thread.join(timeout=timeout)
         finished = not thread.is_alive()
         if finished:
@@ -25145,7 +25962,7 @@ def get_engine(backend: str, voice: str, quality: str = "medium",
 
 # Кэш созданных движков: (name, voice) → engine.
 # Не создаём каждый раз — Silero грузит модель, Piper тянет HF.
-_ENGINE_CACHE: dict[tuple[str, str], object] = {}
+_ENGINE_CACHE: dict[tuple[str, str, str], object] = {}
 
 
 def _try_create(name: str, voice: str, quality: str, rate: float):
@@ -25155,7 +25972,7 @@ def _try_create(name: str, voice: str, quality: str, rate: float):
     if voice == "":
         return _probe_engine(name)
 
-    key = (name, voice or "")
+    key = (name, voice or "", quality)
     if key in _ENGINE_CACHE:
         return _ENGINE_CACHE[key]
 
@@ -25375,121 +26192,186 @@ class PiperEngine(BaseEngine):
 ### `jarvis/tts_engines/sapi.py`
 
 ```python
-"""SAPI TTS — старый Windows-синтез через pyttsx3. ... [3 строк]"""
-
+"""Windows SAPI: all pyttsx3/COM calls belong to one dedicated thread."""
 import logging
+import queue
 import re
+import sys
+import threading
+import time
 
 log = logging.getLogger("jarvis.tts")
-
 _SENTENCE_END = re.compile(r"[.!?…]+\s+")
 
 
 class SAPIEngine:
     name = "sapi"
-
-    voices = {
-        "auto":   "Авто (системный SAPI)",
-        "Pavel":  "Павел",
-        "Irina":  "Ирина",
-    }
-
+    voices = {"auto": "Авто (системный SAPI)", "Pavel": "Павел", "Irina": "Ирина"}
     default_quality = "medium"
     default_rate = 1.15
 
-    def __init__(self, voice: str = "auto", quality: str = "medium",
-                 rate: float = 1.15):
-        import pyttsx3
-        self._engine = pyttsx3.init()
+    def __init__(self, voice="auto", quality="medium", rate=1.15):
         self.voice = voice if voice in self.voices else "auto"
-        self.quality = quality
-        self.rate = float(rate)
-        self._pick_voice()
+        self.quality, self.rate = quality, float(rate)
+        self._requests = queue.Queue()
+        self._ready = threading.Event()
+        self._cancel_lock = threading.Lock()
+        self._cancel = threading.Event()
+        self._error = None
+        self._engine = None
+        self._thread = threading.Thread(target=self._owner, daemon=True, name="sapi-owner")
+        self._thread.start()
+        if not self._ready.wait(10):
+            raise RuntimeError("SAPI: инициализация не завершилась за 10 секунд")
+        if self._error is not None:
+            raise RuntimeError("SAPI: не удалось создать системный голос") from self._error
 
-    def _pick_voice(self):
+    def _owner(self):
+        com = None
         try:
-            for v in self._engine.getProperty("voices"):
-                ident = f"{v.id} {v.name}".lower()
-                hint = self.voice.lower() if self.voice != "auto" else "ru"
-                if hint in ident or "ru" in ident or "irina" in ident:
-                    self._engine.setProperty("voice", v.id)
-                    log.info("SAPI: голос %s", v.name)
-                    break
-        except Exception:
-            log.exception("SAPI: не удалось выбрать голос")
+            if sys.platform == "win32":
+                import comtypes
+                com = comtypes
+                com.CoInitialize()
+            import pyttsx3
+            self._engine = pyttsx3.Engine()  # never share pyttsx3.init()'s global cache
+            self._pick_voice(self.voice)
+            self._ready.set()
+            while True:
+                request = self._requests.get()
+                if request is None:
+                    return
+                text, voice, rate, token, cancelled, done, errors = request
+                try:
+                    if token.is_set() or cancelled.is_set():
+                        continue
+                    self._pick_voice(voice)
+                    wpm = int(round(200 * max(0.3, min(3.0, float(rate)))))
+                    self._engine.setProperty("rate", wpm)
+                    self._engine.say(text)
+                    loop_started = False
+                    try:
+                        self._engine.startLoop(False)
+                        loop_started = True
+                        deadline = time.monotonic() + 120.0
+                        while True:
+                            if token.is_set() or cancelled.is_set():
+                                self._engine.stop()
+                                break
+                            self._engine.iterate()  # pumps SAPI events on its COM owner
+                            if not self._engine.isBusy():
+                                break
+                            if time.monotonic() >= deadline:
+                                self._engine.stop()
+                                raise TimeoutError("SAPI: превышено время одной фразы")
+                            time.sleep(.01)
+                    finally:
+                        if loop_started:
+                            self._engine.endLoop()
+                except Exception as exc:
+                    errors.append(exc)
+                    try:
+                        self._engine.stop()
+                    except Exception:
+                        pass
+                    log.exception("SAPI: ошибка озвучки")
+                finally:
+                    done.set()
+        except Exception as exc:
+            self._error = exc
+            self._ready.set()
+            log.exception("SAPI: ошибка потока-владельца")
+        finally:
+            if self._engine is not None:
+                try:
+                    self._engine.stop()
+                except Exception:
+                    pass
+            if com is not None:
+                com.CoUninitialize()
 
-    def is_available(self) -> bool:
-        return self._engine is not None
+    def _pick_voice(self, voice):
+        """Called only from sapi-owner, never from GUI or the speaking caller."""
+        available = self._engine.getProperty("voices")
+        hint = voice.lower() if voice != "auto" else "ru"
+        preferred = [v for v in available if hint in f"{v.id} {v.name}".lower()]
+        fallback = [v for v in available if any(
+            part in f"{v.id} {v.name}".lower() for part in ("ru", "irina"))]
+        for v in (preferred or fallback)[:1]:
+            self._engine.setProperty("voice", v.id)
+            log.info("SAPI: голос %s", v.name)
 
-    def set_voice(self, voice: str):
+    def is_available(self):
+        return self._ready.is_set() and self._error is None and self._thread.is_alive()
+
+    def set_voice(self, voice):
         if voice in self.voices:
             self.voice = voice
-            self._pick_voice()
 
-    def set_rate(self, rate: float):
+    def set_rate(self, rate):
         self.rate = float(rate)
 
-    def synthesize(self, text: str, voice: str | None = None,
-                   rate: float | None = None) -> bytes:
-        """SAPI играет напрямую — байты не возвращаем."""
+    def synthesize(self, text, voice=None, rate=None):
         raise NotImplementedError("SAPI не поддерживает synthesize()")
 
-    def speak_stream(self, text_iter, voice: str, rate: float,
-                     token) -> str:
-        """SAPI воспроизводит напрямую, без WAV-обёртки."""
-        from jarvis.text_utils import prepare_text
-
-        buffer = ""
-        full_parts = []
-
-        def _flush(force: bool = False):
+    def speak_stream(self, text_iter, voice, rate, token):
+        buffer, full_parts = "", []
+        def flush(force=False):
             nonlocal buffer
             while True:
-                m = _SENTENCE_END.search(buffer)
-                if not m:
+                match = _SENTENCE_END.search(buffer)
+                if not match:
                     break
-                sent = buffer[:m.end()].strip()
-                buffer = buffer[m.end():]
-                if sent and not token.is_set():
-                    self._say(sent, rate)
+                sentence = buffer[:match.end()].strip()
+                buffer = buffer[match.end():]
+                if sentence and not token.is_set():
+                    self._say(sentence, rate, token, voice)
             if force and buffer.strip() and not token.is_set():
-                self._say(buffer.strip(), rate)
+                self._say(buffer.strip(), rate, token, voice)
                 buffer = ""
-
         for chunk in text_iter:
+            if token.is_set():
+                break
             if chunk:
                 full_parts.append(chunk)
                 buffer += chunk
-            if token.is_set():
-                break
-            _flush()
+            flush()
         if not token.is_set():
-            _flush(force=True)
+            flush(True)
         return "".join(full_parts).strip()
 
-    def _say(self, sentence: str, rate: float):
+    def _say(self, sentence, rate, token=None, voice=None):
         from jarvis.text_utils import prepare_text
-
         text = prepare_text(sentence)
         if not text.strip().strip("\u200b\u200c\u200d\ufeff\u00ad"):
             return
-        try:
-            # pyttsx3/SAPI5 ждёт «слов в минуту» (база 200), а speaker
-            # передаёт множитель 0.5–2.0. Прежняя формула int((rate-1)*100)
-            # при rate≈1 давала 0 → math domain error внутри драйвера →
-            # каждое предложение пропускалось молча.
-            wpm = int(round(200 * max(0.3, min(3.0, float(rate)))))
-            self._engine.setProperty("rate", wpm)
-            self._engine.say(text)
-            self._engine.runAndWait()
-        except Exception:
-            log.exception("SAPI: ошибка озвучки")
+        token = token if token is not None else threading.Event()
+        done, cancelled, errors = threading.Event(), threading.Event(), []
+        with self._cancel_lock:
+            self._cancel = cancelled
+            if token.is_set():
+                return
+            self._requests.put((text, voice or self.voice, rate, token, cancelled, done, errors))
+        # Do not report completion while the COM owner still has active audio.
+        deadline = time.monotonic() + 125.0
+        while not done.wait(.05):
+            if self._error is not None or not self._thread.is_alive():
+                raise RuntimeError("SAPI: поток-владелец завершился")
+            if time.monotonic() >= deadline:
+                cancelled.set()
+                token.set()
+                # Cancellation is not proof that native audio has ended. Keep
+                # this worker alive until owner acknowledgement, so Speaker will
+                # reject overlapping playback/replacement rather than fake success.
+                log.error("SAPI: нет подтверждения остановки; новая озвучка заблокирована")
+                deadline = float("inf")
+        if errors:
+            raise RuntimeError("SAPI: системная озвучка завершилась с ошибкой") from errors[0]
 
     def stop(self):
-        try:
-            self._engine.stop()
-        except Exception:
-            pass
+        # No cross-thread COM/pyttsx3 calls and no joins on the GUI thread.
+        with self._cancel_lock:
+            self._cancel.set()
 ```
 
 ### `jarvis/tts_engines/silero.py`
@@ -25590,11 +26472,23 @@ class SileroEngine(BaseEngine):
 
             t0 = time.time()
             try:
+                # GUI/native workers must never read a trust answer from stdin.
+                # Honor persisted explicit consent; do not silently trust a new repo.
+                from pathlib import Path
+                trusted = Path(self._torch.hub.get_dir()) / "trusted_list"
+                entries = trusted.read_text(encoding="utf-8").splitlines() if trusted.is_file() else []
+                if "snakers4_silero-models" not in entries:
+                    raise RuntimeError(
+                        "Silero: требуется однократное подтверждение доверия "
+                        "snakers4/silero-models. В автономной сборке запустите "
+                        "Феникс.exe --prepare-silero; для исходников см. docs/TTS_LIFECYCLE_FIX.md"
+                    )
                 model, _ = self._torch.hub.load(
                     repo_or_dir="snakers4/silero-models",
                     model="silero_tts",
                     language="ru",
                     speaker=_VERSION,
+                    trust_repo=True,  # only after verifying stored user consent above
                 )
             except Exception:
                 log.exception("Silero TTS: torch.hub не справился")
@@ -28502,6 +29396,550 @@ if __name__ == "__main__":
     build()
 ```
 
+### `scripts/build_nuitka.py`
+
+```python
+"""Build the Windows bootstrap launcher with Nuitka, not the complete runtime. ... [5 строк]"""
+
+import argparse
+from importlib.metadata import PackageNotFoundError, version
+import platform
+import shutil
+import struct
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+BASE = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(BASE))
+
+from scripts.build_exe import check_bootstrap_ui
+from scripts.release_payload import collect_payload
+
+EXE_NAME = "Феникс.exe"
+
+
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--mode", choices=("standalone", "onefile"), default="standalone")
+    parser.add_argument("--compiler", choices=("auto", "msvc", "mingw64"), default="auto")
+    parser.add_argument("--jobs", type=int, default=2)
+    parser.add_argument("--console", action="store_true", help="Keep console for startup diagnostics")
+    parser.add_argument("--check", action="store_true", help="Resource/command preflight only")
+    args = parser.parse_args(argv)
+    if not 1 <= args.jobs <= 64:
+        parser.error("--jobs must be between 1 and 64")
+    return args
+
+
+def build_directory(root, mode):
+    return Path(root) / "build" / f"nuitka-{mode}"
+
+
+def command(args, root=BASE):
+    root = Path(root).resolve()
+    output = build_directory(root, args.mode)
+    cmd = [
+        sys.executable, "-m", "nuitka",
+        f"--mode={args.mode}",
+        "--enable-plugin=tk-inter",
+        f"--output-dir={output}",
+        f"--output-filename={EXE_NAME}",
+        f"--windows-icon-from-ico={root / 'jarvis' / 'icon.ico'}",
+        f"--windows-console-mode={'force' if args.console else 'disable'}",
+        f"--report={output / 'compilation-report.xml'}",
+        f"--jobs={args.jobs}",
+        "--assume-yes-for-downloads",
+    ]
+    if args.compiler == "msvc":
+        cmd.append("--msvc=latest")
+    elif args.compiler == "mingw64":
+        cmd.append("--mingw64")
+    cmd.append(str(root / "launcher.py"))
+    return cmd
+
+
+def validate_environment():
+    if platform.system() != "Windows":
+        raise RuntimeError("Windows EXE must be built on Windows; --check works on other platforms.")
+    if sys.version_info[:2] != (3, 11) or struct.calcsize("P") != 8:
+        raise RuntimeError("Use official Python 3.11 x64 with Tcl/Tk to build this launcher.")
+    try:
+        version("Nuitka")
+    except PackageNotFoundError as exc:
+        raise RuntimeError("Install requirements-nuitka.txt in the isolated build environment.") from exc
+    check_bootstrap_ui()
+
+
+def publish(root, mode):
+    """Stage a complete public distribution, never only the EXE or private data."""
+    root = Path(root).resolve()
+    files = collect_payload(root, include_exe=False)
+    output = build_directory(root, mode)
+    native = output / "launcher.dist" if mode == "standalone" else output
+    executable = native / EXE_NAME
+    if not executable.is_file() or not executable.stat().st_size:
+        raise RuntimeError(f"Nuitka did not produce {executable}")
+
+    destination = root / "dist" / f"nuitka-{mode}"
+    if destination.is_symlink() or (destination.exists() and not destination.is_dir()):
+        raise RuntimeError("Build destination must be a regular builder-owned directory.")
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    staged = Path(tempfile.mkdtemp(prefix=f"nuitka-{mode}-", dir=destination.parent))
+    try:
+        if mode == "standalone":
+            shutil.copytree(native, staged, dirs_exist_ok=True)
+        else:
+            shutil.copy2(executable, staged / EXE_NAME)
+        for name in files:
+            target = staged / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(root / name, target)
+        if destination.exists():
+            shutil.rmtree(destination)
+        staged.replace(destination)
+    finally:
+        if staged.exists():
+            shutil.rmtree(staged)
+    return destination / EXE_NAME
+
+
+def main(argv=None):
+    args = parse_args(argv)
+    try:
+        files = collect_payload(BASE, include_exe=False)
+        cmd = command(args)
+        print(f"Public payload: {len(files)} files; mode={args.mode}")
+        print(subprocess.list2cmdline(cmd), flush=True)
+        if args.check:
+            print("Preflight OK. No compilation, Windows validation or downloads performed.")
+            return 0
+        validate_environment()
+        output = build_directory(BASE, args.mode)
+        if output.is_symlink():
+            raise RuntimeError("Nuitka output must not be a symlink.")
+        output.mkdir(parents=True, exist_ok=True)
+        print("Nuitka may download compiler/cache tools. This builds the launcher only.", flush=True)
+        subprocess.run(cmd, cwd=BASE, check=True)
+        executable = publish(BASE, args.mode)
+        print(f"Ready: {executable}")
+        print("Keep the entire distribution folder; the assistant still uses .venv311.")
+        return 0
+    except subprocess.CalledProcessError as exc:
+        print(f"Nuitka failed with exit code {exc.returncode}", file=sys.stderr)
+        return exc.returncode or 1
+    except (OSError, RuntimeError, ValueError) as exc:
+        print(f"Build error: {exc}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+
+### `scripts/build_nuitka_app.py`
+
+```python
+"""Build the complete Windows application and its installer, not launcher.py."""
+import argparse
+import hashlib
+import importlib.metadata as metadata
+import importlib.util
+import json
+import os
+from pathlib import Path
+import platform
+import re
+import shutil
+import struct
+import subprocess
+import sys
+import tempfile
+import uuid
+import xml.etree.ElementTree as ET
+
+BASE = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(BASE))
+from scripts.build_setup import find_iscc, validate_version
+from scripts.release_payload import collect_payload
+
+EXE = "Феникс.exe"
+SETUP = "Феникс_Nuitka_Setup.exe"
+INCLUDES = (
+    "--include-package=jarvis", "--include-module=pyttsx3.drivers.sapi5",
+    "--include-package=winrt", "--include-package=comtypes", "--include-package=piper",
+    "--include-package=pystray", "--include-package=omegaconf", "--include-package=pymorphy3_dicts_ru",
+    "--include-module=flet_desktop", "--include-module=flet_desktop.win_taskbar",
+    # flet.controls.material.icons импортируется динамически и без пакета целиком
+    # падает уже в self-test: ModuleNotFoundError 'flet.controls.material.icons'.
+    "--include-package=flet",
+    "--include-module=scripts.check_caps", "--include-module=onnxruntime",
+    "--include-module=torchaudio", "--include-module=yaml",
+    "--include-module=torch", "--include-module=faster_whisper", "--include-module=ctranslate2",
+)
+DATA_PACKAGES = ("flet", "flet_desktop", "certifi", "pymorphy3_dicts_ru", "onnxruntime", "piper",
+                 # winrt 4 читает таблицу проекций _table.pywinrt рядом с модулем;
+                 # без её данных self-test падает на winrt.windows.media.control.
+                 "winrt")
+REQUIRES = ("vosk", "faster_whisper", "ctranslate2", "sounddevice", "numpy", "piper",
+            "pyttsx3", "winrt", "flet", "flet_desktop", "torch", "torchaudio", "onnxruntime",
+            "pymorphy3", "pymorphy3_dicts_ru", "certifi", "omegaconf")
+EXCLUDE_METADATA = {"pip", "setuptools", "wheel", "nuitka", "ordered-set", "zstandard",
+                    "pytest", "pytest-asyncio", "iniconfig", "pluggy"}
+
+# Тестовые модули torch не нужны в работе приложения и валят gcc: на
+# torch.testing._internal.common_methods_invocations cc1 падает с
+# 'out of memory'. Пакет torch.testing._internal целиком исключать нельзя:
+# torch/utils/checkpoint.py безусловно импортирует logging_tensor.
+NOFOLLOW = ("pip", "pytest", "_pytest", "tests", "*.tests", "comtypes.test",
+            "torch.testing._internal.common_methods_invocations",
+            "torch.testing._internal.common_utils",
+            "torch.testing._internal.common_modules",
+            "torch.testing._internal.common_nn",
+            "torch.testing._internal.common_optimizers",
+            "torch.testing._internal.common_quantization",
+            "torch.testing._internal.opinfo",
+            "torch.testing._internal.distributed")
+
+
+# Forced metadata is not an inventory of the build environment. Nuitka rejects
+# metadata when its associated import was pruned (e.g. docopt, pypiwin32).
+# Only these explicitly included packages need an unconditional version record.
+# Other dependencies use Nuitka's normal metadata dependency detection.
+FORCED_METADATA = frozenset(("flet", "flet-desktop", "torch"))
+
+
+def metadata_arguments(distributions):
+    installed = {re.sub(r"[-_.]+", "-", name).lower() for name in distributions}
+    return [f"--include-distribution-metadata={name}"
+            for name in sorted(installed & FORCED_METADATA)]
+
+
+def args_for(argv=None):
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument("--check", action="store_true")
+    p.add_argument("--console", action="store_true")
+    p.add_argument("--compiler", choices=("auto", "msvc", "mingw64"), default="auto")
+    p.add_argument("--jobs", type=int, default=2)
+    p.add_argument("--low-memory", action="store_true", help="Use Nuitka low-memory compilation options")
+    p.add_argument("--version", default="2.1.2")
+    p.add_argument("--no-setup", action="store_true")
+    p.add_argument("--skip-compile", action="store_true",
+                   help="Reuse the existing standalone output; only verify, publish and install")
+    p.add_argument("--sandbox", action="store_true", help="Prepare and open offline Windows Sandbox after setup")
+    args = p.parse_args(argv)
+    if not 1 <= args.jobs <= 64:
+        p.error("--jobs must be 1..64")
+    validate_version(args.version)
+    if args.sandbox and args.no_setup:
+        p.error("--sandbox requires an installer")
+    return args
+
+
+def resources(root):
+    files = collect_payload(root, include_exe=False)
+    roots = {"jarvis/icon.ico", "LICENSE", "config.example.json", "docs/USER_GUIDE.md", "docs/FULL_NUITKA_BUILD.md"}
+    return [name for name in files if name in roots or name.startswith(
+        ("jarvis/assets/", "jarvis/sounds/", "assets/nonverbal/", "packs/"))]
+
+
+def command(args, root=BASE, *, distributions=()):
+    root = Path(root).resolve()
+    output = root / "build/nuitka-app"
+    cmd = [sys.executable, "-m", "nuitka", "--mode=standalone", "--enable-plugin=tk-inter",
+           "--python-flag=isolated", "--python-flag=no_site", "--file-reference-choice=runtime",
+           "--module-parameter=torch-disable-jit=no", "--nofollow-import-to=" + ",".join(NOFOLLOW),
+           f"--output-dir={output}", f"--output-filename={EXE}",
+           f"--windows-icon-from-ico={root / 'jarvis/icon.ico'}",
+           f"--windows-console-mode={'force' if args.console else 'disable'}",
+           f"--report={output / 'compilation-report.xml'}", f"--jobs={args.jobs}",
+           "--assume-yes-for-downloads", *INCLUDES]
+    cmd.extend(f"--include-package-data={name}" for name in DATA_PACKAGES)
+    cmd.extend(metadata_arguments(distributions))
+    cmd.extend(f"--include-data-files={root / name}={name}" for name in resources(root))
+    if args.low_memory:
+        cmd.append("--low-memory")
+    if args.compiler == "msvc":
+        cmd.append("--msvc=latest")
+    elif args.compiler == "mingw64":
+        cmd.append("--mingw64")
+    cmd.append(str(root / "phoenix_app.py"))
+    return cmd
+
+
+def validate_environment():
+    if sys.platform != "win32":
+        raise RuntimeError("A Windows build host is required. --check only validates the plan on Linux.")
+    if sys.version_info[:2] != (3, 11) or struct.calcsize("P") != 8:
+        raise RuntimeError("Build with CPython 3.11 x64")
+    if metadata.version("Nuitka") != "4.3.1":
+        raise RuntimeError("Install requirements-nuitka-app.txt in the isolated build environment")
+    missing = [name for name in REQUIRES if importlib.util.find_spec(name) is None]
+    if missing:
+        raise RuntimeError("Missing builder dependencies: " + ", ".join(missing))
+    if metadata.version("flet") != metadata.version("flet-desktop"):
+        raise RuntimeError("Flet and flet-desktop versions differ")
+    import tkinter
+    tkinter.Tcl().eval("info patchlevel")
+
+
+
+TORCH_PROBE_CODE = r"""
+import io
+import json
+from importlib.metadata import version, requires
+from packaging.requirements import Requirement
+from packaging.version import Version
+import torch
+import torchaudio
+
+torch_version, audio_version = version("torch"), version("torchaudio")
+torch_requirements = []
+for raw in requires("torchaudio") or ():
+    requirement = Requirement(raw)
+    if requirement.name.lower().replace("_", "-") != "torch":
+        continue
+    if requirement.marker is not None and not requirement.marker.evaluate({"extra": ""}):
+        continue
+    torch_requirements.append(str(requirement))
+    if requirement.specifier and not requirement.specifier.contains(Version(torch_version), prereleases=True):
+        raise RuntimeError("Installed Torch does not satisfy Torchaudio's declared requirement: "
+                           + torch_version + " / " + str(requirement))
+traced = torch.jit.trace(lambda value: value + 1, torch.zeros(1))
+buffer = io.BytesIO()
+torch.jit.save(traced, buffer)
+buffer.seek(0)
+model = torch.jit.load(buffer, map_location="cpu")
+if float(model(torch.zeros(1))[0]) != 1.0:
+    raise RuntimeError("TorchScript CPU probe failed")
+print(json.dumps({"ok": True, "torch": torch_version, "torchaudio": audio_version, "torch_requirements": torch_requirements}))
+"""
+
+
+def validate_torch_runtime(output):
+    """Imports and CPU JIT must work before starting an expensive compilation."""
+    report = Path(output) / "torch-builder-preflight.log"
+    try:
+        with report.open("w", encoding="utf-8") as stream:
+            result = subprocess.run([sys.executable, "-I", "-c", TORCH_PROBE_CODE],
+                                    stdout=stream, stderr=subprocess.STDOUT, timeout=120,
+                                    check=False)
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(f"Torch builder preflight timed out; see {report}") from exc
+    if result.returncode != 0:
+        raise RuntimeError(f"Torch/Torchaudio imports, declared dependency requirements or CPU JIT failed. "
+                           f"Compilation was not started. See {report}")
+
+
+def environment_versions():
+    return {dist.metadata["Name"]: dist.version for dist in metadata.distributions()
+            if dist.metadata.get("Name") and dist.metadata["Name"].lower().replace("_", "-") not in EXCLUDE_METADATA}
+
+
+def prepare_client():
+    """Builder-only official Flet cache. Never copy a user's entire cache/profile."""
+    from jarvis.https_trust import configure_https_trust
+    configure_https_trust()
+    import flet_desktop
+    os.environ["FLET_DESKTOP_FLAVOR"] = "full"
+    cache = Path(flet_desktop.ensure_client_cached())
+    client = cache / "flet"
+    validate_client(client)
+    return client
+
+
+def validate_client(client):
+    client = Path(client)
+    if client.is_symlink():
+        raise RuntimeError("Linked Flet client directory")
+    for name in ("flet.exe", "flutter_windows.dll", "data/icudtl.dat"):
+        if not (client / name).is_file() or not (client / name).stat().st_size:
+            raise RuntimeError(f"Incomplete Flet Windows client: {name}")
+    if not (client / "data/flutter_assets").is_dir():
+        raise RuntimeError("Flet Flutter assets are missing")
+    if any(p.is_symlink() for p in client.rglob("*")):
+        raise RuntimeError("Linked Flet client resource")
+
+
+def validate_report(report):
+    data = Path(report).read_bytes()
+    # Nuitka объявляет кодировку как encoding='utf8'; expat такой псевдоним не
+    # принимает и падает на первом не-ASCII символе (кириллица в имени EXE).
+    data = re.sub(rb"encoding=([\"'])utf-?8\1", rb"encoding='utf-8'", data, count=1)
+    tree = ET.ElementTree(ET.fromstring(data))
+    modules = {node.get("name"): node.get("kind", "") for node in tree.iter("module")}
+    for name in ("jarvis.main", "jarvis.gui", "jarvis.stt", "jarvis.tts", "jarvis.compiled_runtime"):
+        if "Compiled" not in modules.get(name, ""):
+            raise RuntimeError(f"Nuitka report does not confirm compiled application module {name}")
+
+
+def validate_native(native):
+    native = Path(native)
+    for name in (EXE, "python311.dll"):
+        if not (native / name).is_file() or not (native / name).stat().st_size:
+            raise RuntimeError(f"Missing standalone runtime file: {name}")
+    names = [p.relative_to(native).as_posix().lower() for p in native.rglob("*") if p.is_file()]
+    for fragment in ("libvosk", "portaudio", "torch_cpu", "ctranslate2", "onnxruntime"):
+        if not any(fragment in name and name.endswith((".dll", ".pyd")) for name in names):
+            raise RuntimeError(f"Missing native dependency: {fragment}")
+    for p in native.rglob("*"):
+        rel = p.relative_to(native)
+        if p.is_symlink():
+            raise RuntimeError(f"Linked standalone output: {rel}")
+        if p.is_file() and p.name.lower() in ("python.exe", "pythonw.exe"):
+            raise RuntimeError(f"Unexpected external interpreter: {rel}")
+        if any(part.lower().startswith(".venv") for part in rel.parts):
+            raise RuntimeError(f"Unexpected environment in output: {rel}")
+        if rel.parts[0] in ("profiles", "logs", "models") or str(rel) in (
+            "config.json", "system_caps.json", "launcher.py", "phoenix_app.py", "phoenix_app.py", "tasks.json", "timers.json", "dialog.json"):
+            raise RuntimeError(f"Unexpected developer data in output: {rel}")
+        if rel.parts[0] in ("jarvis", "scripts") and p.suffix.lower() in (".py", ".pyc", ".pyo"):
+            raise RuntimeError(f"Application source leaked instead of compiled code: {rel}")
+
+
+def file_hash(path):
+    with Path(path).open("rb") as stream:
+        return hashlib.file_digest(stream, "sha256").hexdigest()
+
+
+def stage(root, native, client, *, versions, version):
+    if Path(native).is_symlink():
+        raise RuntimeError("Linked native output directory")
+    root, native = Path(root).resolve(), Path(native).resolve()
+    validate_native(native)
+    validate_client(client)
+    destination = root / "dist/nuitka-app"
+    if destination.is_symlink() or (destination.exists() and not destination.is_dir()):
+        raise RuntimeError("Unsafe distribution destination")
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temp = Path(tempfile.mkdtemp(prefix="nuitka-app-", dir=destination.parent))
+    try:
+        shutil.copytree(native, temp, dirs_exist_ok=True)
+        for name in resources(root):
+            target = temp / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(root / name, target)
+        shutil.copytree(client, temp / "runtime/flet", dirs_exist_ok=True)
+        build_info = {"schema": 1, "kind": "nuitka-application-standalone", "version": version,
+                      "entry_point": "phoenix_app.py", "external_python_required": False,
+                      "model_policy": "download-on-consent; no personal caches bundled",
+                      "python": platform.python_version(), "packages": versions}
+        (temp / "build-info.json").write_text(json.dumps(build_info, ensure_ascii=False, indent=2), encoding="utf-8")
+        (temp / "README_STANDALONE.txt").write_text(
+            "Standalone application. Start Феникс.exe. No external Python, pip or .venv311 is used.\n"
+            "Models may be downloaded with consent. Ollama is a separate optional service.\n"
+            "See docs/FULL_NUITKA_BUILD.md.\n", encoding="utf-8")
+        manifest = [{"path": p.relative_to(temp).as_posix(), "sha256": file_hash(p)}
+                    for p in sorted(temp.rglob("*")) if p.is_file()]
+        (temp / "release-manifest.json").write_text(
+            json.dumps({"schema": 1, "files": manifest}, ensure_ascii=False, indent=2), encoding="utf-8")
+        # Renaming a locked previous build fails without deleting it piecemeal.
+        backup = destination.with_name("nuitka-app-previous-" + uuid.uuid4().hex)
+        had_previous = destination.exists()
+        if had_previous:
+            destination.replace(backup)
+        try:
+            temp.replace(destination)
+        except OSError:
+            if had_previous:
+                backup.replace(destination)
+            raise
+        if had_previous:
+            try:
+                shutil.rmtree(backup)
+            except OSError:
+                print(f"Previous build is still busy; retained at {backup}", file=sys.stderr)
+    finally:
+        if temp.exists():
+            shutil.rmtree(temp)
+    return destination
+
+
+def installer_command(iscc, payload, args, root=BASE):
+    root = Path(root).resolve()
+    return [str(iscc), f"/DPayloadDir={Path(payload).resolve()}", f"/DMyAppVersion={args.version}",
+            str(root / "installer_nuitka.iss")]
+
+
+def run_probe(executable, report, mode):
+    report = Path(report)
+    report.unlink(missing_ok=True)
+    subprocess.run([str(executable), mode, str(report)], check=True, timeout=240,
+                   cwd=str(Path(executable).parent))
+    result = json.loads(report.read_text(encoding="utf-8"))
+    if result.get("ok") is not True or result.get("compiled") is not True:
+        raise RuntimeError(f"Standalone probe failed: {report}")
+
+
+def main(argv=None):
+    try:
+        args = args_for(argv)
+        required = ("phoenix_app.py", "installer_nuitka.iss", "docs/FULL_NUITKA_BUILD.md",
+                    "scripts/verify_nuitka_sandbox.ps1")
+        for name in required:
+            if not (BASE / name).is_file():
+                raise RuntimeError(f"Missing full-build resource: {name}")
+        public = resources(BASE)
+        if args.check:
+            cmd = command(args)
+            print(f"Plan OK: full application; {len(public)} public resources; entry={Path(cmd[-1]).name}")
+            print("Standalone Python runtime included. No external Python/pip bootstrap.")
+            print("No compiler, native probe, installer or Windows Sandbox was run.")
+            return 0
+        validate_environment()
+        iscc = None if args.no_setup else find_iscc()
+        versions = environment_versions()
+        output = BASE / "build/nuitka-app"
+        if output.is_symlink():
+            raise RuntimeError("Unsafe compiler output directory")
+        output.mkdir(parents=True, exist_ok=True)
+        validate_torch_runtime(output)
+        client = prepare_client()
+        cmd = command(args, distributions=versions)
+        (output / "build-command.json").write_text(json.dumps(cmd, ensure_ascii=False, indent=2), encoding="utf-8")
+        if args.skip_compile:
+            dist = output / "phoenix_app.dist"
+            if not (dist / EXE).is_file() or not (output / "compilation-report.xml").is_file():
+                raise RuntimeError("--skip-compile requires an existing standalone output and report")
+            print("Reusing the existing standalone output; Nuitka is not run.", flush=True)
+        else:
+            print("Compiling the full application, Torch and native libraries. This is not launcher.py.", flush=True)
+            subprocess.run(cmd, cwd=BASE, check=True)
+        validate_report(output / "compilation-report.xml")
+        payload = stage(BASE, output / "phoenix_app.dist", client, versions=versions, version=args.version)
+        # Probes can generate COM/third-party caches. Never add them to the installer.
+        with tempfile.TemporaryDirectory(prefix="probe-", dir=output) as scratch:
+            probe_payload = Path(scratch) / "app"
+            shutil.copytree(payload, probe_payload)
+            run_probe(probe_payload / EXE, output / "native-probe.json", "--self-test")
+        if args.no_setup:
+            print(f"Ready: {payload / EXE}; native probe passed; no clean-machine test yet.")
+            return 0
+        subprocess.run([sys.executable, str(BASE / "scripts/make_installer_images.py"), "--version", args.version], check=True)
+        setup = BASE / "dist" / SETUP
+        setup.unlink(missing_ok=True)
+        subprocess.run(installer_command(iscc, payload, args), cwd=BASE, check=True)
+        if not setup.is_file() or not setup.stat().st_size:
+            raise RuntimeError("Inno Setup did not produce the full application installer")
+        print(f"Installer ready: {setup}")
+        print("Builder native probe passed. This does not prove a clean Windows installation.")
+        if args.sandbox:
+            from scripts.prepare_nuitka_sandbox import prepare, launch
+            config, results = prepare(BASE, setup)
+            print(f"Sandbox report folder: {results}")
+            launch(config)
+            print("Sandbox launch requested. Only results/summary.json can confirm its checks passed.")
+        return 0
+    except (OSError, ValueError, RuntimeError, metadata.PackageNotFoundError, ET.ParseError, subprocess.SubprocessError) as exc:
+        print(f"Full Nuitka build failed: {exc}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+```
+
 ### `scripts/build_setup.py`
 
 ```python
@@ -29407,6 +30845,86 @@ if __name__ == "__main__":
     raise SystemExit(main())
 ```
 
+### `scripts/prepare_nuitka_sandbox.py`
+
+```python
+"""Create a least-scope offline Windows Sandbox test; never enable Windows features."""
+import argparse
+import hashlib
+import json
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+import uuid
+import xml.etree.ElementTree as ET
+
+BASE = Path(__file__).resolve().parents[1]
+
+
+def prepare(root, installer):
+    root, installer = Path(root).resolve(), Path(installer).resolve()
+    if not installer.is_file() or not installer.stat().st_size:
+        raise RuntimeError("Installer does not exist; build it on Windows first")
+    workspace = root / "build/sandbox-nuitka" / uuid.uuid4().hex[:12]
+    if any(parent.is_symlink() for parent in [root / "build", root / "build/sandbox-nuitka"]):
+        raise RuntimeError("Linked sandbox workspace")
+    incoming, results = workspace / "input", workspace / "results"
+    incoming.mkdir(parents=True)
+    results.mkdir()
+    target = incoming / "setup.exe"
+    shutil.copy2(installer, target)
+    shutil.copy2(root / "scripts/verify_nuitka_sandbox.ps1", incoming / "verify.ps1")
+    with target.open("rb") as stream:
+        digest = hashlib.file_digest(stream, "sha256").hexdigest()
+    (incoming / "expected.json").write_text(json.dumps({"sha256": digest}), encoding="utf-8")
+    config = ET.Element("Configuration")
+    for name in ("Networking", "vGPU", "AudioInput", "VideoInput", "PrinterRedirection", "ClipboardRedirection"):
+        ET.SubElement(config, name).text = "Disable"
+    folders = ET.SubElement(config, "MappedFolders")
+    for host, guest, readonly in ((incoming, r"C:\PhoenixTest\input", True),
+                                   (results, r"C:\PhoenixTest\results", False)):
+        folder = ET.SubElement(folders, "MappedFolder")
+        ET.SubElement(folder, "HostFolder").text = str(host)
+        ET.SubElement(folder, "SandboxFolder").text = guest
+        ET.SubElement(folder, "ReadOnly").text = "true" if readonly else "false"
+    command = ET.SubElement(ET.SubElement(config, "LogonCommand"), "Command")
+    command.text = r'powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File C:\PhoenixTest\input\verify.ps1'
+    path = workspace / "Phoenix_Nuitka_Test.wsb"
+    ET.ElementTree(config).write(path, encoding="utf-8", xml_declaration=True)
+    return path, results
+
+
+def launch(config):
+    if sys.platform != "win32":
+        raise RuntimeError("Windows Sandbox can only be launched on Windows")
+    exe = shutil.which("WindowsSandbox.exe")
+    if exe is None:
+        raise RuntimeError("Windows Sandbox is unavailable. Enable it manually on a supported Windows edition, or use a clean Windows VM.")
+    subprocess.Popen([exe, str(config)])
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--installer", type=Path, default=BASE / "dist/Феникс_Nuitka_Setup.exe")
+    parser.add_argument("--open", action="store_true")
+    args = parser.parse_args(argv)
+    try:
+        config, results = prepare(BASE, args.installer)
+        print(f"Sandbox configuration: {config}")
+        print(f"Results (not yet verified): {results}")
+        if args.open:
+            launch(config)
+        return 0
+    except (OSError, RuntimeError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+```
+
 ### `scripts/release_payload.py`
 
 ```python
@@ -29944,6 +31462,125 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+```
+
+### `scripts/verify_nuitka_sandbox.ps1`
+
+```powershell
+# Runs INSIDE Windows Sandbox. Input mapping is read-only; only reports are writable.
+$ErrorActionPreference = 'Stop'
+$inputDir = 'C:\PhoenixTest\input'
+$outDir = 'C:\PhoenixTest\results'
+$appDir = 'C:\PhoenixStandaloneTest\App'
+# Keep this file pure ASCII: Windows PowerShell 5.1 reads a BOM-less .ps1 as ANSI,
+# so any non-ASCII literal here becomes mojibake and silently breaks the check.
+# The application executable is therefore discovered, not hardcoded by name.
+$summary = [ordered]@{
+    schema = 1
+    ok = $false
+    scope = 'offline_install_native_imports_flet_uninstall'
+    host_python_absent = $false
+    installer_ok = $false
+    manifest_ok = $false
+    native_probe_ok = $false
+    flet_gui_ok = $false
+    uninstall_ok = $false
+    user_data_preserved = $false
+    not_tested = @('microphone', 'physical_audio', 'voice_models', 'Ollama', 'GPU_inference', 'assistant_workflow')
+}
+
+function Run-Checked([string]$File, [string[]]$Arguments, [int]$TimeoutSeconds) {
+    $process = Start-Process -FilePath $File -ArgumentList $Arguments -PassThru
+    $null = $process.Handle # retain a valid handle for ExitCode after process exit
+    if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
+        & taskkill.exe /PID $process.Id /T /F | Out-Null
+        throw "Timed out after $TimeoutSeconds seconds: $File"
+    }
+    $process.Refresh()
+    if ($process.ExitCode -ne 0) {
+        throw "ExitCode=$($process.ExitCode): $File"
+    }
+}
+
+try {
+    New-Item -ItemType Directory -Path $outDir -Force | Out-Null
+    Start-Transcript -Path (Join-Path $outDir 'sandbox.log') -Force | Out-Null
+    $expected = Get-Content -Raw -Encoding UTF8 (Join-Path $inputDir 'expected.json') | ConvertFrom-Json
+    $actual = (Get-FileHash -Algorithm SHA256 (Join-Path $inputDir 'setup.exe')).Hash.ToLowerInvariant()
+    if ($actual -ne $expected.sha256) { throw 'Installer SHA256 mismatch' }
+    $python = @(Get-Command python.exe, pythonw.exe, py.exe -ErrorAction SilentlyContinue |
+        Where-Object { $_.Source -notmatch 'WindowsApps' })
+    if ($python.Count -ne 0) { throw 'This environment contains external Python; it is not the required clean test' }
+    $summary.host_python_absent = $true
+
+    Run-Checked (Join-Path $inputDir 'setup.exe') @(
+        '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/SP-',
+        "/DIR=$appDir", "/LOG=$outDir\install.log"
+    ) 600
+    $exe = @(Get-ChildItem -LiteralPath $appDir -File -Filter '*.exe' -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -notlike 'unins*' } |
+        Sort-Object -Property Name |
+        Select-Object -First 1).FullName
+    if (-not $exe -or -not (Test-Path -LiteralPath $exe)) { throw 'Application executable was not installed' }
+    $summary.installer_ok = $true
+    $info = Get-Content -Raw -Encoding UTF8 (Join-Path $appDir 'build-info.json') | ConvertFrom-Json
+    if ($info.kind -ne 'nuitka-application-standalone' -or $info.external_python_required -ne $false) {
+        throw 'Not a full standalone application payload'
+    }
+    $interpreters = @(Get-ChildItem -LiteralPath $appDir -File -Recurse |
+        Where-Object { $_.Name -match '^pythonw?\.exe$' })
+    if ($interpreters.Count -ne 0 -or (Test-Path (Join-Path $appDir '.venv311'))) {
+        throw 'Unexpected external interpreter or development environment'
+    }
+    $manifest = Get-Content -Raw -Encoding UTF8 (Join-Path $appDir 'release-manifest.json') | ConvertFrom-Json
+    foreach ($entry in $manifest.files) {
+        if ($entry.path -match '(^[/\\]|(^|[/\\])\.\.([/\\]|$)|:)') { throw 'Unsafe manifest path' }
+        $file = Join-Path $appDir $entry.path
+        $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $file).Hash.ToLowerInvariant()
+        if ($hash -ne $entry.sha256) { throw "Payload SHA256 mismatch: $($entry.path)" }
+    }
+    $summary.manifest_ok = $true
+
+    $nativeReport = Join-Path $outDir 'native-probe.json'
+    Run-Checked $exe @('--self-test', $nativeReport) 300
+    $native = Get-Content -Raw -Encoding UTF8 $nativeReport | ConvertFrom-Json
+    if ($native.ok -ne $true -or $native.compiled -ne $true) { throw 'Compiled native probe failed' }
+    $summary.native_probe_ok = $true
+
+    $guiReport = Join-Path $outDir 'flet-gui.json'
+    Run-Checked $exe @('--gui-smoke', $guiReport) 120
+    $gui = Get-Content -Raw -Encoding UTF8 $guiReport | ConvertFrom-Json
+    if ($gui.ok -ne $true -or $gui.session_opened -ne $true -or $gui.window_close_awaited -ne $true) {
+        throw 'Packaged Flet GUI startup/close failed'
+    }
+    $summary.flet_gui_ok = $true
+
+    $userDir = Join-Path $env:APPDATA 'Phoenix'
+    New-Item -ItemType Directory -Path $userDir -Force | Out-Null
+    $sentinel = Join-Path $userDir 'sandbox-preserve-marker.txt'
+    Set-Content -LiteralPath $sentinel -Value 'keep-user-data' -Encoding UTF8
+    $before = (Get-FileHash -Algorithm SHA256 -LiteralPath $sentinel).Hash
+    $uninstaller = Join-Path $appDir 'unins000.exe'
+    Run-Checked $uninstaller @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/LOG=$outDir\uninstall.log") 180
+    for ($i = 0; $i -lt 30 -and (Test-Path -LiteralPath $exe); $i++) { Start-Sleep -Seconds 1 }
+    if (Test-Path -LiteralPath $exe) { throw 'Uninstaller left the main application executable' }
+    $summary.uninstall_ok = $true
+    $summary.user_data_preserved = (Test-Path -LiteralPath $sentinel) -and (
+        (Get-FileHash -Algorithm SHA256 -LiteralPath $sentinel).Hash -eq $before)
+    if (-not $summary.user_data_preserved) { throw 'Uninstall modified user data' }
+    $summary.ok = $true
+    Write-Host 'PASS: offline installation, bundled native imports, packaged Flet GUI, uninstall and preservation.' -ForegroundColor Green
+    Write-Host 'Microphone, actual speech, model downloads and Ollama were NOT tested.'
+} catch {
+    $summary.error = $_.Exception.Message
+    Write-Host "FAIL: $($summary.error)" -ForegroundColor Red
+} finally {
+    $summary | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath (Join-Path $outDir 'summary.json') -Encoding UTF8
+    try { Stop-Transcript | Out-Null } catch {}
+}
+Write-Host "Reports: $outDir (also visible in the mapped host results folder)."
+Write-Host 'Keep this window open to inspect failures; close Windows Sandbox when finished.'
+Read-Host 'Press Enter to finish'
 ```
 
 ### `scripts/voicedemo.py`
@@ -34310,6 +35947,179 @@ def test_power_timeout_is_not_reported_as_success(monkeypatch):
     assert not actions.run_power_action("/r", 30)
 ```
 
+### `tests/test_compiled_runtime.py`
+
+```python
+"""Explicit standalone probes and consent contracts without native Windows imports."""
+import asyncio
+import json
+from pathlib import Path
+import sys
+from types import SimpleNamespace as NS
+from unittest.mock import AsyncMock, Mock
+
+import pytest
+from jarvis import compiled_runtime as runtime
+
+
+def resources(root):
+    for name in runtime.RESOURCE_FILES:
+        p = root / name
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_bytes(b"public fixture")
+    (root / "runtime/flet/data/flutter_assets").mkdir()
+
+
+def fake_imports(monkeypatch, root):
+    monkeypatch.setattr(runtime, "PROBE_MODULES", ("jarvis.main",))
+    monkeypatch.setattr(runtime.importlib, "import_module", lambda name: NS(__file__=str(root / "jarvis/main.py")))
+    torch = NS(zeros=lambda n: [0], jit=NS(trace=lambda fn, value: object(),
+        save=lambda traced, buffer: buffer.write(b"jit"), load=lambda *args, **kwargs: lambda value: [1]))
+    monkeypatch.setitem(sys.modules, "torch", torch)
+    monkeypatch.setitem(sys.modules, "pymorphy3", NS(MorphAnalyzer=lambda: NS(parse=lambda word: [word])))
+
+
+def test_source_python_cannot_report_a_passed_compiled_probe(tmp_path, monkeypatch):
+    resources(tmp_path)
+    fake_imports(monkeypatch, tmp_path)
+    report = runtime.self_test(tmp_path, compiled=False)
+    assert report["ok"] is False
+    assert report["checks"]["compiled_entry"] is False
+    assert "microphone" in report["not_tested"]
+
+
+def test_probe_checks_embedded_modules_resources_and_dictionaries(tmp_path, monkeypatch):
+    resources(tmp_path)
+    fake_imports(monkeypatch, tmp_path)
+    report = runtime.self_test(tmp_path, compiled=True)
+    assert report["ok"] is True
+    assert report["checks"]["torchscript_cpu"] is True
+    assert report["checks"]["russian_dictionary"] is True
+
+
+def test_probe_rejects_module_imported_from_external_environment(tmp_path, monkeypatch):
+    resources(tmp_path)
+    fake_imports(monkeypatch, tmp_path)
+    monkeypatch.setattr(runtime.importlib, "import_module", lambda name: NS(__file__="/outside/main.py"))
+    report = runtime.self_test(tmp_path, compiled=True)
+    assert report["ok"] is False
+    assert report["checks"]["jarvis.main"]["ok"] is False
+
+
+def test_probe_rejects_external_python_binary(tmp_path, monkeypatch):
+    resources(tmp_path)
+    fake_imports(monkeypatch, tmp_path)
+    (tmp_path / "python.exe").write_bytes(b"not allowed")
+    assert runtime.self_test(tmp_path, compiled=True)["ok"] is False
+
+
+def test_report_is_utf8_atomic_and_does_not_leave_temp_files(tmp_path):
+    report = tmp_path / "report.json"
+    runtime.write_report(report, {"ok": False, "message": "Ошибка"})
+    assert json.loads(report.read_text(encoding="utf-8"))["message"] == "Ошибка"
+    assert list(tmp_path.iterdir()) == [report]
+
+
+def test_flet_missing_bundle_is_error_not_download(tmp_path):
+    with pytest.raises(FileNotFoundError, match="flet.exe"):
+        runtime.configure_environment(tmp_path)
+
+
+def test_flet_uses_distribution_path_not_personal_cache(tmp_path, monkeypatch):
+    resources(tmp_path)
+    from jarvis import https_trust
+    monkeypatch.setattr(https_trust, "configure_https_trust", Mock())
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("FLET_VIEW_PATH", "old-client")
+    monkeypatch.setenv("FLET_DESKTOP_FLAVOR", "light")
+    monkeypatch.setenv("FLET_APP_USER_MODEL_ID", "old")
+    runtime.configure_environment(tmp_path)
+    assert runtime.os.environ["FLET_VIEW_PATH"] == str(tmp_path / "runtime/flet")
+    assert runtime.os.environ["FLET_DESKTOP_FLAVOR"] == "full"
+
+
+def test_silero_denial_never_imports_or_executes_torch_hub(monkeypatch):
+    session = NS(ask=Mock(return_value=False), notice="")
+    hub = Mock(side_effect=AssertionError("unapproved repository execution"))
+    monkeypatch.setitem(sys.modules, "torch", NS(hub=NS(load=hub)))
+    assert runtime.prepare_silero(session) is False
+    hub.assert_not_called()
+    assert "отменена" in session.notice
+
+
+def test_silero_approval_is_explicit_and_uses_fixed_repository(tmp_path, monkeypatch):
+    from jarvis import paths
+    monkeypatch.setattr(paths, "program_dir", lambda: tmp_path)
+    monkeypatch.setenv("TORCH_HOME", str(tmp_path))
+    load = Mock()
+    monkeypatch.setitem(sys.modules, "torch", NS(hub=NS(load=load)))
+    session = NS(ask=Mock(return_value=True), stage=Mock())
+    assert runtime.prepare_silero(session) is True
+    assert load.call_args.args == ("snakers4/silero-models", "silero_tts")
+    assert load.call_args.kwargs["trust_repo"] is True
+    session.ask.assert_called_once()
+
+
+def test_gui_smoke_awaits_close_and_does_not_start_assistant(tmp_path, monkeypatch):
+    page = NS(title="", add=Mock(), update=Mock(), window=NS(prevent_close=True, close=AsyncMock()))
+    def run(fn, **kwargs):
+        asyncio.run(fn(page))
+    fake = NS(run=run, Text=lambda text: text, AppView=NS(FLET_APP="desktop"))
+    monkeypatch.setitem(sys.modules, "flet", fake)
+    async def no_sleep(delay):
+        pass
+    monkeypatch.setattr(runtime.asyncio, "sleep", no_sleep)
+    destination = tmp_path / "gui.json"
+    assert runtime.gui_smoke(tmp_path, destination, compiled=True) == 0
+    page.window.close.assert_awaited_once()
+    report = json.loads(destination.read_text(encoding="utf-8"))
+    assert report["ok"] is True and report["session_opened"] is True
+    assert "assistant_workflow" in report["not_tested"]
+
+
+def test_gui_smoke_failure_is_not_success(tmp_path, monkeypatch):
+    monkeypatch.setitem(sys.modules, "flet", NS(run=Mock(side_effect=OSError("missing client")),
+        AppView=NS(FLET_APP="desktop")))
+    destination = tmp_path / "gui.json"
+    assert runtime.gui_smoke(tmp_path, destination, compiled=True) == 1
+    assert json.loads(destination.read_text(encoding="utf-8"))["ok"] is False
+
+
+def test_runtime_refuses_non_windows_without_launching_core(tmp_path, monkeypatch):
+    monkeypatch.setattr(runtime.sys, "platform", "linux")
+    assert runtime.run([], root=tmp_path, compiled=False) == 1
+
+
+def test_com_cache_does_not_write_to_application_directory(tmp_path, monkeypatch):
+    from types import ModuleType
+    from jarvis import paths
+    monkeypatch.setattr(paths, "user_dir", lambda: tmp_path / "user")
+    com = ModuleType("comtypes")
+    client = NS(gen_dir="old")
+    monkeypatch.setitem(sys.modules, "comtypes", com)
+    def load(name):
+        if name == "comtypes.gen":
+            raise ModuleNotFoundError("dynamic package", name="comtypes.gen")
+        if name == "comtypes.client":
+            assert sys.modules["comtypes.gen"].__path__ == [str(tmp_path / "user/comtypes-cache")]
+            return client
+        raise AssertionError(name)
+    monkeypatch.setattr(runtime.importlib, "import_module", load)
+    monkeypatch.setitem(sys.modules, "comtypes.gen", None)
+    target = runtime.configure_com_cache()
+    assert target.is_dir()
+    assert client.gen_dir == str(target)
+    assert com.gen.__path__ == [str(target)]
+
+
+def test_native_preload_precedes_com_initialization(monkeypatch):
+    events = []
+    monkeypatch.setitem(sys.modules, "jarvis.main", NS(_preload_whisper_backend=lambda: events.append("ct2")))
+    monkeypatch.setattr(runtime, "configure_com_cache", lambda: events.append("com"))
+    runtime.prepare_native_imports()
+    assert events == ["ct2", "com"]
+```
+
 ### `tests/test_config_manager.py`
 
 ```python
@@ -36128,7 +37938,7 @@ def test_preview_failure_sanitized_and_locks_released(gui):
 
 def test_duplicate_test_click_and_theme_rebuild(gui):
     entered, release = threading.Event(), threading.Event()
-    def say(reply):
+    def say(reply, **kwargs):
         entered.set()
         assert release.wait(3)
     gui.jarvis.say.side_effect = say
@@ -36220,6 +38030,72 @@ def test_aec_toggle_is_opt_in_restart_only_and_never_selects_voice(gui):
     assert getattr(gui.jarvis.listener,'_echo_path',None) is None
     check.on_change(NS(control=NS(value=False)))
     assert gui.config.get('aec_enabled') is False
+
+
+def test_preview_during_model_load_is_declined_not_queued(gui):
+    gui.jarvis.speaker.configuration_status = lambda: {
+        "pending": True, "error": "", "backend": "piper", "voice": "ruslan", "revision": 1}
+    sound = gui._sound()
+    assert sound.test_voice() is False
+    assert sound.busy is None
+    assert sound.voice_test_button.disabled
+    assert "Дождитесь готовности" in sound.voice_result.value
+    gui.jarvis.say.assert_not_called()
+
+
+def test_stop_before_preview_worker_starts_cancels_it(gui, monkeypatch):
+    sound = gui._sound()
+    queued = []
+    def launch(kind, worker):
+        sound.busy = kind
+        queued.append(worker)
+        return True
+    monkeypatch.setattr(sound, "_launch", launch)
+    assert sound.test_voice()
+    gui._on_stop_speech()
+    queued[0]()
+    gui.jarvis.say.assert_not_called()
+    while not gui._queue.empty():
+        kind, value = gui._queue.get_nowait()
+        if kind == "sound_result":
+            sound.apply_result(*value)
+    assert sound.busy is None
+    assert "отменена" in sound.voice_result.value
+
+
+def test_loading_status_becomes_ready_without_reopening_tab(gui):
+    state = {"pending": True, "error": "", "backend": "piper", "voice": "ruslan", "revision": 1}
+    gui.jarvis.speaker.configuration_status = lambda: dict(state)
+    sound = gui._sound()
+    sound.poll_tts_status()
+    assert "загружается" in sound.engine_label.value
+    assert sound.voice_test_button.disabled
+    state["pending"] = False
+    sound.poll_tts_status()
+    assert "Загруженный движок: piper" == sound.engine_label.value
+    assert not sound.voice_test_button.disabled
+
+
+def test_speech_test_passes_explicit_cancel_token_to_core(gui):
+    sound = gui._sound()
+    assert sound.test_voice()
+    finish(gui)
+    assert gui.jarvis.say.call_args.kwargs["cancel_event"] is sound.preview_cancel
+
+
+def test_tts_status_poll_is_scheduled_outside_microphone_tab(gui, monkeypatch):
+    import asyncio
+    gui._rail = NS(selected_index=2)
+    gui._running = True
+    async def stop_loop(seconds):
+        gui._running = False
+    monkeypatch.setattr(module.asyncio, "sleep", stop_loop)
+    monkeypatch.setattr(module, "_detect_system_theme", lambda: "dark")
+    asyncio.run(gui._mic_level_loop())
+    events = []
+    while not gui._queue.empty():
+        events.append(gui._queue.get_nowait()[0])
+    assert "sound_status" in events
 ```
 
 ### `tests/test_gui_chat.py`
@@ -38950,6 +40826,23 @@ def test_launch_mode_sends_value(gui, cfg):
 def test_launch_mode_rejects_unknown(gui, cfg):
     gui._on_launch_mode(ev("неведома зверушка"))
     assert cfg["launch_mode"] == "gui"
+
+
+def test_quit_awaits_async_window_close_on_page_loop(gui):
+    import asyncio
+    page = FakePage()
+    async def close():
+        page.window.closed = True
+    page.window.close = close
+    scheduled = []
+    def run_task(fn):
+        scheduled.append(fn)
+        asyncio.run(fn())
+    page.run_task = run_task
+    gui._page = page
+    gui.quit()
+    assert len(scheduled) == 1
+    assert page.window.closed is True
 ```
 
 ### `tests/test_intents.py`
@@ -41581,6 +43474,522 @@ def test_windows_fallback_shares_stop_and_removes_temporary_wav(tmp_path, monkey
     assert winsound.PlaySound.call_args.args == (None, 0)
 ```
 
+### `tests/test_nuitka_build.py`
+
+```python
+"""Nuitka build plans and staging tests; no compiler, network or Tk display."""
+
+import logging
+from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import Mock
+
+import pytest
+
+import launcher
+from scripts import build_nuitka as builder
+
+
+def test_launcher_source_directory(monkeypatch, tmp_path):
+    monkeypatch.setattr(launcher, "__compiled__", None, raising=False)
+    monkeypatch.setattr(launcher.sys, "frozen", False, raising=False)
+    monkeypatch.setattr(launcher, "__file__", str(tmp_path / "launcher.py"))
+    assert launcher.launcher_directory() == tmp_path
+
+
+def test_launcher_pyinstaller_directory(monkeypatch, tmp_path):
+    monkeypatch.setattr(launcher, "__compiled__", None, raising=False)
+    monkeypatch.setattr(launcher.sys, "frozen", True, raising=False)
+    monkeypatch.setattr(launcher.sys, "executable", str(tmp_path / "Феникс.exe"))
+    assert launcher.launcher_directory() == tmp_path
+
+
+def test_launcher_nuitka_onefile_uses_real_executable_directory(monkeypatch, tmp_path):
+    installed = tmp_path / "installed"
+    package = installed / "jarvis"
+    package.mkdir(parents=True)
+    (package / "__init__.py").write_text("", encoding="utf-8")
+    # find_project_dir() по контракту смотрит и текущую папку: из корня проекта
+    # он нашёл бы C:\jarvis с рабочим .venv311 и тест проверял бы cwd, а не EXE.
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(launcher, "__compiled__", SimpleNamespace(containing_dir=str(installed)), raising=False)
+    monkeypatch.setattr(launcher, "__file__", str(tmp_path / "unpacked" / "launcher.py"))
+    monkeypatch.setattr(launcher.sys, "executable", str(tmp_path / "unpacked" / "Феникс.exe"))
+    assert launcher.launcher_directory() == installed
+    assert launcher.find_project_dir(logging.getLogger("test.nuitka")) == installed
+
+
+def test_launcher_nuitka_fallback_uses_argv_not_extracted_file(monkeypatch, tmp_path):
+    monkeypatch.setattr(launcher, "__compiled__", SimpleNamespace(), raising=False)
+    monkeypatch.setattr(launcher.sys, "argv", [str(tmp_path / "Феникс.exe")])
+    monkeypatch.setattr(launcher, "__file__", str(tmp_path / "unpacked" / "launcher.py"))
+    assert launcher.launcher_directory() == tmp_path
+
+
+@pytest.mark.parametrize("mode", ["standalone", "onefile"])
+@pytest.mark.parametrize("compiler", ["auto", "msvc", "mingw64"])
+def test_command_has_native_gui_flags_without_runtime_stack(tmp_path, mode, compiler):
+    args = builder.parse_args(["--mode", mode, "--compiler", compiler])
+    cmd = builder.command(args, root=tmp_path)
+    assert f"--mode={mode}" in cmd
+    assert "--enable-plugin=tk-inter" in cmd
+    assert f"--output-filename={builder.EXE_NAME}" in cmd
+    assert "--windows-console-mode=disable" in cmd
+    assert cmd[-1] == str(tmp_path / "launcher.py")
+    assert ("--msvc=latest" in cmd) == (compiler == "msvc")
+    assert ("--mingw64" in cmd) == (compiler == "mingw64")
+    assert not any("include-package=torch" in value or "include-package=flet" in value for value in cmd)
+
+
+def test_debug_console_is_explicit():
+    assert "--windows-console-mode=force" in builder.command(builder.parse_args(["--console"]))
+
+
+@pytest.mark.parametrize("jobs", ["0", "-1", "65"])
+def test_job_limits(jobs):
+    with pytest.raises(SystemExit):
+        builder.parse_args(["--jobs", jobs])
+
+
+def test_native_build_rejects_non_windows_without_running_tools(monkeypatch):
+    monkeypatch.setattr(builder.platform, "system", lambda: "Linux")
+    with pytest.raises(RuntimeError, match="Windows"):
+        builder.validate_environment()
+
+
+@pytest.mark.parametrize("python_version,bits", [((3, 13), 8), ((3, 11), 4)])
+def test_native_build_rejects_wrong_python(monkeypatch, python_version, bits):
+    monkeypatch.setattr(builder.platform, "system", lambda: "Windows")
+    monkeypatch.setattr(builder.sys, "version_info", python_version)
+    monkeypatch.setattr(builder.struct, "calcsize", lambda spec: bits)
+    with pytest.raises(RuntimeError, match="Python 3.11 x64"):
+        builder.validate_environment()
+
+
+def test_native_build_requires_nuitka(monkeypatch):
+    monkeypatch.setattr(builder.platform, "system", lambda: "Windows")
+    monkeypatch.setattr(builder.sys, "version_info", (3, 11))
+    monkeypatch.setattr(builder, "version", Mock(side_effect=builder.PackageNotFoundError("Nuitka")))
+    with pytest.raises(RuntimeError, match="requirements-nuitka"):
+        builder.validate_environment()
+
+
+def test_native_build_checks_tk_without_opening_window(monkeypatch):
+    monkeypatch.setattr(builder.platform, "system", lambda: "Windows")
+    monkeypatch.setattr(builder.sys, "version_info", (3, 11))
+    monkeypatch.setattr(builder, "version", Mock(return_value="4.3.1"))
+    tk = Mock()
+    monkeypatch.setattr(builder, "check_bootstrap_ui", tk)
+    builder.validate_environment()
+    tk.assert_called_once()
+
+
+def test_check_does_not_compile_or_require_windows(monkeypatch):
+    monkeypatch.setattr(builder, "collect_payload", Mock(return_value=["launcher.py"]))
+    compiler = Mock(side_effect=AssertionError("must not compile"))
+    monkeypatch.setattr(builder.subprocess, "run", compiler)
+    monkeypatch.setattr(builder, "validate_environment", Mock(side_effect=AssertionError("must not validate Windows")))
+    assert builder.main(["--check"]) == 0
+    compiler.assert_not_called()
+
+
+@pytest.mark.parametrize("mode", ["standalone", "onefile"])
+def test_publish_keeps_required_payload_and_native_dependencies(tmp_path, monkeypatch, mode):
+    source = tmp_path / "launcher.py"
+    source.write_text("# public", encoding="utf-8")
+    monkeypatch.setattr(builder, "collect_payload", lambda root, include_exe: ["launcher.py"])
+    output = builder.build_directory(tmp_path, mode)
+    native = output / "launcher.dist" if mode == "standalone" else output
+    native.mkdir(parents=True)
+    (native / builder.EXE_NAME).write_bytes(b"compiler-output-fixture")
+    (native / "native.dll").write_bytes(b"standalone dependency")
+    (tmp_path / "config.json").write_text('{"private": true}', encoding="utf-8")
+    executable = builder.publish(tmp_path, mode)
+    assert executable.read_bytes() == b"compiler-output-fixture"
+    assert (executable.parent / "launcher.py").is_file()
+    assert not (executable.parent / "config.json").exists()
+    assert (executable.parent / "native.dll").exists() is (mode == "standalone")
+
+
+def test_publish_requires_compiler_output(tmp_path, monkeypatch):
+    monkeypatch.setattr(builder, "collect_payload", lambda root, include_exe: [])
+    with pytest.raises(RuntimeError, match="did not produce"):
+        builder.publish(tmp_path, "onefile")
+
+
+def test_nuitka_batch_uses_isolated_build_environment():
+    root = Path(__file__).resolve().parents[1]
+    text = (root / "build_nuitka.bat").read_text(encoding="utf-8")
+    assert r"build\nuitka-env" in text
+    assert ".venv311" not in text
+    assert "requirements-nuitka.txt" in text
+    assert "errorlevel" in text
+```
+
+### `tests/test_nuitka_full.py`
+
+```python
+"""Full application build contracts. No Windows compiler/installers or downloads run."""
+import json
+from pathlib import Path
+from types import SimpleNamespace as NS
+from unittest.mock import Mock
+import xml.etree.ElementTree as ET
+
+import pytest
+
+from scripts import build_nuitka_app as build
+from scripts import prepare_nuitka_sandbox as sandbox
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def write(path, data=b"fixture"):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(data)
+    return path
+
+
+@pytest.fixture
+def native(tmp_path):
+    root = tmp_path / "native"
+    for name in (build.EXE, "python311.dll", "vosk/libvosk.dll", "_sounddevice_data/libportaudio64bit.dll",
+                 "torch/lib/torch_cpu.dll", "ctranslate2/_ext.pyd", "onnxruntime/capi/onnxruntime.pyd"):
+        write(root / name)
+    return root
+
+
+@pytest.fixture
+def client(tmp_path):
+    root = tmp_path / "client"
+    for name in ("flet.exe", "flutter_windows.dll", "data/icudtl.dat", "data/flutter_assets/AssetManifest.bin"):
+        write(root / name)
+    return root
+
+
+def test_full_command_targets_application_and_embeds_runtime():
+    command = build.command(build.args_for([]), distributions=["torch", "flet"])
+    assert command[-1] == str(ROOT / "phoenix_app.py")
+    assert "--mode=standalone" in command
+    assert "--include-package=jarvis" in command
+    assert "--module-parameter=torch-disable-jit=no" in command
+    assert "--python-flag=isolated" in command
+    assert "--include-module=pyttsx3.drivers.sapi5" in command
+    assert "--include-distribution-metadata=torch" in command
+    assert not any(Path(value).name == "launcher.py" for value in command)
+    # command[0] — интерпретатор сборщика (build/nuitka-app-env), это нормально;
+    # проектная .venv311 не должна попадать ни в один аргумент сборки.
+    assert not any(".venv311" in value for value in command[1:])
+
+
+@pytest.mark.parametrize("compiler,flag", [("msvc", "--msvc=latest"), ("mingw64", "--mingw64")])
+def test_explicit_compilers(compiler, flag):
+    assert flag in build.command(build.args_for(["--compiler", compiler]))
+
+
+def test_resource_list_never_includes_developer_code_or_config():
+    files = build.resources(ROOT)
+    assert "jarvis/icon.ico" in files
+    assert "config.example.json" in files
+    assert "packs/games.json" in files
+    assert "docs/FULL_NUITKA_BUILD.md" in files
+    assert not any(name.endswith((".py", ".bat")) or name in ("config.json", "system_caps.json") for name in files)
+
+
+def test_preflight_never_imports_native_packages_or_runs_tools(monkeypatch):
+    monkeypatch.setattr(build, "validate_environment", Mock(side_effect=AssertionError("native validation")))
+    monkeypatch.setattr(build, "prepare_client", Mock(side_effect=AssertionError("download")))
+    monkeypatch.setattr(build.subprocess, "run", Mock(side_effect=AssertionError("compiler")))
+    assert build.main(["--check"]) == 0
+
+
+def test_non_windows_build_is_rejected_before_dependency_probe(monkeypatch):
+    monkeypatch.setattr(build.sys, "platform", "linux")
+    with pytest.raises(RuntimeError, match="Windows build host"):
+        build.validate_environment()
+
+
+@pytest.mark.parametrize("argv", [["--jobs", "0"], ["--jobs", "65"], ["--sandbox", "--no-setup"]])
+def test_invalid_modes_and_limits(argv):
+    with pytest.raises(SystemExit):
+        build.args_for(argv)
+
+
+def test_report_requires_compiled_application_not_launcher(tmp_path):
+    path = tmp_path / "report.xml"
+    write(path, b'<nuitka><module name="launcher" kind="CompiledPythonModule"/></nuitka>')
+    with pytest.raises(RuntimeError, match="jarvis.main"):
+        build.validate_report(path)
+    modules = ("jarvis.main", "jarvis.gui", "jarvis.stt", "jarvis.tts", "jarvis.compiled_runtime")
+    write(path, ('<nuitka>' + ''.join(f'<module name="{name}" kind="CompiledPythonModule"/>' for name in modules) + '</nuitka>').encode())
+    build.validate_report(path)
+
+
+@pytest.mark.parametrize("name", ["python.exe", "pythonw.exe", ".venv311/Scripts/python.exe",
+                                  "config.json", "profiles/private.json", "launcher.py", "jarvis/main.py"])
+def test_native_output_rejects_external_interpreter_and_user_files(native, name):
+    write(native / name)
+    with pytest.raises(RuntimeError):
+        build.validate_native(native)
+
+
+def test_native_output_requires_embedded_python_dll(native):
+    (native / "python311.dll").unlink()
+    with pytest.raises(RuntimeError, match="python311.dll"):
+        build.validate_native(native)
+
+
+def test_stage_includes_whole_runtime_and_client_without_source(tmp_path, native, client, monkeypatch):
+    root = tmp_path / "project"
+    write(root / "LICENSE")
+    monkeypatch.setattr(build, "resources", lambda root: ["LICENSE"])
+    output = build.stage(root, native, client, versions={"torch": "test"}, version="2.1.1")
+    assert (output / build.EXE).is_file()
+    assert (output / "runtime/flet/flet.exe").is_file()
+    assert (output / "python311.dll").is_file()
+    info = json.loads((output / "build-info.json").read_text(encoding="utf-8"))
+    assert info["kind"] == "nuitka-application-standalone"
+    assert info["external_python_required"] is False
+    manifest = json.loads((output / "release-manifest.json").read_text(encoding="utf-8"))
+    for entry in manifest["files"]:
+        assert build.file_hash(output / entry["path"]) == entry["sha256"]
+    assert not (output / "launcher.py").exists()
+
+
+def test_failed_client_validation_preserves_existing_output(tmp_path, native, client, monkeypatch):
+    root = tmp_path / "project"
+    write(root / "dist/nuitka-app/previous", b"keep")
+    (client / "flet.exe").unlink()
+    monkeypatch.setattr(build, "resources", lambda root: [])
+    with pytest.raises(RuntimeError, match="Incomplete Flet"):
+        build.stage(root, native, client, versions={}, version="2.1.1")
+    assert (root / "dist/nuitka-app/previous").read_bytes() == b"keep"
+
+
+def test_probe_requires_exit_success_and_true_compiled_report(tmp_path, monkeypatch):
+    report = tmp_path / "report.json"
+    def run(command, **kwargs):
+        write(report, b'{"ok":true,"compiled":false}')
+    monkeypatch.setattr(build.subprocess, "run", run)
+    with pytest.raises(RuntimeError, match="probe failed"):
+        build.run_probe(tmp_path / build.EXE, report, "--self-test")
+
+
+def test_installer_uses_full_payload_not_legacy_bootstrap():
+    args = build.args_for([])
+    command = build.installer_command("ISCC.exe", ROOT / "dist/nuitka-app", args)
+    assert command[-1].endswith("installer_nuitka.iss")
+    text = (ROOT / "installer_nuitka.iss").read_text(encoding="utf-8")
+    assert 'OutputBaseFilename=Феникс_Nuitka_Setup' in text
+    assert 'UsePreviousAppDir=no' in text
+    assert 'Parameters: "--prepare-silero"' in text
+    assert 'Source: "{#PayloadDir}\\*"' in text
+    assert 'uninsdeletevalue' in text
+    assert '[UninstallDelete]' not in text  # no broad deletion of profiles/models
+    assert 'pip install' not in text
+
+
+def test_sandbox_maps_only_input_and_reports_and_disables_network(tmp_path):
+    root = tmp_path / "project & data"
+    write(root / "scripts/verify_nuitka_sandbox.ps1")
+    installer = write(root / "dist/setup.exe")
+    config, results = sandbox.prepare(root, installer)
+    tree = ET.parse(config).getroot()
+    for name in ("Networking", "vGPU", "AudioInput", "VideoInput", "ClipboardRedirection"):
+        assert tree.findtext(name) == "Disable"
+    folders = tree.findall("MappedFolders/MappedFolder")
+    assert len(folders) == 2
+    assert [folder.findtext("ReadOnly") for folder in folders] == ["true", "false"]
+    assert all(folder.findtext("HostFolder") != str(root) for folder in folders)
+    assert Path(folders[1].findtext("HostFolder")) == results
+    incoming = Path(folders[0].findtext("HostFolder"))
+    expected = json.loads((incoming / "expected.json").read_text(encoding="utf-8"))
+    assert expected["sha256"] == build.file_hash(incoming / "setup.exe")
+    assert set(path.name for path in incoming.iterdir()) == {"setup.exe", "verify.ps1", "expected.json"}
+    assert not list(results.iterdir())  # launch is never recorded as a passed test
+
+
+def test_sandbox_does_not_launch_on_linux(tmp_path, monkeypatch):
+    monkeypatch.setattr(sandbox.sys, "platform", "linux")
+    launch = Mock(side_effect=AssertionError("must not launch"))
+    monkeypatch.setattr(sandbox.subprocess, "Popen", launch)
+    with pytest.raises(RuntimeError, match="on Windows"):
+        sandbox.launch(tmp_path / "test.wsb")
+    launch.assert_not_called()
+
+
+def test_sandbox_harness_has_strict_failure_and_scope_guards():
+    text = (ROOT / "scripts/verify_nuitka_sandbox.ps1").read_text(encoding="utf-8")
+    for required in ("WaitForExit", "ExitCode", "Get-FileHash", "summary.json", "--self-test", "--gui-smoke",
+                     "user_data_preserved", "not_tested", "window_close_awaited"):
+        assert required in text
+    assert '$summary.ok = $true' in text
+    assert 'Enable-WindowsOptionalFeature' not in text
+
+
+def test_sandbox_harness_stays_ascii_for_windows_powershell():
+    # Windows PowerShell 5.1 читает .ps1 без BOM как ANSI: кириллический литерал
+    # в тексте скрипта превращается в кракозябры. Так уже ломался реальный
+    # Sandbox-прогон: установка прошла, а 'Феникс.exe' не находился, потому что
+    # имя EXE было захардкожено кириллицей. Имя берётся поиском по папке.
+    script = ROOT / "scripts/verify_nuitka_sandbox.ps1"
+    script.read_bytes().decode("ascii")  # UnicodeDecodeError = регрессия
+
+
+def test_full_bat_isolated_env_and_preflight_before_install():
+    text = (ROOT / "build_nuitka_full.bat").read_text(encoding="utf-8")
+    assert r"build\nuitka-app-env" in text
+    assert ".venv311" not in text
+    assert text.index('goto check') < text.index('pip install')
+    assert 'requirements-nuitka-app.txt' in text
+
+
+def test_locked_previous_build_is_not_deleted(tmp_path, native, client, monkeypatch):
+    root = tmp_path / "project"
+    previous = write(root / "dist/nuitka-app/previous", b"keep")
+    monkeypatch.setattr(build, "resources", lambda root: [])
+    original = Path.replace
+    def locked(path, target):
+        if path == previous.parent:
+            raise PermissionError("locked previous build")
+        return original(path, target)
+    monkeypatch.setattr(Path, "replace", locked)
+    with pytest.raises(PermissionError, match="locked"):
+        build.stage(root, native, client, versions={}, version="2.1.1")
+    assert previous.read_bytes() == b"keep"
+
+
+def test_publish_failure_rolls_back_previous_build(tmp_path, native, client, monkeypatch):
+    root = tmp_path / "project"
+    previous = write(root / "dist/nuitka-app/previous", b"keep")
+    monkeypatch.setattr(build, "resources", lambda root: [])
+    original = Path.replace
+    def fail_publish(path, target):
+        if path.name.startswith("nuitka-app-") and "previous" not in path.name and Path(target).name == "nuitka-app":
+            raise PermissionError("publish failure")
+        return original(path, target)
+    monkeypatch.setattr(Path, "replace", fail_publish)
+    with pytest.raises(PermissionError, match="publish failure"):
+        build.stage(root, native, client, versions={}, version="2.1.1")
+    assert previous.read_bytes() == b"keep"
+
+
+@pytest.mark.parametrize("unrelated", ["docopt", "pypiwin32", "Pygments", "pytest", "silero", "setuptools", "unknown-build-only-package"])
+def test_installed_build_packages_do_not_force_unusable_metadata(unrelated):
+    command = build.command(build.args_for([]), distributions=[unrelated, "flet", "flet-desktop", "torch"])
+    flags = [arg for arg in command if arg.startswith("--include-distribution-metadata=")]
+    assert flags == ["--include-distribution-metadata=flet", "--include-distribution-metadata=flet-desktop", "--include-distribution-metadata=torch"]
+    assert f"--include-module={unrelated}" not in command
+
+
+def test_metadata_names_are_canonical_and_deduplicated():
+    assert build.metadata_arguments(["Flet", "FLET_desktop", "flet-desktop", "Torch", "docopt"]) == [
+        "--include-distribution-metadata=flet", "--include-distribution-metadata=flet-desktop", "--include-distribution-metadata=torch"]
+
+
+def test_metadata_is_not_forced_when_distribution_is_absent():
+    assert build.metadata_arguments(["docopt", "pypiwin32"]) == []
+
+
+def test_comtypes_single_named_test_package_is_excluded():
+    flags = build.command(build.args_for([]))
+    nofollow = next(flag for flag in flags if flag.startswith("--nofollow-import-to="))
+    assert "comtypes.test" in nofollow.partition("=")[2].split(",")
+    assert "--include-package=comtypes" in flags  # production COM code is retained
+
+
+
+def test_runtime_critical_packages_are_fully_included():
+    flags = build.command(build.args_for([]))
+    # flet.controls.material.icons импортируется динамически: без пакета
+    # self-test падал на ModuleNotFoundError уже после успешной линковки.
+    assert "--include-package=flet" in flags
+    # winrt 4 читает таблицу проекций _table.pywinrt рядом с модулем; без
+    # данных пакета self-test падал на winrt.windows.media.control.
+    assert "--include-package-data=winrt" in flags
+
+
+def test_torch_internal_tests_are_excluded_but_jit_is_retained():
+    flags = build.command(build.args_for([]))
+    nofollow = next(flag for flag in flags if flag.startswith("--nofollow-import-to="))
+    excluded = nofollow.partition("=")[2].split(",")
+    # Пакет целиком исключать нельзя: torch/utils/checkpoint.py безусловно
+    # импортирует torch.testing._internal.logging_tensor, поэтому import torch
+    # в сборке падал с ImportError "... actively excluded".
+    assert "torch.testing._internal" not in excluded
+    # Тяжёлые тестовые модули исключены: common_methods_invocations роняет gcc
+    # с 'cc1: out of memory'.
+    assert "torch.testing._internal.common_methods_invocations" in excluded
+    assert "--include-module=torch" in flags
+    assert "--module-parameter=torch-disable-jit=no" in flags
+    assert not any("--nofollow-import-to=torch," in flag for flag in flags)
+
+
+def test_low_memory_is_explicit_and_jobs_can_be_one():
+    flags = build.command(build.args_for(["--low-memory", "--jobs", "1"]))
+    assert "--low-memory" in flags
+    assert "--jobs=1" in flags
+    assert "--low-memory" not in build.command(build.args_for([]))
+
+
+def test_torch_builder_probe_checks_imports_versions_and_jit(tmp_path, monkeypatch):
+    def run(command, **kwargs):
+        assert command[:3] == [build.sys.executable, "-I", "-c"]
+        code = command[3]
+        assert "import torchaudio" in code
+        assert "torch.jit.load" in code
+        assert "requires(\"torchaudio\")" in code
+        assert "requirement.specifier.contains" in code
+        assert kwargs["timeout"] == 120
+        return NS(returncode=0)
+    monkeypatch.setattr(build.subprocess, "run", run)
+    build.validate_torch_runtime(tmp_path)
+    assert (tmp_path / "torch-builder-preflight.log").is_file()
+
+
+def test_torch_builder_probe_failure_stops_before_compilation(tmp_path, monkeypatch):
+    monkeypatch.setattr(build.subprocess, "run", lambda *a, **kw: NS(returncode=1))
+    with pytest.raises(RuntimeError, match="Compilation was not started"):
+        build.validate_torch_runtime(tmp_path)
+
+
+def test_torch_builder_probe_timeout_is_bounded(tmp_path, monkeypatch):
+    def run(*a, **kw):
+        raise build.subprocess.TimeoutExpired("probe", 120)
+    monkeypatch.setattr(build.subprocess, "run", run)
+    with pytest.raises(RuntimeError, match="timed out"):
+        build.validate_torch_runtime(tmp_path)
+
+
+@pytest.mark.parametrize('torch_version,audio_version,requirements,ok', [
+    ('2.14.1', '2.11.0', ['torch>=2.11'], True),
+    ('2.11.0+cpu', '2.11.0', ['torch>=2.11'], True),
+    ('2.14.1+cu128', '2.11.0', ['torch>=2.11'], True),
+    ('2.10.0', '2.11.0', ['torch>=2.11'], False),
+    ('2.10.0', '2.10.0', ['torch==2.10.0'], True),
+    ('2.14.1', '2.10.0', ['torch==2.10.0'], False),
+    ('2.14.1', '2.11.0', ['numpy>=1', 'torch<1; extra == "test"', 'torch>=2.11'], True),
+])
+def test_builder_probe_uses_declared_requirements_not_equal_versions(torch_version, audio_version, requirements, ok, monkeypatch, capsys):
+    import sys
+    fake = NS(zeros=lambda n: [0], jit=NS(trace=lambda *a: object(),
+        save=lambda traced, buffer: buffer.write(b'jit'),
+        load=lambda *a, **kw: lambda value: [1]))
+    monkeypatch.setitem(sys.modules, 'torch', fake)
+    monkeypatch.setitem(sys.modules, 'torchaudio', NS())
+    monkeypatch.setattr(build.metadata, 'version', lambda name: torch_version if name == 'torch' else audio_version)
+    monkeypatch.setattr(build.metadata, 'requires', lambda name: requirements)
+    if not ok:
+        with pytest.raises(RuntimeError, match='declared requirement'):
+            exec(build.TORCH_PROBE_CODE, {})
+    else:
+        exec(build.TORCH_PROBE_CODE, {})
+        report = json.loads(capsys.readouterr().out)
+        assert report['ok'] is True
+        assert report['torch'] == torch_version
+        assert 'torch_requirements' in report
+```
+
 ### `tests/test_numeric_language.py`
 
 ```python
@@ -41934,20 +44343,17 @@ def test_whisper_refinement_preserves_original_numeric_punctuation():
     assert method(app, b"", True) == "напомни в 18:30"
 
 
-def test_speaker_direct_path_uses_same_preparation():
-    from jarvis.tts import Speaker
+def test_speaker_direct_path_uses_same_preparation(monkeypatch):
+    from jarvis import tts
 
-    speaker = Speaker.__new__(Speaker)
-    speaker._ensure_engine = Mock(return_value=True)
-    speaker._new_token = Mock(return_value=Mock())
-    speaker._engine_name = "piper"
-    speaker._engine = Mock()
-    speaker._engine.synthesize.return_value = b""
-    speaker.voice = "ruslan"
-    speaker.rate = 1.0
+    engine = Mock()
+    engine.name, engine.voice = "piper", "ruslan"
+    engine.synthesize.return_value = b""
+    monkeypatch.setattr(tts, "get_engine", lambda *args: engine)
+    speaker = tts.Speaker({"tts_backend": "piper", "tts_voice": "ruslan"})
     speaker.speak("в XXI веке")
     assert (
-        plain(speaker._engine.synthesize.call_args.args[0]) == "в двадцать первом веке"
+        plain(engine.synthesize.call_args.args[0]) == "в двадцать первом веке"
     )
 
 
@@ -43272,6 +45678,345 @@ def test_optional_aec_files_shipped_but_not_required_by_base_dependencies(releas
     assert 'pywebrtc' not in (release_tree/'requirements.txt').read_text(encoding="utf-8")
 ```
 
+### `tests/test_review_regressions.py`
+
+```python
+"""Archive-review regressions: no network, native audio or system automation."""
+
+import json
+import logging
+import stat
+import time
+import zipfile
+from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import Mock
+
+import pytest
+
+import launcher
+from jarvis import model, tasks, timers
+from jarvis.intents.execute import execute_intent
+from jarvis.language import analyze_command
+from jarvis.text_utils import normalize
+
+
+@pytest.fixture
+def timer_store(tmp_path, monkeypatch):
+    target = tmp_path / "timers.json"
+    monkeypatch.setattr(timers, "_timers_file", lambda: target)
+    monkeypatch.setattr(timers, "_scheduled", {})
+    monkeypatch.setattr(timers, "_on_fire_callback", None)
+    return target
+
+
+def fail_replace(*args, **kwargs):
+    raise PermissionError("simulated locked JSON file")
+
+
+@pytest.mark.parametrize("phrase", [
+    "напомни через 5 минут выпить чай",
+    "напомни в 18:30 выпить чай",
+])
+def test_timer_write_failure_is_not_reported_as_success(timer_store, monkeypatch, phrase):
+    scheduled = Mock()
+    monkeypatch.setattr(timers, "_schedule_one", scheduled)
+    monkeypatch.setattr(timers.os, "replace", fail_replace)
+    reply = timers.handle_timer_command(phrase)
+    assert reply and "не удалось" in reply.lower()
+    assert not timer_store.exists()
+    assert not list(timer_store.parent.glob("*.tmp"))
+    scheduled.assert_not_called()
+
+
+def test_timer_intent_write_failure_does_not_report_success(timer_store, monkeypatch):
+    scheduled = Mock()
+    monkeypatch.setattr(timers, "_schedule_one", scheduled)
+    monkeypatch.setattr(timers.os, "replace", fail_replace)
+    reply = execute_intent(SimpleNamespace(), {
+        "action": "set_timer", "seconds": 300, "text": "выпить чай",
+    })
+    assert "не удалось" in reply.lower()
+    scheduled.assert_not_called()
+    assert not timer_store.exists()
+
+
+def test_timer_add_persists_before_scheduling(timer_store, monkeypatch):
+    def schedule(timer):
+        assert json.loads(timer_store.read_text(encoding="utf-8")) == [timer]
+
+    monkeypatch.setattr(timers, "_schedule_one", schedule)
+    item = timers.add("чай", time.time() + 300)
+    assert timers.list_all() == [item]
+
+
+def test_timer_cancel_write_failure_keeps_running_timers(timer_store, monkeypatch):
+    monkeypatch.setattr(timers, "_schedule_one", Mock())
+    item = timers.add("чай", time.time() + 300)
+    running = Mock()
+    timers._scheduled[item["id"]] = running
+    monkeypatch.setattr(timers.os, "replace", fail_replace)
+    reply = timers.handle_timer_command("отмени все напоминания")
+    assert "не удалось" in reply.lower()
+    running.cancel.assert_not_called()
+    assert timers._scheduled[item["id"]] is running
+    assert timers.list_all() == [item]
+
+
+def test_timer_cancel_success_persists_and_cancels(timer_store, monkeypatch):
+    monkeypatch.setattr(timers, "_schedule_one", Mock())
+    item = timers.add("чай", time.time() + 300)
+    running = Mock()
+    timers._scheduled[item["id"]] = running
+    assert timers.remove_all() == 1
+    running.cancel.assert_called_once()
+    assert timers.list_all() == []
+    assert timers._scheduled == {}
+
+
+def test_due_timer_still_notifies_if_removal_cannot_be_saved(timer_store, monkeypatch):
+    monkeypatch.setattr(timers, "_schedule_one", Mock())
+    item = timers.add("чай", time.time() + 300)
+    callback = Mock()
+    monkeypatch.setattr(timers, "_on_fire_callback", callback)
+    timers._scheduled[item["id"]] = Mock()
+    monkeypatch.setattr(timers.os, "replace", fail_replace)
+    timers._fire(item["id"])
+    callback.assert_called_once_with(item)
+    assert item["id"] not in timers._scheduled
+
+
+@pytest.mark.parametrize("phrase", [
+    "убери хлеб из списка", "удали хлеб из списка",
+    "убери из списка хлеб", "удали из списка хлеб",
+    "убери хлеб", "удали хлеб",
+])
+def test_documented_task_removal_forms(tmp_path, monkeypatch, phrase):
+    monkeypatch.setattr(tasks, "_tasks_file", lambda: tmp_path / "tasks.json")
+    tasks.add("купить хлеб")
+    reply = tasks.handle_task_command(normalize(analyze_command(phrase).command))
+    assert reply.startswith("Убрал:")
+    assert tasks.list_items() == []
+
+
+def test_task_removal_without_name_does_not_remove_anything(tmp_path, monkeypatch):
+    monkeypatch.setattr(tasks, "_tasks_file", lambda: tmp_path / "tasks.json")
+    item = tasks.add("купить хлеб")
+    reply = tasks.handle_task_command("убери из списка")
+    assert "какую задачу" in reply.lower()
+    assert tasks.list_items() == [item]
+
+
+def make_model(directory):
+    for name in model.REQUIRED_MODEL_FILES:
+        path = directory / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"model fixture")
+    return directory
+
+
+def fake_download(monkeypatch, missing=None, extra=None):
+    def retrieve(_url, filename, reporthook=None):
+        with zipfile.ZipFile(filename, "w") as archive:
+            for name in model.REQUIRED_MODEL_FILES:
+                if name != missing:
+                    archive.writestr(f"{model.MODEL_NAME}/{name}", b"model fixture")
+            if extra is not None:
+                archive.writestr(extra, b"test marker")
+        return str(filename), None
+
+    retrieve = Mock(side_effect=retrieve)
+    monkeypatch.setattr(model.urllib.request, "urlretrieve", retrieve)
+    return retrieve
+
+
+@pytest.fixture
+def models_dir(tmp_path, monkeypatch):
+    directory = tmp_path / "models"
+    directory.mkdir()
+    monkeypatch.setattr(model.paths, "program_models_dir", lambda: directory)
+    return directory
+
+
+@pytest.mark.parametrize("broken", ["am-only", "missing-file", "empty-file", "directory"])
+def test_vosk_incomplete_model_is_repaired(models_dir, monkeypatch, broken):
+    target = models_dir / model.MODEL_NAME
+    if broken == "am-only":
+        (target / "am").mkdir(parents=True)
+    else:
+        make_model(target)
+        required = target / "am/final.mdl"
+        if broken == "empty-file":
+            required.write_bytes(b"")
+        else:
+            required.unlink()
+            if broken == "directory":
+                required.mkdir()
+    assert not model.model_is_ready(target)
+    retrieve = fake_download(monkeypatch)
+    assert model.ensure_model() == target
+    retrieve.assert_called_once()
+    assert model.model_is_ready(target)
+    assert list(models_dir.iterdir()) == [target]
+
+
+def test_vosk_complete_model_does_not_download(models_dir, monkeypatch):
+    target = make_model(models_dir / model.MODEL_NAME)
+    retrieve = Mock(side_effect=AssertionError("unexpected network access"))
+    monkeypatch.setattr(model.urllib.request, "urlretrieve", retrieve)
+    assert model.ensure_model() == target
+    retrieve.assert_not_called()
+
+
+@pytest.mark.parametrize("entry", [
+    f"{model.MODEL_NAME}/../escaped.txt",
+    f"{model.MODEL_NAME}/../../escaped.txt",
+    f"{model.MODEL_NAME}\\..\\escaped.txt",
+    f"{model.MODEL_NAME}/.. /escaped.txt",
+    f"{model.MODEL_NAME}/.../escaped.txt",
+    f"{model.MODEL_NAME}/C:/escaped.txt",
+    f"{model.MODEL_NAME}/am/final.mdl:stream",
+    f"/{model.MODEL_NAME}/am/final.mdl",
+    "other-model/am/final.mdl",
+])
+def test_vosk_zip_rejects_unsafe_paths(models_dir, monkeypatch, entry):
+    fake_download(monkeypatch, extra=entry)
+    with pytest.raises(ValueError):
+        model.ensure_model()
+    assert not (models_dir / model.MODEL_NAME).exists()
+    assert not (models_dir / "escaped.txt").exists()
+    assert not (models_dir.parent / "escaped.txt").exists()
+    assert list(models_dir.iterdir()) == []
+
+
+def test_vosk_zip_rejects_symlinks(models_dir, monkeypatch):
+    link = zipfile.ZipInfo(f"{model.MODEL_NAME}/am/link")
+    link.create_system = 3
+    link.external_attr = (stat.S_IFLNK | 0o777) << 16
+    fake_download(monkeypatch, extra=link)
+    with pytest.raises(ValueError):
+        model.ensure_model()
+    assert list(models_dir.iterdir()) == []
+
+
+def test_vosk_incomplete_download_is_not_published(models_dir, monkeypatch):
+    fake_download(monkeypatch, missing="am/final.mdl")
+    with pytest.raises(RuntimeError, match="неполная"):
+        model.ensure_model()
+    assert list(models_dir.iterdir()) == []
+
+
+def test_vosk_failed_download_preserves_previous_directory(models_dir, monkeypatch):
+    target = models_dir / model.MODEL_NAME
+    target.mkdir()
+    marker = target / "previous.txt"
+    marker.write_bytes(b"keep")
+    retrieve = Mock(side_effect=OSError("offline"))
+    monkeypatch.setattr(model.urllib.request, "urlretrieve", retrieve)
+    with pytest.raises(OSError, match="offline"):
+        model.ensure_model()
+    assert marker.read_bytes() == b"keep"
+    assert list(models_dir.iterdir()) == [target]
+
+
+def test_vosk_unsafe_zip_preserves_previous_directory(models_dir, monkeypatch):
+    target = models_dir / model.MODEL_NAME
+    target.mkdir()
+    marker = target / "previous.txt"
+    marker.write_bytes(b"keep")
+    fake_download(monkeypatch, extra=f"{model.MODEL_NAME}/../escaped.txt")
+    with pytest.raises(ValueError):
+        model.ensure_model()
+    assert marker.read_bytes() == b"keep"
+    assert list(models_dir.iterdir()) == [target]
+
+
+def test_vosk_local_copy_needs_no_network(models_dir, tmp_path, monkeypatch):
+    local = tmp_path / "локальные-модели"
+    source = make_model(local / model.MODEL_NAME)
+    retrieve = Mock(side_effect=AssertionError("unexpected network access"))
+    monkeypatch.setattr(model.urllib.request, "urlretrieve", retrieve)
+    target = model.ensure_model(local)
+    assert model.model_is_ready(target)
+    assert model.model_is_ready(source)
+    retrieve.assert_not_called()
+
+
+def test_vosk_failed_local_copy_falls_back_to_clean_download(models_dir, tmp_path, monkeypatch):
+    local = tmp_path / "local"
+    make_model(local / model.MODEL_NAME)
+
+    def interrupted_copy(source, destination):
+        (destination / "am").mkdir(parents=True)
+        raise OSError("interrupted copy")
+
+    monkeypatch.setattr(model.shutil, "copytree", interrupted_copy)
+    retrieve = fake_download(monkeypatch)
+    target = model.ensure_model(local)
+    retrieve.assert_called_once()
+    assert model.model_is_ready(target)
+    assert list(models_dir.iterdir()) == [target]
+
+
+def test_vosk_launcher_progress_hook_is_passed_to_downloader(models_dir, monkeypatch):
+    retrieve = fake_download(monkeypatch)
+    progress = Mock()
+    model.ensure_model(reporthook=progress)
+    assert retrieve.call_args.kwargs["reporthook"] is progress
+
+
+def test_vosk_failed_publication_restores_previous_directory(models_dir, tmp_path, monkeypatch):
+    target = models_dir / model.MODEL_NAME
+    target.mkdir()
+    marker = target / "previous.txt"
+    marker.write_bytes(b"keep")
+    local = tmp_path / "local"
+    make_model(local / model.MODEL_NAME)
+    original = Path.replace
+
+    def fail_publish(self, destination):
+        if self.name == "model":
+            raise PermissionError("cannot publish")
+        return original(self, destination)
+
+    monkeypatch.setattr(Path, "replace", fail_publish)
+    with pytest.raises(PermissionError, match="cannot publish"):
+        model.ensure_model(local)
+    assert marker.read_bytes() == b"keep"
+    assert list(models_dir.iterdir()) == [target]
+
+
+def test_launcher_uses_same_model_validation(models_dir):
+    target = models_dir / model.MODEL_NAME
+    (target / "am").mkdir(parents=True)
+    logger = logging.getLogger("test.launcher")
+    assert not launcher.check_vosk_model(models_dir.parent, logger)
+    make_model(target)
+    assert launcher.check_vosk_model(models_dir.parent, logger)
+
+
+def test_launcher_prepares_local_model_with_shared_installer(models_dir, tmp_path, monkeypatch):
+    project = tmp_path / "project"
+    make_model(project / "models" / model.MODEL_NAME)
+    retrieve = Mock(side_effect=AssertionError("unexpected network access"))
+    monkeypatch.setattr(model.urllib.request, "urlretrieve", retrieve)
+    monkeypatch.setattr(launcher, "info", Mock())
+    monkeypatch.setattr(launcher, "error", Mock())
+    assert launcher.download_vosk_model(project, logging.getLogger("test.launcher"))
+    assert model.model_is_ready(models_dir / model.MODEL_NAME)
+    retrieve.assert_not_called()
+
+
+def test_launcher_reports_model_installation_failure(models_dir, tmp_path, monkeypatch):
+    fake_download(monkeypatch, missing="am/final.mdl")
+    monkeypatch.setattr(launcher, "info", Mock())
+    error = Mock()
+    monkeypatch.setattr(launcher, "error", error)
+    assert not launcher.download_vosk_model(tmp_path, logging.getLogger("test.launcher"))
+    error.assert_called_once()
+    assert not (models_dir / model.MODEL_NAME).exists()
+```
+
 ### `tests/test_safety.py`
 
 ```python
@@ -43431,6 +46176,134 @@ def test_observer_disabled_by_default():
     from jarvis.config import DEFAULT_CONFIG
 
     assert DEFAULT_CONFIG["observer_enabled"] is False
+```
+
+### `tests/test_sapi_owner.py`
+
+```python
+"""COM ownership and cooperative cancellation without Windows/audio hardware."""
+import sys
+import threading
+from types import SimpleNamespace as NS
+
+from jarvis.tts_engines import sapi
+
+
+class Native:
+    def __init__(self):
+        self.calls = []
+        self.started = threading.Event()
+        self.busy = False
+        self.loop = False
+
+    def record(self, name):
+        self.calls.append((name, threading.get_ident()))
+
+    def getProperty(self, key):
+        self.record("getProperty")
+        return [NS(id="Russian", name="Microsoft Irina")]
+
+    def setProperty(self, key, value):
+        self.record("setProperty")
+
+    def say(self, text):
+        self.record("say")
+        self.busy = True
+        self.started.set()
+
+    def startLoop(self, driver):
+        self.record("startLoop")
+        assert driver is False
+        assert not self.loop
+        self.loop = True
+
+    def iterate(self):
+        self.record("iterate")
+
+    def isBusy(self):
+        self.record("isBusy")
+        return self.busy
+
+    def stop(self):
+        self.record("stop")
+        self.busy = False
+
+    def endLoop(self):
+        self.record("endLoop")
+        assert self.loop
+        self.loop = False
+
+
+def test_sapi_init_speech_and_stop_share_owner_not_gui_thread(monkeypatch):
+    native = Native()
+    created = []
+    def construct():
+        created.append(threading.get_ident())
+        return native
+    monkeypatch.setitem(sys.modules, "pyttsx3", NS(Engine=construct))
+    monkeypatch.setattr(sapi.sys, "platform", "linux")
+    engine = sapi.SAPIEngine()
+    token = threading.Event()
+    play = threading.Thread(target=lambda: engine.speak_stream(iter(["Проба."]), "auto", 1.0, token))
+    play.start()
+    try:
+        assert native.started.wait(2)
+        gui_thread = threading.get_ident()
+        engine.set_voice("Irina")
+        engine.set_rate(1.2)
+        token.set()
+        engine.stop()
+        play.join(2)
+        assert not play.is_alive()
+        assert not native.loop
+        assert {ident for _, ident in native.calls} == set(created)
+        assert created[0] != gui_thread
+        # A second preview must be possible after stopping the first loop.
+        native.started.clear()
+        token2 = threading.Event()
+        play2 = threading.Thread(target=lambda: engine.speak_stream(iter(["Ещё проба."]), "Irina", 1.2, token2))
+        play2.start()
+        assert native.started.wait(2)
+        token2.set()
+        engine.stop()
+        play2.join(2)
+        assert not play2.is_alive()
+        assert len([x for x in native.calls if x[0] == "say"]) == 2
+    finally:
+        token.set()
+        engine.stop()
+        play.join(2)
+        engine._requests.put(None)
+        engine._thread.join(2)
+
+
+def test_stop_is_signal_only_and_waits_for_native_owner_ack(monkeypatch):
+    native = Native()
+    entered, release = threading.Event(), threading.Event()
+    def iterate():
+        native.record("iterate")
+        entered.set()
+        assert release.wait(3)
+    native.iterate = iterate
+    monkeypatch.setitem(sys.modules, "pyttsx3", NS(Engine=lambda: native))
+    monkeypatch.setattr(sapi.sys, "platform", "linux")
+    engine = sapi.SAPIEngine()
+    token = threading.Event()
+    play = threading.Thread(target=lambda: engine.speak_stream(iter(["Проба."]), "auto", 1.0, token))
+    play.start()
+    try:
+        assert entered.wait(2)
+        token.set()
+        engine.stop()  # must return even with a stalled native iterate()
+        assert play.is_alive()  # no fake completion before native owner confirms
+        assert not any(name == "stop" for name, _ in native.calls)
+    finally:
+        release.set()
+        play.join(2)
+        engine._requests.put(None)
+        engine._thread.join(2)
+    assert not play.is_alive()
+    assert any(name == "stop" for name, _ in native.calls)
 ```
 
 ### `tests/test_source_layout.py`
@@ -44701,6 +47574,286 @@ def test_do_change_voice_switch_and_history():
     assert "Pavel" in reply
     assert state["tts_voice"] == "Pavel"
     hist.push.assert_called_once()
+```
+
+### `tests/test_tts_lifecycle.py`
+
+```python
+"""Loader/preview/stop races with controlled events; no network or audio devices."""
+import threading
+from types import SimpleNamespace as NS
+from unittest.mock import Mock
+
+import pytest
+
+from jarvis import tts
+from jarvis.config import Config
+
+
+class Engine:
+    def __init__(self, name="piper", voice="ruslan"):
+        self.name, self.voice = name, voice
+        self.set_rate = Mock()
+        self.set_wav_player = Mock()
+        self.stop = Mock()
+        self.synthesize = Mock(return_value=b"wav")
+
+
+def ready(monkeypatch):
+    monkeypatch.setattr(tts, "get_engine", lambda backend, voice, quality, rate: Engine(backend, voice))
+    speaker = tts.Speaker({"tts_backend": "piper", "tts_voice": "ruslan"})
+    speaker._play_wav = Mock()
+    return speaker
+
+
+def settle(speaker):
+    assert speaker._engine_ready.wait(3)
+    worker = speaker._settings_thread
+    if worker is not None:
+        worker.join(3)
+        assert not worker.is_alive()
+    assert not speaker.configuration_status()["pending"]
+
+
+def wire(config, speaker):
+    methods = {"tts_backend": speaker.switch_backend, "tts_voice": speaker.set_voice,
+               "tts_voice_quality": speaker.set_quality, "voice_rate": speaker.set_rate}
+    config.subscribe(lambda key, value: methods[key](value) if key in methods else None)
+
+
+def test_switch_returns_before_model_finishes_and_does_not_mutate_active(monkeypatch):
+    speaker = ready(monkeypatch)
+    entered, release = threading.Event(), threading.Event()
+    def load(backend, voice, quality, rate):
+        entered.set()
+        assert release.wait(3)
+        return Engine(backend, "aidar")
+    monkeypatch.setattr(tts, "get_engine", load)
+    try:
+        assert speaker.switch_backend("silero")
+        assert entered.wait(1)
+        assert speaker.configuration_status()["pending"]
+        assert speaker._engine_name == "piper"
+        assert speaker._ensure_engine(0) is False
+    finally:
+        release.set()
+        settle(speaker)
+    assert speaker._engine_name == "silero"
+    assert speaker.voice == "aidar"
+
+
+def test_initial_loader_cannot_overwrite_newer_voice_and_coalesces_edits(monkeypatch):
+    entered, release = threading.Event(), threading.Event()
+    calls = []
+    def load(backend, voice, quality, rate):
+        calls.append((backend, voice))
+        if len(calls) == 1:
+            entered.set()
+            assert release.wait(3)
+        return Engine(backend, voice)
+    monkeypatch.setattr(tts, "get_engine", load)
+    speaker = tts.Speaker({"tts_backend": "piper", "tts_voice": "ruslan"}, lazy=True)
+    try:
+        assert entered.wait(1)
+        speaker.switch_backend("silero")
+        speaker.set_voice("baya")
+        speaker.set_rate(1.3)
+        assert speaker._engine is None
+        assert speaker._settings_thread.name == "tts-settings"
+    finally:
+        release.set()
+        settle(speaker)
+    assert calls == [("piper", "ruslan"), ("silero", "baya")]
+    assert (speaker._engine_name, speaker.voice, speaker.rate) == ("silero", "baya", 1.3)
+
+
+def test_superseded_download_is_discarded_and_latest_selection_wins(monkeypatch):
+    speaker = ready(monkeypatch)
+    entered, release = threading.Event(), threading.Event()
+    calls = []
+    def load(backend, voice, quality, rate):
+        calls.append((backend, voice))
+        if backend == "silero":
+            entered.set()
+            assert release.wait(3)
+        return Engine(backend, voice)
+    monkeypatch.setattr(tts, "get_engine", load)
+    speaker.switch_backend("silero")
+    try:
+        assert entered.wait(1)
+        speaker.switch_backend("piper")
+        speaker.set_voice("dmitri")
+        assert speaker._engine_name == "piper"
+    finally:
+        release.set()
+        settle(speaker)
+    assert calls == [("silero", "ruslan"), ("piper", "dmitri")]
+    assert speaker._engine_name == "piper" and speaker.voice == "dmitri"
+
+
+def test_failed_switch_rolls_config_back_to_actual_runtime(monkeypatch, tmp_path):
+    config = Config(tmp_path / "config.json")
+    config.update({"tts_backend": "piper", "tts_voice": "ruslan"})
+    monkeypatch.setattr(tts, "get_engine", lambda *args: Engine())
+    speaker = tts.Speaker(config)
+    wire(config, speaker)
+    monkeypatch.setattr(tts, "get_engine", lambda *args: None)
+    assert config.set("tts_backend", "silero")
+    settle(speaker)
+    # Event is set before persisted rollback; join the captured worker if needed.
+    for _ in range(100):
+        if config.get("tts_backend") == "piper":
+            break
+        threading.Event().wait(.01)
+    assert config.get("tts_backend") == speaker._backend == "piper"
+    assert speaker._engine_name == "piper"
+    assert speaker.configuration_status()["error"]
+
+
+def test_rollback_cannot_overwrite_a_newer_user_edit(monkeypatch, tmp_path):
+    config = Config(tmp_path / "config.json")
+    config.update({"tts_backend": "piper", "tts_voice": "ruslan"})
+    monkeypatch.setattr(tts, "get_engine", lambda *args: Engine())
+    speaker = tts.Speaker(config)
+    wanted = ("silero", "aidar", "medium", 1.15)
+    active = ("piper", "ruslan", "medium", 1.15)
+    config.update({"tts_backend": "piper", "tts_voice": "dmitri"})
+    speaker._rollback_config(wanted, active)
+    assert config.get("tts_voice") == "dmitri"
+
+
+def test_slow_old_playback_prevents_engine_replacement(monkeypatch):
+    speaker = ready(monkeypatch)
+    old = speaker._engine
+    speaker.wait_end = Mock(return_value=False)
+    loader = Mock(side_effect=AssertionError("must not load over old playback"))
+    monkeypatch.setattr(tts, "get_engine", loader)
+    assert speaker.switch_backend("silero")
+    settle(speaker)
+    assert speaker._engine is old
+    assert speaker._backend == "piper"
+    assert speaker.configuration_status()["error"]
+    loader.assert_not_called()
+
+
+def test_stop_during_readiness_cancels_without_late_playback(monkeypatch):
+    speaker = ready(monkeypatch)
+    entered, release = threading.Event(), threading.Event()
+    def ensure():
+        entered.set()
+        assert release.wait(3)
+        return True
+    speaker._ensure_engine = ensure
+    result = []
+    worker = threading.Thread(target=lambda: result.append(speaker.play_async("Проба")))
+    worker.start()
+    try:
+        assert entered.wait(1)
+        speaker.stop()
+    finally:
+        release.set()
+        worker.join(2)
+    assert result == [False]
+    speaker._engine.synthesize.assert_not_called()
+
+
+def test_cancelled_preview_is_not_queued_for_model_readiness(monkeypatch):
+    speaker = ready(monkeypatch)
+    cancel = threading.Event()
+    cancel.set()
+    assert speaker.play_async("Не говорить", cancel_event=cancel) is False
+    speaker._engine.synthesize.assert_not_called()
+
+
+def test_stop_during_synthesis_discards_wav_and_next_play_still_works(monkeypatch):
+    speaker = ready(monkeypatch)
+    entered, release = threading.Event(), threading.Event()
+    def synthesize(*args):
+        entered.set()
+        assert release.wait(3)
+        return b"wav"
+    speaker._engine.synthesize.side_effect = synthesize
+    assert speaker.play_async("Первая проба")
+    try:
+        assert entered.wait(1)
+        speaker.stop()
+    finally:
+        release.set()
+        assert speaker.wait_end(2)
+    speaker._play_wav.assert_not_called()
+    speaker._engine.synthesize.side_effect = None
+    assert speaker.play_async("Следующая проба")
+    assert speaker.wait_end(2)
+    speaker._play_wav.assert_called_once()
+
+
+def test_stream_does_not_overlap_a_stuck_worker(monkeypatch):
+    speaker = ready(monkeypatch)
+    speaker.wait_end = Mock(return_value=False)
+    speaker._engine.speak_stream = Mock(side_effect=AssertionError("overlap"))
+    assert speaker.speak_stream(iter(["Текст", " без звука"])) == "Текст без звука"
+    speaker._engine.speak_stream.assert_not_called()
+
+
+def test_quality_is_part_of_factory_cache_identity(monkeypatch):
+    from jarvis.tts_engines import factory
+    from jarvis.tts_engines import piper
+    monkeypatch.setattr(factory, "_ENGINE_CACHE", {})
+    create = Mock(side_effect=lambda *args: NS(args=args))
+    monkeypatch.setattr(piper, "PiperEngine", create)
+    a = factory._try_create("piper", "ruslan", "medium", 1.0)
+    b = factory._try_create("piper", "ruslan", "high", 1.0)
+    assert a is not b
+    assert factory._try_create("piper", "ruslan", "medium", 1.0) is a
+    assert create.call_count == 2
+
+
+def test_silero_without_persisted_trust_never_prompts_or_downloads(monkeypatch, tmp_path):
+    from jarvis.tts_engines.silero import SileroEngine
+    engine = SileroEngine.__new__(SileroEngine)
+    engine._lock, engine._model, engine._device = threading.Lock(), None, "cpu"
+    load = Mock(side_effect=AssertionError("untrusted network/code execution"))
+    engine._torch = NS(hub=NS(get_dir=lambda: str(tmp_path), load=load))
+    with pytest.raises(RuntimeError, match="подтверждение доверия"):
+        engine._load_model()
+    load.assert_not_called()
+
+
+def test_silero_uses_only_previously_approved_repo(monkeypatch, tmp_path):
+    from jarvis.tts_engines.silero import SileroEngine
+    (tmp_path / "trusted_list").write_text("snakers4_silero-models\n", encoding="utf-8")
+    engine = SileroEngine.__new__(SileroEngine)
+    engine._lock, engine._model, engine._device = threading.Lock(), None, "cpu"
+    model = Mock()
+    load = Mock(return_value=(model, None))
+    engine._torch = NS(hub=NS(get_dir=lambda: str(tmp_path), load=load))
+    engine._load_model()
+    assert engine._model is model
+    assert load.call_args.kwargs["trust_repo"] is True
+    assert load.call_args.kwargs["repo_or_dir"] == "snakers4/silero-models"
+
+
+def test_thread_start_failure_retains_runtime_and_does_not_leave_pending(monkeypatch):
+    speaker = ready(monkeypatch)
+    monkeypatch.setattr(tts.threading.Thread, "start", Mock(side_effect=RuntimeError("thread failure")))
+    assert speaker.switch_backend("silero") is False
+    assert speaker._engine_name == "piper"
+    assert not speaker.configuration_status()["pending"]
+    assert speaker.configuration_status()["error"]
+    assert speaker._desired_settings[0] == "piper"
+
+
+def test_failed_config_rollback_is_visible_in_log(monkeypatch, tmp_path, caplog):
+    config = Config(tmp_path / "config.json")
+    config.update({"tts_backend": "piper", "tts_voice": "ruslan"})
+    monkeypatch.setattr(tts, "get_engine", lambda *args: Engine())
+    speaker = tts.Speaker(config)
+    active = speaker._active_settings
+    wanted = ("silero", "aidar", "medium", 1.15)
+    config.update({"tts_backend": "silero", "tts_voice": "aidar"})
+    monkeypatch.setattr(config, "update", Mock(side_effect=OSError("disk")))
+    speaker._rollback_config(wanted, active)
+    assert "не удалось вернуть настройки" in caplog.text
 ```
 
 ### `tests/test_tts_readiness.py`
@@ -47704,9 +50857,9 @@ import subprocess
 import sys
 import time
 import urllib.request
-import zipfile
 from pathlib import Path
 
+from jarvis import model as vosk_model
 from launcher_download import (
     DownloadError, cleanup_download, download_python, verify_python_installer,
 )
@@ -47726,8 +50879,8 @@ _MUTEX_HANDLE = None
 PYTHON_INSTALLER_URL = "https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe"
 PYTHON_INSTALLER_FILE = "python-3.11.9-amd64.exe"
 
-VOSK_MODEL_NAME = "vosk-model-small-ru-0.22"
-VOSK_MODEL_URL = f"https://alphacephei.com/vosk/models/{VOSK_MODEL_NAME}.zip"
+VOSK_MODEL_NAME = vosk_model.MODEL_NAME
+VOSK_MODEL_URL = vosk_model.MODEL_URL
 
 OLLAMA_URL = "http://127.0.0.1:11434"
 OLLAMA_DOWNLOAD_PAGE = "https://ollama.com/download"
@@ -47883,23 +51036,47 @@ def already_running(logger) -> bool:
 # Поиск папки проекта
 # ============================================================
 
-def find_project_dir(logger) -> Path:
+def launcher_directory() -> Path:
+    """Locate the real executable, not Nuitka onefile's extraction directory."""
+    compiled = globals().get("__compiled__")
+    if compiled is not None:
+        containing_dir = getattr(compiled, "containing_dir", None)
+        if containing_dir:
+            return Path(containing_dir).resolve()
+        return Path(sys.argv[0]).resolve().parent
     if getattr(sys, "frozen", False):
-        exe_dir = Path(sys.executable).resolve().parent
-    else:
-        exe_dir = Path(__file__).resolve().parent
+        return Path(sys.executable).resolve().parent
+    return Path(__file__).resolve().parent
 
-    candidates = [exe_dir, exe_dir.parent, Path.cwd()]
-    for cand in candidates:
-        if (cand / "jarvis" / "__init__.py").exists():
-            logger.info("Проект найден: %s", cand)
+
+def find_project_dir(logger) -> Path:
+    exe_dir = launcher_directory()
+
+    candidates = list(dict.fromkeys(
+        [exe_dir, *exe_dir.parents, Path.cwd().resolve()]
+    ))
+    projects = [
+        cand for cand in candidates
+        if (cand / "jarvis" / "__init__.py").is_file()
+    ]
+
+    for cand in projects:
+        if find_venv_pythonw(cand, logger) is not None:
+            logger.info("Проект с готовым окружением найден: %s", cand)
             return cand
 
-    logger.error("Не найдена папка с jarvis/ (проверены: %s)",
-                 ", ".join(str(c) for c in candidates))
+    if projects:
+        logger.info(
+            "Проект найден (окружение требует подготовки): %s",
+            projects[0],
+        )
+        return projects[0]
+
+    logger.error(
+        "Не найдена папка с jarvis/ (проверены: %s)",
+        ", ".join(str(c) for c in candidates),
+    )
     return exe_dir
-
-
 # ============================================================
 # Python: поиск, скачивание installer
 # ============================================================
@@ -48248,82 +51425,31 @@ def install_dependencies(project_dir: Path, logger) -> bool:
 # ============================================================
 
 def check_vosk_model(project_dir: Path, logger) -> bool:
-    """Проверяет Vosk-модель в ASCII-пути (C:\\ProgramData\\Phoenix\\models)."""
-    program_data = os.environ.get("PROGRAMDATA", r"C:\ProgramData")
-    model_dir = Path(program_data) / "Phoenix" / "models" / VOSK_MODEL_NAME
-    ok = model_dir.exists() and (model_dir / "am").exists()
+    """Use the application's path selection and complete-model validation."""
+    model_dir = vosk_model.paths.program_models_dir() / VOSK_MODEL_NAME
+    ok = vosk_model.model_is_ready(model_dir)
     logger.info("Vosk-модель в %s: %s", model_dir, "есть" if ok else "нет")
     return ok
 
 
 def download_vosk_model(project_dir: Path, logger) -> bool:
-    """Скачивает и распаковывает Vosk-модель в ASCII-путь."""
-    program_data = os.environ.get("PROGRAMDATA", r"C:\ProgramData")
-    safe_models = Path(program_data) / "Phoenix" / "models"
-
-    try:
-        safe_models.mkdir(parents=True, exist_ok=True)
-    except Exception:
-        safe_models = Path(r"C:\Phoenix\models")
-        safe_models.mkdir(parents=True, exist_ok=True)
-
-    logger.info("Vosk-модель будет в: %s", safe_models)
-
-    zip_path = safe_models / f"{VOSK_MODEL_NAME}.zip"
-    target_dir = safe_models / VOSK_MODEL_NAME
-
-    if target_dir.exists() and (target_dir / "am").exists():
-        logger.info("Vosk-модель уже есть: %s", target_dir)
-        return True
-
+    """Share the safe, staged model installation with the application."""
     info(
-        "Скачиваю модель Vosk (~45 МБ) в C:\\ProgramData\\Phoenix\\models.\n\n"
-        "Это займёт 1–2 минуты.",
+        "Готовлю модель Vosk. Если локальной копии нет, потребуется "
+        "скачать ~45 МБ.\n\nЭто может занять 1–2 минуты.",
         "Феникс — модель Vosk",
     )
-
-    logger.info("Скачиваю Vosk: %s", VOSK_MODEL_URL)
     try:
-        urllib.request.urlretrieve(VOSK_MODEL_URL, zip_path, reporthook=_download_progress)
-        logger.info("Vosk скачан: %s", zip_path)
-    except Exception:
-        logger.exception("Не удалось скачать Vosk")
-        error("Не удалось скачать модель Vosk. Проверь интернет. Смотри logs\\launcher.log")
-        return False
-
-    info("Распаковываю модель Vosk...", "Феникс")
-    logger.info("Распаковываю Vosk")
-    try:
-        with zipfile.ZipFile(zip_path) as zf:
-            for member in zf.namelist():
-                parts = member.split("/", 1)
-                if len(parts) < 2 or not parts[1]:
-                    continue
-                target = target_dir / parts[1]
-                # Защита от Zip Slip: путь должен оставаться внутри target_dir.
-                try:
-                    resolved = target.resolve()
-                    base = target_dir.resolve()
-                    if base not in resolved.parents and resolved != base:
-                        logger.warning("Zip Slip попытка: %r", member)
-                        continue
-                except Exception:
-                    logger.warning("Не удалось проверить путь: %r", member)
-                    continue
-
-                if member.endswith("/"):
-                    target.mkdir(parents=True, exist_ok=True)
-                else:
-                    target.parent.mkdir(parents=True, exist_ok=True)
-                    with zf.open(member) as src, open(target, "wb") as dst:
-                        dst.write(src.read())
-        zip_path.unlink(missing_ok=True)
-        logger.info("Vosk распакован: %s", target_dir)
+        target_dir = vosk_model.ensure_model(
+            project_dir / "models", reporthook=_download_progress,
+        )
+        logger.info("Vosk подготовлен: %s", target_dir)
         info("Модель Vosk готова. OK", "Феникс")
         return True
     except Exception:
-        logger.exception("Ошибка распаковки Vosk")
-        error("Не удалось распаковать модель. Логи: logs\\launcher.log")
+        logger.exception("Не удалось подготовить модель Vosk")
+        error("Не удалось подготовить модель Vosk. Проверь интернет и доступ к "
+              "папке моделей. Логи: logs\\launcher.log")
         return False
 
 
@@ -48404,10 +51530,7 @@ def run_jarvis(project_dir: Path, pythonw: Path, logger) -> None:
 # ============================================================
 
 def _main() -> None:
-    if getattr(sys, "frozen", False):
-        exe_dir = Path(sys.executable).resolve().parent
-    else:
-        exe_dir = Path(__file__).resolve().parent
+    exe_dir = launcher_directory()
 
     log_file = _setup_logging(exe_dir)
     logger = logging.getLogger("launcher")
@@ -48506,7 +51629,7 @@ def _main() -> None:
 
 def main() -> None:
     """UI wrapper; the existing bootstrap workflow runs on one worker."""
-    base = Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) else Path(__file__).resolve().parent
+    base = launcher_directory()
     log_file = _setup_logging(base)
     try:
         from launcher_ui import PreparationWindow
@@ -49480,7 +52603,7 @@ class PreparationWindow:
                 return False
             self._show()
             self.progress = 0
-            self.stage_label.configure(text='Не удалось завершить подготовку' if self.state=='failed' else 'Феникс уже работает')
+            self.stage_label.configure(text='Не удалось завершить подготовку' if self.state=='failed' else 'Подготовка остановлена')
             self._detail(data.get('text',''))
             self.progress_label.configure(text='Подробности доступны в журнале')
             self.primary_button.configure(text='Повторить',state='normal' if self.state=='failed' else 'disabled')
@@ -49550,6 +52673,22 @@ class PreparationWindow:
         self.root.mainloop()
         if self.worker is not None:
             self.worker.join()
+```
+
+### `phoenix_app.py`
+
+```python
+"""Nuitka application entry. Never starts an external Python interpreter."""
+import multiprocessing
+from pathlib import Path
+
+from jarvis.compiled_runtime import run
+
+
+if __name__ == "__main__":
+    multiprocessing.freeze_support()
+    raise SystemExit(run(root=Path(__file__).resolve().parent,
+                         compiled=globals().get("__compiled__") is not None))
 ```
 
 ### `snapshot.py`
@@ -50495,6 +53634,45 @@ jobs:
 }
 ```
 
+### `build_nuitka.bat`
+
+```batch
+@echo off
+setlocal
+cd /d "%~dp0"
+set "BUILD_PY=build\nuitka-env\Scripts\python.exe"
+if not exist "%BUILD_PY%" (
+    py -3.11 -m venv "build\nuitka-env"
+    if errorlevel 1 exit /b 1
+)
+"%BUILD_PY%" -m pip install --disable-pip-version-check -r requirements-nuitka.txt
+if errorlevel 1 exit /b 1
+"%BUILD_PY%" scripts\build_nuitka.py %*
+exit /b %errorlevel%
+```
+
+### `build_nuitka_full.bat`
+
+```batch
+@echo off
+setlocal
+cd /d "%~dp0"
+rem Preflight must not create an environment or download packages.
+for %%A in (%*) do if /I "%%~A"=="--check" goto check
+set "BUILD_PY=build\nuitka-app-env\Scripts\python.exe"
+if not exist "%BUILD_PY%" (
+    py -3.11 -m venv "build\nuitka-app-env"
+    if errorlevel 1 exit /b 1
+)
+"%BUILD_PY%" -m pip install --disable-pip-version-check -r requirements-nuitka-app.txt
+if errorlevel 1 exit /b 1
+"%BUILD_PY%" scripts\build_nuitka_app.py %*
+exit /b %errorlevel%
+:check
+py -3.11 scripts\build_nuitka_app.py %*
+exit /b %errorlevel%
+```
+
 ### `check_all.bat`
 
 ```batch
@@ -51117,7 +54295,7 @@ pause
 ;   ISCC.exe /DMyAppVersion=1.0.2 installer.iss
 ; (CI передаёт версию из тега: scripts\build_setup.py --version 1.0.2)
 #ifndef MyAppVersion
-  #define MyAppVersion "2.1.0"
+  #define MyAppVersion "2.1.2"
 #endif
 #define MyAppPublisher "Phoenix Project"
 #define MyAppURL "https://github.com/BobLoTiK/jarvis-fenix"
@@ -51192,6 +54370,71 @@ Filename: "{app}\{#MyAppExeName}"; Description: "Запустить {#MyAppName}
 
 [Registry]
 ; Автозапуск (если выбран)
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "{#MyAppName}"; ValueData: """{app}\{#MyAppExeName}"""; Flags: uninsdeletevalue; Tasks: autostart
+```
+
+### `installer_nuitka.iss`
+
+```ini
+; Full compiled application. No Python installer, pip, venv or launcher.py.
+#define MyAppName "Феникс"
+#ifndef MyAppVersion
+  #define MyAppVersion "2.1.2"
+#endif
+#ifndef PayloadDir
+  #define PayloadDir "dist\nuitka-app"
+#endif
+#define MyAppExeName "Феникс.exe"
+
+[Setup]
+AppId={{8E4B3F2A-1A2B-4C5D-9E8F-7A6B5C4D3E2F}
+AppName={#MyAppName}
+AppVersion={#MyAppVersion}
+AppPublisher=Phoenix Project
+AppPublisherURL=https://github.com/BobLoTiK/jarvis-fenix
+DefaultDirName={autopf}\Phoenix
+UsePreviousAppDir=no
+DefaultGroupName={#MyAppName}
+AllowNoIcons=yes
+LicenseFile=LICENSE
+OutputDir=dist
+OutputBaseFilename=Феникс_Nuitka_Setup
+SetupIconFile=jarvis\icon.ico
+UninstallDisplayIcon={app}\{#MyAppExeName}
+Compression=lzma2
+SolidCompression=yes
+WizardStyle=modern
+WizardImageFile=installer_banner.bmp
+WizardSmallImageFile=installer_small.bmp
+WizardImageStretch=yes
+PrivilegesRequired=admin
+MinVersion=10.0
+ArchitecturesAllowed=x64compatible
+ArchitecturesInstallIn64BitMode=x64compatible
+AppMutex=Local\JarvisPhoenixSingleInstance,Local\JarvisPhoenixLauncherSetup
+CloseApplications=yes
+RestartApplications=no
+
+[Languages]
+Name: "russian"; MessagesFile: "compiler:Languages\Russian.isl"
+
+[Tasks]
+Name: "desktopicon"; Description: "Создать ярлык на рабочем столе"; Flags: checkedonce
+Name: "autostart"; Description: "Запускать Феникс при старте Windows"; Flags: unchecked
+
+[Files]
+Source: "{#PayloadDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+
+[Icons]
+Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"
+Name: "{group}\Подготовить Silero"; Filename: "{app}\{#MyAppExeName}"; Parameters: "--prepare-silero"; WorkingDir: "{app}"
+Name: "{group}\Удалить {#MyAppName}"; Filename: "{uninstallexe}"
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; Tasks: desktopicon
+
+[Run]
+Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; Description: "Запустить {#MyAppName}"; Flags: nowait postinstall skipifsilent
+
+[Registry]
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "{#MyAppName}"; ValueData: """{app}\{#MyAppExeName}"""; Flags: uninsdeletevalue; Tasks: autostart
 ```
 
@@ -51799,6 +55042,26 @@ ruff>=0.4
 winrt-Windows.Media.SpeechSynthesis>=3.2; sys_platform == "win32"
 ```
 
+### `requirements-nuitka-app.txt`
+
+```
+# Full application builder only. End users do not install Python or these packages.
+-r requirements.txt
+Nuitka==4.3.1
+# Match the desktop Python API and prebuilt Windows client exactly.
+flet==1.0.3
+flet-desktop==1.0.3
+omegaconf>=2.3,<3
+packaging>=23
+```
+
+### `requirements-nuitka.txt`
+
+```
+# Isolated launcher build only; do not install the audio/LLM runtime here.
+Nuitka==4.3.1
+```
+
 ### `requirements.txt`
 
 ```
@@ -51979,23 +55242,28 @@ certifi>=2024.8.30
     - `.venv311`
     - Git
 
-#### `CHANGELOG.md` — 121 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 124 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
-  - Не выпущено — защита профиля и необратимых действий (2 P0 из аудита)
-  - Не выпущено — UTF-8-чтение тестов на Windows
-  - Не выпущено — пакет восстановления структуры модулей
-  - Не выпущено — накопительное source-обновление и приватность снимка
-  - Не выпущено — чистый комплект разработки и передачи в новый чат
-  - Не выпущено — JASTIN принят как целевое видение (только документация)
-  - Не выпущено — экспериментальный AEC Piper
-  - Не выпущено — надёжность первого запуска Windows
-  - Не выпущено — необязательный Whisper не блокирует старт при DLL-ошибке
-  - Не выпущено — визуальный ритм README
-  - Не выпущено — новая страница проекта
-  - Не выпущено — единая подготовка Python и модели Ollama
-  - Не выпущено — Python bootstrap HTTPS в Windows Sandbox
-  - Не выпущено — план надёжности и улучшений
+  - [2.1.2] — 2026-10-28
+    - Полная сборка Nuitka (standalone без внешнего Python)
+    - Переделка жизненного цикла TTS
+  - [2.1.1] — 2026-10-26
+    - Защита профиля и необратимых действий (2 P0 из аудита)
+    - UTF-8-чтение тестов на Windows
+    - Пакет восстановления структуры модулей
+    - Накопительное source-обновление и приватность снимка
+    - Чистый комплект разработки и передачи в новый чат
+    - JASTIN принят как целевое видение (только документация)
+    - Экспериментальный AEC Piper
+    - Надёжность первого запуска Windows
+    - Необязательный Whisper не блокирует старт при DLL-ошибке
+    - Визуальный ритм README
+    - Новая страница проекта
+    - Единая подготовка Python и модели Ollama
+    - Python bootstrap HTTPS в Windows Sandbox
+    - План надёжности и улучшений
+    - Окно подготовки (Tk, без Flet)
   - Стартовый handoff для нового чата (документация)
   - Опциональные виджеты Главной
   - Кольцо действий Феникса
@@ -52005,8 +55273,6 @@ certifi>=2024.8.30
   - Солнечная корона Феникса и тихая диагностика микрофона
   - Исправление панели после добавления Главной
   - 📑 Содержание
-  - 🚧 [Unreleased]
-    - Окно подготовки
   - [2.1.0]
     - Аудит установки и обновления
     - 📅 Сессия 16.10.2026
@@ -52018,9 +55284,6 @@ certifi>=2024.8.30
       - Единый внешний фон GUI
       - GUI: Персона и Настройки — нативная реализация утверждённого концепта
     - 📅 Сессия 15.10.2026
-      - GUI: Микрофон / Голос и звук
-      - SNAPSHOT: смешанные переносы строк Windows/Git
-      - GUI: птица и конструктор «Мои команды»
 
 #### `CI.md` — 16 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -52090,10 +55353,10 @@ certifi>=2024.8.30
 
 #### `PROJECT_MEMORY.md` — 4 заголовков, полный текст не включён (дублирует PROJECT.md)
 
-- 项目持久记忆 Project Memory
-  - 工作记录 Work Log
-  - 经验教训 Lessons Learned
-  - 行动指南 Action Guide
+- Долговременная память проекта
+  - Журнал работы
+  - Выводы и опыт
+  - Следующие действия
 
 #### `PROMPT.md` — 7 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -52194,6 +55457,20 @@ certifi>=2024.8.30
   - Что изменено
   - Что не менялось
   - Как собрать и проверить
+
+#### `docs/FULL_NUITKA_BUILD.md` — 11 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Полное приложение Nuitka и установщик без внешнего Python
+  - Актуальный единый архив
+  - Отличие от прежней сборки
+  - Что включено и что остаётся отдельным
+  - Требования только к компьютеру сборки
+  - Команды CMD
+  - Что делает builder
+  - Проверка в Windows Sandbox
+  - Silero без внешнего Python
+  - Артефакты и границы проверки
+  - Исправления по результатам реальной Windows-сборки
 
 #### `docs/GUI_HOME_ACTION_RING.md` — 5 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -52310,7 +55587,7 @@ certifi>=2024.8.30
   - Что нужно для выбора
   - Первоисточники
 
-#### `docs/NEXT_STEPS.md` — 7 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `docs/NEXT_STEPS.md` — 9 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Ближайшие действия: R0 / подготовка R1
   - 0. Что подготовлено и что ещё не принято
@@ -52319,6 +55596,19 @@ certifi>=2024.8.30
   - 3. Затем — надёжность, исправления, обучение и команды
   - 4. Затем — целевые этапы JASTIN, не исключённый бэклог
   - 5. Контроль выпуска (не повторять опубликованный тег)
+    - Пре-релиз 2.1.1 собран локально (26.10.2026)
+    - 2.1.2: TTS-жизненный цикл и полная сборка Nuitka (28.10.2026)
+
+#### `docs/NUITKA_BUILD.md` — 8 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Сборка лаунчера через Nuitka
+  - Что именно компилируется
+  - Требования на компьютере сборки
+  - Сначала standalone
+  - Потом onefile
+  - Повторный запуск из дерева проекта
+  - Диагностика
+  - Что проверено и что ещё нужно проверить
 
 #### `docs/PHOENIX_JASTIN_RECONCILIATION.md` — 17 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -52348,6 +55638,24 @@ certifi>=2024.8.30
   - Применение — прямо в корень jarvis
   - Приёмка в Windows Sandbox
   - Проверено при подготовке патча
+
+#### `docs/REVIEW_FIXES.md` — 5 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Исправления после проверки архива
+  - Что изменено
+  - Применение архива с заменами
+  - Запуск на Windows
+  - Проверки
+
+#### `docs/TTS_LIFECYCLE_FIX.md` — 7 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Исправление загрузки, переключения и остановки TTS
+  - Подтверждённые причины
+  - Изменения
+  - Применение на Windows
+    - Первое доверие Silero (если ещё не подтверждено)
+  - Ручная приёмка Windows
+  - Границы проверки
 
 #### `docs/USER_GUIDE.md` — 49 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -52428,6 +55736,26 @@ certifi>=2024.8.30
   - Установка и обновление
   - Проверки и ограничения
 
+#### `docs/releases/v2.1.1.md` — 7 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Феникс 2.1.1
+  - Главное
+  - Безопасность: действия и профили
+  - Надёжность и поставка
+  - Установка и обновление
+  - Собранные артефакты
+  - Проверки и ограничения
+
+#### `docs/releases/v2.1.2.md` — 7 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Феникс 2.1.2
+  - Главное
+  - Переделка жизненного цикла TTS
+  - Полная сборка Nuitka (вторая поставка, standalone)
+  - Установка и обновление
+  - Собранные артефакты
+  - Проверки и ограничения
+
 ---
 
-_Итого по категориям — code: 221, data: 51, doc: 46, pack: 5. Режим `lean`._
+_Итого по категориям — code: 232, data: 57, doc: 52, pack: 5. Режим `lean`._

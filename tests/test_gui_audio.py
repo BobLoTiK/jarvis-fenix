@@ -175,7 +175,7 @@ def test_preview_failure_sanitized_and_locks_released(gui):
 
 def test_duplicate_test_click_and_theme_rebuild(gui):
     entered, release = threading.Event(), threading.Event()
-    def say(reply):
+    def say(reply, **kwargs):
         entered.set()
         assert release.wait(3)
     gui.jarvis.say.side_effect = say
@@ -267,3 +267,69 @@ def test_aec_toggle_is_opt_in_restart_only_and_never_selects_voice(gui):
     assert getattr(gui.jarvis.listener,'_echo_path',None) is None
     check.on_change(NS(control=NS(value=False)))
     assert gui.config.get('aec_enabled') is False
+
+
+def test_preview_during_model_load_is_declined_not_queued(gui):
+    gui.jarvis.speaker.configuration_status = lambda: {
+        "pending": True, "error": "", "backend": "piper", "voice": "ruslan", "revision": 1}
+    sound = gui._sound()
+    assert sound.test_voice() is False
+    assert sound.busy is None
+    assert sound.voice_test_button.disabled
+    assert "Дождитесь готовности" in sound.voice_result.value
+    gui.jarvis.say.assert_not_called()
+
+
+def test_stop_before_preview_worker_starts_cancels_it(gui, monkeypatch):
+    sound = gui._sound()
+    queued = []
+    def launch(kind, worker):
+        sound.busy = kind
+        queued.append(worker)
+        return True
+    monkeypatch.setattr(sound, "_launch", launch)
+    assert sound.test_voice()
+    gui._on_stop_speech()
+    queued[0]()
+    gui.jarvis.say.assert_not_called()
+    while not gui._queue.empty():
+        kind, value = gui._queue.get_nowait()
+        if kind == "sound_result":
+            sound.apply_result(*value)
+    assert sound.busy is None
+    assert "отменена" in sound.voice_result.value
+
+
+def test_loading_status_becomes_ready_without_reopening_tab(gui):
+    state = {"pending": True, "error": "", "backend": "piper", "voice": "ruslan", "revision": 1}
+    gui.jarvis.speaker.configuration_status = lambda: dict(state)
+    sound = gui._sound()
+    sound.poll_tts_status()
+    assert "загружается" in sound.engine_label.value
+    assert sound.voice_test_button.disabled
+    state["pending"] = False
+    sound.poll_tts_status()
+    assert "Загруженный движок: piper" == sound.engine_label.value
+    assert not sound.voice_test_button.disabled
+
+
+def test_speech_test_passes_explicit_cancel_token_to_core(gui):
+    sound = gui._sound()
+    assert sound.test_voice()
+    finish(gui)
+    assert gui.jarvis.say.call_args.kwargs["cancel_event"] is sound.preview_cancel
+
+
+def test_tts_status_poll_is_scheduled_outside_microphone_tab(gui, monkeypatch):
+    import asyncio
+    gui._rail = NS(selected_index=2)
+    gui._running = True
+    async def stop_loop(seconds):
+        gui._running = False
+    monkeypatch.setattr(module.asyncio, "sleep", stop_loop)
+    monkeypatch.setattr(module, "_detect_system_theme", lambda: "dark")
+    asyncio.run(gui._mic_level_loop())
+    events = []
+    while not gui._queue.empty():
+        events.append(gui._queue.get_nowait()[0])
+    assert "sound_status" in events

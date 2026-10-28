@@ -86,6 +86,7 @@ def _save(timers: list) -> None:
             raise
     except Exception:
         log.exception("Не удалось сохранить %s", path)
+        raise
 
 
 # ---------------------------------------------------------------
@@ -162,7 +163,13 @@ def _fire(timer_id: int) -> None:
             return
         # удаляем из файла
         timers = [t for t in timers if t["id"] != timer_id]
-        _save(timers)
+        try:
+            _save(timers)
+        except OSError:
+            # Ошибка удаления записи не должна заглушить уже наступившее
+            # напоминание. На следующем запуске оно может повториться.
+            log.warning("Таймер #%d не удалён с диска; возможен повтор после перезапуска",
+                        timer_id)
         _scheduled.pop(timer_id, None)
 
     log.info("Таймер #%d сработал: %s", timer_id, timer.get("text") or "(без текста)")
@@ -208,7 +215,7 @@ def add(text: str, fire_at: float) -> dict:
         }
         timers.append(timer)
         _save(timers)
-    _schedule_one(timer)
+        _schedule_one(timer)
     return timer
 
 
@@ -217,10 +224,12 @@ def remove_all() -> int:
     with _lock:
         timers = _load()
         count = len(timers)
+        # Сначала сохраняем отмену: при ошибке записи действующие таймеры
+        # должны остаться запланированными.
+        _save([])
         for t in _scheduled.values():
             t.cancel()
         _scheduled.clear()
-        _save([])
     return count
 
 
@@ -280,6 +289,14 @@ def is_cancel_all_command(cmd: str) -> bool:
 
 
 def handle_timer_command(cmd: str) -> str | None:
+    """Не подтверждает изменение, если запись напоминаний не удалась."""
+    try:
+        return _handle_timer_command(cmd)
+    except OSError:
+        return "Не удалось сохранить напоминания. Изменения не подтверждены."
+
+
+def _handle_timer_command(cmd: str) -> str | None:
     """Разбирает команды таймеров. Возвращает ответ или None."""
     # список
     if re.search(r"(какие|список|покажи)\s*(напоминани|таймер)", cmd) \
@@ -297,7 +314,7 @@ def handle_timer_command(cmd: str) -> str | None:
         abs_ts = _parse_absolute_time(cmd)
         if abs_ts:
             text = _extract_reminder_text(cmd)
-            t = add(text, abs_ts)
+            add(text, abs_ts)
             when = datetime.datetime.fromtimestamp(abs_ts).strftime("%H:%M")
             if text:
                 return f"Напомню в {when}: {text}."
@@ -308,7 +325,7 @@ def handle_timer_command(cmd: str) -> str | None:
         if dur and dur > 0:
             text = _extract_reminder_text(cmd)
             fire_at = time.time() + dur
-            t = add(text, fire_at)
+            add(text, fire_at)
             # озвучка длительности
             if dur >= 3600:
                 h = dur // 3600

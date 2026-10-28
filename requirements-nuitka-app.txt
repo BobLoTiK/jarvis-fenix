@@ -1,0 +1,8 @@
+# Full application builder only. End users do not install Python or these packages.
+-r requirements.txt
+Nuitka==4.3.1
+# Match the desktop Python API and prebuilt Windows client exactly.
+flet==1.0.3
+flet-desktop==1.0.3
+omegaconf>=2.3,<3
+packaging>=23
