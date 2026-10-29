@@ -219,6 +219,7 @@ jobs:
           name: phoenix-nuitka-setup-${{ needs.version.outputs.value }}
           path: |
             dist/Феникс_Nuitka_Setup.exe
+            dist/nuitka-app/build-info.json
             build/ci-self-test.json
           if-no-files-found: error
 

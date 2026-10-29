@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=4cca65797541fc4f` · режим `lean` · файлов `347` · строк `60786` · источник `2923 КБ`
+`sha256=f33666d8bf09f64e` · режим `lean` · файлов `347` · строк `60787` · источник `2923 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -466,7 +466,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ├── .github/
 │   ├── workflows/
 │   │   ├── README.md  (74 стр)
-│   │   ├── release.yml  (296 стр)
+│   │   ├── release.yml  (297 стр)
 │   │   ├── test.yml  (71 стр)
 ├── AGENTS.md  (88 стр)
 ├── ARCHITECTURE.md  (1097 стр)
@@ -53632,6 +53632,7 @@ jobs:
           name: phoenix-nuitka-setup-${{ needs.version.outputs.value }}
           path: |
             dist/Феникс_Nuitka_Setup.exe
+            dist/nuitka-app/build-info.json
             build/ci-self-test.json
           if-no-files-found: error
 
