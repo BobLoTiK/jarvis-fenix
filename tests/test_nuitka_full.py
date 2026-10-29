@@ -357,3 +357,45 @@ def test_builder_probe_uses_declared_requirements_not_equal_versions(torch_versi
         assert report['ok'] is True
         assert report['torch'] == torch_version
         assert 'torch_requirements' in report
+
+
+def test_release_workflow_builds_nuitka_installer():
+    """CI обязан собирать автономный установщик, а не только bootstrap."""
+    workflow = (ROOT / '.github/workflows/release.yml').read_text(encoding='utf-8')
+    # Изолированное окружение и зафиксированный стек сборки.
+    assert 'build/nuitka-app-env' in workflow
+    assert 'requirements-nuitka-app.txt' in workflow
+    assert 'constraints-nuitka-app.txt' in workflow
+    # Реальный вызов сборщика полного приложения с проверенным компилятором.
+    assert 'scripts/build_nuitka_app.py' in workflow
+    assert '--compiler mingw64' in workflow
+    # Установщик Nuitka и независимый self-test попадают в артефакты.
+    assert 'dist/Феникс_Nuitka_Setup.exe' in workflow
+    assert '--self-test' in workflow
+    # GitHub вырезает кириллицу из имён вложений: публикуются ASCII-имена.
+    assert 'Feniks_Nuitka_Setup_' in workflow
+    assert 'Feniks_Setup_' in workflow
+    assert 'SHA256SUMS.txt' in workflow
+    # Лимит GitHub на job — 360 минут.
+    assert 'timeout-minutes: 345' in workflow
+
+
+def test_nuitka_constraints_match_requirements_and_pin_versions():
+    """Пины не должны расходиться с требованиями и быть строгими."""
+    constraints = (ROOT / 'constraints-nuitka-app.txt').read_text(encoding='utf-8')
+    requirements = (ROOT / 'requirements-nuitka-app.txt').read_text(encoding='utf-8')
+    assert 'Nuitka==4.3.1' in requirements
+    assert 'flet==1.0.3' in requirements
+    pinned = {
+        line.split('==')[0].strip().lower()
+        for line in constraints.splitlines()
+        if '==' in line and not line.strip().startswith('#')
+    }
+    for required in ('torch', 'torchaudio', 'vosk', 'winrt-runtime', 'numpy'):
+        assert required in pinned, required
+    for line in constraints.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith('#'):
+            continue
+        # Каждая строка — точный пин или комментарий: диапазоны ломают повторяемость.
+        assert '==' in stripped, stripped

@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=ed8180d48b3577e3` · режим `lean` · файлов `346` · строк `60545` · источник `2905 КБ`
+`sha256=4cca65797541fc4f` · режим `lean` · файлов `347` · строк `60786` · источник `2923 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -466,7 +466,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ├── .github/
 │   ├── workflows/
 │   │   ├── README.md  (74 стр)
-│   │   ├── release.yml  (161 стр)
+│   │   ├── release.yml  (296 стр)
 │   │   ├── test.yml  (71 стр)
 ├── AGENTS.md  (88 стр)
 ├── ARCHITECTURE.md  (1097 стр)
@@ -494,6 +494,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── open_terminal.bat  (3 стр)
 │   ├── show_ip.bat  (3 стр)
 ├── config.example.json  (91 стр)
+├── constraints-nuitka-app.txt  (25 стр)
 ├── CONTRIBUTING.md  (438 стр)
 ├── create_shortcut.bat  (52 стр)
 ├── docs/
@@ -503,7 +504,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── AEC_SAMPLE_ALIGNMENT_UPDATE.md  (55 стр)
 │   ├── BOOTSTRAP_PYTHON_OLLAMA_UPDATE.md  (119 стр)
 │   ├── BOOTSTRAP_WINDOW_UPDATE.md  (50 стр)
-│   ├── FULL_NUITKA_BUILD.md  (268 стр)
+│   ├── FULL_NUITKA_BUILD.md  (293 стр)
 │   ├── GUI_HOME_ACTION_RING.md  (45 стр)
 │   ├── GUI_HOME_UPDATE.md  (47 стр)
 │   ├── GUI_PERSONA_SETTINGS_UPDATE.md  (62 стр)
@@ -518,7 +519,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── IMPROVEMENT_BACKLOG.md  (120 стр)
 │   ├── INSTALLER_UPDATE.md  (47 стр)
 │   ├── LOCAL_VOICE_OPTIONS.md  (67 стр)
-│   ├── NEXT_STEPS.md  (177 стр)
+│   ├── NEXT_STEPS.md  (187 стр)
 │   ├── NUITKA_BUILD.md  (123 стр)
 │   ├── PHOENIX_JASTIN_RECONCILIATION.md  (268 стр)
 │   ├── PYTHON_BOOTSTRAP_TLS_FIX.md  (98 стр)
@@ -695,7 +696,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ├── phoenix_app.py  (11 стр)
 ├── PLAN.md  (93 стр)
 ├── PROJECT.md  (439 стр)
-├── PROJECT_MEMORY.md  (113 стр)
+├── PROJECT_MEMORY.md  (117 стр)
 ├── PROMPT.md  (72 стр)
 ├── pytest.ini  (20 стр)
 ├── README.md  (194 стр)
@@ -795,7 +796,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_mood.py  (386 стр)
 │   ├── test_nonverbal.py  (402 стр)
 │   ├── test_nuitka_build.py  (147 стр)
-│   ├── test_nuitka_full.py  (359 стр)
+│   ├── test_nuitka_full.py  (401 стр)
 │   ├── test_numeric_language.py  (518 стр)
 │   ├── test_open_results.py  (32 стр)
 │   ├── test_optional_whisper_startup.py  (131 стр)
@@ -3990,6 +3991,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_torch_builder_probe_failure_stops_before_compilation(tmp_path, monkeypatch)
   def test_torch_builder_probe_timeout_is_bounded(tmp_path, monkeypatch)
   def test_builder_probe_uses_declared_requirements_not_equal_versions(torch_version, audio_version, requirements, ok, monkeypatch, capsys)
+  def test_release_workflow_builds_nuitka_installer()
+  def test_nuitka_constraints_match_requirements_and_pin_versions()
 ```
 
 **`tests/test_numeric_language.py`**
@@ -5134,7 +5137,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_mood.py` | 386 | code | Тесты jarvis.mood — состояние, детекция, decay, влияние. |
 | `tests/test_nonverbal.py` | 402 | code | Nonverbal policy/mixing: synthetic PCM and fake output, no TTS weights |
 | `tests/test_nuitka_build.py` | 147 | code | Nuitka build plans and staging tests; no compiler, network or Tk displ |
-| `tests/test_nuitka_full.py` | 359 | code | Full application build contracts. No Windows compiler/installers or do |
+| `tests/test_nuitka_full.py` | 401 | code | Full application build contracts. No Windows compiler/installers or do |
 | `tests/test_numeric_language.py` | 518 | code | Executable Russian language corpus: understanding, morphology and spee |
 | `tests/test_open_results.py` | 32 | code | Actual dispatch function isolated from Windows imports; no apps launch |
 | `tests/test_optional_whisper_startup.py` | 131 | code | Execute real startup functions with stub peripherals, no models/mic/Wi |
@@ -43988,6 +43991,48 @@ def test_builder_probe_uses_declared_requirements_not_equal_versions(torch_versi
         assert report['ok'] is True
         assert report['torch'] == torch_version
         assert 'torch_requirements' in report
+
+
+def test_release_workflow_builds_nuitka_installer():
+    """CI обязан собирать автономный установщик, а не только bootstrap."""
+    workflow = (ROOT / '.github/workflows/release.yml').read_text(encoding='utf-8')
+    # Изолированное окружение и зафиксированный стек сборки.
+    assert 'build/nuitka-app-env' in workflow
+    assert 'requirements-nuitka-app.txt' in workflow
+    assert 'constraints-nuitka-app.txt' in workflow
+    # Реальный вызов сборщика полного приложения с проверенным компилятором.
+    assert 'scripts/build_nuitka_app.py' in workflow
+    assert '--compiler mingw64' in workflow
+    # Установщик Nuitka и независимый self-test попадают в артефакты.
+    assert 'dist/Феникс_Nuitka_Setup.exe' in workflow
+    assert '--self-test' in workflow
+    # GitHub вырезает кириллицу из имён вложений: публикуются ASCII-имена.
+    assert 'Feniks_Nuitka_Setup_' in workflow
+    assert 'Feniks_Setup_' in workflow
+    assert 'SHA256SUMS.txt' in workflow
+    # Лимит GitHub на job — 360 минут.
+    assert 'timeout-minutes: 345' in workflow
+
+
+def test_nuitka_constraints_match_requirements_and_pin_versions():
+    """Пины не должны расходиться с требованиями и быть строгими."""
+    constraints = (ROOT / 'constraints-nuitka-app.txt').read_text(encoding='utf-8')
+    requirements = (ROOT / 'requirements-nuitka-app.txt').read_text(encoding='utf-8')
+    assert 'Nuitka==4.3.1' in requirements
+    assert 'flet==1.0.3' in requirements
+    pinned = {
+        line.split('==')[0].strip().lower()
+        for line in constraints.splitlines()
+        if '==' in line and not line.strip().startswith('#')
+    }
+    for required in ('torch', 'torchaudio', 'vosk', 'winrt-runtime', 'numpy'):
+        assert required in pinned, required
+    for line in constraints.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith('#'):
+            continue
+        # Каждая строка — точный пин или комментарий: диапазоны ломают повторяемость.
+        assert '==' in stripped, stripped
 ```
 
 ### `tests/test_numeric_language.py`
@@ -53367,33 +53412,35 @@ if __name__ == "__main__":
 
 ```yaml
 # ============================================================
-# GitHub Actions: сборка релиза Феникса (.exe + установщик).
+# GitHub Actions: сборка релиза Феникса.
 #
-# Когда запускается:
-#   - push тега v* или числового тега (например, v1.0.2 или 2.1.2)
-#       → собирает И делает GitHub Release
-#   - вручную: Actions → build-release → Run workflow → только сборка
-#     и артефакты (без релиза), версию можно задать самому
+# Запуск:
+#   - push тега v* или числового тега (v2.1.3, 2.1.3);
+#   - вручную: Actions → build-release → Run workflow. Тогда сборка идёт без
+#     релиза, а установщики доступны как артефакты запуска (удобно для проверки
+#     перед тегом).
 #
-# Что делает:
-#   1. Windows-раннер, Python 3.11, кэш pip.
-#   2. Ставит PyInstaller + Pillow + filelock для bootstrap-тестов (без моделей).
-#   3. Ставит Inno Setup 6 через Chocolatey (choco install innosetup).
-#   4. python scripts\build_setup.py --version <версия из тега>
-#        → Феникс.exe + dist\Феникс_Setup.exe
-#   5. Оба файла всегда уходят в артефакты запуска.
-#   6. На теге — релиз с заметками и вложениями под ASCII-именами
-#      (GitHub вырезает кириллицу из имён файлов).
+# Работы:
+#   version   — вычисляет версию из тега (2.1.3 из v2.1.3) и проверяет формат.
+#   bootstrap — лёгкий установщик: Феникс.exe + dist\Феникс_Setup.exe (~12 минут,
+#               зависимости ставятся при первом запуске).
+#   nuitka    — автономный установщик: dist\Феникс_Nuitka_Setup.exe (~3 часа).
+#               Сборка идёт в изолированном окружении build\nuitka-app-env,
+#               Nuitka 4.3.1 и нативный стек зафиксированы в
+#               requirements-nuitka-app.txt + constraints-nuitka-app.txt, иначе
+#               очередной релиз torch незаметно менял бы поставку.
+#   publish   — только на теге: скачивает оба артефакта, переименовывает в ASCII
+#               (GitHub вырезает кириллицу: «Феникс_Setup.exe» → «_Setup.exe»),
+#               считает SHA256SUMS.txt и создаёт/дополняет релиз.
 #
-# Полная сборка Nuitka (dist\Феникс_Nuitka_Setup.exe) в CI не делается:
-# нужен MinGW и около двух часов. Она собирается локально по
-# docs/FULL_NUITKA_BUILD.md и прикладывается к релизу вручную.
-#
-# Почему сборка остаётся лёгкой:
-#   Феникс.exe — лёгкий лаунчер (stdlib + системный PowerShell).
-#   filelock нужен тестам моста настроек; сам мост работает в установленной venv.
-#   Тяжёлые пакеты (vosk, faster-whisper, torch…) он ставит сам при первом
-#   запуске, поэтому в CI их тянуть не нужно (~2 ГБ экономии).
+# Ограничения:
+#   - Job с Nuitka ограничен 345 мин (лимит GitHub — 360). Кэша компиляции нет:
+#     каждый запуск компилирует torch с нуля, повторная сборка ничего не экономит.
+#   - Приёмка на чистой Windows здесь не выполняется: CI подтверждает только
+#     сборку и self-test. Установка проверяется вручную в Windows Sandbox
+#     (scripts\prepare_nuitka_sandbox.py).
+#   - Если тег переделывается, а вложения уже залиты вручную, запуск надо
+#     отменить: gh release upload --clobber заменит проверенный файл.
 #
 # Файл лежит в: .github/workflows/release.yml
 # ============================================================
@@ -53404,71 +53451,86 @@ on:
   push:
     tags:
       - "v*"
-      # Теги без префикса тоже принимаем: 2.1.2 — такой же релиз, как v2.1.2.
+      # Теги без префикса тоже принимаем: 2.1.3 — такой же релиз, как v2.1.3.
       - "[0-9]*"
   workflow_dispatch:
     inputs:
       version:
-        description: "Версия для установщика (например, 1.0.2)"
+        description: "Версия для установщика (например, 2.1.3)"
         required: true
         default: "0.0.0-ci"
 
-# gh release create нужен токен с правом писать в Releases.
+# gh release create/upload нужен токен с правом писать в Releases.
 permissions:
   contents: write
 
+# Один релиз на ссылку: два одновременных прогона не должны бороться за вложения.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+# PYTHONUTF8=1 — страховка от UnicodeEncodeError в консоли раннера
+# (в проекте есть кириллица в именах файлов и в выводе).
+env:
+  PYTHONUTF8: "1"
+  PYTHONIOENCODING: "utf-8"
+
 jobs:
-  build:
+  version:
+    name: версия
+    runs-on: ubuntu-latest
+    outputs:
+      value: ${{ steps.ver.outputs.value }}
+    steps:
+      - name: Определить версию
+        id: ver
+        shell: bash
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          if [ "$REF_TYPE" = "tag" ]; then
+            v="${REF_NAME#v}"
+          else
+            v="${INPUT_VERSION}"
+          fi
+          if [ -z "$v" ]; then v="0.0.0-ci"; fi
+          if ! printf '%s' "$v" | grep -Eq '^[0-9]+(\.[0-9]+){1,3}(-[A-Za-z0-9]+([.-][A-Za-z0-9]+)*)?$'; then
+            echo "Недопустимая версия: $v" >&2
+            exit 1
+          fi
+          echo "value=$v" >> "$GITHUB_OUTPUT"
+          echo "Версия установщика: $v"
+
+  bootstrap:
+    name: лёгкий установщик (bootstrap)
+    needs: version
     runs-on: windows-latest
     timeout-minutes: 40
-
-    # PYTHONUTF8=1 — страховка от UnicodeEncodeError в консоли раннера
-    # (в проекте есть кириллица в именах файлов и в выводе).
-    env:
-      PYTHONUTF8: "1"
-      PYTHONIOENCODING: "utf-8"
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: "pip"
 
-      - name: Install build and bootstrap test tools
+      # Тяжёлые пакеты (vosk, faster-whisper, torch…) лаунчер ставит сам при
+      # первом запуске, поэтому в CI они не нужны (~2 ГБ экономии).
+      - name: Инструменты сборки и тесты bootstrap
         run: pip install -r requirements-dev.txt Pillow filelock certifi
 
-      - name: Bootstrap downloader regressions (no models or installation)
+      - name: Регрессии загрузчика (без моделей и установки)
         run: python -m pytest tests/test_launcher_download.py tests/test_launcher_ollama.py tests/test_bootstrap_ollama_config.py tests/test_launcher_ui.py tests/test_build_setup.py tests/test_release_payload.py tests/test_launcher_runtime.py tests/test_startup_https.py tests/test_optional_whisper_startup.py -q
 
-      - name: Install Inno Setup 6
+      - name: Inno Setup 6
         run: choco install innosetup --no-progress -y
-
-      - name: Определить версию
-        id: ver
-        shell: pwsh
-        env:
-          RELEASE_REF_TYPE: ${{ github.ref_type }}
-          RELEASE_REF: ${{ github.ref_name }}
-          RELEASE_INPUT: ${{ inputs.version }}
-        run: |
-          # На теге v1.0.2 → версия 1.0.2; при ручном запуске — ввод.
-          if ($env:RELEASE_REF_TYPE -eq "tag") {
-            $v = $env:RELEASE_REF.TrimStart("v")
-          } else {
-            $v = $env:RELEASE_INPUT
-          }
-          if (-not $v) { $v = "0.0.0-ci" }
-          if ($v -notmatch '^[0-9]+(\.[0-9]+){1,3}(-[A-Za-z0-9]+([.-][A-Za-z0-9]+)*)?$') { throw "Invalid release version" }
-          "value=$v" | Out-File -Append -Encoding utf8 $env:GITHUB_OUTPUT
-          Write-Host "Версия установщика: $v"
 
       - name: Сборка Феникс.exe + Феникс_Setup.exe
         env:
-          RELEASE_VERSION: ${{ steps.ver.outputs.value }}
+          RELEASE_VERSION: ${{ needs.version.outputs.value }}
         run: |
           python scripts/build_setup.py --check --version "$env:RELEASE_VERSION"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -53482,51 +53544,169 @@ jobs:
             Format-Table -AutoSize
           if (-not (Test-Path "dist/Феникс_Setup.exe")) { throw "Установщик не собран" }
 
-      - name: Артефакты запуска
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: phoenix-setup-${{ steps.ver.outputs.value }}
+          name: phoenix-setup-${{ needs.version.outputs.value }}
           path: |
             Феникс.exe
             dist/Феникс_Setup.exe
           if-no-files-found: error
 
-      - name: Создать GitHub Release
-        if: github.ref_type == 'tag'
+  nuitka:
+    name: автономный установщик (Nuitka)
+    needs: version
+    runs-on: windows-latest
+    timeout-minutes: 345
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      # torch + компиляция съедают десятки гигабайт: видно сразу, а не через 2 часа.
+      - name: Свободное место
+        shell: pwsh
+        run: |
+          Get-PSDrive C | Select-Object @{n = "Свободно, ГБ"; e = { [math]::Round($_.Free / 1GB, 1) } },
+            @{n = "Занято, ГБ"; e = { [math]::Round($_.Used / 1GB, 1) } } | Format-Table -AutoSize
+
+      - name: Inno Setup 6
+        run: choco install innosetup --no-progress -y
+
+      # Отдельное окружение, как в build_nuitka_full.bat: Nuitka живёт только
+      # в build\nuitka-app-env, а build_nuitka_app.py проверяет ровно 4.3.1.
+      - name: Окружение сборки (Nuitka 4.3.1 + зафиксированный стек)
+        shell: pwsh
+        run: |
+          python -m venv build/nuitka-app-env
+          $py = "build/nuitka-app-env/Scripts/python.exe"
+          & $py -m pip install --disable-pip-version-check --upgrade pip
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $py -m pip install --disable-pip-version-check -r requirements-nuitka-app.txt -c constraints-nuitka-app.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $py -c "import importlib.metadata as m; print('Nuitka', m.version('Nuitka')); print('torch', m.version('torch')); print('torchaudio', m.version('torchaudio')); print('flet', m.version('flet')); print('winrt-runtime', m.version('winrt-runtime')); print('vosk', m.version('vosk'))"
+
+      - name: Preflight (--check, без компиляции)
+        env:
+          RELEASE_VERSION: ${{ needs.version.outputs.value }}
+        run: build/nuitka-app-env/Scripts/python.exe scripts/build_nuitka_app.py --check --version "$env:RELEASE_VERSION"
+
+      - name: Сборка автономного приложения и установщика
+        shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ needs.version.outputs.value }}
+        run: |
+          # --mingw64: проверенный путь сборки (локально собрано тем же GCC).
+          build/nuitka-app-env/Scripts/python.exe scripts/build_nuitka_app.py `
+            --version "$env:RELEASE_VERSION" --jobs 4 --compiler mingw64
+          if ($LASTEXITCODE -ne 0) { throw "Сборка Nuitka завершилась с кодом $LASTEXITCODE" }
+
+      # Сборщик уже гоняет пробу на копии payload; здесь — независимая проверка
+      # опубликованной сборки, чтобы упасть в CI, а не у пользователя.
+      - name: Self-test собранного приложения
+        shell: pwsh
+        run: |
+          $report = "build/ci-self-test.json"
+          & "dist/nuitka-app/Феникс.exe" --self-test $report
+          $code = $LASTEXITCODE
+          if (-not (Test-Path $report)) { throw "self-test не создал отчёт (код $code)" }
+          $data = Get-Content -Raw -Encoding UTF8 $report | ConvertFrom-Json
+          $passed = @($data.checks.PSObject.Properties | Where-Object { $_.Value -eq $true }).Count
+          Write-Host "self-test: ok=$($data.ok) compiled=$($data.compiled) проверок пройдено: $passed"
+          if ($data.ok -ne $true -or $data.compiled -ne $true) { throw "self-test не пройден: ok=$($data.ok) compiled=$($data.compiled)" }
+
+      - name: Проверка артефактов
+        shell: pwsh
+        run: |
+          Get-Item "dist/Феникс_Nuitka_Setup.exe", "dist/nuitka-app/build-info.json" |
+            Select-Object Name, @{n = "МБ"; e = { [math]::Round($_.Length / 1MB, 2) } } |
+            Format-Table -AutoSize
+          if (-not (Test-Path "dist/Феникс_Nuitka_Setup.exe")) { throw "Автономный установщик не собран" }
+          $files = (Get-ChildItem "dist/nuitka-app" -Recurse -File).Count
+          Write-Host "Файлов в standalone-поставке: $files"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: phoenix-nuitka-setup-${{ needs.version.outputs.value }}
+          path: |
+            dist/Феникс_Nuitka_Setup.exe
+            build/ci-self-test.json
+          if-no-files-found: error
+
+  publish:
+    name: публикация релиза
+    needs: [version, bootstrap, nuitka]
+    if: github.ref_type == 'tag'
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      # Нужны заметки релиза из docs/releases/<тег>.md.
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: phoenix-*
+          path: artifacts
+
+      - name: Вложения под ASCII-именами и контрольные суммы
+        shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ needs.version.outputs.value }}
+        run: |
+          # GitHub вырезает не-ASCII из имён вложений: «Феникс_Setup.exe»
+          # превращалось в «_Setup.exe», а «Феникс.exe» — в «default.exe».
+          $v = $env:RELEASE_VERSION
+          $light = "artifacts/phoenix-setup-$v/dist/Феникс_Setup.exe"
+          $full = "artifacts/phoenix-nuitka-setup-$v/dist/Феникс_Nuitka_Setup.exe"
+          foreach ($path in @($light, $full)) {
+            if (-not (Test-Path -LiteralPath $path)) { throw "Нет артефакта: $path" }
+          }
+          New-Item -ItemType Directory -Force dist | Out-Null
+          $lightOut = "dist/Feniks_Setup_$v.exe"
+          $fullOut = "dist/Feniks_Nuitka_Setup_$v.exe"
+          Copy-Item -LiteralPath $light -Destination $lightOut -Force
+          Copy-Item -LiteralPath $full -Destination $fullOut -Force
+          $lines = foreach ($file in @($lightOut, $fullOut)) {
+            $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $file).Hash.ToLowerInvariant()
+            "$hash  $([IO.Path]::GetFileName($file))"
+          }
+          $lines | Set-Content -LiteralPath "dist/SHA256SUMS.txt" -Encoding ascii
+          Get-ChildItem "dist/Feniks_*.exe", "dist/SHA256SUMS.txt" |
+            Select-Object Name, @{n = "МБ"; e = { [math]::Round($_.Length / 1MB, 1) } } |
+            Format-Table -AutoSize
+
+      - name: Создать или дополнить GitHub Release
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
-          RELEASE_VERSION: ${{ steps.ver.outputs.value }}
+          RELEASE_VERSION: ${{ needs.version.outputs.value }}
         run: |
-          # GitHub вырезает не-ASCII из имён вложений: «Феникс_Setup.exe»
-          # превращалось в «_Setup.exe», а «Феникс.exe» — в «default.exe».
-          # Поэтому вложения копируются под ASCII-именами.
-          $setup = "dist/Feniks_Setup_$env:RELEASE_VERSION.exe"
-          Copy-Item "dist/Феникс_Setup.exe" $setup -Force
-          $sums = "dist/SHA256SUMS.txt"
-          $hash = (Get-FileHash -Algorithm SHA256 $setup).Hash.ToLowerInvariant()
-          "$hash  $([IO.Path]::GetFileName($setup))" |
-            Set-Content -LiteralPath $sums -Encoding ascii
-
-          # Заметки берём из docs/releases/<тег>.md, иначе — автогенерация.
+          $v = $env:RELEASE_VERSION
+          $assets = @(
+            "dist/Feniks_Setup_$v.exe"
+            "dist/Feniks_Nuitka_Setup_$v.exe"
+            "dist/SHA256SUMS.txt"
+          )
+          # Заметки: docs/releases/<тег>.md, иначе docs/releases/v<версия>.md.
           $notesFile = "docs/releases/$env:RELEASE_TAG.md"
+          if (-not (Test-Path $notesFile)) { $notesFile = "docs/releases/v$v.md" }
           $notesArgs = @("--generate-notes")
           if (Test-Path $notesFile) { $notesArgs = @("--notes-file", $notesFile) }
 
-          # Полный установщик Nuitka в CI не собирается: нужен MinGW и ~2 часа,
-          # это локальная сборка. Здесь публикуется только bootstrap-вариант.
-          # Релиз публикуется как обычный (не предрелиз): галочку «pre-release»
-          # при необходимости ставят вручную на странице релиза.
+          # Релиз обычный (не предрелиз): галочку ставят вручную, если нужно.
           gh release view "$env:RELEASE_TAG" *> $null
           if ($LASTEXITCODE -eq 0) {
-            gh release upload "$env:RELEASE_TAG" $setup $sums --clobber
+            gh release upload "$env:RELEASE_TAG" @assets --clobber
+            if ($LASTEXITCODE -ne 0) { throw "Не удалось загрузить вложения" }
             gh release edit "$env:RELEASE_TAG" @notesArgs
           } else {
-            gh release create "$env:RELEASE_TAG" $setup $sums `
-              --title "Феникс $env:RELEASE_VERSION" `
-              @notesArgs
+            gh release create "$env:RELEASE_TAG" @assets --title "Феникс v$v" @notesArgs
           }
+          if ($LASTEXITCODE -ne 0) { throw "Релиз не создан" }
+          gh release view "$env:RELEASE_TAG" --json name,assets
 ```
 
 ### `.github/workflows/test.yml`
@@ -54972,6 +55152,36 @@ SOFTWARE.
 </svg>
 ```
 
+### `constraints-nuitka-app.txt`
+
+```
+# Точные версии нативного стека, на которых собран и проверен автономный
+# установщик 2.1.2 (Nuitka + torch + winrt + Vosk). CI ставит их через -c,
+# чтобы релизная сборка совпадала с проверенной, а не тянула свежий torch.
+#
+# Обновлять осознанно: после смены любой строки нужен новый прогон сборки и
+# self-test, иначе установщик станет отличаться от проверенного.
+# Nuitka==4.3.1 и flet==1.0.3 зафиксированы в requirements-nuitka-app.txt.
+
+torch==2.14.1
+torchaudio==2.11.0
+numpy==2.4.6
+
+vosk==0.3.45
+ctranslate2==4.8.4
+onnxruntime==1.31.0
+faster-whisper==1.2.1
+
+piper-tts==1.8.0
+pyttsx3==2.99
+
+winrt-runtime==4.0.3
+winrt-Windows.Foundation==4!10.0.28000.2705
+winrt-Windows.Foundation.Collections==4!10.0.28000.2705
+winrt-Windows.Media.Control==4!10.0.28000.2705
+winrt-Windows.Storage.Streams==4!10.0.28000.2705
+```
+
 ### `jarvis-fenix.code-workspace`
 
 _Нетекстовый файл: .code-workspace_
@@ -55487,7 +55697,7 @@ certifi>=2024.8.30
   - Что не менялось
   - Как собрать и проверить
 
-#### `docs/FULL_NUITKA_BUILD.md` — 11 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `docs/FULL_NUITKA_BUILD.md` — 12 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Полное приложение Nuitka и установщик без внешнего Python
   - Актуальный единый архив
@@ -55495,6 +55705,7 @@ certifi>=2024.8.30
   - Что включено и что остаётся отдельным
   - Требования только к компьютеру сборки
   - Команды CMD
+  - Сборка в GitHub Actions
   - Что делает builder
   - Проверка в Windows Sandbox
   - Silero без внешнего Python
@@ -55787,4 +55998,4 @@ certifi>=2024.8.30
 
 ---
 
-_Итого по категориям — code: 232, data: 57, doc: 52, pack: 5. Режим `lean`._
+_Итого по категориям — code: 232, data: 58, doc: 52, pack: 5. Режим `lean`._

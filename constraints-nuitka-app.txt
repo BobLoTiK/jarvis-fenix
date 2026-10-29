@@ -1,0 +1,25 @@
+# Точные версии нативного стека, на которых собран и проверен автономный
+# установщик 2.1.2 (Nuitka + torch + winrt + Vosk). CI ставит их через -c,
+# чтобы релизная сборка совпадала с проверенной, а не тянула свежий torch.
+#
+# Обновлять осознанно: после смены любой строки нужен новый прогон сборки и
+# self-test, иначе установщик станет отличаться от проверенного.
+# Nuitka==4.3.1 и flet==1.0.3 зафиксированы в requirements-nuitka-app.txt.
+
+torch==2.14.1
+torchaudio==2.11.0
+numpy==2.4.6
+
+vosk==0.3.45
+ctranslate2==4.8.4
+onnxruntime==1.31.0
+faster-whisper==1.2.1
+
+piper-tts==1.8.0
+pyttsx3==2.99
+
+winrt-runtime==4.0.3
+winrt-Windows.Foundation==4!10.0.28000.2705
+winrt-Windows.Foundation.Collections==4!10.0.28000.2705
+winrt-Windows.Media.Control==4!10.0.28000.2705
+winrt-Windows.Storage.Streams==4!10.0.28000.2705
