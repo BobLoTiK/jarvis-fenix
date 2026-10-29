@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=00008d6cea9a39a4` · режим `lean` · файлов `346` · строк `60467` · источник `2882 КБ`
+`sha256=1a94c2784119c698` · режим `lean` · файлов `346` · строк `60519` · источник `2886 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -466,7 +466,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ├── .github/
 │   ├── workflows/
 │   │   ├── README.md  (74 стр)
-│   │   ├── release.yml  (132 стр)
+│   │   ├── release.yml  (160 стр)
 │   │   ├── test.yml  (71 стр)
 ├── AGENTS.md  (88 стр)
 ├── ARCHITECTURE.md  (1097 стр)
@@ -484,7 +484,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── themes.svg  (19 стр)
 ├── build_nuitka.bat  (12 стр)
 ├── build_nuitka_full.bat  (17 стр)
-├── CHANGELOG.md  (1805 стр)
+├── CHANGELOG.md  (1807 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -518,7 +518,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── IMPROVEMENT_BACKLOG.md  (120 стр)
 │   ├── INSTALLER_UPDATE.md  (47 стр)
 │   ├── LOCAL_VOICE_OPTIONS.md  (67 стр)
-│   ├── NEXT_STEPS.md  (158 стр)
+│   ├── NEXT_STEPS.md  (166 стр)
 │   ├── NUITKA_BUILD.md  (123 стр)
 │   ├── PHOENIX_JASTIN_RECONCILIATION.md  (268 стр)
 │   ├── PYTHON_BOOTSTRAP_TLS_FIX.md  (98 стр)
@@ -527,7 +527,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── releases/
 │   │   ├── v2.1.0.md  (34 стр)
 │   │   ├── v2.1.1.md  (80 стр)
-│   │   ├── v2.1.2.md  (72 стр)
+│   │   ├── v2.1.2.md  (80 стр)
 │   ├── REVIEW_FIXES.md  (68 стр)
 │   ├── TTS_LIFECYCLE_FIX.md  (89 стр)
 │   ├── USER_GUIDE.md  (1014 стр)
@@ -698,7 +698,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ├── PROJECT_MEMORY.md  (100 стр)
 ├── PROMPT.md  (72 стр)
 ├── pytest.ini  (20 стр)
-├── README.md  (188 стр)
+├── README.md  (194 стр)
 ├── requirements-aec.txt  (3 стр)
 ├── requirements-ci.txt  (39 стр)
 ├── requirements-dev.txt  (13 стр)
@@ -53370,7 +53370,8 @@ if __name__ == "__main__":
 # GitHub Actions: сборка релиза Феникса (.exe + установщик).
 #
 # Когда запускается:
-#   - push тега v* (например, v1.0.2)  → собирает И делает GitHub Release
+#   - push тега v* или числового тега (например, v1.0.2 или 2.1.2)
+#       → собирает И делает GitHub Release
 #   - вручную: Actions → build-release → Run workflow → только сборка
 #     и артефакты (без релиза), версию можно задать самому
 #
@@ -53381,7 +53382,12 @@ if __name__ == "__main__":
 #   4. python scripts\build_setup.py --version <версия из тега>
 #        → Феникс.exe + dist\Феникс_Setup.exe
 #   5. Оба файла всегда уходят в артефакты запуска.
-#   6. На теге — gh release create: релиз с заметками и двумя вложениями.
+#   6. На теге — релиз с заметками и вложениями под ASCII-именами
+#      (GitHub вырезает кириллицу из имён файлов).
+#
+# Полная сборка Nuitka (dist\Феникс_Nuitka_Setup.exe) в CI не делается:
+# нужен MinGW и около двух часов. Она собирается локально по
+# docs/FULL_NUITKA_BUILD.md и прикладывается к релизу вручную.
 #
 # Почему сборка остаётся лёгкой:
 #   Феникс.exe — лёгкий лаунчер (stdlib + системный PowerShell).
@@ -53398,6 +53404,8 @@ on:
   push:
     tags:
       - "v*"
+      # Теги без префикса тоже принимаем: 2.1.2 — такой же релиз, как v2.1.2.
+      - "[0-9]*"
   workflow_dispatch:
     inputs:
       version:
@@ -53489,15 +53497,35 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_VERSION: ${{ steps.ver.outputs.value }}
         run: |
+          # GitHub вырезает не-ASCII из имён вложений: «Феникс_Setup.exe»
+          # превращалось в «_Setup.exe», а «Феникс.exe» — в «default.exe».
+          # Поэтому вложения копируются под ASCII-именами.
+          $setup = "dist/Feniks_Setup_$env:RELEASE_VERSION.exe"
+          Copy-Item "dist/Феникс_Setup.exe" $setup -Force
+          $sums = "dist/SHA256SUMS.txt"
+          $hash = (Get-FileHash -Algorithm SHA256 $setup).Hash.ToLowerInvariant()
+          "$hash  $([IO.Path]::GetFileName($setup))" |
+            Set-Content -LiteralPath $sums -Encoding ascii
+
+          # Заметки берём из docs/releases/<тег>.md, иначе — автогенерация.
           $notesFile = "docs/releases/$env:RELEASE_TAG.md"
           $notesArgs = @("--generate-notes")
           if (Test-Path $notesFile) { $notesArgs = @("--notes-file", $notesFile) }
-          gh release create "$env:RELEASE_TAG" `
-            "dist/Феникс_Setup.exe" `
-            "Феникс.exe" `
-            --title "Феникс $env:RELEASE_TAG" `
-            @notesArgs
+
+          # Полный установщик Nuitka в CI не собирается: нужен MinGW и ~2 часа,
+          # это локальная сборка. Здесь публикуется только bootstrap-вариант.
+          gh release view "$env:RELEASE_TAG" *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload "$env:RELEASE_TAG" $setup $sums --clobber
+            gh release edit "$env:RELEASE_TAG" --prerelease @notesArgs
+          } else {
+            gh release create "$env:RELEASE_TAG" $setup $sums `
+              --title "Феникс $env:RELEASE_VERSION" `
+              --prerelease `
+              @notesArgs
+          }
 ```
 
 ### `.github/workflows/test.yml`
