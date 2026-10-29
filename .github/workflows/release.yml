@@ -148,13 +148,14 @@ jobs:
 
           # Полный установщик Nuitka в CI не собирается: нужен MinGW и ~2 часа,
           # это локальная сборка. Здесь публикуется только bootstrap-вариант.
+          # Релиз публикуется как обычный (не предрелиз): галочку «pre-release»
+          # при необходимости ставят вручную на странице релиза.
           gh release view "$env:RELEASE_TAG" *> $null
           if ($LASTEXITCODE -eq 0) {
             gh release upload "$env:RELEASE_TAG" $setup $sums --clobber
-            gh release edit "$env:RELEASE_TAG" --prerelease @notesArgs
+            gh release edit "$env:RELEASE_TAG" @notesArgs
           } else {
             gh release create "$env:RELEASE_TAG" $setup $sums `
               --title "Феникс $env:RELEASE_VERSION" `
-              --prerelease `
               @notesArgs
           }

@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=b4816f773e5dfe3f` · режим `lean` · файлов `346` · строк `60539` · источник `2898 КБ`
+`sha256=ed8180d48b3577e3` · режим `lean` · файлов `346` · строк `60545` · источник `2905 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -466,7 +466,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ├── .github/
 │   ├── workflows/
 │   │   ├── README.md  (74 стр)
-│   │   ├── release.yml  (160 стр)
+│   │   ├── release.yml  (161 стр)
 │   │   ├── test.yml  (71 стр)
 ├── AGENTS.md  (88 стр)
 ├── ARCHITECTURE.md  (1097 стр)
@@ -518,7 +518,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── IMPROVEMENT_BACKLOG.md  (120 стр)
 │   ├── INSTALLER_UPDATE.md  (47 стр)
 │   ├── LOCAL_VOICE_OPTIONS.md  (67 стр)
-│   ├── NEXT_STEPS.md  (175 стр)
+│   ├── NEXT_STEPS.md  (177 стр)
 │   ├── NUITKA_BUILD.md  (123 стр)
 │   ├── PHOENIX_JASTIN_RECONCILIATION.md  (268 стр)
 │   ├── PYTHON_BOOTSTRAP_TLS_FIX.md  (98 стр)
@@ -695,7 +695,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ├── phoenix_app.py  (11 стр)
 ├── PLAN.md  (93 стр)
 ├── PROJECT.md  (439 стр)
-├── PROJECT_MEMORY.md  (110 стр)
+├── PROJECT_MEMORY.md  (113 стр)
 ├── PROMPT.md  (72 стр)
 ├── pytest.ini  (20 стр)
 ├── README.md  (194 стр)
@@ -53516,14 +53516,15 @@ jobs:
 
           # Полный установщик Nuitka в CI не собирается: нужен MinGW и ~2 часа,
           # это локальная сборка. Здесь публикуется только bootstrap-вариант.
+          # Релиз публикуется как обычный (не предрелиз): галочку «pre-release»
+          # при необходимости ставят вручную на странице релиза.
           gh release view "$env:RELEASE_TAG" *> $null
           if ($LASTEXITCODE -eq 0) {
             gh release upload "$env:RELEASE_TAG" $setup $sums --clobber
-            gh release edit "$env:RELEASE_TAG" --prerelease @notesArgs
+            gh release edit "$env:RELEASE_TAG" @notesArgs
           } else {
             gh release create "$env:RELEASE_TAG" $setup $sums `
               --title "Феникс $env:RELEASE_VERSION" `
-              --prerelease `
               @notesArgs
           }
 ```

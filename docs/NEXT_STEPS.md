@@ -145,8 +145,10 @@ Synthetic/portable тесты не заменяют живую Windows-приё�
   `encoding='utf8'`, плюс harness песочницы: `verify_nuitka_sandbox.ps1` без BOM читался
   PowerShell 5.1 как ANSI, кириллическое имя EXE не находилось после успешной установки.
   Скрипт сделан ASCII, имя EXE ищется в папке, добавлен тест-страж.
-- Опубликовано: релиз [v2.1.2](https://github.com/BobLoTiK/jarvis-fenix/releases/tag/v2.1.2)
-  (prerelease) с вложениями `Feniks_Setup_2.1.2.exe` и `Feniks_Nuitka_Setup_2.1.2.exe`
+- Опубликовано: полноценный релиз
+  [v2.1.2](https://github.com/BobLoTiK/jarvis-fenix/releases/tag/v2.1.2) — не предрелиз,
+  помечен как latest (прошлые v2.0.0/v2.1.0/v2.1.1 остались предрелизами) — с вложениями
+  `Feniks_Setup_2.1.2.exe` и `Feniks_Nuitka_Setup_2.1.2.exe`
   плюс `SHA256SUMS.txt`; digest на стороне GitHub совпал с локальными суммами.
 - Сначала тег назвали `2.1.2` без префикса `v` — lightweight, на коммите `1ab2efa`.
   Из-за этого прошлый `release.yml` (триггер только `v*`) не запускался и вложений не
