@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=1a94c2784119c698` · режим `lean` · файлов `346` · строк `60519` · источник `2886 КБ`
+`sha256=b4816f773e5dfe3f` · режим `lean` · файлов `346` · строк `60539` · источник `2898 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -518,7 +518,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── IMPROVEMENT_BACKLOG.md  (120 стр)
 │   ├── INSTALLER_UPDATE.md  (47 стр)
 │   ├── LOCAL_VOICE_OPTIONS.md  (67 стр)
-│   ├── NEXT_STEPS.md  (166 стр)
+│   ├── NEXT_STEPS.md  (175 стр)
 │   ├── NUITKA_BUILD.md  (123 стр)
 │   ├── PHOENIX_JASTIN_RECONCILIATION.md  (268 стр)
 │   ├── PYTHON_BOOTSTRAP_TLS_FIX.md  (98 стр)
@@ -527,7 +527,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── releases/
 │   │   ├── v2.1.0.md  (34 стр)
 │   │   ├── v2.1.1.md  (80 стр)
-│   │   ├── v2.1.2.md  (80 стр)
+│   │   ├── v2.1.2.md  (81 стр)
 │   ├── REVIEW_FIXES.md  (68 стр)
 │   ├── TTS_LIFECYCLE_FIX.md  (89 стр)
 │   ├── USER_GUIDE.md  (1014 стр)
@@ -695,7 +695,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ├── phoenix_app.py  (11 стр)
 ├── PLAN.md  (93 стр)
 ├── PROJECT.md  (439 стр)
-├── PROJECT_MEMORY.md  (100 стр)
+├── PROJECT_MEMORY.md  (110 стр)
 ├── PROMPT.md  (72 стр)
 ├── pytest.ini  (20 стр)
 ├── README.md  (194 стр)
