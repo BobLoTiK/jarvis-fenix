@@ -17,7 +17,7 @@ PROBE_MODULES = (
     "ctranslate2", "torch", "torchaudio", "flet", "flet_desktop", "pyttsx3",
     "pyttsx3.drivers.sapi5", "comtypes", "pycaw.pycaw", "uiautomation",
     "winrt.windows.media.control", "pymorphy3", "pymorphy3_dicts_ru", "num2words",
-    "certifi", "jarvis.main",
+    "certifi", "filelock", "jarvis.main",
 )
 RESOURCE_FILES = (
     "jarvis/icon.ico", "jarvis/assets/brand/phoenix-dark.png",
@@ -128,6 +128,11 @@ def self_test(root, *, compiled):
         checks["russian_dictionary"] = bool(pymorphy3.MorphAnalyzer().parse("проверка"))
     except Exception as exc:
         checks["russian_dictionary"] = {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
+    # faster-whisper читает silero_vad_v6.onnx с диска при VAD-фильтре. Проверка
+    # import этот файл не ловит: в v2.1.2 импорт проходил, а assets в поставку
+    # не попали, и Whisper падал уже на машине пользователя.
+    checks["faster_whisper_assets"] = (
+        root / "faster_whisper/assets/silero_vad_v6.onnx").is_file()
     report["ok"] = all(value is True for value in checks.values())
     return report
 

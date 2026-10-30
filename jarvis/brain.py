@@ -493,19 +493,88 @@ class Brain:
         self.prompt_level, self.system_prompt = pick_prompt(model, prompt_level)
         log.info("Промпт: %s (для %s)", self.prompt_level, model)
 
-        self.available = self._ping() or self._try_start()
-        if self.available:
-            log.info("LLM включена: %s", model)
-            threading.Thread(target=self._warmup, daemon=True, name="brain-warmup").start()
+        # Облако главнее Ollama: если оно включено и ключ на месте, ответы идут
+        # провайдеру, а локальный сервер не нужен вовсе (и не запускается).
+        self.cloud = self._build_cloud()
+        self._cloud_notice_logged = False
+        if self.cloud is not None:
+            self.available = True
+            log.info("LLM включена: облако %s, модель %s", self.cloud.provider, self.cloud.model)
         else:
-            log.warning("Ollama недоступна — LLM выключена")
+            self.available = self._ping() or self._try_start()
+            if self.available:
+                log.info("LLM включена: %s", model)
+                threading.Thread(target=self._warmup, daemon=True, name="brain-warmup").start()
+            else:
+                log.warning("Ollama недоступна — LLM выключена")
 
         # Подписка на смену модели в config
         if config is not None and hasattr(config, "subscribe"):
             config.subscribe(self._on_config_change)
 
+    def _build_cloud(self):
+        """Собирает облачный клиент из конфига и зашифрованного ключа.
+
+        Ключ берётся только из secrets_store (DPAPI), в config.json его нет.
+        Любая проблема — это «облако не настроено», а не падение Феникса.
+        """
+        if self._config is None:
+            return None
+        try:
+            if not self._config.get("cloud_enabled", False):
+                return None
+            from jarvis import cloud_llm, secrets_store
+            key = secrets_store.load_secret(secrets_store.CLOUD_LLM_KEY)
+            if not key:
+                log.warning("Облачная LLM включена, но ключа нет: Настройки → Облако")
+                return None
+            return cloud_llm.CloudLLM(
+                provider=str(self._config.get("cloud_provider", "openai")),
+                api_key=key,
+                model=str(self._config.get("cloud_model", "")),
+                base_url=str(self._config.get("cloud_base_url", "") or "") or None,
+                timeout=float(self._config.get("cloud_timeout", 60.0) or 60.0),
+                max_tokens=int(self._config.get("cloud_max_tokens", 600) or 600),
+            )
+        except Exception:
+            log.exception("Облачная LLM не настроена — работаю как раньше")
+            return None
+
+    def _cloud_sends_profile(self) -> bool:
+        """Личные блоки в облако — только по явному согласию, по умолчанию нет."""
+        if self._config is None:
+            return False
+        return bool(self._config.get("cloud_send_profile", False))
+
+    def cloud_allows_background(self) -> bool:
+        """Можно ли отдавать в текущую LLM фоновые разборы диалога (Observer).
+
+        С локальной Ollama — да, данные не покидают машину. С облаком — только
+        при явном cloud_send_profile: пользователь разрешал «анализ диалога
+        выбранной Ollama», а не отправку переписки чужому провайдеру.
+        """
+        return getattr(self, "cloud", None) is None or self._cloud_sends_profile()
+
+    def _log_cloud_privacy_once(self) -> None:
+        if getattr(self, "_cloud_notice_logged", False):
+            return
+        self._cloud_notice_logged = True
+        log.info("Облако: персона, настроение и факты не отправляются "
+                 "(cloud_send_profile=false) — уходит только текст реплики")
+
     def _on_config_change(self, key: str, value) -> None:
-        """Реагирует на смену llm_model / ollama_url в рантайме."""
+        """Реагирует на смену llm_model / ollama_url / настроек облака в рантайме."""
+        if key in ("cloud_enabled", "cloud_provider", "cloud_model", "cloud_base_url",
+                   "cloud_timeout", "cloud_max_tokens"):
+            self.cloud = self._build_cloud()
+            if self.cloud is not None:
+                self.available = True
+                log.info("LLM: облако %s, модель %s", self.cloud.provider, self.cloud.model)
+            elif self._config is not None and not self._config.get("cloud_enabled", False):
+                # Вернулись к Ollama: доступность проверяем без запуска сервера.
+                self.available = self._ping()
+                log.info("LLM: облако выключено, Ollama доступна: %s", self.available)
+            return
         if key == "llm_model" and value and value != self.model:
             log.info("LLM: смена модели %s → %s", self.model, value)
             self.model = value
@@ -546,6 +615,12 @@ class Brain:
         return False
 
     def _request(self, messages, timeout, fmt="json", temperature=0, num_predict=120):
+        cloud = getattr(self, "cloud", None)
+        if cloud is not None:
+            # Таймаут облака свой (cloud_timeout): у провайдера другая задержка,
+            # чем у локальной Ollama, и общий llm_timeout тут только мешал бы.
+            return cloud.chat(messages, temperature=temperature,
+                              max_tokens=num_predict, json_mode=bool(fmt))
         payload = {
             "model": self.model,
             "messages": messages,
@@ -566,7 +641,15 @@ class Brain:
 
         Личные сведения подмешиваются только по необходимости текущего
         запроса. Отказ/ошибка RAG не возвращает все факты в промпт.
+
+        В облако персона, настроение и факты не уходят, пока пользователь
+        не включил cloud_send_profile: это его личные данные, а не наши.
         """
+        cloud = getattr(self, "cloud", None)
+        if cloud is not None and not self._cloud_sends_profile():
+            self._log_cloud_privacy_once()
+            return base
+
         parts = []
 
         try:
@@ -645,6 +728,24 @@ class Brain:
         msgs = ([{"role": "system", "content": system}]
                 + list(history or [])
                 + [{"role": "user", "content": cmd}])
+        cloud = getattr(self, "cloud", None)
+        if cloud is not None:
+            try:
+                t0 = time.time()
+                first = None
+                for chunk in cloud.chat_stream(msgs, temperature=self.temperature,
+                                               max_tokens=600):
+                    chunk = strip_cjk_chunk(chunk)
+                    if not chunk:
+                        continue
+                    if first is None:
+                        first = time.time() - t0
+                        log.info("LLM-стриминг (облако): первый чанк %.2f с", first)
+                    yield chunk
+                log.info("LLM-стриминг (облако): полный ответ %.2f с", time.time() - t0)
+            except Exception:
+                log.exception("Облачный стриминг не удался")
+            return
         payload = {
             "model": self.model,
             "messages": msgs,
@@ -682,6 +783,8 @@ class Brain:
             log.exception("LLM-стриминг не удался")
 
     def _warmup(self):
+        if getattr(self, "cloud", None) is not None:
+            return  # у облака нет холодного старта модели — прогревать нечего
         try:
             t0 = time.time()
             self._chat("привет", timeout=120)

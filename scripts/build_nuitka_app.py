@@ -36,6 +36,10 @@ INCLUDES = (
     "--include-module=torch", "--include-module=faster_whisper", "--include-module=ctranslate2",
 )
 DATA_PACKAGES = ("flet", "flet_desktop", "certifi", "pymorphy3_dicts_ru", "onnxruntime", "piper",
+                 # faster-whisper открывает свои assets (silero_vad_v6.onnx) с диска:
+                 # без --include-package-data файла в поставке нет, и Whisper падает
+                 # у пользователя, хотя import faster_whisper в self-test проходил.
+                 "faster_whisper",
                  # winrt 4 читает таблицу проекций _table.pywinrt рядом с модулем;
                  # без её данных self-test падает на winrt.windows.media.control.
                  "winrt")

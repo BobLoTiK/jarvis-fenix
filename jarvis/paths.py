@@ -227,6 +227,19 @@ def config_path() -> Path:
     """config.json — в USER_DIR."""
     return user_dir() / "config.json"
 
+
+def secrets_dir() -> Path:
+    """Зашифрованные секреты (ключи облачных LLM) — только в USER_DIR.
+
+    Файлы шифрует Windows DPAPI под текущего пользователя, поэтому копия
+    папки бесполезна на другой машине или под другой учётной записью.
+    В config.json секретов нет: конфиг читается глазами, попадает в
+    диагностику и легко уезжает вместе с профилем.
+    """
+    d = user_dir() / "secrets"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
 def nonverbal_dir() -> Path:
     """Read-only bundled CC0 samples; launcher install and optional frozen layout."""
     root = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent))

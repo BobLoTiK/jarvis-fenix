@@ -16,6 +16,11 @@ def resources(root):
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_bytes(b"public fixture")
     (root / "runtime/flet/data/flutter_assets").mkdir()
+    # Данные пакета faster-whisper: self-test проверяет наличие самого файла,
+    # потому что import проходит и без него (так и вышел дефект в v2.1.2).
+    vad = root / "faster_whisper/assets/silero_vad_v6.onnx"
+    vad.parent.mkdir(parents=True, exist_ok=True)
+    vad.write_bytes(b"public fixture")
 
 
 def fake_imports(monkeypatch, root):
@@ -43,6 +48,17 @@ def test_probe_checks_embedded_modules_resources_and_dictionaries(tmp_path, monk
     assert report["ok"] is True
     assert report["checks"]["torchscript_cpu"] is True
     assert report["checks"]["russian_dictionary"] is True
+    assert report["checks"]["faster_whisper_assets"] is True
+
+
+def test_probe_fails_when_vad_asset_is_absent(tmp_path, monkeypatch):
+    """Импорт есть, файла нет — сборка не готова (дефект v2.1.2)."""
+    resources(tmp_path)
+    (tmp_path / "faster_whisper/assets/silero_vad_v6.onnx").unlink()
+    fake_imports(monkeypatch, tmp_path)
+    report = runtime.self_test(tmp_path, compiled=True)
+    assert report["ok"] is False
+    assert report["checks"]["faster_whisper_assets"] is False
 
 
 def test_probe_rejects_module_imported_from_external_environment(tmp_path, monkeypatch):

@@ -381,44 +381,6 @@ def test_handle_ollama_keeps_session_and_project_context(monkeypatch, tmp_path):
     assert prepare.call_args.args[:3] == (tmp_path, session, LOG)
 
 
-def test_bad_config_skips_setup_without_network_or_write(flow):
-    flow.bridge.read.side_effect = module.SetupError('configuration')
-    flow.run()
-    flow.api.inventory.assert_not_called()
-    flow.bridge.select.assert_not_called()
-
-
-def test_loopback_inventory_omits_cloud_metadata(server):
-    server.tags_override = {'models': [{'name':'local:latest'},
-        {'name':'custom:latest','remote_host':'https://cloud.invalid'}, {'name':'x:cloud'}]}
-    assert module.OllamaAPI(server.url).inventory() == ['local:latest']
-
-
-def test_pull_has_an_overall_deadline(server, monkeypatch):
-    monkeypatch.setattr(module, 'PULL_DEADLINE', -1)
-    with pytest.raises(module.SetupError, match='timeout'):
-        module.OllamaAPI(server.url).pull(SMALL, Mock())
-
-
-def test_wait_inventory_accepts_empty_ready_server():
-    api = SimpleNamespace(inventory=Mock(return_value=[]))
-    assert module._wait_inventory(api, seconds=0) == []
-
-
-def test_wait_inventory_timeout_is_not_ready():
-    api = SimpleNamespace(inventory=Mock(side_effect=module.SetupError('inventory')))
-    assert module._wait_inventory(api, seconds=0) is None
-
-
-def test_handle_ollama_keeps_session_and_project_context(monkeypatch, tmp_path):
-    session = Session()
-    monkeypatch.setattr(launcher, '_PREPARATION', session)
-    prepare = Mock()
-    monkeypatch.setattr(launcher, 'prepare_models', prepare)
-    launcher.handle_ollama(LOG, tmp_path)
-    assert prepare.call_args.args[:3] == (tmp_path, session, LOG)
-
-
 def test_model_dropdown_is_readonly_bounded_and_has_no_download_side_effect(window, monkeypatch):
     import sys
     combo = Mock()

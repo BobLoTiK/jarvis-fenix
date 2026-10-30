@@ -107,7 +107,10 @@ jarvis/
 ├── config.py         — Config в памяти + подписки
 ├── config_manager.py — атомарная запись (FileLock per-path)
 ├── paths.py          — PROGRAM_DIR / USER_DIR
-├── brain.py          — Ollama: parse() / chat_stream() / onboarding_chat()
+├── brain.py          — LLM: Ollama или облако; parse() / chat_stream() / onboarding_chat()
+├── cloud_llm.py      — облачные провайдеры (OpenAI-совместимые, Anthropic), SSE-стрим
+├── secrets_store.py  — ключи API: шифрование Windows DPAPI + отпечаток SHA-256
+├── cache_maintenance.py — чистка __pycache__ при смене версии (правки файлов на диске)
 ├── intents/          — пакет (после рефакторинга)
 │   ├── handler.py    — IntentHandler, pipeline, подписки
 │   ├── context.py    — Ctx для стадий
@@ -792,7 +795,8 @@ config.get("key") / config.set("key", value)
 
 - `main.py` → `_on_config_change` (tts_voice, voice_rate, mode, barge_enabled).
 - `handler.py` → `_on_config_change` (memory_max, llm_context_messages).
-- `brain.py` → `_on_config_change` (llm_model, ollama_url).
+- `brain.py` → `_on_config_change` (llm_model, ollama_url; плюс ключи облака —
+  смена провайдера/модели/адреса пересобирает облачный клиент на лету).
 
 ---
 

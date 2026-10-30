@@ -17,7 +17,11 @@ winrt-Windows.Media.Control>=3.2
 winrt-Windows.Storage.Streams>=3.2
 
 # === Утилиты ===
-filelock>=3.13
+# Верхняя граница не от жадности: в filelock 4.x переставляли внутренние
+# модули, а FileLock импортируют наши и чужие пакеты. Без пина установка
+# «на свежую машину» однажды ставит несовместимую версию и приложение падает
+# с ModuleNotFoundError уже у пользователя (так и вышло в v2.1.2).
+filelock>=3.13,<4
 psutil>=5.9
 pyperclip>=1.8
 Pillow>=10

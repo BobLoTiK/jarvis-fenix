@@ -31,7 +31,13 @@ def test_only_public_files(release_tree):
     files = rp.collect_payload(root, False)
     assert 'jarvis/gui_widgets.py' in files
     assert 'jarvis/gui_home_actions.py' in files
-    assert not any('private' in p or 'secret' in p or p in ('config.json','system_caps.json','tasks.json') for p in files)
+    # Личные данные и мусор в поставку не идут: ни файлов настроек, ни моделей,
+    # ни кэша байткода, ни профилей.
+    assert not any(p in ('config.json', 'system_caps.json', 'tasks.json') for p in files)
+    for personal in ('profiles/alice.json', 'jarvis/__pycache__/secret.py', 'models/private.py'):
+        assert personal not in files
+    # Но исходник с «secret» в имени — публичный код, а не секрет пользователя.
+    assert 'jarvis/secrets_store.py' in files
 
 
 

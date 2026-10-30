@@ -230,6 +230,60 @@ def test_unrelated_setting_changed_elsewhere_is_not_overwritten(editor):
     assert editor.gui.config.get('tray_enabled') is False
 
 
+def test_cloud_provider_switch_updates_preset_address_and_model(editor):
+    editor._change('settings','cloud_provider','deepseek')
+    assert editor.settings_draft['cloud_base_url'] == 'https://api.deepseek.com/v1'
+    assert editor.settings_draft['cloud_model'] == 'deepseek-chat'
+    assert editor.settings_fields['cloud_base_url'].value == 'https://api.deepseek.com/v1'
+    assert editor.settings_fields['cloud_model'].value == 'deepseek-chat'
+
+
+def test_cloud_provider_switch_keeps_hand_edited_address_and_model(editor):
+    editor._change('settings','cloud_base_url','https://my.gateway/v1')
+    editor._change('settings','cloud_model','my-model')
+    editor._change('settings','cloud_provider','groq')
+    assert editor.settings_draft['cloud_base_url'] == 'https://my.gateway/v1'
+    assert editor.settings_draft['cloud_model'] == 'my-model'
+
+
+def test_custom_provider_has_no_preset_and_requires_an_address(editor):
+    editor._change('settings','cloud_base_url','')
+    editor._change('settings','cloud_provider','custom')
+    assert editor.settings_draft['cloud_base_url'] == ''
+    editor.save_settings()
+    assert editor.settings_error
+    assert 'адрес' in editor.settings_notice.lower()
+
+
+def test_cloud_consent_is_recorded_in_profile_with_version_and_time(editor):
+    """Согласие на отправку личного в облако фиксируется в профиле, не только в конфиге."""
+    editor._change('settings','cloud_send_profile',True)
+    editor.save_settings()
+    assert not editor.settings_error
+    consent = profile.get('cloud_consent')
+    assert consent['cloud_send_profile'] is True
+    assert consent['version'] == ui.CLOUD_CONSENT_VERSION
+    assert consent['at']
+    assert 'разрешена' in ui.consent_summary()
+    assert 'разрешена' in editor.cloud_consent_label.value
+
+
+def test_cloud_consent_withdrawal_is_recorded_too(editor):
+    editor.gui.config.set('cloud_send_profile', True)
+    editor._load_settings()
+    editor._change('settings','cloud_send_profile',False)
+    editor.save_settings()
+    assert not editor.settings_error
+    assert profile.get('cloud_consent')['cloud_send_profile'] is False
+    assert 'отозвано' in ui.consent_summary()
+
+
+def test_cloud_consent_payload_is_pure_and_versioned():
+    payload = ui.consent_payload(True, now=ui.datetime(2026, 1, 2, 3, 4, 5, tzinfo=ui.timezone.utc))
+    assert payload == {"cloud_send_profile": True, "version": ui.CLOUD_CONSENT_VERSION,
+                       "at": "2026-01-02T03:04:05+00:00"}
+
+
 def test_hidden_tray_launch_is_rejected(editor):
     editor._change('settings','launch_mode','tray')
     editor._change('settings','tray_enabled',False)

@@ -63,3 +63,6 @@ Untitled*
 graphify-out/
 .audio-regression/
 audio-regression/
+
+# === Личный журнал ошибок агента: не для Git ===
+KNOWN_ERRORS.local.md

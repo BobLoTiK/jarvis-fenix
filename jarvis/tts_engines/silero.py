@@ -28,6 +28,28 @@ except ImportError:
 
 log = logging.getLogger("jarvis.tts")
 
+# Признаки того, что библиотека позвала input() в процессе без консоли.
+_PROMPT_FAILURES = ("lost sys.stdin", "eof when reading a line",
+                    "stdin is closed", "no console", "unable to obtain console")
+
+
+def _is_console_prompt_failure(error: BaseException) -> bool:
+    """Похоже ли падение на запрос ввода в консоли, которой у GUI нет."""
+    if isinstance(error, EOFError):
+        return True
+    text = str(error).lower()
+    return any(marker in text for marker in _PROMPT_FAILURES)
+
+
+def _console_prompt_error() -> RuntimeError:
+    """Внятная замена «lost sys.stdin»: что произошло и что делать."""
+    return RuntimeError(
+        "Silero: загрузка модели запросила подтверждение в консоли, а у окна "
+        "Феникса консоли нет. Один раз запустите «Феникс.exe --prepare-silero» "
+        "(согласие сохранится), либо выберите движок Piper или SAPI "
+        "в настройках голоса."
+    )
+
 
 def _setup_torch_home() -> None:
     """Переносит кэш torch в ASCII-путь. ДО import torch."""
@@ -119,7 +141,14 @@ class SileroEngine(BaseEngine):
                     speaker=_VERSION,
                     trust_repo=True,  # only after verifying stored user consent above
                 )
-            except Exception:
+            except Exception as error:
+                # torch.hub (или код самого репозитория) иногда спрашивает
+                # подтверждение через input(). У GUI-процесса stdin нет, и
+                # пользователь видит голое «RuntimeError: lost sys.stdin»,
+                # из которого непонятно ни что случилось, ни что делать.
+                if _is_console_prompt_failure(error):
+                    log.warning("Silero TTS: загрузка просила ввод в консоли (%s)", error)
+                    raise _console_prompt_error() from error
                 log.exception("Silero TTS: torch.hub не справился")
                 raise
 

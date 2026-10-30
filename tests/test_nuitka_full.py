@@ -372,6 +372,14 @@ def test_release_workflow_builds_nuitka_installer():
     # Установщик Nuitka и независимый self-test попадают в артефакты.
     assert 'dist/Феникс_Nuitka_Setup.exe' in workflow
     assert '--self-test' in workflow
+    # EXE собран без консоли (--windows-console-mode=disable): обычный вызов &
+    # не ждёт завершения и не ставит $LASTEXITCODE, поэтому прогон #8 падал на
+    # «self-test не создал отчёт». Ждать надо Start-Process -Wait, а путь отчёта
+    # держать абсолютным: относительный разрешается от папки самого EXE.
+    assert 'Start-Process' in workflow
+    assert '-Wait -PassThru' in workflow
+    assert '-WorkingDirectory (Get-Location)' in workflow
+    assert 'Join-Path (Get-Location) "build/ci-self-test.json"' in workflow
     # GitHub вырезает кириллицу из имён вложений: публикуются ASCII-имена.
     assert 'Feniks_Nuitka_Setup_' in workflow
     assert 'Feniks_Setup_' in workflow

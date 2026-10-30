@@ -80,6 +80,7 @@ EXCLUDE_FILES = {
     "profile.json.lock",
     "PROJECT.md.orig",
     "pytest-log.txt",   # локальный результат pytest, не исходник
+    "KNOWN_ERRORS.local.md",  # личный журнал ошибок агента, не для Git и снимка
 }
 
 EXCLUDE_EXT = {

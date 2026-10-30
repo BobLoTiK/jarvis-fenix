@@ -610,6 +610,12 @@ class FenixGUI:
     def _model_caption(self) -> str:
         if self.config.get("mode", "combo") == "commands":
             return "Команды · без LLM"
+        if self.config.get("cloud_enabled", False):
+            # В облачном режиме llm_model (локальная Ollama) не используется:
+            # в подписи должна быть та модель, которая реально отвечает.
+            provider = str(self.config.get("cloud_provider", "openai"))
+            model = str(self.config.get("cloud_model", "") or "не выбрана")
+            return f"Облако ({provider}): {model}"
         return "Модель: " + str(self.config.get("llm_model", "не выбрана"))
 
     def _build_input(self) -> ft.Container:

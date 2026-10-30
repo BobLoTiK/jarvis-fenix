@@ -1,10 +1,14 @@
 """Native persona/settings editors. Drafts are not configuration or a second memory.
 
-UI callbacks and completion application run on Flet's GUI path. The only worker
-performs an explicit, bounded Ollama inventory request and sends plain data to
-FenixGUI's existing queue. No inference, downloads, microphone or TTS here.
+UI callbacks and completion application run on Flet's GUI path. Two workers exist,
+both explicit and user-triggered: an Ollama model inventory and a cloud key probe
+(one GET /models). Both send plain data to FenixGUI's existing queue. No request is
+made while a screen is built or on import; no inference, downloads, microphone or
+TTS here. The cloud API key never enters a draft: the worker reads it from the
+Windows DPAPI store, and the field that accepts it is separate from settings_draft.
 """
 from copy import deepcopy
+from datetime import datetime, timezone
 import json
 import logging
 import threading
@@ -14,7 +18,7 @@ from urllib.request import build_opener, ProxyHandler, HTTPRedirectHandler, Requ
 
 import flet as ft
 
-from jarvis import persona, profile
+from jarvis import cloud_llm, persona, profile
 
 log = logging.getLogger(__name__)
 STYLES = {"formal": "Формальный", "friendly": "Дружеский",
@@ -28,7 +32,13 @@ EXAMPLES = {
     "brief": "Что сделать первым?",
 }
 SETTING_KEYS = ("llm_model", "ollama_url", "observer_enabled", "memory_rag_enabled",
-                "tray_enabled", "launch_mode")
+                "tray_enabled", "launch_mode",
+                # Облако: несекретные параметры. Ключ живёт в secrets_store, не здесь.
+                "cloud_enabled", "cloud_provider", "cloud_base_url", "cloud_model",
+                "cloud_send_profile")
+# Метка результата облачной пробы: очередь preferences_result общая с Ollama-пробой,
+# поэтому результат обязан опознаваться до распаковки кортежа.
+CLOUD_PROBE_TAG = "cloud_probe"
 
 
 def validated_url(value):
@@ -79,6 +89,87 @@ def probe_ollama(url):
 
 def has_model(names, value):
     return value in names or (":" not in value and value + ":latest" in names)
+
+
+def _secrets():
+    """DPAPI-хранилище импортируется при первом обращении, не на уровне модуля.
+
+    secrets_store тянет ctypes.wintypes: на другой ОС импорт модуля уронил бы
+    весь диалог настроек, поэтому локальный импорт и есть граница переносимости.
+    """
+    from jarvis import secrets_store
+    return secrets_store
+
+
+def cloud_providers():
+    """Ключи и подписи провайдеров берутся из cloud_llm: второй список не нужен."""
+    return {key: str(entry.get("label") or key) for key, entry in cloud_llm.PROVIDERS.items()}
+
+
+def validated_cloud_settings(provider, base_url, model):
+    """Нормализует облачные параметры перед записью. Сети не касается.
+
+    Пустой адрес допустим только у провайдера с пресетом: у custom пресета нет.
+    """
+    if provider not in cloud_llm.PROVIDERS:
+        raise ValueError("Выберите провайдера облака из списка.")
+    base_url = str(base_url or "").strip()
+    if base_url:
+        base_url = cloud_llm.validated_base_url(base_url)
+    elif provider == "custom":
+        raise ValueError("Для своего адреса укажите адрес API: пресета у него нет.")
+    model = str(model or "").strip()
+    if not model or len(model) > 256:
+        raise ValueError("Укажите модель облака — до 256 символов.")
+    return base_url, model
+
+
+def probe_cloud(provider, base_url, model, key):
+    """Один запрос списка моделей. Ключ приходит аргументом и в UI не попадает."""
+    client = cloud_llm.CloudLLM(provider=provider, api_key=key, model=model,
+                                base_url=(base_url or None))
+    return client.probe()
+
+
+CLOUD_CONSENT_KEY = "cloud_consent"
+CLOUD_CONSENT_VERSION = 1
+
+
+def consent_payload(enabled, now=None):
+    """Запись о согласии: что разрешено, по какой редакции текста и когда."""
+    moment = now or datetime.now(timezone.utc)
+    return {"cloud_send_profile": bool(enabled),
+            "version": CLOUD_CONSENT_VERSION,
+            "at": moment.isoformat(timespec="seconds")}
+
+
+def record_cloud_consent(enabled, now=None):
+    """Пишет след согласия в профиль пользователя, а не в config.json.
+
+    Это след, а не гейт: решает по-прежнему cloud_send_profile в конфиге.
+    След нужен, чтобы через месяц можно было ответить, когда и в какой
+    редакции текста человек разрешил отправку персоны и памяти наружу.
+    """
+    try:
+        return bool(profile.set(CLOUD_CONSENT_KEY, consent_payload(enabled, now)))
+    except Exception:
+        log.exception("Согласие облака не записано в профиль")
+        return False
+
+
+def consent_summary():
+    """Строка для карточки настроек. Ничего не пишет и в сеть не ходит."""
+    try:
+        data = profile.get(CLOUD_CONSENT_KEY)
+    except Exception:
+        return "Согласие: профиль недоступен."
+    if not isinstance(data, dict) or not data.get("at"):
+        return "Согласие: не записано."
+    state = ("отправка разрешена" if data.get("cloud_send_profile")
+             else "согласие отозвано")
+    version = data.get("version")
+    suffix = f", редакция {version}" if isinstance(version, int) else ""
+    return f"Согласие: {state}, {data['at']}{suffix}."
 
 
 def _palette():
@@ -162,6 +253,17 @@ class PreferenceScreens:
         self.probe_status = "Доступность ещё не проверялась."
         self.probe_label = None
         self.probe_button = None
+        # Облако: ключ не в черновике, поэтому у пробы своё состояние и свой замок.
+        self.cloud_key_field = None
+        self.cloud_key_status = None
+        self.cloud_probe_busy = False
+        self.cloud_probe_thread = None
+        self.cloud_probe_lock = threading.Lock()
+        self.cloud_probe_generation = 0
+        self.cloud_probe_status = "Ключ ещё не проверялся."
+        self.cloud_probe_label = None
+        self.cloud_probe_button = None
+        self.cloud_consent_label = None
         self.preview_title = self.preview_quote = self.preview_details = None
 
     def _update(self):
@@ -249,14 +351,24 @@ class PreferenceScreens:
             self.persona_error = False
             self._sync_portrait()
         else:
+            previous = self.settings_draft.get(key)
             self.settings_draft[key] = value
             self.settings_notice = "Есть несохранённые изменения."
             self.settings_error = False
+            if key == "cloud_provider":
+                # Иначе после смены провайдера адрес и модель оставались от
+                # прежнего: ключ уходил на чужой адрес, а человек видел 401.
+                self._apply_cloud_preset(previous, value)
             if key in ("llm_model", "ollama_url"):
                 self.probe_generation += 1
                 self.inventory = None
                 self.probe_status = "Параметры изменены. Проверьте подключение заново."
                 self._sync_probe()
+            if key in ("cloud_provider", "cloud_base_url", "cloud_model"):
+                # Прежний результат относится к другим параметрам: он больше не факт.
+                self.cloud_probe_generation += 1
+                self.cloud_probe_status = "Параметры изменены. Проверьте ключ заново."
+                self._sync_cloud_probe()
         notice = getattr(self, scope + "_notice_control", None)
         if notice is not None:
             notice.value = getattr(self, scope + "_notice")
@@ -268,9 +380,35 @@ class PreferenceScreens:
             targets = [notice] if notice is not None else []
             if scope == "persona":
                 targets += [self.preview_title, self.preview_quote, self.preview_details]
-            elif self.probe_label is not None:
-                targets.append(self.probe_label)
+            else:
+                targets += [self.probe_label, self.cloud_probe_label]
+                if key == "cloud_provider":
+                    # Адрес и модель подставлены пресетом: показать это сразу.
+                    targets += [self.settings_fields.get("cloud_base_url"),
+                                self.settings_fields.get("cloud_model")]
             self.gui._page.update(*[c for c in targets if c is not None])
+
+    def _apply_cloud_preset(self, previous, provider):
+        """Подставляет адрес и модель пресета нового провайдера.
+
+        Трогаем поле, только если там пусто или ровно пресет прошлого
+        провайдера: адрес, введённый руками, затирать нельзя. У «custom»
+        пресета нет — там остаются значения как есть.
+        """
+        old = cloud_llm.PROVIDERS.get(str(previous), {})
+        new = cloud_llm.PROVIDERS.get(str(provider), {})
+        if not new:
+            return
+        for key, field in (("cloud_base_url", "base_url"), ("cloud_model", "model")):
+            current = str(self.settings_draft.get(key) or "")
+            old_preset = str(old.get(field) or "")
+            new_preset = str(new.get(field) or "")
+            if not new_preset or (current and current != old_preset):
+                continue
+            self.settings_draft[key] = new_preset
+            control = self.settings_fields.get(key)
+            if control is not None:
+                control.value = new_preset
 
     def _trait_change(self, e):
         self.pending_trait = e.control.value
@@ -445,6 +583,65 @@ class PreferenceScreens:
         return ft.Row([ft.Column([text(title, 15), text(description, 13, muted=True)],
                                   spacing=5, expand=True), control], spacing=16)
 
+    def _cloud_key_status_text(self):
+        """Отпечаток вместо ключа. Хранилище опрашивается локально, без сети."""
+        try:
+            store = _secrets()
+        except (ImportError, ValueError, RuntimeError, OSError):
+            return "Хранилище ключей доступно только в Windows."
+        try:
+            if not store.has_secret(store.CLOUD_LLM_KEY):
+                return "Ключа нет."
+            fingerprint = store.secret_fingerprint(store.CLOUD_LLM_KEY)
+        except (ValueError, RuntimeError, OSError):
+            return "Хранилище ключей недоступно: проверьте права Windows."
+        if fingerprint:
+            return "Ключ сохранён, отпечаток " + str(fingerprint)
+        return ("Ключ сохранён, но не расшифровывается: возможно, файл записан "
+                "под другой учётной записью Windows.")
+
+    def _cloud_key_saved(self):
+        """Факт наличия ключа без его чтения: load_secret здесь не нужен."""
+        try:
+            store = _secrets()
+            return bool(store.has_secret(store.CLOUD_LLM_KEY))
+        except (ImportError, ValueError, RuntimeError, OSError):
+            return False
+
+    def _build_cloud_card(self):
+        p = _palette()
+        # Поле ключа намеренно вне settings_draft: значение не показывается
+        # повторно и не уходит в config.json ни при построении, ни при сохранении.
+        self.cloud_key_field = ft.TextField(
+            label="Ключ API", hint_text="sk-…", password=True, can_reveal_password=True,
+            max_length=4096, counter="", text_size=15, border=input_border(),
+            color=p.text, label_style=ft.TextStyle(color=p.dim), bgcolor=p.field)
+        self.cloud_key_status = text(self._cloud_key_status_text(), 13, muted=True)
+        self.cloud_consent_label = text(consent_summary(), 13, muted=True)
+        self.cloud_probe_label = text(self.cloud_probe_status, muted=True)
+        self.cloud_probe_button = button(
+            "Проверяю…" if self.cloud_probe_busy else "Проверить ключ",
+            self.start_cloud_probe, disabled=self.cloud_probe_busy)
+        body = card("Облачная модель", "Ответы через интернет, когда локальной Ollama мало.", [
+            self._toggle("cloud_enabled", "Отвечать через облако",
+                "Текст реплики уходит провайдеру по HTTPS. Локальная Ollama для ответов больше не нужна."),
+            self._select("settings", "cloud_provider", "Провайдер", cloud_providers()),
+            self._field("settings", "cloud_base_url", "Адрес API", max_length=2048),
+            self._field("settings", "cloud_model", "Модель", max_length=256),
+            self.cloud_key_field, self.cloud_key_status,
+            ft.Row([button("Сохранить ключ", self.save_cloud_key, primary=True),
+                    button("Удалить ключ", self.delete_cloud_key)],
+                   wrap=True, spacing=8, run_spacing=8),
+            self.cloud_probe_label, self.cloud_probe_button, divider(),
+            self._toggle("cloud_send_profile", "Отправлять в облако персону и память",
+                "По умолчанию в облако уходит только текст реплики. Включение отправит "
+                "персону, настроение и найденные факты — это личные данные."),
+            self.cloud_consent_label])
+        note = text("Ключ хранится зашифрованным Windows DPAPI в %APPDATA%\\Phoenix\\secrets; "
+                    "в config.json его нет. Открытый http разрешён только для localhost — "
+                    "иначе ключ ушёл бы по сети в читаемом виде.", 13, muted=True)
+        return ft.Column([body, note], spacing=8)
+
     def build_settings(self):
         if self.settings_draft is None:
             self._load_settings()
@@ -459,6 +656,7 @@ class PreferenceScreens:
             self.probe_label, self.probe_button,
             text("Проверка читает только список моделей. Не запускает генерацию и не скачивает файлы.", muted=True),
             divider(), text("При удалённом адресе запросы и включённый анализ диалога уходят на выбранный сервер. Слово «локальная» не гарантирует приватность удалённого сервера.", muted=True)])
+        cloud = self._build_cloud_card()
         privacy = card("Приватность и память", "По умолчанию оба способа обработки выключены.", [
             self._toggle("observer_enabled", "Запоминать факты из диалога",
                 "Observer отправляет недавние сообщения в выбранную Ollama. Факты сохраняются в профиле, диагностика — в observer.log."),
@@ -482,7 +680,7 @@ class PreferenceScreens:
             text("Движок, голос, темп, реакции и проба речи.", muted=True),
             button("Открыть «Голос и звук» →", lambda e: self.gui._select_tab(2))])
         content = ft.ResponsiveRow([
-            ft.Container(ft.Column([model, privacy], spacing=18), col={"xs": 12, "lg": 6}),
+            ft.Container(ft.Column([model, cloud, privacy], spacing=18), col={"xs": 12, "lg": 6}),
             ft.Container(ft.Column([appearance, launch, audio], spacing=18), col={"xs": 12, "lg": 6}),
         ], spacing=20, run_spacing=20)
         return self._screen("Настройки", "Всё важное — на своих местах.", content, [
@@ -494,6 +692,8 @@ class PreferenceScreens:
         self.probe_generation += 1
         self.inventory = None
         self.probe_status = "Доступность ещё не проверялась."
+        self.cloud_probe_generation += 1
+        self.cloud_probe_status = "Ключ ещё не проверялся."
         self.settings_notice, self.settings_error = "Черновик отменён. Тема не изменена.", False
         self._refresh(4)
 
@@ -503,6 +703,122 @@ class PreferenceScreens:
         if self.probe_button is not None:
             self.probe_button.disabled = self.probe_busy
             self.probe_button.content = "Проверяю…" if self.probe_busy else "Проверить подключение"
+
+    def _sync_cloud_probe(self):
+        if self.cloud_probe_label is not None:
+            self.cloud_probe_label.value = self.cloud_probe_status
+        if self.cloud_probe_button is not None:
+            self.cloud_probe_button.disabled = self.cloud_probe_busy
+            self.cloud_probe_button.content = "Проверяю…" if self.cloud_probe_busy else "Проверить ключ"
+
+    def _cloud_key_changed(self, message, error=False, clear_field=False):
+        """Обновляет статус ключа и уведомление, не перерисовывая поля ввода."""
+        self.settings_notice, self.settings_error = message, error
+        if clear_field and self.cloud_key_field is not None:
+            self.cloud_key_field.value = ""
+        if self.cloud_key_status is not None:
+            self.cloud_key_status.value = self._cloud_key_status_text()
+        notice = getattr(self, "settings_notice_control", None)
+        if notice is not None:
+            notice.value = message
+            notice.color = _palette().error if error else _palette().dim
+        self._sync_cloud_probe()
+        if self.gui._page is not None:
+            controls = (self.cloud_key_field, self.cloud_key_status, notice,
+                        self.cloud_probe_label, self.cloud_probe_button)
+            self.gui._page.update(*[c for c in controls if c is not None])
+
+    def save_cloud_key(self, e=None):
+        """Шифрует ключ в DPAPI-хранилище. В черновик и в config.json он не попадает."""
+        value = (self.cloud_key_field.value or "").strip() if self.cloud_key_field is not None else ""
+        if not value:
+            self._cloud_key_changed("Введите ключ: пустое поле сохранять нечего.", True)
+            return False
+        try:
+            store = _secrets()
+            store.save_secret(store.CLOUD_LLM_KEY, value)
+        except (ImportError, ValueError, RuntimeError, OSError) as error:
+            log.warning("Ключ облака не сохранён: %s", type(error).__name__)
+            self._cloud_key_changed("Ключ не сохранён: " + str(error), True)
+            return False
+        self.cloud_probe_generation += 1
+        self.cloud_probe_status = "Ключ сохранён. Проверьте его перед включением облака."
+        self._cloud_key_changed("Ключ сохранён зашифрованным. Проверьте его кнопкой «Проверить ключ».",
+                                False, clear_field=True)
+        return True
+
+    def delete_cloud_key(self, e=None):
+        try:
+            store = _secrets()
+            removed = store.delete_secret(store.CLOUD_LLM_KEY)
+        except (ImportError, ValueError, RuntimeError, OSError) as error:
+            log.warning("Ключ облака не удалён: %s", type(error).__name__)
+            self._cloud_key_changed("Ключ не удалён: " + str(error), True)
+            return False
+        if not removed:
+            self._cloud_key_changed("Ключ удалить не удалось: файл занят или нет прав.", True)
+            return False
+        self.cloud_probe_generation += 1
+        self.cloud_probe_status = "Ключ удалён. Проверять нечего."
+        self._cloud_key_changed("Ключ удалён из хранилища Windows.", False, clear_field=True)
+        return True
+
+    def start_cloud_probe(self, e=None):
+        if self.cloud_probe_busy:
+            return False
+        try:
+            provider = self.settings_draft["cloud_provider"]
+            base_url, model = validated_cloud_settings(
+                provider, self.settings_draft["cloud_base_url"], self.settings_draft["cloud_model"])
+        except ValueError as error:
+            self.cloud_probe_status = str(error)
+            self._cloud_key_changed(str(error), True)
+            return False
+        try:
+            store = _secrets()
+            key = store.load_secret(store.CLOUD_LLM_KEY)
+        except (ImportError, ValueError, RuntimeError, OSError):
+            key = None
+        if not key:
+            self.cloud_probe_status = "Ключ не сохранён. Проверять нечего."
+            self._cloud_key_changed("Сначала сохраните ключ: без него запрос отправлять нечего.", True)
+            return False
+        if not self.cloud_probe_lock.acquire(blocking=False):
+            return False
+        self.cloud_probe_generation += 1
+        token = self.cloud_probe_generation
+        self.cloud_probe_busy = True
+        self.cloud_probe_status = "Проверяю ключ: запрашиваю список моделей…"
+        self._sync_cloud_probe()
+        self._update()
+        def run():
+            try:
+                result = (CLOUD_PROBE_TAG, token, probe_cloud(provider, base_url, model, key), None)
+            except cloud_llm.CloudAuthError:
+                result = (CLOUD_PROBE_TAG, token, None,
+                    "Ключ не принят (401/403). Проверьте ключ и провайдера. Настройки не изменены.")
+            except cloud_llm.CloudLLMError as error:
+                # Модуль вырезает ключ из своих сообщений и обрезает их до 400 символов.
+                result = (CLOUD_PROBE_TAG, token, None, str(error)[:300])
+            except ValueError as error:
+                # Наши же проверки адреса и модели: ключа в этих строках нет.
+                result = (CLOUD_PROBE_TAG, token, None, str(error))
+            except Exception:
+                # Ни текст ответа, ни адрес, ни ключ в статус не попадают.
+                result = (CLOUD_PROBE_TAG, token, None,
+                    "Проверка не удалась. Проверьте адрес, интернет и доступность провайдера. Настройки не изменены.")
+            self.gui._queue.put(("preferences_result", result))
+        try:
+            self.cloud_probe_thread = threading.Thread(target=run, daemon=True, name="gui-cloud-probe")
+            self.cloud_probe_thread.start()
+        except Exception:
+            self.cloud_probe_busy = False
+            self.cloud_probe_lock.release()
+            self.cloud_probe_status = "Не удалось запустить проверку. Настройки не изменены."
+            self._sync_cloud_probe()
+            self._update()
+            return False
+        return True
 
     def start_probe(self, e=None):
         if self.probe_busy:
@@ -543,6 +859,8 @@ class PreferenceScreens:
         return True
 
     def apply_probe(self, result):
+        if isinstance(result, tuple) and result and result[0] == CLOUD_PROBE_TAG:
+            return self.apply_cloud_probe(result)
         token, url, names, error = result
         self.probe_busy = False
         if self._probe_lock.locked():
@@ -561,6 +879,26 @@ class PreferenceScreens:
         if self.gui._page is not None:
             self.gui._page.update(self.probe_label, self.probe_button)
 
+    def apply_cloud_probe(self, result):
+        _tag, token, report, error = result
+        self.cloud_probe_busy = False
+        if self.cloud_probe_lock.locked():
+            self.cloud_probe_lock.release()
+        if token == self.cloud_probe_generation:
+            if error:
+                self.cloud_probe_status = str(error)[:300]
+            else:
+                report = report if isinstance(report, dict) else {}
+                label = cloud_llm.provider_label(str(report.get("provider") or ""))
+                count = report.get("models")
+                found = (f"Список моделей получен: {count} шт." if isinstance(count, int)
+                         else "Список моделей получен.")
+                self.cloud_probe_status = (f"Ключ принят: {label}. {found} "
+                                           "Генерация и качество ответа не проверялись.")
+        self._sync_cloud_probe()
+        if self.gui._page is not None:
+            self.gui._page.update(self.cloud_probe_label, self.cloud_probe_button)
+
     def save_settings(self, e=None):
         self.settings_error = True
         try:
@@ -572,12 +910,17 @@ class PreferenceScreens:
                 raise ValueError("Выберите режим запуска.")
             if d["launch_mode"] == "tray" and not d["tray_enabled"]:
                 raise ValueError("Для запуска только в трее сначала включите «Оставаться в трее».")
-            for key in ("observer_enabled", "memory_rag_enabled", "tray_enabled"):
+            d["cloud_base_url"], d["cloud_model"] = validated_cloud_settings(
+                d["cloud_provider"], d["cloud_base_url"], d["cloud_model"])
+            for key in ("observer_enabled", "memory_rag_enabled", "tray_enabled",
+                        "cloud_enabled", "cloud_send_profile"):
                 if type(d[key]) is not bool:
                     raise ValueError("Проверьте переключатели настроек.")
             # Notify the new endpoint before model warmup in the existing Brain subscriber.
             ordered_keys = ("ollama_url", "llm_model", "observer_enabled", "memory_rag_enabled",
-                            "tray_enabled", "launch_mode")
+                            "tray_enabled", "launch_mode",
+                            "cloud_enabled", "cloud_provider", "cloud_base_url", "cloud_model",
+                            "cloud_send_profile")
             changes = {k: d[k] for k in ordered_keys if d[k] != self.settings_baseline[k]}
             if any(self.gui.config.get(k) != self.settings_baseline[k] for k in changes):
                 raise ValueError("Эти настройки изменены другим действием. Черновик не записан. Отмените изменения, чтобы загрузить актуальные данные.")
@@ -595,6 +938,22 @@ class PreferenceScreens:
             self.settings_notice = "Изменений нет." if not changes else "Настройки сохранены."
             if "observer_enabled" in changes or "launch_mode" in changes:
                 self.settings_notice += " Для Observer и режима запуска нужен перезапуск."
+            if d["cloud_enabled"]:
+                # Сохранение не отменяем: настройки валидны, но без ключа облако молчит.
+                if not self._cloud_key_saved():
+                    self.settings_notice += (" Ключ облака не сохранён: без него облако "
+                                             "не заработает, ответы останутся локальными.")
+                if "cloud_send_profile" in changes and d["cloud_send_profile"]:
+                    self.settings_notice += " В облако будут отправляться персона и память."
+            if "cloud_send_profile" in changes:
+                # След согласия — отдельно от настроек: сам переключатель решает,
+                # что уходит, а запись в профиле объясняет когда и в какой
+                # редакции текста это разрешили. Провал записи не отменяет настройку.
+                if record_cloud_consent(d["cloud_send_profile"]):
+                    if self.cloud_consent_label is not None:
+                        self.cloud_consent_label.value = consent_summary()
+                else:
+                    self.settings_notice += " Согласие не записано в профиль: профиль недоступен."
             if getattr(self.gui, "_model_label", None) is not None:
                 self.gui._model_label.value = self.gui._model_caption()
         except ValueError as error:

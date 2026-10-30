@@ -195,10 +195,19 @@ jobs:
       - name: Self-test собранного приложения
         shell: pwsh
         run: |
-          $report = "build/ci-self-test.json"
-          & "dist/nuitka-app/Феникс.exe" --self-test $report
-          $code = $LASTEXITCODE
-          if (-not (Test-Path $report)) { throw "self-test не создал отчёт (код $code)" }
+          # Абсолютный путь: относительный Start-Process разрешает от рабочего
+          # каталога процесса, а он по умолчанию — папка самого EXE.
+          $report = Join-Path (Get-Location) "build/ci-self-test.json"
+          if (Test-Path $report) { Remove-Item $report -Force }
+          # EXE собран без консоли (--windows-console-mode=disable), это GUI-подсистема:
+          # обычный вызов & возвращает управление сразу и не выставляет $LASTEXITCODE.
+          # Из-за этого отчёт проверялся раньше, чем self-test успевал его записать
+          # (прогон #8 упал именно так). Start-Process -Wait ждёт завершения.
+          $exe = Join-Path (Get-Location) "dist/nuitka-app/Феникс.exe"
+          $proc = Start-Process -FilePath $exe -WorkingDirectory (Get-Location) `
+            -ArgumentList @("--self-test", $report) -Wait -PassThru -NoNewWindow
+          Write-Host "self-test: код $($proc.ExitCode)"
+          if (-not (Test-Path $report)) { throw "self-test не создал отчёт (код $($proc.ExitCode))" }
           $data = Get-Content -Raw -Encoding UTF8 $report | ConvertFrom-Json
           $passed = @($data.checks.PSObject.Properties | Where-Object { $_.Value -eq $true }).Count
           Write-Host "self-test: ok=$($data.ok) compiled=$($data.compiled) проверок пройдено: $passed"

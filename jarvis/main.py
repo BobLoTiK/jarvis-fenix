@@ -21,6 +21,7 @@ from jarvis.matching import wake_score
 
 from jarvis import APP_NAME, __version__
 from jarvis.apps import build_apps
+from jarvis.cache_maintenance import purge_stale_bytecode
 from jarvis.config import Config, load_config
 from jarvis.intents import IntentHandler
 from jarvis.text_utils import normalize
@@ -682,6 +683,11 @@ def _preload_whisper_backend() -> bool:
 def main() -> None:
     setup_logging()
     log.info("%s v%s запускается", APP_NAME, __version__)
+
+    # После обновления файлов на диске старый __pycache__ продолжает
+    # подхватываться (ловушка, на которую наступают при ручной правке
+    # установленного Феникса). Чистим кэш при смене версии.
+    purge_stale_bytecode(__version__)
 
     if not _single_instance():
         log.warning("Феникс уже запущен — второй экземпляр не стартую")

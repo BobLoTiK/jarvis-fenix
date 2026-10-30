@@ -111,6 +111,9 @@ def test_real_main_continues_to_vosk_gui_and_core_without_retry(
         _single_instance=lambda: True, BASE_DIR=tmp_path, load_config=lambda _: config,
         ensure_model=Mock(return_value=model_dir), Speaker=speaker, Listener=vosk,
         FenixGUI=gui, IntentHandler=Mock(), build_apps=Mock(return_value={}), Jarvis=core,
+        # Чистка __pycache__ при смене версии: в этом окружении файлов нет,
+        # поэтому подменяем, чтобы тест проверял порядок запуска, а не диск.
+        purge_stale_bytecode=Mock(return_value=0),
     )
     with pytest.raises(CoreReached):
         env['main']()

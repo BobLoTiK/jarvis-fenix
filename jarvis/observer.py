@@ -133,6 +133,14 @@ class DialogObserver:
 
         log.debug("Observer: извлекаю факты из %d сообщений", len(history))
 
+        # В облако переписка уходит только по явному согласию пользователя.
+        # Локальная Ollama — другое дело: данные не покидают машину.
+        allow = getattr(self.brain, "cloud_allows_background", None)
+        if callable(allow) and not allow():
+            log.info("Observer: включено облако без согласия на личные данные — "
+                     "извлечение фактов пропущено")
+            return
+
         try:
             raw = self.brain._request(
                 [
