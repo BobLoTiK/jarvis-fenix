@@ -16,6 +16,9 @@ log = logging.getLogger(__name__)
 COMPACT = 76
 EXPANDED = 252
 HEIGHT = 48
+# Индексы со своим брендовым PNG; у остальных вкладок — обычная иконка NAV_ITEMS.
+_NAV_BRANDS = {0: "dialog", 1: "microphone", 2: "audio", 3: "persona",
+               4: "settings", 5: "commands"}
 
 
 def _ui():
@@ -112,6 +115,17 @@ class Sidebar(ft.Container):
     def _content_width(self):
         return EXPANDED if self.expanded else COMPACT
 
+    def _nav_icon(self, index, palette):
+        """"""
+        ui = _ui()
+        if index == ui.HOME_TAB:
+            return ft.Icon(ft.Icons.HOME_OUTLINED, size=24, color=palette.brand)
+        if index in _NAV_BRANDS:
+            return ui._brand_image(_NAV_BRANDS[index], 24)
+        # Новые вкладки рисуются штатной иконкой NAV_ITEMS: своих PNG у них нет.
+        icon = ui.NAV_ITEMS[index][1] if index < len(ui.NAV_ITEMS) else ft.Icons.CIRCLE_OUTLINED
+        return ft.Icon(icon, size=24, color=palette.brand)
+
     def _sync_reserve(self):
         if self._reserve is not None:
             self._reserve.width = self._content_width()
@@ -203,8 +217,7 @@ class Sidebar(ft.Container):
         self.labels, self.dots, self.markers = [], [], []
         self._canvas_widths = {}
         for index, (label, _) in enumerate(ui.NAV_ITEMS):
-            image = (ft.Icon(ft.Icons.HOME_OUTLINED, size=24, color=p.brand) if index == ui.HOME_TAB else
-                     ui._brand_image(("dialog", "microphone", "audio", "persona", "settings", "commands")[index], 24))
+            image = self._nav_icon(index, p)
             icon = ft.Container(image, width=24, height=24, animate_scale=160 if self.motion_enabled else None)
             caption = ft.Text(label, size=14, color=p.text, expand=True, no_wrap=True)
             dot = ft.Container(width=5, height=5, border_radius=3, bgcolor=p.brand)

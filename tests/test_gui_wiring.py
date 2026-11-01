@@ -448,6 +448,25 @@ def test_window_close_without_tray_exits(gui):
     assert page.window.visible is True
 
 
+def test_window_close_during_quit_does_not_hide(gui, caplog):
+    """CLOSE во время «Выход» — это выход: окно не прячем и не пишем «слушает»."""
+    page = FakePage()
+    gui._page = page
+    gui.tray_active = True
+
+    gui.quit()
+    updates_after_quit = page.updates
+    with caplog.at_level("INFO", logger="jarvis.gui"):
+        gui._on_window_event(win_event(ft.WindowEventType.CLOSE, page))
+
+    assert gui._quitting is True
+    assert page.window.prevent_close is False
+    assert page.window.visible is True
+    assert page.updates == updates_after_quit, "CLOSE при выходе не должен трогать окно"
+    assert "продолжает слушать" not in caplog.text
+    assert "закрывается без сворачивания" in caplog.text
+
+
 def test_quit_closes_window(gui):
     """«Выход» из трея закрывает окно — иначе процесс остаётся жить."""
     page = FakePage()
@@ -458,6 +477,9 @@ def test_quit_closes_window(gui):
 
     assert page.window.prevent_close is False
     assert page.window.closed is True
+    # Сброс prevent_close обязан уйти клиенту ДО запроса закрытия, иначе
+    # клиент отменяет закрытие и ft.run висит (процесс живёт без окна).
+    assert page.updates == 1
 
 
 def test_quit_without_page_is_safe(gui):
@@ -545,15 +567,25 @@ def test_launch_mode_rejects_unknown(gui, cfg):
 def test_quit_awaits_async_window_close_on_page_loop(gui):
     import asyncio
     page = FakePage()
+    order = []
+
     async def close():
+        order.append("close")
         page.window.closed = True
+
     page.window.close = close
+    page.update = lambda: order.append("update")
     scheduled = []
+
     def run_task(fn):
         scheduled.append(fn)
         asyncio.run(fn())
+
     page.run_task = run_task
     gui._page = page
     gui.quit()
     assert len(scheduled) == 1
     assert page.window.closed is True
+    # prevent_close сбрасывается ДО закрытия: иначе клиент отменяет
+    # закрытие и ft.run висит — процесс живёт без окна.
+    assert order == ["update", "close"]

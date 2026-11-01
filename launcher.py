@@ -565,6 +565,15 @@ def install_dependencies(project_dir: Path, logger) -> bool:
         )
         if result.returncode != 0:
             logger.error("pip install упал: returncode=%d", result.returncode)
+            # Без хвоста вывода причину не видно: pip может упасть ещё на чтении
+            # requirements.txt (например, на кодировке файла), и в отчёте
+            # пользователь видит только «нет интернета».
+            stderr_tail = (result.stderr or "").strip()
+            if stderr_tail:
+                logger.error("pip stderr (хвост):\n%s", stderr_tail[-1500:])
+            stdout_tail = (result.stdout or "").strip()
+            if stdout_tail:
+                logger.error("pip stdout (хвост):\n%s", stdout_tail[-800:])
             error(
                 "Не удалось установить зависимости.\n\n"
                 "Возможные причины:\n"
@@ -585,6 +594,29 @@ def install_dependencies(project_dir: Path, logger) -> bool:
         logger.exception("Ошибка pip install")
         error("Ошибка установки зависимостей. Логи: logs\\launcher.log")
         return False
+
+
+# ============================================================
+# HTTPS: единый CA-бандл
+# ============================================================
+
+def ensure_https_trust(logger) -> str:
+    """Подключает CA-бандл certifi до первой загрузки по HTTPS.
+
+    На свежей Windows без обновлений системное хранилище корневых
+    сертификатов бывает неполным: urllib падает с
+    SSLCertVerificationError, и скачивание модели Vosk срывается.
+    Приложение (jarvis/__main__.py) давно использует общий хелпер,
+    лаунчер — нет, поэтому первый запуск на чистой машине ломался.
+    """
+    try:
+        from jarvis.https_trust import configure_https_trust
+        mode = configure_https_trust()
+    except Exception:
+        logger.warning("HTTPS: CA-бандл certifi недоступен, остаётся системное хранилище", exc_info=True)
+        return "system"
+    logger.info("HTTPS: CA-бандл %s", mode)
+    return mode
 
 
 # ============================================================
@@ -701,6 +733,7 @@ def _main() -> None:
 
     log_file = _setup_logging(exe_dir)
     logger = logging.getLogger("launcher")
+    ensure_https_trust(logger)
 
     logger.info("=" * 60)
     logger.info("Лаунчер стартует")

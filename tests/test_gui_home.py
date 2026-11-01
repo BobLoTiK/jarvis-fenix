@@ -39,7 +39,12 @@ def test_startup_is_home_and_chat_ids_do_not_shift(gui):
     assert gui._rail.selected_index == module.HOME_TAB
     assert gui._content_area.content is gui._home
     assert [module.NAV_ITEMS[i][0] for i in module.NAV_ORDER] == [
-        "Главная", "Диалог", "Микрофон", "Голос и звук", "Персона", "Настройки", "Мои команды"]
+        "Главная", "Диалог", "Микрофон", "Голос и звук", "Персона", "Настройки",
+        "Мои команды", "Облако", "Движки"]
+    assert module.CLOUD_TAB == 7 and module.ENGINES_TAB == 8
+    # У новых вкладок нет брендовых PNG: рельс рисует штатную иконку NAV_ITEMS.
+    assert isinstance(gui._rail.icon_controls[module.ENGINES_TAB].content,
+                      ft.Icon)
     assert gui._rail.navigation.controls[0] is gui._rail.nav_buttons[module.HOME_TAB]
     gui._select_tab(0)
     assert gui._content_area.content is gui._tabs[0]

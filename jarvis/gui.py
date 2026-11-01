@@ -153,7 +153,9 @@ def _brand_image(name: str, size: int, label: str = ""):
 
 
 HOME_TAB = 6  # Existing 0..5 IDs stay stable for tray/audio/preferences callbacks.
-NAV_ORDER = (HOME_TAB, 0, 1, 2, 3, 4, 5)
+CLOUD_TAB = 7
+ENGINES_TAB = 8
+NAV_ORDER = (HOME_TAB, 0, 1, 2, 3, 4, 5, CLOUD_TAB, ENGINES_TAB)
 
 NAV_ITEMS = (
     ("Диалог", ft.Icons.CHAT_BUBBLE_OUTLINE),
@@ -163,6 +165,8 @@ NAV_ITEMS = (
     ("Настройки", ft.Icons.TUNE),
     ("Мои команды", ft.Icons.ACCOUNT_TREE_OUTLINED),
     ("Главная", ft.Icons.HOME_OUTLINED),
+    ("Облако", ft.Icons.CLOUD_OUTLINED),
+    ("Движки", ft.Icons.MEMORY),
 )
 
 
@@ -187,6 +191,8 @@ class FenixGUI:
         # Трей: если иконка поднялась (jarvis.tray.start_tray), закрытие
         # окна крестиком сворачивает Феникса в трей, а не убивает процесс.
         self.tray_active = False
+        # Выход из меню трея: закрытие окна — это выход, а не сворачивание.
+        self._quitting = False
 
         # Состояние
         self._state = "idle"
@@ -336,25 +342,37 @@ class FenixGUI:
         stop() останавливает только очередь GUI: окно Flet остаётся
         жить, а вместе с ним и процесс (ft.run не возвращается). Чтобы
         выход реально работал, снимаем prevent_close и закрываем окно.
+
+        Порядок важен: сброс prevent_close уходит клиенту обычным
+        обновлением окна. Если запросить закрытие сразу после смены
+        флага, клиент ещё считает окно защищённым, отменяет закрытие,
+        а ft.run продолжает крутиться — процесс висит без окна
+        (именно так «Выход» из трея оставлял Феникса жить).
         """
+        self._quitting = True
         self._queue.put(("stop", None))
         if self._home is not None:
             self._home.dispose()
+        page = self._page
+        if page is None:
+            return
         try:
-            if self._page is not None:
-                self._page.window.prevent_close = False
-                import inspect
-                close = self._page.window.close
-                if inspect.iscoroutinefunction(close):
-                    async def close_window():
-                        await close()
-                        log.info("GUI: окно закрыто (выход)")
-                    self._page.run_task(close_window)
-                else:
-                    close()  # compatibility with synchronous Flet/test adapters
+            import inspect
+
+            close = page.window.close
+            page.window.prevent_close = False
+            if inspect.iscoroutinefunction(close):
+                async def close_window():
+                    page.update()  # сброс prevent_close доходит до клиента
+                    await close()
                     log.info("GUI: окно закрыто (выход)")
+                page.run_task(close_window)
+            else:
+                page.update()
+                close()  # compatibility with synchronous Flet/test adapters
+                log.info("GUI: окно закрыто (выход)")
         except Exception:
-            log.exception("GUI: не удалось закрыть окно")
+            log.exception("Не удалось закрыть окно")
 
     def add_message(self, role: str, text: str) -> None:
         self._queue.put(("message", (role, text)))
@@ -478,6 +496,8 @@ class FenixGUI:
             4: self._build_settings_tab(),
             5: self._build_commands_tab(),
             HOME_TAB: self._build_home_tab(),
+            CLOUD_TAB: self._build_cloud_tab(),
+            ENGINES_TAB: self._engines(),
         }
 
         self._content_area = ft.Container(
@@ -781,6 +801,29 @@ class FenixGUI:
             self._preference_screens = PreferenceScreens(self)
         return self._preference_screens
 
+    def _engines(self):
+        if getattr(self, "_engines_screen", None) is None:
+            from jarvis.gui_engines import EnginesScreen
+            self._engines_screen = EnginesScreen(self)
+        return self._engines_screen
+
+    def _build_engines_tab(self) -> ft.Control:
+        # Пересобираем при каждом открытии: статус читается с диска заново,
+        # и только здесь запускается фоновый опрос локальной Ollama. На старте
+        # приложения и при смене темы сеть не трогается.
+        screen = getattr(self, "_engines_screen", None)
+        if screen is not None and screen.is_busy():
+            return screen
+        from jarvis.gui_engines import EnginesScreen
+        self._engines_screen = EnginesScreen(self)
+        self._engines_screen.check_ollama_async()
+        return self._engines_screen
+
+    def _build_cloud_tab(self) -> ft.Control:
+        from jarvis.gui_cloud import CloudScreen
+        self._cloud_screen = CloudScreen(self)
+        return self._cloud_screen
+
     def _build_persona_tab(self) -> ft.Control:
         return self._preferences().build_persona()
 
@@ -1005,6 +1048,22 @@ class FenixGUI:
                     self._page.run_task(
                         self._launch_fireworks_async, float(value or 6.0)
                     )
+                elif kind in ("engines_status", "engines_progress", "engines_done"):
+                    screen = getattr(self, "_engines_screen", None)
+                    if screen is None:
+                        continue
+                    if kind == "engines_status":
+                        screen.on_status(value)
+                    elif kind == "engines_progress":
+                        screen.on_progress(value)
+                    else:
+                        screen.on_done(value)
+                    continue  # экран обновляет только свои контролы
+                elif kind == "cloud_probe":
+                    screen = getattr(self, "_cloud_screen", None)
+                    if screen is not None:
+                        screen.on_probe(value)
+                    continue
 
                 try:
                     self._page.update()
@@ -1355,6 +1414,12 @@ class FenixGUI:
         Сворачивание, а не выход: иконка в трее уже есть, и голосовой
         ассистент должен продолжать слушать (иначе зачем трей).
         """
+        if self._quitting:
+            # Сюда приходит CLOSE уже во время выхода из меню трея: сворачивать
+            # нечего, иначе окно прячется вместо закрытия и журнал врёт, что
+            # Феникс "продолжает слушать" после «Выход».
+            log.info("GUI: выход — окно закрывается без сворачивания")
+            return
         if not self.tray_active:
             log.info("GUI: трея нет — окно закрывается штатно (выход)")
             return
@@ -1386,6 +1451,12 @@ class FenixGUI:
             self._tabs[4] = self._build_settings_tab()
         if index == 5:
             self._tabs[5] = self._build_commands_tab()
+        elif index == CLOUD_TAB:
+            # Идущая проверка ключа не должна пропасть из-за пересборки экрана.
+            if not getattr(self, "_cloud_screen", None) or not self._cloud_screen.is_busy():
+                self._tabs[CLOUD_TAB] = self._build_cloud_tab()
+        elif index == ENGINES_TAB:
+            self._tabs[ENGINES_TAB] = self._build_engines_tab()
         self._rail.selected_index = index
         if index == 0 and getattr(self, "_model_label", None) is not None:
             self._model_label.value = self._model_caption()
@@ -1604,6 +1675,8 @@ class FenixGUI:
             2: self._build_audio_tab(), 3: self._build_persona_tab(),
             4: self._build_settings_tab(), 5: self._build_commands_tab(),
             HOME_TAB: self._build_home_tab(),
+            CLOUD_TAB: self._build_cloud_tab(),
+            ENGINES_TAB: self._engines(),
         }
         if error and self._error_text is not None:
             self._error_text.value = error

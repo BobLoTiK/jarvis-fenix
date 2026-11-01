@@ -21,6 +21,9 @@ def resources(root):
     vad = root / "faster_whisper/assets/silero_vad_v6.onnx"
     vad.parent.mkdir(parents=True, exist_ok=True)
     vad.write_bytes(b"public fixture")
+    # MSVC-рантайм рядом с exe: без него torch/onnxruntime не грузятся на чистой Windows.
+    for name in runtime.MSVC_RUNTIME:
+        (root / name).write_bytes(b"public fixture")
 
 
 def fake_imports(monkeypatch, root):
@@ -59,6 +62,17 @@ def test_probe_fails_when_vad_asset_is_absent(tmp_path, monkeypatch):
     report = runtime.self_test(tmp_path, compiled=True)
     assert report["ok"] is False
     assert report["checks"]["faster_whisper_assets"] is False
+
+
+def test_probe_fails_when_msvc_runtime_is_absent(tmp_path, monkeypatch):
+    """Проверка обязана называть причину, а не молча падать в ImportError."""
+    resources(tmp_path)
+    (tmp_path / "vcruntime140_threads.dll").unlink()
+    fake_imports(monkeypatch, tmp_path)
+    report = runtime.self_test(tmp_path, compiled=True)
+    assert report["ok"] is False
+    assert report["checks"]["msvc_runtime"]["ok"] is False
+    assert "vcruntime140_threads.dll" in report["checks"]["msvc_runtime"]["error"]
 
 
 def test_probe_rejects_module_imported_from_external_environment(tmp_path, monkeypatch):

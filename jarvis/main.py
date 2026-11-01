@@ -13,6 +13,7 @@ launch_mode:
 
 import logging
 import logging.handlers
+import os
 import threading
 import time
 from pathlib import Path
@@ -680,6 +681,27 @@ def _preload_whisper_backend() -> bool:
     return True
 
 
+def _arm_exit_watchdog(gui, grace: float = 8.0) -> None:
+    """Гарантия выхода: «Выход» из трея не должен оставлять процесс висеть.
+
+    Штатно после закрытия окна ft.run возвращается за доли секунды, и
+    этот сторож просто не доживает до срабатывания. Если же Flet/клиент
+    завис (окно закрылось, а цикл жив), процесс висел бы без окна и
+    продолжал слушать микрофон — ровно то, на что жаловались в трее.
+    """
+
+    def _watch() -> None:
+        while not getattr(gui, "_quitting", False):
+            time.sleep(0.2)
+        time.sleep(grace)
+        log.warning(
+            "Выход не завершился за %.0f с — принудительно завершаю процесс", grace
+        )
+        os._exit(0)
+
+    threading.Thread(target=_watch, daemon=True, name="exit-watchdog").start()
+
+
 def main() -> None:
     setup_logging()
     log.info("%s v%s запускается", APP_NAME, __version__)
@@ -947,7 +969,9 @@ def main() -> None:
             log.info("Запускаю Flet в главном потоке (launch_mode=gui)")
 
         # Flet ВСЕГДА в главном потоке (signal.signal)
+        _arm_exit_watchdog(gui)
         gui.run_main()
+        log.info("GUI: главный цикл Flet завершён")
     else:
         log.info("GUI выключен — жду завершения")
         jarvis.stop_event.wait()

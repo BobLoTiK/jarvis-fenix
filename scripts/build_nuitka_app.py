@@ -48,6 +48,12 @@ REQUIRES = ("vosk", "faster_whisper", "ctranslate2", "sounddevice", "numpy", "pi
             "pymorphy3", "pymorphy3_dicts_ru", "certifi", "omegaconf")
 EXCLUDE_METADATA = {"pip", "setuptools", "wheel", "nuitka", "ordered-set", "zstandard",
                     "pytest", "pytest-asyncio", "iniconfig", "pluggy"}
+# Чистая Windows не содержит перераспространяемого VC++: без этих файлов рядом с exe
+# torch/onnxruntime/ctranslate2 не грузятся (проверено на sandbox-ВМ, дефект 2.1.2).
+# Nuitka приносит только vcruntime140(_1), остальное обязана положить сборка.
+VC_RUNTIME_DLLS = ("msvcp140.dll", "msvcp140_1.dll", "msvcp140_2.dll",
+                   "msvcp140_atomic_wait.dll", "concrt140.dll", "vcruntime140.dll",
+                   "vcruntime140_1.dll", "vcruntime140_threads.dll", "mfc140u.dll")
 
 # Тестовые модули torch не нужны в работе приложения и валят gcc: на
 # torch.testing._internal.common_methods_invocations cc1 падает с
@@ -259,6 +265,34 @@ def validate_native(native):
             raise RuntimeError(f"Application source leaked instead of compiled code: {rel}")
 
 
+def vc_runtime_sources():
+    """Найти DLL с++-рантайма для поставки; без них сборка на чистой машине не стартует."""
+    directories = []
+    for variable in ("ProgramFiles(x86)", "ProgramFiles"):
+        base = os.environ.get(variable)
+        if not base:
+            continue
+        root = Path(base) / "Microsoft Visual Studio"
+        if not root.is_dir():
+            continue
+        for pattern in ("*/VC/Redist/MSVC/*/x64/Microsoft.VC14*.CRT",
+                        "*/VC/Redist/MSVC/*/x64/Microsoft.VC14*.MFC"):
+            directories.extend(sorted(root.glob(pattern)))
+    directories.append(Path(os.environ.get("SystemRoot", r"C:\Windows")) / "System32")
+    sources, missing = {}, []
+    for name in VC_RUNTIME_DLLS:
+        for directory in directories:
+            candidate = directory / name
+            if candidate.is_file():
+                sources[name] = candidate
+                break
+        else:
+            missing.append(name)
+    if missing:
+        raise RuntimeError("Не найдены библиотеки MSVC для автономной сборки: " + ", ".join(missing))
+    return sources
+
+
 def file_hash(path):
     with Path(path).open("rb") as stream:
         return hashlib.file_digest(stream, "sha256").hexdigest()
@@ -282,10 +316,17 @@ def stage(root, native, client, *, versions, version):
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(root / name, target)
         shutil.copytree(client, temp / "runtime/flet", dirs_exist_ok=True)
+        runtime = vc_runtime_sources()
+        for name, source in runtime.items():
+            target = temp / name
+            if not target.is_file():
+                shutil.copy2(source, target)
         build_info = {"schema": 1, "kind": "nuitka-application-standalone", "version": version,
                       "entry_point": "phoenix_app.py", "external_python_required": False,
                       "model_policy": "download-on-consent; no personal caches bundled",
-                      "python": platform.python_version(), "packages": versions}
+                      "python": platform.python_version(), "packages": versions,
+                      "msvc_runtime": sorted(runtime),
+                      "msvc_runtime_reason": "C++ runtime for torch/onnxruntime/ctranslate2 on clean Windows"}
         (temp / "build-info.json").write_text(json.dumps(build_info, ensure_ascii=False, indent=2), encoding="utf-8")
         (temp / "README_STANDALONE.txt").write_text(
             "Standalone application. Start Феникс.exe. No external Python, pip or .venv311 is used.\n"

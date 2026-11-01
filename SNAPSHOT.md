@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=6000f35c93a64e6c` · режим `lean` · файлов `352` · строк `62739` · источник `2961 КБ`
+`sha256=938fbb3bdf3ccceb` · режим `lean` · файлов `359` · строк `64916` · источник `3061 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -469,7 +469,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── release.yml  (306 стр)
 │   │   ├── test.yml  (71 стр)
 ├── AGENTS.md  (88 стр)
-├── ARCHITECTURE.md  (1101 стр)
+├── ARCHITECTURE.md  (1117 стр)
 ├── assets/
 │   ├── nonverbal/
 │   │   ├── README.md  (40 стр)
@@ -484,7 +484,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── themes.svg  (19 стр)
 ├── build_nuitka.bat  (12 стр)
 ├── build_nuitka_full.bat  (17 стр)
-├── CHANGELOG.md  (1854 стр)
+├── CHANGELOG.md  (1936 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -520,7 +520,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── IMPROVEMENT_BACKLOG.md  (120 стр)
 │   ├── INSTALLER_UPDATE.md  (47 стр)
 │   ├── LOCAL_VOICE_OPTIONS.md  (67 стр)
-│   ├── NEXT_STEPS.md  (237 стр)
+│   ├── NEXT_STEPS.md  (317 стр)
 │   ├── NUITKA_BUILD.md  (123 стр)
 │   ├── PHOENIX_JASTIN_RECONCILIATION.md  (268 стр)
 │   ├── PYTHON_BOOTSTRAP_TLS_FIX.md  (98 стр)
@@ -532,7 +532,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── v2.1.2.md  (81 стр)
 │   ├── REVIEW_FIXES.md  (68 стр)
 │   ├── TTS_LIFECYCLE_FIX.md  (89 стр)
-│   ├── USER_GUIDE.md  (1042 стр)
+│   ├── USER_GUIDE.md  (1078 стр)
 │   ├── WHISPER_STARTUP_DLL_FIX.md  (85 стр)
 │   ├── WINDOWS_STARTUP_RELIABILITY.md  (108 стр)
 │   ├── WINRT_TTS_REMOVAL.md  (43 стр)
@@ -572,21 +572,24 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── celebrations.py  (165 стр)
 │   ├── cloud_llm.py  (367 стр)
 │   ├── command_builder.py  (152 стр)
-│   ├── compiled_runtime.py  (257 стр)
+│   ├── compiled_runtime.py  (267 стр)
 │   ├── config.py  (290 стр)
 │   ├── config_manager.py  (156 стр)
 │   ├── echo.py  (508 стр)
 │   ├── echo_trace.py  (229 стр)
+│   ├── engines.py  (533 стр)
 │   ├── files.py  (109 стр)
 │   ├── first_run.py  (26 стр)
-│   ├── gui.py  (1684 стр)
+│   ├── gui.py  (1757 стр)
 │   ├── gui_audio.py  (438 стр)
+│   ├── gui_cloud.py  (541 стр)
 │   ├── gui_commands.py  (305 стр)
+│   ├── gui_engines.py  (206 стр)
 │   ├── gui_home.py  (191 стр)
 │   ├── gui_home_actions.py  (225 стр)
 │   ├── gui_home_fx.py  (206 стр)
-│   ├── gui_preferences.py  (961 стр)
-│   ├── gui_sidebar.py  (429 стр)
+│   ├── gui_preferences.py  (693 стр)
+│   ├── gui_sidebar.py  (442 стр)
 │   ├── gui_widgets.py  (373 стр)
 │   ├── history.py  (75 стр)
 │   ├── https_trust.py  (22 стр)
@@ -645,7 +648,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── time.py  (84 стр)
 │   │   ├── units.py  (85 стр)
 │   ├── learning.py  (178 стр)
-│   ├── main.py  (968 стр)
+│   ├── main.py  (992 стр)
 │   ├── matching.py  (118 стр)
 │   ├── memory.py  (147 стр)
 │   ├── memory_context.py  (124 стр)
@@ -685,7 +688,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── voices.py  (215 стр)
 │   ├── weather.py  (400 стр)
 ├── jarvis-fenix.code-workspace  (8 стр)
-├── launcher.py  (820 стр)
+├── launcher.py  (853 стр)
 ├── launcher_download.py  (156 стр)
 ├── launcher_ollama.py  (327 стр)
 ├── launcher_runtime.py  (116 стр)
@@ -704,18 +707,18 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ├── pytest.ini  (20 стр)
 ├── README.md  (194 стр)
 ├── requirements-aec.txt  (3 стр)
-├── requirements-ci.txt  (39 стр)
-├── requirements-dev.txt  (13 стр)
+├── requirements-ci.txt  (40 стр)
+├── requirements-dev.txt  (14 стр)
 ├── requirements-nuitka-app.txt  (8 стр)
 ├── requirements-nuitka.txt  (2 стр)
-├── requirements.txt  (69 стр)
+├── requirements.txt  (70 стр)
 ├── scripts/
 │   ├── __init__.py  (7 стр)
 │   ├── audio_regression.py  (11 стр)
 │   ├── bootstrap_ollama_config.py  (77 стр)
 │   ├── build_exe.py  (83 стр)
 │   ├── build_nuitka.py  (142 стр)
-│   ├── build_nuitka_app.py  (401 стр)
+│   ├── build_nuitka_app.py  (442 стр)
 │   ├── build_setup.py  (212 стр)
 │   ├── check_caps.py  (205 стр)
 │   ├── check_staged_snapshot.py  (149 стр)
@@ -770,25 +773,29 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_clarification_imports.py  (110 стр)
 │   ├── test_cloud_llm.py  (463 стр)
 │   ├── test_command_builder.py  (213 стр)
-│   ├── test_compiled_runtime.py  (184 стр)
+│   ├── test_compiled_runtime.py  (198 стр)
 │   ├── test_config_manager.py  (47 стр)
 │   ├── test_danger_policy.py  (124 стр)
 │   ├── test_echo.py  (579 стр)
 │   ├── test_echo_multibackend.py  (162 стр)
 │   ├── test_echo_trace.py  (264 стр)
 │   ├── test_engine_probe.py  (100 стр)
+│   ├── test_engines.py  (241 стр)
+│   ├── test_exit_watchdog.py  (35 стр)
 │   ├── test_git_hygiene.py  (348 стр)
 │   ├── test_gui_audio.py  (335 стр)
 │   ├── test_gui_chat.py  (287 стр)
-│   ├── test_gui_commands.py  (126 стр)
-│   ├── test_gui_home.py  (154 стр)
+│   ├── test_gui_cloud.py  (225 стр)
+│   ├── test_gui_commands.py  (127 стр)
+│   ├── test_gui_engines.py  (155 стр)
+│   ├── test_gui_home.py  (159 стр)
 │   ├── test_gui_home_actions.py  (189 стр)
 │   ├── test_gui_home_fx.py  (261 стр)
-│   ├── test_gui_preferences.py  (557 стр)
+│   ├── test_gui_preferences.py  (516 стр)
 │   ├── test_gui_sidebar.py  (283 стр)
 │   ├── test_gui_startup.py  (105 стр)
 │   ├── test_gui_widgets.py  (259 стр)
-│   ├── test_gui_wiring.py  (559 стр)
+│   ├── test_gui_wiring.py  (591 стр)
 │   ├── test_intents.py  (487 стр)
 │   ├── test_launcher_download.py  (233 стр)
 │   ├── test_launcher_ollama.py  (400 стр)
@@ -800,7 +807,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_mood.py  (386 стр)
 │   ├── test_nonverbal.py  (402 стр)
 │   ├── test_nuitka_build.py  (147 стр)
-│   ├── test_nuitka_full.py  (409 стр)
+│   ├── test_nuitka_full.py  (424 стр)
 │   ├── test_numeric_language.py  (518 стр)
 │   ├── test_open_results.py  (32 стр)
 │   ├── test_optional_whisper_startup.py  (134 стр)
@@ -810,7 +817,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_prosody.py  (83 стр)
 │   ├── test_recognition_quality.py  (357 стр)
 │   ├── test_release_install_guards.py  (113 стр)
-│   ├── test_release_payload.py  (187 стр)
+│   ├── test_release_payload.py  (259 стр)
 │   ├── test_review_regressions.py  (334 стр)
 │   ├── test_safety.py  (170 стр)
 │   ├── test_sapi_owner.py  (123 стр)
@@ -1009,6 +1016,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ```
   # Standalone app startup and explicit offline probes; no venv/pip bootstrap.
   PROBE_MODULES = ...
+  MSVC_RUNTIME = ...
   RESOURCE_FILES = ...
   def configure_environment(root)
   def configure_com_cache()
@@ -1091,6 +1099,43 @@ Non-verbal/микрофон/установщик по-прежнему треб�
     def close(self)
 ```
 
+**`jarvis/engines.py`**
+
+```
+  # Каталог движков Феникса: что скачано, что включено и чем доустановить.
+  GROUP_STT = ...
+  GROUP_TTS = ...
+  GROUP_LLM = ...
+  _LOCAL_HOSTS = ...
+  class EngineInfo
+  class EngineError(RuntimeError)
+  def whisper_cache_dir()
+  def whisper_cache_model_dir(config=None)
+  def whisper_cache_has_model(config=None)
+  def piper_voice(config=None)
+  def piper_voice_cached(config=None)
+  def silero_hub_dir()
+  def silero_cached()
+  def vosk_model_dir()
+  def vosk_ready()
+  def vad_model_path()
+  def active_tts_engine(config=None)
+  def vad_info(config=None)
+  def vosk_info(config=None)
+  def whisper_info(config=None)
+  def piper_info(config=None)
+  def silero_info(config=None)
+  def sapi_info(config=None)
+  def ollama_info(config=None, names: list[str] | None=None)
+  def cloud_info(config=None)
+  def catalog(config=None, *, ollama_names: list[str] | None=None) -> [vad_info(config), vosk_info(config), whisper_info(config), piper_info(config), silero_info(config), sapi_info(config), ollama_info(config, ollama_names), cloud_info(config)]
+  class _NoRedirect(urllib.request.HTTPRedirectHandler)
+    def redirect_request(self, req, fp, code, msg, headers, newurl)
+  def local_ollama_url(url: str)
+  def ollama_inventory(url: str, *, timeout: float=2.0)
+  def install(key: str, progress: Progress, config=None)
+```
+
 **`jarvis/files.py`**
 
 ```
@@ -1135,6 +1180,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   LLM_MODELS = ...
   TTS_BACKENDS = ...
   HOME_TAB = ...
+  CLOUD_TAB = ...
+  ENGINES_TAB = ...
   NAV_ORDER = ...
   NAV_ITEMS = ...
   class FenixGUI
@@ -1181,6 +1228,30 @@ Non-verbal/микрофон/установщик по-прежнему треб�
     def change_rate(self, e)
 ```
 
+**`jarvis/gui_cloud.py`**
+
+```
+  # Вкладка «Облако»: провайдер, ключ, приватность и проверка ключа.
+  CLOUD_KEYS = ...
+  TIMEOUTS = ...
+  SENT_ALWAYS = ...
+  SENT_PROFILE = ...
+  class CloudScreen(ft.Container)
+    def __init__(self, gui)
+    def load(self)
+    def build(self)
+    def change(self, key, value)
+    def save(self, e=None)
+    def cancel(self, e=None)
+    def reload(self)
+    def open_engines(self, e=None)
+    def save_key(self, e=None)
+    def delete_key(self, e=None)
+    def start_probe(self, e=None)
+    def on_probe(self, value)
+    def is_busy(self)
+```
+
 **`jarvis/gui_commands.py`**
 
 ```
@@ -1202,6 +1273,23 @@ Non-verbal/микрофон/установщик по-прежнему треб�
     def check(self, e=None)
     def set_password(self, e=None)
     def build(self)
+```
+
+**`jarvis/gui_engines.py`**
+
+```
+  # Вкладка «Движки»: что скачано, что включено и установка по кнопке.
+  GROUP_TITLES = ...
+  class EnginesScreen(ft.Container)
+    def __init__(self, gui)
+    def reload(self)
+    def start_install(self, key)
+    def on_progress(self, value)
+    def on_done(self, value)
+    def check_ollama_async(self)
+    def on_status(self, value)
+    def is_busy(self)
+    def dispose(self)
 ```
 
 **`jarvis/gui_home.py`**
@@ -1266,7 +1354,6 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   TONES = ...
   EXAMPLES = ...
   SETTING_KEYS = ...
-  CLOUD_PROBE_TAG = ...
   def validated_url(value)
   class _NoRedirect(HTTPRedirectHandler)
     def redirect_request(self, req, fp, code, msg, headers, newurl)
@@ -1297,12 +1384,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
     def confirm_reset(self, confirm)
     def build_settings(self)
     def cancel_settings(self, e=None)
-    def save_cloud_key(self, e=None)
-    def delete_cloud_key(self, e=None)
-    def start_cloud_probe(self, e=None)
     def start_probe(self, e=None)
     def apply_probe(self, result)
-    def apply_cloud_probe(self, result)
     def save_settings(self, e=None)
 ```
 
@@ -1313,6 +1396,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   COMPACT = ...
   EXPANDED = ...
   HEIGHT = ...
+  _NAV_BRANDS = ...
   def mix(first, second, weight=0.65)
   def rounded_outline(width, height=HEIGHT, radius=10)
   def stroke_shapes(width, progress, color)
@@ -2576,6 +2660,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   DATA_PACKAGES = ...
   REQUIRES = ...
   EXCLUDE_METADATA = ...
+  VC_RUNTIME_DLLS = ...
   NOFOLLOW = ...
   FORCED_METADATA = ...
   def metadata_arguments(distributions)
@@ -2590,6 +2675,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def validate_client(client)
   def validate_report(report)
   def validate_native(native)
+  def vc_runtime_sources()
   def file_hash(path)
   def stage(root, native, client, *, versions, version)
   def installer_command(iscc, payload, args, root=BASE) -> [str(iscc), f'/DPayloadDir={Path(payload).resolve()}', f'/DMyAppVersion={args.version}', str(root / 'installer_nuitka.iss')]
@@ -3236,6 +3322,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_source_python_cannot_report_a_passed_compiled_probe(tmp_path, monkeypatch)
   def test_probe_checks_embedded_modules_resources_and_dictionaries(tmp_path, monkeypatch)
   def test_probe_fails_when_vad_asset_is_absent(tmp_path, monkeypatch)
+  def test_probe_fails_when_msvc_runtime_is_absent(tmp_path, monkeypatch)
   def test_probe_rejects_module_imported_from_external_environment(tmp_path, monkeypatch)
   def test_probe_rejects_external_python_binary(tmp_path, monkeypatch)
   def test_report_is_utf8_atomic_and_does_not_leave_temp_files(tmp_path)
@@ -3386,6 +3473,47 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_list_engines_matches_probes()
 ```
 
+**`tests/test_engines.py`**
+
+```
+  # Каталог движков: статусы по файлам/пакетам и установка через явный вызов.
+  FAKE_OLLAMA = ...
+  class FakeResponse
+    def __init__(self, payload=b'', lines=None)
+    def read(self, limit=None)
+  class FakeOpener
+    def __init__(self, response)
+    def open(self, request, timeout=None)
+  def fake_ollama(monkeypatch, response)
+  def tree(tmp_path, monkeypatch)
+  class Config(dict)
+    def get(self, key, default=None)
+  def test_catalog_lists_every_group_and_engine(tree)
+  def test_vosk_requires_package_and_required_files(tree)
+  def test_whisper_status_follows_cache_and_use_flag(tree)
+  def test_whisper_reports_missing_package(tree, monkeypatch)
+  def test_vad_status_uses_found_file(tree, monkeypatch)
+  def test_tts_active_follows_config_and_availability(tree, monkeypatch)
+  def test_piper_cached_only_when_model_and_config_present(tree, monkeypatch)
+  def test_ollama_status_needs_server_and_model(tree, monkeypatch)
+  def test_cloud_status_needs_key_and_switch(tree, monkeypatch)
+  def test_local_only_ollama_addresses(tree)
+  def test_ollama_inventory_parses_names_and_survives_garbage(tree, monkeypatch)
+  def test_ollama_pull_reports_progress_and_errors(tree, monkeypatch)
+  def test_ollama_pull_refuses_remote_address(tree)
+  def test_install_reports_missing_network_without_traceback(tree, monkeypatch)
+  def test_install_runs_engine_and_reports_success(tree, monkeypatch)
+  def test_install_refuses_unknown_or_system_engine(tree)
+```
+
+**`tests/test_exit_watchdog.py`**
+
+```
+  # «Выход» из трея обязан завершать процесс даже при зависшем Flet.
+  def test_watchdog_waits_for_exit_request(monkeypatch)
+  def test_watchdog_terminates_after_hung_exit(monkeypatch)
+```
+
 **`tests/test_git_hygiene.py`**
 
 ```
@@ -3484,6 +3612,37 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_monogram_reflects_processing_not_fake_microphone_data(gui)
 ```
 
+**`tests/test_gui_cloud.py`**
+
+```
+  # Вкладка «Облако»: черновик, сохранение, ключ и проверка — без сети и DPAPI.
+  class FakeSecrets
+    def __init__(self)
+    def has_secret(self, name)
+    def load_secret(self, name)
+    def save_secret(self, name, value)
+    def delete_secret(self, name)
+    def secret_fingerprint(self, name)
+  def cloud(tmp_path, monkeypatch)
+  def drain(screen, timeout=6.0)
+  def test_cloud_tab_is_wired_and_explains_current_mode(cloud)
+  def test_fields_cover_every_cloud_key(cloud)
+  def test_provider_switch_applies_preset_address_and_model(cloud)
+  def test_provider_switch_keeps_hand_edited_values(cloud)
+  def test_custom_provider_without_address_is_rejected(cloud)
+  def test_save_persists_cloud_keys_and_reloads(cloud)
+  def test_save_without_key_warns_but_keeps_settings(cloud)
+  def test_timeout_and_token_limits_are_validated(cloud)
+  def test_consent_is_recorded_in_profile_with_version_and_time(cloud)
+  def gui_preferences_version()
+  def test_consent_withdrawal_is_recorded_too(cloud)
+  def test_key_is_saved_fingerprinted_and_deleted(cloud)
+  def test_probe_without_key_explains_there_is_nothing_to_check(cloud)
+  def test_probe_success_reports_provider_and_model_count(cloud, monkeypatch)
+  def test_probe_auth_error_is_reported_instead_of_success(cloud, monkeypatch)
+  def test_parameter_change_invalidates_previous_probe_result(cloud)
+```
+
 **`tests/test_gui_commands.py`**
 
 ```
@@ -3495,6 +3654,24 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_password_never_becomes_editor_draft(editor)
   def test_brand_assets_and_app_icon_have_no_letter_fallback(editor)
   def test_theme_rebuild_preserves_unsaved_command_but_not_password(editor, monkeypatch)
+```
+
+**`tests/test_gui_engines.py`**
+
+```
+  # Вкладка «Движки»: каталог, кнопка установки, прогресс и «активно» из конфига.
+  def screen(tmp_path, monkeypatch)
+  def collect(window, timeout=6.0, until='engines_done')
+  def apply(screen, events)
+  def test_engines_tab_lists_every_engine_and_is_wired(screen)
+  def test_install_reports_progress_and_finishes(screen, monkeypatch)
+  def test_failed_install_is_shown_as_error(screen, monkeypatch)
+  def test_second_install_is_refused_while_first_runs(screen, monkeypatch)
+  def test_ollama_status_updates_the_row(screen)
+  def test_busy_screen_survives_tab_reselect(screen)
+  def test_inactive_chip_is_visible(screen)
+  def test_active_chip_has_no_border(screen)
+  def test_queue_routes_engines_events_to_the_screen(screen)
 ```
 
 **`tests/test_gui_home.py`**
@@ -3588,11 +3765,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_settings_failure_retains_every_old_value(editor, monkeypatch)
   def test_settings_do_not_clobber_newer_values(editor)
   def test_unrelated_setting_changed_elsewhere_is_not_overwritten(editor)
-  def test_cloud_provider_switch_updates_preset_address_and_model(editor)
-  def test_cloud_provider_switch_keeps_hand_edited_address_and_model(editor)
-  def test_custom_provider_has_no_preset_and_requires_an_address(editor)
-  def test_cloud_consent_is_recorded_in_profile_with_version_and_time(editor)
-  def test_cloud_consent_withdrawal_is_recorded_too(editor)
+  def test_settings_no_longer_own_cloud_keys(editor)
   def test_cloud_consent_payload_is_pure_and_versioned()
   def test_hidden_tray_launch_is_rejected(editor)
   def test_model_change_during_command_is_rejected(editor)
@@ -3764,6 +3937,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_window_moved_saves_position(gui, cfg)
   def test_window_close_hides_to_tray(gui)
   def test_window_close_without_tray_exits(gui)
+  def test_window_close_during_quit_does_not_hide(gui, caplog)
   def test_quit_closes_window(gui)
   def test_quit_without_page_is_safe(gui)
   def test_set_tray_active_toggles_prevent_close(gui)
@@ -4085,6 +4259,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_native_output_rejects_external_interpreter_and_user_files(native, name)
   def test_native_output_requires_embedded_python_dll(native)
   def test_stage_includes_whole_runtime_and_client_without_source(tmp_path, native, client, monkeypatch)
+  def test_vc_runtime_list_covers_dlls_that_clean_windows_lacks()
+  def test_missing_vc_runtime_stops_the_build(tmp_path, monkeypatch)
   def test_failed_client_validation_preserves_existing_output(tmp_path, native, client, monkeypatch)
   def test_probe_requires_exit_success_and_true_compiled_report(tmp_path, monkeypatch)
   def test_installer_uses_full_payload_not_legacy_bootstrap()
@@ -4302,6 +4478,11 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_caps_skip_valid_only(tmp_path, monkeypatch)
   def test_caps_probe_failure_does_not_block_launch(monkeypatch, tmp_path)
   def test_cancel_dependencies_has_no_network(tmp_path, monkeypatch)
+  def test_cancel_dependencies_problems_are_logged(tmp_path, monkeypatch, caplog)
+  def test_launcher_sets_certifi_bundle_for_https(tmp_path, monkeypatch)
+  def test_launcher_survives_missing_certifi(monkeypatch)
+  def test_launcher_configures_https_before_network()
+  def test_requirements_files_are_decodable_with_any_ansi_codepage()
   def test_startup_reliability_helpers_are_shipped(release_tree)
   def test_optional_aec_files_shipped_but_not_required_by_base_dependencies(release_tree)
 ```
@@ -4933,6 +5114,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def ensure_local_caps(project_dir, logger)
   def prepare_flet_client(project_dir, logger)
   def install_dependencies(project_dir: Path, logger)
+  def ensure_https_trust(logger)
   def check_vosk_model(project_dir: Path, logger)
   def download_vosk_model(project_dir: Path, logger)
   def check_ollama_running(logger)
@@ -5092,21 +5274,24 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/celebrations.py` | 165 | code | Праздничные триггеры — поздравление с ДР + двойной салют. |
 | `jarvis/cloud_llm.py` | 367 | code | Облачная LLM по HTTP: OpenAI-совместимые API и Anthropic. |
 | `jarvis/command_builder.py` | 152 | code | Typed custom commands. No execution, model calls or shell parsing in t |
-| `jarvis/compiled_runtime.py` | 257 | code | Standalone app startup and explicit offline probes; no venv/pip bootst |
+| `jarvis/compiled_runtime.py` | 267 | code | Standalone app startup and explicit offline probes; no venv/pip bootst |
 | `jarvis/config.py` | 290 | code | Загрузка конфигурации и объект Config в памяти. |
 | `jarvis/config_manager.py` | 156 | code | Единый менеджер записи в config.json. |
 | `jarvis/echo.py` | 508 | code | Opt-in Piper AEC prototype. No devices, drivers or downloads. |
 | `jarvis/echo_trace.py` | 229 | code | Explicitly opted-in, bounded local AEC trace; never uploads audio. |
+| `jarvis/engines.py` | 533 | code | Каталог движков Феникса: что скачано, что включено и чем доустановить. |
 | `jarvis/files.py` | 109 | code | Файлы и папки: открыть, посмотреть содержимое, создать. |
 | `jarvis/first_run.py` | 26 | code | Первый запуск — знакомство через LLM-диалог. |
-| `jarvis/gui.py` | 1684 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
+| `jarvis/gui.py` | 1757 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
 | `jarvis/gui_audio.py` | 438 | code | Native sound settings. Diagnostics use the existing listener/Speaker,  |
+| `jarvis/gui_cloud.py` | 541 | code | Вкладка «Облако»: провайдер, ключ, приватность и проверка ключа. |
 | `jarvis/gui_commands.py` | 305 | code | Flet editor for the existing custom_commands pipeline. Never executes  |
+| `jarvis/gui_engines.py` | 206 | code | Вкладка «Движки»: что скачано, что включено и установка по кнопке. |
 | `jarvis/gui_home.py` | 191 | code | Minimal native Home: local clock, real assistant state and opt-in widg |
 | `jarvis/gui_home_actions.py` | 225 | code | Three real Home actions. Native controls, finite transitions, no extra |
 | `jarvis/gui_home_fx.py` | 206 | code | Bounded native solar aura. Decorative state motion, never a fake wavef |
-| `jarvis/gui_preferences.py` | 961 | code | Native persona/settings editors. Drafts are not configuration or a sec |
-| `jarvis/gui_sidebar.py` | 429 | code | Native, persistent hover rail. Bounded UI-loop animation; no WebView o |
+| `jarvis/gui_preferences.py` | 693 | code | Native persona/settings editors. Drafts are not configuration or a sec |
+| `jarvis/gui_sidebar.py` | 442 | code | Native, persistent hover rail. Bounded UI-loop animation; no WebView o |
 | `jarvis/gui_widgets.py` | 373 | code | Opt-in Home widgets: responsive order/size editor, real tasks and guar |
 | `jarvis/history.py` | 75 | code | История последних действий для отмены («стоп, не то»). |
 | `jarvis/https_trust.py` | 22 | code | Process-scoped CA bundle for urllib/Flet/torch; never disables TLS che |
@@ -5161,7 +5346,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/language/time.py` | 84 | code | Duration grammar with source spans. Uses the shared numeral/unit vocab |
 | `jarvis/language/units.py` | 85 | code | Semantic unit lexicon shared by input and output; spelling is data, no |
 | `jarvis/learning.py` | 178 | code | Самообучение Феникса: факты и коррекции. |
-| `jarvis/main.py` | 968 | code | Точка входа: связывает распознавание, интенты, синтез речи и GUI. |
+| `jarvis/main.py` | 992 | code | Точка входа: связывает распознавание, интенты, синтез речи и GUI. |
 | `jarvis/matching.py` | 118 | code | Нечёткое сопоставление речи с названиями: транслитерация + difflib. |
 | `jarvis/memory.py` | 147 | code | Память диалога — на профиль. |
 | `jarvis/memory_context.py` | 124 | code | Query-scoped personal memory. Absence/uncertainty never means 'send ev |
@@ -5204,7 +5389,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `scripts/bootstrap_ollama_config.py` | 77 | code | Small config bridge run by installed .venv311, never by frozen bootstr |
 | `scripts/build_exe.py` | 83 | code | Сборка Феникс.exe (лёгкий лаунчер). |
 | `scripts/build_nuitka.py` | 142 | code | Build the Windows bootstrap launcher with Nuitka, not the complete run |
-| `scripts/build_nuitka_app.py` | 401 | code | Build the complete Windows application and its installer, not launcher |
+| `scripts/build_nuitka_app.py` | 442 | code | Build the complete Windows application and its installer, not launcher |
 | `scripts/build_setup.py` | 212 | code | Полная сборка Феникса: Феникс.exe + Феникс_Setup.exe — одной командой. |
 | `scripts/check_caps.py` | 205 | code | Проверка возможностей системы — запускается из install.bat. |
 | `scripts/check_staged_snapshot.py` | 149 | code | Check the Git index, not an unstaged working-tree snapshot; never stag |
@@ -5247,25 +5432,29 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_clarification_imports.py` | 110 | code | The slot engine and pipeline stage share a basename, not their content |
 | `tests/test_cloud_llm.py` | 463 | code | Стражи облачной LLM: ключ не утекает, личное не уходит без согласия. |
 | `tests/test_command_builder.py` | 213 | code | Builder persistence, exact matching and runtime protection; no real OS |
-| `tests/test_compiled_runtime.py` | 184 | code | Explicit standalone probes and consent contracts without native Window |
+| `tests/test_compiled_runtime.py` | 198 | code | Explicit standalone probes and consent contracts without native Window |
 | `tests/test_config_manager.py` | 47 | code | Тесты config_manager: параллельная запись не рвёт файл. |
 | `tests/test_danger_policy.py` | 124 | code | Политика опасных действий: пароль решает «можно ли», а не «опасно ли». |
 | `tests/test_echo.py` | 579 | code | AEC contracts: bounded synthetic PCM and controlled native transport;  |
 | `tests/test_echo_multibackend.py` | 162 | code | Diagnostic-only PCM support; normal production backend scope stays unc |
 | `tests/test_echo_trace.py` | 264 | code | Local diagnostic contracts: no devices or external services. |
 | `tests/test_engine_probe.py` | 100 | code | Заглушка движка TTS (factory._probe_engine). |
+| `tests/test_engines.py` | 241 | code | Каталог движков: статусы по файлам/пакетам и установка через явный выз |
+| `tests/test_exit_watchdog.py` | 35 | code | «Выход» из трея обязан завершать процесс даже при зависшем Flet. |
 | `tests/test_git_hygiene.py` | 348 | code | Exercise real temporary Git indexes/hooks; never commit or alter the u |
 | `tests/test_gui_audio.py` | 335 | code | Native sound settings + real worker boundaries; no microphone or actua |
 | `tests/test_gui_chat.py` | 287 | code | Imported Flet controls + real GUI worker threads; no window, ASR or au |
-| `tests/test_gui_commands.py` | 126 | code | Imported native builder controls; no OS actions or real passwords. |
-| `tests/test_gui_home.py` | 154 | code | Native minimal Home; no OS/model/mic/network. Old navigation IDs stay  |
+| `tests/test_gui_cloud.py` | 225 | code | Вкладка «Облако»: черновик, сохранение, ключ и проверка — без сети и D |
+| `tests/test_gui_commands.py` | 127 | code | Imported native builder controls; no OS actions or real passwords. |
+| `tests/test_gui_engines.py` | 155 | code | Вкладка «Движки»: каталог, кнопка установки, прогресс и «активно» из к |
+| `tests/test_gui_home.py` | 159 | code | Native minimal Home; no OS/model/mic/network. Old navigation IDs stay  |
 | `tests/test_gui_home_actions.py` | 189 | code | Action orbit: real callbacks, continuous hover zone, keyboard and life |
 | `tests/test_gui_home_fx.py` | 261 | code | Native solar aura lifecycle; no audio device, model or Windows session |
-| `tests/test_gui_preferences.py` | 557 | code | Real imported Flet controls / real disk writes / explicit network fake |
+| `tests/test_gui_preferences.py` | 516 | code | Real imported Flet controls / real disk writes / explicit network fake |
 | `tests/test_gui_sidebar.py` | 283 | code | Native controls and bounded asyncio tasks; no desktop, microphone or m |
 | `tests/test_gui_startup.py` | 105 | code | Startup ordering, tray failure recovery, old EXE mutex handoff; no des |
 | `tests/test_gui_widgets.py` | 259 | code | Opt-in layouts, exact task IDs, safe command path, atomic saves and li |
-| `tests/test_gui_wiring.py` | 559 | code | GUI → config: каждый элемент окна реально отсылает изменение. |
+| `tests/test_gui_wiring.py` | 591 | code | GUI → config: каждый элемент окна реально отсылает изменение. |
 | `tests/test_intents.py` | 487 | code | Автотест Феникса без микрофона. |
 | `tests/test_launcher_download.py` | 233 | code | Python bootstrap: no network/install in default tests; native Windows  |
 | `tests/test_launcher_ollama.py` | 400 | code | Optional model setup + real loopback HTTP protocol. No models/inferenc |
@@ -5277,7 +5466,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_mood.py` | 386 | code | Тесты jarvis.mood — состояние, детекция, decay, влияние. |
 | `tests/test_nonverbal.py` | 402 | code | Nonverbal policy/mixing: synthetic PCM and fake output, no TTS weights |
 | `tests/test_nuitka_build.py` | 147 | code | Nuitka build plans and staging tests; no compiler, network or Tk displ |
-| `tests/test_nuitka_full.py` | 409 | code | Full application build contracts. No Windows compiler/installers or do |
+| `tests/test_nuitka_full.py` | 424 | code | Full application build contracts. No Windows compiler/installers or do |
 | `tests/test_numeric_language.py` | 518 | code | Executable Russian language corpus: understanding, morphology and spee |
 | `tests/test_open_results.py` | 32 | code | Actual dispatch function isolated from Windows imports; no apps launch |
 | `tests/test_optional_whisper_startup.py` | 134 | code | Execute real startup functions with stub peripherals, no models/mic/Wi |
@@ -5287,7 +5476,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_prosody.py` | 83 | code | Тесты jarvis.prosody — эмоции из голоса (эвристика). |
 | `tests/test_recognition_quality.py` | 357 | code | Recognition policy and integration tested without a microphone or mode |
 | `tests/test_release_install_guards.py` | 113 | code | Стражи установщика: пины, файлы данных и понятные падения Silero. |
-| `tests/test_release_payload.py` | 187 | code | Public payload, reproducible manifest and bootstrap regression checks. |
+| `tests/test_release_payload.py` | 259 | code | Public payload, reproducible manifest and bootstrap regression checks. |
 | `tests/test_review_regressions.py` | 334 | code | Archive-review regressions: no network, native audio or system automat |
 | `tests/test_safety.py` | 170 | code | Тесты jarvis.safety — постфильтр «красной черты». |
 | `tests/test_sapi_owner.py` | 123 | code | COM ownership and cooperative cancellation without Windows/audio hardw |
@@ -5312,7 +5501,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_winrt_removed.py` | 92 | code | Retired speech backend must not return through config, probes or cache |
 | `check_all.py` | 170 | code | Единый прогон всех проверок Феникса — движок для check_all.bat. |
 | `check_syntax.py` | 60 | code | Проверяет синтаксис всех .py файлов в проекте. |
-| `launcher.py` | 820 | code | Лаунчер Феникса — полный автозапуск. |
+| `launcher.py` | 853 | code | Лаунчер Феникса — полный автозапуск. |
 | `launcher_download.py` | 156 | code | Verified Python bootstrap download using Windows HTTPS (no third-party |
 | `launcher_ollama.py` | 327 | code | Optional Ollama setup: explicit consent, local inventory/pull, safe co |
 | `launcher_runtime.py` | 116 | code | Consented Microsoft VC++ x64 prerequisite; no silent installs or TLS b |
@@ -8830,6 +9019,13 @@ PROBE_MODULES = (
     "winrt.windows.media.control", "pymorphy3", "pymorphy3_dicts_ru", "num2words",
     "certifi", "filelock", "jarvis.main",
 )
+# Windows не ставит перераспространяемый VC++ вместе с ОС; без этих файлов рядом с
+# exe torch/onnxruntime/ctranslate2 не грузятся (как было в 2.1.2). Проверяем до
+# импорта, чтобы отчёт говорил причину, а не ImportError из глубины пакета.
+MSVC_RUNTIME = (
+    "msvcp140.dll", "msvcp140_1.dll", "msvcp140_atomic_wait.dll",
+    "vcruntime140.dll", "vcruntime140_1.dll", "vcruntime140_threads.dll",
+)
 RESOURCE_FILES = (
     "jarvis/icon.ico", "jarvis/assets/brand/phoenix-dark.png",
     "jarvis/assets/brand/phoenix-light.png", "assets/nonverbal/hmm.wav",
@@ -8914,6 +9110,9 @@ def self_test(root, *, compiled):
     checks["flet_assets"] = (root / "runtime/flet/data/flutter_assets").is_dir()
     checks["no_external_interpreter"] = not any(
         (root / name).exists() for name in ("python.exe", "pythonw.exe", ".venv311", "launcher.py"))
+    missing_runtime = [name for name in MSVC_RUNTIME if not (root / name).is_file()]
+    checks["msvc_runtime"] = True if not missing_runtime else {
+        "ok": False, "error": "нет библиотек MSVC: " + ", ".join(missing_runtime)}
     for name in PROBE_MODULES:
         try:
             module = importlib.import_module(name)
@@ -10210,6 +10409,530 @@ class EchoTrace:
                 self.done.set()
 ```
 
+### `jarvis/engines.py`
+
+```python
+"""Каталог движков Феникса: что скачано, что включено и чем доустановить. ... [12 строк]"""
+
+from __future__ import annotations
+
+import importlib.util
+import json
+import logging
+import urllib.parse
+import urllib.request
+from collections.abc import Callable
+from dataclasses import dataclass
+from pathlib import Path
+
+from jarvis import paths
+
+log = logging.getLogger("jarvis.engines")
+
+GROUP_STT = "Распознавание речи"
+GROUP_TTS = "Синтез речи"
+GROUP_LLM = "Языковые модели"
+
+# progress(доля 0..1 или None, что происходит) — None означает «размер неизвестен».
+Progress = Callable[[float | None, str], None]
+
+_LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
+
+
+@dataclass(frozen=True)
+class EngineInfo:
+    """Одна строка каталога. installed — файлы/пакет на месте, active — по конфигу."""
+
+    key: str
+    group: str
+    title: str
+    description: str
+    installed: bool
+    active: bool
+    detail: str = ""
+    installable: bool = True
+    install_label: str = "Установить"
+    package: str | None = None
+    size_hint: str = ""
+    hint: str = ""
+
+
+class EngineError(RuntimeError):
+    """Установка не удалась. Текст безопасен для показа в интерфейсе."""
+
+
+# --- дешёвые проверки -------------------------------------------------------
+
+
+def _package(name: str | None) -> bool:
+    if not name:
+        return True
+    try:
+        return importlib.util.find_spec(name) is not None
+    except (ImportError, ValueError, AttributeError):
+        return False
+
+
+def _dir_size(path: Path, *, limit: int = 4000) -> int:
+    """Размер каталога без зависания на гигантских деревьях."""
+    total = 0
+    seen = 0
+    try:
+        for item in path.rglob("*"):
+            if item.is_file():
+                total += item.stat().st_size
+            seen += 1
+            if seen > limit:
+                break
+    except OSError:
+        return total
+    return total
+
+
+def _mb(size: int) -> str:
+    return f"{size / (1024 * 1024):.0f} МБ"
+
+
+def _model_name(config=None) -> str:
+    value = None
+    if config is not None:
+        try:
+            value = config.get("whisper_model")
+        except Exception:
+            value = None
+    return str(value or "deepdml/faster-whisper-large-v3-turbo-ct2")
+
+
+def whisper_cache_dir() -> Path:
+    return paths.program_whisper_cache_dir()
+
+
+def whisper_cache_model_dir(config=None) -> Path:
+    """Куда huggingface_hub кладёт snapshot выбранной модели."""
+    return whisper_cache_dir() / ("models--" + _model_name(config).replace("/", "--"))
+
+
+def whisper_cache_has_model(config=None) -> bool:
+    return whisper_cache_model_dir(config).is_dir()
+
+
+def piper_voice(config=None) -> tuple[str, str]:
+    voice, quality = "ruslan", "medium"
+    if config is not None:
+        try:
+            voice = str(config.get("tts_voice") or voice)
+            quality = str(config.get("tts_voice_quality") or quality)
+        except Exception:
+            pass
+    return voice, (quality if quality in ("medium", "high") else "medium")
+
+
+def piper_voice_cached(config=None) -> bool:
+    """Есть ли .onnx выбранного голоса в кэше HF (без сети и без загрузки модели)."""
+    voice, quality = piper_voice(config)
+    rel = f"ru/ru_RU/{voice}/{quality}/ru_RU-{voice}-{quality}.onnx"
+    try:
+        from huggingface_hub import try_to_load_from_cache
+
+        from jarvis.tts_engines.piper import PIPER_REPO
+
+        cached = try_to_load_from_cache(PIPER_REPO, rel)
+        if not isinstance(cached, str):
+            return False
+        # Рядом с .onnx нужен конфиг: без него PiperVoice.load не поднимется.
+        return isinstance(try_to_load_from_cache(PIPER_REPO, rel + ".json"), str)
+    except Exception:
+        return False
+
+
+def silero_hub_dir() -> Path:
+    """torch.hub держит клон snakers4/silero-models внутри TORCH_HOME."""
+    return paths.program_dir() / "torch" / "hub" / "snakers4_silero-models_master"
+
+
+def silero_cached() -> bool:
+    return _package("torch") and silero_hub_dir().is_dir()
+
+
+def vosk_model_dir() -> Path:
+    from jarvis import model as vosk_model
+
+    return paths.program_models_dir() / vosk_model.MODEL_NAME
+
+
+def vosk_ready() -> bool:
+    from jarvis import model as vosk_model
+
+    return vosk_model.model_is_ready(vosk_model_dir())
+
+
+def vad_model_path() -> Path | None:
+    from jarvis import vad
+
+    try:
+        return vad.find_model()
+    except Exception:
+        return None
+
+
+def _tts_available() -> list[str]:
+    try:
+        from jarvis.tts_engines.factory import list_engines
+
+        return list_engines()
+    except Exception:
+        log.debug("engines: список TTS-движков недоступен", exc_info=True)
+        return []
+
+
+def active_tts_engine(config=None) -> str:
+    """Какой движок реально озвучит ответ при текущих настройках."""
+    backend = "auto"
+    if config is not None:
+        try:
+            backend = str(config.get("tts_backend") or "auto")
+        except Exception:
+            backend = "auto"
+    available = _tts_available()
+    if backend != "auto" and backend in available:
+        return backend
+    for name in ("silero", "piper", "sapi"):
+        if name in available:
+            return name
+    return ""
+
+
+# --- статусы ---------------------------------------------------------------
+
+
+def vad_info(config=None) -> EngineInfo:
+    path = vad_model_path()
+    enabled = True
+    if config is not None:
+        try:
+            enabled = bool(config.get("vad_enabled", True))
+        except Exception:
+            enabled = True
+    if path is not None:
+        try:
+            size = path.stat().st_size if path.is_file() else 0
+        except OSError:
+            size = 0
+        return EngineInfo(
+            "vad", GROUP_STT, "Silero VAD",
+            "Отсекает тишину до распознавания, убирает ложные фразы.",
+            True, enabled, f"Файл: {path.name} ({_mb(size)})",
+            size_hint="≈2,3 МБ")
+    return EngineInfo(
+        "vad", GROUP_STT, "Silero VAD",
+        "Отсекает тишину до распознавания, убирает ложные фразы.",
+        False, False, "Модели нет: VAD работает без фильтра тишины.",
+        size_hint="≈2,3 МБ")
+
+
+def vosk_info(config=None) -> EngineInfo:
+    has_package = _package("vosk")
+    ready = has_package and vosk_ready()
+    detail = (f"Модель: {vosk_model_dir().name} ({_mb(_dir_size(vosk_model_dir()))})"
+              if ready else ("Пакета vosk нет." if not has_package else "Модель не скачана."))
+    return EngineInfo(
+        "vosk", GROUP_STT, "Vosk (small ru)",
+        "Основное распознавание, работает офлайн и на слабом железе.",
+        ready, has_package, detail, package="vosk", size_hint="≈45 МБ",
+        install_label="Скачать модель", installable=has_package,
+        hint="Пакет vosk ставится через pip, не из этого окна.")
+
+
+def whisper_info(config=None) -> EngineInfo:
+    has_package = _package("faster_whisper")
+    cached = has_package and whisper_cache_has_model(config)
+    use = True
+    if config is not None:
+        try:
+            use = bool(config.get("use_whisper", True))
+        except Exception:
+            use = True
+    if cached:
+        folder = whisper_cache_model_dir(config)
+        detail = f"Модель: {_model_name(config)} ({_mb(_dir_size(folder))})"
+    elif not has_package:
+        detail = "Пакета faster-whisper нет."
+    else:
+        detail = f"Модель {_model_name(config)} не скачана."
+    return EngineInfo(
+        "whisper", GROUP_STT, "Faster-Whisper",
+        "Точнее Vosk на сложной речи; модель крупная, первый запуск дольше.",
+        cached, cached and use, detail, package="faster_whisper",
+        install_label="Скачать модель", installable=has_package,
+        hint="Пакет faster-whisper ставится через pip, не из этого окна.")
+
+
+def piper_info(config=None) -> EngineInfo:
+    has_package = _package("piper")
+    cached = has_package and piper_voice_cached(config)
+    voice, quality = piper_voice(config)
+    active = active_tts_engine(config) == "piper"
+    if cached:
+        detail = f"Голос: {voice}/{quality} (кэш HF)"
+    else:
+        detail = ("Пакета piper нет." if not has_package
+                  else f"Голос {voice}/{quality} не скачан.")
+    return EngineInfo(
+        "piper", GROUP_TTS, "Piper",
+        "Быстрый офлайн-синтез, четыре русских голоса, без GPU.",
+        cached, active, detail, package="piper", size_hint="≈60 МБ",
+        install_label="Скачать голос", installable=has_package,
+        hint="Пакет piper ставится через pip, не из этого окна.")
+
+
+def silero_info(config=None) -> EngineInfo:
+    cached = silero_cached()
+    active = active_tts_engine(config) == "silero"
+    if cached:
+        detail = f"Модель torch.hub: {_mb(_dir_size(silero_hub_dir()))}"
+    elif not _package("torch"):
+        detail = "Пакета torch нет."
+    else:
+        detail = "Модель Silero не скачана (torch.hub)."
+    return EngineInfo(
+        "silero", GROUP_TTS, "Silero",
+        "Выразительный синтез через torch; первый запуск тянет модель.",
+        cached, active, detail, package="torch", size_hint="≈150 МБ",
+        install_label="Скачать модель", installable=_package("torch"),
+        hint="Пакет torch ставится через pip, не из этого окна.")
+
+
+def sapi_info(config=None) -> EngineInfo:
+    has_package = _package("pyttsx3")
+    active = active_tts_engine(config) == "sapi"
+    return EngineInfo(
+        "sapi", GROUP_TTS, "Windows SAPI",
+        "Системный голос Windows: ничего не качает, но и не звучит как студия.",
+        has_package, active,
+        "Системный голос доступен." if has_package else "pyttsx3 не установлен.",
+        installable=False, package="pyttsx3",
+        hint="Системный голос Windows: скачивать нечего.")
+
+
+def ollama_info(config=None, names: list[str] | None = None) -> EngineInfo:
+    model = "qwen2.5:7b-instruct"
+    url = "http://127.0.0.1:11434"
+    if config is not None:
+        try:
+            model = str(config.get("llm_model") or model)
+            url = str(config.get("ollama_url") or url)
+        except Exception:
+            pass
+    local = _local_ollama_url(url)
+    installed = bool(local) and names is not None and model in names
+    if names is None:
+        detail = "Сервер не отвечает: запустите Ollama, чтобы увидеть модели."
+    elif not local:
+        detail = "Адрес Ollama не локальный: каталог движков его не проверяет."
+    elif installed:
+        detail = f"Модель {model} есть в Ollama."
+    else:
+        detail = f"Модели {model} в Ollama нет."
+    active = True
+    if config is not None:
+        try:
+            active = (not bool(config.get("cloud_enabled", False))
+                      and bool(config.get("use_llm", True)))
+        except Exception:
+            active = True
+    return EngineInfo(
+        "ollama", GROUP_LLM, "Ollama", "Локальная модель для ответов и разбора команд.",
+        bool(installed), bool(installed) and active, detail,
+        installable=bool(local), install_label="Скачать модель",
+        hint="Сервер Ollama не локальный: каталог его не трогает.")
+
+
+def cloud_info(config=None) -> EngineInfo:
+    enabled = False
+    provider = "openai"
+    model = ""
+    key = False
+    if config is not None:
+        try:
+            enabled = bool(config.get("cloud_enabled", False))
+            provider = str(config.get("cloud_provider") or provider)
+            model = str(config.get("cloud_model") or "")
+        except Exception:
+            pass
+    try:
+        from jarvis import secrets_store
+
+        key = secrets_store.has_secret(secrets_store.CLOUD_LLM_KEY)
+    except Exception:
+        key = False
+    configured = bool(enabled and key)
+    detail = ("Ответы идут в облако." if configured else
+              ("Облако включено, но ключа нет." if enabled else "Облако выключено."))
+    return EngineInfo(
+        "cloud", GROUP_LLM, "Облачная LLM",
+        "OpenAI-совместимые провайдеры и Anthropic: ничего не скачивается, нужен ключ.",
+        configured, configured, f"{provider}: {model or 'модель не выбрана'}. {detail}",
+        installable=False, hint="Включается и настраивается на вкладке «Облако».") 
+
+
+def catalog(config=None, *, ollama_names: list[str] | None = None) -> list[EngineInfo]:
+    return [
+        vad_info(config), vosk_info(config), whisper_info(config),
+        piper_info(config), silero_info(config), sapi_info(config),
+        ollama_info(config, ollama_names), cloud_info(config),
+    ]
+
+
+# --- Ollama на loopback -----------------------------------------------------
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def _local_ollama_url(url: str) -> str:
+    try:
+        parts = urllib.parse.urlsplit(str(url or ""))
+    except ValueError:
+        return ""
+    if parts.scheme != "http" or (parts.hostname or "") not in _LOCAL_HOSTS:
+        return ""
+    return str(url).rstrip("/")
+
+
+def local_ollama_url(url: str) -> str:
+    """Публичная проверка «этот адрес локальный и http» для UI и тестов."""
+    return _local_ollama_url(url)
+
+
+def _ollama_opener():
+    return urllib.request.build_opener(urllib.request.ProxyHandler({}), _NoRedirect())
+
+
+def ollama_inventory(url: str, *, timeout: float = 2.0) -> list[str]:
+    """Имена моделей в локальной Ollama. Пустой список — сервер недоступен."""
+    local = _local_ollama_url(url)
+    if not local:
+        return []
+    try:
+        with _ollama_opener().open(local + "/api/tags", timeout=timeout) as response:
+            data = json.loads(response.read(1024 * 1024).decode("utf-8", "replace"))
+    except Exception:
+        log.debug("engines: Ollama недоступна", exc_info=True)
+        return []
+    models = data.get("models") if isinstance(data, dict) else None
+    if not isinstance(models, list):
+        return []
+    return [str(item.get("name")) for item in models
+            if isinstance(item, dict) and item.get("name")]
+
+
+def _ollama_pull(url: str, name: str, progress: Progress) -> tuple[bool, str]:
+    local = _local_ollama_url(url)
+    if not local:
+        return False, "Адрес Ollama должен быть локальным (http://127.0.0.1:11434)."
+    if not name:
+        return False, "Сначала выберите модель в настройках LLM."
+    payload = json.dumps({"model": name, "name": name, "stream": True}).encode()
+    request = urllib.request.Request(
+        local + "/api/pull", data=payload, headers={"Content-Type": "application/json"})
+    progress(None, f"Ollama: запрашиваю {name}")
+    try:
+        with _ollama_opener().open(request, timeout=60) as response:
+            for raw in response:
+                line = raw.decode("utf-8", "replace").strip()
+                if not line:
+                    continue
+                try:
+                    event = json.loads(line)
+                except ValueError:
+                    continue
+                if not isinstance(event, dict):
+                    continue
+                if event.get("error"):
+                    return False, f"Ollama: {event['error']}"
+                total = event.get("total")
+                done = event.get("completed")
+                if isinstance(total, int) and total > 0 and isinstance(done, int):
+                    progress(min(1.0, done / total), str(event.get("status") or "Скачивание"))
+                else:
+                    progress(None, str(event.get("status") or "Скачивание"))
+    except Exception as error:
+        return False, f"Ollama: {type(error).__name__}"
+    progress(1.0, "Готово")
+    return True, f"Модель {name} скачана."
+
+
+# --- установка --------------------------------------------------------------
+
+
+def install(key: str, progress: Progress, config=None) -> tuple[bool, str]:
+    """Доустанавливает движок. Возвращает (успех, сообщение для человека)."""
+    progress(0.0, "Начинаю…")
+    try:
+        if key == "vad":
+            from jarvis import vad
+
+            progress(None, "Скачиваю Silero VAD (~2,3 МБ)…")
+            path = vad.download_model()
+            if path is None:
+                return False, "Не удалось скачать VAD: проверьте интернет - повторите позже."
+            progress(1.0, "VAD скачан.")
+            return True, f"Silero VAD на месте: {path.name}"
+
+        if key == "vosk":
+            from jarvis import model as vosk_model
+
+            def hook(blocks, block_size, total):
+                if total and total > 0:
+                    progress(min(1.0, blocks * block_size / total),
+                             "Скачиваю модель Vosk (~45 МБ)…")
+                else:
+                    progress(None, "Скачиваю модель Vosk…")
+
+            path = vosk_model.ensure_model(reporthook=hook)
+            return True, f"Модель Vosk готова: {path.name}"
+
+        if key == "whisper":
+            from faster_whisper.utils import download_model
+
+            name = _model_name(config)
+            progress(None, f"Скачиваю модель whisper {name}: это долго и много мегабайт…")
+            download_model(name, cache_dir=str(whisper_cache_dir()))
+            progress(1.0, "Модель whisper скачана.")
+            return True, f"Модель {name} в кэше {whisper_cache_dir().name}."
+
+        if key == "piper":
+            from jarvis.tts_engines.piper import PiperEngine
+
+            voice, quality = piper_voice(config)
+            progress(None, f"Скачиваю голос Piper {voice}/{quality} (~60 МБ)…")
+            PiperEngine(voice, quality, 1.15)
+            progress(1.0, "Голос Piper скачан.")
+            return True, f"Голос {voice}/{quality} в кэше Hugging Face."
+
+        if key == "silero":
+            from jarvis.tts_engines.silero import SileroEngine
+
+            progress(None, "Готовлю Silero: torch.hub скачает модель (~150 МБ)…")
+            SileroEngine()
+            progress(1.0, "Silero готов.")
+            return True, "Модель Silero в torch-кэше."
+
+        if key == "ollama":
+            model = "qwen2.5:7b-instruct"
+            url = "http://127.0.0.1:11434"
+            if config is not None:
+                model = str(config.get("llm_model") or model)
+                url = str(config.get("ollama_url") or url)
+            return _ollama_pull(url, model, progress)
+    except Exception as error:
+        log.exception("engines: установка %s не удалась", key)
+        return False, f"Установка не удалась: {type(error).__name__}"
+    return False, "Этот движок не скачивается: он системный или настраивается иначе."
+```
+
 ### `jarvis/files.py`
 
 ```python
@@ -10493,7 +11216,9 @@ def _brand_image(name: str, size: int, label: str = ""):
 
 
 HOME_TAB = 6  # Existing 0..5 IDs stay stable for tray/audio/preferences callbacks.
-NAV_ORDER = (HOME_TAB, 0, 1, 2, 3, 4, 5)
+CLOUD_TAB = 7
+ENGINES_TAB = 8
+NAV_ORDER = (HOME_TAB, 0, 1, 2, 3, 4, 5, CLOUD_TAB, ENGINES_TAB)
 
 NAV_ITEMS = (
     ("Диалог", ft.Icons.CHAT_BUBBLE_OUTLINE),
@@ -10503,6 +11228,8 @@ NAV_ITEMS = (
     ("Настройки", ft.Icons.TUNE),
     ("Мои команды", ft.Icons.ACCOUNT_TREE_OUTLINED),
     ("Главная", ft.Icons.HOME_OUTLINED),
+    ("Облако", ft.Icons.CLOUD_OUTLINED),
+    ("Движки", ft.Icons.MEMORY),
 )
 
 
@@ -10527,6 +11254,8 @@ class FenixGUI:
         # Трей: если иконка поднялась (jarvis.tray.start_tray), закрытие
         # окна крестиком сворачивает Феникса в трей, а не убивает процесс.
         self.tray_active = False
+        # Выход из меню трея: закрытие окна — это выход, а не сворачивание.
+        self._quitting = False
 
         # Состояние
         self._state = "idle"
@@ -10656,25 +11385,31 @@ class FenixGUI:
         self._queue.put(("open_settings_tab", None))
 
     def quit(self) -> None:
-        """Закрывает Феникса целиком — для пункта «Выход» в трее. ... [5 строк]"""
+        """Закрывает Феникса целиком — для пункта «Выход» в трее. ... [11 строк]"""
+        self._quitting = True
         self._queue.put(("stop", None))
         if self._home is not None:
             self._home.dispose()
+        page = self._page
+        if page is None:
+            return
         try:
-            if self._page is not None:
-                self._page.window.prevent_close = False
-                import inspect
-                close = self._page.window.close
-                if inspect.iscoroutinefunction(close):
-                    async def close_window():
-                        await close()
-                        log.info("GUI: окно закрыто (выход)")
-                    self._page.run_task(close_window)
-                else:
-                    close()  # compatibility with synchronous Flet/test adapters
+            import inspect
+
+            close = page.window.close
+            page.window.prevent_close = False
+            if inspect.iscoroutinefunction(close):
+                async def close_window():
+                    page.update()  # сброс prevent_close доходит до клиента
+                    await close()
                     log.info("GUI: окно закрыто (выход)")
+                page.run_task(close_window)
+            else:
+                page.update()
+                close()  # compatibility with synchronous Flet/test adapters
+                log.info("GUI: окно закрыто (выход)")
         except Exception:
-            log.exception("GUI: не удалось закрыть окно")
+            log.exception("Не удалось закрыть окно")
 
     def add_message(self, role: str, text: str) -> None:
         self._queue.put(("message", (role, text)))
@@ -10793,6 +11528,8 @@ class FenixGUI:
             4: self._build_settings_tab(),
             5: self._build_commands_tab(),
             HOME_TAB: self._build_home_tab(),
+            CLOUD_TAB: self._build_cloud_tab(),
+            ENGINES_TAB: self._engines(),
         }
 
         self._content_area = ft.Container(
@@ -11090,6 +11827,29 @@ class FenixGUI:
             self._preference_screens = PreferenceScreens(self)
         return self._preference_screens
 
+    def _engines(self):
+        if getattr(self, "_engines_screen", None) is None:
+            from jarvis.gui_engines import EnginesScreen
+            self._engines_screen = EnginesScreen(self)
+        return self._engines_screen
+
+    def _build_engines_tab(self) -> ft.Control:
+        # Пересобираем при каждом открытии: статус читается с диска заново,
+        # и только здесь запускается фоновый опрос локальной Ollama. На старте
+        # приложения и при смене темы сеть не трогается.
+        screen = getattr(self, "_engines_screen", None)
+        if screen is not None and screen.is_busy():
+            return screen
+        from jarvis.gui_engines import EnginesScreen
+        self._engines_screen = EnginesScreen(self)
+        self._engines_screen.check_ollama_async()
+        return self._engines_screen
+
+    def _build_cloud_tab(self) -> ft.Control:
+        from jarvis.gui_cloud import CloudScreen
+        self._cloud_screen = CloudScreen(self)
+        return self._cloud_screen
+
     def _build_persona_tab(self) -> ft.Control:
         return self._preferences().build_persona()
 
@@ -11305,6 +12065,22 @@ class FenixGUI:
                     self._page.run_task(
                         self._launch_fireworks_async, float(value or 6.0)
                     )
+                elif kind in ("engines_status", "engines_progress", "engines_done"):
+                    screen = getattr(self, "_engines_screen", None)
+                    if screen is None:
+                        continue
+                    if kind == "engines_status":
+                        screen.on_status(value)
+                    elif kind == "engines_progress":
+                        screen.on_progress(value)
+                    else:
+                        screen.on_done(value)
+                    continue  # экран обновляет только свои контролы
+                elif kind == "cloud_probe":
+                    screen = getattr(self, "_cloud_screen", None)
+                    if screen is not None:
+                        screen.on_probe(value)
+                    continue
 
                 try:
                     self._page.update()
@@ -11636,6 +12412,12 @@ class FenixGUI:
 
     def _on_window_close(self, e) -> None:
         """Крестик в заголовке: с треем — свернуть туда, без трея — выйти. ... [4 строк]"""
+        if self._quitting:
+            # Сюда приходит CLOSE уже во время выхода из меню трея: сворачивать
+            # нечего, иначе окно прячется вместо закрытия и журнал врёт, что
+            # Феникс "продолжает слушать" после «Выход».
+            log.info("GUI: выход — окно закрывается без сворачивания")
+            return
         if not self.tray_active:
             log.info("GUI: трея нет — окно закрывается штатно (выход)")
             return
@@ -11667,6 +12449,12 @@ class FenixGUI:
             self._tabs[4] = self._build_settings_tab()
         if index == 5:
             self._tabs[5] = self._build_commands_tab()
+        elif index == CLOUD_TAB:
+            # Идущая проверка ключа не должна пропасть из-за пересборки экрана.
+            if not getattr(self, "_cloud_screen", None) or not self._cloud_screen.is_busy():
+                self._tabs[CLOUD_TAB] = self._build_cloud_tab()
+        elif index == ENGINES_TAB:
+            self._tabs[ENGINES_TAB] = self._build_engines_tab()
         self._rail.selected_index = index
         if index == 0 and getattr(self, "_model_label", None) is not None:
             self._model_label.value = self._model_caption()
@@ -11885,6 +12673,8 @@ class FenixGUI:
             2: self._build_audio_tab(), 3: self._build_persona_tab(),
             4: self._build_settings_tab(), 5: self._build_commands_tab(),
             HOME_TAB: self._build_home_tab(),
+            CLOUD_TAB: self._build_cloud_tab(),
+            ENGINES_TAB: self._engines(),
         }
         if error and self._error_text is not None:
             self._error_text.value = error
@@ -12408,6 +13198,546 @@ class SoundSettings:
         self.apply_result("voice", "Темп изменён. Прослушайте пробу ещё раз.")
 ```
 
+### `jarvis/gui_cloud.py`
+
+```python
+"""Вкладка «Облако»: провайдер, ключ, приватность и проверка ключа. ... [6 строк]"""
+
+from __future__ import annotations
+
+import logging
+import threading
+
+import flet as ft
+
+from jarvis import cloud_llm
+from jarvis.gui_preferences import (
+    _palette,
+    _secrets,
+    button,
+    card,
+    cloud_providers,
+    consent_summary,
+    divider,
+    input_border,
+    probe_cloud,
+    record_cloud_consent,
+    text,
+    validated_cloud_settings,
+)
+
+log = logging.getLogger("jarvis.gui_cloud")
+
+CLOUD_KEYS = ("cloud_enabled", "cloud_provider", "cloud_base_url", "cloud_model",
+              "cloud_timeout", "cloud_max_tokens", "cloud_send_profile")
+TIMEOUTS = {"30": 30.0, "60": 60.0, "120": 120.0, "180": 180.0}
+SENT_ALWAYS = ("Уходит провайдеру: текст реплики, недавние реплики этого диалога "
+               "и системная инструкция. Через HTTPS — открытый http разрешён "
+               "только для localhost.")
+SENT_PROFILE = ("При включённом переключателе ниже дополнительно уходят персона, "
+                "настроение и найденные факты памяти: это личные данные.")
+
+
+def _timeout_key(value):
+    for key, seconds in TIMEOUTS.items():
+        if abs(float(value or 0) - seconds) < 0.01:
+            return key
+    return "60"
+
+
+class CloudScreen(ft.Container):
+    def __init__(self, gui):
+        super().__init__(expand=True)
+        self.gui = gui
+        self.draft = {}
+        self.baseline = {}
+        self.fields = {}
+        self.key_field = None
+        self.key_status = None
+        self.probe_status = "Ключ ещё не проверялся."
+        self.probe_label = None
+        self.probe_button = None
+        self.notice = ""
+        self.notice_control = None
+        self.error = False
+        self.probe_busy = False
+        self.probe_lock = threading.Lock()
+        self.probe_generation = 0
+        self.load()
+        self.content = self.build()
+
+    # --- данные -------------------------------------------------------
+    def load(self):
+        self.draft = {key: self.gui.config.get(key) for key in CLOUD_KEYS}
+        self.draft["cloud_timeout"] = float(self.draft.get("cloud_timeout") or 60.0)
+        self.draft["cloud_max_tokens"] = int(self.draft.get("cloud_max_tokens") or 600)
+        if self.draft.get("cloud_provider") not in cloud_llm.PROVIDERS:
+            self.draft["cloud_provider"] = "openai"
+        self.baseline = dict(self.draft)
+
+    def _update(self, *controls):
+        page = getattr(self.gui, "_page", None)
+        if page is None:
+            return
+        try:
+            page.update(*controls)
+        except Exception:
+            log.debug("Облако: update пропущен", exc_info=True)
+
+    # --- построение ---------------------------------------------------
+    def build(self):
+        self.fields = {}
+        p = _palette()
+        mode_text = text(self._mode_summary(), 14, muted=True)
+        self.mode_label = mode_text
+        intro = card("Кто отвечает", "Облако включается переключателем и работает только с сохранённым ключом.", [
+            self._toggle("cloud_enabled", "Отвечать через облако",
+                         "Выключено — отвечает локальная Ollama. Включено — текст реплики уходит провайдеру."),
+            mode_text, divider(),
+            self._select("cloud_provider", "Провайдер", cloud_providers()),
+            self._field("cloud_base_url", "Адрес API", max_length=2048),
+            self._field("cloud_model", "Модель", max_length=256),
+            ft.Row([self._timeout_select(), self._field("cloud_max_tokens", "Лимит токенов ответа",
+                                                        max_length=5)], spacing=12),
+        ])
+        key_card = card("Ключ доступа", "Ключ API не попадает в config.json и в черновик.", [
+            self._key_field(p), self._key_status_text(),
+            ft.Row([button("Сохранить ключ", self.save_key, primary=True),
+                    button("Удалить ключ", self.delete_key)], wrap=True, spacing=8,
+                   run_spacing=8),
+            self._probe_label_text(), self._probe_button(),
+            divider(),
+            text("Ключ шифруется Windows DPAPI и лежит в %APPDATA%\\Phoenix\\secrets. "
+                 "Проверка ключа запрашивает только список моделей: она не отправляет "
+                 "ваш текст и не доказывает качество ответа.", 13, muted=True),
+        ])
+        privacy = card("Приватность", "Что именно уходит наружу.", [
+            text(SENT_ALWAYS, 13, muted=True),
+            self._toggle("cloud_send_profile", "Отправлять персону и память",
+                         "По умолчанию наружу идёт только реплика. Включение добавит "
+                         "характер, настроение и факты из памяти."),
+            text(SENT_PROFILE, 13, muted=True),
+            self._consent_text(),
+        ])
+        diagnostics = card("Проверка", "Факты вместо обещаний.", [
+            text(self._diagnostics(), 13, muted=True),
+            ft.Row([button("Открыть «Движки»", self.open_engines),
+                    button("Перечитать настройки", lambda e: self.reload())],
+                   wrap=True, spacing=8, run_spacing=8),
+        ])
+        self.notice_control = text(self.notice or "Изменения применятся после сохранения.", 13,
+                                   muted=True)
+        if self.error:
+            self.notice_control.color = p.error
+        footer = ft.Row([button("Сохранить", self.save, primary=True),
+                         button("Отменить изменения", self.cancel),
+                         button("Проверить ключ", self.start_probe)], wrap=True,
+                        spacing=8, run_spacing=8)
+        return ft.Container(bgcolor=p.bg, padding=28, content=ft.Column([
+            ft.Text("ОБЛАЧНАЯ МОДЕЛЬ", size=12, color=p.accent),
+            text("Облако", 32, weight=ft.FontWeight.W_600),
+            text("Ответы через провайдера API. Локальная Ollama остаётся запасным "
+                 "вариантом и продолжает работать для команд.", 16, muted=True),
+            ft.Container(height=4), intro, key_card, privacy, diagnostics,
+            divider(), footer, self.notice_control,
+        ], spacing=16, scroll=ft.ScrollMode.AUTO, expand=True))
+
+    # --- мелкие контролы ----------------------------------------------
+    def _toggle(self, key, title, description):
+        p = _palette()
+        control = ft.Switch(value=bool(self.draft.get(key)), active_color=p.accent,
+                            on_change=lambda e, k=key: self.change(k, bool(e.control.value)))
+        self.fields[key] = control
+        return ft.Row([ft.Column([text(title, 15), text(description, 13, muted=True)],
+                                 spacing=2, expand=True), control],
+                      vertical_alignment=ft.CrossAxisAlignment.CENTER)
+
+    def _field(self, key, label, max_length=None):
+        p = _palette()
+        control = ft.TextField(label=label, value=str(self.draft.get(key) or ""),
+                               on_change=lambda e, k=key: self.change(k, e.control.value),
+                               border=input_border(), color=p.text, text_size=15,
+                               label_style=ft.TextStyle(color=p.dim), bgcolor=p.field,
+                               max_length=max_length, counter="")
+        self.fields[key] = control
+        return control
+
+    def _select(self, key, label, options):
+        p = _palette()
+        current = self.draft.get(key)
+        if current not in options:
+            options = {**options, str(current): str(current)}
+        control = ft.Dropdown(label=label, value=current,
+                              options=[ft.dropdown.Option(k, v) for k, v in options.items()],
+                              on_select=lambda e, k=key: self.change(k, e.control.value),
+                              border=input_border(), color=p.text, bgcolor=p.field,
+                              text_size=15, label_style=ft.TextStyle(color=p.dim))
+        self.fields[key] = control
+        return control
+
+    def _timeout_select(self):
+        p = _palette()
+        labels = {"30": "30 секунд", "60": "60 секунд", "120": "2 минуты",
+                  "180": "3 минуты"}
+        current = _timeout_key(self.draft.get("cloud_timeout"))
+        control = ft.Dropdown(
+            label="Таймаут ответа", value=current,
+            options=[ft.dropdown.Option(key, labels[key]) for key in TIMEOUTS],
+            on_select=lambda e: self.change("cloud_timeout", TIMEOUTS[e.control.value]),
+            border=input_border(), color=p.text, bgcolor=p.field, text_size=15,
+            label_style=ft.TextStyle(color=p.dim))
+        self.fields["cloud_timeout"] = control
+        return control
+
+    def _key_field(self, p):
+        self.key_field = ft.TextField(
+            label="Ключ API", hint_text="sk-…", password=True, can_reveal_password=True,
+            max_length=4096, counter="", text_size=15, border=input_border(),
+            color=p.text, label_style=ft.TextStyle(color=p.dim), bgcolor=p.field)
+        return self.key_field
+
+    def _key_status_text(self):
+        try:
+            from jarvis import secrets_store
+
+            present = secrets_store.has_secret(secrets_store.CLOUD_LLM_KEY)
+            label = (secrets_store.secret_fingerprint(secrets_store.CLOUD_LLM_KEY)
+                     or "") if present else ""
+        except Exception:
+            present, label = False, ""
+        value = (f"Ключ сохранён (отпечаток {label})." if present
+                 else "Ключ не сохранён.")
+        self.key_status = text(value, 13, muted=True)
+        return self.key_status
+
+    def _probe_label_text(self):
+        self.probe_label = text(self.probe_status, 13, muted=True)
+        return self.probe_label
+
+    def _probe_button(self):
+        self.probe_button = button("Проверяю…" if self.probe_busy else "Проверить ключ",
+                                   self.start_probe, disabled=self.probe_busy)
+        return self.probe_button
+
+    def _consent_text(self):
+        self.consent_label = text(consent_summary(), 13, muted=True)
+        return self.consent_label
+
+    def _mode_summary(self):
+        config = self.gui.config
+        local = str(config.get("llm_model") or "модель не выбрана")
+        try:
+            from jarvis import secrets_store
+
+            has_key = secrets_store.has_secret(secrets_store.CLOUD_LLM_KEY)
+        except Exception:
+            has_key = False
+        if self.draft.get("cloud_enabled") and has_key:
+            provider = cloud_llm.provider_label(str(self.draft.get("cloud_provider")))
+            return f"Сейчас отвечает облако: {provider}, {self.draft.get('cloud_model') or 'модель не выбрана'}."
+        if self.draft.get("cloud_enabled"):
+            return "Облако включено, но ключа нет: Феникс ответит локальной Ollama."
+        return f"Сейчас отвечает локальная Ollama: {local}."
+
+    def _diagnostics(self):
+        lines = [self._mode_summary()]
+        pending = [key for key in CLOUD_KEYS if self._normalized(key) != self.baseline.get(key)]
+        lines.append("Несохранённых изменений нет." if not pending
+                     else "Не сохранено: " + ", ".join(sorted(pending)) + ".")
+        try:
+            from jarvis import secrets_store
+
+            if secrets_store.has_secret(secrets_store.CLOUD_LLM_KEY):
+                lines.append("Отпечаток сохранённого ключа: "
+                             + (secrets_store.secret_fingerprint(secrets_store.CLOUD_LLM_KEY) or "?")
+                             + ". Весь ключ не показывается и не логируется.")
+        except Exception:
+            lines.append("Хранилище ключа недоступно в этом окружении.")
+        lines.append("Проверка ключа = один запрос списка моделей. Генерация не проверялась.")
+        return " ".join(lines)
+
+    # --- изменения черновика -----------------------------------------
+    def _normalized(self, key):
+        value = self.draft.get(key)
+        if key == "cloud_timeout":
+            return float(value or 60.0)
+        if key == "cloud_max_tokens":
+            try:
+                return int(value)
+            except (TypeError, ValueError):
+                return value
+        return value
+
+    def change(self, key, value):
+        previous = self.draft.get(key)
+        self.draft[key] = value
+        self.notice, self.error = "Есть несохранённые изменения.", False
+        if key == "cloud_provider" and previous != value:
+            self._apply_preset(previous, value)
+        if key in ("cloud_provider", "cloud_base_url", "cloud_model"):
+            # Старый результат относился к другим параметрам: он больше не факт.
+            self.probe_generation += 1
+            self.probe_status = "Параметры изменены. Проверьте ключ заново."
+        self._sync_presentation()
+
+    def _apply_preset(self, previous, provider):
+        """Адрес и модель нового провайдера — только если человек их не менял."""
+        old = cloud_llm.PROVIDERS.get(str(previous), {}) or {}
+        new = cloud_llm.PROVIDERS.get(str(provider), {}) or {}
+        for key, field in (("cloud_base_url", "base_url"), ("cloud_model", "model")):
+            current = str(self.draft.get(key) or "")
+            old_preset = str(old.get(field) or "")
+            new_preset = str(new.get(field) or "")
+            if not new_preset or (current and current != old_preset):
+                continue
+            self.draft[key] = new_preset
+            control = self.fields.get(key)
+            if control is not None:
+                control.value = new_preset
+
+    def _sync_presentation(self):
+        """Обновляет подписи, но не поле ввода: оно набирается пользователем."""
+        targets = [self.notice_control]
+        if self.notice_control is not None:
+            self.notice_control.value = self.notice
+            self.notice_control.color = _palette().error if self.error else _palette().dim
+        if getattr(self, "mode_label", None) is not None:
+            self.mode_label.value = self._mode_summary()
+            targets.append(self.mode_label)
+        if self.probe_label is not None:
+            self.probe_label.value = self.probe_status
+            targets.append(self.probe_label)
+        self._update(*[c for c in targets if c is not None])
+
+    # --- сохранение ---------------------------------------------------
+    def save(self, e=None):
+        self.error = True
+        try:
+            provider = str(self.draft.get("cloud_provider") or "")
+            base_url, model = validated_cloud_settings(
+                provider, self.draft.get("cloud_base_url"), self.draft.get("cloud_model"))
+            if type(self.draft.get("cloud_enabled")) is not bool or \
+                    type(self.draft.get("cloud_send_profile")) is not bool:
+                raise ValueError("Проверьте переключатели облака.")
+            try:
+                timeout = float(self.draft.get("cloud_timeout") or 60.0)
+                tokens = int(self.draft.get("cloud_max_tokens"))
+            except (TypeError, ValueError):
+                raise ValueError("Таймаут и лимит токенов должны быть числами.") from None
+            if not 5.0 <= timeout <= 600.0:
+                raise ValueError("Таймаут облака: от 5 до 600 секунд.")
+            if not 50 <= tokens <= 8192:
+                raise ValueError("Лимит токенов ответа: от 50 до 8192.")
+            normalized = {
+                "cloud_enabled": self.draft["cloud_enabled"],
+                "cloud_provider": provider,
+                "cloud_base_url": base_url,
+                "cloud_model": model,
+                "cloud_timeout": timeout,
+                "cloud_max_tokens": tokens,
+                "cloud_send_profile": self.draft["cloud_send_profile"],
+            }
+            changes = {key: value for key, value in normalized.items()
+                       if value != self.baseline.get(key)}
+            if any(self.gui.config.get(key) != self.baseline.get(key) for key in changes):
+                raise ValueError("Эти настройки изменены другим действием: сохранение "
+                                 "отменено, перечитайте значения.")
+            if not self.gui.config.update(
+                    changes, expected_values={k: self.baseline.get(k) for k in changes}):
+                raise ValueError("Не удалось записать настройки: прежние значения "
+                                 "не изменены.")
+            self.load()
+            self.error = False
+            self.notice = "Изменений нет." if not changes else "Настройки облака сохранены."
+            if normalized["cloud_enabled"] and not self._key_saved():
+                self.notice += (" Ключ не сохранён: без него облако не заработает, "
+                                "ответы останутся локальными.")
+            if "cloud_send_profile" in changes:
+                if record_cloud_consent(normalized["cloud_send_profile"]):
+                    self.notice += " След согласия записан в профиль."
+                else:
+                    self.notice += " След согласия записать не удалось: профиль недоступен."
+            if "cloud_max_tokens" in changes or "cloud_timeout" in changes:
+                self.notice += " Новые лимиты применятся к следующему запросу."
+            if getattr(self.gui, "_model_label", None) is not None:
+                self.gui._model_label.value = self.gui._model_caption()
+        except ValueError as error:
+            self.notice, self.error = str(error), True
+        self.content = self.build()
+        self._update()
+
+    def cancel(self, e=None):
+        self.load()
+        self.probe_generation += 1
+        self.probe_status = "Черновик отменён. Ключ не проверялся."
+        self.notice, self.error = "Черновик отменён.", False
+        self.content = self.build()
+        self._update()
+
+    def reload(self):
+        self.load()
+        self.content = self.build()
+        self._update()
+
+    def open_engines(self, e=None):
+        from jarvis.gui import ENGINES_TAB
+
+        if self.gui._page is not None:
+            self.gui._select_tab(ENGINES_TAB)
+
+    # --- ключ ---------------------------------------------------------
+    def _key_saved(self):
+        try:
+            from jarvis import secrets_store
+
+            return secrets_store.has_secret(secrets_store.CLOUD_LLM_KEY)
+        except Exception:
+            return False
+
+    def _key_changed(self, message, error=False, clear=False):
+        self.notice, self.error = message, error
+        if clear and self.key_field is not None:
+            self.key_field.value = ""
+        if self.key_status is not None:
+            self.key_status.value = ("Ключ сохранён (отпечаток " + _fingerprint() + ")."
+                                     if self._key_saved() else "Ключ не сохранён.")
+        if self.notice_control is not None:
+            self.notice_control.value = message
+            self.notice_control.color = _palette().error if error else _palette().dim
+        self._update(*[c for c in (self.key_field, self.key_status, self.notice_control,
+                                   self.probe_label) if c is not None])
+
+    def save_key(self, e=None):
+        value = (self.key_field.value or "").strip() if self.key_field is not None else ""
+        if not value:
+            self._key_changed("Введите ключ: пустое поле сохранять нечего.", True)
+            return False
+        try:
+            store = _secrets()
+            store.save_secret(store.CLOUD_LLM_KEY, value)
+        except (ImportError, ValueError, RuntimeError, OSError) as error:
+            log.warning("Ключ облака не сохранён: %s", type(error).__name__)
+            self._key_changed("Ключ не сохранён: " + str(error), True)
+            return False
+        self.probe_generation += 1
+        self.probe_status = "Ключ сохранён. Проверьте его кнопкой «Проверить ключ»."
+        self._key_changed("Ключ сохранён зашифрованным.", False, clear=True)
+        return True
+
+    def delete_key(self, e=None):
+        try:
+            store = _secrets()
+            removed = store.delete_secret(store.CLOUD_LLM_KEY)
+        except (ImportError, ValueError, RuntimeError, OSError) as error:
+            log.warning("Ключ облака не удалён: %s", type(error).__name__)
+            self._key_changed("Ключ не удалён: " + str(error), True)
+            return False
+        if not removed:
+            self._key_changed("Ключ удалить не удалось: файл занят или нет прав.", True)
+            return False
+        self.probe_generation += 1
+        self.probe_status = "Ключ удалён. Проверять нечего."
+        self._key_changed("Ключ удалён из хранилища Windows.", False, clear=True)
+        return True
+
+    def start_probe(self, e=None):
+        if self.probe_busy:
+            return False
+        try:
+            provider = str(self.draft.get("cloud_provider") or "")
+            base_url, model = validated_cloud_settings(
+                provider, self.draft.get("cloud_base_url"), self.draft.get("cloud_model"))
+        except ValueError as error:
+            self.probe_status = str(error)
+            self._key_changed(str(error), True)
+            return False
+        try:
+            store = _secrets()
+            key = store.load_secret(store.CLOUD_LLM_KEY)
+        except (ImportError, ValueError, RuntimeError, OSError):
+            key = None
+        if not key:
+            self.probe_status = "Ключ не сохранён. Проверять нечего."
+            self._key_changed("Сначала сохраните ключ: без него запрос отправлять нечего.", True)
+            return False
+        if not self.probe_lock.acquire(blocking=False):
+            return False
+        self.probe_generation += 1
+        token = self.probe_generation
+        self.probe_busy = True
+        self.probe_status = "Проверяю ключ: запрашиваю список моделей…"
+        self._sync_probe()
+        self._update()
+        token = self.probe_generation
+
+        def run():
+            try:
+                report, error = probe_cloud(provider, base_url, model, key), None
+            except cloud_llm.CloudAuthError:
+                report, error = None, "Ключ не принят (401/403). Проверьте ключ и провайдера."
+            except cloud_llm.CloudLLMError as error_object:
+                report, error = None, str(error_object)[:300]
+            except ValueError as error_object:
+                report, error = None, str(error_object)
+            except Exception:
+                report, error = None, ("Проверка не удалась. Проверьте адрес, "
+                                       "интернет и доступность провайдера.")
+            self.gui._queue.put(("cloud_probe", (token, report, error)))
+
+        try:
+            threading.Thread(target=run, daemon=True, name="gui-cloud-tab-probe").start()
+        except Exception:
+            self.probe_busy = False
+            if self.probe_lock.locked():
+                self.probe_lock.release()
+            self.probe_status = "Не удалось запустить проверку. Настройки не изменены."
+            self._sync_probe()
+            self._update()
+            return False
+        return True
+
+    def _sync_probe(self):
+        if self.probe_label is not None:
+            self.probe_label.value = self.probe_status
+        if self.probe_button is not None:
+            self.probe_button.disabled = self.probe_busy
+            self.probe_button.content = "Проверяю…" if self.probe_busy else "Проверить ключ"
+
+    def on_probe(self, value):
+        token, report, error = value
+        self.probe_busy = False
+        if self.probe_lock.locked():
+            try:
+                self.probe_lock.release()
+            except RuntimeError:
+                pass
+        if token == self.probe_generation:
+            if error:
+                self.probe_status = str(error)[:300]
+            else:
+                report = report if isinstance(report, dict) else {}
+                label = cloud_llm.provider_label(str(report.get("provider") or ""))
+                count = report.get("models")
+                found = (f"Список моделей получен: {count} шт." if isinstance(count, int)
+                         else "Список моделей получен.")
+                self.probe_status = (f"Ключ принят: {label}. {found} Генерация и "
+                                     "качество ответа не проверялись.")
+        self._sync_probe()
+        self._update(self.probe_label, self.probe_button)
+
+    def is_busy(self) -> bool:
+        return bool(self.probe_busy)
+
+
+def _fingerprint():
+    try:
+        from jarvis import secrets_store
+
+        return secrets_store.secret_fingerprint(secrets_store.CLOUD_LLM_KEY) or "?"
+    except Exception:
+        return "?"
+```
+
 ### `jarvis/gui_commands.py`
 
 ```python
@@ -12716,6 +14046,211 @@ class CommandBuilder:
     def _keep(self):
         self.confirm_delete = None
         self.refresh()
+```
+
+### `jarvis/gui_engines.py`
+
+```python
+"""Вкладка «Движки»: что скачано, что включено и установка по кнопке. ... [6 строк]"""
+
+from __future__ import annotations
+
+import logging
+import threading
+
+import flet as ft
+
+from jarvis import engines
+from jarvis.gui_preferences import _palette, button, card, divider, text
+
+log = logging.getLogger("jarvis.gui_engines")
+
+GROUP_TITLES = {
+    engines.GROUP_STT: ("Распознавание речи", "Звук превращается в текст."),
+    engines.GROUP_TTS: ("Синтез речи", "Ответ озвучивается."),
+    engines.GROUP_LLM: ("Языковые модели", "Модель отвечает и разбирает команды."),
+}
+
+
+class EnginesScreen(ft.Container):
+    def __init__(self, gui):
+        super().__init__(expand=True)
+        self.gui = gui
+        self.items = []
+        self.progress = {}     # key -> (доля | None, сообщение)
+        self.messages = {}     # key -> (текст, ошибка: bool)
+        self.bars = {}         # key -> ft.ProgressBar
+        self.texts = {}        # key -> ft.Text
+        self._busy = set()
+        self._install_lock = threading.Lock()
+        self._ollama_thread = None
+        self.ollama_status = None
+        self.reload()
+
+    # --- построение ---------------------------------------------------
+    def _config(self):
+        return self.gui.config
+
+    def _update(self, *controls):
+        page = getattr(self.gui, "_page", None)
+        if page is None:
+            return
+        try:
+            page.update(*(controls or (self,)))
+        except Exception:
+            log.debug("Движки: update пропущен", exc_info=True)
+
+    def reload(self):
+        """Пересобирает экран по текущему состоянию диска и конфига."""
+        names = None
+        if isinstance(self.ollama_status, dict) and self.ollama_status.get("local"):
+            names = self.ollama_status.get("names")
+        self.items = engines.catalog(self._config(), ollama_names=names)
+        self.bars, self.texts = {}, {}
+        p = _palette()
+        groups = []
+        for group in (engines.GROUP_STT, engines.GROUP_TTS, engines.GROUP_LLM):
+            rows = [self._row(item) for item in self.items if item.group == group]
+            if not rows:
+                continue
+            title, subtitle = GROUP_TITLES[group]
+            groups.append(card(title, subtitle, rows))
+        self.content = ft.Container(bgcolor=p.bg, padding=28, content=ft.Column([
+            ft.Text("УСТАНОВЛЕННОЕ И ВКЛЮЧЁННОЕ", size=12, color=p.accent),
+            text("Движки", 32, weight=ft.FontWeight.W_600),
+            text("Что уже на диске, что включено сейчас и что можно скачать здесь же.", 16,
+                 muted=True),
+            ft.Row([button("Обновить список", lambda e: self.reload()),
+                    button("Проверить Ollama", lambda e: self.check_ollama_async())],
+                   wrap=True, spacing=8, run_spacing=8),
+            ft.Container(height=4), *groups, divider(),
+            text("Скачивание запускается только кнопкой и идёт в фоне — окно не "
+                 "замирает. Источники: alphacephei.com (Vosk), Hugging Face "
+                 "(Whisper, Piper), torch.hub (Silero), сервер Ollama.", 13, muted=True),
+        ], spacing=16, scroll=ft.ScrollMode.AUTO, expand=True))
+
+    def _row(self, item):
+        p = _palette()
+        installed = item.installed
+        chip_text = "АКТИВНО" if item.active else ("СКАЧАНО" if installed else "НЕТ")
+        chip_color = p.button_text if item.active else p.dim
+        # Пустой фон у неактивного чипа сливался с карточкой: у "НЕТ" был только
+        # текст. Второй фон + рамка делают состояние читаемым без цвета статуса.
+        chip = ft.Container(
+            ft.Text(chip_text, size=11, color=chip_color),
+            bgcolor=p.accent if item.active else p.bg,
+            border=None if item.active else ft.Border.all(1, p.border),
+            border_radius=6,
+            padding=ft.Padding.symmetric(horizontal=8, vertical=4))
+        header = ft.Row([text(item.title, 16, weight=ft.FontWeight.W_600),
+                         chip], spacing=10)
+        detail = text(item.detail or "", 13, muted=True)
+        message_text, is_error = self.messages.get(item.key, ("", False))
+        message = text(message_text, 13, muted=True)
+        if is_error:
+            message.color = p.error
+        self.texts[item.key] = message
+        fraction, _ = self.progress.get(item.key, (None, ""))
+        bar = ft.ProgressBar(value=fraction, visible=item.key in self._busy,
+                             color=p.accent, bgcolor=p.field, bar_height=4)
+        self.bars[item.key] = bar
+        controls = [header, text(item.description, 13), detail,
+                    bar, message]
+        busy_elsewhere = bool(self._busy - {item.key})
+        if item.key in self._busy:
+            controls.append(text("Устанавливаю…", 13, muted=True))
+        elif item.installable and not installed:
+            controls.append(button(item.install_label or "Установить",
+                                   lambda e, key=item.key: self.start_install(key),
+                                   primary=True, disabled=busy_elsewhere))
+        elif not item.installable:
+            hint = item.hint or ("Системный движок: скачивать нечего." if not item.size_hint else item.size_hint)
+            controls.append(text(hint, 12, muted=True))
+        return ft.Column(controls, spacing=6)
+
+    # --- действия -----------------------------------------------------
+    def start_install(self, key):
+        if key in self._busy or not self._install_lock.acquire(blocking=False):
+            self.messages[key] = ("Дождитесь окончания текущей установки.", True)
+            self.reload()
+            self._update()
+            return
+        self._busy.add(key)
+        self.progress[key] = (None, "Начинаю…")
+        self.reload()
+        self._update()
+        config = self._config()
+
+        def progress(fraction, message):
+            self.gui._queue.put(("engines_progress", (key, fraction, message)))
+
+        def work():
+            try:
+                ok, message = engines.install(key, progress, config)
+            except Exception as error:  # поток не должен умирать молча
+                log.exception("Движки: установка %s упала", key)
+                ok, message = False, f"Установка не удалась: {type(error).__name__}"
+            self.gui._queue.put(("engines_done", (key, ok, message)))
+
+        threading.Thread(target=work, daemon=True, name=f"engine-install-{key}").start()
+
+    def on_progress(self, value):
+        key, fraction, message = value
+        self.progress[key] = (fraction, message)
+        bar = self.bars.get(key)
+        if bar is not None:
+            bar.value = fraction
+            bar.visible = True
+        control = self.texts.get(key)
+        if control is not None:
+            control.value = message
+        self._update()
+
+    def on_done(self, value):
+        key, ok, message = value
+        self._busy.discard(key)
+        self.progress.pop(key, None)
+        self.messages[key] = (message, not ok)
+        if self._install_lock.locked():
+            try:
+                self._install_lock.release()
+            except RuntimeError:
+                log.debug("Движки: замок установки уже свободен")
+        self.reload()
+        self._update()
+
+    def check_ollama_async(self):
+        """Ollama опрашивается в фоне: при построении экрана сети не ждём."""
+        if self._ollama_thread is not None and self._ollama_thread.is_alive():
+            return
+        config = self._config()
+        url = "http://127.0.0.1:11434"
+        try:
+            url = str(config.get("ollama_url") or url)
+        except Exception:
+            log.debug("Движки: адрес Ollama из конфига не прочитан", exc_info=True)
+
+        def work():
+            names = engines.ollama_inventory(url)
+            self.gui._queue.put(("engines_status", (url, names,
+                                                    bool(engines.local_ollama_url(url)))))
+
+        self._ollama_thread = threading.Thread(target=work, daemon=True,
+                                               name="engines-ollama-status")
+        self._ollama_thread.start()
+
+    def on_status(self, value):
+        url, names, local = value
+        self.ollama_status = {"url": url, "names": names, "local": local}
+        self.reload()
+        self._update()
+
+    def is_busy(self) -> bool:
+        """Идёт установка: экран нельзя пересобирать, иначе прогресс потеряется."""
+        return bool(self._busy)
+
+    def dispose(self):
+        pass
 ```
 
 ### `jarvis/gui_home.py`
@@ -13359,14 +14894,14 @@ class PhoenixAura(ft.Container):
 
 ```python
 """Native persona/settings editors. Drafts are not configuration or a second memory. ... [8 строк]"""
-from copy import deepcopy
-from datetime import datetime, timezone
 import json
 import logging
 import threading
+from copy import deepcopy
+from datetime import datetime, timezone
 from types import SimpleNamespace
 from urllib.parse import urlsplit, urlunsplit
-from urllib.request import build_opener, ProxyHandler, HTTPRedirectHandler, Request
+from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
 import flet as ft
 
@@ -13384,13 +14919,9 @@ EXAMPLES = {
     "brief": "Что сделать первым?",
 }
 SETTING_KEYS = ("llm_model", "ollama_url", "observer_enabled", "memory_rag_enabled",
-                "tray_enabled", "launch_mode",
-                # Облако: несекретные параметры. Ключ живёт в secrets_store, не здесь.
-                "cloud_enabled", "cloud_provider", "cloud_base_url", "cloud_model",
-                "cloud_send_profile")
-# Метка результата облачной пробы: очередь preferences_result общая с Ollama-пробой,
-# поэтому результат обязан опознаваться до распаковки кортежа.
-CLOUD_PROBE_TAG = "cloud_probe"
+                "tray_enabled", "launch_mode")
+# Облачные настройки (cloud_*) живут на вкладке «Облако»: второй черновик того же
+# набора ключей в «Настройках» гарантированно разъезжался бы с первым.
 
 
 def validated_url(value):
@@ -13593,17 +15124,6 @@ class PreferenceScreens:
         self.probe_status = "Доступность ещё не проверялась."
         self.probe_label = None
         self.probe_button = None
-        # Облако: ключ не в черновике, поэтому у пробы своё состояние и свой замок.
-        self.cloud_key_field = None
-        self.cloud_key_status = None
-        self.cloud_probe_busy = False
-        self.cloud_probe_thread = None
-        self.cloud_probe_lock = threading.Lock()
-        self.cloud_probe_generation = 0
-        self.cloud_probe_status = "Ключ ещё не проверялся."
-        self.cloud_probe_label = None
-        self.cloud_probe_button = None
-        self.cloud_consent_label = None
         self.preview_title = self.preview_quote = self.preview_details = None
 
     def _update(self):
@@ -13691,24 +15211,14 @@ class PreferenceScreens:
             self.persona_error = False
             self._sync_portrait()
         else:
-            previous = self.settings_draft.get(key)
             self.settings_draft[key] = value
             self.settings_notice = "Есть несохранённые изменения."
             self.settings_error = False
-            if key == "cloud_provider":
-                # Иначе после смены провайдера адрес и модель оставались от
-                # прежнего: ключ уходил на чужой адрес, а человек видел 401.
-                self._apply_cloud_preset(previous, value)
             if key in ("llm_model", "ollama_url"):
                 self.probe_generation += 1
                 self.inventory = None
                 self.probe_status = "Параметры изменены. Проверьте подключение заново."
                 self._sync_probe()
-            if key in ("cloud_provider", "cloud_base_url", "cloud_model"):
-                # Прежний результат относится к другим параметрам: он больше не факт.
-                self.cloud_probe_generation += 1
-                self.cloud_probe_status = "Параметры изменены. Проверьте ключ заново."
-                self._sync_cloud_probe()
         notice = getattr(self, scope + "_notice_control", None)
         if notice is not None:
             notice.value = getattr(self, scope + "_notice")
@@ -13721,29 +15231,8 @@ class PreferenceScreens:
             if scope == "persona":
                 targets += [self.preview_title, self.preview_quote, self.preview_details]
             else:
-                targets += [self.probe_label, self.cloud_probe_label]
-                if key == "cloud_provider":
-                    # Адрес и модель подставлены пресетом: показать это сразу.
-                    targets += [self.settings_fields.get("cloud_base_url"),
-                                self.settings_fields.get("cloud_model")]
+                targets += [self.probe_label]
             self.gui._page.update(*[c for c in targets if c is not None])
-
-    def _apply_cloud_preset(self, previous, provider):
-        """Подставляет адрес и модель пресета нового провайдера. ... [5 строк]"""
-        old = cloud_llm.PROVIDERS.get(str(previous), {})
-        new = cloud_llm.PROVIDERS.get(str(provider), {})
-        if not new:
-            return
-        for key, field in (("cloud_base_url", "base_url"), ("cloud_model", "model")):
-            current = str(self.settings_draft.get(key) or "")
-            old_preset = str(old.get(field) or "")
-            new_preset = str(new.get(field) or "")
-            if not new_preset or (current and current != old_preset):
-                continue
-            self.settings_draft[key] = new_preset
-            control = self.settings_fields.get(key)
-            if control is not None:
-                control.value = new_preset
 
     def _trait_change(self, e):
         self.pending_trait = e.control.value
@@ -13918,65 +15407,6 @@ class PreferenceScreens:
         return ft.Row([ft.Column([text(title, 15), text(description, 13, muted=True)],
                                   spacing=5, expand=True), control], spacing=16)
 
-    def _cloud_key_status_text(self):
-        """Отпечаток вместо ключа. Хранилище опрашивается локально, без сети."""
-        try:
-            store = _secrets()
-        except (ImportError, ValueError, RuntimeError, OSError):
-            return "Хранилище ключей доступно только в Windows."
-        try:
-            if not store.has_secret(store.CLOUD_LLM_KEY):
-                return "Ключа нет."
-            fingerprint = store.secret_fingerprint(store.CLOUD_LLM_KEY)
-        except (ValueError, RuntimeError, OSError):
-            return "Хранилище ключей недоступно: проверьте права Windows."
-        if fingerprint:
-            return "Ключ сохранён, отпечаток " + str(fingerprint)
-        return ("Ключ сохранён, но не расшифровывается: возможно, файл записан "
-                "под другой учётной записью Windows.")
-
-    def _cloud_key_saved(self):
-        """Факт наличия ключа без его чтения: load_secret здесь не нужен."""
-        try:
-            store = _secrets()
-            return bool(store.has_secret(store.CLOUD_LLM_KEY))
-        except (ImportError, ValueError, RuntimeError, OSError):
-            return False
-
-    def _build_cloud_card(self):
-        p = _palette()
-        # Поле ключа намеренно вне settings_draft: значение не показывается
-        # повторно и не уходит в config.json ни при построении, ни при сохранении.
-        self.cloud_key_field = ft.TextField(
-            label="Ключ API", hint_text="sk-…", password=True, can_reveal_password=True,
-            max_length=4096, counter="", text_size=15, border=input_border(),
-            color=p.text, label_style=ft.TextStyle(color=p.dim), bgcolor=p.field)
-        self.cloud_key_status = text(self._cloud_key_status_text(), 13, muted=True)
-        self.cloud_consent_label = text(consent_summary(), 13, muted=True)
-        self.cloud_probe_label = text(self.cloud_probe_status, muted=True)
-        self.cloud_probe_button = button(
-            "Проверяю…" if self.cloud_probe_busy else "Проверить ключ",
-            self.start_cloud_probe, disabled=self.cloud_probe_busy)
-        body = card("Облачная модель", "Ответы через интернет, когда локальной Ollama мало.", [
-            self._toggle("cloud_enabled", "Отвечать через облако",
-                "Текст реплики уходит провайдеру по HTTPS. Локальная Ollama для ответов больше не нужна."),
-            self._select("settings", "cloud_provider", "Провайдер", cloud_providers()),
-            self._field("settings", "cloud_base_url", "Адрес API", max_length=2048),
-            self._field("settings", "cloud_model", "Модель", max_length=256),
-            self.cloud_key_field, self.cloud_key_status,
-            ft.Row([button("Сохранить ключ", self.save_cloud_key, primary=True),
-                    button("Удалить ключ", self.delete_cloud_key)],
-                   wrap=True, spacing=8, run_spacing=8),
-            self.cloud_probe_label, self.cloud_probe_button, divider(),
-            self._toggle("cloud_send_profile", "Отправлять в облако персону и память",
-                "По умолчанию в облако уходит только текст реплики. Включение отправит "
-                "персону, настроение и найденные факты — это личные данные."),
-            self.cloud_consent_label])
-        note = text("Ключ хранится зашифрованным Windows DPAPI в %APPDATA%\\Phoenix\\secrets; "
-                    "в config.json его нет. Открытый http разрешён только для localhost — "
-                    "иначе ключ ушёл бы по сети в читаемом виде.", 13, muted=True)
-        return ft.Column([body, note], spacing=8)
-
     def build_settings(self):
         if self.settings_draft is None:
             self._load_settings()
@@ -13991,7 +15421,10 @@ class PreferenceScreens:
             self.probe_label, self.probe_button,
             text("Проверка читает только список моделей. Не запускает генерацию и не скачивает файлы.", muted=True),
             divider(), text("При удалённом адресе запросы и включённый анализ диалога уходят на выбранный сервер. Слово «локальная» не гарантирует приватность удалённого сервера.", muted=True)])
-        cloud = self._build_cloud_card()
+        cloud = card("Облачная модель", "Провайдер, ключ и приватность — на отдельной вкладке.", [
+            text("Здесь только локальная модель. Облако не смешивается с этими настройками: "
+                 "у него свой черновик, своя проверка ключа и своя запись согласия.", muted=True),
+            button("Открыть «Облако» →", lambda e: self.gui._select_tab(7))])
         privacy = card("Приватность и память", "По умолчанию оба способа обработки выключены.", [
             self._toggle("observer_enabled", "Запоминать факты из диалога",
                 "Observer отправляет недавние сообщения в выбранную Ollama. Факты сохраняются в профиле, диагностика — в observer.log."),
@@ -14027,8 +15460,6 @@ class PreferenceScreens:
         self.probe_generation += 1
         self.inventory = None
         self.probe_status = "Доступность ещё не проверялась."
-        self.cloud_probe_generation += 1
-        self.cloud_probe_status = "Ключ ещё не проверялся."
         self.settings_notice, self.settings_error = "Черновик отменён. Тема не изменена.", False
         self._refresh(4)
 
@@ -14038,122 +15469,6 @@ class PreferenceScreens:
         if self.probe_button is not None:
             self.probe_button.disabled = self.probe_busy
             self.probe_button.content = "Проверяю…" if self.probe_busy else "Проверить подключение"
-
-    def _sync_cloud_probe(self):
-        if self.cloud_probe_label is not None:
-            self.cloud_probe_label.value = self.cloud_probe_status
-        if self.cloud_probe_button is not None:
-            self.cloud_probe_button.disabled = self.cloud_probe_busy
-            self.cloud_probe_button.content = "Проверяю…" if self.cloud_probe_busy else "Проверить ключ"
-
-    def _cloud_key_changed(self, message, error=False, clear_field=False):
-        """Обновляет статус ключа и уведомление, не перерисовывая поля ввода."""
-        self.settings_notice, self.settings_error = message, error
-        if clear_field and self.cloud_key_field is not None:
-            self.cloud_key_field.value = ""
-        if self.cloud_key_status is not None:
-            self.cloud_key_status.value = self._cloud_key_status_text()
-        notice = getattr(self, "settings_notice_control", None)
-        if notice is not None:
-            notice.value = message
-            notice.color = _palette().error if error else _palette().dim
-        self._sync_cloud_probe()
-        if self.gui._page is not None:
-            controls = (self.cloud_key_field, self.cloud_key_status, notice,
-                        self.cloud_probe_label, self.cloud_probe_button)
-            self.gui._page.update(*[c for c in controls if c is not None])
-
-    def save_cloud_key(self, e=None):
-        """Шифрует ключ в DPAPI-хранилище. В черновик и в config.json он не попадает."""
-        value = (self.cloud_key_field.value or "").strip() if self.cloud_key_field is not None else ""
-        if not value:
-            self._cloud_key_changed("Введите ключ: пустое поле сохранять нечего.", True)
-            return False
-        try:
-            store = _secrets()
-            store.save_secret(store.CLOUD_LLM_KEY, value)
-        except (ImportError, ValueError, RuntimeError, OSError) as error:
-            log.warning("Ключ облака не сохранён: %s", type(error).__name__)
-            self._cloud_key_changed("Ключ не сохранён: " + str(error), True)
-            return False
-        self.cloud_probe_generation += 1
-        self.cloud_probe_status = "Ключ сохранён. Проверьте его перед включением облака."
-        self._cloud_key_changed("Ключ сохранён зашифрованным. Проверьте его кнопкой «Проверить ключ».",
-                                False, clear_field=True)
-        return True
-
-    def delete_cloud_key(self, e=None):
-        try:
-            store = _secrets()
-            removed = store.delete_secret(store.CLOUD_LLM_KEY)
-        except (ImportError, ValueError, RuntimeError, OSError) as error:
-            log.warning("Ключ облака не удалён: %s", type(error).__name__)
-            self._cloud_key_changed("Ключ не удалён: " + str(error), True)
-            return False
-        if not removed:
-            self._cloud_key_changed("Ключ удалить не удалось: файл занят или нет прав.", True)
-            return False
-        self.cloud_probe_generation += 1
-        self.cloud_probe_status = "Ключ удалён. Проверять нечего."
-        self._cloud_key_changed("Ключ удалён из хранилища Windows.", False, clear_field=True)
-        return True
-
-    def start_cloud_probe(self, e=None):
-        if self.cloud_probe_busy:
-            return False
-        try:
-            provider = self.settings_draft["cloud_provider"]
-            base_url, model = validated_cloud_settings(
-                provider, self.settings_draft["cloud_base_url"], self.settings_draft["cloud_model"])
-        except ValueError as error:
-            self.cloud_probe_status = str(error)
-            self._cloud_key_changed(str(error), True)
-            return False
-        try:
-            store = _secrets()
-            key = store.load_secret(store.CLOUD_LLM_KEY)
-        except (ImportError, ValueError, RuntimeError, OSError):
-            key = None
-        if not key:
-            self.cloud_probe_status = "Ключ не сохранён. Проверять нечего."
-            self._cloud_key_changed("Сначала сохраните ключ: без него запрос отправлять нечего.", True)
-            return False
-        if not self.cloud_probe_lock.acquire(blocking=False):
-            return False
-        self.cloud_probe_generation += 1
-        token = self.cloud_probe_generation
-        self.cloud_probe_busy = True
-        self.cloud_probe_status = "Проверяю ключ: запрашиваю список моделей…"
-        self._sync_cloud_probe()
-        self._update()
-        def run():
-            try:
-                result = (CLOUD_PROBE_TAG, token, probe_cloud(provider, base_url, model, key), None)
-            except cloud_llm.CloudAuthError:
-                result = (CLOUD_PROBE_TAG, token, None,
-                    "Ключ не принят (401/403). Проверьте ключ и провайдера. Настройки не изменены.")
-            except cloud_llm.CloudLLMError as error:
-                # Модуль вырезает ключ из своих сообщений и обрезает их до 400 символов.
-                result = (CLOUD_PROBE_TAG, token, None, str(error)[:300])
-            except ValueError as error:
-                # Наши же проверки адреса и модели: ключа в этих строках нет.
-                result = (CLOUD_PROBE_TAG, token, None, str(error))
-            except Exception:
-                # Ни текст ответа, ни адрес, ни ключ в статус не попадают.
-                result = (CLOUD_PROBE_TAG, token, None,
-                    "Проверка не удалась. Проверьте адрес, интернет и доступность провайдера. Настройки не изменены.")
-            self.gui._queue.put(("preferences_result", result))
-        try:
-            self.cloud_probe_thread = threading.Thread(target=run, daemon=True, name="gui-cloud-probe")
-            self.cloud_probe_thread.start()
-        except Exception:
-            self.cloud_probe_busy = False
-            self.cloud_probe_lock.release()
-            self.cloud_probe_status = "Не удалось запустить проверку. Настройки не изменены."
-            self._sync_cloud_probe()
-            self._update()
-            return False
-        return True
 
     def start_probe(self, e=None):
         if self.probe_busy:
@@ -14194,8 +15509,6 @@ class PreferenceScreens:
         return True
 
     def apply_probe(self, result):
-        if isinstance(result, tuple) and result and result[0] == CLOUD_PROBE_TAG:
-            return self.apply_cloud_probe(result)
         token, url, names, error = result
         self.probe_busy = False
         if self._probe_lock.locked():
@@ -14214,26 +15527,6 @@ class PreferenceScreens:
         if self.gui._page is not None:
             self.gui._page.update(self.probe_label, self.probe_button)
 
-    def apply_cloud_probe(self, result):
-        _tag, token, report, error = result
-        self.cloud_probe_busy = False
-        if self.cloud_probe_lock.locked():
-            self.cloud_probe_lock.release()
-        if token == self.cloud_probe_generation:
-            if error:
-                self.cloud_probe_status = str(error)[:300]
-            else:
-                report = report if isinstance(report, dict) else {}
-                label = cloud_llm.provider_label(str(report.get("provider") or ""))
-                count = report.get("models")
-                found = (f"Список моделей получен: {count} шт." if isinstance(count, int)
-                         else "Список моделей получен.")
-                self.cloud_probe_status = (f"Ключ принят: {label}. {found} "
-                                           "Генерация и качество ответа не проверялись.")
-        self._sync_cloud_probe()
-        if self.gui._page is not None:
-            self.gui._page.update(self.cloud_probe_label, self.cloud_probe_button)
-
     def save_settings(self, e=None):
         self.settings_error = True
         try:
@@ -14245,17 +15538,12 @@ class PreferenceScreens:
                 raise ValueError("Выберите режим запуска.")
             if d["launch_mode"] == "tray" and not d["tray_enabled"]:
                 raise ValueError("Для запуска только в трее сначала включите «Оставаться в трее».")
-            d["cloud_base_url"], d["cloud_model"] = validated_cloud_settings(
-                d["cloud_provider"], d["cloud_base_url"], d["cloud_model"])
-            for key in ("observer_enabled", "memory_rag_enabled", "tray_enabled",
-                        "cloud_enabled", "cloud_send_profile"):
+            for key in ("observer_enabled", "memory_rag_enabled", "tray_enabled"):
                 if type(d[key]) is not bool:
                     raise ValueError("Проверьте переключатели настроек.")
             # Notify the new endpoint before model warmup in the existing Brain subscriber.
             ordered_keys = ("ollama_url", "llm_model", "observer_enabled", "memory_rag_enabled",
-                            "tray_enabled", "launch_mode",
-                            "cloud_enabled", "cloud_provider", "cloud_base_url", "cloud_model",
-                            "cloud_send_profile")
+                            "tray_enabled", "launch_mode")
             changes = {k: d[k] for k in ordered_keys if d[k] != self.settings_baseline[k]}
             if any(self.gui.config.get(k) != self.settings_baseline[k] for k in changes):
                 raise ValueError("Эти настройки изменены другим действием. Черновик не записан. Отмените изменения, чтобы загрузить актуальные данные.")
@@ -14273,22 +15561,6 @@ class PreferenceScreens:
             self.settings_notice = "Изменений нет." if not changes else "Настройки сохранены."
             if "observer_enabled" in changes or "launch_mode" in changes:
                 self.settings_notice += " Для Observer и режима запуска нужен перезапуск."
-            if d["cloud_enabled"]:
-                # Сохранение не отменяем: настройки валидны, но без ключа облако молчит.
-                if not self._cloud_key_saved():
-                    self.settings_notice += (" Ключ облака не сохранён: без него облако "
-                                             "не заработает, ответы останутся локальными.")
-                if "cloud_send_profile" in changes and d["cloud_send_profile"]:
-                    self.settings_notice += " В облако будут отправляться персона и память."
-            if "cloud_send_profile" in changes:
-                # След согласия — отдельно от настроек: сам переключатель решает,
-                # что уходит, а запись в профиле объясняет когда и в какой
-                # редакции текста это разрешили. Провал записи не отменяет настройку.
-                if record_cloud_consent(d["cloud_send_profile"]):
-                    if self.cloud_consent_label is not None:
-                        self.cloud_consent_label.value = consent_summary()
-                else:
-                    self.settings_notice += " Согласие не записано в профиль: профиль недоступен."
             if getattr(self.gui, "_model_label", None) is not None:
                 self.gui._model_label.value = self.gui._model_caption()
         except ValueError as error:
@@ -14313,6 +15585,9 @@ log = logging.getLogger(__name__)
 COMPACT = 76
 EXPANDED = 252
 HEIGHT = 48
+# Индексы со своим брендовым PNG; у остальных вкладок — обычная иконка NAV_ITEMS.
+_NAV_BRANDS = {0: "dialog", 1: "microphone", 2: "audio", 3: "persona",
+               4: "settings", 5: "commands"}
 
 
 def _ui():
@@ -14409,6 +15684,17 @@ class Sidebar(ft.Container):
     def _content_width(self):
         return EXPANDED if self.expanded else COMPACT
 
+    def _nav_icon(self, index, palette):
+        """"""
+        ui = _ui()
+        if index == ui.HOME_TAB:
+            return ft.Icon(ft.Icons.HOME_OUTLINED, size=24, color=palette.brand)
+        if index in _NAV_BRANDS:
+            return ui._brand_image(_NAV_BRANDS[index], 24)
+        # Новые вкладки рисуются штатной иконкой NAV_ITEMS: своих PNG у них нет.
+        icon = ui.NAV_ITEMS[index][1] if index < len(ui.NAV_ITEMS) else ft.Icons.CIRCLE_OUTLINED
+        return ft.Icon(icon, size=24, color=palette.brand)
+
     def _sync_reserve(self):
         if self._reserve is not None:
             self._reserve.width = self._content_width()
@@ -14500,8 +15786,7 @@ class Sidebar(ft.Container):
         self.labels, self.dots, self.markers = [], [], []
         self._canvas_widths = {}
         for index, (label, _) in enumerate(ui.NAV_ITEMS):
-            image = (ft.Icon(ft.Icons.HOME_OUTLINED, size=24, color=p.brand) if index == ui.HOME_TAB else
-                     ui._brand_image(("dialog", "microphone", "audio", "persona", "settings", "commands")[index], 24))
+            image = self._nav_icon(index, p)
             icon = ft.Container(image, width=24, height=24, animate_scale=160 if self.motion_enabled else None)
             caption = ft.Text(label, size=14, color=p.text, expand=True, no_wrap=True)
             dot = ft.Container(width=5, height=5, border_radius=3, bgcolor=p.brand)
@@ -20600,6 +21885,7 @@ def build_context(include_facts: bool = True, *, query=None) -> str:
 
 import logging
 import logging.handlers
+import os
 import threading
 import time
 from pathlib import Path
@@ -21220,6 +22506,21 @@ def _preload_whisper_backend() -> bool:
     return True
 
 
+def _arm_exit_watchdog(gui, grace: float = 8.0) -> None:
+    """Гарантия выхода: «Выход» из трея не должен оставлять процесс висеть. ... [6 строк]"""
+
+    def _watch() -> None:
+        while not getattr(gui, "_quitting", False):
+            time.sleep(0.2)
+        time.sleep(grace)
+        log.warning(
+            "Выход не завершился за %.0f с — принудительно завершаю процесс", grace
+        )
+        os._exit(0)
+
+    threading.Thread(target=_watch, daemon=True, name="exit-watchdog").start()
+
+
 def main() -> None:
     setup_logging()
     log.info("%s v%s запускается", APP_NAME, __version__)
@@ -21481,7 +22782,9 @@ def main() -> None:
             log.info("Запускаю Flet в главном потоке (launch_mode=gui)")
 
         # Flet ВСЕГДА в главном потоке (signal.signal)
+        _arm_exit_watchdog(gui)
         gui.run_main()
+        log.info("GUI: главный цикл Flet завершён")
     else:
         log.info("GUI выключен — жду завершения")
         jarvis.stop_event.wait()
@@ -30803,6 +32106,12 @@ REQUIRES = ("vosk", "faster_whisper", "ctranslate2", "sounddevice", "numpy", "pi
             "pymorphy3", "pymorphy3_dicts_ru", "certifi", "omegaconf")
 EXCLUDE_METADATA = {"pip", "setuptools", "wheel", "nuitka", "ordered-set", "zstandard",
                     "pytest", "pytest-asyncio", "iniconfig", "pluggy"}
+# Чистая Windows не содержит перераспространяемого VC++: без этих файлов рядом с exe
+# torch/onnxruntime/ctranslate2 не грузятся (проверено на sandbox-ВМ, дефект 2.1.2).
+# Nuitka приносит только vcruntime140(_1), остальное обязана положить сборка.
+VC_RUNTIME_DLLS = ("msvcp140.dll", "msvcp140_1.dll", "msvcp140_2.dll",
+                   "msvcp140_atomic_wait.dll", "concrt140.dll", "vcruntime140.dll",
+                   "vcruntime140_1.dll", "vcruntime140_threads.dll", "mfc140u.dll")
 
 # Тестовые модули torch не нужны в работе приложения и валят gcc: на
 # torch.testing._internal.common_methods_invocations cc1 падает с
@@ -31014,6 +32323,34 @@ def validate_native(native):
             raise RuntimeError(f"Application source leaked instead of compiled code: {rel}")
 
 
+def vc_runtime_sources():
+    """Найти DLL с++-рантайма для поставки; без них сборка на чистой машине не стартует."""
+    directories = []
+    for variable in ("ProgramFiles(x86)", "ProgramFiles"):
+        base = os.environ.get(variable)
+        if not base:
+            continue
+        root = Path(base) / "Microsoft Visual Studio"
+        if not root.is_dir():
+            continue
+        for pattern in ("*/VC/Redist/MSVC/*/x64/Microsoft.VC14*.CRT",
+                        "*/VC/Redist/MSVC/*/x64/Microsoft.VC14*.MFC"):
+            directories.extend(sorted(root.glob(pattern)))
+    directories.append(Path(os.environ.get("SystemRoot", r"C:\Windows")) / "System32")
+    sources, missing = {}, []
+    for name in VC_RUNTIME_DLLS:
+        for directory in directories:
+            candidate = directory / name
+            if candidate.is_file():
+                sources[name] = candidate
+                break
+        else:
+            missing.append(name)
+    if missing:
+        raise RuntimeError("Не найдены библиотеки MSVC для автономной сборки: " + ", ".join(missing))
+    return sources
+
+
 def file_hash(path):
     with Path(path).open("rb") as stream:
         return hashlib.file_digest(stream, "sha256").hexdigest()
@@ -31037,10 +32374,17 @@ def stage(root, native, client, *, versions, version):
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(root / name, target)
         shutil.copytree(client, temp / "runtime/flet", dirs_exist_ok=True)
+        runtime = vc_runtime_sources()
+        for name, source in runtime.items():
+            target = temp / name
+            if not target.is_file():
+                shutil.copy2(source, target)
         build_info = {"schema": 1, "kind": "nuitka-application-standalone", "version": version,
                       "entry_point": "phoenix_app.py", "external_python_required": False,
                       "model_policy": "download-on-consent; no personal caches bundled",
-                      "python": platform.python_version(), "packages": versions}
+                      "python": platform.python_version(), "packages": versions,
+                      "msvc_runtime": sorted(runtime),
+                      "msvc_runtime_reason": "C++ runtime for torch/onnxruntime/ctranslate2 on clean Windows"}
         (temp / "build-info.json").write_text(json.dumps(build_info, ensure_ascii=False, indent=2), encoding="utf-8")
         (temp / "README_STANDALONE.txt").write_text(
             "Standalone application. Start Феникс.exe. No external Python, pip or .venv311 is used.\n"
@@ -37648,6 +38992,9 @@ def resources(root):
     vad = root / "faster_whisper/assets/silero_vad_v6.onnx"
     vad.parent.mkdir(parents=True, exist_ok=True)
     vad.write_bytes(b"public fixture")
+    # MSVC-рантайм рядом с exe: без него torch/onnxruntime не грузятся на чистой Windows.
+    for name in runtime.MSVC_RUNTIME:
+        (root / name).write_bytes(b"public fixture")
 
 
 def fake_imports(monkeypatch, root):
@@ -37686,6 +39033,17 @@ def test_probe_fails_when_vad_asset_is_absent(tmp_path, monkeypatch):
     report = runtime.self_test(tmp_path, compiled=True)
     assert report["ok"] is False
     assert report["checks"]["faster_whisper_assets"] is False
+
+
+def test_probe_fails_when_msvc_runtime_is_absent(tmp_path, monkeypatch):
+    """Проверка обязана называть причину, а не молча падать в ImportError."""
+    resources(tmp_path)
+    (tmp_path / "vcruntime140_threads.dll").unlink()
+    fake_imports(monkeypatch, tmp_path)
+    report = runtime.self_test(tmp_path, compiled=True)
+    assert report["ok"] is False
+    assert report["checks"]["msvc_runtime"]["ok"] is False
+    assert "vcruntime140_threads.dll" in report["checks"]["msvc_runtime"]["error"]
 
 
 def test_probe_rejects_module_imported_from_external_environment(tmp_path, monkeypatch):
@@ -39096,6 +40454,282 @@ def test_list_engines_matches_probes():
     assert engines == expected
 ```
 
+### `tests/test_engines.py`
+
+```python
+"""Каталог движков: статусы по файлам/пакетам и установка через явный вызов. ... [4 строк]"""
+
+import json
+
+import pytest
+
+from jarvis import engines, paths
+from jarvis import model as vosk_model
+
+FAKE_OLLAMA = object()
+
+
+class FakeResponse:
+    def __init__(self, payload=b"", lines=None):
+        self._payload = payload
+        self._lines = list(lines or [])
+
+    def read(self, limit=None):
+        return self._payload if limit is None else self._payload[:limit]
+
+    def __iter__(self):
+        return iter(self._lines)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+class FakeOpener:
+    def __init__(self, response):
+        self.response = response
+        self.urls = []
+
+    def open(self, request, timeout=None):
+        self.urls.append(getattr(request, "full_url", request))
+        return self.response
+
+
+def fake_ollama(monkeypatch, response):
+    opener = FakeOpener(response)
+    monkeypatch.setattr(engines, "_ollama_opener", lambda: opener)
+    return opener
+
+
+@pytest.fixture
+def tree(tmp_path, monkeypatch):
+    """Свои каталоги: ни реальных моделей, ни реального конфига."""
+    monkeypatch.setattr(paths, "program_models_dir", lambda: tmp_path / "models")
+    monkeypatch.setattr(paths, "program_whisper_cache_dir", lambda: tmp_path / "whisper")
+    monkeypatch.setattr(paths, "program_dir", lambda: tmp_path)
+    monkeypatch.setattr(paths, "user_dir", lambda: tmp_path)
+    (tmp_path / "models").mkdir()
+    (tmp_path / "whisper").mkdir()
+    return tmp_path
+
+
+class Config(dict):
+    def get(self, key, default=None):
+        return dict.get(self, key, default)
+
+
+def test_catalog_lists_every_group_and_engine(tree):
+    items = engines.catalog(Config())
+    keys = [item.key for item in items]
+    assert keys == ["vad", "vosk", "whisper", "piper", "silero", "sapi", "ollama", "cloud"]
+    assert {item.group for item in items} == {engines.GROUP_STT, engines.GROUP_TTS,
+                                              engines.GROUP_LLM}
+
+
+def test_vosk_requires_package_and_required_files(tree):
+    info = engines.vosk_info(Config())
+    assert not info.installed and "не скачана" in info.detail
+    ready = tree / "models" / vosk_model.MODEL_NAME
+    for rel in vosk_model.REQUIRED_MODEL_FILES:
+        target = ready / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("x", encoding="utf-8")
+    info = engines.vosk_info(Config())
+    assert info.installed and info.active
+    assert vosk_model.MODEL_NAME in info.detail
+
+
+def test_whisper_status_follows_cache_and_use_flag(tree):
+    assert not engines.whisper_info(Config()).installed
+    folder = engines.whisper_cache_model_dir(Config({"whisper_model": "org/model"}))
+    folder.mkdir(parents=True)
+    (folder / "model.bin").write_bytes(b"x" * 10)
+    cached = engines.whisper_info(Config({"whisper_model": "org/model"}))
+    assert cached.installed and cached.active
+    assert "org/model" in cached.detail
+    off = engines.whisper_info(Config({"whisper_model": "org/model", "use_whisper": False}))
+    assert off.installed and not off.active
+
+
+def test_whisper_reports_missing_package(tree, monkeypatch):
+    monkeypatch.setattr(engines, "_package", lambda name: False)
+    info = engines.whisper_info(Config())
+    assert not info.installed and "пакета" in info.detail.lower()
+    # Пакет из окна не поставить: кнопка не должна обещать скачивание модели.
+    assert info.installable is False
+    assert "pip" in info.hint
+
+
+def test_vad_status_uses_found_file(tree, monkeypatch):
+    assert not engines.vad_info(Config()).installed
+    onnx = tree / "vad" / "silero_vad.onnx"
+    onnx.parent.mkdir()
+    onnx.write_bytes(b"x" * 2048)
+    monkeypatch.setattr(engines, "vad_model_path", lambda: onnx)
+    info = engines.vad_info(Config({"vad_enabled": False}))
+    assert info.installed and not info.active
+    assert "silero_vad.onnx" in info.detail
+
+
+def test_tts_active_follows_config_and_availability(tree, monkeypatch):
+    monkeypatch.setattr(engines, "_tts_available", lambda: ["sapi"])
+    assert engines.active_tts_engine(Config()) == "sapi"
+    assert engines.sapi_info(Config()).active
+    monkeypatch.setattr(engines, "_tts_available", lambda: ["silero", "piper", "sapi"])
+    assert engines.active_tts_engine(Config({"tts_backend": "piper"})) == "piper"
+    assert engines.active_tts_engine(Config({"tts_backend": "auto"})) == "silero"
+    assert engines.active_tts_engine(Config({"tts_backend": "sapi"})) == "sapi"
+    monkeypatch.setattr(engines, "_tts_available", lambda: [])
+    assert engines.active_tts_engine(Config()) == ""
+
+
+def test_piper_cached_only_when_model_and_config_present(tree, monkeypatch):
+    seen = {}
+
+    def cache(repo, rel):
+        seen["repo"] = repo
+        return "/cache/model.onnx" if rel.endswith(".onnx") else "/cache/model.onnx.json"
+
+    monkeypatch.setitem(__import__("sys").modules, "huggingface_hub",
+                        type("M", (), {"try_to_load_from_cache": staticmethod(cache)}))
+    info = engines.piper_info(Config({"tts_voice": "irina"}))
+    assert info.installed
+    assert "irina" in info.detail
+    assert seen["repo"] == "rhasspy/piper-voices"
+
+
+def test_ollama_status_needs_server_and_model(tree, monkeypatch):
+    info = engines.ollama_info(Config())
+    assert not info.installed
+    assert "не отвечает" in info.detail
+    names = ["qwen2.5:7b-instruct"]
+    info = engines.ollama_info(Config(), names=names)
+    assert info.installed and info.active
+    other = engines.ollama_info(Config({"llm_model": "gemma2:9b"}), names=names)
+    assert not other.installed and "gemma2:9b" in other.detail
+    cloud = engines.ollama_info(Config({"cloud_enabled": True}), names=names)
+    assert cloud.installed and not cloud.active
+
+
+def test_cloud_status_needs_key_and_switch(tree, monkeypatch):
+    info = engines.cloud_info(Config({"cloud_enabled": True}))
+    assert not info.installed and "ключа нет" in info.detail
+    monkeypatch.setattr(engines, "secrets_store", None, raising=False)
+    import jarvis.secrets_store as store
+
+    monkeypatch.setattr(store, "has_secret", lambda name: True)
+    info = engines.cloud_info(Config({"cloud_enabled": True, "cloud_provider": "deepseek",
+                                      "cloud_model": "deepseek-chat"}))
+    assert info.installed and info.active
+    assert "deepseek: deepseek-chat" in info.detail
+
+
+def test_local_only_ollama_addresses(tree):
+    assert engines._local_ollama_url("http://127.0.0.1:11434")
+    assert engines._local_ollama_url("http://localhost:11434")
+    assert not engines._local_ollama_url("https://ollama.example.com")
+    assert not engines._local_ollama_url("ftp://127.0.0.1:11434")
+
+
+def test_ollama_inventory_parses_names_and_survives_garbage(tree, monkeypatch):
+    fake_ollama(monkeypatch, FakeResponse(json.dumps(
+        {"models": [{"name": "a:1"}, {"name": ""}, "str", {"name": "b:2"}]}).encode()))
+    assert engines.ollama_inventory("http://127.0.0.1:11434") == ["a:1", "b:2"]
+    fake_ollama(monkeypatch, FakeResponse("не json".encode()))
+    assert engines.ollama_inventory("http://127.0.0.1:11434") == []
+
+
+def test_ollama_pull_reports_progress_and_errors(tree, monkeypatch):
+    lines = [
+        json.dumps({"status": "pulling", "total": 100, "completed": 50}).encode() + b"\n",
+        json.dumps({"status": "pulling", "total": 100, "completed": 100}).encode() + b"\n",
+    ]
+    fake_ollama(monkeypatch, FakeResponse(lines=lines))
+    seen = []
+    ok, message = engines.install("ollama", lambda f, m: seen.append((f, m)),
+                                  Config({"llm_model": "qwen2.5:7b-instruct"}))
+    assert ok and "скачана" in message
+    fractions = [f for f, _ in seen if f is not None]
+    assert fractions[0] == 0.0 and fractions[-1] == 1.0
+    assert 0.5 in fractions
+    assert fractions == sorted(fractions)  # прогресс не откатывается назад
+    fake_ollama(monkeypatch, FakeResponse(
+        lines=[json.dumps({"error": "boom"}).encode() + b"\n"]))
+    ok, message = engines.install("ollama", lambda f, m: None, Config())
+    assert not ok and "boom" in message
+
+
+def test_ollama_pull_refuses_remote_address(tree):
+    ok, message = engines.install("ollama", lambda f, m: None,
+                                  Config({"ollama_url": "https://evil.example"}))
+    assert not ok and "локальным" in message
+
+
+def test_install_reports_missing_network_without_traceback(tree, monkeypatch):
+    monkeypatch.setattr(engines, "vad_model_path", lambda: None)
+    from jarvis import vad
+
+    monkeypatch.setattr(vad, "download_model", lambda dest=None: None)
+    ok, message = engines.install("vad", lambda f, m: None)
+    assert not ok and "интернет" in message
+
+
+def test_install_runs_engine_and_reports_success(tree, monkeypatch):
+    from jarvis import vad
+
+    target = tree / "vad" / "silero_vad.onnx"
+    target.parent.mkdir()
+    target.write_bytes(b"x" * 1024)
+    monkeypatch.setattr(vad, "download_model", lambda dest=None: target)
+    seen = []
+    ok, message = engines.install("vad", lambda f, m: seen.append(f))
+    assert ok and "silero_vad.onnx" in message
+    assert seen[0] == 0.0 and seen[-1] == 1.0
+
+
+def test_install_refuses_unknown_or_system_engine(tree):
+    ok, message = engines.install("sapi", lambda f, m: None)
+    assert not ok and "системный" in message
+    ok, message = engines.install("no-such-engine", lambda f, m: None)
+    assert not ok
+```
+
+### `tests/test_exit_watchdog.py`
+
+```python
+"""«Выход» из трея обязан завершать процесс даже при зависшем Flet. ... [6 строк]"""
+
+import time
+from types import SimpleNamespace
+
+from jarvis import main as main_mod
+
+
+def test_watchdog_waits_for_exit_request(monkeypatch):
+    calls = []
+    monkeypatch.setattr(main_mod.os, "_exit", lambda code: calls.append(code))
+    gui = SimpleNamespace(_quitting=False)
+
+    main_mod._arm_exit_watchdog(gui, grace=0.05)
+    time.sleep(0.3)
+
+    assert calls == [], "без «Выход» сторож не должен завершать процесс"
+
+
+def test_watchdog_terminates_after_hung_exit(monkeypatch):
+    calls = []
+    monkeypatch.setattr(main_mod.os, "_exit", lambda code: calls.append(code))
+    gui = SimpleNamespace(_quitting=False)
+
+    main_mod._arm_exit_watchdog(gui, grace=0.05)
+    gui._quitting = True
+    time.sleep(0.6)
+
+    assert calls == [0]
+```
+
 ### `tests/test_git_hygiene.py`
 
 ```python
@@ -40078,6 +41712,232 @@ def test_monogram_reflects_processing_not_fake_microphone_data(gui):
     assert gui._brand_mark.border.top.color == module.P.brand
 ```
 
+### `tests/test_gui_cloud.py`
+
+```python
+"""Вкладка «Облако»: черновик, сохранение, ключ и проверка — без сети и DPAPI. ... [4 строк]"""
+
+import queue
+import time
+from types import SimpleNamespace as NS
+from unittest.mock import Mock
+
+import flet as ft
+import pytest
+
+from jarvis import gui as module, gui_cloud, mood, profile, secrets_store
+from jarvis.config import Config
+
+
+class FakeSecrets:
+    CLOUD_LLM_KEY = "cloud_llm_key"
+
+    def __init__(self):
+        self.data = {}
+
+    def has_secret(self, name):
+        return name in self.data
+
+    def load_secret(self, name):
+        return self.data.get(name)
+
+    def save_secret(self, name, value):
+        self.data[name] = value
+        return True
+
+    def delete_secret(self, name):
+        self.data.pop(name, None)
+        return True
+
+    def secret_fingerprint(self, name):
+        return "deadbeef" if name in self.data else None
+
+
+@pytest.fixture
+def cloud(tmp_path, monkeypatch):
+    monkeypatch.setattr(profile, "PROFILES_DIR", tmp_path / "profiles")
+    monkeypatch.setattr(profile, "_current", "test")
+    monkeypatch.setattr(profile, "_cache", {})
+    monkeypatch.setattr(profile, "_listeners", [])
+    store = FakeSecrets()
+    monkeypatch.setattr(gui_cloud, "_secrets", lambda: store)
+    for name in ("has_secret", "load_secret", "save_secret", "delete_secret",
+                 "secret_fingerprint"):
+        monkeypatch.setattr(secrets_store, name, getattr(store, name), raising=True)
+    cfg = Config(tmp_path / "config.json")
+    window = module.FenixGUI(None, cfg)
+    window._page = NS(add=Mock(), update=Mock(), window=NS())
+    monkeypatch.setattr(window, "_get_voice_options",
+                        lambda: [ft.dropdown.Option("ruslan")])
+    window._build_ui(window._page)
+    screen = window._cloud_screen
+    screen.store = store
+    screen.window = window
+    yield screen
+    window.stop()
+    profile.unsubscribe(window._on_profile_switch)
+    mood.unsubscribe(window._on_mood_change)
+    module._apply_palette("dark")
+
+
+def drain(screen, timeout=6.0):
+    """Достаёт cloud_probe из очереди и применяет так же, как FenixGUI."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            kind, value = screen.window._queue.get_nowait()
+        except queue.Empty:
+            time.sleep(0.02)
+            continue
+        if kind == "cloud_probe":
+            screen.on_probe(value)
+            return value
+    raise AssertionError("событие cloud_probe не пришло")
+
+
+def test_cloud_tab_is_wired_and_explains_current_mode(cloud):
+    window = cloud.window
+    assert window._tabs[module.CLOUD_TAB] is cloud
+    assert window._rail.selected_index == module.HOME_TAB
+    assert "локальная Ollama" in cloud.mode_label.value
+    assert module.NAV_ITEMS[module.CLOUD_TAB][0] == "Облако"
+
+
+def test_fields_cover_every_cloud_key(cloud):
+    assert set(cloud.fields) >= set(gui_cloud.CLOUD_KEYS)
+    for key in gui_cloud.CLOUD_KEYS:
+        assert cloud.fields[key].value is not None
+
+
+def test_provider_switch_applies_preset_address_and_model(cloud):
+    cloud.change("cloud_provider", "deepseek")
+    assert cloud.draft["cloud_base_url"] == "https://api.deepseek.com/v1"
+    assert cloud.draft["cloud_model"] == "deepseek-chat"
+    assert cloud.fields["cloud_base_url"].value == "https://api.deepseek.com/v1"
+    assert cloud.fields["cloud_model"].value == "deepseek-chat"
+
+
+def test_provider_switch_keeps_hand_edited_values(cloud):
+    cloud.change("cloud_base_url", "https://my.gateway/v1")
+    cloud.change("cloud_model", "my-model")
+    cloud.change("cloud_provider", "groq")
+    assert cloud.draft["cloud_base_url"] == "https://my.gateway/v1"
+    assert cloud.draft["cloud_model"] == "my-model"
+
+
+def test_custom_provider_without_address_is_rejected(cloud):
+    cloud.change("cloud_base_url", "")
+    cloud.change("cloud_provider", "custom")
+    cloud.save()
+    assert cloud.error and "адрес" in cloud.notice.lower()
+    assert cloud.window.config.get("cloud_provider") == "openai"
+
+
+def test_save_persists_cloud_keys_and_reloads(cloud):
+    cloud.change("cloud_provider", "deepseek")
+    cloud.change("cloud_enabled", True)
+    cloud.save()
+    assert not cloud.error, cloud.notice
+    config = cloud.window.config
+    assert config.get("cloud_provider") == "deepseek"
+    assert config.get("cloud_base_url") == "https://api.deepseek.com/v1"
+    assert config.get("cloud_enabled") is True
+    assert "сохранены" in cloud.notice
+    assert not cloud.is_busy()
+
+
+def test_save_without_key_warns_but_keeps_settings(cloud):
+    cloud.change("cloud_enabled", True)
+    cloud.save()
+    assert not cloud.error
+    assert "Ключ не сохранён" in cloud.notice
+    assert cloud.window.config.get("cloud_enabled") is True
+
+
+def test_timeout_and_token_limits_are_validated(cloud):
+    cloud.change("cloud_max_tokens", "5")
+    cloud.save()
+    assert cloud.error and "50" in cloud.notice
+    cloud.change("cloud_max_tokens", "600")
+    cloud.change("cloud_timeout", 1.0)
+    cloud.save()
+    assert cloud.error and "Таймаут" in cloud.notice
+
+
+def test_consent_is_recorded_in_profile_with_version_and_time(cloud):
+    cloud.change("cloud_send_profile", True)
+    cloud.save()
+    assert not cloud.error
+    consent = profile.get("cloud_consent")
+    assert consent["cloud_send_profile"] is True
+    assert consent["version"] == gui_preferences_version()
+    assert consent["at"]
+    assert "разрешена" in cloud.consent_label.value
+
+
+def gui_preferences_version():
+    from jarvis import gui_preferences
+
+    return gui_preferences.CLOUD_CONSENT_VERSION
+
+
+def test_consent_withdrawal_is_recorded_too(cloud):
+    cloud.window.config.set("cloud_send_profile", True)
+    cloud.load()
+    cloud.change("cloud_send_profile", False)
+    cloud.save()
+    assert not cloud.error
+    assert profile.get("cloud_consent")["cloud_send_profile"] is False
+    assert "отозвано" in cloud.consent_label.value
+
+
+def test_key_is_saved_fingerprinted_and_deleted(cloud):
+    cloud.key_field.value = "sk-test-123"
+    assert cloud.save_key() is True
+    assert cloud.store.data[secrets_store.CLOUD_LLM_KEY] == "sk-test-123"
+    assert cloud.key_field.value == ""
+    assert "Ключ сохранён" in cloud.notice
+    assert cloud.delete_key() is True
+    assert secrets_store.CLOUD_LLM_KEY not in cloud.store.data
+    assert "удалён" in cloud.notice
+
+
+def test_probe_without_key_explains_there_is_nothing_to_check(cloud):
+    assert cloud.start_probe() is False
+    assert "Ключ не сохранён" in cloud.probe_status
+
+
+def test_probe_success_reports_provider_and_model_count(cloud, monkeypatch):
+    cloud.store.data[secrets_store.CLOUD_LLM_KEY] = "sk-test"
+    cloud.load()
+    monkeypatch.setattr(gui_cloud, "probe_cloud",
+                        lambda provider, base_url, model, key: {"provider": provider,
+                                                                "models": 5})
+    assert cloud.start_probe() is True
+    drain(cloud)
+    assert "5 шт." in cloud.probe_status
+    assert "Ключ принят" in cloud.probe_status
+    assert not cloud.is_busy()
+
+
+def test_probe_auth_error_is_reported_instead_of_success(cloud, monkeypatch):
+    cloud.store.data[secrets_store.CLOUD_LLM_KEY] = "sk-test"
+    cloud.load()
+
+    def boom(*args, **kwargs):
+        raise gui_cloud.cloud_llm.CloudAuthError("401")
+
+    monkeypatch.setattr(gui_cloud, "probe_cloud", boom)
+    assert cloud.start_probe() is True
+    drain(cloud)
+    assert "401/403" in cloud.probe_status
+
+
+def test_parameter_change_invalidates_previous_probe_result(cloud):
+    cloud.change("cloud_model", "another-model")
+    assert "Проверьте ключ заново" in cloud.probe_status
+```
+
 ### `tests/test_gui_commands.py`
 
 ```python
@@ -40109,7 +41969,8 @@ def editor(tmp_path):
 
 def test_sixth_tab_and_unsaved_editor_survive_navigation(editor):
     gui = editor.gui
-    assert len(module.NAV_ITEMS) == 7
+    # 0..5 — старые вкладки, 6 — Главная, 7 — Облако, 8 — Движки.
+    assert len(module.NAV_ITEMS) == 9
     assert gui._rail.selected_index == 5
     editor.new()
     assert editor.fields["name"].on_change is not None
@@ -40209,6 +42070,166 @@ def test_theme_rebuild_preserves_unsaved_command_but_not_password(editor, monkey
     assert "Never-store-42" not in repr(editor.draft)
 ```
 
+### `tests/test_gui_engines.py`
+
+```python
+"""Вкладка «Движки»: каталог, кнопка установки, прогресс и «активно» из конфига."""
+
+import asyncio
+import queue
+import threading
+import time
+from types import SimpleNamespace as NS
+from unittest.mock import Mock
+
+import flet as ft
+import pytest
+
+from jarvis import engines, gui as module, mood, paths, profile
+from jarvis.config import Config
+
+
+@pytest.fixture
+def screen(tmp_path, monkeypatch):
+    monkeypatch.setattr(profile, "PROFILES_DIR", tmp_path / "profiles")
+    monkeypatch.setattr(profile, "_current", "test")
+    monkeypatch.setattr(profile, "_cache", {})
+    monkeypatch.setattr(profile, "_listeners", [])
+    monkeypatch.setattr(paths, "program_models_dir", lambda: tmp_path / "models")
+    monkeypatch.setattr(paths, "program_whisper_cache_dir", lambda: tmp_path / "whisper")
+    (tmp_path / "models").mkdir()
+    cfg = Config(tmp_path / "config.json")
+    window = module.FenixGUI(None, cfg)
+    window._page = NS(add=Mock(), update=Mock(), window=NS())
+    monkeypatch.setattr(window, "_get_voice_options",
+                        lambda: [ft.dropdown.Option("ruslan")])
+    window._build_ui(window._page)
+    view = window._engines_screen
+    view.window = window
+    yield view
+    window.stop()
+    profile.unsubscribe(window._on_profile_switch)
+    mood.unsubscribe(window._on_mood_change)
+    module._apply_palette("dark")
+
+
+def collect(window, timeout=6.0, until="engines_done"):
+    events = []
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            kind, value = window._queue.get_nowait()
+        except queue.Empty:
+            time.sleep(0.02)
+            continue
+        if kind.startswith("engines_"):
+            events.append((kind, value))
+        if kind == until:
+            return events
+    return events
+
+
+def apply(screen, events):
+    for kind, value in events:
+        if kind == "engines_progress":
+            screen.on_progress(value)
+        elif kind == "engines_done":
+            screen.on_done(value)
+
+
+def test_engines_tab_lists_every_engine_and_is_wired(screen):
+    window = screen.window
+    assert window._tabs[module.ENGINES_TAB] is screen
+    assert [item.key for item in screen.items] == [
+        "vad", "vosk", "whisper", "piper", "silero", "sapi", "ollama", "cloud"]
+    assert module.NAV_ITEMS[module.ENGINES_TAB][0] == "Движки"
+    assert screen.is_busy() is False
+
+
+def test_install_reports_progress_and_finishes(screen, monkeypatch):
+    seen = []
+
+    def fake_install(key, progress, config=None):
+        progress(0.5, "середина")
+        seen.append(key)
+        return True, "готово"
+
+    monkeypatch.setattr(engines, "install", fake_install)
+    screen.start_install("vad")
+    assert screen.is_busy()
+    events = collect(screen.window)
+    apply(screen, events)
+    assert seen == ["vad"]
+    assert not screen.is_busy()
+    assert screen.messages["vad"] == ("готово", False)
+    assert any(kind == "engines_progress" for kind, _ in events)
+
+
+def test_failed_install_is_shown_as_error(screen, monkeypatch):
+    monkeypatch.setattr(engines, "install", lambda key, progress, config=None:
+                        (False, "Нет сети"))
+    screen.start_install("vosk")
+    apply(screen, collect(screen.window))
+    assert screen.messages["vosk"] == ("Нет сети", True)
+
+
+def test_second_install_is_refused_while_first_runs(screen, monkeypatch):
+    gate = threading.Event()
+
+    def slow_install(key, progress, config=None):
+        gate.wait(5)
+        return True, "готово"
+
+    monkeypatch.setattr(engines, "install", slow_install)
+    screen.start_install("vad")
+    screen.start_install("vosk")
+    assert "Дождитесь" in screen.messages["vosk"][0]
+    gate.set()
+    apply(screen, collect(screen.window))
+    assert not screen.is_busy()
+
+
+def test_ollama_status_updates_the_row(screen):
+    screen.on_status(("http://127.0.0.1:11434", ["qwen2.5:7b-instruct"], True))
+    ollama = next(item for item in screen.items if item.key == "ollama")
+    assert ollama.installed
+    assert "qwen2.5:7b-instruct" in ollama.detail
+
+
+def test_busy_screen_survives_tab_reselect(screen):
+    screen._busy.add("vad")
+    screen.window._select_tab(module.ENGINES_TAB)
+    assert screen.window._tabs[module.ENGINES_TAB] is screen
+    screen._busy.clear()
+
+
+def test_inactive_chip_is_visible(screen):
+    """Чип «НЕТ» раньше сливался с карточкой: оставался только текст."""
+    item = engines.EngineInfo("probe", engines.GROUP_STT, "Проба", "описание",
+                              False, False, "нет модели", installable=True)
+    column = screen._row(item)
+    chip = column.controls[0].controls[1]
+    assert chip.border is not None
+    assert chip.bgcolor
+
+
+def test_active_chip_has_no_border(screen):
+    item = engines.EngineInfo("probe", engines.GROUP_STT, "Проба", "описание",
+                              True, True, "есть", installable=False)
+    column = screen._row(item)
+    chip = column.controls[0].controls[1]
+    assert chip.border is None
+
+def test_queue_routes_engines_events_to_the_screen(screen):
+    window = screen.window
+    window._running = True
+    window._queue.put(("engines_progress", ("vad", 0.4, "качаю")))
+    window._queue.put(("engines_done", ("vad", True, "готово")))
+    window._queue.put(("stop", None))
+    asyncio.run(window._process_queue())
+    assert screen.messages["vad"] == ("готово", False)
+```
+
 ### `tests/test_gui_home.py`
 
 ```python
@@ -40253,7 +42274,12 @@ def test_startup_is_home_and_chat_ids_do_not_shift(gui):
     assert gui._rail.selected_index == module.HOME_TAB
     assert gui._content_area.content is gui._home
     assert [module.NAV_ITEMS[i][0] for i in module.NAV_ORDER] == [
-        "Главная", "Диалог", "Микрофон", "Голос и звук", "Персона", "Настройки", "Мои команды"]
+        "Главная", "Диалог", "Микрофон", "Голос и звук", "Персона", "Настройки",
+        "Мои команды", "Облако", "Движки"]
+    assert module.CLOUD_TAB == 7 and module.ENGINES_TAB == 8
+    # У новых вкладок нет брендовых PNG: рельс рисует штатную иконку NAV_ITEMS.
+    assert isinstance(gui._rail.icon_controls[module.ENGINES_TAB].content,
+                      ft.Icon)
     assert gui._rail.navigation.controls[0] is gui._rail.nav_buttons[module.HOME_TAB]
     gui._select_tab(0)
     assert gui._content_area.content is gui._tabs[0]
@@ -41060,52 +43086,11 @@ def test_unrelated_setting_changed_elsewhere_is_not_overwritten(editor):
     assert editor.gui.config.get('tray_enabled') is False
 
 
-def test_cloud_provider_switch_updates_preset_address_and_model(editor):
-    editor._change('settings','cloud_provider','deepseek')
-    assert editor.settings_draft['cloud_base_url'] == 'https://api.deepseek.com/v1'
-    assert editor.settings_draft['cloud_model'] == 'deepseek-chat'
-    assert editor.settings_fields['cloud_base_url'].value == 'https://api.deepseek.com/v1'
-    assert editor.settings_fields['cloud_model'].value == 'deepseek-chat'
-
-
-def test_cloud_provider_switch_keeps_hand_edited_address_and_model(editor):
-    editor._change('settings','cloud_base_url','https://my.gateway/v1')
-    editor._change('settings','cloud_model','my-model')
-    editor._change('settings','cloud_provider','groq')
-    assert editor.settings_draft['cloud_base_url'] == 'https://my.gateway/v1'
-    assert editor.settings_draft['cloud_model'] == 'my-model'
-
-
-def test_custom_provider_has_no_preset_and_requires_an_address(editor):
-    editor._change('settings','cloud_base_url','')
-    editor._change('settings','cloud_provider','custom')
-    assert editor.settings_draft['cloud_base_url'] == ''
-    editor.save_settings()
-    assert editor.settings_error
-    assert 'адрес' in editor.settings_notice.lower()
-
-
-def test_cloud_consent_is_recorded_in_profile_with_version_and_time(editor):
-    """Согласие на отправку личного в облако фиксируется в профиле, не только в конфиге."""
-    editor._change('settings','cloud_send_profile',True)
-    editor.save_settings()
-    assert not editor.settings_error
-    consent = profile.get('cloud_consent')
-    assert consent['cloud_send_profile'] is True
-    assert consent['version'] == ui.CLOUD_CONSENT_VERSION
-    assert consent['at']
-    assert 'разрешена' in ui.consent_summary()
-    assert 'разрешена' in editor.cloud_consent_label.value
-
-
-def test_cloud_consent_withdrawal_is_recorded_too(editor):
-    editor.gui.config.set('cloud_send_profile', True)
-    editor._load_settings()
-    editor._change('settings','cloud_send_profile',False)
-    editor.save_settings()
-    assert not editor.settings_error
-    assert profile.get('cloud_consent')['cloud_send_profile'] is False
-    assert 'отозвано' in ui.consent_summary()
+def test_settings_no_longer_own_cloud_keys(editor):
+    """Единственный черновик cloud_* — на вкладке «Облако», иначе они разъедутся."""
+    assert not any(key.startswith('cloud_') for key in ui.SETTING_KEYS)
+    assert not any(key.startswith('cloud_') for key in editor.settings_fields)
+    assert not hasattr(editor, 'save_cloud_key')
 
 
 def test_cloud_consent_payload_is_pure_and_versioned():
@@ -42479,6 +44464,25 @@ def test_window_close_without_tray_exits(gui):
     assert page.window.visible is True
 
 
+def test_window_close_during_quit_does_not_hide(gui, caplog):
+    """CLOSE во время «Выход» — это выход: окно не прячем и не пишем «слушает»."""
+    page = FakePage()
+    gui._page = page
+    gui.tray_active = True
+
+    gui.quit()
+    updates_after_quit = page.updates
+    with caplog.at_level("INFO", logger="jarvis.gui"):
+        gui._on_window_event(win_event(ft.WindowEventType.CLOSE, page))
+
+    assert gui._quitting is True
+    assert page.window.prevent_close is False
+    assert page.window.visible is True
+    assert page.updates == updates_after_quit, "CLOSE при выходе не должен трогать окно"
+    assert "продолжает слушать" not in caplog.text
+    assert "закрывается без сворачивания" in caplog.text
+
+
 def test_quit_closes_window(gui):
     """«Выход» из трея закрывает окно — иначе процесс остаётся жить."""
     page = FakePage()
@@ -42489,6 +44493,9 @@ def test_quit_closes_window(gui):
 
     assert page.window.prevent_close is False
     assert page.window.closed is True
+    # Сброс prevent_close обязан уйти клиенту ДО запроса закрытия, иначе
+    # клиент отменяет закрытие и ft.run висит (процесс живёт без окна).
+    assert page.updates == 1
 
 
 def test_quit_without_page_is_safe(gui):
@@ -42576,18 +44583,28 @@ def test_launch_mode_rejects_unknown(gui, cfg):
 def test_quit_awaits_async_window_close_on_page_loop(gui):
     import asyncio
     page = FakePage()
+    order = []
+
     async def close():
+        order.append("close")
         page.window.closed = True
+
     page.window.close = close
+    page.update = lambda: order.append("update")
     scheduled = []
+
     def run_task(fn):
         scheduled.append(fn)
         asyncio.run(fn())
+
     page.run_task = run_task
     gui._page = page
     gui.quit()
     assert len(scheduled) == 1
     assert page.window.closed is True
+    # prevent_close сбрасывается ДО закрытия: иначе клиент отменяет
+    # закрытие и ft.run висит — процесс живёт без окна.
+    assert order == ["update", "close"]
 ```
 
 ### `tests/test_intents.py`
@@ -45463,6 +47480,21 @@ def test_stage_includes_whole_runtime_and_client_without_source(tmp_path, native
     assert not (output / "launcher.py").exists()
 
 
+def test_vc_runtime_list_covers_dlls_that_clean_windows_lacks():
+    """Дефект 2.1.2: сборка несла только vcruntime140(_1) и падала на чистой машине."""
+    for name in ("msvcp140.dll", "msvcp140_1.dll", "msvcp140_atomic_wait.dll",
+                 "vcruntime140_threads.dll", "mfc140u.dll"):
+        assert name in build.VC_RUNTIME_DLLS
+
+
+def test_missing_vc_runtime_stops_the_build(tmp_path, monkeypatch):
+    monkeypatch.setenv("SystemRoot", str(tmp_path))
+    monkeypatch.delenv("ProgramFiles(x86)", raising=False)
+    monkeypatch.delenv("ProgramFiles", raising=False)
+    with pytest.raises(RuntimeError, match="MSVC"):
+        build.vc_runtime_sources()
+
+
 def test_failed_client_validation_preserves_existing_output(tmp_path, native, client, monkeypatch):
     root = tmp_path / "project"
     write(root / "dist/nuitka-app/previous", b"keep")
@@ -47372,6 +49404,7 @@ def test_purge_survives_missing_directory(tmp_path):
 import hashlib
 import json
 import logging
+import os
 import shutil
 from pathlib import Path
 
@@ -47542,6 +49575,67 @@ def test_cancel_dependencies_has_no_network(tmp_path, monkeypatch):
     monkeypatch.setattr(launcher.subprocess, 'run', lambda *_,**__: pytest.fail('network after cancel'))
     assert not launcher.install_dependencies(tmp_path, logging.getLogger('test'))
 
+
+def test_cancel_dependencies_problems_are_logged(tmp_path, monkeypatch, caplog):
+    """Падение pip без хвоста вывода делает причину невидимой в журнале."""
+    (tmp_path/'requirements.txt').write_text('test', encoding="utf-8")
+    monkeypatch.setattr(launcher, 'msg_box', lambda *_: 1)
+
+    class Result:
+        returncode = 2
+        stdout = 'Collecting vosk'
+        stderr = 'UnicodeDecodeError: charmap codec can not decode byte 0x8f'
+
+    monkeypatch.setattr(launcher.subprocess, 'run', lambda *_, **__: Result())
+    monkeypatch.setattr(launcher, 'error', lambda *_, **__: None)
+    with caplog.at_level(logging.ERROR):
+        assert not launcher.install_dependencies(tmp_path, logging.getLogger('test'))
+    assert 'pip install упал' in caplog.text
+    assert 'charmap' in caplog.text
+
+
+def test_launcher_sets_certifi_bundle_for_https(tmp_path, monkeypatch):
+    """На чистой Windows urllib не находит корневой сертификат (проверено в ВМ). ... [5 строк]"""
+    monkeypatch.delenv('SSL_CERT_FILE', raising=False)
+    monkeypatch.delenv('SSL_CERT_DIR', raising=False)
+    logger = logging.getLogger('test')
+    mode = launcher.ensure_https_trust(logger)
+    try:
+        assert mode == 'certifi'
+        assert Path(os.environ['SSL_CERT_FILE']).is_file()
+    finally:
+        os.environ.pop('SSL_CERT_FILE', None)
+
+
+def test_launcher_survives_missing_certifi(monkeypatch):
+    import types, sys
+    broken = types.ModuleType('jarvis.https_trust')
+
+    def boom():
+        raise ImportError('no certifi')
+
+    broken.configure_https_trust = boom
+    monkeypatch.setitem(sys.modules, 'jarvis.https_trust', broken)
+    assert launcher.ensure_https_trust(logging.getLogger('test')) == 'system'
+
+
+def test_launcher_configures_https_before_network():
+    source = (ROOT / 'launcher.py').read_text(encoding='utf-8')
+    assert 'ensure_https_trust(logger)' in source
+    assert source.index('ensure_https_trust(logger)') < source.index('def download_vosk_model')
+
+
+def test_requirements_files_are_decodable_with_any_ansi_codepage():
+    """pip читает requirements.txt кодировкой локали (cp1252), а не UTF-8. ... [5 строк]"""
+    import codecs
+    for path in sorted(ROOT.glob('requirements*.txt')):
+        data = path.read_bytes()
+        if all(b < 128 for b in data):
+            continue
+        assert data.decode('utf-8'), f'{path.name}: не UTF-8'
+        first_two = data.split(b'\n')[:2]
+        assert any(b'coding' in line and b'utf-8' in line.lower() for line in first_two), (
+            f'{path.name}: кириллица без строки coding: utf-8 — pip упадёт на cp1252')
 
 def test_startup_reliability_helpers_are_shipped(release_tree):
     files = rp.collect_payload(release_tree, False)
@@ -53277,6 +55371,15 @@ def install_dependencies(project_dir: Path, logger) -> bool:
         )
         if result.returncode != 0:
             logger.error("pip install упал: returncode=%d", result.returncode)
+            # Без хвоста вывода причину не видно: pip может упасть ещё на чтении
+            # requirements.txt (например, на кодировке файла), и в отчёте
+            # пользователь видит только «нет интернета».
+            stderr_tail = (result.stderr or "").strip()
+            if stderr_tail:
+                logger.error("pip stderr (хвост):\n%s", stderr_tail[-1500:])
+            stdout_tail = (result.stdout or "").strip()
+            if stdout_tail:
+                logger.error("pip stdout (хвост):\n%s", stdout_tail[-800:])
             error(
                 "Не удалось установить зависимости.\n\n"
                 "Возможные причины:\n"
@@ -53297,6 +55400,22 @@ def install_dependencies(project_dir: Path, logger) -> bool:
         logger.exception("Ошибка pip install")
         error("Ошибка установки зависимостей. Логи: logs\\launcher.log")
         return False
+
+
+# ============================================================
+# HTTPS: единый CA-бандл
+# ============================================================
+
+def ensure_https_trust(logger) -> str:
+    """Подключает CA-бандл certifi до первой загрузки по HTTPS. ... [7 строк]"""
+    try:
+        from jarvis.https_trust import configure_https_trust
+        mode = configure_https_trust()
+    except Exception:
+        logger.warning("HTTPS: CA-бандл certifi недоступен, остаётся системное хранилище", exc_info=True)
+        return "system"
+    logger.info("HTTPS: CA-бандл %s", mode)
+    return mode
 
 
 # ============================================================
@@ -53413,6 +55532,7 @@ def _main() -> None:
 
     log_file = _setup_logging(exe_dir)
     logger = logging.getLogger("launcher")
+    ensure_https_trust(logger)
 
     logger.info("=" * 60)
     logger.info("Лаунчер стартует")
@@ -57074,6 +59194,7 @@ pywebrtc-audio==0.2.0
 ### `requirements-ci.txt`
 
 ```
+# -*- coding: utf-8 -*-
 # Зависимости для CI (GitHub Actions) и минимального прогона тестов.
 #
 # Здесь НЕТ:
@@ -57118,6 +59239,7 @@ certifi>=2024.8.30
 ### `requirements-dev.txt`
 
 ```
+# -*- coding: utf-8 -*-
 # Зависимости для разработки (не нужны в проде).
 
 # --- Сборка .exe ---
@@ -57156,6 +59278,7 @@ Nuitka==4.3.1
 ### `requirements.txt`
 
 ```
+# -*- coding: utf-8 -*-
 # === Ядро STT ===
 vosk>=0.3.45
 faster-whisper>=1.2.1
@@ -57294,7 +59417,7 @@ certifi>=2024.8.30
   - Изменения
   - Проверки и передача
 
-#### `ARCHITECTURE.md` — 52 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `ARCHITECTURE.md` — 53 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - 🏗 Архитектура «Феникс»
   - 📑 Содержание
@@ -57315,6 +59438,7 @@ certifi>=2024.8.30
   - 👤 Универсальный профиль (`set_profile` / `get_profile`)
   - 🖼 GUI (Flet 1.0.3)
     - Конструктор команд
+    - Вкладки «Облако» и «Движки»
     - Главная: состояния, ввод и история
     - Режим запуска
     - Трей
@@ -57335,13 +59459,16 @@ certifi>=2024.8.30
   - 🧪 Тесты
   - 🏗 Инфраструктура
     - `.venv311`
-    - Git
 
-#### `CHANGELOG.md` — 127 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 131 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
   - [Не выпущено]
+    - Установка на чистую Windows: кодировка requirements и CA-бандл
+    - Автономная сборка на чистой Windows
     - Облачная LLM
+    - Вкладки «Облако» и «Движки»
+    - Выход из трея
     - Починка после отчёта с чистой машины по v2.1.2
   - [2.1.2] — 2026-10-28
     - Полная сборка Nuitka (standalone без внешнего Python)
@@ -57375,10 +59502,6 @@ certifi>=2024.8.30
     - Аудит установки и обновления
     - 📅 Сессия 16.10.2026
       - Минималистичная Главная, отдельный Диалог
-      - Плавный сдвиг при раскрытии панели
-      - Интерактивная боковая панель
-      - Выбранные темы: Сумерки и Тёплый фарфор
-      - Общая палитра Персоны, Настроек и Голоса
 
 #### `CI.md` — 16 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -57689,7 +59812,7 @@ certifi>=2024.8.30
   - Что нужно для выбора
   - Первоисточники
 
-#### `docs/NEXT_STEPS.md` — 11 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `docs/NEXT_STEPS.md` — 12 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Ближайшие действия: R0 / подготовка R1
   - 0. Что подготовлено и что ещё не принято
@@ -57699,6 +59822,7 @@ certifi>=2024.8.30
   - 4. Затем — целевые этапы JASTIN, не исключённый бэклог
     - Облачная LLM: что сделано и что осталось (срез R5, сделан раньше очереди)
     - Починка после отчёта с чистой машины по v2.1.2 (29.10.2026)
+    - Автономная сборка на чистой Windows: найден и починен дефект (01.11.2026)
   - 5. Контроль выпуска (не повторять опубликованный тег)
     - Пре-релиз 2.1.1 собран локально (26.10.2026)
     - 2.1.2: TTS-жизненный цикл и полная сборка Nuitka (28.10.2026)
@@ -57761,7 +59885,7 @@ certifi>=2024.8.30
   - Ручная приёмка Windows
   - Границы проверки
 
-#### `docs/USER_GUIDE.md` — 50 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `docs/USER_GUIDE.md` — 51 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Руководство пользователя · Феникс
   - Навигация
@@ -57781,6 +59905,7 @@ certifi>=2024.8.30
   - ⚙️ Режимы работы
   - 🧠 Настройка LLM (Ollama)
   - ☁️ Облачная LLM (необязательно)
+  - ⚙️ Вкладка «Движки»
   - 📦 Паки команд
   - 👥 Мультипрофиль
   - 💭 Память диалога
@@ -57802,7 +59927,6 @@ certifi>=2024.8.30
   - 🛠 Свои команды
     - Конструктор в GUI
     - Старый формат и паки
-  - 📦 Сборка `.exe` и установщик
 
 #### `docs/WHISPER_STARTUP_DLL_FIX.md` — 6 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -57862,4 +59986,4 @@ certifi>=2024.8.30
 
 ---
 
-_Итого по категориям — code: 237, data: 58, doc: 52, pack: 5. Режим `lean`._
+_Итого по категориям — code: 244, data: 58, doc: 52, pack: 5. Режим `lean`._

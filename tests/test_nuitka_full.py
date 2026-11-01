@@ -125,6 +125,21 @@ def test_stage_includes_whole_runtime_and_client_without_source(tmp_path, native
     assert not (output / "launcher.py").exists()
 
 
+def test_vc_runtime_list_covers_dlls_that_clean_windows_lacks():
+    """Дефект 2.1.2: сборка несла только vcruntime140(_1) и падала на чистой машине."""
+    for name in ("msvcp140.dll", "msvcp140_1.dll", "msvcp140_atomic_wait.dll",
+                 "vcruntime140_threads.dll", "mfc140u.dll"):
+        assert name in build.VC_RUNTIME_DLLS
+
+
+def test_missing_vc_runtime_stops_the_build(tmp_path, monkeypatch):
+    monkeypatch.setenv("SystemRoot", str(tmp_path))
+    monkeypatch.delenv("ProgramFiles(x86)", raising=False)
+    monkeypatch.delenv("ProgramFiles", raising=False)
+    with pytest.raises(RuntimeError, match="MSVC"):
+        build.vc_runtime_sources()
+
+
 def test_failed_client_validation_preserves_existing_output(tmp_path, native, client, monkeypatch):
     root = tmp_path / "project"
     write(root / "dist/nuitka-app/previous", b"keep")

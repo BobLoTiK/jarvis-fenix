@@ -2,6 +2,7 @@
 import hashlib
 import json
 import logging
+import os
 import shutil
 from pathlib import Path
 
@@ -172,6 +173,77 @@ def test_cancel_dependencies_has_no_network(tmp_path, monkeypatch):
     monkeypatch.setattr(launcher.subprocess, 'run', lambda *_,**__: pytest.fail('network after cancel'))
     assert not launcher.install_dependencies(tmp_path, logging.getLogger('test'))
 
+
+def test_cancel_dependencies_problems_are_logged(tmp_path, monkeypatch, caplog):
+    """Падение pip без хвоста вывода делает причину невидимой в журнале."""
+    (tmp_path/'requirements.txt').write_text('test', encoding="utf-8")
+    monkeypatch.setattr(launcher, 'msg_box', lambda *_: 1)
+
+    class Result:
+        returncode = 2
+        stdout = 'Collecting vosk'
+        stderr = 'UnicodeDecodeError: charmap codec can not decode byte 0x8f'
+
+    monkeypatch.setattr(launcher.subprocess, 'run', lambda *_, **__: Result())
+    monkeypatch.setattr(launcher, 'error', lambda *_, **__: None)
+    with caplog.at_level(logging.ERROR):
+        assert not launcher.install_dependencies(tmp_path, logging.getLogger('test'))
+    assert 'pip install упал' in caplog.text
+    assert 'charmap' in caplog.text
+
+
+def test_launcher_sets_certifi_bundle_for_https(tmp_path, monkeypatch):
+    """На чистой Windows urllib не находит корневой сертификат (проверено в ВМ).
+
+    Скачивание модели Vosk падало с SSLCertVerificationError; приложение
+    использует jarvis.https_trust, а лаунчер — нет. Проверяем, что вызов
+    возвращает режим и подставляет существующий бандл.
+    """
+    monkeypatch.delenv('SSL_CERT_FILE', raising=False)
+    monkeypatch.delenv('SSL_CERT_DIR', raising=False)
+    logger = logging.getLogger('test')
+    mode = launcher.ensure_https_trust(logger)
+    try:
+        assert mode == 'certifi'
+        assert Path(os.environ['SSL_CERT_FILE']).is_file()
+    finally:
+        os.environ.pop('SSL_CERT_FILE', None)
+
+
+def test_launcher_survives_missing_certifi(monkeypatch):
+    import types, sys
+    broken = types.ModuleType('jarvis.https_trust')
+
+    def boom():
+        raise ImportError('no certifi')
+
+    broken.configure_https_trust = boom
+    monkeypatch.setitem(sys.modules, 'jarvis.https_trust', broken)
+    assert launcher.ensure_https_trust(logging.getLogger('test')) == 'system'
+
+
+def test_launcher_configures_https_before_network():
+    source = (ROOT / 'launcher.py').read_text(encoding='utf-8')
+    assert 'ensure_https_trust(logger)' in source
+    assert source.index('ensure_https_trust(logger)') < source.index('def download_vosk_model')
+
+
+def test_requirements_files_are_decodable_with_any_ansi_codepage():
+    """pip читает requirements.txt кодировкой локали (cp1252), а не UTF-8.
+
+    На англоязычной Windows байты кириллицы в UTF-8 падают с UnicodeDecodeError,
+    и установщик показывает «нет интернета». Поэтому либо чистый ASCII, либо
+    явная строка coding — тогда pip декодирует файл как UTF-8.
+    """
+    import codecs
+    for path in sorted(ROOT.glob('requirements*.txt')):
+        data = path.read_bytes()
+        if all(b < 128 for b in data):
+            continue
+        assert data.decode('utf-8'), f'{path.name}: не UTF-8'
+        first_two = data.split(b'\n')[:2]
+        assert any(b'coding' in line and b'utf-8' in line.lower() for line in first_two), (
+            f'{path.name}: кириллица без строки coding: utf-8 — pip упадёт на cp1252')
 
 def test_startup_reliability_helpers_are_shipped(release_tree):
     files = rp.collect_payload(release_tree, False)

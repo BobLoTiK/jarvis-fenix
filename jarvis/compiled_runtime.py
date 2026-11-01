@@ -19,6 +19,13 @@ PROBE_MODULES = (
     "winrt.windows.media.control", "pymorphy3", "pymorphy3_dicts_ru", "num2words",
     "certifi", "filelock", "jarvis.main",
 )
+# Windows не ставит перераспространяемый VC++ вместе с ОС; без этих файлов рядом с
+# exe torch/onnxruntime/ctranslate2 не грузятся (как было в 2.1.2). Проверяем до
+# импорта, чтобы отчёт говорил причину, а не ImportError из глубины пакета.
+MSVC_RUNTIME = (
+    "msvcp140.dll", "msvcp140_1.dll", "msvcp140_atomic_wait.dll",
+    "vcruntime140.dll", "vcruntime140_1.dll", "vcruntime140_threads.dll",
+)
 RESOURCE_FILES = (
     "jarvis/icon.ico", "jarvis/assets/brand/phoenix-dark.png",
     "jarvis/assets/brand/phoenix-light.png", "assets/nonverbal/hmm.wav",
@@ -103,6 +110,9 @@ def self_test(root, *, compiled):
     checks["flet_assets"] = (root / "runtime/flet/data/flutter_assets").is_dir()
     checks["no_external_interpreter"] = not any(
         (root / name).exists() for name in ("python.exe", "pythonw.exe", ".venv311", "launcher.py"))
+    missing_runtime = [name for name in MSVC_RUNTIME if not (root / name).is_file()]
+    checks["msvc_runtime"] = True if not missing_runtime else {
+        "ok": False, "error": "нет библиотек MSVC: " + ", ".join(missing_runtime)}
     for name in PROBE_MODULES:
         try:
             module = importlib.import_module(name)
