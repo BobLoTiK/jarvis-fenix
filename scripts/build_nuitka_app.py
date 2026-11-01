@@ -22,6 +22,7 @@ from scripts.build_setup import find_iscc, validate_version
 from scripts.release_payload import collect_payload
 
 EXE = "Феникс.exe"
+APP_NAME = EXE.removesuffix(".exe")
 SETUP = "Феникс_Nuitka_Setup.exe"
 INCLUDES = (
     "--include-package=jarvis", "--include-module=pyttsx3.drivers.sapi5",
@@ -111,6 +112,18 @@ def resources(root):
         ("jarvis/assets/", "jarvis/sounds/", "assets/nonverbal/", "packs/"))]
 
 
+def windows_version(version: str) -> str:
+    """«2.1.2» → «2.1.2.0»: Nuitka ждёт четыре числа, текстовый суффикс отбрасываем.
+
+    Без --file-version/--product-version у автономного exe пустые «Свойства →
+    Подробно»: ни версии, ни названия продукта (проверено на артефакте CI
+    0.0.0-ci: version= и product= пустые).
+    """
+    numbers = [int(part) for part in re.findall(r"\d+", version)[:4]]
+    numbers += [0] * (4 - len(numbers))
+    return ".".join(str(number) for number in numbers)
+
+
 def command(args, root=BASE, *, distributions=()):
     root = Path(root).resolve()
     output = root / "build/nuitka-app"
@@ -119,6 +132,11 @@ def command(args, root=BASE, *, distributions=()):
            "--module-parameter=torch-disable-jit=no", "--nofollow-import-to=" + ",".join(NOFOLLOW),
            f"--output-dir={output}", f"--output-filename={EXE}",
            f"--windows-icon-from-ico={root / 'jarvis/icon.ico'}",
+           f"--file-version={windows_version(args.version)}",
+           f"--product-version={windows_version(args.version)}",
+           f"--company-name={APP_NAME}", f"--product-name={APP_NAME}",
+           f"--file-description={APP_NAME} — голосовой ассистент",
+           f"--copyright={APP_NAME}",
            f"--windows-console-mode={'force' if args.console else 'disable'}",
            f"--report={output / 'compilation-report.xml'}", f"--jobs={args.jobs}",
            "--assume-yes-for-downloads", *INCLUDES]

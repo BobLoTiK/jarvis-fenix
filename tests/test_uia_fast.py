@@ -88,6 +88,7 @@ def test_close_named_tab_falls_back_to_ctrl_w():
             patch.object(uia, "close_browser_tab", return_value=False), \
             patch.object(uia, "read_browser_tabs", return_value=["DeepSeek"]), \
             patch.object(uia, "active_tab_matches", return_value=True), \
+            patch.object(uia, "_get_browser_window", return_value=None), \
             patch.object(actions, "hotkey", side_effect=hotkeys.append):
         reply = uia_fast(None, "закрой вкладку ютуб")
 
@@ -125,6 +126,7 @@ def test_tab_list_read_error_counts_as_unreadable():
             patch.object(uia, "read_browser_tabs",
                          side_effect=RuntimeError("COM")), \
             patch.object(uia, "active_tab_matches", return_value=True), \
+            patch.object(uia, "_get_browser_window", return_value=None), \
             patch.object(actions, "hotkey", side_effect=hotkeys.append):
         reply = uia_fast(None, "закрой вкладку ютуб")
 

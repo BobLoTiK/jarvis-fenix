@@ -7,6 +7,7 @@ import re
 import shlex
 import shutil
 import subprocess
+import threading
 import time
 import urllib.parse
 from pathlib import Path
@@ -921,20 +922,36 @@ def set_volume(percent: int) -> bool:
 
 # --- яркость ---------------------------------------------------------------
 
+# DDC/CI внешнего монитора, который не отвечает, может висеть секундами
+# (замер на BenQ GW2270: 7 с на один опрос). Пользователь ждёт ответа голосом,
+# поэтому опрос ограничен по времени; не успели — яркость неизвестна.
+BRIGHTNESS_TIMEOUT = 1.5
+
+
 def get_brightness() -> int | None:
-    """Возвращает яркость в процентах (0..100)."""
+    """Возвращает яркость в процентах (0..100) или None, если монитор молчит."""
     if not _caps_available("brightness"):
         log.warning("Яркость недоступна (см. system_caps.json)")
         return None
-    try:
-        import screen_brightness_control as sbc
-        values = sbc.get_brightness()
-        if values:
-            return int(values[0])
+
+    result: list[int | None] = []
+
+    def probe() -> None:
+        try:
+            import screen_brightness_control as sbc
+            values = sbc.get_brightness()
+            result.append(int(values[0]) if values else None)
+        except Exception:
+            log.exception("get_brightness не удался")
+            result.append(None)
+
+    worker = threading.Thread(target=probe, name="jarvis-brightness", daemon=True)
+    worker.start()
+    worker.join(BRIGHTNESS_TIMEOUT)
+    if worker.is_alive():
+        log.warning("get_brightness: монитор не ответил за %.1f с", BRIGHTNESS_TIMEOUT)
         return None
-    except Exception:
-        log.exception("get_brightness не удался")
-        return None
+    return result[0] if result else None
 
 
 def set_brightness(percent: int) -> bool:

@@ -64,6 +64,18 @@ class Config(dict):
     def get(self, key, default=None):
         return dict.get(self, key, default)
 
+@pytest.fixture(autouse=True)
+def packages_present(monkeypatch):
+    """Пакеты движков считаются установленными, независимо от машины.
+
+    В CI ставится только requirements-ci.txt: vosk, faster-whisper, piper и
+    torch там отсутствуют. Без этой подмены статусы «скачано/нет» зависели от
+    того, что стоит у разработчика: локально зелено, в CI красно (поймано на
+    прогоне 41333131841). Отсутствие пакета проверяется отдельным тестом
+    test_whisper_reports_missing_package — он перекрывает подмену на False.
+    """
+    monkeypatch.setattr(engines, "_package", lambda name: True)
+
 
 def test_catalog_lists_every_group_and_engine(tree):
     items = engines.catalog(Config())

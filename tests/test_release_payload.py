@@ -1,5 +1,6 @@
 """Public payload, reproducible manifest and bootstrap regression checks."""
 import hashlib
+import importlib.util
 import json
 import logging
 import os
@@ -20,6 +21,33 @@ def release_tree(tmp_path):
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(ROOT/name, target)
     return root
+
+
+def _load_build_exe():
+    """Импорт scripts/build_exe.py как модуля: побочных эффектов на импорте нет."""
+    spec = importlib.util.spec_from_file_location("build_exe", ROOT / "scripts" / "build_exe.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_launcher_exe_is_built_with_version_resource():
+    """У Феникс.exe должны быть версия и название в «Свойствах файла».
+
+    Без --version-file PyInstaller собирает exe без метаданных: у готового
+    установщика «Подробно» пустые — ни версии, ни продукта (видно на
+    CI-артефакте 0.0.0-ci). Ловим это по исходнику сборки, не по бинарю.
+    """
+    text = (ROOT / "scripts" / "build_exe.py").read_text(encoding="utf-8")
+    assert "--version-file" in text, "build_exe.py больше не передаёт ресурс версии"
+    module = _load_build_exe()
+    version = module.load_version()
+    assert version == __import__("jarvis").__version__
+    resource = module.make_version_file(version)
+    assert f"'{version}'" in resource, "в ресурсе нет версии файла"
+    assert "ProductName" in resource and "Феникс" in resource
+    assert "filevers=(" in resource and "OriginalFilename" in resource
+    assert module.version_tuple(version) == (2, 1, 2, 0) or len(module.version_tuple(version)) == 4
 
 
 def test_only_public_files(release_tree):

@@ -558,6 +558,7 @@ def test_close_tab_with_fallback_uses_ctrl_w_when_tabs_unreadable():
     with patch.object(uia, "close_browser_tab", return_value=False), \
          patch.object(uia, "read_browser_tabs", return_value=["DeepSeek"]), \
          patch.object(uia, "active_tab_matches", return_value=True), \
+         patch.object(uia, "_get_browser_window", return_value=None), \
          patch.object(actions, "hotkey", side_effect=hotkeys.append):
         assert uia.close_browser_tab_with_fallback("ютуб") is True
 
@@ -613,6 +614,7 @@ def test_intent_close_tab_uses_the_same_fallback():
     with patch.object(uia, "close_browser_tab", return_value=False), \
          patch.object(uia, "read_browser_tabs", return_value=["DeepSeek"]), \
          patch.object(uia, "active_tab_matches", return_value=True), \
+         patch.object(uia, "_get_browser_window", return_value=None), \
          patch.object(actions, "hotkey") as hotkey:
         reply = _do_uia_close_tab(None, None, "ютуб", None)
 

@@ -51,6 +51,21 @@ def test_full_command_targets_application_and_embeds_runtime():
     assert not any(".venv311" in value for value in command[1:])
 
 
+def test_exe_carries_version_resource():
+    """У автономного exe должны быть версия и имя продукта в «Свойствах».
+
+    Артефакт CI 0.0.0-ci показывал version= и product= пустыми: Nuitka
+    собирался без --file-version/--product-name.
+    """
+    command = build.command(build.args_for(["--version", "2.1.2"]))
+    assert "--file-version=2.1.2.0" in command
+    assert "--product-version=2.1.2.0" in command
+    assert "--product-name=Феникс" in command
+    assert "--file-description=Феникс — голосовой ассистент" in command
+    assert build.windows_version("0.0.0-ci") == "0.0.0.0"
+    assert build.windows_version("2.1") == "2.1.0.0"
+
+
 @pytest.mark.parametrize("compiler,flag", [("msvc", "--msvc=latest"), ("mingw64", "--mingw64")])
 def test_explicit_compilers(compiler, flag):
     assert flag in build.command(build.args_for(["--compiler", compiler]))

@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=938fbb3bdf3ccceb` · режим `lean` · файлов `359` · строк `64916` · источник `3061 КБ`
+`sha256=6d1ac13b0cd7e909` · режим `lean` · файлов `360` · строк `65198` · источник `3077 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -484,7 +484,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── themes.svg  (19 стр)
 ├── build_nuitka.bat  (12 стр)
 ├── build_nuitka_full.bat  (17 стр)
-├── CHANGELOG.md  (1936 стр)
+├── CHANGELOG.md  (1973 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -520,7 +520,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── IMPROVEMENT_BACKLOG.md  (120 стр)
 │   ├── INSTALLER_UPDATE.md  (47 стр)
 │   ├── LOCAL_VOICE_OPTIONS.md  (67 стр)
-│   ├── NEXT_STEPS.md  (317 стр)
+│   ├── NEXT_STEPS.md  (346 стр)
 │   ├── NUITKA_BUILD.md  (123 стр)
 │   ├── PHOENIX_JASTIN_RECONCILIATION.md  (268 стр)
 │   ├── PYTHON_BOOTSTRAP_TLS_FIX.md  (98 стр)
@@ -543,7 +543,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ├── jarvis/
 │   ├── __init__.py  (8 стр)
 │   ├── __main__.py  (9 стр)
-│   ├── actions.py  (1504 стр)
+│   ├── actions.py  (1521 стр)
 │   ├── apps.py  (114 стр)
 │   ├── assets/
 │   │   ├── brand/
@@ -716,9 +716,9 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── __init__.py  (7 стр)
 │   ├── audio_regression.py  (11 стр)
 │   ├── bootstrap_ollama_config.py  (77 стр)
-│   ├── build_exe.py  (83 стр)
+│   ├── build_exe.py  (144 стр)
 │   ├── build_nuitka.py  (142 стр)
-│   ├── build_nuitka_app.py  (442 стр)
+│   ├── build_nuitka_app.py  (460 стр)
 │   ├── build_setup.py  (212 стр)
 │   ├── check_caps.py  (205 стр)
 │   ├── check_staged_snapshot.py  (149 стр)
@@ -762,6 +762,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── vad_live.py  (41 стр)
 │   ├── README.md  (567 стр)
 │   ├── stress_intents.py  (552 стр)
+│   ├── test_actions_brightness.py  (61 стр)
 │   ├── test_audio_regression.py  (556 стр)
 │   ├── test_audit_regressions.py  (265 стр)
 │   ├── test_bootstrap_ollama_config.py  (126 стр)
@@ -780,7 +781,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_echo_multibackend.py  (162 стр)
 │   ├── test_echo_trace.py  (264 стр)
 │   ├── test_engine_probe.py  (100 стр)
-│   ├── test_engines.py  (241 стр)
+│   ├── test_engines.py  (253 стр)
 │   ├── test_exit_watchdog.py  (35 стр)
 │   ├── test_git_hygiene.py  (348 стр)
 │   ├── test_gui_audio.py  (335 стр)
@@ -807,7 +808,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_mood.py  (386 стр)
 │   ├── test_nonverbal.py  (402 стр)
 │   ├── test_nuitka_build.py  (147 стр)
-│   ├── test_nuitka_full.py  (424 стр)
+│   ├── test_nuitka_full.py  (439 стр)
 │   ├── test_numeric_language.py  (518 стр)
 │   ├── test_open_results.py  (32 стр)
 │   ├── test_optional_whisper_startup.py  (134 стр)
@@ -817,7 +818,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_prosody.py  (83 стр)
 │   ├── test_recognition_quality.py  (357 стр)
 │   ├── test_release_install_guards.py  (113 стр)
-│   ├── test_release_payload.py  (259 стр)
+│   ├── test_release_payload.py  (287 стр)
 │   ├── test_review_regressions.py  (334 стр)
 │   ├── test_safety.py  (170 стр)
 │   ├── test_sapi_owner.py  (123 стр)
@@ -831,8 +832,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_tts.py  (243 стр)
 │   ├── test_tts_lifecycle.py  (275 стр)
 │   ├── test_tts_readiness.py  (94 стр)
-│   ├── test_uia.py  (788 стр)
-│   ├── test_uia_fast.py  (238 стр)
+│   ├── test_uia.py  (790 стр)
+│   ├── test_uia_fast.py  (240 стр)
 │   ├── test_vad.py  (333 стр)
 │   ├── test_vad_model.py  (314 стр)
 │   ├── test_vectormem.py  (405 стр)
@@ -887,6 +888,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def get_layout()
   def get_volume()
   def set_volume(percent: int)
+  BRIGHTNESS_TIMEOUT = ...
   def get_brightness()
   def set_brightness(percent: int)
   def find_process(name: str, threshold: float=0.7)
@@ -2630,6 +2632,10 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   BASE = ...
   ICON = ...
   EXE_NAME = ...
+  PYTHON_PACKAGE = ...
+  def load_version()
+  def version_tuple(version: str)
+  def make_version_file(version: str)
   def ensure_icon()
   def check_bootstrap_ui()
   def build()
@@ -2655,6 +2661,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   # Build the complete Windows application and its installer, not launcher.py.
   BASE = ...
   EXE = ...
+  APP_NAME = ...
   SETUP = ...
   INCLUDES = ...
   DATA_PACKAGES = ...
@@ -2666,6 +2673,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def metadata_arguments(distributions)
   def args_for(argv=None)
   def resources(root)
+  def windows_version(version: str)
   def command(args, root=BASE, *, distributions=())
   def validate_environment()
   TORCH_PROBE_CODE = ...
@@ -3018,6 +3026,17 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def restore_settings(handler, snap: dict)
   def cleanup(handler)
   def main()
+```
+
+**`tests/test_actions_brightness.py`**
+
+```
+  # Яркость: опрос DDC/CI не должен подвешивать голосовой ответ.
+  def caps(monkeypatch)
+  def test_brightness_returns_percent(caps, monkeypatch)
+  def test_silent_monitor_does_not_block(caps, monkeypatch)
+  def test_probe_error_is_not_a_crash(caps, monkeypatch)
+  def test_unavailable_caps_skips_the_probe(monkeypatch)
 ```
 
 **`tests/test_audio_regression.py`**
@@ -3488,6 +3507,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def tree(tmp_path, monkeypatch)
   class Config(dict)
     def get(self, key, default=None)
+  def packages_present(monkeypatch)
   def test_catalog_lists_every_group_and_engine(tree)
   def test_vosk_requires_package_and_required_files(tree)
   def test_whisper_status_follows_cache_and_use_flag(tree)
@@ -4250,6 +4270,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def native(tmp_path)
   def client(tmp_path)
   def test_full_command_targets_application_and_embeds_runtime()
+  def test_exe_carries_version_resource()
   def test_explicit_compilers(compiler, flag)
   def test_resource_list_never_includes_developer_code_or_config()
   def test_preflight_never_imports_native_packages_or_runs_tools(monkeypatch)
@@ -4463,6 +4484,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   # Public payload, reproducible manifest and bootstrap regression checks.
   ROOT = ...
   def release_tree(tmp_path)
+  def test_launcher_exe_is_built_with_version_resource()
   def test_only_public_files(release_tree)
   def test_readme_illustrations_are_shipped(release_tree)
   def test_stage_clean_manifest(release_tree)
@@ -5266,7 +5288,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 |---|---:|---|---|
 | `jarvis/__init__.py` | 8 | code | Феникс — локальный голосовой ассистент для Windows. |
 | `jarvis/__main__.py` | 9 | code |  |
-| `jarvis/actions.py` | 1504 | code | Действия: запуск приложений, открытие сайтов, скриншоты, медиа, печать |
+| `jarvis/actions.py` | 1521 | code | Действия: запуск приложений, открытие сайтов, скриншоты, медиа, печать |
 | `jarvis/apps.py` | 114 | code | Каталог известных приложений: как их зовут голосом, как открыть и как  |
 | `jarvis/audio_output.py` | 156 | code | Shared cancellable PCM output for Speaker and the three WAV-based TTS  |
 | `jarvis/brain.py` | 971 | code | LLM-фолбэк: локальная нейронка (Ollama) разбирает команду в структурны |
@@ -5387,9 +5409,9 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `scripts/__init__.py` | 7 | code | Пакет scripts: утилиты разработчика. |
 | `scripts/audio_regression.py` | 11 | code | Run optional local audio regression tools; ordinary pytest never loads |
 | `scripts/bootstrap_ollama_config.py` | 77 | code | Small config bridge run by installed .venv311, never by frozen bootstr |
-| `scripts/build_exe.py` | 83 | code | Сборка Феникс.exe (лёгкий лаунчер). |
+| `scripts/build_exe.py` | 144 | code | Сборка Феникс.exe (лёгкий лаунчер). |
 | `scripts/build_nuitka.py` | 142 | code | Build the Windows bootstrap launcher with Nuitka, not the complete run |
-| `scripts/build_nuitka_app.py` | 442 | code | Build the complete Windows application and its installer, not launcher |
+| `scripts/build_nuitka_app.py` | 460 | code | Build the complete Windows application and its installer, not launcher |
 | `scripts/build_setup.py` | 212 | code | Полная сборка Феникса: Феникс.exe + Феникс_Setup.exe — одной командой. |
 | `scripts/check_caps.py` | 205 | code | Проверка возможностей системы — запускается из install.bat. |
 | `scripts/check_staged_snapshot.py` | 149 | code | Check the Git index, not an unstaged working-tree snapshot; never stag |
@@ -5421,6 +5443,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/manual/vad_debug.py` | 61 | code | Отладка Silero VAD — прогон на синтетике. |
 | `tests/manual/vad_live.py` | 41 | code | Живой тест VAD: пишет 5 сек с микрофона, показывает prob. |
 | `tests/stress_intents.py` | 552 | code | Стресс-тест Феникса: ровно 102 разных ситуаций без микрофона и сети. |
+| `tests/test_actions_brightness.py` | 61 | code | Яркость: опрос DDC/CI не должен подвешивать голосовой ответ. |
 | `tests/test_audio_regression.py` | 556 | code | Fast contracts only: fake decoders are NOT an audio quality measuremen |
 | `tests/test_audit_regressions.py` | 265 | code | Regression tests for the six audited bugs and related edge cases. |
 | `tests/test_bootstrap_ollama_config.py` | 126 | code | Real config JSON and project atomic writer; never uses personal settin |
@@ -5439,7 +5462,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_echo_multibackend.py` | 162 | code | Diagnostic-only PCM support; normal production backend scope stays unc |
 | `tests/test_echo_trace.py` | 264 | code | Local diagnostic contracts: no devices or external services. |
 | `tests/test_engine_probe.py` | 100 | code | Заглушка движка TTS (factory._probe_engine). |
-| `tests/test_engines.py` | 241 | code | Каталог движков: статусы по файлам/пакетам и установка через явный выз |
+| `tests/test_engines.py` | 253 | code | Каталог движков: статусы по файлам/пакетам и установка через явный выз |
 | `tests/test_exit_watchdog.py` | 35 | code | «Выход» из трея обязан завершать процесс даже при зависшем Flet. |
 | `tests/test_git_hygiene.py` | 348 | code | Exercise real temporary Git indexes/hooks; never commit or alter the u |
 | `tests/test_gui_audio.py` | 335 | code | Native sound settings + real worker boundaries; no microphone or actua |
@@ -5466,7 +5489,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_mood.py` | 386 | code | Тесты jarvis.mood — состояние, детекция, decay, влияние. |
 | `tests/test_nonverbal.py` | 402 | code | Nonverbal policy/mixing: synthetic PCM and fake output, no TTS weights |
 | `tests/test_nuitka_build.py` | 147 | code | Nuitka build plans and staging tests; no compiler, network or Tk displ |
-| `tests/test_nuitka_full.py` | 424 | code | Full application build contracts. No Windows compiler/installers or do |
+| `tests/test_nuitka_full.py` | 439 | code | Full application build contracts. No Windows compiler/installers or do |
 | `tests/test_numeric_language.py` | 518 | code | Executable Russian language corpus: understanding, morphology and spee |
 | `tests/test_open_results.py` | 32 | code | Actual dispatch function isolated from Windows imports; no apps launch |
 | `tests/test_optional_whisper_startup.py` | 134 | code | Execute real startup functions with stub peripherals, no models/mic/Wi |
@@ -5476,7 +5499,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_prosody.py` | 83 | code | Тесты jarvis.prosody — эмоции из голоса (эвристика). |
 | `tests/test_recognition_quality.py` | 357 | code | Recognition policy and integration tested without a microphone or mode |
 | `tests/test_release_install_guards.py` | 113 | code | Стражи установщика: пины, файлы данных и понятные падения Silero. |
-| `tests/test_release_payload.py` | 259 | code | Public payload, reproducible manifest and bootstrap regression checks. |
+| `tests/test_release_payload.py` | 287 | code | Public payload, reproducible manifest and bootstrap regression checks. |
 | `tests/test_review_regressions.py` | 334 | code | Archive-review regressions: no network, native audio or system automat |
 | `tests/test_safety.py` | 170 | code | Тесты jarvis.safety — постфильтр «красной черты». |
 | `tests/test_sapi_owner.py` | 123 | code | COM ownership and cooperative cancellation without Windows/audio hardw |
@@ -5490,8 +5513,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_tts.py` | 243 | code | Тесты jarvis.tts_engines — движки и фабрика. С моками. |
 | `tests/test_tts_lifecycle.py` | 275 | code | Loader/preview/stop races with controlled events; no network or audio  |
 | `tests/test_tts_readiness.py` | 94 | code | Bounded voice readiness and command release; no synthesis/audio device |
-| `tests/test_uia.py` | 788 | code | Тесты jarvis.uia — логика обёртки. С моками. |
-| `tests/test_uia_fast.py` | 238 | code | Тесты быстрых UIA-команд — `jarvis/intents/fast/uia.py`. |
+| `tests/test_uia.py` | 790 | code | Тесты jarvis.uia — логика обёртки. С моками. |
+| `tests/test_uia_fast.py` | 240 | code | Тесты быстрых UIA-команд — `jarvis/intents/fast/uia.py`. |
 | `tests/test_vad.py` | 333 | code | Тесты jarvis.vad — Silero VAD ONNX. |
 | `tests/test_vad_model.py` | 314 | code | Авто-скачивание модели Silero VAD (jarvis.vad). |
 | `tests/test_vectormem.py` | 405 | code | Векторная память фактов (jarvis.vectormem, №51–53). |
@@ -5548,6 +5571,7 @@ import re
 import shlex
 import shutil
 import subprocess
+import threading
 import time
 import urllib.parse
 from pathlib import Path
@@ -6383,20 +6407,36 @@ def set_volume(percent: int) -> bool:
 
 # --- яркость ---------------------------------------------------------------
 
+# DDC/CI внешнего монитора, который не отвечает, может висеть секундами
+# (замер на BenQ GW2270: 7 с на один опрос). Пользователь ждёт ответа голосом,
+# поэтому опрос ограничен по времени; не успели — яркость неизвестна.
+BRIGHTNESS_TIMEOUT = 1.5
+
+
 def get_brightness() -> int | None:
-    """Возвращает яркость в процентах (0..100)."""
+    """Возвращает яркость в процентах (0..100) или None, если монитор молчит."""
     if not _caps_available("brightness"):
         log.warning("Яркость недоступна (см. system_caps.json)")
         return None
-    try:
-        import screen_brightness_control as sbc
-        values = sbc.get_brightness()
-        if values:
-            return int(values[0])
+
+    result: list[int | None] = []
+
+    def probe() -> None:
+        try:
+            import screen_brightness_control as sbc
+            values = sbc.get_brightness()
+            result.append(int(values[0]) if values else None)
+        except Exception:
+            log.exception("get_brightness не удался")
+            result.append(None)
+
+    worker = threading.Thread(target=probe, name="jarvis-brightness", daemon=True)
+    worker.start()
+    worker.join(BRIGHTNESS_TIMEOUT)
+    if worker.is_alive():
+        log.warning("get_brightness: монитор не ответил за %.1f с", BRIGHTNESS_TIMEOUT)
         return None
-    except Exception:
-        log.exception("get_brightness не удался")
-        return None
+    return result[0] if result else None
 
 
 def set_brightness(percent: int) -> bool:
@@ -31841,6 +31881,7 @@ if __name__ == '__main__':
 ```python
 """Сборка Феникс.exe (лёгкий лаунчер). ... [13 строк]"""
 
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -31848,6 +31889,54 @@ from pathlib import Path
 BASE = Path(__file__).resolve().parent.parent
 ICON = BASE / "jarvis" / "icon.ico"
 EXE_NAME = "Феникс"
+PYTHON_PACKAGE = "jarvis"
+
+
+def load_version() -> str:
+    """Версия приложения из jarvis/__init__.py (единственный источник правды)."""
+    text = (BASE / PYTHON_PACKAGE / "__init__.py").read_text(encoding="utf-8")
+    found = re.search(r'^__version__\s*=\s*"([^"]+)"', text, re.MULTILINE)
+    if not found:
+        raise SystemExit("ОШИБКА: в jarvis/__init__.py не найден __version__")
+    return found.group(1)
+
+
+def version_tuple(version: str) -> tuple[int, int, int, int]:
+    parts = [int(part) for part in re.findall(r"\d+", version)[:4]]
+    parts += [0] * (4 - len(parts))
+    return parts[0], parts[1], parts[2], parts[3]
+
+
+def make_version_file(version: str) -> str:
+    """Ресурс версии для PyInstaller (--version-file). ... [5 строк]"""
+    a, b, c, d = version_tuple(version)
+    return f'''VSVersionInfo(
+  ffi=FixedFileInfo(
+    filevers=({a}, {b}, {c}, {d}),
+    prodvers=({a}, {b}, {c}, {d}),
+    mask=0x3f,
+    flags=0x0,
+    OS=0x40004,
+    fileType=0x1,
+    subtype=0x0,
+    date=(0, 0)
+  ),
+  kids=[
+    StringFileInfo([
+      StringTable('040904B0', [
+        StringStruct('CompanyName', 'Феникс'),
+        StringStruct('FileDescription', 'Феникс — голосовой ассистент'),
+        StringStruct('FileVersion', '{version}'),
+        StringStruct('InternalName', 'Феникс'),
+        StringStruct('OriginalFilename', 'Феникс.exe'),
+        StringStruct('ProductName', 'Феникс'),
+        StringStruct('ProductVersion', '{version}')
+      ])
+    ]),
+    VarFileInfo([VarStruct('Translation', [1033, 1200])])
+  ]
+)
+'''
 
 
 def ensure_icon() -> None:
@@ -31878,6 +31967,12 @@ def build() -> None:
     check_bootstrap_ui()
     ensure_icon()
 
+    version = load_version()
+    version_file = BASE / "build" / "version_info.txt"
+    version_file.parent.mkdir(parents=True, exist_ok=True)
+    version_file.write_text(make_version_file(version), encoding="utf-8")
+    print(f"Ресурс версии: {version} → {version_file}")
+
     cmd = [
         sys.executable, "-m", "PyInstaller",
         "--onefile",
@@ -31886,6 +31981,7 @@ def build() -> None:
         "--noconfirm",
         "--name", EXE_NAME,
         "--icon", str(ICON),
+        "--version-file", str(version_file),
         "--distpath", str(BASE / "dist"),
         "--workpath", str(BASE / "build"),
         "--specpath", str(BASE / "build"),
@@ -32080,6 +32176,7 @@ from scripts.build_setup import find_iscc, validate_version
 from scripts.release_payload import collect_payload
 
 EXE = "Феникс.exe"
+APP_NAME = EXE.removesuffix(".exe")
 SETUP = "Феникс_Nuitka_Setup.exe"
 INCLUDES = (
     "--include-package=jarvis", "--include-module=pyttsx3.drivers.sapi5",
@@ -32169,6 +32266,13 @@ def resources(root):
         ("jarvis/assets/", "jarvis/sounds/", "assets/nonverbal/", "packs/"))]
 
 
+def windows_version(version: str) -> str:
+    """«2.1.2» → «2.1.2.0»: Nuitka ждёт четыре числа, текстовый суффикс отбрасываем. ... [5 строк]"""
+    numbers = [int(part) for part in re.findall(r"\d+", version)[:4]]
+    numbers += [0] * (4 - len(numbers))
+    return ".".join(str(number) for number in numbers)
+
+
 def command(args, root=BASE, *, distributions=()):
     root = Path(root).resolve()
     output = root / "build/nuitka-app"
@@ -32177,6 +32281,11 @@ def command(args, root=BASE, *, distributions=()):
            "--module-parameter=torch-disable-jit=no", "--nofollow-import-to=" + ",".join(NOFOLLOW),
            f"--output-dir={output}", f"--output-filename={EXE}",
            f"--windows-icon-from-ico={root / 'jarvis/icon.ico'}",
+           f"--file-version={windows_version(args.version)}",
+           f"--product-version={windows_version(args.version)}",
+           f"--company-name={APP_NAME}", f"--product-name={APP_NAME}",
+           f"--file-description={APP_NAME} — голосовой ассистент",
+           f"--copyright={APP_NAME}",
            f"--windows-console-mode={'force' if args.console else 'disable'}",
            f"--report={output / 'compilation-report.xml'}", f"--jobs={args.jobs}",
            "--assume-yes-for-downloads", *INCLUDES]
@@ -36250,6 +36359,67 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+```
+
+### `tests/test_actions_brightness.py`
+
+```python
+"""Яркость: опрос DDC/CI не должен подвешивать голосовой ответ. ... [5 строк]"""
+import sys
+import time
+import types
+
+import pytest
+
+from jarvis import actions
+
+
+@pytest.fixture
+def caps(monkeypatch):
+    monkeypatch.setattr(actions, "_CAPS", {"brightness": {"available": True, "method": "ddc"}})
+
+
+def _fake_sbc(monkeypatch, behaviour):
+    module = types.ModuleType("screen_brightness_control")
+    module.get_brightness = behaviour
+    monkeypatch.setitem(sys.modules, "screen_brightness_control", module)
+
+
+def test_brightness_returns_percent(caps, monkeypatch):
+    _fake_sbc(monkeypatch, lambda: [57])
+    assert actions.get_brightness() == 57
+
+
+def test_silent_monitor_does_not_block(caps, monkeypatch):
+    def slow():
+        time.sleep(5)
+        return [40]
+
+    _fake_sbc(monkeypatch, slow)
+    started = time.monotonic()
+    assert actions.get_brightness() is None
+    assert time.monotonic() - started < actions.BRIGHTNESS_TIMEOUT + 1.0
+
+
+def test_probe_error_is_not_a_crash(caps, monkeypatch):
+    def boom():
+        raise OSError("DDC/CI не поддерживается")
+
+    _fake_sbc(monkeypatch, boom)
+    assert actions.get_brightness() is None
+
+
+def test_unavailable_caps_skips_the_probe(monkeypatch):
+    monkeypatch.setattr(actions, "_caps_available", lambda name: False)
+    calls = []
+
+    def behaviour():
+        calls.append(1)
+        return [50]
+
+    _fake_sbc(monkeypatch, behaviour)
+    assert actions.get_brightness() is None
+    assert calls == []
 ```
 
 ### `tests/test_audio_regression.py`
@@ -40518,6 +40688,11 @@ def tree(tmp_path, monkeypatch):
 class Config(dict):
     def get(self, key, default=None):
         return dict.get(self, key, default)
+
+@pytest.fixture(autouse=True)
+def packages_present(monkeypatch):
+    """Пакеты движков считаются установленными, независимо от машины. ... [7 строк]"""
+    monkeypatch.setattr(engines, "_package", lambda name: True)
 
 
 def test_catalog_lists_every_group_and_engine(tree):
@@ -47406,6 +47581,17 @@ def test_full_command_targets_application_and_embeds_runtime():
     assert not any(".venv311" in value for value in command[1:])
 
 
+def test_exe_carries_version_resource():
+    """У автономного exe должны быть версия и имя продукта в «Свойствах». ... [4 строк]"""
+    command = build.command(build.args_for(["--version", "2.1.2"]))
+    assert "--file-version=2.1.2.0" in command
+    assert "--product-version=2.1.2.0" in command
+    assert "--product-name=Феникс" in command
+    assert "--file-description=Феникс — голосовой ассистент" in command
+    assert build.windows_version("0.0.0-ci") == "0.0.0.0"
+    assert build.windows_version("2.1") == "2.1.0.0"
+
+
 @pytest.mark.parametrize("compiler,flag", [("msvc", "--msvc=latest"), ("mingw64", "--mingw64")])
 def test_explicit_compilers(compiler, flag):
     assert flag in build.command(build.args_for(["--compiler", compiler]))
@@ -49402,6 +49588,7 @@ def test_purge_survives_missing_directory(tmp_path):
 ```python
 """Public payload, reproducible manifest and bootstrap regression checks."""
 import hashlib
+import importlib.util
 import json
 import logging
 import os
@@ -49422,6 +49609,28 @@ def release_tree(tmp_path):
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(ROOT/name, target)
     return root
+
+
+def _load_build_exe():
+    """Импорт scripts/build_exe.py как модуля: побочных эффектов на импорте нет."""
+    spec = importlib.util.spec_from_file_location("build_exe", ROOT / "scripts" / "build_exe.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_launcher_exe_is_built_with_version_resource():
+    """У Феникс.exe должны быть версия и название в «Свойствах файла». ... [5 строк]"""
+    text = (ROOT / "scripts" / "build_exe.py").read_text(encoding="utf-8")
+    assert "--version-file" in text, "build_exe.py больше не передаёт ресурс версии"
+    module = _load_build_exe()
+    version = module.load_version()
+    assert version == __import__("jarvis").__version__
+    resource = module.make_version_file(version)
+    assert f"'{version}'" in resource, "в ресурсе нет версии файла"
+    assert "ProductName" in resource and "Феникс" in resource
+    assert "filevers=(" in resource and "OriginalFilename" in resource
+    assert module.version_tuple(version) == (2, 1, 2, 0) or len(module.version_tuple(version)) == 4
 
 
 def test_only_public_files(release_tree):
@@ -52442,6 +52651,7 @@ def test_close_tab_with_fallback_uses_ctrl_w_when_tabs_unreadable():
     with patch.object(uia, "close_browser_tab", return_value=False), \
          patch.object(uia, "read_browser_tabs", return_value=["DeepSeek"]), \
          patch.object(uia, "active_tab_matches", return_value=True), \
+         patch.object(uia, "_get_browser_window", return_value=None), \
          patch.object(actions, "hotkey", side_effect=hotkeys.append):
         assert uia.close_browser_tab_with_fallback("ютуб") is True
 
@@ -52493,6 +52703,7 @@ def test_intent_close_tab_uses_the_same_fallback():
     with patch.object(uia, "close_browser_tab", return_value=False), \
          patch.object(uia, "read_browser_tabs", return_value=["DeepSeek"]), \
          patch.object(uia, "active_tab_matches", return_value=True), \
+         patch.object(uia, "_get_browser_window", return_value=None), \
          patch.object(actions, "hotkey") as hotkey:
         reply = _do_uia_close_tab(None, None, "ютуб", None)
 
@@ -52734,6 +52945,7 @@ def test_close_named_tab_falls_back_to_ctrl_w():
             patch.object(uia, "close_browser_tab", return_value=False), \
             patch.object(uia, "read_browser_tabs", return_value=["DeepSeek"]), \
             patch.object(uia, "active_tab_matches", return_value=True), \
+            patch.object(uia, "_get_browser_window", return_value=None), \
             patch.object(actions, "hotkey", side_effect=hotkeys.append):
         reply = uia_fast(None, "закрой вкладку ютуб")
 
@@ -52764,6 +52976,7 @@ def test_tab_list_read_error_counts_as_unreadable():
             patch.object(uia, "read_browser_tabs",
                          side_effect=RuntimeError("COM")), \
             patch.object(uia, "active_tab_matches", return_value=True), \
+            patch.object(uia, "_get_browser_window", return_value=None), \
             patch.object(actions, "hotkey", side_effect=hotkeys.append):
         reply = uia_fast(None, "закрой вкладку ютуб")
 
@@ -59460,11 +59673,14 @@ certifi>=2024.8.30
   - 🏗 Инфраструктура
     - `.venv311`
 
-#### `CHANGELOG.md` — 131 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 134 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
   - [Не выпущено]
     - Установка на чистую Windows: кодировка requirements и CA-бандл
+    - Свойства Феникс.exe и проверки, которые не зависят от машины
+    - Яркость: ответ не ждёт молчащий монитор
+    - Автономная сборка: версия в свойствах exe
     - Автономная сборка на чистой Windows
     - Облачная LLM
     - Вкладки «Облако» и «Движки»
@@ -59499,9 +59715,6 @@ certifi>=2024.8.30
   - Исправление панели после добавления Главной
   - 📑 Содержание
   - [2.1.0]
-    - Аудит установки и обновления
-    - 📅 Сессия 16.10.2026
-      - Минималистичная Главная, отдельный Диалог
 
 #### `CI.md` — 16 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -59986,4 +60199,4 @@ certifi>=2024.8.30
 
 ---
 
-_Итого по категориям — code: 244, data: 58, doc: 52, pack: 5. Режим `lean`._
+_Итого по категориям — code: 245, data: 58, doc: 52, pack: 5. Режим `lean`._
