@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=6d1ac13b0cd7e909` · режим `lean` · файлов `360` · строк `65198` · источник `3077 КБ`
+`sha256=f1dca2aa000ab4f4` · режим `lean` · файлов `360` · строк `65255` · источник `3080 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -484,7 +484,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── themes.svg  (19 стр)
 ├── build_nuitka.bat  (12 стр)
 ├── build_nuitka_full.bat  (17 стр)
-├── CHANGELOG.md  (1973 стр)
+├── CHANGELOG.md  (1980 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -520,7 +520,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── IMPROVEMENT_BACKLOG.md  (120 стр)
 │   ├── INSTALLER_UPDATE.md  (47 стр)
 │   ├── LOCAL_VOICE_OPTIONS.md  (67 стр)
-│   ├── NEXT_STEPS.md  (346 стр)
+│   ├── NEXT_STEPS.md  (349 стр)
 │   ├── NUITKA_BUILD.md  (123 стр)
 │   ├── PHOENIX_JASTIN_RECONCILIATION.md  (268 стр)
 │   ├── PYTHON_BOOTSTRAP_TLS_FIX.md  (98 стр)
@@ -668,7 +668,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── safety.py  (213 стр)
 │   ├── secrets_store.py  (168 стр)
 │   ├── steam.py  (67 стр)
-│   ├── stt.py  (1016 стр)
+│   ├── stt.py  (1026 стр)
 │   ├── tasks.py  (282 стр)
 │   ├── text_utils.py  (98 стр)
 │   ├── timers.py  (343 стр)
@@ -825,7 +825,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_source_layout.py  (63 стр)
 │   ├── test_speech_gate.py  (86 стр)
 │   ├── test_startup_https.py  (96 стр)
-│   ├── test_stt.py  (451 стр)
+│   ├── test_stt.py  (488 стр)
 │   ├── test_test_portability.py  (44 стр)
 │   ├── test_text_encoding.py  (46 стр)
 │   ├── test_tray.py  (249 стр)
@@ -4682,6 +4682,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_drain_audio_clears_queue_and_buffer(listener)
   def test_flush_clears_queue(listener)
   def test_phrases_reopens_stream_on_device_change(monkeypatch, listener)
+  def test_phrases_logs_traceback_only_once_without_microphone(monkeypatch, listener, caplog)
   def test_phrases_keeps_stream_without_device_change(monkeypatch, listener)
   def test_listener_enables_word_confidence(listener)
 ```
@@ -5388,7 +5389,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/safety.py` | 213 | code | Постфильтр ответов LLM — вторая линия «красной черты». |
 | `jarvis/secrets_store.py` | 168 | code | Секреты Феникса: ключи облачных провайдеров, зашифрованные Windows DPA |
 | `jarvis/steam.py` | 67 | code | Индекс установленных игр Steam: appmanifest -> (название, appid). |
-| `jarvis/stt.py` | 1016 | code | Распознавание речи. |
+| `jarvis/stt.py` | 1026 | code | Распознавание речи. |
 | `jarvis/tasks.py` | 282 | code | Списки задач. |
 | `jarvis/text_utils.py` | 98 | code | Общие текстовые утилиты для Феникса. |
 | `jarvis/timers.py` | 343 | code | Таймеры и напоминания. |
@@ -5506,7 +5507,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_source_layout.py` | 63 | code | Same-named package files have different roles; test real imports in fr |
 | `tests/test_speech_gate.py` | 86 | code | Тесты jarvis.vad.SpeechHangover — «хвост» тишины после речи. |
 | `tests/test_startup_https.py` | 96 | code | Process-local CA and native-client prep without network/GUI. |
-| `tests/test_stt.py` | 451 | code | stt.Listener: живое применение настроек (то, что раньше не работало). |
+| `tests/test_stt.py` | 488 | code | stt.Listener: живое применение настроек (то, что раньше не работало). |
 | `tests/test_test_portability.py` | 44 | code | Audio fixture contents must never become Windows environment-variable  |
 | `tests/test_text_encoding.py` | 46 | code | Test sources/fixtures are UTF-8, independent of Windows ANSI code page |
 | `tests/test_tray.py` | 249 | code | Трей (jarvis.tray): пункты меню реально дёргают ядро и GUI. |
@@ -26709,6 +26710,7 @@ class Listener:
         # закрывает поток в своём же потоке — так безопасно) и
         # открываем новый уже на другом устройстве.
         backoff = 0.5
+        failure_logged = False
         while not stop_event.is_set():
             self._device_reload = False
             try:
@@ -26725,13 +26727,22 @@ class Listener:
                 # Устройство занято/битое: раньше исключение вылетало из
                 # phrases(), run_loop глотал его один раз — и слушатель
                 # замолкал до перезапуска. Теперь повторяем с паузой.
-                log.exception("Listener: не удалось открыть микрофон (%s) — "
-                              "повторю через %.1f с", self.device_name, backoff)
+                # Трассировку пишем один раз: без микрофона (ВМ, отключённая
+                # гарнитура) ошибка повторяется каждые 10 с и раздувала
+                # errors.log на ~100 КБ в минуту.
+                if failure_logged:
+                    log.warning("Listener: микрофон (%s) всё ещё не открывается — "
+                                "следующая попытка через %.1f с", self.device_name, backoff)
+                else:
+                    log.exception("Listener: не удалось открыть микрофон (%s) — "
+                                  "повторю через %.1f с", self.device_name, backoff)
+                    failure_logged = True
                 if stop_event.wait(backoff):
                     return
                 backoff = min(backoff * 2, 10.0)
                 continue
             backoff = 0.5
+            failure_logged = False
             try:
                 log.info("Микрофон открыт (%s), слушаю...", self.device_name)
                 while not stop_event.is_set() and not self._device_reload:
@@ -50746,6 +50757,7 @@ def test_main_requires_prerequisites_before_launch(monkeypatch,tmp_path,vc,flet,
 """stt.Listener: живое применение настроек (то, что раньше не работало). ... [11 строк]"""
 
 import importlib.util
+import logging
 import time
 from threading import Event, Thread
 
@@ -51147,6 +51159,38 @@ def test_phrases_reopens_stream_on_device_change(monkeypatch, listener):
 
     assert FakeStream.opened == [None, 1], "поток не переоткрылся"
     assert listener._rec.reset_calls >= 1, "Vosk не сброшен при смене микрофона"
+
+
+def test_phrases_logs_traceback_only_once_without_microphone(monkeypatch, listener, caplog):
+    """Без микрофона трассировка пишется один раз, дальше — короткое предупреждение. ... [4 строк]"""
+    calls = []
+
+    def broken(**kwargs):
+        calls.append(kwargs)
+        raise RuntimeError("Error querying device -1")
+
+    monkeypatch.setattr(stt.sd, "RawInputStream", broken)
+    stop = Event()
+
+    with caplog.at_level(logging.DEBUG, logger="jarvis.stt"):
+        def _consume():
+            for _ in listener.phrases(stop):
+                break
+
+        thread = Thread(target=_consume, daemon=True, name="test-listener-no-mic")
+        thread.start()
+        for _ in range(200):
+            if len(calls) >= 3:
+                break
+            time.sleep(0.01)
+        stop.set()
+        thread.join(timeout=3.0)
+
+    logged = [r for r in caplog.records if "не удалось открыть микрофон" in r.getMessage()]
+    warned = [r for r in caplog.records if "всё ещё не открывается" in r.getMessage()]
+    assert len(calls) >= 2, "микрофон не пробовали открыть повторно"
+    assert len(logged) == 1, "трассировка должна попасть в лог один раз"
+    assert warned, "повторные попытки должны писать короткое предупреждение"
 
 
 def test_phrases_keeps_stream_without_device_change(monkeypatch, listener):
@@ -59673,12 +59717,13 @@ certifi>=2024.8.30
   - 🏗 Инфраструктура
     - `.venv311`
 
-#### `CHANGELOG.md` — 134 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 135 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
   - [Не выпущено]
     - Установка на чистую Windows: кодировка requirements и CA-бандл
     - Свойства Феникс.exe и проверки, которые не зависят от машины
+    - Микрофон без микрофона: лог не раздувается
     - Яркость: ответ не ждёт молчащий монитор
     - Автономная сборка: версия в свойствах exe
     - Автономная сборка на чистой Windows
@@ -59714,7 +59759,6 @@ certifi>=2024.8.30
   - Солнечная корона Феникса и тихая диагностика микрофона
   - Исправление панели после добавления Главной
   - 📑 Содержание
-  - [2.1.0]
 
 #### `CI.md` — 16 заголовков, полный текст не включён (дублирует PROJECT.md)
 

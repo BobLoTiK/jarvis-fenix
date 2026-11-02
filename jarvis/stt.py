@@ -737,6 +737,7 @@ class Listener:
         # закрывает поток в своём же потоке — так безопасно) и
         # открываем новый уже на другом устройстве.
         backoff = 0.5
+        failure_logged = False
         while not stop_event.is_set():
             self._device_reload = False
             try:
@@ -753,13 +754,22 @@ class Listener:
                 # Устройство занято/битое: раньше исключение вылетало из
                 # phrases(), run_loop глотал его один раз — и слушатель
                 # замолкал до перезапуска. Теперь повторяем с паузой.
-                log.exception("Listener: не удалось открыть микрофон (%s) — "
-                              "повторю через %.1f с", self.device_name, backoff)
+                # Трассировку пишем один раз: без микрофона (ВМ, отключённая
+                # гарнитура) ошибка повторяется каждые 10 с и раздувала
+                # errors.log на ~100 КБ в минуту.
+                if failure_logged:
+                    log.warning("Listener: микрофон (%s) всё ещё не открывается — "
+                                "следующая попытка через %.1f с", self.device_name, backoff)
+                else:
+                    log.exception("Listener: не удалось открыть микрофон (%s) — "
+                                  "повторю через %.1f с", self.device_name, backoff)
+                    failure_logged = True
                 if stop_event.wait(backoff):
                     return
                 backoff = min(backoff * 2, 10.0)
                 continue
             backoff = 0.5
+            failure_logged = False
             try:
                 log.info("Микрофон открыт (%s), слушаю...", self.device_name)
                 while not stop_event.is_set() and not self._device_reload:

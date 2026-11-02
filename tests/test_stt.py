@@ -12,6 +12,7 @@ KaldiRecognizer, Model, VAD и SpeechHangover подменены заглушк�
 """
 
 import importlib.util
+import logging
 import time
 from threading import Event, Thread
 
@@ -423,6 +424,42 @@ def test_phrases_reopens_stream_on_device_change(monkeypatch, listener):
 
     assert FakeStream.opened == [None, 1], "поток не переоткрылся"
     assert listener._rec.reset_calls >= 1, "Vosk не сброшен при смене микрофона"
+
+
+def test_phrases_logs_traceback_only_once_without_microphone(monkeypatch, listener, caplog):
+    """Без микрофона трассировка пишется один раз, дальше — короткое предупреждение.
+
+    Ошибка повторяется каждые 10 с; с log.exception на каждой попытке
+    errors.log рос на ~100 КБ в минуту (замечено на автономной сборке в ВМ).
+    """
+    calls = []
+
+    def broken(**kwargs):
+        calls.append(kwargs)
+        raise RuntimeError("Error querying device -1")
+
+    monkeypatch.setattr(stt.sd, "RawInputStream", broken)
+    stop = Event()
+
+    with caplog.at_level(logging.DEBUG, logger="jarvis.stt"):
+        def _consume():
+            for _ in listener.phrases(stop):
+                break
+
+        thread = Thread(target=_consume, daemon=True, name="test-listener-no-mic")
+        thread.start()
+        for _ in range(200):
+            if len(calls) >= 3:
+                break
+            time.sleep(0.01)
+        stop.set()
+        thread.join(timeout=3.0)
+
+    logged = [r for r in caplog.records if "не удалось открыть микрофон" in r.getMessage()]
+    warned = [r for r in caplog.records if "всё ещё не открывается" in r.getMessage()]
+    assert len(calls) >= 2, "микрофон не пробовали открыть повторно"
+    assert len(logged) == 1, "трассировка должна попасть в лог один раз"
+    assert warned, "повторные попытки должны писать короткое предупреждение"
 
 
 def test_phrases_keeps_stream_without_device_change(monkeypatch, listener):
