@@ -25,6 +25,17 @@ def test_filelock_keeps_upper_bound():
         assert re.search(r"filelock>=3\.13,<4", line), f"нет верхней границы: {line}"
 
 
+def test_build_tools_are_pinned_for_reproducible_exe():
+    """Версии сборщика зафиксированы: от них зависит содержимое exe.
+
+    Незапиненный pyinstaller-hooks-contrib дал разницу 12 003 916 Б против
+    11 016 477 Б на одном коммите, и именно CI-файл пометил Defender.
+    """
+    text = (ROOT / "requirements-dev.txt").read_text(encoding="utf-8")
+    assert "pyinstaller==" in text, "pyinstaller не запинен"
+    assert "pyinstaller-hooks-contrib==" in text, "pyinstaller-hooks-contrib не запинен"
+
+
 def test_nuitka_package_data_covers_faster_whisper():
     """--include-module не копирует assets: silero_vad_v6.onnx без этого теряется."""
     text = (ROOT / "scripts/build_nuitka_app.py").read_text(encoding="utf-8")

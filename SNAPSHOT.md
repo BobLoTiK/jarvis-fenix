@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=f1dca2aa000ab4f4` · режим `lean` · файлов `360` · строк `65255` · источник `3080 КБ`
+`sha256=7e0ddc74b1b9032d` · режим `lean` · файлов `360` · строк `65280` · источник `3082 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -484,7 +484,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── themes.svg  (19 стр)
 ├── build_nuitka.bat  (12 стр)
 ├── build_nuitka_full.bat  (17 стр)
-├── CHANGELOG.md  (1980 стр)
+├── CHANGELOG.md  (1988 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -708,7 +708,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ├── README.md  (194 стр)
 ├── requirements-aec.txt  (3 стр)
 ├── requirements-ci.txt  (40 стр)
-├── requirements-dev.txt  (14 стр)
+├── requirements-dev.txt  (20 стр)
 ├── requirements-nuitka-app.txt  (8 стр)
 ├── requirements-nuitka.txt  (2 стр)
 ├── requirements.txt  (70 стр)
@@ -817,7 +817,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_profile.py  (100 стр)
 │   ├── test_prosody.py  (83 стр)
 │   ├── test_recognition_quality.py  (357 стр)
-│   ├── test_release_install_guards.py  (113 стр)
+│   ├── test_release_install_guards.py  (124 стр)
 │   ├── test_release_payload.py  (287 стр)
 │   ├── test_review_regressions.py  (334 стр)
 │   ├── test_safety.py  (170 стр)
@@ -4463,6 +4463,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   # Стражи установщика: пины, файлы данных и понятные падения Silero.
   ROOT = ...
   def test_filelock_keeps_upper_bound()
+  def test_build_tools_are_pinned_for_reproducible_exe()
   def test_nuitka_package_data_covers_faster_whisper()
   def test_self_test_verifies_filelock_and_vad_assets()
   def test_console_prompt_failure_detection()
@@ -5499,7 +5500,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_profile.py` | 100 | code | Профили: защита активного профиля и границы удаления. |
 | `tests/test_prosody.py` | 83 | code | Тесты jarvis.prosody — эмоции из голоса (эвристика). |
 | `tests/test_recognition_quality.py` | 357 | code | Recognition policy and integration tested without a microphone or mode |
-| `tests/test_release_install_guards.py` | 113 | code | Стражи установщика: пины, файлы данных и понятные падения Silero. |
+| `tests/test_release_install_guards.py` | 124 | code | Стражи установщика: пины, файлы данных и понятные падения Silero. |
 | `tests/test_release_payload.py` | 287 | code | Public payload, reproducible manifest and bootstrap regression checks. |
 | `tests/test_review_regressions.py` | 334 | code | Archive-review regressions: no network, native audio or system automat |
 | `tests/test_safety.py` | 170 | code | Тесты jarvis.safety — постфильтр «красной черты». |
@@ -49506,6 +49507,13 @@ def test_filelock_keeps_upper_bound():
         assert re.search(r"filelock>=3\.13,<4", line), f"нет верхней границы: {line}"
 
 
+def test_build_tools_are_pinned_for_reproducible_exe():
+    """Версии сборщика зафиксированы: от них зависит содержимое exe. ... [4 строк]"""
+    text = (ROOT / "requirements-dev.txt").read_text(encoding="utf-8")
+    assert "pyinstaller==" in text, "pyinstaller не запинен"
+    assert "pyinstaller-hooks-contrib==" in text, "pyinstaller-hooks-contrib не запинен"
+
+
 def test_nuitka_package_data_covers_faster_whisper():
     """--include-module не копирует assets: silero_vad_v6.onnx без этого теряется."""
     text = (ROOT / "scripts/build_nuitka_app.py").read_text(encoding="utf-8")
@@ -59500,7 +59508,13 @@ certifi>=2024.8.30
 # Зависимости для разработки (не нужны в проде).
 
 # --- Сборка .exe ---
-pyinstaller>=6.0
+# Версии зафиксированы: bootloader и хуки PyInstaller меняют содержимое
+# сборки, а от него зависит вердикт антивируса. Из одного коммита CI собрал
+# Феникс.exe 12 003 916 Б, локально — 11 016 477 Б: разошёлся
+# pyinstaller-hooks-contrib (>=2026.7 в пине). Именно CI-файл Defender пометил
+# как Program:Win32/Contebrew.A!ml, локальные — нет.
+pyinstaller==6.22.3
+pyinstaller-hooks-contrib==2026.8
 
 # --- Покрытие тестов ---
 pytest-cov>=5.0
@@ -59717,12 +59731,13 @@ certifi>=2024.8.30
   - 🏗 Инфраструктура
     - `.venv311`
 
-#### `CHANGELOG.md` — 135 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 136 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
   - [Не выпущено]
     - Установка на чистую Windows: кодировка requirements и CA-бандл
     - Свойства Феникс.exe и проверки, которые не зависят от машины
+    - Воспроизводимая сборка установщика
     - Микрофон без микрофона: лог не раздувается
     - Яркость: ответ не ждёт молчащий монитор
     - Автономная сборка: версия в свойствах exe
@@ -59758,7 +59773,6 @@ certifi>=2024.8.30
   - Постоянная корона и усиленные активные режимы
   - Солнечная корона Феникса и тихая диагностика микрофона
   - Исправление панели после добавления Главной
-  - 📑 Содержание
 
 #### `CI.md` — 16 заголовков, полный текст не включён (дублирует PROJECT.md)
 
