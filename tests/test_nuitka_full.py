@@ -179,7 +179,7 @@ def test_installer_uses_full_payload_not_legacy_bootstrap():
     command = build.installer_command("ISCC.exe", ROOT / "dist/nuitka-app", args)
     assert command[-1].endswith("installer_nuitka.iss")
     text = (ROOT / "installer_nuitka.iss").read_text(encoding="utf-8")
-    assert 'OutputBaseFilename=Феникс_Nuitka_Setup' in text
+    assert 'OutputBaseFilename=Феникс_Fast_Setup' in text
     assert 'UsePreviousAppDir=no' in text
     assert 'Parameters: "--prepare-silero"' in text
     assert 'Source: "{#PayloadDir}\\*"' in text
@@ -400,7 +400,7 @@ def test_release_workflow_builds_nuitka_installer():
     assert 'scripts/build_nuitka_app.py' in workflow
     assert '--compiler mingw64' in workflow
     # Установщик Nuitka и независимый self-test попадают в артефакты.
-    assert 'dist/Феникс_Nuitka_Setup.exe' in workflow
+    assert 'dist/Феникс_Fast_Setup.exe' in workflow
     assert '--self-test' in workflow
     # EXE собран без консоли (--windows-console-mode=disable): обычный вызов &
     # не ждёт завершения и не ставит $LASTEXITCODE, поэтому прогон #8 падал на
@@ -411,7 +411,7 @@ def test_release_workflow_builds_nuitka_installer():
     assert '-WorkingDirectory (Get-Location)' in workflow
     assert 'Join-Path (Get-Location) "build/ci-self-test.json"' in workflow
     # GitHub вырезает кириллицу из имён вложений: публикуются ASCII-имена.
-    assert 'Feniks_Nuitka_Setup_' in workflow
+    assert 'Feniks_Fast_Setup_' in workflow
     assert 'Feniks_Setup_' in workflow
     assert 'SHA256SUMS.txt' in workflow
     # Лимит GitHub на job — 360 минут.

@@ -199,7 +199,7 @@ self-test, а не сборка: GUI-подсистема EXE не выстав�
       это осознанное решение (`tests/test_nuitka_full.py` запрещает широкий
       `[UninstallDelete]`), но пользователь ожидает «удалено» — решить,
       предупреждать ли об остатках в деинсталляторе.
-- [x] `Феникс_Nuitka_Setup.exe`: установка exit 0, `--self-test` → `ok:true`
+- [x] `Феникс_Fast_Setup.exe`: установка exit 0, `--self-test` → `ok:true`
       (27 с), `--gui-smoke` → `ok:true` (4 с), удаление exit 0, каталог удалён.
 
 Новые находки, требующие решения:
@@ -246,7 +246,7 @@ self-test, а не сборка: GUI-подсистема EXE не выстав�
       и окно Феникса на экране. Деинсталляция exit 0, ярлыки и ключ убраны,
       остались `.venv311`/`models`/`torch`/`vad`/`whisper-cache`/`logs`
       (~1.19 ГБ) — как и решено выше.
-- [x] `Феникс_Nuitka_Setup.exe` **из артефакта CI** (0.0.0-ci, 309 611 358 Б):
+- [x] `Феникс_Fast_Setup.exe` **из артефакта CI** (0.0.0-ci, 309 611 358 Б):
       установка exit 0 за 51,7 с, `--self-test` → `ok:true` за 50,8 с
       (31 проверка, включая `msvc_runtime` и `faster_whisper_assets`),
       `--gui-smoke` → `ok:true` за 23,2 с, окно Феникса поднимается,
@@ -297,7 +297,7 @@ self-test, а не сборка: GUI-подсистема EXE не выстав�
   Секции TTS и Nuitka в CHANGELOG перенесены из `[2.1.1]` в `[2.1.2]`, заметки —
   `docs/releases/v2.1.2.md`.
 - Две поставки: `Феникс_Setup.exe` (bootstrap: Python и зависимости ставятся при первом
-  запуске) и `Феникс_Nuitka_Setup.exe` (автономно: свой Python, Flet client, нативные
+  запуске) и `Феникс_Fast_Setup.exe` (автономно: свой Python, Flet client, нативные
   библиотеки, `external_python_required: false`). Общий `AppId` — обновляют друг друга.
 - `--self-test` автономной сборки: exit 0, `ok: true`, все проверки, включая torch,
   torchaudio, torchscript_cpu и winrt.
@@ -312,7 +312,7 @@ self-test, а не сборка: GUI-подсистема EXE не выстав�
 - Опубликовано: полноценный релиз
   [v2.1.2](https://github.com/BobLoTiK/jarvis-fenix/releases/tag/v2.1.2) — не предрелиз,
   помечен как latest (прошлые v2.0.0/v2.1.0/v2.1.1 остались предрелизами) — с вложениями
-  `Feniks_Setup_2.1.2.exe` и `Feniks_Nuitka_Setup_2.1.2.exe`
+  `Feniks_Setup_2.1.2.exe` и `Feniks_Fast_Setup_2.1.2.exe`
   плюс `SHA256SUMS.txt`; digest на стороне GitHub совпал с локальными суммами.
 - Сначала тег назвали `2.1.2` без префикса `v` — lightweight, на коммите `1ab2efa`.
   Из-за этого прошлый `release.yml` (триггер только `v*`) не запускался и вложений не

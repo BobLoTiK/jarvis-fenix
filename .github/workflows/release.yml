@@ -11,7 +11,7 @@
 #   version   — вычисляет версию из тега (2.1.3 из v2.1.3) и проверяет формат.
 #   bootstrap — лёгкий установщик: Феникс.exe + dist\Феникс_Setup.exe (~12 минут,
 #               зависимости ставятся при первом запуске).
-#   nuitka    — автономный установщик: dist\Феникс_Nuitka_Setup.exe (~3 часа).
+#   nuitka    — автономный установщик: dist\Феникс_Fast_Setup.exe (~3 часа).
 #               Сборка идёт в изолированном окружении build\nuitka-app-env,
 #               Nuitka 4.3.1 и нативный стек зафиксированы в
 #               requirements-nuitka-app.txt + constraints-nuitka-app.txt, иначе
@@ -216,10 +216,10 @@ jobs:
       - name: Проверка артефактов
         shell: pwsh
         run: |
-          Get-Item "dist/Феникс_Nuitka_Setup.exe", "dist/nuitka-app/build-info.json" |
+          Get-Item "dist/Феникс_Fast_Setup.exe", "dist/nuitka-app/build-info.json" |
             Select-Object Name, @{n = "МБ"; e = { [math]::Round($_.Length / 1MB, 2) } } |
             Format-Table -AutoSize
-          if (-not (Test-Path "dist/Феникс_Nuitka_Setup.exe")) { throw "Автономный установщик не собран" }
+          if (-not (Test-Path "dist/Феникс_Fast_Setup.exe")) { throw "Автономный установщик не собран" }
           $files = (Get-ChildItem "dist/nuitka-app" -Recurse -File).Count
           Write-Host "Файлов в standalone-поставке: $files"
 
@@ -227,7 +227,7 @@ jobs:
         with:
           name: phoenix-nuitka-setup-${{ needs.version.outputs.value }}
           path: |
-            dist/Феникс_Nuitka_Setup.exe
+            dist/Феникс_Fast_Setup.exe
             dist/nuitka-app/build-info.json
             build/ci-self-test.json
           if-no-files-found: error
@@ -256,13 +256,13 @@ jobs:
           # превращалось в «_Setup.exe», а «Феникс.exe» — в «default.exe».
           $v = $env:RELEASE_VERSION
           $light = "artifacts/phoenix-setup-$v/dist/Феникс_Setup.exe"
-          $full = "artifacts/phoenix-nuitka-setup-$v/dist/Феникс_Nuitka_Setup.exe"
+          $full = "artifacts/phoenix-nuitka-setup-$v/dist/Феникс_Fast_Setup.exe"
           foreach ($path in @($light, $full)) {
             if (-not (Test-Path -LiteralPath $path)) { throw "Нет артефакта: $path" }
           }
           New-Item -ItemType Directory -Force dist | Out-Null
           $lightOut = "dist/Feniks_Setup_$v.exe"
-          $fullOut = "dist/Feniks_Nuitka_Setup_$v.exe"
+          $fullOut = "dist/Feniks_Fast_Setup_$v.exe"
           Copy-Item -LiteralPath $light -Destination $lightOut -Force
           Copy-Item -LiteralPath $full -Destination $fullOut -Force
           $lines = foreach ($file in @($lightOut, $fullOut)) {
@@ -284,7 +284,7 @@ jobs:
           $v = $env:RELEASE_VERSION
           $assets = @(
             "dist/Feniks_Setup_$v.exe"
-            "dist/Feniks_Nuitka_Setup_$v.exe"
+            "dist/Feniks_Fast_Setup_$v.exe"
             "dist/SHA256SUMS.txt"
           )
           # Заметки: docs/releases/<тег>.md, иначе docs/releases/v<версия>.md.

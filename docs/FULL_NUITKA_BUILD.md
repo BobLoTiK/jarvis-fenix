@@ -38,7 +38,7 @@ cd C:\jarvis
 
 Новый путь: `build_nuitka_full.bat` → `phoenix_app.py` + пакет `jarvis` + runtime
 и нативные зависимости → `dist/nuitka-app` → Inno Setup →
-`dist/Феникс_Nuitka_Setup.exe`.
+`dist/Феникс_Fast_Setup.exe`.
 
 На машине пользователя **не нужны Python, pip, исходники проекта или .venv311**.
 Python DLL и расширения входят в standalone-папку. Nuitka не превращает все
@@ -134,7 +134,7 @@ build-зависимостей записываются в `build-info.json`; э
 `build/nuitka-app-env`, как в BAT, и ставится с `-c constraints-nuitka-app.txt`:
 иначе очередной релиз torch незаметно менял бы поставку. В `publish` файлы
 переименовываются в ASCII (`Feniks_Setup_<версия>.exe`,
-`Feniks_Nuitka_Setup_<версия>.exe`) и получают `SHA256SUMS.txt` — GitHub вырезает
+`Feniks_Fast_Setup_<версия>.exe`) и получают `SHA256SUMS.txt` — GitHub вырезает
 кириллицу из имён вложений.
 
 Проверить сборку без тега: Actions → build-release → Run workflow, версия вводится
@@ -164,7 +164,7 @@ Actions: `gh release upload --clobber` заменит проверенный ф�
 7. Запускает `Феникс.exe --self-test <report.json>` на временной копии сборки,
    чтобы динамические COM/сторонние кэши не попали в установщик.
    Это ранняя проверка; она **не заменяет чистую машину**.
-8. Собирает `Феникс_Nuitka_Setup.exe`. Только после успеха готовит Sandbox.
+8. Собирает `Феникс_Fast_Setup.exe`. Только после успеха готовит Sandbox.
 
 Дистрибутив по умолчанию устанавливается в Program Files/Phoenix с правами
 администратора; данные остаются в AppData/Phoenix и ProgramData/Phoenix.
@@ -234,7 +234,7 @@ Offline Sandbox не подтверждает эти функции или GPU i
 - `build/nuitka-app/build-command.json` — точная команда.
 - `build/nuitka-app/native-probe.json` — проверка на builder, не Sandbox.
 - `dist/nuitka-app` — полная runtime-папка (передавать целиком, не один EXE).
-- `dist/Феникс_Nuitka_Setup.exe` — установщик новой схемы.
+- `dist/Феникс_Fast_Setup.exe` — установщик новой схемы.
 - `build/sandbox-nuitka/<id>/results` — результаты чистой Windows-проверки.
 
 ## Исправления по результатам реальной Windows-сборки

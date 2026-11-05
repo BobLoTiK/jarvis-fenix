@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=a6181f07e6b06db1` · режим `lean` · файлов `360` · строк `65307` · источник `3085 КБ`
+`sha256=a06502725c4ea104` · режим `lean` · файлов `360` · строк `65313` · источник `3085 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -484,7 +484,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── themes.svg  (19 стр)
 ├── build_nuitka.bat  (12 стр)
 ├── build_nuitka_full.bat  (17 стр)
-├── CHANGELOG.md  (1988 стр)
+├── CHANGELOG.md  (1994 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -32189,7 +32189,7 @@ from scripts.release_payload import collect_payload
 
 EXE = "Феникс.exe"
 APP_NAME = EXE.removesuffix(".exe")
-SETUP = "Феникс_Nuitka_Setup.exe"
+SETUP = "Феникс_Fast_Setup.exe"
 INCLUDES = (
     "--include-package=jarvis", "--include-module=pyttsx3.drivers.sapi5",
     "--include-package=winrt", "--include-package=comtypes", "--include-package=piper",
@@ -33587,7 +33587,7 @@ def launch(config):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--installer", type=Path, default=BASE / "dist/Феникс_Nuitka_Setup.exe")
+    parser.add_argument("--installer", type=Path, default=BASE / "dist/Феникс_Fast_Setup.exe")
     parser.add_argument("--open", action="store_true")
     args = parser.parse_args(argv)
     try:
@@ -47717,7 +47717,7 @@ def test_installer_uses_full_payload_not_legacy_bootstrap():
     command = build.installer_command("ISCC.exe", ROOT / "dist/nuitka-app", args)
     assert command[-1].endswith("installer_nuitka.iss")
     text = (ROOT / "installer_nuitka.iss").read_text(encoding="utf-8")
-    assert 'OutputBaseFilename=Феникс_Nuitka_Setup' in text
+    assert 'OutputBaseFilename=Феникс_Fast_Setup' in text
     assert 'UsePreviousAppDir=no' in text
     assert 'Parameters: "--prepare-silero"' in text
     assert 'Source: "{#PayloadDir}\\*"' in text
@@ -47938,7 +47938,7 @@ def test_release_workflow_builds_nuitka_installer():
     assert 'scripts/build_nuitka_app.py' in workflow
     assert '--compiler mingw64' in workflow
     # Установщик Nuitka и независимый self-test попадают в артефакты.
-    assert 'dist/Феникс_Nuitka_Setup.exe' in workflow
+    assert 'dist/Феникс_Fast_Setup.exe' in workflow
     assert '--self-test' in workflow
     # EXE собран без консоли (--windows-console-mode=disable): обычный вызов &
     # не ждёт завершения и не ставит $LASTEXITCODE, поэтому прогон #8 падал на
@@ -47949,7 +47949,7 @@ def test_release_workflow_builds_nuitka_installer():
     assert '-WorkingDirectory (Get-Location)' in workflow
     assert 'Join-Path (Get-Location) "build/ci-self-test.json"' in workflow
     # GitHub вырезает кириллицу из имён вложений: публикуются ASCII-имена.
-    assert 'Feniks_Nuitka_Setup_' in workflow
+    assert 'Feniks_Fast_Setup_' in workflow
     assert 'Feniks_Setup_' in workflow
     assert 'SHA256SUMS.txt' in workflow
     # Лимит GitHub на job — 360 минут.
@@ -57644,7 +57644,7 @@ if __name__ == "__main__":
 #   version   — вычисляет версию из тега (2.1.3 из v2.1.3) и проверяет формат.
 #   bootstrap — лёгкий установщик: Феникс.exe + dist\Феникс_Setup.exe (~12 минут,
 #               зависимости ставятся при первом запуске).
-#   nuitka    — автономный установщик: dist\Феникс_Nuitka_Setup.exe (~3 часа).
+#   nuitka    — автономный установщик: dist\Феникс_Fast_Setup.exe (~3 часа).
 #               Сборка идёт в изолированном окружении build\nuitka-app-env,
 #               Nuitka 4.3.1 и нативный стек зафиксированы в
 #               requirements-nuitka-app.txt + constraints-nuitka-app.txt, иначе
@@ -57849,10 +57849,10 @@ jobs:
       - name: Проверка артефактов
         shell: pwsh
         run: |
-          Get-Item "dist/Феникс_Nuitka_Setup.exe", "dist/nuitka-app/build-info.json" |
+          Get-Item "dist/Феникс_Fast_Setup.exe", "dist/nuitka-app/build-info.json" |
             Select-Object Name, @{n = "МБ"; e = { [math]::Round($_.Length / 1MB, 2) } } |
             Format-Table -AutoSize
-          if (-not (Test-Path "dist/Феникс_Nuitka_Setup.exe")) { throw "Автономный установщик не собран" }
+          if (-not (Test-Path "dist/Феникс_Fast_Setup.exe")) { throw "Автономный установщик не собран" }
           $files = (Get-ChildItem "dist/nuitka-app" -Recurse -File).Count
           Write-Host "Файлов в standalone-поставке: $files"
 
@@ -57860,7 +57860,7 @@ jobs:
         with:
           name: phoenix-nuitka-setup-${{ needs.version.outputs.value }}
           path: |
-            dist/Феникс_Nuitka_Setup.exe
+            dist/Феникс_Fast_Setup.exe
             dist/nuitka-app/build-info.json
             build/ci-self-test.json
           if-no-files-found: error
@@ -57889,13 +57889,13 @@ jobs:
           # превращалось в «_Setup.exe», а «Феникс.exe» — в «default.exe».
           $v = $env:RELEASE_VERSION
           $light = "artifacts/phoenix-setup-$v/dist/Феникс_Setup.exe"
-          $full = "artifacts/phoenix-nuitka-setup-$v/dist/Феникс_Nuitka_Setup.exe"
+          $full = "artifacts/phoenix-nuitka-setup-$v/dist/Феникс_Fast_Setup.exe"
           foreach ($path in @($light, $full)) {
             if (-not (Test-Path -LiteralPath $path)) { throw "Нет артефакта: $path" }
           }
           New-Item -ItemType Directory -Force dist | Out-Null
           $lightOut = "dist/Feniks_Setup_$v.exe"
-          $fullOut = "dist/Feniks_Nuitka_Setup_$v.exe"
+          $fullOut = "dist/Feniks_Fast_Setup_$v.exe"
           Copy-Item -LiteralPath $light -Destination $lightOut -Force
           Copy-Item -LiteralPath $full -Destination $fullOut -Force
           $lines = foreach ($file in @($lightOut, $fullOut)) {
@@ -57917,7 +57917,7 @@ jobs:
           $v = $env:RELEASE_VERSION
           $assets = @(
             "dist/Feniks_Setup_$v.exe"
-            "dist/Feniks_Nuitka_Setup_$v.exe"
+            "dist/Feniks_Fast_Setup_$v.exe"
             "dist/SHA256SUMS.txt"
           )
           # Заметки: docs/releases/<тег>.md, иначе docs/releases/v<версия>.md.
@@ -58844,7 +58844,7 @@ DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 LicenseFile=LICENSE
 OutputDir=dist
-OutputBaseFilename=Феникс_Nuitka_Setup
+OutputBaseFilename=Феникс_Fast_Setup
 SetupIconFile=jarvis\icon.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 Compression=lzma2
@@ -59731,7 +59731,7 @@ certifi>=2024.8.30
   - 🏗 Инфраструктура
     - `.venv311`
 
-#### `CHANGELOG.md` — 136 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 137 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
   - [Не выпущено]
@@ -59740,6 +59740,7 @@ certifi>=2024.8.30
     - Воспроизводимая сборка установщика
     - Микрофон без микрофона: лог не раздувается
     - Яркость: ответ не ждёт молчащий монитор
+    - Автономная сборка называется «Fast»
     - Автономная сборка: версия в свойствах exe
     - Автономная сборка на чистой Windows
     - Облачная LLM
@@ -59772,7 +59773,6 @@ certifi>=2024.8.30
   - Плавные переходы и более живые волны
   - Постоянная корона и усиленные активные режимы
   - Солнечная корона Феникса и тихая диагностика микрофона
-  - Исправление панели после добавления Главной
 
 #### `CI.md` — 16 заголовков, полный текст не включён (дублирует PROJECT.md)
 

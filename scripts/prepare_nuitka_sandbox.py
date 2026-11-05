@@ -56,7 +56,7 @@ def launch(config):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--installer", type=Path, default=BASE / "dist/Феникс_Nuitka_Setup.exe")
+    parser.add_argument("--installer", type=Path, default=BASE / "dist/Феникс_Fast_Setup.exe")
     parser.add_argument("--open", action="store_true")
     args = parser.parse_args(argv)
     try:

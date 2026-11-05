@@ -23,7 +23,7 @@ from scripts.release_payload import collect_payload
 
 EXE = "Феникс.exe"
 APP_NAME = EXE.removesuffix(".exe")
-SETUP = "Феникс_Nuitka_Setup.exe"
+SETUP = "Феникс_Fast_Setup.exe"
 INCLUDES = (
     "--include-package=jarvis", "--include-module=pyttsx3.drivers.sapi5",
     "--include-package=winrt", "--include-package=comtypes", "--include-package=piper",
