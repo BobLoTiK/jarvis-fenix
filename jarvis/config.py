@@ -52,6 +52,15 @@ DEFAULT_CONFIG = {
     "stt_min_avg_logprob": -1.0,
     "stt_max_no_speech_prob": 0.6,
     "stt_max_compression_ratio": 2.4,
+    # Решение «чёткая команда / нечёткая / это не команда» (jarvis/decision.py).
+    # Стартовые значения, а не доказанные оптимумы: подбирать по корпусу
+    # tests/fixtures/decision_cases.json и живым записям, а не на глаз.
+    "decision_enabled": False,
+    "decision_semantic_enabled": False,  # шаг 1: синонимы без модели и сети
+    "decision_clear_score": 0.85,        # с этого совпадения команда считается чёткой
+    "decision_unclear_score": 0.62,      # ниже — «не команда», между — «переспросить»
+    "decision_asr_min_confidence": 0.55,  # уверенность ASR для чёткого решения
+    "decision_agreement_min": 0.80,      # согласие двух гипотез текста
     # Правильная рабочая модель — как в config.example.json.
     # Раньше тут был "coriollon/..." — сломанная репа на HF.
     "whisper_model": "deepdml/faster-whisper-large-v3-turbo-ct2",
@@ -166,6 +175,43 @@ DEFAULT_CONFIG = {
     "gui_motion_enabled": True,
     "gui_home_widgets": [],
     "gui_home_shortcuts": [],
+    # Вертикальный режим: узкая полоса-шторка у края экрана поверх других окон.
+    # ВЫКЛЮЧЕН по умолчанию — обычное окно остаётся поведением по умолчанию.
+    # width — 220..320 px; panel — "log" | "notes" | "plan" (что показывать
+    # под светяшкой; заметки и план лежат в USER_DIR файлами).
+    # pinned — полоса не прячется сама (по умолчанию False: ведёт себя как
+    # шторка, при наведении выезжает, без курсора уезжает за край, оставляя
+    # ручку 18 px). autohide_ms — пауза перед автоскрытием, мс.
+    "ui_vertical_enabled": False,
+    "ui_vertical_width": 240,
+    "ui_vertical_panel": "log",
+    "ui_vertical_pinned": False,
+    "ui_vertical_autohide_ms": 900,
+    # Локальный стык health / capabilities / turn (jarvis/api_server.py).
+    # Слушает только 127.0.0.1; токен лежит в secrets_store (DPAPI), не здесь.
+    # Это не «общее ядро»: договор об именах и формате с другими проектами.
+    "api_enabled": False,
+    "api_port": 8765,
+    # Эскалация распознавания (этап 3): основной движок → второй при сомнении.
+    # ВЫКЛЮЧЕНО по умолчанию: основной ASR-путь не меняется, Vosk остаётся
+    # wake-словом и запасным движком. Бюджет — сколько раз в минуту можно
+    # звать тяжёлый движок; кэш — не гонять одинаковый текст дважды.
+    "asr_escalate_enabled": False,
+    "asr_fallback": "whisper",
+    "asr_escalate_budget_per_min": 3,
+    "asr_escalate_cache_sec": 60,
+    # Этап 4 (эхо и перебивание). Всё выключено по умолчанию:
+    # aec_backend — "native" (свой AEC) | "webrtc" (только если пакет стоит);
+    # barge_policy_enabled — правило «чей это голос» поверх прежних порогов.
+    "aec_backend": "native",
+    "barge_policy_enabled": False,
+    "barge_min_after_tts_sec": 0.35,
+    "barge_min_speech_ms": 150,
+    "barge_level_margin": 1.15,
+    # Плагины (этап 6): выключены по умолчанию; запускаются только имена из
+    # `plugins_allowed` (явное согласие человека). Код — отдельным процессом.
+    "plugins_enabled": False,
+    "plugins_allowed": [],
     "gui_x": None,
     "gui_y": None,
     "tray_enabled": True,

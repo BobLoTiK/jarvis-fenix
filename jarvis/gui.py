@@ -221,6 +221,16 @@ class FenixGUI:
         self._input_field = None
         self._mic_btn = None
         self._content_area = None
+        self._root = None
+        self._rail_row = None
+        self._vertical = None
+        self._vertical_mode = False
+        # Шторка вертикальной полосы: состояние, поколение анимации и таймера.
+        self._curtain = None
+        self._curtain_gen = 0
+        self._hide_gen = 0
+        self._api_server = None
+        self._api_status = "API выключен."
         self._rail = None
         self._tabs = {}
         self._command_builder = None
@@ -303,8 +313,16 @@ class FenixGUI:
             self._running = False
 
     def stop(self) -> None:
+        if self._api_server is not None:
+            try:
+                self._api_server.stop()
+            except Exception:
+                log.exception("GUI: API не остановился")
+            self._api_server = None
         if self._home is not None:
             self._home.dispose()
+        if self._vertical is not None:
+            self._vertical.dispose()
         self._running = False
         self._queue.put(("stop", None))
 
@@ -480,6 +498,12 @@ class FenixGUI:
         # submitted BEFORE revealing it, so the default Flet shell never flashes.
         page.window.visible = False
         self._build_ui(page)
+        # Сохранённая полоса применяется ДО показа окна: иначе на экране
+        # мелькает широкая рамка, которая потом съёживается.
+        self._vertical_snapshot()
+        # Сохранённый локальный API поднимается здесь же: ядро уже готово.
+        if self.config.get("api_enabled", False) is True:
+            self._sync_api_server()
         if not self.start_hidden:
             self._show_window_now()
         page.run_task(self._process_queue)
@@ -508,15 +532,426 @@ class FenixGUI:
         )
 
         self._rail.selected_index = HOME_TAB
-        page.add(self._rail.layout(self._content_area))
+        self._rail_row = self._rail.layout(self._content_area)
+        # Один корень страницы: горизонтальный режим и полоса меняются его
+        # содержимым, второй ft.run и второе окно не появляются.
+        self._root = ft.Container(expand=True, content=self._rail_row)
+        page.add(self._root)
         page.on_keyboard_event = self._on_home_key
 
 
     async def _on_home_key(self, e):
+        if self._vertical_mode:
+            return  # в полосе нет рельса и вкладок: клавиши Главной не работают
         if self._rail.selected_index == HOME_TAB and self._home is not None:
             if await self._home.actions.on_key(e):
                 return
         await self._rail.on_key(e)
+
+    # ---------------------------------------------------------------
+    # Вертикальный режим (полоса у края экрана)
+    # ---------------------------------------------------------------
+
+    def _ensure_vertical(self):
+        """Создаёт полосу один раз: аура одна, второй аниматор не нужен."""
+        from jarvis.gui_vertical import VerticalBar
+
+        if self._vertical is None:
+            self._vertical = VerticalBar(
+                self,
+                width=self.config.get("ui_vertical_width", 240),
+                panel=self.config.get("ui_vertical_panel", "log"),
+            )
+        return self._vertical
+
+    def set_vertical_mode(self, enabled, update: bool = True) -> bool:
+        """Включает/выключает полосу и запоминает режим в конфиге.
+
+        Вызывается только из GUI-потока (кнопка в настройках, крестик полосы,
+        старт приложения). Окно не пересоздаётся — меняется содержимое корня
+        страницы, поэтому история, черновик и pending-состояние не теряются.
+        """
+        from jarvis.gui_vertical import (
+            REVEAL_MS, Curtain, normalize_enabled, normalize_pinned,
+        )
+
+        enabled = normalize_enabled(enabled)
+        page = self._page
+        if page is None or self._root is None:
+            return False
+        try:
+            if enabled:
+                bar = self._ensure_vertical()
+                pinned = normalize_pinned(self.config.get("ui_vertical_pinned", False))
+                self._curtain = Curtain(pinned=pinned)
+                bar.set_pinned(pinned)
+                self._root.content = bar
+                self._vertical_mode = True
+                self._apply_vertical_window(True)
+                bar.apply_state(getattr(self, "_state", "idle"))
+                # Сразу показываем полосу целиком: иначе включение режима
+                # выглядит как «ничего не произошло». Уедет сама, если не
+                # закреплена и курсор не задержится (REVEAL_MS — не мгновенно,
+                # чтобы её успели заметить и перехватить курсором).
+                self._vertical_move(True, animate=False, update=False)
+                self._schedule_hide(REVEAL_MS)
+            else:
+                self._cancel_hide()
+                self._curtain_gen += 1
+                if self._vertical is not None:
+                    self._vertical.flush()
+                self._vertical_mode = False
+                self._curtain = None
+                self._root.content = self._rail_row
+                self._apply_vertical_window(False)
+        except Exception:
+            log.exception("GUI: не удалось переключить вертикальный режим")
+            return False
+        self.config.set("ui_vertical_enabled", enabled)
+        if update:
+            try:
+                page.update()
+            except Exception:
+                log.exception("GUI: не удалось отрисовать смену режима")
+        if enabled and update:
+            # Включение на уже показанном окне: клиент Flet присылает свои
+            # размеры окна и может затереть полосу (на живом прогоне окно
+            # осталось 900 px, а полоса уехала вправо). Поэтому размеры
+            # применяются повторно, как после handshake.
+            try:
+                page.run_task(self._reapply_vertical_geometry_later)
+            except Exception:
+                log.warning("GUI: не удалось запланировать повторные размеры полосы",
+                            exc_info=True)
+        log.info("GUI: вертикальный режим %s", "включён" if enabled else "выключен")
+        return True
+
+    def _apply_vertical_window(self, enabled: bool) -> None:
+        """Свойства окна для режима: полоса без рамки поверх всех или как раньше."""
+        from jarvis.gui_vertical import (
+            horizontal_window_spec,
+            normalize_width,
+            vertical_window_spec,
+            work_area,
+        )
+
+        window = getattr(self._page, "window", None)
+        if window is None:
+            return
+        if enabled:
+            width = normalize_width(self.config.get("ui_vertical_width", 240))
+            spec = vertical_window_spec(width, work_area())
+        else:
+            spec = horizontal_window_spec()
+        for key, value in spec.items():
+            try:
+                setattr(window, key, value)
+            except Exception:
+                log.warning("GUI: окно не приняло %s=%r", key, value, exc_info=True)
+        if enabled:
+            # Позиция окна — забота шторки: открытая или спрятанная за край.
+            open_ = self._curtain.open if self._curtain is not None else True
+            self._vertical_move(open_, animate=False, update=False)
+        else:
+            x, y = self.config.get("gui_x"), self.config.get("gui_y")
+            if x is not None and y is not None:
+                try:
+                    window.left, window.top = int(x), int(y)
+                except (TypeError, ValueError):
+                    log.warning("GUI: сохранённая позиция окна некорректна (%r, %r)", x, y)
+
+    # --- шторка: выезд, уезд, закрепление и наведение ------------------
+
+    def _vertical_positions(self) -> dict:
+        from jarvis.gui_vertical import curtain_geometry, work_area
+
+        return curtain_geometry(self.config.get("ui_vertical_width", 240), work_area())
+
+    def _vertical_move(self, open_: bool, animate: bool = True,
+                       update: bool = True) -> None:
+        """Ставит окно в открытую или спрятанную позицию (с анимацией кадров)."""
+        from jarvis.gui_vertical import slide_frames
+
+        page = self._page
+        if page is None:
+            return
+        positions = self._vertical_positions()
+        if positions["shown"] is None:
+            return  # нет рабочей области — некуда ехать, координаты не выдумываем
+        window = page.window
+        try:
+            current = window.left
+            current = int(current) if isinstance(current, (int, float)) else positions["hidden"]
+        except Exception:
+            current = positions["hidden"]
+        target = positions["shown"] if open_ else positions["hidden"]
+        frames = slide_frames(current, target)
+        self._curtain_gen += 1
+        gen = self._curtain_gen
+        if not animate or len(frames) <= 1:
+            try:
+                window.left = target
+                if update:
+                    page.update()
+            except Exception:
+                log.exception("GUI: не удалось подвинуть полосу")
+            return
+        try:
+            page.run_task(self._vertical_animate, frames, gen)
+        except Exception:
+            log.exception("GUI: не удалось запустить выезд полосы")
+
+    async def _vertical_animate(self, frames, gen) -> None:
+        from jarvis.gui_vertical import SLIDE_MS
+
+        page = self._page
+        if page is None:
+            return
+        delay = SLIDE_MS / 1000 / max(1, len(frames))
+        for left in frames:
+            if gen != self._curtain_gen:
+                return  # новая анимация или выход из режима: этот кадр уже не нужен
+            try:
+                page.window.left = left
+                page.update()
+            except Exception:
+                log.exception("GUI: кадр выезда полосы не применился")
+                return
+            await asyncio.sleep(delay)
+
+    def _vertical_hover(self, entered: bool) -> None:
+        """Курсор вошёл на полосу или ушёл: открыть сразу, закрыть с паузой."""
+        curtain = self._curtain
+        if curtain is None or not self._vertical_mode:
+            return
+        if entered:
+            self._cancel_hide()
+            if curtain.enter():
+                self._vertical_move(True)
+            self._sync_bar_open_state()
+            return
+        curtain.leave()
+        if curtain.wants_autohide():
+            self._schedule_hide()
+        self._sync_bar_open_state()
+
+    def _vertical_tab_click(self) -> None:
+        """Клик по ручке: открыть или убрать шторку (закреплённую не прячем)."""
+        curtain = self._curtain
+        if curtain is None or not self._vertical_mode:
+            return
+        if curtain.pinned:
+            return
+        if curtain.open:
+            curtain.pointer_inside = False
+            if curtain.hide():
+                self._vertical_move(False)
+        else:
+            self._cancel_hide()
+            curtain.show()
+            self._vertical_move(True)
+        self._sync_bar_open_state()
+
+    def _sync_bar_open_state(self) -> None:
+        curtain = self._curtain
+        if self._vertical is not None and curtain is not None:
+            try:
+                self._vertical.set_open_state(curtain.open)
+            except Exception:
+                log.debug("GUI: не удалось обновить ручку полосы", exc_info=True)
+
+    def _schedule_hide(self, delay_ms=None) -> None:
+        """Прячет незакреплённую полосу, если курсор не вернулся за паузу."""
+        from jarvis.gui_vertical import normalize_delay
+
+        page = self._page
+        if page is None or self._curtain is None:
+            return
+        delay = normalize_delay(delay_ms) if delay_ms is not None else normalize_delay(
+            self.config.get("ui_vertical_autohide_ms", 900))
+        self._hide_gen += 1
+        gen = self._hide_gen
+        try:
+            page.run_task(self._vertical_hide_later, gen, delay / 1000)
+        except Exception:
+            log.debug("GUI: таймер скрытия полосы не запустился", exc_info=True)
+
+    def _cancel_hide(self) -> None:
+        self._hide_gen += 1
+
+    async def _vertical_hide_later(self, gen, delay: float) -> None:
+        await asyncio.sleep(delay)
+        if gen != self._hide_gen:
+            return
+        self._vertical_hide_if_idle()
+
+    def _vertical_hide_if_idle(self) -> bool:
+        """Решение об автоскрытии отдельно от таймера — его проверяют тесты."""
+        curtain = self._curtain
+        if curtain is None or not self._vertical_mode:
+            return False
+        if not curtain.wants_autohide():
+            return False
+        if curtain.hide():
+            self._vertical_move(False)
+            self._sync_bar_open_state()
+            return True
+        return False
+
+    def set_vertical_pinned(self, value) -> bool:
+        """Закрепление полосы: сохраняется в конфиг и сразу применяется."""
+        from jarvis.gui_vertical import normalize_pinned
+
+        pinned = normalize_pinned(value)
+        ok = self.config.set("ui_vertical_pinned", pinned)
+        if ok is False:
+            log.warning("GUI: не удалось сохранить закрепление полосы")
+            return False
+        if self._vertical is not None:
+            self._vertical.set_pinned(pinned)
+        curtain = self._curtain
+        if curtain is not None:
+            curtain.set_pinned(pinned)
+            if pinned:
+                self._cancel_hide()
+                curtain.show()
+                self._vertical_move(True)
+                self._sync_bar_open_state()
+            elif self._page is not None:
+                # Открепили: убираем, если курсор не на полосе.
+                self._schedule_hide()
+        return True
+
+    def set_vertical_width(self, value) -> bool:
+        """Ширина полосы из настроек: сохраняется и сразу применяется."""
+        from jarvis.gui_vertical import normalize_width
+
+        width = normalize_width(value)
+        ok = self.config.set("ui_vertical_width", width)
+        if self._vertical is not None:
+            self._vertical.width = width
+            self._vertical._sync_panel_tabs()
+        if self._vertical_mode:
+            self._apply_vertical_window(True)
+            if self._page is not None:
+                try:
+                    self._page.update()
+                except Exception:
+                    log.exception("GUI: не удалось применить ширину полосы")
+        return ok
+
+    def set_vertical_panel(self, value) -> bool:
+        """Панель под светяшкой: log | notes | plan."""
+        from jarvis.gui_vertical import normalize_panel
+
+        panel = normalize_panel(value)
+        ok = self.config.set("ui_vertical_panel", panel)
+        if self._vertical is not None and self._vertical.set_panel(panel):
+            if self._page is not None:
+                try:
+                    self._page.update()
+                except Exception:
+                    log.exception("GUI: не удалось переключить панель полосы")
+        return ok
+
+    def _vertical_snapshot(self) -> bool:
+        """Разовое применение сохранённого режима на старте (без лишних update)."""
+        return self.set_vertical_mode(
+            self.config.get("ui_vertical_enabled", False), update=False)
+
+    # ---------------------------------------------------------------
+    # Локальный стык API (health / capabilities / turn)
+    # ---------------------------------------------------------------
+
+    def _sync_api_server(self) -> tuple[bool, str]:
+        """Приводит сервер API в соответствие с конфигом. Без page.update."""
+        from jarvis.api_server import ApiServer, ensure_token, normalize_port
+
+        enabled = self.config.get("api_enabled", False) is True
+        port = normalize_port(self.config.get("api_port", 8765))
+        if not enabled:
+            if self._api_server is not None:
+                self._api_server.stop()
+                self._api_server = None
+            self._api_status = "API выключен."
+            return False, self._api_status
+        handler = getattr(self.jarvis, "handler", None) if self.jarvis is not None else None
+        if handler is None:
+            self._api_status = "API включится после запуска ядра Феникса."
+            return False, self._api_status
+        if self._api_server is not None:
+            if self._api_server.running and self._api_server.port == port:
+                return True, self._api_status
+            self._api_server.stop()
+            self._api_server = None
+        token, note = ensure_token()
+        if not token:
+            self._api_status = note
+            return False, note
+        server = ApiServer(handler, port=port, token=token)
+        ok, message = server.start()
+        if ok:
+            self._api_server = server
+            self._api_status = message
+        else:
+            self._api_status = message
+        return ok, self._api_status
+
+    def set_api_enabled(self, enabled, update: bool = True) -> bool:
+        """Галочка «Локальный API»: включает/выключает стык и помнит выбор."""
+        value = bool(enabled)
+        changed = self.config.set("api_enabled", value)
+        ok, _message = self._sync_api_server()
+        if update and self._page is not None:
+            try:
+                self._page.update()
+            except Exception:
+                log.exception("GUI: не удалось обновить состояние API")
+        return changed and (ok or not value)
+
+    def set_api_port(self, value) -> bool:
+        """Порт стыка: сохраняется и применяется перезапуском сервера."""
+        from jarvis.api_server import normalize_port
+
+        port = normalize_port(value)
+        changed = self.config.set("api_port", port)
+        if self._api_server is not None:
+            self._sync_api_server()
+        if self._page is not None:
+            try:
+                self._page.update()
+            except Exception:
+                log.exception("GUI: не удалось обновить порт API")
+        return changed
+
+    def regenerate_api_token(self) -> tuple[bool, str]:
+        """Новый токен: старые клиенты отключаются, сервер остаётся на месте."""
+        from jarvis import secrets_store
+        from jarvis.api_server import TOKEN_NAME, new_token
+
+        token = new_token()
+        try:
+            saved = bool(secrets_store.save_secret(TOKEN_NAME, token))
+        except Exception:
+            log.warning("GUI: не удалось сохранить токен API", exc_info=True)
+            saved = False
+        if not saved:
+            message = "Не удалось сохранить токен (нужно шифрование Windows)."
+            self._api_status = message
+            return False, message
+        if self._api_server is not None:
+            self._api_server.token = token
+        self._api_status = "Токен заменён — старые клиенты больше не подключатся."
+        return True, self._api_status
+
+    def _api_fingerprint(self) -> str:
+        try:
+            from jarvis import secrets_store
+            from jarvis.api_server import TOKEN_NAME
+            return secrets_store.secret_fingerprint(TOKEN_NAME) or ""
+        except Exception:
+            log.debug("GUI: отпечаток токена API недоступен", exc_info=True)
+            return ""
 
     def _build_home_tab(self) -> ft.Control:
         from jarvis.gui_home import HomeScreen
@@ -1252,6 +1687,8 @@ class FenixGUI:
         self._state = state
         if self._home is not None:
             self._home.apply_state(state)
+        if self._vertical is not None:
+            self._vertical.apply_state(state)
         color, text, sub = STATES[state]
         if P is not None:
             color = {"idle": ACCENT, "thinking": ACCENT, "speaking": P.success,
@@ -1327,6 +1764,8 @@ class FenixGUI:
             self._history_list.controls.clear()
         self._messages.append(record)
         self._history_list.controls.append(self._message_control(record))
+        if self._vertical is not None:
+            self._vertical.on_message(record)
 
     def _apply_stream_chunk(self, chunk: str) -> None:
         if not chunk:
@@ -1374,9 +1813,32 @@ class FenixGUI:
                 if self._home is not None:
                     self._home.aura.sync_motion()
                 self._page.update()
+                # Клиент Flet задаёт размер окна при подключении и затирает то,
+                # что выставлено до handshake. Поэтому размеры полосы (и режим
+                # «поверх окон») применяются ещё раз, уже после первого
+                # update: проверено скрытым прогоном — без этого окно
+                # оставалось 1280 px и always_on_top=False.
+                self._reapply_vertical_geometry()
                 log.info("GUI: окно показано")
         except Exception:
             log.exception("Не удалось показать окно")
+
+    def _reapply_vertical_geometry(self) -> None:
+        if not self._vertical_mode or self._page is None:
+            return
+        self._apply_vertical_window(True)
+        try:
+            self._page.update()
+        except Exception:
+            log.exception("GUI: не удалось повторно применить размеры полосы")
+
+    async def _reapply_vertical_geometry_later(self) -> None:
+        """Повторяет размеры полосы после того, как клиент пришлёт свои."""
+        for delay in (0.2, 0.9):
+            await asyncio.sleep(delay)
+            if not self._vertical_mode:
+                return
+            self._reapply_vertical_geometry()
 
     def _on_window_event(self, e) -> None:
         """События окна: позиция (MOVED) и «закрыть в трей» (CLOSE).
@@ -1398,6 +1860,10 @@ class FenixGUI:
             if e.type != ft.WindowEventType.MOVED:
                 return
             if self._page is None:
+                return
+            if self._vertical_mode:
+                # Перетащили полосу: горизонтальную позицию окна не затираем,
+                # иначе после выхода из режима окно окажется за краем экрана.
                 return
             left = self._page.window.left
             top = self._page.window.top

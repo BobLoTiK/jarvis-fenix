@@ -1,0 +1,15 @@
+{
+  "name": "hello",
+  "version": "1.0.0",
+  "description": "Пример плагина: отвечает на одну фразу, ничего не меняет в системе.",
+  "entry": "main.py",
+  "capabilities": ["command"],
+  "timeout_sec": 5,
+  "commands": [
+    {
+      "phrases": ["привет от плагина", "проверка плагина"],
+      "action": "hello",
+      "description": "Возвращает короткое приветствие"
+    }
+  ]
+}

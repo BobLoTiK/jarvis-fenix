@@ -311,12 +311,15 @@ def test_password_never_enters_numeric_language_layer():
 
 
 def load_method(filename, classname, name, namespace):
+    from jarvis.main import _clean_whisper_text
+
     path = Path(__file__).resolve().parents[1] / filename
     tree = ast.parse(path.read_text(encoding="utf-8"))
     cls = next(
         n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == classname
     )
     fn = next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == name)
+    namespace.setdefault("_clean_whisper_text", _clean_whisper_text)
     exec(compile(ast.Module(body=[fn], type_ignores=[]), str(path), "exec"), namespace)
     return namespace[name]
 

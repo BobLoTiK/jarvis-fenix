@@ -12,7 +12,8 @@
     9. compound     — составные команды
     10. clarification — недостающий target/time/unit
     11. fast        — реестр быстрых правил
-    12. llm         — brain.parse / chat_stream
+    12. plugins     — команды плагинов (если настроены)
+    13. llm         — brain.parse / chat_stream
 """
 
 from jarvis.intents.stages.cancel import CancelStage
@@ -25,6 +26,7 @@ from jarvis.intents.stages.clipboard import ClipboardStage
 from jarvis.intents.stages.modes import ModesStage
 from jarvis.intents.stages.compound import CompoundStage
 from jarvis.intents.stages.fast import FastHandlersStage
+from jarvis.intents.stages.plugins import PluginStage
 from jarvis.intents.stages.llm import LLMStage
 from jarvis.intents.stages.clarification import ClarificationStage
 
@@ -43,5 +45,6 @@ def build_pipeline(handler) -> list:
         CompoundStage(),
         ClarificationStage(),
         FastHandlersStage(),
+        PluginStage(),
         LLMStage(),
     ]

@@ -63,6 +63,9 @@ class IntentHandler:
         self._last_reply = ""
         self._pending_question = None
         self._pending_password = None
+        # Плагины подключает main, когда человек их включил; None — нет плагинов
+        # и поведение pipeline прежнее.
+        self.plugins = None
 
         # Диагностика.
         self._last_debug: dict = {}

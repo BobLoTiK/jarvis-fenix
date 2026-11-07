@@ -21,6 +21,10 @@ log = logging.getLogger("jarvis.echo")
 def make_echo_path(config):
     if not config.get("aec_enabled", False):
         return None
+    from jarvis.aec_backend import resolve as resolve_backend
+    choice = resolve_backend(config)
+    if choice.fallback:
+        log.warning("AEC: %s", choice.reason)
     rate = config.get("sample_rate", 16000)
     if rate != 16000:
         log.warning("AEC: прототип только для микрофона 16000 Гц; остаётся прежний тракт")

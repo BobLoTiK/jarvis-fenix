@@ -23,8 +23,13 @@ def transition_weights(current, target, dt):
             for mode, value in current.items()}
 
 
-def solar_shapes(mode, seconds, energy, color, *, weights=None, phase=None):
-    """Fixed topology: all layers persist and fade, rather than popping in/out."""
+def solar_shapes(mode, seconds, energy, color, *, weights=None, phase=None,
+                 center=None, scale=1.0):
+    """Fixed topology: all layers persist and fade, rather than popping in/out.
+
+    center/scale вЂ” РєРѕРјРїРѕР·РёС†РёСЏ РЅР° РґСЂСѓРіРѕР№ РїР»РѕС‰Р°РґРё (РїРѕР»РѕСЃР° РІРµСЂС‚РёРєР°Р»СЊРЅРѕРіРѕ СЂРµР¶РёРјР°
+    СЂРёСЃСѓРµС‚ С‚Сѓ Р¶Рµ Р°СѓСЂСѓ РјРµРЅСЊС€Рµ). Р‘РµР· РЅРёС… РіРµРѕРјРµС‚СЂРёСЏ РїСЂРµР¶РЅСЏСЏ: 300 px, С†РµРЅС‚СЂ 150.
+    """
     if mode not in MODES:
         return []
     w = weights if weights is not None else {m: float(m == mode) for m in MODES}
@@ -34,14 +39,21 @@ def solar_shapes(mode, seconds, energy, color, *, weights=None, phase=None):
     pulse = .5 + .5 * math.sin(phase)
     strength = sum(w[m] * v for m,v in zip(MODES, (.32, .66, .84, .37))) + .10*pulse + .10*energy*listening
     amplitude = sum(w[m] * v for m,v in zip(MODES, (3.0, 6.5, 9.0, 3.8))) + 1.2*energy*listening
+    try:
+        s = float(scale)
+    except (TypeError, ValueError):
+        s = 1.0
+    if not math.isfinite(s) or s <= 0:
+        s = 1.0
+    cx = CENTER if center is None else center
     shapes = []
     def paint(alpha, width=1, fill=False):
         return ft.Paint(color=ft.Colors.with_opacity(max(0, min(1, alpha)), color),
             style=ft.PaintingStyle.FILL if fill else ft.PaintingStyle.STROKE,
-            stroke_width=width, stroke_cap=ft.StrokeCap.ROUND, stroke_join=ft.StrokeJoin.ROUND)
-    radius = 116 + 2.2*pulse
+            stroke_width=max(.35, width*s), stroke_cap=ft.StrokeCap.ROUND, stroke_join=ft.StrokeJoin.ROUND)
+    radius = (116 + 2.2*pulse) * s
     for width, alpha in ((29, .03), (17, .05), (7, .08), (1.2, .25)):
-        shapes.append(cv.Circle(CENTER, CENTER, radius, paint(strength * alpha, width)))
+        shapes.append(cv.Circle(cx, cx, radius, paint(strength * alpha, width)))
     # Stronger travelling waves; geometry, brightness and extra layers all ease.
     for layer, visibility in enumerate((1.0, listening + speaking, speaking)):
         points = []
@@ -51,44 +63,57 @@ def solar_shapes(mode, seconds, energy, color, *, weights=None, phase=None):
                     + .30*math.sin(8*a + phase*.85 + layer*.7)
                     + .18*math.sin(3*a - phase*1.15))
             swell = .85 + .15*math.sin(phase*.6 + layer)
-            r = radius + 4 + layer*3 + wave*amplitude*swell
-            points.append((CENTER + r*math.cos(a), CENTER + r*math.sin(a)))
+            r = radius + (4 + layer*3 + wave*amplitude*swell) * s
+            points.append((cx + r*math.cos(a), cx + r*math.sin(a)))
         elements = [cv.Path.MoveTo(*points[0]), *[cv.Path.LineTo(*q) for q in points[1:]]]
         for width, alpha in ((9, .04), (3, .12), (.9, .46)):
             shapes.append(cv.Path(elements, paint(strength*alpha*visibility/(1 + layer*.55), width)))
     for j, visibility in enumerate((1.0, 1.0, speaking)):
-        r = radius - 3 + j*6
-        shapes.append(cv.Arc(CENTER-r, CENTER-r, 2*r, 2*r,
+        r = radius - 3*s + j*6*s
+        shapes.append(cv.Arc(cx-r, cx-r, 2*r, 2*r,
             phase*.20 + j*2*math.pi/3, .50 + pulse*.18,
             paint=paint(strength*.55*visibility, 1.4)))
     # Waves also continue during speech, fading gently into the idle sun.
     for j in range(3):
         life = (phase*.16 + j/3) % 1
-        r = 122 + life*21
+        r = (122 + life*21) * s
         alpha = math.sin(math.pi*life)**2 * (.18*listening + .16*speaking)
-        shapes.append(cv.Circle(CENTER, CENTER, r, paint(alpha, .95)))
+        shapes.append(cv.Circle(cx, cx, r, paint(alpha, .95)))
     for i in range(16):
         life = (phase*.10 + i/16) % 1
         angle = i*2.39996
-        r = 121 + 15*life
-        x = CENTER + r*math.cos(angle) + 1.6*math.sin(phase*.4 + i)
-        y = CENTER + r*math.sin(angle) - 9*life
+        r = (121 + 15*life) * s
+        x = cx + r*math.cos(angle) + 1.6*s*math.sin(phase*.4 + i)
+        y = cx + r*math.sin(angle) - 9*s*life
         alpha = math.sin(math.pi*life)**2 * (.60*speaking + (.08*listening if i < 6 else 0))
-        shapes.append(cv.Circle(x, y, .7 + .55*(1-life), paint(alpha, fill=True)))
+        shapes.append(cv.Circle(x, y, (.7 + .55*(1-life))*s, paint(alpha, fill=True)))
     return shapes
 
 
 class PhoenixAura(ft.Container):
-    """A quiet ambient sun; one task only on visible Home, louder during activity."""
-    def __init__(self, gui, ring):
+    """A quiet ambient sun; one task only on visible Home, louder during activity.
+
+    size вЂ” СЃС‚РѕСЂРѕРЅР° РєРІР°РґСЂР°С‚Р° (РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ 300, РєР°Рє РЅР° Р“Р»Р°РІРЅРѕР№). РџРѕР»РѕСЃР°
+    РІРµСЂС‚РёРєР°Р»СЊРЅРѕРіРѕ СЂРµР¶РёРјР° СЂРёСЃСѓРµС‚ С‚Сѓ Р¶Рµ Р°СѓСЂСѓ РјРµРЅСЊС€Рµ, Р° РЅРµ РІС‚РѕСЂС‹Рј Р°РЅРёРјР°С‚РѕСЂРѕРј.
+    foreground вЂ” РЅРµРѕР±СЏР·Р°С‚РµР»СЊРЅР°СЏ РїСЂРѕРІРµСЂРєР° В«РІРёРґРЅРѕ Р»Рё СЃРµР№С‡Р°СЃВ»: РЅР° Р“Р»Р°РІРЅРѕР№ СЌС‚Рѕ
+    РІС‹Р±СЂР°РЅРЅР°СЏ РІРєР»Р°РґРєР°, РІ РїРѕР»РѕСЃРµ вЂ” РІРєР»СЋС‡С‘РЅРЅС‹Р№ РІРµСЂС‚РёРєР°Р»СЊРЅС‹Р№ СЂРµР¶РёРј.
+    """
+    def __init__(self, gui, ring, size=SIZE, foreground=None):
         self.gui = gui
         self.ring = ring
-        self.canvas = cv.Canvas([], width=SIZE, height=SIZE)
+        try:
+            side = int(size)
+        except (TypeError, ValueError):
+            side = SIZE
+        self._dim = max(48, side)
+        self._scale = self._dim / SIZE
+        self._foreground_override = foreground
+        self.canvas = cv.Canvas([], width=self._dim, height=self._dim)
         super().__init__(ft.Stack([
             ft.Container(self.canvas, alignment=ft.Alignment.CENTER),
             ft.Container(ring, alignment=ft.Alignment.CENTER),
-        ], width=SIZE, height=SIZE, fit=ft.StackFit.EXPAND),
-            width=SIZE, height=SIZE, ignore_interactions=True)
+        ], width=self._dim, height=self._dim, fit=ft.StackFit.EXPAND),
+            width=self._dim, height=self._dim, ignore_interactions=True)
         self.mode = "idle"
         self.energy = 0
         self._time_origin = time.monotonic()
@@ -105,6 +130,16 @@ class PhoenixAura(ft.Container):
         self._service = None
 
     def foreground(self):
+        if self._foreground_override is not None:
+            try:
+                window = getattr(getattr(self.gui, "_page", None), "window", None)
+                return (bool(self._foreground_override())
+                        and getattr(self.gui, "_home_window_visible", True)
+                        and getattr(window, "visible", True) is not False
+                        and getattr(window, "minimized", False) is not True)
+            except Exception:
+                log.debug("Aura: foreground override failed", exc_info=True)
+                return False
         from jarvis.gui import HOME_TAB
         rail = getattr(self.gui, "_rail", None)
         window = getattr(getattr(self.gui, "_page", None), "window", None)
@@ -160,7 +195,8 @@ class PhoenixAura(ft.Container):
             self._weights = {m: float(m == self.mode) for m in MODES}
             self._visual_energy = self.energy
         self.canvas.shapes = solar_shapes(self.mode, seconds, self._visual_energy, p.brand,
-            weights=self._weights, phase=self._phase)
+            weights=self._weights, phase=self._phase,
+            center=self._dim / 2, scale=self._scale)
         if self._mounted and self._host is not None:
             try:
                 self._host.update(self.canvas)

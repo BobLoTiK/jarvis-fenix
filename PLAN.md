@@ -32,6 +32,14 @@ R0–R6 — рекомендуемый порядок зависимостей, 
 
 ## Текущий фокус: R0 / подготовка R1
 
+- [x] Список задач от 07.11.2026, стадии 1–6 в исходниках: вертикальная полоса
+      (`gui_vertical.py`, по умолчанию выключена), решение «чёткая/нечёткая
+      команда» (`decision.py`, флаги `decision_*` выключены), эскалация ASR
+      (`asr_router.py`, `asr_escalate_enabled`), эхо/barge-in
+      (`echo_loopback.py`, `aec_backend.py`, `barge.py`), общий API
+      (`api_server.py` + `peer_client.py`, `api_enabled`), заготовка плагинов
+      (`plugins.py`, `plugins_enabled`). Все новые флаги по умолчанию
+      выключены — см. [NEXT_STEPS](docs/NEXT_STEPS.md).
 - [x] В исходниках optional Piper AEC3, bounded capture worker, epoch/gap guards,
       cleaned pre-roll, общий reference после микширования.
 - [x] Подготовлены ручная PCM/AEC-диагностика Piper/Silero и удаление WinRT TTS.

@@ -56,11 +56,20 @@ def test_minimal_home_starts_empty_with_only_widget_entry_and_no_composer(gui):
     assert not any(isinstance(c, (ft.TextField, ft.Dropdown, ft.ListView)) for c in controls)
     buttons = [c for c in controls if isinstance(c, ft.Button)]
     assert buttons[:2] == gui._home.theme_buttons
-    assert len(buttons) == 3 and buttons[-1].tooltip == "Настроить Главную"
+    assert len(buttons) == 4 and buttons[-2].tooltip == "Настроить Главную"
+    assert buttons[-1] is gui._home.vertical_btn
+    assert buttons[-1].tooltip == "Перейти в полосу у края экрана"
     assert gui._home.widgets.layout == [] and not gui._home.widgets.visible
     assert not hasattr(gui._home, "on_click") or gui._home.on_click is None
     assert "Модель" not in " ".join(str(getattr(c, "value", "")) for c in controls)
     assert gui._home.status.value == "Ядро ещё не готово"
+
+
+def test_home_strip_button_switches_to_vertical_mode(gui):
+    seen = []
+    gui.set_vertical_mode = lambda enabled, update=True: seen.append(enabled) or True
+    assert gui._home._open_vertical(None) is True
+    assert seen == [True]
 
 
 def test_local_date_labels_include_midnight_and_new_year():

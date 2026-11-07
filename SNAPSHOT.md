@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=ea0caa4c412dfc08` · режим `lean` · файлов `360` · строк `65317` · источник `3086 КБ`
+`sha256=02f7b563c9870028` · режим `lean` · файлов `381` · строк `71076` · источник `3361 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -55,6 +55,38 @@ WinRT удалён только из TTS. `tts_backend=winrt` читается �
 не является аппаратной DAC/ADC синхронизацией; loopback/виртуального кабеля нет.
 
 Следующий инженерный блок: [NEXT_STEPS](docs/NEXT_STEPS.md).
+
+Вертикальный режим окна (полоса у края экрана) есть в исходниках:
+`jarvis/gui_vertical.py`, карточка «Полоса на краю экрана» в «Настройках»,
+ключи `ui_vertical_enabled` / `ui_vertical_width` / `ui_vertical_panel`
+(по умолчанию выключен). Живой скрытый прогон на этой машине проверял смену
+режима и размеры окна; DPI/мультимонитор и «поверх всех» глазами не приняты.
+
+Решение «чёткая / нечёткая команда» есть в исходниках: `jarvis/decision.py`
+(чистая функция + пороги `decision_*`), флаги `decision_enabled` и
+`decision_semantic_enabled` по умолчанию **выключены**. Семантический шаг 1 —
+словарь синонимов без модели и сети; шага с эмбеддингами нет. Корпус
+`tests/fixtures/decision_cases.json` ручной (25 фраз), точность 25/25 на нём
+не доказывает качество на живых записях.
+
+Локальный стык API есть в исходниках: `jarvis/api_server.py` (только
+`127.0.0.1`, флаг `api_enabled` по умолчанию **выключен**, порт `api_port`,
+Bearer-токен в `secrets_store`), `jarvis/peer_client.py` и карточка
+«Локальный API» в «Настройках». Живые HTTP-тесты на localhost —
+`tests/test_api_server.py`. Наружу не отдаются профиль/история/память, пароль
+через API запрещён. Реальный сторонний проект-сосед ещё не подключался:
+проверен только свой клиент против своего сервера.
+
+Этапы 3–4 и 6 тоже есть в исходниках, всё за выключенными по умолчанию
+флагами: `jarvis/asr_router.py` (`asr_escalate_enabled`) — второй движок при
+сомнении с бюджетом и кэшем; `jarvis/echo_loopback.py`, `jarvis/aec_backend.py`,
+`jarvis/barge.py` (`aec_backend`, `barge_policy_enabled`) — эталон из системы,
+выбор AEC и очерёдность разговора; `jarvis/plugins.py` +
+`intents/stages/plugins.py` (`plugins_enabled`, `plugins_allowed`) — плагины
+отдельным процессом. Проверено тестами и синтетикой; живых замеров задержки,
+реальных колонок и WASAPI loopback на этой машине не было (проба loopback
+честно вернула «недоступно»). Руководства Uvoxus 2.3b в репозитории нет.
+
 Снимок исключает локальные .env/.env.*/.envrc; их содержимое не редактируется.
 Текстовые read_text/write_text тестов явно используют UTF-8; кодировка Windows
 и Python runtime не меняются. AST guard ловит возвращение неявного encoding.
@@ -469,7 +501,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── release.yml  (306 стр)
 │   │   ├── test.yml  (71 стр)
 ├── AGENTS.md  (88 стр)
-├── ARCHITECTURE.md  (1117 стр)
+├── ARCHITECTURE.md  (1268 стр)
 ├── assets/
 │   ├── nonverbal/
 │   │   ├── README.md  (40 стр)
@@ -484,7 +516,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── themes.svg  (19 стр)
 ├── build_nuitka.bat  (12 стр)
 ├── build_nuitka_full.bat  (17 стр)
-├── CHANGELOG.md  (1994 стр)
+├── CHANGELOG.md  (2153 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -493,7 +525,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ├── cmds/
 │   ├── open_terminal.bat  (3 стр)
 │   ├── show_ip.bat  (3 стр)
-├── config.example.json  (98 стр)
+├── config.example.json  (122 стр)
 ├── constraints-nuitka-app.txt  (25 стр)
 ├── CONTRIBUTING.md  (438 стр)
 ├── create_shortcut.bat  (52 стр)
@@ -520,7 +552,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── IMPROVEMENT_BACKLOG.md  (120 стр)
 │   ├── INSTALLER_UPDATE.md  (47 стр)
 │   ├── LOCAL_VOICE_OPTIONS.md  (67 стр)
-│   ├── NEXT_STEPS.md  (349 стр)
+│   ├── NEXT_STEPS.md  (440 стр)
 │   ├── NUITKA_BUILD.md  (123 стр)
 │   ├── PHOENIX_JASTIN_RECONCILIATION.md  (268 стр)
 │   ├── PYTHON_BOOTSTRAP_TLS_FIX.md  (98 стр)
@@ -532,10 +564,15 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── v2.1.2.md  (112 стр)
 │   ├── REVIEW_FIXES.md  (68 стр)
 │   ├── TTS_LIFECYCLE_FIX.md  (89 стр)
-│   ├── USER_GUIDE.md  (1078 стр)
+│   ├── USER_GUIDE.md  (1207 стр)
 │   ├── WHISPER_STARTUP_DLL_FIX.md  (85 стр)
 │   ├── WINDOWS_STARTUP_RELIABILITY.md  (108 стр)
 │   ├── WINRT_TTS_REMOVAL.md  (43 стр)
+├── examples/
+│   ├── plugins/
+│   │   ├── hello/
+│   │   │   ├── main.py  (28 стр)
+│   │   │   ├── plugin.json  (15 стр)
 ├── install.bat  (342 стр)
 ├── install_aec.bat  (27 стр)
 ├── installer.iss  (106 стр)
@@ -544,7 +581,10 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── __init__.py  (8 стр)
 │   ├── __main__.py  (9 стр)
 │   ├── actions.py  (1521 стр)
+│   ├── aec_backend.py  (52 стр)
+│   ├── api_server.py  (355 стр)
 │   ├── apps.py  (114 стр)
+│   ├── asr_router.py  (271 стр)
 │   ├── assets/
 │   │   ├── brand/
 │   │   │   ├── app-dark.svg  (1 стр)
@@ -567,29 +607,33 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   │   ├── timer-dark.svg  (1 стр)
 │   │   │   ├── timer-light.svg  (1 стр)
 │   ├── audio_output.py  (156 стр)
+│   ├── barge.py  (56 стр)
 │   ├── brain.py  (971 стр)
 │   ├── cache_maintenance.py  (76 стр)
 │   ├── celebrations.py  (165 стр)
 │   ├── cloud_llm.py  (367 стр)
 │   ├── command_builder.py  (152 стр)
 │   ├── compiled_runtime.py  (267 стр)
-│   ├── config.py  (290 стр)
+│   ├── config.py  (336 стр)
 │   ├── config_manager.py  (156 стр)
-│   ├── echo.py  (508 стр)
+│   ├── decision.py  (307 стр)
+│   ├── echo.py  (512 стр)
+│   ├── echo_loopback.py  (178 стр)
 │   ├── echo_trace.py  (229 стр)
 │   ├── engines.py  (533 стр)
 │   ├── files.py  (109 стр)
 │   ├── first_run.py  (26 стр)
-│   ├── gui.py  (1757 стр)
+│   ├── gui.py  (2223 стр)
 │   ├── gui_audio.py  (438 стр)
 │   ├── gui_cloud.py  (541 стр)
 │   ├── gui_commands.py  (305 стр)
 │   ├── gui_engines.py  (206 стр)
-│   ├── gui_home.py  (191 стр)
+│   ├── gui_home.py  (200 стр)
 │   ├── gui_home_actions.py  (225 стр)
-│   ├── gui_home_fx.py  (206 стр)
-│   ├── gui_preferences.py  (693 стр)
+│   ├── gui_home_fx.py  (242 стр)
+│   ├── gui_preferences.py  (798 стр)
 │   ├── gui_sidebar.py  (442 стр)
+│   ├── gui_vertical.py  (706 стр)
 │   ├── gui_widgets.py  (373 стр)
 │   ├── history.py  (75 стр)
 │   ├── https_trust.py  (22 стр)
@@ -602,7 +646,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── fast/
 │   │   │   ├── __init__.py  (54 стр)
 │   │   │   ├── correction.py  (28 стр)
-│   │   │   ├── custom.py  (116 стр)
+│   │   │   ├── custom.py  (128 стр)
 │   │   │   ├── debug.py  (48 стр)
 │   │   │   ├── memory.py  (57 стр)
 │   │   │   ├── music.py  (38 стр)
@@ -619,11 +663,11 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   │   ├── undo.py  (67 стр)
 │   │   │   ├── voices.py  (10 стр)
 │   │   │   ├── weather.py  (113 стр)
-│   │   ├── handler.py  (307 стр)
+│   │   ├── handler.py  (310 стр)
 │   │   ├── password.py  (153 стр)
 │   │   ├── sites.py  (62 стр)
 │   │   ├── stages/
-│   │   │   ├── __init__.py  (47 стр)
+│   │   │   ├── __init__.py  (50 стр)
 │   │   │   ├── base.py  (19 стр)
 │   │   │   ├── cancel.py  (17 стр)
 │   │   │   ├── clarification.py  (11 стр)
@@ -637,6 +681,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   │   ├── onboarding.py  (75 стр)
 │   │   │   ├── password.py  (125 стр)
 │   │   │   ├── pending.py  (79 стр)
+│   │   │   ├── plugins.py  (30 стр)
 │   │   ├── verbs.py  (45 стр)
 │   ├── language/
 │   │   ├── __init__.py  (17 стр)
@@ -648,7 +693,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── time.py  (84 стр)
 │   │   ├── units.py  (85 стр)
 │   ├── learning.py  (178 стр)
-│   ├── main.py  (992 стр)
+│   ├── main.py  (1132 стр)
 │   ├── matching.py  (118 стр)
 │   ├── memory.py  (147 стр)
 │   ├── memory_context.py  (124 стр)
@@ -658,8 +703,10 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── nonverbal.py  (93 стр)
 │   ├── observer.py  (211 стр)
 │   ├── packs.py  (117 стр)
-│   ├── paths.py  (253 стр)
+│   ├── paths.py  (260 стр)
+│   ├── peer_client.py  (108 стр)
 │   ├── persona.py  (226 стр)
+│   ├── plugins.py  (341 стр)
 │   ├── profile.py  (530 стр)
 │   ├── prosody.py  (152 стр)
 │   ├── recognition.py  (154 стр)
@@ -668,7 +715,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── safety.py  (213 стр)
 │   ├── secrets_store.py  (168 стр)
 │   ├── steam.py  (67 стр)
-│   ├── stt.py  (1026 стр)
+│   ├── stt.py  (1050 стр)
 │   ├── tasks.py  (282 стр)
 │   ├── text_utils.py  (98 стр)
 │   ├── timers.py  (343 стр)
@@ -701,8 +748,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── system.json  (17 стр)
 │   ├── work.json  (11 стр)
 ├── phoenix_app.py  (11 стр)
-├── PLAN.md  (93 стр)
-├── PROJECT.md  (439 стр)
+├── PLAN.md  (101 стр)
+├── PROJECT.md  (471 стр)
 ├── PROMPT.md  (72 стр)
 ├── pytest.ini  (20 стр)
 ├── README.md  (194 стр)
@@ -753,6 +800,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── scenarios.json  (217 стр)
 │   │   ├── suite.py  (122 стр)
 │   ├── conftest.py  (20 стр)
+│   ├── fixtures/
+│   │   ├── decision_cases.json  (50 стр)
 │   ├── manual/
 │   │   ├── nonverbal_live.py  (35 стр)
 │   │   ├── uia_close_probe.py  (82 стр)
@@ -763,8 +812,12 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── README.md  (567 стр)
 │   ├── stress_intents.py  (552 стр)
 │   ├── test_actions_brightness.py  (61 стр)
+│   ├── test_aec_backend.py  (57 стр)
+│   ├── test_api_server.py  (355 стр)
+│   ├── test_asr_router.py  (203 стр)
 │   ├── test_audio_regression.py  (556 стр)
 │   ├── test_audit_regressions.py  (265 стр)
+│   ├── test_barge_policy.py  (99 стр)
 │   ├── test_bootstrap_ollama_config.py  (126 стр)
 │   ├── test_brain_rag.py  (125 стр)
 │   ├── test_browser_target.py  (338 стр)
@@ -777,7 +830,9 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_compiled_runtime.py  (198 стр)
 │   ├── test_config_manager.py  (47 стр)
 │   ├── test_danger_policy.py  (124 стр)
+│   ├── test_decision.py  (150 стр)
 │   ├── test_echo.py  (579 стр)
+│   ├── test_echo_loopback.py  (140 стр)
 │   ├── test_echo_multibackend.py  (162 стр)
 │   ├── test_echo_trace.py  (264 стр)
 │   ├── test_engine_probe.py  (100 стр)
@@ -789,12 +844,13 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_gui_cloud.py  (225 стр)
 │   ├── test_gui_commands.py  (127 стр)
 │   ├── test_gui_engines.py  (155 стр)
-│   ├── test_gui_home.py  (159 стр)
+│   ├── test_gui_home.py  (168 стр)
 │   ├── test_gui_home_actions.py  (189 стр)
 │   ├── test_gui_home_fx.py  (261 стр)
 │   ├── test_gui_preferences.py  (516 стр)
 │   ├── test_gui_sidebar.py  (283 стр)
 │   ├── test_gui_startup.py  (105 стр)
+│   ├── test_gui_vertical.py  (485 стр)
 │   ├── test_gui_widgets.py  (259 стр)
 │   ├── test_gui_wiring.py  (591 стр)
 │   ├── test_intents.py  (487 стр)
@@ -809,14 +865,15 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_nonverbal.py  (402 стр)
 │   ├── test_nuitka_build.py  (147 стр)
 │   ├── test_nuitka_full.py  (439 стр)
-│   ├── test_numeric_language.py  (518 стр)
+│   ├── test_numeric_language.py  (521 стр)
 │   ├── test_open_results.py  (32 стр)
 │   ├── test_optional_whisper_startup.py  (134 стр)
 │   ├── test_password_imports.py  (109 стр)
 │   ├── test_persona.py  (155 стр)
+│   ├── test_plugins.py  (307 стр)
 │   ├── test_profile.py  (100 стр)
 │   ├── test_prosody.py  (83 стр)
-│   ├── test_recognition_quality.py  (357 стр)
+│   ├── test_recognition_quality.py  (362 стр)
 │   ├── test_release_install_guards.py  (124 стр)
 │   ├── test_release_payload.py  (287 стр)
 │   ├── test_review_regressions.py  (334 стр)
@@ -917,6 +974,50 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def clipboard_clear()
 ```
 
+**`jarvis/aec_backend.py`**
+
+```
+  # Выбор backend'а AEC: свой (`native`) или WebRTC (`webrtc`).
+  BACKENDS = ...
+  WEBRTC_MODULES = ...
+  class BackendChoice
+    def fallback(self)
+  def resolve(config, *, importer=None)
+```
+
+**`jarvis/api_server.py`**
+
+```
+  # Локальный HTTP-стык Феникса: `health` / `capabilities` / `turn`.
+  HOST = ...
+  DEFAULT_PORT = ...
+  SCHEMA = ...
+  MAX_BODY_BYTES = ...
+  MAX_TEXT = ...
+  MAX_SESSION = ...
+  TOKEN_NAME = ...
+  CAPABILITIES = ...
+  _SESSION_RE = ...
+  def normalize_port(value, default: int=DEFAULT_PORT)
+  def normalize_text(value)
+  def normalize_session(value)
+  def normalize_token(value)
+  def new_token()
+  def ensure_token(load=None, save=None)
+  class _Handler(BaseHTTPRequestHandler)
+    def log_message(self, fmt, *args)
+    def do_GET(self)
+    def do_POST(self)
+  class _Server(ThreadingHTTPServer)
+  class ApiServer
+    def __init__(self, handler, *, port=None, token=None, host=HOST, version=None, collect=None)
+    def running(self)
+    def url(self)
+    def start(self)
+    def stop(self)
+    def handle_turn(self, http, session: str, text: str)
+```
+
 **`jarvis/apps.py`**
 
 ```
@@ -927,6 +1028,32 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def find_app(apps: list[App], target: str)
 ```
 
+**`jarvis/asr_router.py`**
+
+```
+  # Эскалация распознавания: если первому движку не поверили — спросить второй.
+  class Transcript
+  class RouteResult
+    def text(self)
+    def needs_repeat(self)
+  class CallableEngine
+    def __init__(self, name: str, fn: Callable)
+    def transcribe(self, pcm: bytes, rate: int)
+  class Budget
+    def __init__(self, limit: int=3, window_sec: float=60.0)
+    def allow(self, now: float | None=None)
+    def used(self)
+  class Cache
+    def __init__(self, ttl: float=60.0, limit: int=32)
+    def key(text: str, rate: int)
+    def get(self, text: str, rate: int, now: float | None=None)
+    def put(self, text: str, rate: int, value: Transcript, now: float | None=None)
+    def clear(self)
+  class Router
+    def __init__(self, primary, fallback=None, *, enabled: bool=False, budget: Budget | None=None, cache: Cache | None=None,...)
+    def run(self, pcm: bytes, rate: int, *, candidates=None, match=None, matched: bool | None=None, cancel_event=None)
+```
+
 **`jarvis/audio_output.py`**
 
 ```
@@ -935,6 +1062,15 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def mix_reaction(audio, rate, reaction)
   def encode_wav(audio, rate)
   def play_wav(wav_bytes, token, reaction=None, *, echo=None)
+```
+
+**`jarvis/barge.py`**
+
+```
+  # Очерёдность разговора при перебивании: чей это голос и можно ли вклиниться.
+  class BargePolicy
+    def from_config(cls, config)
+    def evaluate(self, *, rms: float, threshold: float, speech_ms: float, tts_elapsed: float | None)
 ```
 
 **`jarvis/brain.py`**
@@ -1061,6 +1197,29 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def update(key: str, value, path: Path | None=None)
 ```
 
+**`jarvis/decision.py`**
+
+```
+  # Решение по распознанной фразе: чёткая команда, нечёткая или не команда.
+  CLEAR = ...
+  UNCLEAR = ...
+  NOT_A_COMMAND = ...
+  KINDS = ...
+  FILLERS = ...
+  SYNONYMS = ...
+  _NEGATIONS = ...
+  class Thresholds
+    def from_config(cls, config)
+    def validated(self)
+  class Decision
+    def is_clear(self)
+    def needs_repeat(self)
+  def semantic_normalize(text: str)
+  def has_negation(text: str)
+  def best_match(text: str, candidates, semantic: bool=False)
+  def decide(text, *, quality=None, match=None, secondary=None, candidates=None, thresholds: Thresholds | None=None, sem...)
+```
+
 **`jarvis/echo.py`**
 
 ```
@@ -1085,6 +1244,23 @@ Non-verbal/микрофон/установщик по-прежнему треб�
     def discontinuity(self)
     def flush(self, *, reset=False)
     def close(self)
+```
+
+**`jarvis/echo_loopback.py`**
+
+```
+  # Эталонный сигнал для AEC, когда звук идёт не через наш PCM (этап 4).
+  class LoopbackProbe
+  def probe_loopback(*, sd_module=None)
+  def open_loopback_stream(probe: LoopbackProbe, callback, *, blocksize: int=1024)
+  class ReferenceChoice
+  def choose_reference(*, local_active: bool, loopback_active: bool)
+  class ReferenceDelay
+    def __init__(self, delay_ms: float=40.0, rate: int=16000)
+    def delay_frames(self)
+    def push(self, pcm: bytes)
+    def take(self, frames: int)
+    def reset(self)
 ```
 
 **`jarvis/echo_trace.py`**
@@ -1201,6 +1377,13 @@ Non-verbal/микрофон/установщик по-прежнему треб�
     def set_state(self, state: str)
     def set_mic_test_result(self, text: str, color: str)
     def launch_fireworks(self, duration: float=6.0)
+    def set_vertical_mode(self, enabled, update: bool=True)
+    def set_vertical_pinned(self, value)
+    def set_vertical_width(self, value)
+    def set_vertical_panel(self, value)
+    def set_api_enabled(self, enabled, update: bool=True)
+    def set_api_port(self, value)
+    def regenerate_api_token(self)
   >>> GUI: ft.run(...) - Flet в главном потоке
 ```
 
@@ -1336,9 +1519,9 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   SIZE = ...
   CENTER = ...
   def transition_weights(current, target, dt)
-  def solar_shapes(mode, seconds, energy, color, *, weights=None, phase=None)
+  def solar_shapes(mode, seconds, energy, color, *, weights=None, phase=None, center=None, scale=1.0)
   class PhoenixAura(ft.Container)
-    def __init__(self, gui, ring)
+    def __init__(self, gui, ring, size=SIZE, foreground=None)
     def foreground(self)
     def motion_allowed(self)
     def set_mode(self, mode, energy=0)
@@ -1414,6 +1597,73 @@ Non-verbal/микрофон/установщик по-прежнему треб�
     def selected_index(self, value)
     def refresh_palette(self)
     async def on_key(self, e)
+```
+
+**`jarvis/gui_vertical.py`**
+
+```
+  # Вертикальный режим окна: узкая полоса-шторка у правого края экрана.
+  PANELS = ...
+  PANEL_DEFAULT = ...
+  WIDTH_MIN = ...
+  WIDTH_MAX = ...
+  WIDTH_DEFAULT = ...
+  WINDOW_WIDTH = ...
+  WINDOW_HEIGHT = ...
+  WINDOW_MIN_WIDTH = ...
+  WINDOW_MIN_HEIGHT = ...
+  AURA_SIZE = ...
+  AURA_RING = ...
+  TAB_WIDTH = ...
+  TAB_MIN = ...
+  TAB_MAX = ...
+  SLIDE_MS = ...
+  SLIDE_STEPS = ...
+  AUTOHIDE_MS = ...
+  REVEAL_MS = ...
+  LOG_LIMIT = ...
+  TEXT_LIMIT = ...
+  NOTES_FILE = ...
+  PLAN_FILE = ...
+  _TRUE = ...
+  _FALSE = ...
+  def normalize_enabled(value)
+  def normalize_pinned(value)
+  def normalize_width(value, default: int=WIDTH_DEFAULT)
+  def normalize_tab(value, default: int=TAB_WIDTH)
+  def normalize_delay(value, default: int=AUTOHIDE_MS)
+  def normalize_panel(value, default: str=PANEL_DEFAULT)
+  def aura_mode(state)
+  def aura_label(state)
+  def vertical_window_spec(width, workarea=None)
+  def horizontal_window_spec()
+  def curtain_geometry(width, workarea=None, tab=None)
+  def slide_frames(start, end, steps: int=SLIDE_STEPS)
+  class Curtain
+    def __init__(self, pinned=False)
+    def enter(self)
+    def leave(self)
+    def hide(self)
+    def show(self)
+    def set_pinned(self, value)
+    def wants_autohide(self)
+  def work_area()
+  def notes_path()
+  def plan_path()
+  def read_doc(path)
+  def write_doc(path, text)
+  def shorten(text, limit: int=TEXT_LIMIT)
+  def log_lines(messages, limit: int=LOG_LIMIT)
+  class VerticalBar(ft.Container)
+    def __init__(self, gui, width=None, panel=None)
+    def set_open_state(self, open_: bool)
+    def set_pinned(self, pinned)
+    def save_doc(self, name)
+    def flush(self)
+    def set_panel(self, panel)
+    def on_message(self, record)
+    def apply_state(self, state)
+    def dispose(self)
 ```
 
 **`jarvis/gui_widgets.py`**
@@ -1545,7 +1795,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def load_packs_as_custom(config)
   def reload_custom(handler)
   def match_custom(handler, cmd: str)
-  def find_custom(custom: list, cmd: str)
+  def find_custom(custom: list, cmd: str, *, semantic: bool=False)
   def execute_custom(handler, action, reply: str, *, authorized: bool=False)
 ```
 
@@ -1711,7 +1961,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 
 ```
   # Стадии обработки команды. Порядок = приоритет.
-  def build_pipeline(handler) -> [CancelStage(), PendingStage(), OnboardingStage(), CorrectionStage(), PasswordStage(), MemoryStage(), ClipboardStage(), ModesStage(), CompoundStage(), ClarificationStage(), FastHandlersStage(), LLMStage()]
+  def build_pipeline(handler) -> [CancelStage(), PendingStage(), OnboardingStage(), CorrectionStage(), PasswordStage(), MemoryStage(), ClipboardStage(), ModesStage(), CompoundStage(), ClarificationStage(), FastHandlersStage(), PluginStage(), LLMStage()]
 ```
 
 **`jarvis/intents/stages/base.py`**
@@ -1818,6 +2068,14 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   _NOT_A_CITY = ...
   _CONTROL_WORDS = ...
   class PendingStage(Stage)
+    def handle(self, ctx)
+```
+
+**`jarvis/intents/stages/plugins.py`**
+
+```
+  # Стадия плагинов: фразы плагина идут тем же pipeline, что и обычные команды.
+  class PluginStage(Stage)
     def handle(self, ctx)
 ```
 
@@ -2117,7 +2375,23 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def config_path()
   def secrets_dir()
   def nonverbal_dir()
+  def plugins_dir()
   def temporary_audio_file()
+```
+
+**`jarvis/peer_client.py`**
+
+```
+  # Клиент к стыку `health` / `capabilities` / `turn` — своему или соседнего проекта.
+  DEFAULT_TIMEOUT = ...
+  class PeerError(Exception)
+    def __init__(self, message: str, *, status: int | None=None)
+  def normalize_url(value, default_port: int | None=None)
+  class PeerClient
+    def __init__(self, base_url: str, token: str, *, timeout: float=DEFAULT_TIMEOUT)
+    def health(self)
+    def capabilities(self)
+    def ask(self, text: str, session_id: str | None=None)
 ```
 
 **`jarvis/persona.py`**
@@ -2143,6 +2417,41 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def reset_onboarding()
   def build_prompt_block()
   def describe()
+```
+
+**`jarvis/plugins.py`**
+
+```
+  # Плагины: манифест, запуск в отдельном процессе, свои настройки.
+  MANIFEST_NAME = ...
+  READ_ONLY_CAPABILITIES = ...
+  MAX_COMMANDS = ...
+  MAX_PHRASES = ...
+  MAX_OUTPUT = ...
+  MAX_TIMEOUT = ...
+  _NAME_RE = ...
+  class PluginError(Exception)
+  class PluginCommand
+  class PluginManifest
+    def root(self)
+    def phrase_map(self)
+    def from_json(cls, path)
+  class PluginResult
+  class PluginRunner
+    def __init__(self, *, popen=None, python=None)
+    def run(self, manifest: PluginManifest, payload: dict)
+  class PluginSettings
+    def __init__(self, manifest: PluginManifest, base_dir=None)
+    def load(self)
+    def set(self, key: str, value)
+  class PluginState
+  class PluginHost
+    def __init__(self, directory=None, *, runner=None, allowed=None, config=None, settings_dir=None)
+    def discover(self)
+    def start(self, name: str)
+    def stop(self, name: str)
+    def running(self)
+    def try_handle(self, cmd: str)
 ```
 
 **`jarvis/profile.py`**
@@ -3039,6 +3348,87 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_unavailable_caps_skips_the_probe(monkeypatch)
 ```
 
+**`tests/test_aec_backend.py`**
+
+```
+  # Выбор backend'а AEC: native по умолчанию, честный отказ от webrtc.
+  class FakeConfig
+    def __init__(self, **data)
+    def get(self, key, default=None)
+  def config_with(**data)
+  def test_native_is_the_default()
+  def test_unknown_backend_falls_back_to_native_with_reason()
+  def test_webrtc_requested_but_package_missing_stays_native()
+  def test_webrtc_used_only_when_package_really_imports()
+  def test_backend_names_are_stable()
+```
+
+**`tests/test_api_server.py`**
+
+```
+  # Локальный стык API: живой HTTP на 127.0.0.1, авторизация, pending, приватность.
+  TOKEN = ...
+  class FakeHandler
+    def __init__(self)
+    def handle(self, text)
+    def finalize_stream(self, text)
+  def free_port()
+  def server()
+  def get(api, path, token=TOKEN)
+  def post(api, path, payload, token=TOKEN)
+  def post_error(api, path, payload, token=TOKEN)
+  def test_health_and_capabilities(server)
+  def test_only_loopback_is_used(server)
+  def test_requests_without_token_are_rejected(server)
+  def test_turn_requires_session_and_text(server)
+  def test_turn_returns_answer_and_echoes_session(server)
+  def test_pending_question_is_a_status_not_success(server)
+  def test_password_never_goes_through_api(server)
+  def test_stream_reply_is_collected_and_finalized(server)
+  def test_core_failure_is_not_reported_as_success(server)
+  def test_unknown_paths_are_404(server)
+  def test_turn_serializes_calls(server)
+  def test_tokens_and_sessions_are_validated()
+  def test_stop_frees_the_port()
+  def test_start_without_token_or_core_is_honest()
+  def test_busy_port_is_reported_not_faked()
+  def test_token_is_not_in_logs_or_repr(server, caplog)
+  def test_peer_client_talks_to_the_same_api(server)
+  def test_peer_client_rejects_bad_inputs()
+  def test_peer_client_reports_errors_without_secrets(server)
+  def window(tmp_path)
+  def test_api_is_off_by_default_and_toggle_is_honest(window)
+  def test_api_port_is_normalized(window)
+  def test_gui_runs_the_api_for_its_core(tmp_path, monkeypatch)
+```
+
+**`tests/test_asr_router.py`**
+
+```
+  # Эскалация ASR: табличные тесты роутера на фейковых движках, без моделей и звука.
+  OK = ...
+  WEAK = ...
+  BAD = ...
+  def engine(name, text, quality=OK, calls=None, exc=None, latency=0.01)
+  def router(primary_text='включи музыку', fallback_text=None, *, primary_quality=OK, enabled=True, calls=None, budget=N...)
+  def test_callable_engine_accepts_text_dict_and_transcript()
+  def test_escalation_is_off_by_default()
+  def test_confident_primary_does_not_call_the_heavy_engine()
+  def test_weak_quality_escalates_and_agreement_adopts_second_text()
+  def test_disagreement_asks_again_and_never_acts()
+  def test_number_mismatch_between_engines_is_unclear()
+  def test_missing_dictionary_match_escalates_even_with_good_quality()
+  def test_broken_fallback_becomes_ask_again_not_crash(fallback_kwargs, reason)
+  def test_broken_primary_is_honest()
+  def test_budget_limits_heavy_engine_and_reports_it()
+  def test_budget_window_expires()
+  def test_cache_avoids_second_heavy_call()
+  def test_cache_expires_and_respects_rate()
+  def test_cancel_before_and_during_heavy_call()
+  def test_thresholds_from_config_control_escalation()
+  def test_semantic_router_resolves_synonyms_instead_of_escalating()
+```
+
 **`tests/test_audio_regression.py`**
 
 ```
@@ -3118,6 +3508,25 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_voice_input_redacts_gui_and_skips_observer()
   def test_gui_input_redacts_history(tmp_path)
   def test_stt_does_not_retain_sensitive_recognition(caplog)
+```
+
+**`tests/test_barge_policy.py`**
+
+```
+  # Правило очерёдности разговора: таблица вердиктов и один хук в Listener.
+  class FakeConfig
+    def __init__(self, **data)
+    def get(self, key, default=None)
+  def test_defaults_match_previous_behaviour()
+  def test_quiet_echo_does_not_barge()
+  def test_own_tail_right_after_tts_start_does_not_barge()
+  def test_short_click_does_not_barge()
+  def test_config_overrides_and_invalid_values_fall_back()
+  def listener_stub(tmp_path, *, enabled: bool)
+  def test_policy_off_keeps_previous_barge_behaviour(tmp_path)
+  def test_policy_on_ignores_quiet_echo(tmp_path)
+  def test_policy_on_accepts_loud_long_speech(tmp_path)
+  def test_policy_on_ignores_own_tail_in_first_ms(tmp_path)
 ```
 
 **`tests/test_bootstrap_ollama_config.py`**
@@ -3382,6 +3791,32 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_delete_profile_stage_refuses_without_password(monkeypatch)
 ```
 
+**`tests/test_decision.py`**
+
+```
+  # Решение «чёткая команда / нечёткая / не команда»: таблица, корпус, синонимы.
+  FIXTURE = ...
+  CORPUS = ...
+  CANDIDATES = ...
+  def run(text, **kwargs)
+  def test_empty_phrases_are_not_commands(text, expected)
+  def test_short_alias_and_similar_commands_are_distinguished()
+  def test_negation_never_turns_into_execution()
+  def test_missing_asr_confidence_is_not_punished()
+  def test_rejected_quality_always_asks_again()
+  def test_no_match_channel_reacts_to_asr_only()
+  def test_second_transcript_must_agree_on_intent()
+  def test_two_hypotheses_of_nonsense_never_become_a_command()
+  def test_match_object_is_accepted()
+  def test_thresholds_are_clamped_and_ordered()
+  def test_decision_is_immutable_snapshot()
+  def test_semantic_layer_off_keeps_raw_matching()
+  def test_semantic_layer_on_resolves_synonyms()
+  def test_corpus_accuracy_does_not_regress()
+  def test_semantic_corpus_is_clear_only_with_the_flag()
+  def test_custom_commands_use_semantics_only_behind_the_flag()
+```
+
 **`tests/test_echo.py`**
 
 ```
@@ -3441,6 +3876,31 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_sample_aligned_echo_rejects_residual_but_allows_double_talk()
   def test_capture_attenuation_is_current_even_below_calibration_energy()
   def test_reference_chunk_boundaries_do_not_create_one_sample_holes()
+```
+
+**`tests/test_echo_loopback.py`**
+
+```
+  # Эталон для AEC: проба loopback, буфер задержки и выбор источника.
+  class FakeSettings
+    def __init__(self, loopback=False, fail=False)
+  class FakeSD
+    def __init__(self, devices, hostapis=None)
+    def query_hostapis(self)
+    def query_devices(self)
+  def test_probe_without_sounddevice_is_honest(monkeypatch)
+  def test_probe_without_wasapi_settings()
+  def test_probe_with_settings_that_reject_loopback()
+  def test_probe_without_wasapi_hostapi()
+  def test_probe_finds_wasapi_output_device()
+  def test_open_stream_refuses_without_probe()
+  def test_reference_choice_prefers_our_own_pcm()
+  def test_reference_delay_aligns_signal_with_delay()
+  def test_reference_delay_returns_silence_when_not_ready()
+  def test_reference_delay_pads_missing_frames_with_zeros()
+  def test_reference_delay_handles_odd_bytes_and_reset()
+  def test_reference_delay_keeps_buffer_bounded()
+  def test_reference_delay_survives_trim()
 ```
 
 **`tests/test_echo_multibackend.py`**
@@ -3702,6 +4162,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def gui(tmp_path, monkeypatch)
   def test_startup_is_home_and_chat_ids_do_not_shift(gui)
   def test_minimal_home_starts_empty_with_only_widget_entry_and_no_composer(gui)
+  def test_home_strip_button_switches_to_vertical_mode(gui)
   def test_local_date_labels_include_midnight_and_new_year()
   def test_clock_only_marks_changes_at_minute_or_date_boundary(gui)
   def test_home_mirrors_real_state_without_auto_opening_chat(gui, state, label)
@@ -3859,6 +4320,57 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def tray_callbacks(gui)
   def test_tray_failure_before_page_restores_startup_intent(gui)
   def test_stale_or_shutdown_tray_callback_does_not_show_window(gui)
+```
+
+**`tests/test_gui_vertical.py`**
+
+```
+  # Вертикальный режим: чистая логика, полоса и переключение без окна и звука.
+  def test_width_is_clamped_and_broken_values_fall_back(value, expected)
+  def test_panel_accepts_only_known_names(value, expected)
+  def test_enabled_flag_never_raises(value, expected)
+  def test_aura_has_four_modes_and_unknown_state_is_idle(state, expected)
+  def test_vertical_spec_without_screen_area_keeps_size_untouched()
+  def test_vertical_spec_fills_work_area_at_right_edge()
+  def test_broken_work_area_does_not_invent_geometry(area)
+  def test_horizontal_spec_restores_window_and_releases_limits()
+  def test_documents_are_written_atomically_and_missing_file_is_empty(tmp_path)
+  def test_log_lines_trim_dialog_and_skip_empty(tmp_path)
+  def test_shorten_keeps_text_in_one_line()
+  def isolated_docs(tmp_path, monkeypatch)
+  def fake_gui(tmp_path)
+  def test_bar_shows_state_and_switches_panels(isolated_docs, tmp_path)
+  def test_bar_log_follows_messages_and_keeps_newest(isolated_docs, tmp_path)
+  def window(tmp_path, monkeypatch)
+  def test_vertical_mode_is_off_by_default(window)
+  def test_live_switch_reschedules_geometry_after_client_window_state(window)
+  def test_reapply_later_stops_when_mode_is_off(window, monkeypatch)
+  def test_switching_mode_keeps_state_and_restores_window(window)
+  def test_mode_can_be_enabled_from_saved_config_at_startup(window)
+  def test_width_and_panel_changes_are_persisted(window)
+  def test_vertical_mode_does_not_overwrite_horizontal_position(window)
+  def test_shown_window_reapplies_bar_geometry(window)
+  def test_showing_window_in_horizontal_mode_does_not_touch_geometry(window)
+  def test_pinned_flag_never_raises(value, expected)
+  def test_tab_width_is_clamped(value, expected)
+  def test_autohide_delay_is_clamped(value, expected)
+  def test_curtain_geometry_keeps_full_bar_and_edge_handle()
+  def test_curtain_geometry_without_workarea_does_not_invent_coordinates()
+  def test_slide_frames_move_one_way_and_end_exactly()
+  def test_curtain_state_machine_respects_pin_and_pointer()
+  def test_curtain_hides_only_after_pointer_left()
+  def test_curtain_pin_forces_open_and_blocks_autohide()
+  def test_vertical_mode_leaves_only_a_handle_visible(window)
+  def test_hover_deploys_hidden_bar(window)
+  def test_tab_click_toggles_unpinned_bar(window)
+  def test_pinned_bar_ignores_leave_and_tab_click(window)
+  def test_pin_toggle_is_persisted_and_applied(window)
+  def test_width_change_keeps_hidden_bar_hidden(window)
+  def test_leaving_vertical_mode_removes_shadow_and_stops_curtain(window)
+  def test_bar_uses_card_handle_and_segmented_panels(isolated_docs, tmp_path)
+  def test_bar_handle_has_grip_and_chevron(isolated_docs, tmp_path)
+  def test_hover_highlights_handle_and_notifies_gui(isolated_docs, tmp_path)
+  def test_bar_pin_button_updates_icon_and_tooltip(isolated_docs, tmp_path)
 ```
 
 **`tests/test_gui_widgets.py`**
@@ -4394,6 +4906,40 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_build_prompt_block_unrestricted()
   def test_build_prompt_block_empty()
   def test_describe()
+```
+
+**`tests/test_plugins.py`**
+
+```
+  # Плагины: манифест, согласие, lifecycle, таймаут, падение и стадия pipeline.
+  def write_plugin(root: Path, *, name='hello', entry='main.py', capabilities=('command',), commands=None, timeout=5, code="pr...)
+  class FakeProcess
+    def __init__(self, stdout=b'', stderr=b'', code=0, hang=None, crash_on_communicate=None)
+    def communicate(self, input=None, timeout=None)
+    def kill(self)
+  def manifest(root, **kwargs)
+  def test_manifest_is_parsed_and_phrase_map_is_normalized(tmp_path)
+  def test_bad_manifests_are_rejected_honestly(tmp_path, kwargs, fragment)
+  def test_broken_json_and_missing_files_are_rejected(tmp_path)
+  def test_runner_parses_json_answer(tmp_path)
+  def test_runner_returns_plain_text(tmp_path)
+  def test_runner_reports_timeout_and_kills_process(tmp_path)
+  def test_runner_reports_crash_without_raising(tmp_path)
+  def test_runner_reports_error_field(tmp_path)
+  def test_runner_reports_launch_failure(tmp_path)
+  def host_for(tmp_path, *, allowed=('hello',), runner=None)
+  def test_discover_finds_plugins_and_collects_errors(tmp_path)
+  def test_plugin_not_started_without_consent(tmp_path)
+  def test_start_stop_lifecycle(tmp_path)
+  def test_unknown_plugin_is_honest(tmp_path)
+  def test_running_plugin_handles_only_its_phrases(tmp_path)
+  def test_default_popen_asks_for_utf8_output(monkeypatch, tmp_path)
+  def test_stopped_plugin_does_not_answer(tmp_path)
+  def test_plugin_crash_becomes_reply_not_exception(tmp_path)
+  def test_plugin_settings_are_isolated(tmp_path)
+  def test_plugin_stage_is_inert_without_host()
+  def test_plugin_stage_calls_host_and_survives_errors()
+  def test_example_plugin_manifest_is_valid()
 ```
 
 **`tests/test_profile.py`**
@@ -5089,6 +5635,13 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   SKIP_FILES = ...
 ```
 
+**`examples/plugins/hello/main.py`**
+
+```
+  # Пример плагина Феникса: читает JSON из stdin, пишет JSON в stdout.
+  def main()
+```
+
 **`launcher.py`**
 
 ```
@@ -5291,31 +5844,38 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/__init__.py` | 8 | code | Феникс — локальный голосовой ассистент для Windows. |
 | `jarvis/__main__.py` | 9 | code |  |
 | `jarvis/actions.py` | 1521 | code | Действия: запуск приложений, открытие сайтов, скриншоты, медиа, печать |
+| `jarvis/aec_backend.py` | 52 | code | Выбор backend'а AEC: свой (`native`) или WebRTC (`webrtc`). |
+| `jarvis/api_server.py` | 355 | code | Локальный HTTP-стык Феникса: `health` / `capabilities` / `turn`. |
 | `jarvis/apps.py` | 114 | code | Каталог известных приложений: как их зовут голосом, как открыть и как  |
+| `jarvis/asr_router.py` | 271 | code | Эскалация распознавания: если первому движку не поверили — спросить вт |
 | `jarvis/audio_output.py` | 156 | code | Shared cancellable PCM output for Speaker and the three WAV-based TTS  |
+| `jarvis/barge.py` | 56 | code | Очерёдность разговора при перебивании: чей это голос и можно ли вклини |
 | `jarvis/brain.py` | 971 | code | LLM-фолбэк: локальная нейронка (Ollama) разбирает команду в структурны |
 | `jarvis/cache_maintenance.py` | 76 | code | Чистка устаревшего байткода после обновления файлов приложения. |
 | `jarvis/celebrations.py` | 165 | code | Праздничные триггеры — поздравление с ДР + двойной салют. |
 | `jarvis/cloud_llm.py` | 367 | code | Облачная LLM по HTTP: OpenAI-совместимые API и Anthropic. |
 | `jarvis/command_builder.py` | 152 | code | Typed custom commands. No execution, model calls or shell parsing in t |
 | `jarvis/compiled_runtime.py` | 267 | code | Standalone app startup and explicit offline probes; no venv/pip bootst |
-| `jarvis/config.py` | 290 | code | Загрузка конфигурации и объект Config в памяти. |
+| `jarvis/config.py` | 336 | code | Загрузка конфигурации и объект Config в памяти. |
 | `jarvis/config_manager.py` | 156 | code | Единый менеджер записи в config.json. |
-| `jarvis/echo.py` | 508 | code | Opt-in Piper AEC prototype. No devices, drivers or downloads. |
+| `jarvis/decision.py` | 307 | code | Решение по распознанной фразе: чёткая команда, нечёткая или не команда |
+| `jarvis/echo.py` | 512 | code | Opt-in Piper AEC prototype. No devices, drivers or downloads. |
+| `jarvis/echo_loopback.py` | 178 | code | Эталонный сигнал для AEC, когда звук идёт не через наш PCM (этап 4). |
 | `jarvis/echo_trace.py` | 229 | code | Explicitly opted-in, bounded local AEC trace; never uploads audio. |
 | `jarvis/engines.py` | 533 | code | Каталог движков Феникса: что скачано, что включено и чем доустановить. |
 | `jarvis/files.py` | 109 | code | Файлы и папки: открыть, посмотреть содержимое, создать. |
 | `jarvis/first_run.py` | 26 | code | Первый запуск — знакомство через LLM-диалог. |
-| `jarvis/gui.py` | 1757 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
+| `jarvis/gui.py` | 2223 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
 | `jarvis/gui_audio.py` | 438 | code | Native sound settings. Diagnostics use the existing listener/Speaker,  |
 | `jarvis/gui_cloud.py` | 541 | code | Вкладка «Облако»: провайдер, ключ, приватность и проверка ключа. |
 | `jarvis/gui_commands.py` | 305 | code | Flet editor for the existing custom_commands pipeline. Never executes  |
 | `jarvis/gui_engines.py` | 206 | code | Вкладка «Движки»: что скачано, что включено и установка по кнопке. |
-| `jarvis/gui_home.py` | 191 | code | Minimal native Home: local clock, real assistant state and opt-in widg |
+| `jarvis/gui_home.py` | 200 | code | Minimal native Home: local clock, real assistant state and opt-in widg |
 | `jarvis/gui_home_actions.py` | 225 | code | Three real Home actions. Native controls, finite transitions, no extra |
-| `jarvis/gui_home_fx.py` | 206 | code | Bounded native solar aura. Decorative state motion, never a fake wavef |
-| `jarvis/gui_preferences.py` | 693 | code | Native persona/settings editors. Drafts are not configuration or a sec |
+| `jarvis/gui_home_fx.py` | 242 | code | Bounded native solar aura. Decorative state motion, never a fake wavef |
+| `jarvis/gui_preferences.py` | 798 | code | Native persona/settings editors. Drafts are not configuration or a sec |
 | `jarvis/gui_sidebar.py` | 442 | code | Native, persistent hover rail. Bounded UI-loop animation; no WebView o |
+| `jarvis/gui_vertical.py` | 706 | code | Вертикальный режим окна: узкая полоса-шторка у правого края экрана. |
 | `jarvis/gui_widgets.py` | 373 | code | Opt-in Home widgets: responsive order/size editor, real tasks and guar |
 | `jarvis/history.py` | 75 | code | История последних действий для отмены («стоп, не то»). |
 | `jarvis/https_trust.py` | 22 | code | Process-scoped CA bundle for urllib/Flet/torch; never disables TLS che |
@@ -5326,7 +5886,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/intents/execute.py` | 1044 | code | Dispatch: action → функция-обработчик. |
 | `jarvis/intents/fast/__init__.py` | 54 | code | Реестр быстрых обработчиков. |
 | `jarvis/intents/fast/correction.py` | 28 | code | Коррекция: «это не то, я сказал логи». |
-| `jarvis/intents/fast/custom.py` | 116 | code | Пользовательские команды: из config.json и из паков. |
+| `jarvis/intents/fast/custom.py` | 128 | code | Пользовательские команды: из config.json и из паков. |
 | `jarvis/intents/fast/debug.py` | 48 | code | Диагностика: «что ты слышал», «почему не понял». |
 | `jarvis/intents/fast/memory.py` | 57 | code | Управление памятью диалога. |
 | `jarvis/intents/fast/music.py` | 38 | code | Музыка — ДО open_fast. |
@@ -5343,10 +5903,10 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/intents/fast/undo.py` | 67 | code | Отмена последнего действия («не то», «отмени»). |
 | `jarvis/intents/fast/voices.py` | 10 | code | Голоса Piper — обёртка над модулем `voices`. |
 | `jarvis/intents/fast/weather.py` | 113 | code | Простые правила для погоды и курса — без LLM. |
-| `jarvis/intents/handler.py` | 307 | code | IntentHandler — оркестрация. |
+| `jarvis/intents/handler.py` | 310 | code | IntentHandler — оркестрация. |
 | `jarvis/intents/password.py` | 153 | code | Парольные примитивы: jarvis.intents.password (не стадия pipeline). |
 | `jarvis/intents/sites.py` | 62 | code | Сайты для открытия голосом — ленивая загрузка из packs/sites.json. |
-| `jarvis/intents/stages/__init__.py` | 47 | code | Стадии обработки команды. Порядок = приоритет. |
+| `jarvis/intents/stages/__init__.py` | 50 | code | Стадии обработки команды. Порядок = приоритет. |
 | `jarvis/intents/stages/base.py` | 19 | code | Базовая стадия pipeline. |
 | `jarvis/intents/stages/cancel.py` | 17 | code | «Стоп», «хватит», «отбой» — самый первый этап. |
 | `jarvis/intents/stages/clarification.py` | 11 | code | Запрос недостающего слота до fast/LLM, без выполнения догадок. |
@@ -5360,6 +5920,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/intents/stages/onboarding.py` | 75 | code | Первый запуск — знакомство через LLM-диалог. |
 | `jarvis/intents/stages/password.py` | 125 | code | Стадия pipeline: jarvis.intents.stages.password. |
 | `jarvis/intents/stages/pending.py` | 79 | code | Ожидание уточнения (pending_question). |
+| `jarvis/intents/stages/plugins.py` | 30 | code | Стадия плагинов: фразы плагина идут тем же pipeline, что и обычные ком |
 | `jarvis/intents/verbs.py` | 45 | code | Константы глаголов и слов — единый источник истины. |
 | `jarvis/language/__init__.py` | 17 | code | Russian numeric understanding and speech normalization. |
 | `jarvis/language/context.py` | 112 | code | Local grammatical evidence. Ambiguous sentences are not a full syntax  |
@@ -5370,7 +5931,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/language/time.py` | 84 | code | Duration grammar with source spans. Uses the shared numeral/unit vocab |
 | `jarvis/language/units.py` | 85 | code | Semantic unit lexicon shared by input and output; spelling is data, no |
 | `jarvis/learning.py` | 178 | code | Самообучение Феникса: факты и коррекции. |
-| `jarvis/main.py` | 992 | code | Точка входа: связывает распознавание, интенты, синтез речи и GUI. |
+| `jarvis/main.py` | 1132 | code | Точка входа: связывает распознавание, интенты, синтез речи и GUI. |
 | `jarvis/matching.py` | 118 | code | Нечёткое сопоставление речи с названиями: транслитерация + difflib. |
 | `jarvis/memory.py` | 147 | code | Память диалога — на профиль. |
 | `jarvis/memory_context.py` | 124 | code | Query-scoped personal memory. Absence/uncertainty never means 'send ev |
@@ -5380,8 +5941,10 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/nonverbal.py` | 93 | code | Optional, bounded reaction policy. No LLM tags, text rewriting or extr |
 | `jarvis/observer.py` | 211 | code | Observer — фоновое наблюдение за диалогом. |
 | `jarvis/packs.py` | 117 | code | Загрузка и выгрузка паков команд из папки packs/. |
-| `jarvis/paths.py` | 253 | code | Централизованное определение путей Феникса. |
+| `jarvis/paths.py` | 260 | code | Централизованное определение путей Феникса. |
+| `jarvis/peer_client.py` | 108 | code | Клиент к стыку `health` / `capabilities` / `turn` — своему или соседне |
 | `jarvis/persona.py` | 226 | code | Персона ассистента — стиль общения, черты, backstory, tone. |
+| `jarvis/plugins.py` | 341 | code | Плагины: манифест, запуск в отдельном процессе, свои настройки. |
 | `jarvis/profile.py` | 530 | code | Профиль пользователя — мультипрофиль. |
 | `jarvis/prosody.py` | 152 | code | Prosody — эмоции из голоса (RMS + pitch + ZCR). |
 | `jarvis/recognition.py` | 154 | code | Measurable ASR acceptance policy, not a blacklist of 'strange' words. |
@@ -5390,7 +5953,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/safety.py` | 213 | code | Постфильтр ответов LLM — вторая линия «красной черты». |
 | `jarvis/secrets_store.py` | 168 | code | Секреты Феникса: ключи облачных провайдеров, зашифрованные Windows DPA |
 | `jarvis/steam.py` | 67 | code | Индекс установленных игр Steam: appmanifest -> (название, appid). |
-| `jarvis/stt.py` | 1026 | code | Распознавание речи. |
+| `jarvis/stt.py` | 1050 | code | Распознавание речи. |
 | `jarvis/tasks.py` | 282 | code | Списки задач. |
 | `jarvis/text_utils.py` | 98 | code | Общие текстовые утилиты для Феникса. |
 | `jarvis/timers.py` | 343 | code | Таймеры и напоминания. |
@@ -5446,8 +6009,12 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/manual/vad_live.py` | 41 | code | Живой тест VAD: пишет 5 сек с микрофона, показывает prob. |
 | `tests/stress_intents.py` | 552 | code | Стресс-тест Феникса: ровно 102 разных ситуаций без микрофона и сети. |
 | `tests/test_actions_brightness.py` | 61 | code | Яркость: опрос DDC/CI не должен подвешивать голосовой ответ. |
+| `tests/test_aec_backend.py` | 57 | code | Выбор backend'а AEC: native по умолчанию, честный отказ от webrtc. |
+| `tests/test_api_server.py` | 355 | code | Локальный стык API: живой HTTP на 127.0.0.1, авторизация, pending, при |
+| `tests/test_asr_router.py` | 203 | code | Эскалация ASR: табличные тесты роутера на фейковых движках, без моделе |
 | `tests/test_audio_regression.py` | 556 | code | Fast contracts only: fake decoders are NOT an audio quality measuremen |
 | `tests/test_audit_regressions.py` | 265 | code | Regression tests for the six audited bugs and related edge cases. |
+| `tests/test_barge_policy.py` | 99 | code | Правило очерёдности разговора: таблица вердиктов и один хук в Listener |
 | `tests/test_bootstrap_ollama_config.py` | 126 | code | Real config JSON and project atomic writer; never uses personal settin |
 | `tests/test_brain_rag.py` | 125 | code | Query-scoped memory: unavailable retrieval never means send all facts. |
 | `tests/test_browser_target.py` | 338 | code | №1: Феникс работает в том браузере, в котором сидит пользователь. |
@@ -5460,7 +6027,9 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_compiled_runtime.py` | 198 | code | Explicit standalone probes and consent contracts without native Window |
 | `tests/test_config_manager.py` | 47 | code | Тесты config_manager: параллельная запись не рвёт файл. |
 | `tests/test_danger_policy.py` | 124 | code | Политика опасных действий: пароль решает «можно ли», а не «опасно ли». |
+| `tests/test_decision.py` | 150 | code | Решение «чёткая команда / нечёткая / не команда»: таблица, корпус, син |
 | `tests/test_echo.py` | 579 | code | AEC contracts: bounded synthetic PCM and controlled native transport;  |
+| `tests/test_echo_loopback.py` | 140 | code | Эталон для AEC: проба loopback, буфер задержки и выбор источника. |
 | `tests/test_echo_multibackend.py` | 162 | code | Diagnostic-only PCM support; normal production backend scope stays unc |
 | `tests/test_echo_trace.py` | 264 | code | Local diagnostic contracts: no devices or external services. |
 | `tests/test_engine_probe.py` | 100 | code | Заглушка движка TTS (factory._probe_engine). |
@@ -5472,12 +6041,13 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_gui_cloud.py` | 225 | code | Вкладка «Облако»: черновик, сохранение, ключ и проверка — без сети и D |
 | `tests/test_gui_commands.py` | 127 | code | Imported native builder controls; no OS actions or real passwords. |
 | `tests/test_gui_engines.py` | 155 | code | Вкладка «Движки»: каталог, кнопка установки, прогресс и «активно» из к |
-| `tests/test_gui_home.py` | 159 | code | Native minimal Home; no OS/model/mic/network. Old navigation IDs stay  |
+| `tests/test_gui_home.py` | 168 | code | Native minimal Home; no OS/model/mic/network. Old navigation IDs stay  |
 | `tests/test_gui_home_actions.py` | 189 | code | Action orbit: real callbacks, continuous hover zone, keyboard and life |
 | `tests/test_gui_home_fx.py` | 261 | code | Native solar aura lifecycle; no audio device, model or Windows session |
 | `tests/test_gui_preferences.py` | 516 | code | Real imported Flet controls / real disk writes / explicit network fake |
 | `tests/test_gui_sidebar.py` | 283 | code | Native controls and bounded asyncio tasks; no desktop, microphone or m |
 | `tests/test_gui_startup.py` | 105 | code | Startup ordering, tray failure recovery, old EXE mutex handoff; no des |
+| `tests/test_gui_vertical.py` | 485 | code | Вертикальный режим: чистая логика, полоса и переключение без окна и зв |
 | `tests/test_gui_widgets.py` | 259 | code | Opt-in layouts, exact task IDs, safe command path, atomic saves and li |
 | `tests/test_gui_wiring.py` | 591 | code | GUI → config: каждый элемент окна реально отсылает изменение. |
 | `tests/test_intents.py` | 487 | code | Автотест Феникса без микрофона. |
@@ -5492,14 +6062,15 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_nonverbal.py` | 402 | code | Nonverbal policy/mixing: synthetic PCM and fake output, no TTS weights |
 | `tests/test_nuitka_build.py` | 147 | code | Nuitka build plans and staging tests; no compiler, network or Tk displ |
 | `tests/test_nuitka_full.py` | 439 | code | Full application build contracts. No Windows compiler/installers or do |
-| `tests/test_numeric_language.py` | 518 | code | Executable Russian language corpus: understanding, morphology and spee |
+| `tests/test_numeric_language.py` | 521 | code | Executable Russian language corpus: understanding, morphology and spee |
 | `tests/test_open_results.py` | 32 | code | Actual dispatch function isolated from Windows imports; no apps launch |
 | `tests/test_optional_whisper_startup.py` | 134 | code | Execute real startup functions with stub peripherals, no models/mic/Wi |
 | `tests/test_password_imports.py` | 109 | code | Import boundaries must work in a fresh interpreter, before any pytest  |
 | `tests/test_persona.py` | 155 | code | Тесты jarvis.persona — стиль, tone, prompt-блок. |
+| `tests/test_plugins.py` | 307 | code | Плагины: манифест, согласие, lifecycle, таймаут, падение и стадия pipe |
 | `tests/test_profile.py` | 100 | code | Профили: защита активного профиля и границы удаления. |
 | `tests/test_prosody.py` | 83 | code | Тесты jarvis.prosody — эмоции из голоса (эвристика). |
-| `tests/test_recognition_quality.py` | 357 | code | Recognition policy and integration tested without a microphone or mode |
+| `tests/test_recognition_quality.py` | 362 | code | Recognition policy and integration tested without a microphone or mode |
 | `tests/test_release_install_guards.py` | 124 | code | Стражи установщика: пины, файлы данных и понятные падения Silero. |
 | `tests/test_release_payload.py` | 287 | code | Public payload, reproducible manifest and bootstrap regression checks. |
 | `tests/test_review_regressions.py` | 334 | code | Archive-review regressions: no network, native audio or system automat |
@@ -5526,6 +6097,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_winrt_removed.py` | 92 | code | Retired speech backend must not return through config, probes or cache |
 | `check_all.py` | 170 | code | Единый прогон всех проверок Феникса — движок для check_all.bat. |
 | `check_syntax.py` | 60 | code | Проверяет синтаксис всех .py файлов в проекте. |
+| `examples/plugins/hello/main.py` | 28 | code | Пример плагина Феникса: читает JSON из stdin, пишет JSON в stdout. |
 | `launcher.py` | 853 | code | Лаунчер Феникса — полный автозапуск. |
 | `launcher_download.py` | 156 | code | Verified Python bootstrap download using Windows HTTPS (no third-party |
 | `launcher_ollama.py` | 327 | code | Optional Ollama setup: explicit consent, local inventory/pull, safe co |
@@ -6975,6 +7547,388 @@ def clipboard_clear() -> bool:
     return clipboard_write("")
 ```
 
+### `jarvis/aec_backend.py`
+
+```python
+"""Выбор backend'а AEC: свой (`native`) или WebRTC (`webrtc`). ... [7 строк]"""
+
+import importlib
+import logging
+from dataclasses import dataclass
+
+log = logging.getLogger("jarvis.aec_backend")
+
+BACKENDS = ("native", "webrtc")
+WEBRTC_MODULES = ("webrtc_audio_processing", "pywebrtc_audio")
+
+
+@dataclass(frozen=True)
+class BackendChoice:
+    """Что выбрали на самом деле и почему."""
+
+    name: str
+    requested: str
+    reason: str
+
+    @property
+    def fallback(self) -> bool:
+        return self.name != self.requested
+
+
+def resolve(config, *, importer=None) -> BackendChoice:
+    """`aec_backend` из конфига → фактический backend с причиной."""
+    requested = config.get("aec_backend", "native")
+    if not isinstance(requested, str) or requested not in BACKENDS:
+        return BackendChoice("native", "native",
+                             f"неизвестный aec_backend={requested!r}, оставлен native")
+    if requested == "native":
+        return BackendChoice("native", "native", "свой AEC (эталон из RenderTap)")
+    load = importer or importlib.import_module
+    for module in WEBRTC_MODULES:
+        try:
+            load(module)
+        except ImportError:
+            continue
+        except Exception:
+            log.debug("AEC: проверка %s упала", module, exc_info=True)
+            continue
+        return BackendChoice("webrtc", "webrtc", f"WebRTC AEC доступен ({module})")
+    return BackendChoice("native", "webrtc",
+                         "WebRTC AEC недоступен: пакет не установлен — работаем на native")
+```
+
+### `jarvis/api_server.py`
+
+```python
+"""Локальный HTTP-стык Феникса: `health` / `capabilities` / `turn`. ... [24 строк]"""
+
+from __future__ import annotations
+
+import hmac
+import json
+import logging
+import re
+import secrets
+import threading
+import time
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+HOST = "127.0.0.1"
+DEFAULT_PORT = 8765
+SCHEMA = 1
+MAX_BODY_BYTES = 16 * 1024
+MAX_TEXT = 4000
+MAX_SESSION = 128
+TOKEN_NAME = "api_token"
+CAPABILITIES = ("health", "capabilities", "turn", "pending")
+
+log = logging.getLogger("jarvis.api_server")
+
+_SESSION_RE = re.compile(r"^[A-Za-z0-9._:-]{1,128}$")
+
+
+def normalize_port(value, default: int = DEFAULT_PORT) -> int:
+    """Порт API: битое значение → дефолт, диапазон 1024..65535."""
+    try:
+        port = int(value)
+    except (TypeError, ValueError):
+        return default
+    if port < 1024 or port > 65535:
+        return default
+    return port
+
+
+def normalize_text(value) -> str:
+    if not isinstance(value, str):
+        return ""
+    return value.strip()[:MAX_TEXT]
+
+
+def normalize_session(value) -> str:
+    """`session_id` обязателен: `handle()` хранит состояние между вызовами."""
+    if not isinstance(value, str):
+        return ""
+    session = value.strip()
+    if not _SESSION_RE.match(session):
+        return ""
+    return session
+
+
+def normalize_token(value) -> str:
+    if not isinstance(value, str):
+        return ""
+    token = value.strip()
+    if len(token) < 16 or any(ch.isspace() for ch in token):
+        return ""
+    return token
+
+
+def new_token() -> str:
+    return secrets.token_urlsafe(32)
+
+
+def ensure_token(load=None, save=None) -> tuple[str, str]:
+    """Токен из хранилища или новый. Возвращает (токен, сообщение человеку)."""
+    from jarvis import secrets_store
+
+    load = load or secrets_store.load_secret
+    save = save or secrets_store.save_secret
+    try:
+        stored = normalize_token(load(TOKEN_NAME))
+    except Exception:
+        log.warning("API: не удалось прочитать токен", exc_info=True)
+        stored = ""
+    if stored:
+        return stored, "Токен уже сохранён."
+    token = new_token()
+    try:
+        saved = bool(save(TOKEN_NAME, token))
+    except Exception:
+        log.warning("API: не удалось сохранить токен", exc_info=True)
+        saved = False
+    if not saved:
+        return "", ("Не удалось сохранить токен (нужно шифрование Windows). "
+                    "API не запущен.")
+    return token, "Создан новый токен, он сохранён в зашифрованном хранилище."
+
+
+def _pending_kind(handler) -> str:
+    """Что сейчас ждёт ответа: пароль, вопрос или ничего."""
+    if getattr(handler, "_pending_password", None):
+        return "password"
+    pending = getattr(handler, "_pending_question", None)
+    if pending:
+        try:
+            from jarvis.intents.clarification import pending_alive
+            if pending_alive(pending):
+                return "question"
+        except Exception:
+            log.debug("API: pending_question не проверен", exc_info=True)
+            return "question"
+    return ""
+
+
+def _pending_text(handler) -> str:
+    pending = getattr(handler, "_pending_question", None)
+    if isinstance(pending, dict):
+        return str(pending.get("question") or pending.get("text") or "")
+    return ""
+
+
+def _collect_reply(reply) -> str:
+    """Стрим Ответа собирается в текст: API не умеет частичных ответов."""
+    from jarvis import safety
+
+    if not getattr(reply, "is_stream", False):
+        return reply.text or ""
+    guard: dict = {}
+    try:
+        text = "".join(chunk for chunk in safety.guard_stream(reply.stream, guard) if chunk)
+    except Exception:
+        log.exception("API: стрим ответа упал")
+        return ""
+    if guard.get("blocked"):
+        log.error("Safety: ответ через API заблокирован (категория=%s)", guard.get("reason"))
+        return safety.SAFE_REPLY
+    return text
+
+
+class _Handler(BaseHTTPRequestHandler):
+    """Один обработчик на запрос; сервер и токен берёт у владельца."""
+
+    server_version = "PhoenixApi/1"
+    timeout = 30
+
+    def log_message(self, fmt, *args):  # noqa: D401 - тише стандартного лога
+        log.debug("API: %s", fmt % args)
+
+    # --- служебное -------------------------------------------------
+
+    def _owner(self):
+        return self.server.owner
+
+    def _send(self, code: int, payload: dict) -> None:
+        body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _authorized(self) -> bool:
+        token = self._owner().token
+        header = self.headers.get("Authorization", "")
+        expected = f"Bearer {token}" if token else ""
+        return bool(expected) and hmac.compare_digest(header, expected)
+
+    def _body(self) -> dict:
+        length = self.headers.get("Content-Length")
+        try:
+            size = int(length or 0)
+        except (TypeError, ValueError):
+            return {}
+        if size <= 0 or size > MAX_BODY_BYTES:
+            return {}
+        raw = self.rfile.read(size)
+        try:
+            data = json.loads(raw.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            return {}
+        return data if isinstance(data, dict) else {}
+
+    def _base(self) -> dict:
+        return {"schema": SCHEMA, "server": "phoenix"}
+
+    # --- эндпоинты -------------------------------------------------
+
+    def do_GET(self) -> None:
+        owner = self._owner()
+        if not self._authorized():
+            return self._send(401, {"error": "нужен заголовок Authorization: Bearer <токен>"})
+        if self.path == "/v1/health":
+            payload = self._base()
+            payload.update({"status": "ok", "version": owner.version,
+                            "uptime_sec": round(time.monotonic() - owner.started_at, 1)})
+            return self._send(200, payload)
+        if self.path == "/v1/capabilities":
+            payload = self._base()
+            payload.update({"capabilities": list(CAPABILITIES), "auth": "bearer",
+                            "stream": False, "locale": ["ru"],
+                            "privacy": ["профиль не уходит", "история не уходит",
+                                        "память не уходит", "пароль через API запрещён"]})
+            return self._send(200, payload)
+        return self._send(404, {"error": "not found"})
+
+    def do_POST(self) -> None:
+        owner = self._owner()
+        if not self._authorized():
+            return self._send(401, {"error": "нужен заголовок Authorization: Bearer <токен>"})
+        if self.path != "/v1/turn":
+            return self._send(404, {"error": "not found"})
+        data = self._body()
+        if not data:
+            return self._send(400, {"error": "нужно JSON-тело {session_id, text}"})
+        session = normalize_session(data.get("session_id"))
+        if not session:
+            return self._send(400, {"error": "session_id обязателен (1..128 символов)"})
+        text = normalize_text(data.get("text"))
+        if not text:
+            return self._send(400, {"error": "text обязателен"})
+        owner.handle_turn(self, session, text)
+
+
+class _Server(ThreadingHTTPServer):
+    """Свой сервер: занятый порт обязан падать, а не делиться с другим Фениксом. ... [4 строк]"""
+
+    allow_reuse_address = False
+    daemon_threads = True
+
+
+class ApiServer:
+    """Локальный сервер API. Живёт, пока его не остановят или не закроют Феникса."""
+
+    def __init__(self, handler, *, port=None, token=None, host=HOST,
+                 version=None, collect=None):
+        self.handler = handler
+        self.host = HOST  # только петля: значение снаружи не принимается
+        self.port = normalize_port(port)
+        self.token = normalize_token(token)
+        self.version = version
+        self.started_at = time.monotonic()
+        self._collect = collect or _collect_reply
+        self._lock = threading.Lock()
+        self._server = None
+        self._thread = None
+        self._refused = ""
+
+    # --- жизнь -----------------------------------------------------
+
+    @property
+    def running(self) -> bool:
+        return self._server is not None
+
+    @property
+    def url(self) -> str:
+        return f"http://{self.host}:{self.port}"
+
+    def start(self) -> tuple[bool, str]:
+        """Поднимает сервер. Возвращает (получилось, сообщение человеку)."""
+        if self._server is not None:
+            return True, f"API уже слушает {self.url}"
+        if self.handler is None:
+            return False, "API не запущен: ядро Феникса ещё не готово."
+        if not self.token:
+            return False, "API не запущен: нет токена."
+        try:
+            server = _Server((self.host, self.port), _Handler)
+        except OSError as exc:
+            log.warning("API: порт %s занят (%s)", self.port, exc)
+            return False, f"Порт {self.port} занят: выберите другой."
+        server.owner = self
+        self._server = server
+        self.port = server.server_address[1]
+        self.started_at = time.monotonic()
+        self._thread = threading.Thread(target=server.serve_forever,
+                                        name="phoenix-api", daemon=True)
+        self._thread.start()
+        log.info("API: слушает %s (только 127.0.0.1)", self.url)
+        return True, f"API слушает {self.url}"
+
+    def stop(self) -> None:
+        server, thread = self._server, self._thread
+        self._server = None
+        self._thread = None
+        if server is not None:
+            try:
+                server.shutdown()
+            except Exception:
+                log.debug("API: shutdown упал", exc_info=True)
+            try:
+                server.server_close()
+            except Exception:
+                log.debug("API: server_close упал", exc_info=True)
+        if thread is not None and thread.is_alive():
+            thread.join(timeout=5.0)
+        if server is not None:
+            log.info("API: остановлен")
+
+    # --- повороты диалога ------------------------------------------
+
+    def handle_turn(self, http, session: str, text: str) -> None:
+        """Один ход: pending-статус, вызов ядра и безопасный ответ."""
+        pending = _pending_kind(self.handler)
+        if pending == "password":
+            return http._send(200, {
+                "schema": SCHEMA, "session_id": session, "status": "pending",
+                "pending": "password", "text":
+                    "Пароль через API не вводится — подтвердите действие в окне Феникса."})
+        with self._lock:
+            started = time.monotonic()
+            try:
+                reply = self.handler.handle(text)
+            except Exception:
+                log.exception("API: handle упал")
+                return http._send(500, {"schema": SCHEMA, "session_id": session,
+                                        "status": "error",
+                                        "error": "внутренняя ошибка Феникса"})
+            answer = self._collect(reply)
+            if getattr(reply, "is_stream", False) and answer and hasattr(self.handler, "finalize_stream"):
+                try:
+                    self.handler.finalize_stream(answer)
+                except Exception:
+                    log.debug("API: finalize_stream упал", exc_info=True)
+            after = _pending_kind(self.handler)
+        payload = {"schema": SCHEMA, "session_id": session,
+                   "elapsed_ms": int((time.monotonic() - started) * 1000)}
+        if after:
+            payload.update({"status": "pending", "pending": after,
+                            "text": _pending_text(self.handler) or answer})
+            return http._send(200, payload)
+        payload.update({"status": "ok", "pending": False, "text": answer})
+        return http._send(200, payload)
+```
+
 ### `jarvis/apps.py`
 
 ```python
@@ -7092,6 +8046,263 @@ def find_app(apps: list[App], target: str) -> App | None:
         return best
     log.info("Цель %r не сопоставлена (лучший score %.2f)", target, best_score)
     return None
+```
+
+### `jarvis/asr_router.py`
+
+```python
+"""Эскалация распознавания: если первому движку не поверили — спросить второй. ... [19 строк]"""
+
+import logging
+import threading
+import time
+from dataclasses import dataclass
+from typing import Callable
+
+from jarvis.recognition import Quality, transcripts_agree
+
+log = logging.getLogger("jarvis.asr_router")
+
+
+@dataclass(frozen=True)
+class Transcript:
+    """Результат одного движка: текст, качество, имя и время."""
+
+    text: str
+    quality: Quality | None = None
+    engine: str = ""
+    latency: float | None = None
+
+
+@dataclass(frozen=True)
+class RouteResult:
+    """Что решил роутер: итоговый текст, была ли эскалация и почему."""
+
+    transcript: Transcript | None
+    escalated: bool
+    reason: str
+    primary: Transcript | None = None
+    secondary: Transcript | None = None
+    decision_kind: str = ""
+
+    @property
+    def text(self) -> str:
+        return self.transcript.text if self.transcript is not None else ""
+
+    @property
+    def needs_repeat(self) -> bool:
+        """Нужен повтор: движок упал, разошлись или итог всё ещё нечёткий."""
+        return self.reason in {
+            "primary_failed", "fallback_failed", "fallback_empty",
+            "disagreement", "unclear", "cancelled",
+        }
+
+
+class CallableEngine:
+    """Адаптер: любой `fn(pcm, rate) -> Transcript|str|dict` как движок."""
+
+    def __init__(self, name: str, fn: Callable):
+        self.name = name
+        self.fn = fn
+
+    def transcribe(self, pcm: bytes, rate: int) -> Transcript:
+        started = time.monotonic()
+        result = self.fn(pcm, rate)
+        if isinstance(result, Transcript):
+            transcript = result
+        elif isinstance(result, str):
+            transcript = Transcript(result, None, self.name)
+        elif isinstance(result, dict):
+            transcript = Transcript(
+                str(result.get("text") or ""), result.get("quality"),
+                str(result.get("engine") or self.name), result.get("latency"))
+        else:
+            raise TypeError("Движок должен вернуть Transcript, строку или dict")
+        latency = transcript.latency
+        if latency is None:
+            latency = time.monotonic() - started
+        return Transcript(transcript.text or "", transcript.quality,
+                          transcript.engine or self.name, latency)
+
+
+class Budget:
+    """Сколько раз в минуту разрешено звать тяжёлый движок."""
+
+    def __init__(self, limit: int = 3, window_sec: float = 60.0):
+        try:
+            limit = int(limit)
+        except (TypeError, ValueError):
+            limit = 3
+        self.limit = max(0, limit)
+        try:
+            self.window = max(1.0, float(window_sec))
+        except (TypeError, ValueError):
+            self.window = 60.0
+        self._calls: list[float] = []
+        self._lock = threading.Lock()
+
+    def allow(self, now: float | None = None) -> bool:
+        moment = time.monotonic() if now is None else now
+        with self._lock:
+            self._calls = [t for t in self._calls if moment - t < self.window]
+            if len(self._calls) >= self.limit:
+                return False
+            self._calls.append(moment)
+            return True
+
+    @property
+    def used(self) -> int:
+        with self._lock:
+            return len(self._calls)
+
+
+class Cache:
+    """Кэш «первый текст → второй текст»: одинаковую фразу не гоняем дважды."""
+
+    def __init__(self, ttl: float = 60.0, limit: int = 32):
+        self.ttl = 60.0
+        try:
+            self.ttl = max(1.0, float(ttl))
+        except (TypeError, ValueError):
+            self.ttl = 60.0
+        try:
+            self.limit = max(1, int(limit))
+        except (TypeError, ValueError):
+            self.limit = 32
+        self._items: dict = {}
+        self._lock = threading.Lock()
+
+    @staticmethod
+    def key(text: str, rate: int) -> tuple:
+        return " ".join((text or "").lower().split()), int(rate or 0)
+
+    def get(self, text: str, rate: int, now: float | None = None) -> Transcript | None:
+        moment = time.monotonic() if now is None else now
+        with self._lock:
+            item = self._items.get(self.key(text, rate))
+            if item is None:
+                return None
+            value, stamp = item
+            if moment - stamp > self.ttl:
+                self._items.pop(self.key(text, rate), None)
+                return None
+            return value
+
+    def put(self, text: str, rate: int, value: Transcript,
+            now: float | None = None) -> None:
+        moment = time.monotonic() if now is None else now
+        with self._lock:
+            if len(self._items) >= self.limit:
+                oldest = min(self._items, key=lambda k: self._items[k][1])
+                self._items.pop(oldest, None)
+            self._items[self.key(text, rate)] = (value, moment)
+
+    def clear(self) -> None:
+        with self._lock:
+            self._items.clear()
+
+
+class Router:
+    """Основной движок → при сомнении второй → сверка текстов."""
+
+    def __init__(self, primary, fallback=None, *, enabled: bool = False,
+                 budget: Budget | None = None, cache: Cache | None = None,
+                 thresholds=None, semantic: bool = False):
+        self.primary = primary
+        self.fallback = fallback
+        self.enabled = bool(enabled)
+        self.budget = budget
+        self.cache = cache
+        self.thresholds = thresholds
+        self.semantic = bool(semantic)
+
+    # --- служебное -------------------------------------------------
+
+    def _call(self, engine, pcm: bytes, rate: int, *, allow_empty: bool = False) -> Transcript | None:
+        try:
+            transcript = engine.transcribe(pcm, rate)
+        except Exception:
+            log.exception("ASR: движок %s упал", getattr(engine, "name", "?"))
+            return None
+        if transcript is None:
+            return None
+        if not allow_empty and not transcript.text.strip():
+            return None
+        return transcript
+
+    def _decide(self, transcript: Transcript, candidates, match):
+        from jarvis import decision
+
+        return decision.decide(
+            transcript.text,
+            quality=transcript.quality,
+            match=match,
+            candidates=candidates,
+            thresholds=self.thresholds,
+            semantic=self.semantic,
+        )
+
+    # --- основной путь ---------------------------------------------
+
+    def run(self, pcm: bytes, rate: int, *, candidates=None, match=None,
+            matched: bool | None = None, cancel_event=None) -> RouteResult:
+        """Один проход: сначала основной движок, второй — только при сомнении."""
+        primary = self._call(self.primary, pcm, rate)
+        if primary is None:
+            return RouteResult(None, False, "primary_failed")
+        if not self.enabled or self.fallback is None:
+            verdict = self._decide(primary, candidates, match)
+            return RouteResult(primary, False,
+                               "confident" if verdict.kind == "clear" else "no_fallback",
+                               primary=primary, decision_kind=verdict.kind)
+
+        decision_kind = ""
+        reason = ""
+        if matched is False:
+            reason = "no_match"
+        else:
+            verdict = self._decide(primary, candidates, match)
+            decision_kind = verdict.kind
+            if verdict.kind == "unclear":
+                reason = "unclear"
+        if not reason:
+            return RouteResult(primary, False, "confident",
+                               primary=primary, decision_kind=decision_kind)
+
+        if cancel_event is not None and cancel_event.is_set():
+            return RouteResult(primary, False, "cancelled", primary=primary,
+                               decision_kind=decision_kind)
+        cached = self.cache.get(primary.text, rate) if self.cache is not None else None
+        if cached is not None:
+            verdict = self._decide(cached, candidates, match)
+            return RouteResult(cached, True, "cache", primary=primary,
+                               secondary=cached, decision_kind=verdict.kind)
+        if self.budget is not None and not self.budget.allow():
+            log.info("ASR: эскалация отложена — бюджет на минуту израсходован")
+            return RouteResult(primary, False, "budget", primary=primary,
+                               decision_kind=decision_kind)
+
+        secondary = self._call(self.fallback, pcm, rate, allow_empty=True)
+        if secondary is None:
+            return RouteResult(primary, True, "fallback_failed", primary=primary,
+                               decision_kind=decision_kind)
+        if not secondary.text.strip():
+            return RouteResult(primary, True, "fallback_empty", primary=primary,
+                               secondary=secondary, decision_kind=decision_kind)
+        if cancel_event is not None and cancel_event.is_set():
+            return RouteResult(primary, True, "cancelled", primary=primary,
+                               secondary=secondary, decision_kind=decision_kind)
+        if not transcripts_agree(primary.text, secondary.text):
+            log.info("ASR: тексты движков разошлись — переспрошу, не выполнять")
+            return RouteResult(secondary, True, "disagreement", primary=primary,
+                               secondary=secondary, decision_kind="unclear")
+        if self.cache is not None:
+            self.cache.put(primary.text, rate, secondary)
+        verdict = self._decide(secondary, candidates, match)
+        return RouteResult(secondary, True,
+                           "confident" if verdict.kind == "clear" else "unclear",
+                           primary=primary, secondary=secondary,
+                           decision_kind=verdict.kind)
 ```
 
 ### `jarvis/assets/brand/app-dark.svg`
@@ -7379,6 +8590,52 @@ def _play_windows(audio, rate, token):
                 pass
         finally:
             winsound.PlaySound(None, 0)
+```
+
+### `jarvis/barge.py`
+
+```python
+"""Очерёдность разговора при перебивании: чей это голос и можно ли вклиниться. ... [15 строк]"""
+
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class BargePolicy:
+    """Пороги перебивания. Значения — секунды и доли, не «на глаз»."""
+
+    min_after_tts_sec: float = 0.35
+    min_speech_ms: int = 150
+    level_margin: float = 1.15
+
+    @classmethod
+    def from_config(cls, config) -> "BargePolicy":
+        return cls(
+            min_after_tts_sec=_clamp_or(config.get("barge_min_after_tts_sec"), 0.35, 0.0, 3.0),
+            min_speech_ms=int(_clamp_or(config.get("barge_min_speech_ms"), 150, 50, 2000)),
+            level_margin=_clamp_or(config.get("barge_level_margin"), 1.15, 1.0, 5.0),
+        )
+
+    def evaluate(self, *, rms: float, threshold: float, speech_ms: float,
+                 tts_elapsed: float | None) -> str:
+        """`barge` — можно перебивать; иначе причина отказа."""
+        if tts_elapsed is not None and tts_elapsed < self.min_after_tts_sec:
+            return "too_soon"
+        if rms <= threshold * self.level_margin:
+            return "quiet"
+        if speech_ms < self.min_speech_ms:
+            return "short"
+        return "barge"
+
+
+def _clamp_or(value, default: float, low: float, high: float) -> float:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return default
+    if number != number or number in (float("inf"), float("-inf")):
+        return default
+    return max(low, min(high, number))
 ```
 
 ### `jarvis/brain.py`
@@ -9358,6 +10615,15 @@ DEFAULT_CONFIG = {
     "stt_min_avg_logprob": -1.0,
     "stt_max_no_speech_prob": 0.6,
     "stt_max_compression_ratio": 2.4,
+    # Решение «чёткая команда / нечёткая / это не команда» (jarvis/decision.py).
+    # Стартовые значения, а не доказанные оптимумы: подбирать по корпусу
+    # tests/fixtures/decision_cases.json и живым записям, а не на глаз.
+    "decision_enabled": False,
+    "decision_semantic_enabled": False,  # шаг 1: синонимы без модели и сети
+    "decision_clear_score": 0.85,        # с этого совпадения команда считается чёткой
+    "decision_unclear_score": 0.62,      # ниже — «не команда», между — «переспросить»
+    "decision_asr_min_confidence": 0.55,  # уверенность ASR для чёткого решения
+    "decision_agreement_min": 0.80,      # согласие двух гипотез текста
     # Правильная рабочая модель — как в config.example.json.
     # Раньше тут был "coriollon/..." — сломанная репа на HF.
     "whisper_model": "deepdml/faster-whisper-large-v3-turbo-ct2",
@@ -9472,6 +10738,43 @@ DEFAULT_CONFIG = {
     "gui_motion_enabled": True,
     "gui_home_widgets": [],
     "gui_home_shortcuts": [],
+    # Вертикальный режим: узкая полоса-шторка у края экрана поверх других окон.
+    # ВЫКЛЮЧЕН по умолчанию — обычное окно остаётся поведением по умолчанию.
+    # width — 220..320 px; panel — "log" | "notes" | "plan" (что показывать
+    # под светяшкой; заметки и план лежат в USER_DIR файлами).
+    # pinned — полоса не прячется сама (по умолчанию False: ведёт себя как
+    # шторка, при наведении выезжает, без курсора уезжает за край, оставляя
+    # ручку 18 px). autohide_ms — пауза перед автоскрытием, мс.
+    "ui_vertical_enabled": False,
+    "ui_vertical_width": 240,
+    "ui_vertical_panel": "log",
+    "ui_vertical_pinned": False,
+    "ui_vertical_autohide_ms": 900,
+    # Локальный стык health / capabilities / turn (jarvis/api_server.py).
+    # Слушает только 127.0.0.1; токен лежит в secrets_store (DPAPI), не здесь.
+    # Это не «общее ядро»: договор об именах и формате с другими проектами.
+    "api_enabled": False,
+    "api_port": 8765,
+    # Эскалация распознавания (этап 3): основной движок → второй при сомнении.
+    # ВЫКЛЮЧЕНО по умолчанию: основной ASR-путь не меняется, Vosk остаётся
+    # wake-словом и запасным движком. Бюджет — сколько раз в минуту можно
+    # звать тяжёлый движок; кэш — не гонять одинаковый текст дважды.
+    "asr_escalate_enabled": False,
+    "asr_fallback": "whisper",
+    "asr_escalate_budget_per_min": 3,
+    "asr_escalate_cache_sec": 60,
+    # Этап 4 (эхо и перебивание). Всё выключено по умолчанию:
+    # aec_backend — "native" (свой AEC) | "webrtc" (только если пакет стоит);
+    # barge_policy_enabled — правило «чей это голос» поверх прежних порогов.
+    "aec_backend": "native",
+    "barge_policy_enabled": False,
+    "barge_min_after_tts_sec": 0.35,
+    "barge_min_speech_ms": 150,
+    "barge_level_margin": 1.15,
+    # Плагины (этап 6): выключены по умолчанию; запускаются только имена из
+    # `plugins_allowed` (явное согласие человека). Код — отдельным процессом.
+    "plugins_enabled": False,
+    "plugins_allowed": [],
     "gui_x": None,
     "gui_y": None,
     "tray_enabled": True,
@@ -9728,6 +11031,279 @@ def update(key: str, value, path: Path | None = None) -> bool:
         return False
 ```
 
+### `jarvis/decision.py`
+
+```python
+"""Решение по распознанной фразе: чёткая команда, нечёткая или не команда. ... [22 строк]"""
+
+import logging
+from dataclasses import dataclass, field
+
+from jarvis.text_utils import normalize
+
+log = logging.getLogger("jarvis.decision")
+
+CLEAR = "clear"
+UNCLEAR = "unclear"
+NOT_A_COMMAND = "not_a_command"
+KINDS = (CLEAR, UNCLEAR, NOT_A_COMMAND)
+
+FILLERS = ("плиз", "пожалуйста", "пожалуста", "плз", "будь добр", "будьте добры")
+
+# Словарь синонимов: что человек говорит → что написано в команде.
+# Только то, в чём мы уверены: «поставь» и «вруби» в разных контекстах значат
+# разное, поэтому их тут нет — пусть решает исходный матчинг.
+SYNONYMS = {
+    "врубай": "включи", "вруби": "включи", "врубайте": "включи",
+    "включай": "включи", "запускай": "включи", "запусти": "включи",
+    "включать": "включи", "врубите": "включи",
+    "вырубай": "выключи", "выруби": "выключи", "вырубайте": "выключи",
+    "отключай": "выключи", "отключи": "выключи", "погаси": "выключи",
+    "заверши": "выключи", "выключать": "выключи",
+    "открывай": "открой", "открыть": "открой", "открывай-ка": "открой",
+    "закрывай": "закрой", "закрыть": "закрой",
+    "остановись": "стоп", "прекрати": "стоп", "хватит": "стоп",
+}
+
+_NEGATIONS = ("не",)
+
+
+@dataclass(frozen=True)
+class Thresholds:
+    """Пороги решения; из ``config.json`` их достаёт ``from_config``."""
+
+    clear_score: float = 0.85
+    unclear_score: float = 0.62
+    asr_min: float = 0.55
+    agreement: float = 0.80
+
+    @classmethod
+    def from_config(cls, config) -> "Thresholds":
+        return cls(
+            clear_score=_threshold(config, "decision_clear_score", cls.clear_score),
+            unclear_score=_threshold(config, "decision_unclear_score", cls.unclear_score),
+            asr_min=_threshold(config, "decision_asr_min_confidence", cls.asr_min),
+            agreement=_threshold(config, "decision_agreement_min", cls.agreement),
+        ).validated()
+
+    def validated(self) -> "Thresholds":
+        """Приводит пороги в согласованный вид: 0..1 и unclear <= clear. ... [5 строк]"""
+        clear = _clamp_or(self.clear_score, 0.85)
+        unclear = _clamp_or(self.unclear_score, 0.62)
+        unclear = min(unclear, clear)
+        return Thresholds(clear, unclear, _clamp_or(self.asr_min, 0.55),
+                          _clamp_or(self.agreement, 0.80))
+
+
+@dataclass(frozen=True)
+class Decision:
+    kind: str
+    reason: str
+    score: float
+    evidence: dict = field(default_factory=dict)
+
+    @property
+    def is_clear(self) -> bool:
+        return self.kind == CLEAR
+
+    @property
+    def needs_repeat(self) -> bool:
+        return self.kind == UNCLEAR
+
+
+def _clamp(value, default: float = 0.0) -> float:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return default
+    if number != number or number in (float("inf"), float("-inf")):
+        return default
+    return max(0.0, min(1.0, number))
+
+
+def _clamp_or(value, fallback: float) -> float:
+    """Число в 0..1; всё, что не число, — стартовый дефолт, а не ноль."""
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return fallback
+    if number != number or number in (float("inf"), float("-inf")):
+        return fallback
+    return max(0.0, min(1.0, number))
+
+
+def _threshold(config, key, default: float) -> float:
+    if config is None:
+        return default
+    try:
+        return float(config.get(key, default))
+    except (TypeError, ValueError):
+        return default
+
+
+def semantic_normalize(text: str) -> str:
+    """Шаг 1 семантики: мусор прочь, синонимы к виду команды, «не» на месте."""
+    base = normalize(text if isinstance(text, str) else "")
+    if not base:
+        return ""
+    for filler in FILLERS:
+        base = base.replace(filler, " ")
+    words = []
+    for word in base.split():
+        words.append(SYNONYMS.get(word, word))
+    return " ".join(words).strip()
+
+
+def has_negation(text: str) -> bool:
+    """«не» меняет смысл команды: «не выключай» — это не «выключи»."""
+    tokens = normalize(text if isinstance(text, str) else "").split()
+    return any(token in _NEGATIONS for token in tokens)
+
+
+def _score(spoken: str, candidate: str, semantic: bool) -> float:
+    from jarvis import matching
+
+    if not spoken or not candidate:
+        return 0.0
+    if semantic:
+        return matching.match_score(semantic_normalize(spoken),
+                                    semantic_normalize(candidate))
+    return matching.match_score(normalize(spoken), normalize(candidate))
+
+
+def best_match(text: str, candidates, semantic: bool = False):
+    """Лучшее совпадение с кандидатами: (score, intent, phrase) или (0.0, None, None). ... [4 строк]"""
+    if not isinstance(text, str) or not text.strip():
+        return 0.0, None, None
+    best = (0.0, None, None)
+    for item in candidates or ():
+        if isinstance(item, str):
+            phrase, intent = item, item
+        elif isinstance(item, (tuple, list)) and len(item) >= 2:
+            phrase, intent = item[0], item[1]
+        else:
+            continue
+        if not isinstance(phrase, str) or not phrase.strip():
+            continue
+        score = _score(text, phrase, semantic)
+        if score > best[0]:
+            best = (score, intent, phrase)
+    return best
+
+
+def _asr_confidence(quality) -> float | None:
+    """Уверенность ASR из ``recognition.Quality`` / dict / числа; None — нет данных."""
+    if quality is None:
+        return None
+    if isinstance(quality, bool):
+        return 1.0 if quality else 0.0
+    if isinstance(quality, (int, float)):
+        return _clamp(quality)
+    if isinstance(quality, dict):
+        value = quality.get("score", quality.get("confidence"))
+    else:
+        value = getattr(quality, "score", None)
+    if value is None:
+        accepted = quality.get("accepted") if isinstance(quality, dict) else getattr(
+            quality, "accepted", None)
+        if accepted is None:
+            return None
+        return 1.0 if accepted else 0.0
+    return _clamp(value)
+
+
+def _match_score(match):
+    """Совпадение из вызывающего кода; поддерживает dict и объект с score/intent."""
+    if match is None:
+        return None, None
+    if isinstance(match, (int, float)) and not isinstance(match, bool):
+        return _clamp(match), None
+    if isinstance(match, dict):
+        score = _clamp(match.get("score", 0.0))
+        return score, match.get("intent") or match.get("matched") or None
+    score = _clamp(getattr(match, "score", 0.0))
+    return score, getattr(match, "intent", None)
+
+
+def decide(text, *, quality=None, match=None, secondary=None, candidates=None,
+           thresholds: Thresholds | None = None, semantic: bool = False) -> Decision:
+    """Чистое решение по фразе: clear / unclear / not_a_command. ... [8 строк]"""
+    th = (thresholds or Thresholds()).validated()
+    evidence = {"semantic": bool(semantic)}
+    phrase = text if isinstance(text, str) else ""
+    evidence["text"] = normalize(phrase)
+    if not evidence["text"]:
+        return Decision(NOT_A_COMMAND, "empty", 0.0, evidence)
+    if candidates is not None:
+        candidates = list(candidates)
+        evidence["candidates"] = len(candidates)
+
+    asr = _asr_confidence(quality)
+    asr_ok = True if asr is None else asr >= th.asr_min
+    evidence["asr"] = asr
+    evidence["asr_ok"] = asr_ok
+
+    score, intent = _match_score(match)
+    if score is None and candidates is not None:
+        score, intent, phrase_hit = best_match(phrase, candidates, semantic)
+        if phrase_hit:
+            evidence["matched_phrase"] = phrase_hit
+
+    if score is None:
+        # Канала совпадения нет — это проверка только распознавания.
+        # Не выдумываем «команду»: просто говорим, можно ли понять текст.
+        if asr_ok:
+            return Decision(CLEAR, "asr_only", 0.0, evidence)
+        return Decision(UNCLEAR, "asr_weak", 0.0, evidence)
+
+    evidence["score"] = round(score, 4)
+    evidence["intent"] = intent
+
+    # «не выключай музыку» похоже на «выключи музыку», но значит обратное:
+    # пока команда с «не» не нашлась буквально, выполнять её нельзя.
+    matched_phrase = evidence.get("matched_phrase") or ""
+    if has_negation(phrase) and not has_negation(matched_phrase) and score >= th.unclear_score:
+        return Decision(UNCLEAR, "negation", score, evidence)
+
+    secondary_text = secondary if isinstance(secondary, str) else ""
+    second_score = None
+    second_intent = None
+    if secondary_text.strip():
+        if candidates is not None:
+            second_score, second_intent, _ = best_match(secondary_text, candidates, semantic)
+        elif match is not None and isinstance(match, dict):
+            second_score = _clamp(match.get("secondary_score", score))
+            second_intent = match.get("secondary_intent", intent)
+        evidence["secondary_score"] = round(second_score, 4) if second_score is not None else None
+        evidence["secondary_intent"] = second_intent
+        evidence["negation_mismatch"] = has_negation(phrase) != has_negation(secondary_text)
+
+    # --- два канала: согласие ASR-транскриптов -------------------------
+    if second_score is not None:
+        disagree = (second_intent != intent
+                    or abs(score - second_score) > (1.0 - th.agreement))
+        if evidence.get("negation_mismatch"):
+            return Decision(UNCLEAR, "negation_mismatch", score, evidence)
+        if disagree:
+            return Decision(UNCLEAR, "disagreement", score, evidence)
+        if not asr_ok:
+            return Decision(UNCLEAR, "asr_weak", score, evidence)
+        if score >= th.clear_score and second_score >= th.clear_score:
+            return Decision(CLEAR, "consensus", score, evidence)
+        if score < th.unclear_score and second_score < th.unclear_score:
+            return Decision(NOT_A_COMMAND, "no_candidate", score, evidence)
+        return Decision(UNCLEAR, "ambiguous", score, evidence)
+
+    # --- один канал: совпадение + уверенность ASR ----------------------
+    if not asr_ok:
+        return Decision(UNCLEAR, "asr_weak", score, evidence)
+    if score >= th.clear_score:
+        return Decision(CLEAR, "matched", score, evidence)
+    if score >= th.unclear_score:
+        return Decision(UNCLEAR, "ambiguous", score, evidence)
+    return Decision(NOT_A_COMMAND, "no_candidate", score, evidence)
+```
+
 ### `jarvis/echo.py`
 
 ```python
@@ -9748,6 +11324,10 @@ log = logging.getLogger("jarvis.echo")
 def make_echo_path(config):
     if not config.get("aec_enabled", False):
         return None
+    from jarvis.aec_backend import resolve as resolve_backend
+    choice = resolve_backend(config)
+    if choice.fallback:
+        log.warning("AEC: %s", choice.reason)
     rate = config.get("sample_rate", 16000)
     if rate != 16000:
         log.warning("AEC: прототип только для микрофона 16000 Гц; остаётся прежний тракт")
@@ -10220,6 +11800,169 @@ class EchoPath:
             self.flush(reset=True)
             if self._closed.is_set():
                 self.state = "closed"
+```
+
+### `jarvis/echo_loopback.py`
+
+```python
+"""Эталонный сигнал для AEC, когда звук идёт не через наш PCM (этап 4). ... [15 строк]"""
+
+import logging
+from array import array
+from dataclasses import dataclass
+
+log = logging.getLogger("jarvis.echo_loopback")
+
+
+@dataclass(frozen=True)
+class LoopbackProbe:
+    """Результат пробы. `available=False` — это факт, а не ошибка."""
+
+    available: bool
+    reason: str
+    device: int | None = None
+    device_name: str = ""
+    sample_rate: int = 48000
+
+
+def _wasapi_hostapi(sd):
+    try:
+        hostapis = sd.query_hostapis()
+    except Exception:
+        return None
+    for index, api in enumerate(hostapis):
+        if "wasapi" in str(api.get("name", "")).lower():
+            return index
+    return None
+
+
+def probe_loopback(*, sd_module=None) -> LoopbackProbe:
+    """Проверить, даёт ли эта машина loopback-захват без установки чего-либо."""
+    if sd_module is None:
+        try:
+            import sounddevice as sd_module
+        except Exception:
+            return LoopbackProbe(False, "sounddevice не установлен")
+    settings_cls = getattr(sd_module, "WasapiSettings", None)
+    if settings_cls is None:
+        return LoopbackProbe(False, "в этой сборке PortAudio нет WasapiSettings")
+    try:
+        settings_cls(loopback=True)
+    except Exception:
+        return LoopbackProbe(False, "PortAudio не поддерживает loopback=True")
+    hostapi = _wasapi_hostapi(sd_module)
+    if hostapi is None:
+        return LoopbackProbe(False, "WASAPI не найден среди hostapi")
+    try:
+        devices = sd_module.query_devices()
+    except Exception:
+        return LoopbackProbe(False, "список устройств недоступен")
+    for index, device in enumerate(devices):
+        if device.get("hostapi") != hostapi:
+            continue
+        if device.get("max_output_channels", 0) <= 0:
+            continue
+        try:
+            rate = int(device.get("default_samplerate") or 48000)
+        except (TypeError, ValueError):
+            rate = 48000
+        return LoopbackProbe(True, "loopback доступен", index,
+                             str(device.get("name", "")), rate)
+    return LoopbackProbe(False, "нет выходного устройства WASAPI")
+
+
+def open_loopback_stream(probe: LoopbackProbe, callback, *, blocksize: int = 1024):
+    """Открыть поток loopback. Исключение — честный отказ, а не тишина."""
+    if not probe.available:
+        raise RuntimeError(probe.reason)
+    import sounddevice as sd
+
+    try:
+        settings = sd.WasapiSettings(loopback=True)
+    except Exception as exc:
+        raise RuntimeError(f"loopback недоступен: {exc}") from None
+    stream = sd.InputStream(device=probe.device, channels=2,
+                            samplerate=probe.sample_rate, blocksize=blocksize,
+                            dtype="int16", extra_settings=settings,
+                            callback=callback)
+    stream.start()
+    return stream
+
+
+@dataclass(frozen=True)
+class ReferenceChoice:
+    """Чей сигнал считать эталоном прямо сейчас."""
+
+    source: str          # "local" | "loopback" | "none"
+    reason: str
+
+
+def choose_reference(*, local_active: bool, loopback_active: bool) -> ReferenceChoice:
+    """Наш PCM важнее: если играем мы, loopback не нужен (это тот же звук)."""
+    if local_active:
+        return ReferenceChoice("local", "звук идёт через наш плеер")
+    if loopback_active:
+        return ReferenceChoice("loopback", "звук идёт мимо плеера (SAPI/система)")
+    return ReferenceChoice("none", "тишина")
+
+
+class ReferenceDelay:
+    """Буфер эталона: то, что выйдет в динамики, микрофон услышит позже. ... [5 строк]"""
+
+    def __init__(self, delay_ms: float = 40.0, rate: int = 16000):
+        self.rate = max(1, int(rate))
+        try:
+            delay = float(delay_ms)
+        except (TypeError, ValueError):
+            delay = 40.0
+        self.delay_ms = max(0.0, min(500.0, delay))
+        self._delay_frames = int(self.rate * self.delay_ms / 1000.0)
+        self._buffer = array("h")
+        self._offset = 0      # абсолютный номер первого отсчёта в буфере
+        self._read = 0        # сколько отсчётов эталона уже выдано
+        self.max_frames = self.rate * 2
+
+    @property
+    def delay_frames(self) -> int:
+        return self._delay_frames
+
+    def push(self, pcm: bytes) -> None:
+        if not pcm:
+            return
+        if len(pcm) % 2:
+            pcm = pcm[:-1]
+        self._buffer.frombytes(pcm)
+        if len(self._buffer) > self.max_frames:
+            drop = len(self._buffer) - self.max_frames
+            del self._buffer[:drop]
+            self._offset += drop
+
+    def take(self, frames: int) -> bytes:
+        """Эталон на `frames` отсчётов: сдвинут на задержку, недобор — нулями."""
+        frames = max(0, int(frames))
+        if frames == 0:
+            return b""
+        result = array("h", bytes(2 * frames))
+        start = self._read - self._delay_frames
+        for index in range(frames):
+            source = start + index
+            position = source - self._offset
+            if 0 <= position < len(self._buffer):
+                result[index] = self._buffer[position]
+        self._read += frames
+        return result.tobytes()
+
+    def reset(self) -> None:
+        self._buffer = array("h")
+        self._offset = 0
+        self._read = 0
+
+    def __len__(self) -> int:
+        return len(self._buffer)
+
+    def __repr__(self) -> str:
+        return (f"ReferenceDelay(delay={self.delay_ms:.0f} мс, "
+                f"буфер={len(self._buffer)} отсчётов)")
 ```
 
 ### `jarvis/echo_trace.py`
@@ -11326,6 +13069,16 @@ class FenixGUI:
         self._input_field = None
         self._mic_btn = None
         self._content_area = None
+        self._root = None
+        self._rail_row = None
+        self._vertical = None
+        self._vertical_mode = False
+        # Шторка вертикальной полосы: состояние, поколение анимации и таймера.
+        self._curtain = None
+        self._curtain_gen = 0
+        self._hide_gen = 0
+        self._api_server = None
+        self._api_status = "API выключен."
         self._rail = None
         self._tabs = {}
         self._command_builder = None
@@ -11398,8 +13151,16 @@ class FenixGUI:
             self._running = False
 
     def stop(self) -> None:
+        if self._api_server is not None:
+            try:
+                self._api_server.stop()
+            except Exception:
+                log.exception("GUI: API не остановился")
+            self._api_server = None
         if self._home is not None:
             self._home.dispose()
+        if self._vertical is not None:
+            self._vertical.dispose()
         self._running = False
         self._queue.put(("stop", None))
 
@@ -11554,6 +13315,12 @@ class FenixGUI:
         # submitted BEFORE revealing it, so the default Flet shell never flashes.
         page.window.visible = False
         self._build_ui(page)
+        # Сохранённая полоса применяется ДО показа окна: иначе на экране
+        # мелькает широкая рамка, которая потом съёживается.
+        self._vertical_snapshot()
+        # Сохранённый локальный API поднимается здесь же: ядро уже готово.
+        if self.config.get("api_enabled", False) is True:
+            self._sync_api_server()
         if not self.start_hidden:
             self._show_window_now()
         page.run_task(self._process_queue)
@@ -11582,15 +13349,421 @@ class FenixGUI:
         )
 
         self._rail.selected_index = HOME_TAB
-        page.add(self._rail.layout(self._content_area))
+        self._rail_row = self._rail.layout(self._content_area)
+        # Один корень страницы: горизонтальный режим и полоса меняются его
+        # содержимым, второй ft.run и второе окно не появляются.
+        self._root = ft.Container(expand=True, content=self._rail_row)
+        page.add(self._root)
         page.on_keyboard_event = self._on_home_key
 
 
     async def _on_home_key(self, e):
+        if self._vertical_mode:
+            return  # в полосе нет рельса и вкладок: клавиши Главной не работают
         if self._rail.selected_index == HOME_TAB and self._home is not None:
             if await self._home.actions.on_key(e):
                 return
         await self._rail.on_key(e)
+
+    # ---------------------------------------------------------------
+    # Вертикальный режим (полоса у края экрана)
+    # ---------------------------------------------------------------
+
+    def _ensure_vertical(self):
+        """Создаёт полосу один раз: аура одна, второй аниматор не нужен."""
+        from jarvis.gui_vertical import VerticalBar
+
+        if self._vertical is None:
+            self._vertical = VerticalBar(
+                self,
+                width=self.config.get("ui_vertical_width", 240),
+                panel=self.config.get("ui_vertical_panel", "log"),
+            )
+        return self._vertical
+
+    def set_vertical_mode(self, enabled, update: bool = True) -> bool:
+        """Включает/выключает полосу и запоминает режим в конфиге. ... [5 строк]"""
+        from jarvis.gui_vertical import (
+            REVEAL_MS, Curtain, normalize_enabled, normalize_pinned,
+        )
+
+        enabled = normalize_enabled(enabled)
+        page = self._page
+        if page is None or self._root is None:
+            return False
+        try:
+            if enabled:
+                bar = self._ensure_vertical()
+                pinned = normalize_pinned(self.config.get("ui_vertical_pinned", False))
+                self._curtain = Curtain(pinned=pinned)
+                bar.set_pinned(pinned)
+                self._root.content = bar
+                self._vertical_mode = True
+                self._apply_vertical_window(True)
+                bar.apply_state(getattr(self, "_state", "idle"))
+                # Сразу показываем полосу целиком: иначе включение режима
+                # выглядит как «ничего не произошло». Уедет сама, если не
+                # закреплена и курсор не задержится (REVEAL_MS — не мгновенно,
+                # чтобы её успели заметить и перехватить курсором).
+                self._vertical_move(True, animate=False, update=False)
+                self._schedule_hide(REVEAL_MS)
+            else:
+                self._cancel_hide()
+                self._curtain_gen += 1
+                if self._vertical is not None:
+                    self._vertical.flush()
+                self._vertical_mode = False
+                self._curtain = None
+                self._root.content = self._rail_row
+                self._apply_vertical_window(False)
+        except Exception:
+            log.exception("GUI: не удалось переключить вертикальный режим")
+            return False
+        self.config.set("ui_vertical_enabled", enabled)
+        if update:
+            try:
+                page.update()
+            except Exception:
+                log.exception("GUI: не удалось отрисовать смену режима")
+        if enabled and update:
+            # Включение на уже показанном окне: клиент Flet присылает свои
+            # размеры окна и может затереть полосу (на живом прогоне окно
+            # осталось 900 px, а полоса уехала вправо). Поэтому размеры
+            # применяются повторно, как после handshake.
+            try:
+                page.run_task(self._reapply_vertical_geometry_later)
+            except Exception:
+                log.warning("GUI: не удалось запланировать повторные размеры полосы",
+                            exc_info=True)
+        log.info("GUI: вертикальный режим %s", "включён" if enabled else "выключен")
+        return True
+
+    def _apply_vertical_window(self, enabled: bool) -> None:
+        """Свойства окна для режима: полоса без рамки поверх всех или как раньше."""
+        from jarvis.gui_vertical import (
+            horizontal_window_spec,
+            normalize_width,
+            vertical_window_spec,
+            work_area,
+        )
+
+        window = getattr(self._page, "window", None)
+        if window is None:
+            return
+        if enabled:
+            width = normalize_width(self.config.get("ui_vertical_width", 240))
+            spec = vertical_window_spec(width, work_area())
+        else:
+            spec = horizontal_window_spec()
+        for key, value in spec.items():
+            try:
+                setattr(window, key, value)
+            except Exception:
+                log.warning("GUI: окно не приняло %s=%r", key, value, exc_info=True)
+        if enabled:
+            # Позиция окна — забота шторки: открытая или спрятанная за край.
+            open_ = self._curtain.open if self._curtain is not None else True
+            self._vertical_move(open_, animate=False, update=False)
+        else:
+            x, y = self.config.get("gui_x"), self.config.get("gui_y")
+            if x is not None and y is not None:
+                try:
+                    window.left, window.top = int(x), int(y)
+                except (TypeError, ValueError):
+                    log.warning("GUI: сохранённая позиция окна некорректна (%r, %r)", x, y)
+
+    # --- шторка: выезд, уезд, закрепление и наведение ------------------
+
+    def _vertical_positions(self) -> dict:
+        from jarvis.gui_vertical import curtain_geometry, work_area
+
+        return curtain_geometry(self.config.get("ui_vertical_width", 240), work_area())
+
+    def _vertical_move(self, open_: bool, animate: bool = True,
+                       update: bool = True) -> None:
+        """Ставит окно в открытую или спрятанную позицию (с анимацией кадров)."""
+        from jarvis.gui_vertical import slide_frames
+
+        page = self._page
+        if page is None:
+            return
+        positions = self._vertical_positions()
+        if positions["shown"] is None:
+            return  # нет рабочей области — некуда ехать, координаты не выдумываем
+        window = page.window
+        try:
+            current = window.left
+            current = int(current) if isinstance(current, (int, float)) else positions["hidden"]
+        except Exception:
+            current = positions["hidden"]
+        target = positions["shown"] if open_ else positions["hidden"]
+        frames = slide_frames(current, target)
+        self._curtain_gen += 1
+        gen = self._curtain_gen
+        if not animate or len(frames) <= 1:
+            try:
+                window.left = target
+                if update:
+                    page.update()
+            except Exception:
+                log.exception("GUI: не удалось подвинуть полосу")
+            return
+        try:
+            page.run_task(self._vertical_animate, frames, gen)
+        except Exception:
+            log.exception("GUI: не удалось запустить выезд полосы")
+
+    async def _vertical_animate(self, frames, gen) -> None:
+        from jarvis.gui_vertical import SLIDE_MS
+
+        page = self._page
+        if page is None:
+            return
+        delay = SLIDE_MS / 1000 / max(1, len(frames))
+        for left in frames:
+            if gen != self._curtain_gen:
+                return  # новая анимация или выход из режима: этот кадр уже не нужен
+            try:
+                page.window.left = left
+                page.update()
+            except Exception:
+                log.exception("GUI: кадр выезда полосы не применился")
+                return
+            await asyncio.sleep(delay)
+
+    def _vertical_hover(self, entered: bool) -> None:
+        """Курсор вошёл на полосу или ушёл: открыть сразу, закрыть с паузой."""
+        curtain = self._curtain
+        if curtain is None or not self._vertical_mode:
+            return
+        if entered:
+            self._cancel_hide()
+            if curtain.enter():
+                self._vertical_move(True)
+            self._sync_bar_open_state()
+            return
+        curtain.leave()
+        if curtain.wants_autohide():
+            self._schedule_hide()
+        self._sync_bar_open_state()
+
+    def _vertical_tab_click(self) -> None:
+        """Клик по ручке: открыть или убрать шторку (закреплённую не прячем)."""
+        curtain = self._curtain
+        if curtain is None or not self._vertical_mode:
+            return
+        if curtain.pinned:
+            return
+        if curtain.open:
+            curtain.pointer_inside = False
+            if curtain.hide():
+                self._vertical_move(False)
+        else:
+            self._cancel_hide()
+            curtain.show()
+            self._vertical_move(True)
+        self._sync_bar_open_state()
+
+    def _sync_bar_open_state(self) -> None:
+        curtain = self._curtain
+        if self._vertical is not None and curtain is not None:
+            try:
+                self._vertical.set_open_state(curtain.open)
+            except Exception:
+                log.debug("GUI: не удалось обновить ручку полосы", exc_info=True)
+
+    def _schedule_hide(self, delay_ms=None) -> None:
+        """Прячет незакреплённую полосу, если курсор не вернулся за паузу."""
+        from jarvis.gui_vertical import normalize_delay
+
+        page = self._page
+        if page is None or self._curtain is None:
+            return
+        delay = normalize_delay(delay_ms) if delay_ms is not None else normalize_delay(
+            self.config.get("ui_vertical_autohide_ms", 900))
+        self._hide_gen += 1
+        gen = self._hide_gen
+        try:
+            page.run_task(self._vertical_hide_later, gen, delay / 1000)
+        except Exception:
+            log.debug("GUI: таймер скрытия полосы не запустился", exc_info=True)
+
+    def _cancel_hide(self) -> None:
+        self._hide_gen += 1
+
+    async def _vertical_hide_later(self, gen, delay: float) -> None:
+        await asyncio.sleep(delay)
+        if gen != self._hide_gen:
+            return
+        self._vertical_hide_if_idle()
+
+    def _vertical_hide_if_idle(self) -> bool:
+        """Решение об автоскрытии отдельно от таймера — его проверяют тесты."""
+        curtain = self._curtain
+        if curtain is None or not self._vertical_mode:
+            return False
+        if not curtain.wants_autohide():
+            return False
+        if curtain.hide():
+            self._vertical_move(False)
+            self._sync_bar_open_state()
+            return True
+        return False
+
+    def set_vertical_pinned(self, value) -> bool:
+        """Закрепление полосы: сохраняется в конфиг и сразу применяется."""
+        from jarvis.gui_vertical import normalize_pinned
+
+        pinned = normalize_pinned(value)
+        ok = self.config.set("ui_vertical_pinned", pinned)
+        if ok is False:
+            log.warning("GUI: не удалось сохранить закрепление полосы")
+            return False
+        if self._vertical is not None:
+            self._vertical.set_pinned(pinned)
+        curtain = self._curtain
+        if curtain is not None:
+            curtain.set_pinned(pinned)
+            if pinned:
+                self._cancel_hide()
+                curtain.show()
+                self._vertical_move(True)
+                self._sync_bar_open_state()
+            elif self._page is not None:
+                # Открепили: убираем, если курсор не на полосе.
+                self._schedule_hide()
+        return True
+
+    def set_vertical_width(self, value) -> bool:
+        """Ширина полосы из настроек: сохраняется и сразу применяется."""
+        from jarvis.gui_vertical import normalize_width
+
+        width = normalize_width(value)
+        ok = self.config.set("ui_vertical_width", width)
+        if self._vertical is not None:
+            self._vertical.width = width
+            self._vertical._sync_panel_tabs()
+        if self._vertical_mode:
+            self._apply_vertical_window(True)
+            if self._page is not None:
+                try:
+                    self._page.update()
+                except Exception:
+                    log.exception("GUI: не удалось применить ширину полосы")
+        return ok
+
+    def set_vertical_panel(self, value) -> bool:
+        """Панель под светяшкой: log | notes | plan."""
+        from jarvis.gui_vertical import normalize_panel
+
+        panel = normalize_panel(value)
+        ok = self.config.set("ui_vertical_panel", panel)
+        if self._vertical is not None and self._vertical.set_panel(panel):
+            if self._page is not None:
+                try:
+                    self._page.update()
+                except Exception:
+                    log.exception("GUI: не удалось переключить панель полосы")
+        return ok
+
+    def _vertical_snapshot(self) -> bool:
+        """Разовое применение сохранённого режима на старте (без лишних update)."""
+        return self.set_vertical_mode(
+            self.config.get("ui_vertical_enabled", False), update=False)
+
+    # ---------------------------------------------------------------
+    # Локальный стык API (health / capabilities / turn)
+    # ---------------------------------------------------------------
+
+    def _sync_api_server(self) -> tuple[bool, str]:
+        """Приводит сервер API в соответствие с конфигом. Без page.update."""
+        from jarvis.api_server import ApiServer, ensure_token, normalize_port
+
+        enabled = self.config.get("api_enabled", False) is True
+        port = normalize_port(self.config.get("api_port", 8765))
+        if not enabled:
+            if self._api_server is not None:
+                self._api_server.stop()
+                self._api_server = None
+            self._api_status = "API выключен."
+            return False, self._api_status
+        handler = getattr(self.jarvis, "handler", None) if self.jarvis is not None else None
+        if handler is None:
+            self._api_status = "API включится после запуска ядра Феникса."
+            return False, self._api_status
+        if self._api_server is not None:
+            if self._api_server.running and self._api_server.port == port:
+                return True, self._api_status
+            self._api_server.stop()
+            self._api_server = None
+        token, note = ensure_token()
+        if not token:
+            self._api_status = note
+            return False, note
+        server = ApiServer(handler, port=port, token=token)
+        ok, message = server.start()
+        if ok:
+            self._api_server = server
+            self._api_status = message
+        else:
+            self._api_status = message
+        return ok, self._api_status
+
+    def set_api_enabled(self, enabled, update: bool = True) -> bool:
+        """Галочка «Локальный API»: включает/выключает стык и помнит выбор."""
+        value = bool(enabled)
+        changed = self.config.set("api_enabled", value)
+        ok, _message = self._sync_api_server()
+        if update and self._page is not None:
+            try:
+                self._page.update()
+            except Exception:
+                log.exception("GUI: не удалось обновить состояние API")
+        return changed and (ok or not value)
+
+    def set_api_port(self, value) -> bool:
+        """Порт стыка: сохраняется и применяется перезапуском сервера."""
+        from jarvis.api_server import normalize_port
+
+        port = normalize_port(value)
+        changed = self.config.set("api_port", port)
+        if self._api_server is not None:
+            self._sync_api_server()
+        if self._page is not None:
+            try:
+                self._page.update()
+            except Exception:
+                log.exception("GUI: не удалось обновить порт API")
+        return changed
+
+    def regenerate_api_token(self) -> tuple[bool, str]:
+        """Новый токен: старые клиенты отключаются, сервер остаётся на месте."""
+        from jarvis import secrets_store
+        from jarvis.api_server import TOKEN_NAME, new_token
+
+        token = new_token()
+        try:
+            saved = bool(secrets_store.save_secret(TOKEN_NAME, token))
+        except Exception:
+            log.warning("GUI: не удалось сохранить токен API", exc_info=True)
+            saved = False
+        if not saved:
+            message = "Не удалось сохранить токен (нужно шифрование Windows)."
+            self._api_status = message
+            return False, message
+        if self._api_server is not None:
+            self._api_server.token = token
+        self._api_status = "Токен заменён — старые клиенты больше не подключатся."
+        return True, self._api_status
+
+    def _api_fingerprint(self) -> str:
+        try:
+            from jarvis import secrets_store
+            from jarvis.api_server import TOKEN_NAME
+            return secrets_store.secret_fingerprint(TOKEN_NAME) or ""
+        except Exception:
+            log.debug("GUI: отпечаток токена API недоступен", exc_info=True)
+            return ""
 
     def _build_home_tab(self) -> ft.Control:
         from jarvis.gui_home import HomeScreen
@@ -12301,6 +14474,8 @@ class FenixGUI:
         self._state = state
         if self._home is not None:
             self._home.apply_state(state)
+        if self._vertical is not None:
+            self._vertical.apply_state(state)
         color, text, sub = STATES[state]
         if P is not None:
             color = {"idle": ACCENT, "thinking": ACCENT, "speaking": P.success,
@@ -12376,6 +14551,8 @@ class FenixGUI:
             self._history_list.controls.clear()
         self._messages.append(record)
         self._history_list.controls.append(self._message_control(record))
+        if self._vertical is not None:
+            self._vertical.on_message(record)
 
     def _apply_stream_chunk(self, chunk: str) -> None:
         if not chunk:
@@ -12423,9 +14600,32 @@ class FenixGUI:
                 if self._home is not None:
                     self._home.aura.sync_motion()
                 self._page.update()
+                # Клиент Flet задаёт размер окна при подключении и затирает то,
+                # что выставлено до handshake. Поэтому размеры полосы (и режим
+                # «поверх окон») применяются ещё раз, уже после первого
+                # update: проверено скрытым прогоном — без этого окно
+                # оставалось 1280 px и always_on_top=False.
+                self._reapply_vertical_geometry()
                 log.info("GUI: окно показано")
         except Exception:
             log.exception("Не удалось показать окно")
+
+    def _reapply_vertical_geometry(self) -> None:
+        if not self._vertical_mode or self._page is None:
+            return
+        self._apply_vertical_window(True)
+        try:
+            self._page.update()
+        except Exception:
+            log.exception("GUI: не удалось повторно применить размеры полосы")
+
+    async def _reapply_vertical_geometry_later(self) -> None:
+        """Повторяет размеры полосы после того, как клиент пришлёт свои."""
+        for delay in (0.2, 0.9):
+            await asyncio.sleep(delay)
+            if not self._vertical_mode:
+                return
+            self._reapply_vertical_geometry()
 
     def _on_window_event(self, e) -> None:
         """События окна: позиция (MOVED) и «закрыть в трей» (CLOSE). ... [5 строк]"""
@@ -12442,6 +14642,10 @@ class FenixGUI:
             if e.type != ft.WindowEventType.MOVED:
                 return
             if self._page is None:
+                return
+            if self._vertical_mode:
+                # Перетащили полосу: горизонтальную позицию окна не затираем,
+                # иначе после выхода из режима окно окажется за краем экрана.
                 return
             left = self._page.window.left
             top = self._page.window.top
@@ -14369,6 +16573,10 @@ class HomeScreen(ft.Column):
         ], spacing=4, tight=True, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
             alignment=ft.Alignment.CENTER, expand=True)
         self.widgets = WidgetBoard(gui, self._layout_widgets)
+        self.vertical_btn = ft.Button("Полоса", icon=ft.Icons.SPLITSCREEN, height=32,
+            tooltip="Перейти в полосу у края экрана", color=p.text_dim,
+            on_click=self._open_vertical,
+            style=ft.ButtonStyle(padding=ft.Padding.symmetric(horizontal=8)))
         self.workspace = ft.Column([self.center_region, self.widgets], spacing=20, expand=True)
         self.controls = [self.header, ft.Container(ft.Column([
             ft.Row([ft.Row([ft.Icon(ft.Icons.WB_SUNNY_OUTLINED, size=14, color=p.text_dim), self.date], spacing=8),
@@ -14377,7 +16585,8 @@ class HomeScreen(ft.Column):
             ft.Row([ft.Text("Просто твоё пространство.", size=10, color=p.text_dim, expand=True),
                 ft.Button("Виджеты",icon=ft.Icons.ADD,tooltip="Настроить Главную",height=32,
                     on_click=self._open_widgets,color=p.text_dim,
-                    style=ft.ButtonStyle(padding=ft.Padding.symmetric(horizontal=8)))],spacing=8),
+                    style=ft.ButtonStyle(padding=ft.Padding.symmetric(horizontal=8))),
+                self.vertical_btn],spacing=8),
         ], expand=True, spacing=20), padding=ft.Padding(left=28, right=28, top=26, bottom=24), expand=True)]
         self._layout_widgets(update=False)
         self.apply_state(gui._state)
@@ -14395,6 +16604,10 @@ class HomeScreen(ft.Column):
 
     def _theme(self, name):
         self.gui._on_theme_change(SimpleNamespace(control=SimpleNamespace(value=name)))
+
+    def _open_vertical(self, e=None):
+        """«Полоса» на Главной: тот же переход, что из настроек."""
+        return self.gui.set_vertical_mode(True)
 
     def apply_state(self, state):
         from jarvis import gui as ui
@@ -14749,8 +16962,9 @@ def transition_weights(current, target, dt):
             for mode, value in current.items()}
 
 
-def solar_shapes(mode, seconds, energy, color, *, weights=None, phase=None):
-    """Fixed topology: all layers persist and fade, rather than popping in/out."""
+def solar_shapes(mode, seconds, energy, color, *, weights=None, phase=None,
+                 center=None, scale=1.0):
+    """Fixed topology: all layers persist and fade, rather than popping in/out. ... [4 строк]"""
     if mode not in MODES:
         return []
     w = weights if weights is not None else {m: float(m == mode) for m in MODES}
@@ -14760,14 +16974,21 @@ def solar_shapes(mode, seconds, energy, color, *, weights=None, phase=None):
     pulse = .5 + .5 * math.sin(phase)
     strength = sum(w[m] * v for m,v in zip(MODES, (.32, .66, .84, .37))) + .10*pulse + .10*energy*listening
     amplitude = sum(w[m] * v for m,v in zip(MODES, (3.0, 6.5, 9.0, 3.8))) + 1.2*energy*listening
+    try:
+        s = float(scale)
+    except (TypeError, ValueError):
+        s = 1.0
+    if not math.isfinite(s) or s <= 0:
+        s = 1.0
+    cx = CENTER if center is None else center
     shapes = []
     def paint(alpha, width=1, fill=False):
         return ft.Paint(color=ft.Colors.with_opacity(max(0, min(1, alpha)), color),
             style=ft.PaintingStyle.FILL if fill else ft.PaintingStyle.STROKE,
-            stroke_width=width, stroke_cap=ft.StrokeCap.ROUND, stroke_join=ft.StrokeJoin.ROUND)
-    radius = 116 + 2.2*pulse
+            stroke_width=max(.35, width*s), stroke_cap=ft.StrokeCap.ROUND, stroke_join=ft.StrokeJoin.ROUND)
+    radius = (116 + 2.2*pulse) * s
     for width, alpha in ((29, .03), (17, .05), (7, .08), (1.2, .25)):
-        shapes.append(cv.Circle(CENTER, CENTER, radius, paint(strength * alpha, width)))
+        shapes.append(cv.Circle(cx, cx, radius, paint(strength * alpha, width)))
     # Stronger travelling waves; geometry, brightness and extra layers all ease.
     for layer, visibility in enumerate((1.0, listening + speaking, speaking)):
         points = []
@@ -14777,44 +16998,51 @@ def solar_shapes(mode, seconds, energy, color, *, weights=None, phase=None):
                     + .30*math.sin(8*a + phase*.85 + layer*.7)
                     + .18*math.sin(3*a - phase*1.15))
             swell = .85 + .15*math.sin(phase*.6 + layer)
-            r = radius + 4 + layer*3 + wave*amplitude*swell
-            points.append((CENTER + r*math.cos(a), CENTER + r*math.sin(a)))
+            r = radius + (4 + layer*3 + wave*amplitude*swell) * s
+            points.append((cx + r*math.cos(a), cx + r*math.sin(a)))
         elements = [cv.Path.MoveTo(*points[0]), *[cv.Path.LineTo(*q) for q in points[1:]]]
         for width, alpha in ((9, .04), (3, .12), (.9, .46)):
             shapes.append(cv.Path(elements, paint(strength*alpha*visibility/(1 + layer*.55), width)))
     for j, visibility in enumerate((1.0, 1.0, speaking)):
-        r = radius - 3 + j*6
-        shapes.append(cv.Arc(CENTER-r, CENTER-r, 2*r, 2*r,
+        r = radius - 3*s + j*6*s
+        shapes.append(cv.Arc(cx-r, cx-r, 2*r, 2*r,
             phase*.20 + j*2*math.pi/3, .50 + pulse*.18,
             paint=paint(strength*.55*visibility, 1.4)))
     # Waves also continue during speech, fading gently into the idle sun.
     for j in range(3):
         life = (phase*.16 + j/3) % 1
-        r = 122 + life*21
+        r = (122 + life*21) * s
         alpha = math.sin(math.pi*life)**2 * (.18*listening + .16*speaking)
-        shapes.append(cv.Circle(CENTER, CENTER, r, paint(alpha, .95)))
+        shapes.append(cv.Circle(cx, cx, r, paint(alpha, .95)))
     for i in range(16):
         life = (phase*.10 + i/16) % 1
         angle = i*2.39996
-        r = 121 + 15*life
-        x = CENTER + r*math.cos(angle) + 1.6*math.sin(phase*.4 + i)
-        y = CENTER + r*math.sin(angle) - 9*life
+        r = (121 + 15*life) * s
+        x = cx + r*math.cos(angle) + 1.6*s*math.sin(phase*.4 + i)
+        y = cx + r*math.sin(angle) - 9*s*life
         alpha = math.sin(math.pi*life)**2 * (.60*speaking + (.08*listening if i < 6 else 0))
-        shapes.append(cv.Circle(x, y, .7 + .55*(1-life), paint(alpha, fill=True)))
+        shapes.append(cv.Circle(x, y, (.7 + .55*(1-life))*s, paint(alpha, fill=True)))
     return shapes
 
 
 class PhoenixAura(ft.Container):
-    """A quiet ambient sun; one task only on visible Home, louder during activity."""
-    def __init__(self, gui, ring):
+    """A quiet ambient sun; one task only on visible Home, louder during activity. ... [6 строк]"""
+    def __init__(self, gui, ring, size=SIZE, foreground=None):
         self.gui = gui
         self.ring = ring
-        self.canvas = cv.Canvas([], width=SIZE, height=SIZE)
+        try:
+            side = int(size)
+        except (TypeError, ValueError):
+            side = SIZE
+        self._dim = max(48, side)
+        self._scale = self._dim / SIZE
+        self._foreground_override = foreground
+        self.canvas = cv.Canvas([], width=self._dim, height=self._dim)
         super().__init__(ft.Stack([
             ft.Container(self.canvas, alignment=ft.Alignment.CENTER),
             ft.Container(ring, alignment=ft.Alignment.CENTER),
-        ], width=SIZE, height=SIZE, fit=ft.StackFit.EXPAND),
-            width=SIZE, height=SIZE, ignore_interactions=True)
+        ], width=self._dim, height=self._dim, fit=ft.StackFit.EXPAND),
+            width=self._dim, height=self._dim, ignore_interactions=True)
         self.mode = "idle"
         self.energy = 0
         self._time_origin = time.monotonic()
@@ -14831,6 +17059,16 @@ class PhoenixAura(ft.Container):
         self._service = None
 
     def foreground(self):
+        if self._foreground_override is not None:
+            try:
+                window = getattr(getattr(self.gui, "_page", None), "window", None)
+                return (bool(self._foreground_override())
+                        and getattr(self.gui, "_home_window_visible", True)
+                        and getattr(window, "visible", True) is not False
+                        and getattr(window, "minimized", False) is not True)
+            except Exception:
+                log.debug("Aura: foreground override failed", exc_info=True)
+                return False
         from jarvis.gui import HOME_TAB
         rail = getattr(self.gui, "_rail", None)
         window = getattr(getattr(self.gui, "_page", None), "window", None)
@@ -14886,7 +17124,8 @@ class PhoenixAura(ft.Container):
             self._weights = {m: float(m == self.mode) for m in MODES}
             self._visual_energy = self.energy
         self.canvas.shapes = solar_shapes(self.mode, seconds, self._visual_energy, p.brand,
-            weights=self._weights, phase=self._phase)
+            weights=self._weights, phase=self._phase,
+            center=self._dim / 2, scale=self._scale)
         if self._mounted and self._host is not None:
             try:
                 self._host.update(self.canvas)
@@ -15167,6 +17406,8 @@ class PreferenceScreens:
         self.probe_label = None
         self.probe_button = None
         self.preview_title = self.preview_quote = self.preview_details = None
+        self._api_status_label = None
+        self._api_token_label = None
 
     def _update(self):
         if self.gui._page is not None:
@@ -15481,6 +17722,7 @@ class PreferenceScreens:
             label_style=ft.TextStyle(color=_palette().dim))
         appearance = card("Внешний вид", "Тот же Феникс, в комфортном свете.", [
             theme, text("Тема применяется сразу. Черновики других настроек сохраняются.", muted=True)])
+        vertical = self._vertical_card()
         launch = card("Запуск и окно", "Поведение на рабочем столе.", [
             self._toggle("tray_enabled", "Оставаться в трее", "При закрытии окна продолжать работу. Применяется сразу после сохранения."),
             divider(), self._select("settings", "launch_mode", "При запуске приложения",
@@ -15491,11 +17733,113 @@ class PreferenceScreens:
             button("Открыть «Голос и звук» →", lambda e: self.gui._select_tab(2))])
         content = ft.ResponsiveRow([
             ft.Container(ft.Column([model, cloud, privacy], spacing=18), col={"xs": 12, "lg": 6}),
-            ft.Container(ft.Column([appearance, launch, audio], spacing=18), col={"xs": 12, "lg": 6}),
+            ft.Container(ft.Column([appearance, vertical, launch, audio, self._api_card()],
+                                   spacing=18), col={"xs": 12, "lg": 6}),
         ], spacing=20, run_spacing=20)
         return self._screen("Настройки", "Всё важное — на своих местах.", content, [
             self._notice("settings"), ft.Row([button("Отменить изменения", self.cancel_settings),
                 button("Применить изменения", self.save_settings, primary=True)], wrap=True)])
+
+    def _vertical_card(self):
+        """Карточка вертикального режима: переключается сразу, без «Применить»."""
+        from jarvis.gui_vertical import PANELS, WIDTH_DEFAULT, normalize_panel, normalize_width
+
+        p = _palette()
+        gui = self.gui
+        width = normalize_width(gui.config.get("ui_vertical_width", WIDTH_DEFAULT))
+        panel = normalize_panel(gui.config.get("ui_vertical_panel", "log"))
+        widths = ["220", "240", "260", "280", "300", "320"]
+        if str(width) not in widths:
+            widths.append(str(width))
+            widths.sort(key=int)
+        switch = ft.Switch(value=bool(gui.config.get("ui_vertical_enabled", False)),
+            active_color=p.accent, tooltip="Вертикальная полоса",
+            on_change=lambda e: gui.set_vertical_mode(bool(e.control.value)))
+        width_select = ft.Dropdown(label="Ширина", value=str(width),
+            options=[ft.dropdown.Option(v, f"{v} px") for v in widths],
+            on_select=lambda e: gui.set_vertical_width(int(e.control.value)),
+            color=p.text, bgcolor=p.field, border=input_border(),
+            label_style=ft.TextStyle(color=p.dim))
+        panel_select = ft.Dropdown(label="Под светяшкой", value=panel,
+            options=[ft.dropdown.Option(key, label) for key, label in PANELS.items()],
+            on_select=lambda e: gui.set_vertical_panel(e.control.value),
+            color=p.text, bgcolor=p.field, border=input_border(),
+            label_style=ft.TextStyle(color=p.dim))
+        return card("Полоса на краю экрана", "Ассистент всегда перед глазами.", [
+            ft.Row([ft.Column([text("Вертикальный режим", 15),
+                    text("Узкая полоса без рамки поверх других окон, у правого края.", 13, muted=True)],
+                    spacing=5, expand=True), switch], spacing=16),
+            divider(), width_select, panel_select,
+            text("Переключается сразу, черновик остальных настроек не трогается. "
+                 "Заметки и план лежат в %APPDATA%\\Phoenix и сохраняются при уходе из поля ввода.", muted=True)])
+
+    # --- локальный API -------------------------------------------------
+
+    def _api_card(self):
+        """Карточка локального стыка: галочка, порт, токен, состояние."""
+        from jarvis.api_server import normalize_port
+
+        p = _palette()
+        gui = self.gui
+        enabled = gui.config.get("api_enabled", False) is True
+        port = normalize_port(gui.config.get("api_port", 8765))
+        switch = ft.Switch(value=enabled, active_color=p.accent, tooltip="Локальный API",
+                           on_change=self._on_api_toggle)
+        port_field = ft.TextField(value=str(port), label="Порт", width=110, dense=True,
+                                  text_size=13, on_submit=self._on_api_port,
+                                  on_blur=self._on_api_port, color=p.text,
+                                  bgcolor=p.field, border=input_border(),
+                                  label_style=ft.TextStyle(color=p.dim))
+        self._api_status_label = text(getattr(gui, "_api_status", "API выключен."), 13, muted=True)
+        self._api_token_label = text(self._api_token_text(), 13, muted=True)
+        return card("Локальный API", "Стык с другими проектами: health, capabilities, turn.", [
+            ft.Row([ft.Column([text("Локальный API", 15),
+                    text("Только 127.0.0.1, вход по токену. Для стыков между проектами.",
+                         13, muted=True)], spacing=5, expand=True), switch], spacing=16),
+            divider(), ft.Row([port_field, button("Новый токен", self._on_api_token)],
+                              spacing=12, wrap=True),
+            self._api_token_label, self._api_status_label, divider(),
+            text("Пароль через API запрещён. Профиль, история и память наружу не уходят: "
+                 "только ответ на присланный текст. Токен хранится в зашифрованном "
+                 "хранилище Windows, а не в config.json.", muted=True)])
+
+    def _api_token_text(self):
+        fingerprint = ""
+        try:
+            fingerprint = self.gui._api_fingerprint()
+        except Exception:
+            fingerprint = ""
+        if fingerprint:
+            return f"Токен: {fingerprint}… (отпечаток, не сам токен)"
+        return "Токен ещё не создан — он появится при включении."
+
+    def _api_refresh_labels(self):
+        if self._api_status_label is not None:
+            self._api_status_label.value = getattr(self.gui, "_api_status", "API выключен.")
+        if self._api_token_label is not None:
+            self._api_token_label.value = self._api_token_text()
+        self._update()
+
+    def _on_api_toggle(self, e):
+        self.gui.set_api_enabled(bool(e.control.value))
+        e.control.value = self.gui.config.get("api_enabled", False) is True
+        self._api_refresh_labels()
+
+    def _on_api_port(self, e):
+        from jarvis.api_server import normalize_port
+
+        raw = (e.control.value or "").strip()
+        try:
+            port = int(raw)
+        except (TypeError, ValueError):
+            port = normalize_port(self.gui.config.get("api_port", 8765))
+        self.gui.set_api_port(port)
+        e.control.value = str(normalize_port(self.gui.config.get("api_port", 8765)))
+        self._api_refresh_labels()
+
+    def _on_api_token(self, e=None):
+        self.gui.regenerate_api_token()
+        self._api_refresh_labels()
 
     def cancel_settings(self, e=None):
         self._load_settings()
@@ -16051,6 +18395,682 @@ class Sidebar(ft.Container):
     def _stroke_valid(self, index, epoch):
         return (self._mounted and self.motion_enabled and self._hovered == index
                 and epoch == self._epoch)
+```
+
+### `jarvis/gui_vertical.py`
+
+```python
+"""Вертикальный режим окна: узкая полоса-шторка у правого края экрана. ... [14 строк]"""
+import logging
+import os
+import sys
+from pathlib import Path
+
+import flet as ft
+
+log = logging.getLogger("jarvis.gui_vertical")
+
+PANELS = {"log": "Лог", "notes": "Заметки", "plan": "План"}
+PANEL_DEFAULT = "log"
+WIDTH_MIN = 220
+WIDTH_MAX = 320
+WIDTH_DEFAULT = 240
+WINDOW_WIDTH = 1100
+WINDOW_HEIGHT = 760
+WINDOW_MIN_WIDTH = 900
+WINDOW_MIN_HEIGHT = 600
+AURA_SIZE = 140
+AURA_RING = 104
+TAB_WIDTH = 18
+TAB_MIN = 12
+TAB_MAX = 28
+SLIDE_MS = 170
+SLIDE_STEPS = 11
+AUTOHIDE_MS = 900
+REVEAL_MS = 2600
+LOG_LIMIT = 60
+TEXT_LIMIT = 260
+
+NOTES_FILE = "vertical_notes.txt"
+PLAN_FILE = "vertical_plan.txt"
+
+_TRUE = {"1", "true", "yes", "on", "да", "y", "t"}
+_FALSE = {"0", "false", "no", "off", "нет", "n", "f", ""}
+
+
+def normalize_enabled(value) -> bool:
+    """Флаг режима: строка/число/None → bool без исключений."""
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return False
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        text = value.strip().lower()
+        if text in _TRUE:
+            return True
+        if text in _FALSE:
+            return False
+    return False
+
+
+def normalize_pinned(value) -> bool:
+    """Закрепление полосы — тот же терпимый разбор, что и у режима."""
+    return normalize_enabled(value)
+
+
+def normalize_width(value, default: int = WIDTH_DEFAULT) -> int:
+    """Ширина полосы в пикселях: битое значение → дефолт, число → в границы."""
+    if isinstance(value, bool) or value is None:
+        return default
+    try:
+        number = int(float(value))
+    except (TypeError, ValueError, OverflowError):
+        return default
+    if number <= 0:
+        return default
+    return max(WIDTH_MIN, min(WIDTH_MAX, number))
+
+
+def normalize_tab(value, default: int = TAB_WIDTH) -> int:
+    """Ширина «ручки», которая остаётся на экране у спрятанной шторки."""
+    if isinstance(value, bool) or value is None:
+        return default
+    try:
+        number = int(float(value))
+    except (TypeError, ValueError, OverflowError):
+        return default
+    if number <= 0:
+        return default
+    return max(TAB_MIN, min(TAB_MAX, number))
+
+
+def normalize_delay(value, default: int = AUTOHIDE_MS) -> int:
+    """Пауза перед автоскрытием в миллисекундах: 0..10000."""
+    if isinstance(value, bool) or value is None:
+        return default
+    try:
+        number = int(float(value))
+    except (TypeError, ValueError, OverflowError):
+        return default
+    return max(0, min(10000, number))
+
+
+def normalize_panel(value, default: str = PANEL_DEFAULT) -> str:
+    """Панель полосы: неизвестное имя → дефолт, регистр не важен."""
+    if isinstance(value, str):
+        key = value.strip().lower()
+        if key in PANELS:
+            return key
+    return default
+
+
+def aura_mode(state) -> str:
+    """Состояние ассистента → режим ауры (у ауры их четыре)."""
+    return {
+        "listening": "listening",
+        "recognizing": "listening",
+        "thinking": "thinking",
+        "speaking": "speaking",
+    }.get(state if isinstance(state, str) else "", "idle")
+
+
+def aura_label(state) -> str:
+    """Подпись состояния в полосе; неизвестное состояние не выдумываем."""
+    from jarvis import gui as ui
+
+    known = ui.STATES.get(state if isinstance(state, str) else "")
+    if known is None:
+        return ui.STATES["idle"][1]
+    return known[1]
+
+
+def vertical_window_spec(width, workarea=None) -> dict:
+    """Свойства окна для вертикального режима. ... [5 строк]"""
+    bar = normalize_width(width)
+    spec = {
+        "width": bar,
+        "min_width": WIDTH_MIN,
+        "max_width": WIDTH_MAX,
+        "frameless": True,
+        "always_on_top": True,
+        "movable": True,
+        "resizable": True,
+        # Тень Windows вокруг окна без рамки: полоса читается как отдельная
+        # панель, а не как обрезанный кусок чужого приложения.
+        "shadow": True,
+    }
+    area = _work_area_tuple(workarea)
+    if area is not None:
+        left, top, right, bottom = area
+        spec["height"] = bottom - top
+        spec["left"] = right - bar
+        spec["top"] = top
+    return spec
+
+
+def horizontal_window_spec() -> dict:
+    """Свойства окна для обычного режима — те же, что при старте."""
+    return {
+        "width": WINDOW_WIDTH,
+        "height": WINDOW_HEIGHT,
+        "min_width": WINDOW_MIN_WIDTH,
+        "min_height": WINDOW_MIN_HEIGHT,
+        "max_width": None,
+        "max_height": None,
+        "frameless": False,
+        "always_on_top": False,
+        "movable": True,
+        "resizable": True,
+        "shadow": False,
+    }
+
+
+def curtain_geometry(width, workarea=None, tab=None) -> dict:
+    """Позиции окна для шторки: открытая и спрятанная за край экрана. ... [5 строк]"""
+    bar = normalize_width(width)
+    handle = normalize_tab(tab)
+    positions = {"shown": None, "hidden": None, "tab": handle, "width": bar,
+                 "height": None, "top": None}
+    area = _work_area_tuple(workarea)
+    if area is None:
+        return positions
+    left, top, right, bottom = area
+    positions["shown"] = right - bar
+    positions["hidden"] = right - handle
+    positions["height"] = bottom - top
+    positions["top"] = top
+    return positions
+
+
+def slide_frames(start, end, steps: int = SLIDE_STEPS) -> list:
+    """Кадры выезда/уезда: последний кадр всегда ровно `end`."""
+    try:
+        begin = int(start)
+        finish = int(end)
+    except (TypeError, ValueError):
+        return []
+    if begin == finish:
+        return [finish]
+    try:
+        count = max(1, int(steps))
+    except (TypeError, ValueError):
+        count = SLIDE_STEPS
+    frames = [int(round(begin + (finish - begin) * i / count)) for i in range(1, count + 1)]
+    frames[-1] = finish
+    return frames
+
+
+class Curtain:
+    """Состояние шторки без окна: открыта ли, закреплена ли, где курсор. ... [6 строк]"""
+
+    def __init__(self, pinned=False):
+        self.pinned = bool(pinned)
+        self.pointer_inside = False
+        self.open = True
+
+    def enter(self) -> bool:
+        """Курсор на полосе: открываем. True — позиция изменилась."""
+        self.pointer_inside = True
+        changed = not self.open
+        self.open = True
+        return changed
+
+    def leave(self) -> bool:
+        """Курсор ушёл: снимаем «держать открытой»; окно двигает таймер."""
+        self.pointer_inside = False
+        return False
+
+    def hide(self) -> bool:
+        """Закрыть с учётом закрепления и курсора. True — позиция изменилась."""
+        if self.pinned or self.pointer_inside or not self.open:
+            return False
+        self.open = False
+        return True
+
+    def show(self) -> bool:
+        changed = not self.open
+        self.open = True
+        return changed
+
+    def set_pinned(self, value) -> bool:
+        """Закрепление: закреплённая полоса сразу открывается."""
+        self.pinned = bool(value)
+        if self.pinned:
+            self.open = True
+        return self.pinned
+
+    def wants_autohide(self) -> bool:
+        """Пора планировать скрытие: открыта, не закреплена, курсора нет."""
+        return self.open and not self.pinned and not self.pointer_inside
+
+
+def _work_area_tuple(value):
+    if not isinstance(value, (tuple, list)) or len(value) != 4:
+        return None
+    try:
+        left, top, right, bottom = (int(v) for v in value)
+    except (TypeError, ValueError):
+        return None
+    if right <= left or bottom <= top:
+        return None
+    return left, top, right, bottom
+
+
+def work_area():
+    """Рабочая область экрана (без панели задач) или None. ... [5 строк]"""
+    if sys.platform != "win32":
+        return None
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        rect = wintypes.RECT()
+        ok = ctypes.windll.user32.SystemParametersInfoW(
+            0x0030, 0, ctypes.byref(rect), 0)  # SPI_GETWORKAREA
+        if not ok:
+            return None
+        return rect.left, rect.top, rect.right, rect.bottom
+    except Exception:
+        log.warning("Вертикальный режим: рабочая область недоступна", exc_info=True)
+        return None
+
+
+def notes_path() -> Path:
+    from jarvis import paths
+
+    return paths.user_dir() / NOTES_FILE
+
+
+def plan_path() -> Path:
+    from jarvis import paths
+
+    return paths.user_dir() / PLAN_FILE
+
+
+def read_doc(path) -> str:
+    """Читает текстовый документ полосы; отсутствие файла — пустая строка."""
+    try:
+        return Path(path).read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return ""
+    except (OSError, UnicodeDecodeError):
+        log.warning("Вертикальный режим: не удалось прочитать %s", path, exc_info=True)
+        return ""
+
+
+def write_doc(path, text) -> bool:
+    """Пишет документ атомарно (временный файл + replace), возвращает успех."""
+    target = Path(path)
+    body = text if isinstance(text, str) else ""
+    tmp = None
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        tmp = target.with_name(target.name + ".tmp")
+        tmp.write_text(body, encoding="utf-8")
+        os.replace(tmp, target)
+        return True
+    except OSError:
+        log.warning("Вертикальный режим: не удалось записать %s", target, exc_info=True)
+        if tmp is not None:
+            try:
+                tmp.unlink()
+            except OSError:
+                pass
+        return False
+
+
+def shorten(text, limit: int = TEXT_LIMIT) -> str:
+    body = " ".join(str(text or "").split())
+    if len(body) <= limit:
+        return body
+    return body[: max(0, limit - 1)].rstrip() + "…"
+
+
+def log_lines(messages, limit: int = LOG_LIMIT) -> list:
+    """Хвост диалога для полосы: список {role, text, time}, старые сверху."""
+    rows = []
+    for message in list(messages or [])[-limit:] if limit > 0 else []:
+        if not isinstance(message, dict):
+            continue
+        text = shorten(message.get("text", ""))
+        if not text:
+            continue
+        role = "user" if message.get("role") == "user" else "assistant"
+        rows.append({"role": role, "text": text, "time": str(message.get("time", ""))})
+    return rows
+
+
+def _entered(event) -> bool:
+    return getattr(event, "data", False) in (True, "true", "True")
+
+
+class VerticalBar(ft.Container):
+    """Полоса-шторка: ручка у края, аура со статусом, панель и закрепление."""
+
+    def __init__(self, gui, width=None, panel=None):
+        from jarvis.gui_home_fx import PhoenixAura
+        from jarvis import gui as ui
+
+        super().__init__(expand=True, bgcolor=ft.Colors.TRANSPARENT)
+        self.gui = gui
+        self.width = normalize_width(width if width is not None
+                                     else gui.config.get("ui_vertical_width", WIDTH_DEFAULT))
+        self.panel = normalize_panel(panel if panel is not None
+                                     else gui.config.get("ui_vertical_panel", PANEL_DEFAULT))
+        self.pinned = normalize_pinned(gui.config.get("ui_vertical_pinned", False))
+        self._docs = {}
+        self._notes_field = None
+        self._plan_field = None
+        p = ui.P
+
+        # --- ручка у края: единственное, что видно у спрятанной шторки ----
+        self.tab_icon = ft.Icon(ft.Icons.CHEVRON_LEFT, size=14,
+                                color=ft.Colors.with_opacity(.80, p.brand))
+        self.tab_line = ft.Container(
+            width=2, height=46, border_radius=1,
+            gradient=ft.LinearGradient(
+                begin=ft.Alignment.TOP_CENTER, end=ft.Alignment.BOTTOM_CENTER,
+                colors=[ft.Colors.with_opacity(.0, p.brand),
+                        ft.Colors.with_opacity(.75, p.brand),
+                        ft.Colors.with_opacity(.0, p.brand)],
+                stops=[.0, .5, 1.0]))
+        self.tab = ft.Container(
+            width=TAB_WIDTH, alignment=ft.Alignment.CENTER,
+            content=ft.Column([self.tab_line, self.tab_icon], spacing=7,
+                              alignment=ft.MainAxisAlignment.CENTER,
+                              horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                              expand=True),
+            on_click=self._on_tab_click, bgcolor=ft.Colors.TRANSPARENT,
+            tooltip="Открыть полосу" if not self.pinned else "Полоса закреплена")
+
+        # --- шапка: аура и статус ----------------------------------------
+        self.dot = ft.Container(width=6, height=6, border_radius=3, bgcolor=p.brand)
+        self.status = ft.Text("", size=11, color=p.text_dim,
+                              max_lines=2, overflow=ft.TextOverflow.ELLIPSIS)
+        self.status_pill = ft.Container(
+            ft.Row([self.dot, self.status], spacing=7, tight=True,
+                   alignment=ft.MainAxisAlignment.CENTER),
+            padding=ft.Padding.only(left=11, right=11, top=5, bottom=5),
+            border_radius=99, bgcolor=ft.Colors.with_opacity(.45, p.bg_card),
+            border=ft.Border.all(1, ft.Colors.with_opacity(.30, p.border)))
+        self.ring = ft.Container(
+            ui._brand_image("phoenix", 72, "Феникс"), width=AURA_RING, height=AURA_RING,
+            border_radius=AURA_RING // 2, alignment=ft.Alignment.CENTER,
+            border=ft.Border.all(1, ft.Colors.with_opacity(.35, p.border)),
+            bgcolor=ft.Colors.with_opacity(.12, p.sidebar))
+        self.aura = PhoenixAura(gui, self.ring, size=AURA_SIZE,
+                                foreground=lambda: bool(getattr(gui, "_vertical_mode", False)))
+        self.head = ft.Container(
+            ft.Column([
+                ft.Container(self.aura, alignment=ft.Alignment.CENTER, height=AURA_SIZE),
+                ft.Container(self.status_pill, alignment=ft.Alignment.CENTER),
+            ], spacing=8, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+            padding=ft.Padding.only(left=8, right=8, top=10, bottom=8))
+
+        # --- переключатель панелей: три пилюли вместо выпадающего списка --
+        self.panel_buttons = {}
+        for key, label in PANELS.items():
+            self.panel_buttons[key] = ft.Button(
+                content=ft.Text(label, size=11, no_wrap=True),
+                on_click=lambda e, name=key: self._on_panel_click(name),
+                style=ft.ButtonStyle(padding=ft.Padding.symmetric(horizontal=0, vertical=7),
+                                     elevation=0, shape=ft.RoundedRectangleBorder(radius=9)),
+                expand=True, height=30)
+        self.panel_row = ft.Container(
+            ft.Row(list(self.panel_buttons.values()), spacing=4),
+            padding=ft.Padding.only(left=8, right=8))
+
+        self.log_list = ft.ListView(spacing=10, auto_scroll=True, expand=True)
+        self.body = ft.Container(content=self._panel_body(self.panel), expand=True,
+                                 padding=ft.Padding.only(left=10, right=10, top=8, bottom=4))
+        self.divider_top = ft.Container(
+            ft.Container(height=1, bgcolor=ft.Colors.with_opacity(.45, p.border)), height=1)
+        self.divider_bottom = ft.Container(
+            ft.Container(height=1, bgcolor=ft.Colors.with_opacity(.45, p.border)), height=1)
+
+        # --- подвал: закрепление и выход в обычное окно -------------------
+        self.pin_btn = ft.IconButton(icon=ft.Icons.PUSH_PIN if self.pinned
+                                     else ft.Icons.PUSH_PIN_OUTLINED,
+                                     icon_size=18, on_click=self._on_pin,
+                                     icon_color=p.brand if self.pinned else p.text_dim,
+                                     tooltip=self._pin_tooltip())
+        self.exit_btn = ft.IconButton(
+            icon=ft.Icons.CLOSE_FULLSCREEN, tooltip="Вернуть обычное окно",
+            icon_color=p.text_dim, icon_size=18, on_click=self._on_exit)
+        self.foot = ft.Container(
+            ft.Row([
+                ft.Text("Поверх окон", size=10, color=ft.Colors.with_opacity(.75, p.text_dim),
+                        no_wrap=True, expand=True),
+                self.pin_btn, self.exit_btn,
+            ], spacing=0, alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+            padding=ft.Padding.only(left=12, right=4, top=4, bottom=4))
+
+        self.card = ft.Container(
+            expand=True,
+            margin=ft.Margin(left=6, top=6, bottom=6, right=0),
+            padding=ft.Padding.only(left=4, right=4, top=2, bottom=2),
+            border_radius=ft.BorderRadius(top_left=16, bottom_left=16, top_right=0, bottom_right=0),
+            gradient=ft.LinearGradient(
+                begin=ft.Alignment.TOP_CENTER, end=ft.Alignment.BOTTOM_CENTER,
+                colors=[ft.Colors.with_opacity(.96, p.sidebar),
+                        ft.Colors.with_opacity(.94, p.bg_card)]),
+            border=ft.Border.only(left=ft.BorderSide(1, ft.Colors.with_opacity(.45, p.border)),
+                                  top=ft.BorderSide(1, ft.Colors.with_opacity(.45, p.border)),
+                                  bottom=ft.BorderSide(1, ft.Colors.with_opacity(.45, p.border))),
+            shadow=ft.BoxShadow(blur_radius=26, spread_radius=-4,
+                                color=ft.Colors.with_opacity(.42, "#000000"),
+                                offset=ft.Offset(-7, 0)),
+            content=ft.Column([self.head, self.panel_row, self.divider_top, self.body,
+                               self.divider_bottom, self.foot], spacing=0, expand=True))
+        self.content = ft.Row([self.tab, self.card], spacing=0, expand=True,
+                              vertical_alignment=ft.CrossAxisAlignment.STRETCH)
+        self.on_hover = self._on_hover
+        self._sync_panel_tabs()
+        self.set_open_state(True)
+        self._render_log()
+        self.apply_state(getattr(gui, "_state", "idle"))
+
+    # --- вид и состояния ----------------------------------------------
+
+    def _pin_tooltip(self) -> str:
+        return "Открепить полосу" if self.pinned else "Закрепить полосу"
+
+    def set_open_state(self, open_: bool) -> None:
+        """Иконка ручки смотрит туда, куда поедет шторка."""
+        from jarvis import gui as ui
+
+        p = ui.P
+        self.tab_icon.name = ft.Icons.CHEVRON_LEFT if not open_ else ft.Icons.CHEVRON_RIGHT
+        self.tab.tooltip = ("Свернуть полосу" if open_ else "Открыть полосу") if not self.pinned \
+            else "Полоса закреплена"
+        self.tab_icon.color = p.brand if open_ else p.text_dim
+        self._refresh(self.tab_icon)
+
+    def set_pinned(self, pinned) -> bool:
+        """Закрепление: меняет иконку, подсказку и вид ручки."""
+        from jarvis import gui as ui
+
+        pinned = normalize_pinned(pinned)
+        if pinned == self.pinned:
+            return False
+        self.pinned = pinned
+        self.pin_btn.icon = ft.Icons.PUSH_PIN if pinned else ft.Icons.PUSH_PIN_OUTLINED
+        self.pin_btn.icon_color = ui.P.brand if pinned else ui.P.text_dim
+        self.pin_btn.tooltip = self._pin_tooltip()
+        self.set_open_state(True)
+        self._refresh(self.pin_btn, self.tab)
+        return True
+
+    def _sync_panel_tabs(self) -> None:
+        from jarvis import gui as ui
+
+        p = ui.P
+        for key, button in self.panel_buttons.items():
+            active = key == self.panel
+            fill = ft.Colors.with_opacity(.18, p.brand) if active else ft.Colors.TRANSPARENT
+            button.content.color = p.brand if active else p.text_dim
+            button.style = ft.ButtonStyle(
+                padding=ft.Padding.symmetric(horizontal=0, vertical=7), elevation=0,
+                bgcolor=fill, overlay_color=ft.Colors.with_opacity(.08, p.text),
+                side={ft.ControlState.DEFAULT: ft.BorderSide(
+                    1, ft.Colors.with_opacity(.22, p.brand) if active
+                    else ft.Colors.with_opacity(.10, p.border))},
+                shape=ft.RoundedRectangleBorder(radius=9))
+            button.tooltip = PANELS[key]
+
+    def _refresh(self, *controls) -> None:
+        """Обновление без исключений: тесты и закрытое окно — не повод падать."""
+        if not controls:
+            return
+        try:
+            if getattr(self, "_mounted_hint", True) and self.page is not None:
+                self.update(*controls)
+        except Exception:
+            log.debug("Полоса: не удалось обновить вид", exc_info=True)
+
+    def _on_hover(self, e) -> None:
+        entered = _entered(e)
+        try:
+            from jarvis import gui as ui
+
+            self.tab.bgcolor = (ft.Colors.with_opacity(.10, ui.P.brand) if entered
+                                else ft.Colors.TRANSPARENT)
+            self._refresh(self.tab)
+        except Exception:
+            log.debug("Полоса: подсветка ручки не применилась", exc_info=True)
+        hook = getattr(self.gui, "_vertical_hover", None)
+        if hook is not None:
+            try:
+                hook(entered)
+            except Exception:
+                log.exception("Полоса: ошибка обработки наведения")
+
+    def _on_tab_click(self, e=None) -> None:
+        hook = getattr(self.gui, "_vertical_tab_click", None)
+        if hook is not None:
+            try:
+                hook()
+            except Exception:
+                log.exception("Полоса: не удалось переключить шторку")
+
+    def _on_pin(self, e=None) -> None:
+        try:
+            self.gui.set_vertical_pinned(not self.pinned)
+        except Exception:
+            log.exception("Полоса: не удалось сохранить закрепление")
+
+    # --- панели -------------------------------------------------------
+
+    def _panel_body(self, panel):
+        if panel == "log":
+            return self.log_list
+        return self._doc_field("notes" if panel == "notes" else "plan")
+
+    def _doc_field(self, name):
+        cached = getattr(self, f"_{name}_field", None)
+        if cached is not None:
+            return cached
+        from jarvis import gui as ui
+
+        p = ui.P
+        path = notes_path() if name == "notes" else plan_path()
+        text = self._docs.get(name)
+        if text is None:
+            text = read_doc(path)
+            self._docs[name] = text
+        field = ft.TextField(
+            value=text, multiline=True, expand=True, text_size=12, border=ft.NoInputBorder(),
+            color=p.text, bgcolor=ft.Colors.TRANSPARENT,
+            hint_text=("Заметки: пиши что угодно, сохраняется на диск"
+                       if name == "notes" else "План: по строке на пункт"),
+            shift_enter=True, on_blur=lambda e, key=name: self.save_doc(key))
+        if name == "notes":
+            self._notes_field = field
+        else:
+            self._plan_field = field
+        return field
+
+    def save_doc(self, name) -> bool:
+        """Сохраняет заметки/план на диск; ошибка записи не выдаётся за успех."""
+        field = getattr(self, f"_{name}_field", None)
+        if field is None:
+            return True
+        text = field.value or ""
+        self._docs[name] = text
+        path = notes_path() if name == "notes" else plan_path()
+        return write_doc(path, text)
+
+    def flush(self) -> None:
+        for name in ("notes", "plan"):
+            self.save_doc(name)
+
+    def set_panel(self, panel) -> bool:
+        value = normalize_panel(panel)
+        if value == self.panel:
+            return False
+        self.flush()
+        self.panel = value
+        self.body.content = self._panel_body(value)
+        self._sync_panel_tabs()
+        if value == "log":
+            self._render_log()
+        return True
+
+    def _on_panel_click(self, name) -> None:
+        try:
+            self.gui.set_vertical_panel(name)
+        except Exception:
+            log.exception("Полоса: не удалось переключить панель")
+
+    def _on_exit(self, e=None) -> None:
+        try:
+            self.gui.set_vertical_mode(False)
+        except Exception:
+            log.exception("Полоса: не удалось вернуть обычное окно")
+
+    # --- данные -------------------------------------------------------
+
+    def _render_log(self) -> None:
+        from jarvis import gui as ui
+
+        p = ui.P
+        rows = []
+        for line in log_lines(getattr(self.gui, "_messages", [])):
+            who = "Вы" if line["role"] == "user" else "Феникс"
+            rows.append(ft.Column([
+                ft.Row([ft.Text(who, size=10, color=ft.Colors.with_opacity(.8, p.text_dim)),
+                        ft.Text(line["time"], size=10, color=ft.Colors.with_opacity(.8, p.text_dim))]),
+                ft.Text(line["text"], size=12, color=p.text),
+            ], spacing=2))
+        self.log_list.controls = rows or [ft.Text("Пока пусто", size=12, color=p.text_dim)]
+
+    def on_message(self, record) -> None:
+        """Новое сообщение в диалоге: обновляем лог (панель могла быть любой)."""
+        if self.panel != "log":
+            return
+        self._render_log()
+
+    def apply_state(self, state) -> None:
+        from jarvis import gui as ui
+
+        p = ui.P
+        color = {"error": p.error, "speaking": p.success}.get(
+            state, p.brand if state in ("idle",) else p.accent)
+        self.status.value = aura_label(state)
+        self.dot.bgcolor = color
+        self.aura.set_mode(aura_mode(state))
+
+    def dispose(self) -> None:
+        try:
+            self.flush()
+        except Exception:
+            log.exception("Полоса: не удалось сохранить заметки при закрытии")
+        try:
+            self.aura.dispose()
+        except Exception:
+            log.debug("Полоса: аура уже освобождена", exc_info=True)
 ```
 
 ### `jarvis/gui_widgets.py`
@@ -18026,19 +21046,21 @@ def reload_custom(handler):
 
 def match_custom(handler, cmd: str) -> str | None:
     """Тот же matcher используется уточнениями, но исполнение только здесь."""
-    matched = find_custom(handler.custom, cmd)
+    semantic = bool(handler.config.get("decision_semantic_enabled", False))
+    matched = find_custom(handler.custom, cmd, semantic=semantic)
     if matched is None:
         # The microphone already removes the address; typed GUI commands may include it.
         from jarvis.command_builder import clean_phrase
         typed = [item for item in handler.custom if len(item) > 3 and item[3].get("exact")]
-        matched = find_custom(typed, clean_phrase(cmd, handler.config.get("wake_words", [])))
+        matched = find_custom(typed, clean_phrase(cmd, handler.config.get("wake_words", [])),
+                              semantic=semantic)
     if matched is not None:
         return execute_custom(handler, *matched)
     return None
 
 
-def find_custom(custom: list, cmd: str) -> tuple | None:
-    """Чистый поиск: точное или нечёткое совпадение, без побочных действий."""
+def find_custom(custom: list, cmd: str, *, semantic: bool = False) -> tuple | None:
+    """Чистый поиск: точное или нечёткое совпадение, без побочных действий. ... [6 строк]"""
     # Exact matches across the whole list take precedence over legacy fuzzy ones.
     for item in custom:
         phrases, action, reply = item[:3]
@@ -18049,8 +21071,12 @@ def find_custom(custom: list, cmd: str) -> tuple | None:
         if len(item) > 3 and item[3].get("exact"):
             continue
         for phrase in phrases:
-            if len(cmd) >= 12 and len(phrase) >= 12:
-                if SequenceMatcher(None, cmd, phrase).ratio() >= 0.85:
+            left, right = cmd, phrase
+            if semantic:
+                from jarvis.decision import semantic_normalize
+                left, right = semantic_normalize(cmd), semantic_normalize(phrase)
+            if len(left) >= 12 and len(right) >= 12:
+                if SequenceMatcher(None, left, right).ratio() >= 0.85:
                     return action, reply
     return None
 
@@ -19238,6 +22264,9 @@ class IntentHandler:
         self._last_reply = ""
         self._pending_question = None
         self._pending_password = None
+        # Плагины подключает main, когда человек их включил; None — нет плагинов
+        # и поведение pipeline прежнее.
+        self.plugins = None
 
         # Диагностика.
         self._last_debug: dict = {}
@@ -19680,7 +22709,7 @@ def get_sites() -> dict:
 ### `jarvis/intents/stages/__init__.py`
 
 ```python
-"""Стадии обработки команды. Порядок = приоритет. ... [15 строк]"""
+"""Стадии обработки команды. Порядок = приоритет. ... [16 строк]"""
 
 from jarvis.intents.stages.cancel import CancelStage
 from jarvis.intents.stages.onboarding import OnboardingStage
@@ -19692,6 +22721,7 @@ from jarvis.intents.stages.clipboard import ClipboardStage
 from jarvis.intents.stages.modes import ModesStage
 from jarvis.intents.stages.compound import CompoundStage
 from jarvis.intents.stages.fast import FastHandlersStage
+from jarvis.intents.stages.plugins import PluginStage
 from jarvis.intents.stages.llm import LLMStage
 from jarvis.intents.stages.clarification import ClarificationStage
 
@@ -19710,6 +22740,7 @@ def build_pipeline(handler) -> list:
         CompoundStage(),
         ClarificationStage(),
         FastHandlersStage(),
+        PluginStage(),
         LLMStage(),
     ]
 ```
@@ -20382,6 +23413,36 @@ class PendingStage(Stage):
             return f"Запомнил город «{city}», но погоду узнать не удалось."
 
         return "Не понял уточнение."
+```
+
+### `jarvis/intents/stages/plugins.py`
+
+```python
+"""Стадия плагинов: фразы плагина идут тем же pipeline, что и обычные команды. ... [5 строк]"""
+
+import logging
+
+from jarvis.intents.stages.base import Stage
+
+log = logging.getLogger("jarvis.intents")
+
+
+class PluginStage(Stage):
+    name = "plugins"
+
+    def handle(self, ctx):
+        plugins = getattr(ctx.handler, "plugins", None)
+        if plugins is None:
+            return None
+        try:
+            reply = plugins.try_handle(ctx.cmd)
+        except Exception:
+            log.exception("Плагины упали на %r", ctx.cmd)
+            return "Плагин не смог обработать команду."
+        if reply:
+            log.debug("Команда %r обработана плагином", ctx.cmd)
+            return reply
+        return None
 ```
 
 ### `jarvis/intents/verbs.py`
@@ -21955,6 +25016,18 @@ _REJECT = object()
 _UNCERTAIN = object()
 
 
+def _clean_whisper_text(text: str, awaiting: bool, *, is_wake, wake_required: bool):
+    """Снимает wake-слово из текста Whisper. `_REJECT` — не обращение. ... [5 строк]"""
+    import re
+    tokens = list(re.finditer(r"\S+", text or ""))
+    for token in tokens:
+        if is_wake(normalize(token.group())):
+            return text[token.end():].lstrip(" ,.!?:;—")
+    if awaiting or not wake_required:
+        return text
+    return _REJECT
+
+
 class Jarvis:
     def __init__(self, config, listener, speaker, handler, base_dir: Path,
                  whisper=None, gui=None):
@@ -21967,6 +25040,10 @@ class Jarvis:
         self.gui = gui
         self.listening_enabled = True
         self.stop_event = threading.Event()
+        # Этап 3: бюджет и кэш эскалации создаются при первом сомнении,
+        # чтобы выключенный флаг не тратил ничего на старте.
+        self._asr_budget = None
+        self._asr_cache = None
         self._awaiting_until = 0.0
         self._wake_words = [normalize(w) for w in config["wake_words"]]
         self.barge_enabled = bool(config.get("barge_enabled", True))
@@ -22198,7 +25275,25 @@ class Jarvis:
                 self._request_repeat()
                 return
             primary = getattr(getattr(self, "listener", None), "last_quality", None)
-            if self.whisper is not None and not sensitive:
+            if self.config.get("asr_escalate_enabled", False) and not sensitive:
+                outcome = self._escalate_recognize(audio, cmd, primary, awaiting)
+                if outcome is None:
+                    # Второго движка нет — прежние правила: Vosk только при
+                    # достаточной уверенности.
+                    if primary is None or not primary.accepted:
+                        self._request_repeat()
+                        return
+                else:
+                    status, text = outcome
+                    if status == "repeat":
+                        self._request_repeat()
+                        return
+                    if status == "ignore":
+                        if self.gui is not None:
+                            self.gui.set_state("idle")
+                        return
+                    cmd = text
+            elif self.whisper is not None and not sensitive:
                 refined = self._refine(audio, awaiting)
                 if refined is _REJECT:
                     if self.gui is not None:
@@ -22219,6 +25314,13 @@ class Jarvis:
             elif primary is None or not primary.accepted:
                 self._request_repeat()
                 return
+            if self.config.get("decision_enabled", False):
+                # Флаг включается явно: решение «чётко/нечётко» поверх прежних
+                # проверок. Переспрос вместо догадки, как и раньше, но пороги
+                # теперь в config.json (decision_*).
+                if self._decision_needs_repeat(cmd, primary):
+                    self._request_repeat()
+                    return
         if cmd == "":
             self.say(Reply(text="Слушаю."))
             self._awaiting_until = time.time() + self.config["command_window_sec"]
@@ -22291,6 +25393,20 @@ class Jarvis:
                 self._awaiting_until = time.time() + float(
                     self.config.get("dialog_window_sec", 8))
 
+    def _decision_needs_repeat(self, cmd: str, quality=None) -> bool:
+        """Флаг decision_enabled: сомнительный ASR — повтор, не действие."""
+        from jarvis import decision
+
+        verdict = decision.decide(
+            cmd,
+            quality=quality,
+            thresholds=decision.Thresholds.from_config(self.config),
+            semantic=bool(self.config.get("decision_semantic_enabled", False)),
+        )
+        log.debug("Decision: kind=%s reason=%s score=%s",
+                  verdict.kind, verdict.reason, verdict.score)
+        return verdict.needs_repeat
+
     def _request_repeat(self):
         """Уточнение без записи сомнительной расшифровки в историю/память."""
         now = time.monotonic()
@@ -22302,6 +25418,70 @@ class Jarvis:
             self.gui.add_message("assistant", reply.text)
         self.say(reply)
         self._awaiting_until = time.time() + float(self.config.get("command_window_sec", 6))
+
+    def _escalate_recognize(self, audio: bytes, cmd: str, primary, awaiting: bool):
+        """Этап 3: звать второй движок только при сомнении. ... [5 строк]"""
+        whisper = getattr(self, "whisper", None)
+        if whisper is None:
+            return None
+        from jarvis.asr_router import Budget, Cache, CallableEngine, Router
+        from jarvis.asr_router import Transcript
+        from jarvis.decision import Thresholds
+        from jarvis.recognition import Quality
+
+        if self._asr_budget is None:
+            self._asr_budget = Budget(
+                self.config.get("asr_escalate_budget_per_min", 3), 60.0)
+        if self._asr_cache is None:
+            self._asr_cache = Cache(
+                self.config.get("asr_escalate_cache_sec", 60), 32)
+        rate = int(self.config.get("sample_rate", 16000))
+
+        def primary_text(_pcm, _rate):
+            quality = primary if isinstance(primary, Quality) else None
+            return Transcript(cmd, quality, "vosk")
+
+        def fallback_text(pcm, _rate):
+            text = whisper.transcribe(pcm, sample_rate=_rate).strip()
+            return Transcript(text, getattr(whisper, "last_quality", None), "whisper")
+
+        thresholds = None
+        if self.config.get("decision_enabled", False):
+            thresholds = Thresholds.from_config(self.config)
+        router = Router(
+            CallableEngine("vosk", primary_text),
+            CallableEngine("whisper", fallback_text),
+            enabled=True, budget=self._asr_budget, cache=self._asr_cache,
+            thresholds=thresholds,
+            semantic=bool(self.config.get("decision_semantic_enabled", False)))
+        result = router.run(audio, rate, cancel_event=self.stop_event)
+        if result.reason == "cancelled":
+            # Пользователь перебил/остановил: не переспрашивать и не говорить.
+            return "ignore", ""
+        if result.transcript is None or result.reason == "primary_failed":
+            return "repeat", cmd
+        if result.reason in {"disagreement", "fallback_failed", "fallback_empty",
+                             "unclear"}:
+            log.info("ASR: эскалация не дала уверенности (%s)", result.reason)
+            return "repeat", cmd
+        text = result.text
+        if result.transcript is not None and result.transcript.engine == "whisper":
+            cleaned = self._clean_whisper_text(text, awaiting)
+            if cleaned is _REJECT:
+                log.info("ASR: эскалация без обращения — молчу")
+                return "ignore", text
+            if cleaned is None or not cleaned.strip():
+                return "repeat", cmd
+            text = cleaned
+        if result.escalated:
+            log.info("ASR: эскалация (%s), движок=%s",
+                     result.reason, result.transcript.engine if result.transcript else "?")
+        return "ok", text
+
+    def _clean_whisper_text(self, text: str, awaiting: bool):
+        """Снимает wake-слово из текста Whisper; `_REJECT` — не обращение."""
+        return _clean_whisper_text(text, awaiting, is_wake=self._is_wake,
+                                  wake_required=self._wake_word_required)
 
     def _refine(self, audio: bytes, awaiting: bool):
         try:
@@ -22316,14 +25496,8 @@ class Jarvis:
             return _UNCERTAIN
         if not text:
             return _UNCERTAIN
-        import re
-        tokens = list(re.finditer(r"\S+", text))
-        for token in tokens:
-            if self._is_wake(normalize(token.group())):
-                return text[token.end():].lstrip(" ,.!?:;—")
-        if awaiting or not self._wake_word_required:
-            return text
-        return _REJECT
+        return _clean_whisper_text(text, awaiting, is_wake=self._is_wake,
+                                   wake_required=getattr(self, "_wake_word_required", True))
 
     def _extract_command(self, text: str) -> str | None:
         """Извлекает команду из текста. ... [11 строк]"""
@@ -22664,6 +25838,23 @@ def main() -> None:
     )
 
     jarvis = Jarvis(config, listener, speaker, handler, BASE_DIR, whisper, gui=gui)
+
+    # Плагины (этап 6): только при явном включении и только имена из
+    # plugins_allowed. Команды идут обычным pipeline, код — отдельным процессом.
+    if config.get("plugins_enabled", False):
+        try:
+            from jarvis.plugins import PluginHost
+            from jarvis.paths import plugins_dir
+            host = PluginHost(plugins_dir(), config=config)
+            loaded = host.discover()
+            log.info("Плагины: найдено %d, ошибок %d", len(loaded), len(host.errors))
+            for name in host.allowed:
+                ok, message = host.start(name)
+                if not ok:
+                    log.info("Плагин %s не запущен: %s", name, message)
+            handler.plugins = host
+        except Exception:
+            log.exception("Плагины не завелись — работают без них")
 
     # Прогрев тяжёлых API — brightness через WMI (~0.5 сек).
     # Иначе первый голосовой запрос «какая яркость» виснет.
@@ -24434,11 +27625,126 @@ def nonverbal_dir() -> Path:
     return root / "assets" / "nonverbal"
 
 
+def plugins_dir() -> Path:
+    """Каталог плагинов пользователя (манифесты и код), отдельно от конфига."""
+    d = user_dir() / "plugins"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
 @contextmanager
 def temporary_audio_file():
     """Ephemeral mixed speech for winsound fallback; removed when playback stops."""
     with tempfile.TemporaryDirectory(prefix="fenix-tts-") as temp:
         yield Path(temp) / "speech.wav"
+```
+
+### `jarvis/peer_client.py`
+
+```python
+"""Клиент к стыку `health` / `capabilities` / `turn` — своему или соседнего проекта. ... [5 строк]"""
+
+from __future__ import annotations
+
+import json
+import logging
+import urllib.error
+import urllib.request
+import uuid
+
+log = logging.getLogger("jarvis.peer_client")
+
+DEFAULT_TIMEOUT = 5.0
+
+
+class PeerError(Exception):
+    """Ошибка стыка: код HTTP (если был) и короткая причина, без секретов."""
+
+    def __init__(self, message: str, *, status: int | None = None):
+        super().__init__(message)
+        self.status = status
+
+
+def normalize_url(value, default_port: int | None = None) -> str:
+    """Адрес соседа: только http/https, без пробелов и лишних слэшей."""
+    if not isinstance(value, str):
+        return ""
+    url = value.strip().rstrip("/")
+    if not url:
+        return ""
+    if not url.lower().startswith(("http://", "https://")):
+        return ""
+    if any(ch.isspace() for ch in url):
+        return ""
+    if default_port and ":" not in url.split("://", 1)[1]:
+        url = f"{url}:{default_port}"
+    return url
+
+
+class PeerClient:
+    """Минимальный клиент: без зависимостей, с таймаутом и честной ошибкой."""
+
+    def __init__(self, base_url: str, token: str, *, timeout: float = DEFAULT_TIMEOUT):
+        url = normalize_url(base_url)
+        if not url:
+            raise ValueError("Адрес стыка должен начинаться с http:// или https://")
+        token = (token or "").strip()
+        if len(token) < 16 or any(ch.isspace() for ch in token):
+            raise ValueError("Нужен токен не короче 16 символов без пробелов")
+        self.base_url = url
+        self.token = token
+        try:
+            self.timeout = max(0.5, min(60.0, float(timeout)))
+        except (TypeError, ValueError):
+            self.timeout = DEFAULT_TIMEOUT
+
+    def __repr__(self) -> str:
+        return f"PeerClient({self.base_url!r}, token=***)"
+
+    # --- запросы ---------------------------------------------------
+
+    def _request(self, method: str, path: str, payload: dict | None = None) -> dict:
+        data = None
+        headers = {"Authorization": f"Bearer {self.token}", "Accept": "application/json"}
+        if payload is not None:
+            data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+            headers["Content-Type"] = "application/json; charset=utf-8"
+        request = urllib.request.Request(self.base_url + path, data=data,
+                                         headers=headers, method=method)
+        try:
+            with urllib.request.urlopen(request, timeout=self.timeout) as response:
+                body = response.read()
+                status = response.status
+        except urllib.error.HTTPError as exc:
+            raise PeerError(f"стык ответил {exc.code}", status=exc.code) from None
+        except urllib.error.URLError as exc:
+            raise PeerError(f"стык недоступен: {exc.reason}") from None
+        except TimeoutError:
+            raise PeerError("стык не ответил вовремя") from None
+        try:
+            result = json.loads(body.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            raise PeerError(f"стык вернул не JSON (код {status})", status=status) from None
+        if not isinstance(result, dict):
+            raise PeerError("стык вернул не объект", status=status)
+        return result
+
+    def health(self) -> dict:
+        return self._request("GET", "/v1/health")
+
+    def capabilities(self) -> dict:
+        return self._request("GET", "/v1/capabilities")
+
+    def ask(self, text: str, session_id: str | None = None) -> dict:
+        """Один поворот диалога. `pending` — это данные, а не исключение."""
+        body = (text or "").strip()
+        if not body:
+            raise ValueError("Пустой текст не отправляется")
+        session = (session_id or f"peer-{uuid.uuid4().hex}").strip()
+        if not session:
+            session = f"peer-{uuid.uuid4().hex}"
+        return self._request("POST", "/v1/turn",
+                             {"session_id": session, "text": body})
 ```
 
 ### `jarvis/persona.py`
@@ -24660,6 +27966,334 @@ def describe() -> str:
     if traits:
         parts.append(f"черты: {', '.join(traits)}")
     return ". ".join(parts).capitalize() + "."
+```
+
+### `jarvis/plugins.py`
+
+```python
+"""Плагины: манифест, запуск в отдельном процессе, свои настройки. ... [18 строк]"""
+
+import json
+import logging
+import os
+import re
+import subprocess
+import sys
+import time
+from dataclasses import dataclass, field
+from pathlib import Path
+
+from jarvis.paths import user_dir
+
+log = logging.getLogger("jarvis.plugins")
+
+MANIFEST_NAME = "plugin.json"
+READ_ONLY_CAPABILITIES = frozenset({"command", "status", "settings"})
+MAX_COMMANDS = 20
+MAX_PHRASES = 10
+MAX_OUTPUT = 16 * 1024
+MAX_TIMEOUT = 30.0
+_NAME_RE = re.compile(r"^[a-z0-9_-]{2,40}$")
+
+
+class PluginError(Exception):
+    """Манифест или плагин нарушает договор — честный отказ, не «пропустим»."""
+
+
+@dataclass(frozen=True)
+class PluginCommand:
+    phrases: tuple[str, ...]
+    action: str
+    description: str = ""
+
+
+@dataclass(frozen=True)
+class PluginManifest:
+    name: str
+    version: str
+    entry: str
+    commands: tuple[PluginCommand, ...]
+    capabilities: tuple[str, ...]
+    timeout_sec: float = 5.0
+    description: str = ""
+    path: Path | None = None
+
+    @property
+    def root(self) -> Path:
+        return self.path if self.path is not None else Path(".")
+
+    def phrase_map(self) -> dict[str, PluginCommand]:
+        mapping = {}
+        for command in self.commands:
+            for phrase in command.phrases:
+                mapping[" ".join(phrase.lower().split())] = command
+        return mapping
+
+    @classmethod
+    def from_json(cls, path) -> "PluginManifest":
+        path = Path(path)
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+        except OSError as exc:
+            raise PluginError(f"не читается: {exc}") from None
+        except json.JSONDecodeError as exc:
+            raise PluginError(f"битый JSON: {exc.msg}") from None
+        if not isinstance(raw, dict):
+            raise PluginError("манифест должен быть JSON-объектом")
+        name = str(raw.get("name") or "").strip().lower()
+        if not _NAME_RE.match(name):
+            raise PluginError("name: 2–40 символов [a-z0-9_-]")
+        version = str(raw.get("version") or "").strip()
+        if not version:
+            raise PluginError("version обязателен")
+        entry = str(raw.get("entry") or "").strip()
+        if not entry or Path(entry).is_absolute() or ".." in Path(entry).parts:
+            raise PluginError("entry: файл внутри каталога плагина")
+        root = path.parent.resolve()
+        entry_path = (root / entry).resolve()
+        if root not in entry_path.parents and entry_path != root:
+            raise PluginError("entry выходит за каталог плагина")
+        if not entry_path.is_file():
+            raise PluginError(f"entry не найден: {entry}")
+
+        capabilities = raw.get("capabilities", [])
+        if not isinstance(capabilities, list) or not capabilities:
+            raise PluginError("capabilities обязателен")
+        normalized = tuple(str(item).strip().lower() for item in capabilities)
+        unknown = [item for item in normalized if item not in READ_ONLY_CAPABILITIES]
+        if unknown:
+            raise PluginError("возможность вне первого шага: " + ", ".join(unknown))
+
+        raw_commands = raw.get("commands", [])
+        if not isinstance(raw_commands, list) or not raw_commands:
+            raise PluginError("commands обязателен")
+        if len(raw_commands) > MAX_COMMANDS:
+            raise PluginError(f"слишком много команд (> {MAX_COMMANDS})")
+        commands = []
+        for item in raw_commands:
+            if not isinstance(item, dict):
+                raise PluginError("команда должна быть объектом")
+            phrases = item.get("phrases")
+            action = str(item.get("action") or "").strip()
+            if not isinstance(phrases, list) or not phrases or len(phrases) > MAX_PHRASES:
+                raise PluginError(f"phrases: 1–{MAX_PHRASES} строк")
+            clean = [str(p).strip() for p in phrases if isinstance(p, str) and str(p).strip()]
+            if not clean:
+                raise PluginError("phrases пустые")
+            if not action:
+                raise PluginError("action обязателен")
+            commands.append(PluginCommand(tuple(clean), action,
+                                          str(item.get("description") or "")))
+        try:
+            timeout = float(raw.get("timeout_sec", 5.0))
+        except (TypeError, ValueError):
+            timeout = 5.0
+        timeout = max(0.5, min(MAX_TIMEOUT, timeout))
+        return cls(name=name, version=version, entry=entry,
+                   commands=tuple(commands), capabilities=normalized,
+                   timeout_sec=timeout,
+                   description=str(raw.get("description") or ""), path=root)
+
+
+@dataclass(frozen=True)
+class PluginResult:
+    ok: bool
+    text: str = ""
+    error: str = ""
+    elapsed: float = 0.0
+
+
+class PluginRunner:
+    """Запуск плагина отдельным процессом. `popen` можно подменить в тестах."""
+
+    def __init__(self, *, popen=None, python=None):
+        self._popen = popen or self._default_popen
+        self.python = python or sys.executable
+
+    def _default_popen(self, argv, cwd):
+        env = dict(os.environ)
+        # Даже с `-I` (он игнорирует PYTHON*) оставляем подсказку для
+        # интерпретатора без изоляции и для диагностики; основной механизм
+        # UTF-8 — аргумент `-X utf8` в argv.
+        env["PYTHONIOENCODING"] = "utf-8"
+        env["PYTHONUTF8"] = "1"
+        kwargs = {"stdin": subprocess.PIPE, "stdout": subprocess.PIPE,
+                  "stderr": subprocess.PIPE, "cwd": str(cwd), "env": env}
+        if os.name == "nt":
+            kwargs["creationflags"] = 0x08000000  # CREATE_NO_WINDOW
+        return subprocess.Popen(argv, **kwargs)
+
+    def run(self, manifest: PluginManifest, payload: dict) -> PluginResult:
+        started = time.monotonic()
+        entry = manifest.root / manifest.entry
+        # `-I` отключает PYTHON* переменные окружения (это `-E`), поэтому
+        # PYTHONIOENCODING здесь не действует: UTF-8 для stdin/stdout задаётся
+        # явным `-X utf8`. Без него на русской Windows ответ плагина приходит
+        # в cp1251 и ломается при чтении (поймано живым прогоном hello).
+        argv = [self.python, "-I", "-X", "utf8", str(entry)]
+        body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        try:
+            process = self._popen(argv, manifest.root)
+        except OSError as exc:
+            return PluginResult(False, error=f"не запустился: {exc}")
+        try:
+            out, err = process.communicate(input=body, timeout=manifest.timeout_sec)
+        except subprocess.TimeoutExpired:
+            try:
+                process.kill()
+                process.communicate(timeout=5)
+            except Exception:
+                log.debug("плагин %s не убился", manifest.name, exc_info=True)
+            return PluginResult(False, elapsed=time.monotonic() - started,
+                                error=f"таймаут {manifest.timeout_sec:.1f} с")
+        except Exception as exc:
+            return PluginResult(False, elapsed=time.monotonic() - started,
+                                error=f"сбой запуска: {exc}")
+        elapsed = time.monotonic() - started
+        code = getattr(process, "returncode", 0)
+        stdout = (out or b"").decode("utf-8", "replace")[:MAX_OUTPUT].strip()
+        stderr = (err or b"").decode("utf-8", "replace")[:MAX_OUTPUT].strip()
+        if code not in (0, None):
+            log.warning("плагин %s упал (код %s): %s", manifest.name, code,
+                        stderr[-300:] or "без stderr")
+            return PluginResult(False, elapsed=elapsed,
+                                error=f"плагин упал (код {code})")
+        text = stdout
+        if stdout.startswith("{"):
+            try:
+                data = json.loads(stdout)
+            except json.JSONDecodeError:
+                data = None
+            if isinstance(data, dict):
+                if data.get("error"):
+                    return PluginResult(False, elapsed=elapsed,
+                                        error=str(data["error"])[:200])
+                text = str(data.get("text") or "")
+        return PluginResult(True, text=text, elapsed=elapsed)
+
+
+class PluginSettings:
+    """Настройки плагина: только его собственный JSON, атомарная запись."""
+
+    def __init__(self, manifest: PluginManifest, base_dir=None):
+        self.manifest = manifest
+        root = Path(base_dir) if base_dir is not None else manifest.root
+        self.path = root / f"{manifest.name}.settings.json"
+
+    def load(self) -> dict:
+        try:
+            data = json.loads(self.path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return {}
+        return data if isinstance(data, dict) else {}
+
+    def set(self, key: str, value) -> None:
+        if not isinstance(key, str) or not key or len(key) > 64:
+            raise ValueError("ключ настройки: 1–64 символа")
+        data = self.load()
+        data[key] = value
+        tmp = self.path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        os.replace(tmp, self.path)
+
+
+@dataclass
+class PluginState:
+    manifest: PluginManifest
+    started: bool = False
+    started_at: float = 0.0
+    settings: PluginSettings | None = None
+
+
+class PluginHost:
+    """Каталог плагинов, согласие человека и один запуск на команду."""
+
+    def __init__(self, directory=None, *, runner=None, allowed=None,
+                 config=None, settings_dir=None):
+        self.directory = Path(directory) if directory is not None else user_dir() / "plugins"
+        self.runner = runner or PluginRunner()
+        self.config = config
+        self.allowed = set()
+        self._settings_dir = Path(settings_dir) if settings_dir is not None else None
+        self.states: dict[str, PluginState] = {}
+        self.errors: list[tuple[str, str]] = []
+        if allowed is None and config is not None:
+            raw = config.get("plugins_allowed", [])
+            allowed = raw if isinstance(raw, list) else []
+        for name in allowed or []:
+            if isinstance(name, str):
+                self.allowed.add(name.strip().lower())
+
+    # --- жизнь -----------------------------------------------------
+
+    def discover(self) -> list[PluginManifest]:
+        """Читает манифесты. Ошибки — в `errors`, а не падение ядра."""
+        self.states.clear()
+        self.errors = []
+        if not self.directory.is_dir():
+            return []
+        loaded = []
+        for manifest_path in sorted(self.directory.glob(f"*/{MANIFEST_NAME}")):
+            try:
+                manifest = PluginManifest.from_json(manifest_path)
+            except PluginError as exc:
+                self.errors.append((manifest_path.parent.name, str(exc)))
+                log.warning("плагин %s отклонён: %s", manifest_path.parent.name, exc)
+                continue
+            if manifest.name in self.states:
+                self.errors.append((manifest.name, "имя уже занято"))
+                continue
+            settings = PluginSettings(
+                manifest, self._settings_dir if self._settings_dir is not None
+                else manifest.root)
+            self.states[manifest.name] = PluginState(manifest, settings=settings)
+            loaded.append(manifest)
+        return loaded
+
+    def start(self, name: str) -> tuple[bool, str]:
+        state = self.states.get(str(name).strip().lower())
+        if state is None:
+            return False, f"Плагин {name} не найден."
+        if state.manifest.name not in self.allowed:
+            return False, ("Плагин не разрешён: добавьте его имя в plugins_allowed "
+                           "в настройках.")
+        state.started = True
+        state.started_at = time.monotonic()
+        log.info("Плагин %s запущен", state.manifest.name)
+        return True, f"Плагин {state.manifest.name} запущен."
+
+    def stop(self, name: str) -> tuple[bool, str]:
+        state = self.states.get(str(name).strip().lower())
+        if state is None or not state.started:
+            return False, f"Плагин {name} не запущен."
+        state.started = False
+        log.info("Плагин %s остановлен", state.manifest.name)
+        return True, f"Плагин {state.manifest.name} остановлен."
+
+    def running(self) -> list[PluginManifest]:
+        return [state.manifest for state in self.states.values() if state.started]
+
+    # --- вызов -----------------------------------------------------
+
+    def try_handle(self, cmd: str) -> str | None:
+        """Ищет команду среди запущенных плагинов; None — не наше."""
+        text = " ".join((cmd or "").lower().split())
+        if not text:
+            return None
+        for state in self.states.values():
+            if not state.started:
+                continue
+            command = state.manifest.phrase_map().get(text)
+            if command is None:
+                continue
+            payload = {"command": command.action, "phrase": text, "text": cmd,
+                       "settings": state.settings.load() if state.settings else {}}
+            result = self.runner.run(state.manifest, payload)
+            if not result.ok:
+                log.warning("плагин %s: %s", state.manifest.name, result.error)
+                return f"Плагин {state.manifest.name} не ответил: {result.error}"
+            return result.text or f"Плагин {state.manifest.name} выполнил {command.action}."
+        return None
 ```
 
 ### `jarvis/profile.py`
@@ -26112,6 +29746,7 @@ class Listener:
         self.barge_enabled = True
         self.muted = False
         self.barge_flag = False
+        self._barge_policy = None
         # Блок аудио 128 мс (см. DEFAULT_BLOCK_MS) вместо старых 500 мс.
         self._block_size = max(
             MIN_BLOCK_SAMPLES,
@@ -26230,6 +29865,16 @@ class Listener:
             log.info("Barge-in: стоп (echo=%d, thr=%d, речь=%d мс)",
                      self._echo_baseline, self._barge_threshold, self._barge_speech_ms)
 
+    def _barge_decision_policy(self):
+        """Правило очерёдности разговора (этап 4). None — прежнее поведение."""
+        if self._barge_policy is None:
+            config = self._config
+            if config is None or not config.get("barge_policy_enabled", False):
+                return None
+            from jarvis.barge import BargePolicy
+            self._barge_policy = BargePolicy.from_config(config)
+        return self._barge_policy
+
     def _process_barge(self, rms):
         if not self._speech_active or not self.barge_enabled:
             return
@@ -26261,6 +29906,19 @@ class Listener:
         if rms > self._barge_threshold:
             self._barge_speech_ms += self._block_ms
             if self._barge_speech_ms >= 150:
+                policy = self._barge_decision_policy()
+                if policy is not None:
+                    verdict = policy.evaluate(
+                        rms=rms, threshold=self._barge_threshold,
+                        speech_ms=self._barge_speech_ms,
+                        tts_elapsed=now - self._speech_started_at)
+                    if verdict != "barge":
+                        # Свой хвост, фон или короткий всплеск: не перебиваем.
+                        if verdict != getattr(self, "_barge_last_verdict", ""):
+                            self._barge_last_verdict = verdict
+                            log.info("Barge-in: не считается (%s)", verdict)
+                        return
+                    self._barge_last_verdict = "barge"
                 self.barge_flag = True
         else:
             self._barge_speech_ms = 0
@@ -35536,6 +39194,61 @@ def load_corpus(directory, suite, suite_hash):
 collect_ignore = ["test_intents.py"]
 ```
 
+### `tests/fixtures/decision_cases.json`
+
+```json
+{
+  "comment": "Ручной корпус этапа 2: 23 фразы, не статистика. Пополнять живыми записями (без аудио в репозитории).",
+  "candidates": [
+    ["включи музыку", "music_on"],
+    ["выключи музыку", "music_off"],
+    ["открой блокнот", "open_notepad"],
+    ["закрой блокнот", "close_notepad"],
+    ["громче", "louder"],
+    ["тише", "quieter"],
+    ["стоп", "stop"],
+    ["какая погода", "weather"],
+    ["который час", "time"],
+    ["сделай скриншот", "screenshot"]
+  ],
+  "cases": [
+    {"text": "включи музыку", "expected": "clear", "note": "точная команда"},
+    {"text": "включи музыку!", "expected": "clear", "note": "пунктуация не мешает"},
+    {"text": "выключи музыку", "expected": "clear", "note": "обратная команда"},
+    {"text": "открой блокнот", "expected": "clear", "note": "открыть"},
+    {"text": "закрой блокнот", "expected": "clear", "note": "закрыть, не спутать с открыть"},
+    {"text": "открой блокнотик", "expected": "clear", "note": "уменьшительное"},
+    {"text": "какая погода", "expected": "clear", "note": "вопрос-команда"},
+    {"text": "который час", "expected": "clear", "note": "вопрос-команда"},
+    {"text": "сделай скриншот", "expected": "clear", "note": "латиница/кириллица не важна"},
+    {"text": "стоп", "expected": "clear", "note": "короткий алиас"},
+    {"text": "громче", "expected": "clear", "note": "одно слово"},
+    {"text": "тише", "expected": "clear", "note": "одно слово"},
+    {"text": "включи музыку пожалуйста", "expected": "clear", "note": "вежливость не мешает"},
+    {"text": "вруби музыку", "expected": "unclear", "note": "синоним без семантики: переспросить"},
+    {"text": "погаси музыку", "expected": "unclear", "note": "синоним без семантики"},
+    {"text": "включи музон", "expected": "unclear", "note": "похоже, но не точно"},
+    {"text": "не выключай музыку", "expected": "unclear", "note": "«не» меняет смысл"},
+    {"text": "включи свет", "expected": "unclear", "note": "команда знакомого вида, цели нет"},
+    {"text": "привет как дела", "expected": "not_a_command", "note": "болтовня"},
+    {"text": "расскажи анекдот", "expected": "not_a_command", "note": "свободный диалог"},
+    {"text": "спасибо", "expected": "not_a_command", "note": "не команда"},
+    {"text": "как тебя зовут", "expected": "not_a_command", "note": "вопрос о себе"},
+    {"text": "мне скучно", "expected": "not_a_command", "note": "не команда"},
+    {"text": "включи музыку", "expected": "unclear", "quality": 0.3, "note": "ASR не уверен — переспросить"},
+    {"text": "", "expected": "not_a_command", "note": "пустая фраза"}
+  ],
+  "semantic_cases": [
+    {"text": "вруби музыку", "expected": "clear", "note": "«вруби» → «включи»"},
+    {"text": "вруби музыку плиз", "expected": "clear", "note": "синоним + мусор"},
+    {"text": "погаси музыку", "expected": "clear", "note": "«погаси» → «выключи»"},
+    {"text": "запусти музыку", "expected": "clear", "note": "«запусти» → «включи»"},
+    {"text": "врубай музыку пожалуйста", "expected": "clear", "note": "синоним + вежливость"},
+    {"text": "хватит", "expected": "clear", "note": "«хватит» → «стоп»"}
+  ]
+}
+```
+
 ### `tests/manual/nonverbal_live.py`
 
 ```python
@@ -36434,6 +40147,636 @@ def test_unavailable_caps_skips_the_probe(monkeypatch):
     assert calls == []
 ```
 
+### `tests/test_aec_backend.py`
+
+```python
+"""Выбор backend'а AEC: native по умолчанию, честный отказ от webrtc."""
+from jarvis.aec_backend import BACKENDS, BackendChoice, resolve
+
+
+class FakeConfig:
+    def __init__(self, **data):
+        self.data = data
+
+    def get(self, key, default=None):
+        return self.data.get(key, default)
+
+
+def config_with(**data):
+    return FakeConfig(**data)
+
+
+def test_native_is_the_default():
+    choice = resolve(config_with())
+    assert choice.name == "native" and choice.fallback is False
+    assert "RenderTap" in choice.reason
+
+
+def test_unknown_backend_falls_back_to_native_with_reason():
+    choice = resolve(config_with(aec_backend="какой-то"))
+    assert choice.name == "native" and choice.requested == "native"
+    assert "неизвестный" in choice.reason
+    assert resolve(config_with(aec_backend=None)).name == "native"
+
+
+def test_webrtc_requested_but_package_missing_stays_native():
+    def importer(name):
+        raise ImportError(name)
+
+    choice = resolve(config_with(aec_backend="webrtc"), importer=importer)
+    assert choice.name == "native" and choice.requested == "webrtc"
+    assert choice.fallback is True
+    assert "не установлен" in choice.reason
+
+
+def test_webrtc_used_only_when_package_really_imports():
+    seen = []
+
+    def importer(name):
+        seen.append(name)
+        if name != "pywebrtc_audio":
+            raise ImportError(name)
+        return object()
+
+    choice = resolve(config_with(aec_backend="webrtc"), importer=importer)
+    assert choice.name == "webrtc" and choice.fallback is False
+    assert "pywebrtc_audio" in choice.reason
+    assert seen == ["webrtc_audio_processing", "pywebrtc_audio"]
+
+
+def test_backend_names_are_stable():
+    assert BACKENDS == ("native", "webrtc")
+    assert BackendChoice("native", "webrtc", "").fallback is True
+```
+
+### `tests/test_api_server.py`
+
+```python
+"""Локальный стык API: живой HTTP на 127.0.0.1, авторизация, pending, приватность."""
+import json
+import socket
+import threading
+import time
+import urllib.error
+import urllib.request
+
+import flet as ft
+import pytest
+
+from jarvis import api_server, peer_client
+from jarvis import gui as module
+from jarvis import mood, profile
+from jarvis.api_server import ApiServer, normalize_port, normalize_session, normalize_token
+from jarvis.config import Config
+from jarvis.peer_client import PeerClient, PeerError
+from jarvis.reply import Reply
+
+TOKEN = "test-token-0123456789abcdef"
+
+
+class FakeHandler:
+    """Ядро-заглушка: считает вызовы, помнит pending, отвечает по правилу."""
+
+    def __init__(self):
+        self._pending_password = None
+        self._pending_question = None
+        self.calls = []
+        self.finalized = []
+
+    def handle(self, text):
+        self.calls.append(text)
+        if "пароль" in text:
+            self._pending_password = {"kind": "custom"}
+            return Reply("Скажите пароль.")
+        if "уточни" in text:
+            self._pending_question = {"question": "Какой блокнот?", "expires_at": time.time() + 60}
+            return Reply("Какой блокнот?")
+        if "поток" in text:
+            def chunks():
+                yield "При"
+                yield "вет"
+            return Reply(stream=chunks())
+        return Reply(f"эхо: {text}")
+
+    def finalize_stream(self, text):
+        self.finalized.append(text)
+
+
+def free_port():
+    with socket.socket() as sock:
+        sock.bind(("127.0.0.1", 0))
+        return sock.getsockname()[1]
+
+
+@pytest.fixture
+def server():
+    port = free_port()
+    core = FakeHandler()
+    api = ApiServer(core, port=port, token=TOKEN, version="9.9.9")
+    ok, message = api.start()
+    assert ok, message
+    try:
+        yield api, core
+    finally:
+        api.stop()
+
+
+def get(api, path, token=TOKEN):
+    request = urllib.request.Request(api.url + path, headers={"Authorization": f"Bearer {token}"})
+    with urllib.request.urlopen(request, timeout=5) as response:
+        return response.status, json.loads(response.read().decode("utf-8"))
+
+
+def post(api, path, payload, token=TOKEN):
+    data = json.dumps(payload).encode("utf-8")
+    headers = {"Content-Type": "application/json"}
+    if token is not None:
+        headers["Authorization"] = f"Bearer {token}"
+    request = urllib.request.Request(api.url + path, data=data, headers=headers, method="POST")
+    with urllib.request.urlopen(request, timeout=10) as response:
+        return response.status, json.loads(response.read().decode("utf-8"))
+
+
+def post_error(api, path, payload, token=TOKEN):
+    with pytest.raises(urllib.error.HTTPError) as caught:
+        post(api, path, payload, token=token)
+    body = json.loads(caught.value.read().decode("utf-8"))
+    return caught.value.code, body
+
+
+def test_health_and_capabilities(server):
+    api, _core = server
+    status, health = get(api, "/v1/health")
+    assert status == 200
+    assert health["schema"] == 1 and health["status"] == "ok"
+    assert health["version"] == "9.9.9"
+    status, caps = get(api, "/v1/capabilities")
+    assert status == 200
+    assert set(caps["capabilities"]) == {"health", "capabilities", "turn", "pending"}
+    assert caps["auth"] == "bearer" and caps["stream"] is False
+    assert "профиль не уходит" in caps["privacy"]
+
+
+def test_only_loopback_is_used(server):
+    api, _core = server
+    assert api.host == "127.0.0.1" and api.url.startswith("http://127.0.0.1:")
+    other = ApiServer(FakeHandler(), port=free_port(), token=TOKEN, host="0.0.0.0")
+    assert other.host == "127.0.0.1"
+
+
+def test_requests_without_token_are_rejected(server):
+    api, core = server
+    with pytest.raises(urllib.error.HTTPError) as caught:
+        get(api, "/v1/health", token="wrong-token-0123456789")
+    assert caught.value.code == 401
+    code, body = post_error(api, "/v1/turn", {"session_id": "s1", "text": "привет"}, token=None)
+    assert code == 401 and "Bearer" in body["error"]
+    assert core.calls == []
+
+
+def test_turn_requires_session_and_text(server):
+    api, core = server
+    code, body = post_error(api, "/v1/turn", {"text": "привет"})
+    assert code == 400 and "session_id" in body["error"]
+    code, body = post_error(api, "/v1/turn", {"session_id": "s1"})
+    assert code == 400 and "text" in body["error"]
+    code, _body = post_error(api, "/v1/turn", {"session_id": "s" * 200, "text": "привет"})
+    assert code == 400
+    assert core.calls == []
+
+
+def test_turn_returns_answer_and_echoes_session(server):
+    api, core = server
+    status, body = post(api, "/v1/turn", {"session_id": "sess-1", "text": "  привет  "})
+    assert status == 200
+    assert body["status"] == "ok" and body["pending"] is False
+    assert body["text"] == "эхо: привет" and body["session_id"] == "sess-1"
+    assert core.calls == ["привет"]
+
+
+def test_pending_question_is_a_status_not_success(server):
+    api, core = server
+    status, body = post(api, "/v1/turn", {"session_id": "s1", "text": "уточни"})
+    assert status == 200 and body["status"] == "pending"
+    assert body["pending"] == "question" and body["text"] == "Какой блокнот?"
+
+
+def test_password_never_goes_through_api(server):
+    api, core = server
+    core._pending_password = {"kind": "custom"}
+    status, body = post(api, "/v1/turn", {"session_id": "s1", "text": "1234"})
+    assert status == 200 and body["status"] == "pending" and body["pending"] == "password"
+    assert "окне Феникса" in body["text"]
+    assert core.calls == []  # ядро пароль из API не получает
+
+
+def test_stream_reply_is_collected_and_finalized(server):
+    api, core = server
+    status, body = post(api, "/v1/turn", {"session_id": "s1", "text": "поток"})
+    assert status == 200 and body["text"] == "Привет"
+    assert core.finalized == ["Привет"]
+
+
+def test_core_failure_is_not_reported_as_success(server):
+    api, core = server
+
+    def boom(_text):
+        raise RuntimeError("ядро сломалось")
+
+    core.handle = boom
+    code, body = post_error(api, "/v1/turn", {"session_id": "s1", "text": "привет"})
+    assert code == 500 and body["status"] == "error"
+    assert "сломалось" not in json.dumps(body)
+
+
+def test_unknown_paths_are_404(server):
+    api, _core = server
+    with pytest.raises(urllib.error.HTTPError) as caught:
+        get(api, "/v1/secret")
+    assert caught.value.code == 404
+    code, _body = post_error(api, "/v1/tools/invoke", {"session_id": "s1", "text": "x"})
+    assert code == 404
+
+
+def test_turn_serializes_calls(server):
+    api, core = server
+    order = []
+    original = core.handle
+
+    def slow(text):
+        order.append(("start", text))
+        time.sleep(0.15)
+        order.append(("end", text))
+        return original(text)
+
+    core.handle = slow
+    threads = [threading.Thread(target=post, args=(api, "/v1/turn",
+                                                   {"session_id": f"s{i}", "text": "привет"}))
+               for i in range(3)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=10)
+    assert len(order) == 6
+    assert order[0][0] == "start" and order[1][0] == "end"
+
+
+def test_tokens_and_sessions_are_validated():
+    assert normalize_token(TOKEN) == TOKEN
+    assert normalize_token("short") == "" and normalize_token("with space 1234567") == ""
+    assert normalize_session("sess-1:alpha_2.3") == "sess-1:alpha_2.3"
+    assert normalize_session("") == "" and normalize_session("плохая сессия") == ""
+    assert normalize_port(8765) == 8765 and normalize_port(80) == 8765
+    assert normalize_port("abc") == 8765 and normalize_port(None) == 8765
+    assert normalize_port("9000") == 9000
+
+
+def test_stop_frees_the_port():
+    port = free_port()
+    api = ApiServer(FakeHandler(), port=port, token=TOKEN)
+    assert api.start()[0] is True
+    api.stop()
+    assert api.running is False
+    with socket.socket() as sock:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.bind(("127.0.0.1", port))  # порт снова свободен
+    again = ApiServer(FakeHandler(), port=port, token=TOKEN)
+    assert again.start()[0] is True
+    again.stop()
+
+
+def test_start_without_token_or_core_is_honest():
+    api = ApiServer(FakeHandler(), port=free_port(), token="")
+    ok, message = api.start()
+    assert ok is False and "токен" in message.lower()
+    api = ApiServer(None, port=free_port(), token=TOKEN)
+    ok, message = api.start()
+    assert ok is False and "ядро" in message.lower()
+
+
+def test_busy_port_is_reported_not_faked():
+    port = free_port()
+    first = ApiServer(FakeHandler(), port=port, token=TOKEN)
+    assert first.start()[0] is True
+    second = ApiServer(FakeHandler(), port=port, token=TOKEN)
+    try:
+        ok, message = second.start()
+        assert ok is False and str(port) in message
+    finally:
+        first.stop()
+
+
+def test_token_is_not_in_logs_or_repr(server, caplog):
+    api, core = server
+    caplog.set_level("DEBUG")
+    post(api, "/v1/turn", {"session_id": "s1", "text": "привет"})
+    get(api, "/v1/health")
+    text = "\n".join(record.getMessage() for record in caplog.records)
+    assert TOKEN not in text
+    assert "привет" not in text
+    client = PeerClient(api.url, TOKEN)
+    assert TOKEN not in repr(client) and "***" in repr(client)
+
+
+# --- клиент-сосед ------------------------------------------------------
+
+
+def test_peer_client_talks_to_the_same_api(server):
+    api, core = server
+    client = PeerClient(api.url, TOKEN, timeout=5)
+    assert client.health()["status"] == "ok"
+    assert "turn" in client.capabilities()["capabilities"]
+    answer = client.ask("привет", session_id="peer-1")
+    assert answer["status"] == "ok" and answer["text"] == "эхо: привет"
+    assert answer["session_id"] == "peer-1"
+
+
+def test_peer_client_rejects_bad_inputs():
+    with pytest.raises(ValueError):
+        PeerClient("127.0.0.1:8765", TOKEN)
+    with pytest.raises(ValueError):
+        PeerClient("http://127.0.0.1:8765", "short")
+    client = PeerClient("http://127.0.0.1:8765", TOKEN)
+    with pytest.raises(ValueError):
+        client.ask("   ")
+
+
+def test_peer_client_reports_errors_without_secrets(server):
+    api, _core = server
+    with pytest.raises(PeerError) as caught:
+        PeerClient(api.url, "wrong-token-0123456789").health()
+    assert caught.value.status == 401
+    assert "wrong-token" not in str(caught.value)
+    with pytest.raises(PeerError):
+        PeerClient("http://127.0.0.1:1", TOKEN, timeout=1).health()
+
+
+# --- настройки в GUI ---------------------------------------------------
+
+
+@pytest.fixture
+def window(tmp_path):
+    gui = module.FenixGUI(None, Config(tmp_path / "config.json"))
+    page = type("Page", (), {"update": lambda self: None})()
+    gui._page = page
+    yield gui
+    gui.stop()
+    module._apply_palette("dark")
+    profile.unsubscribe(gui._on_profile_switch)
+    mood.unsubscribe(gui._on_mood_change)
+
+
+def test_api_is_off_by_default_and_toggle_is_honest(window):
+    assert window.config.get("api_enabled") is False
+    assert window._sync_api_server() == (False, "API выключен.")
+    ok = window.set_api_enabled(True, update=False)
+    assert ok is False  # ядро не передано — сервер не поднимается
+    assert window._api_server is None
+    assert "ядра" in window._api_status
+    assert window.config.get("api_enabled") is True
+    assert window.set_api_enabled(False, update=False) is True
+    assert window._api_status == "API выключен."
+
+
+def test_api_port_is_normalized(window):
+    assert window.set_api_port(9001) is True
+    assert window.config.get("api_port") == 9001
+    window.set_api_port(80)
+    assert window.config.get("api_port") == 8765
+
+
+def test_gui_runs_the_api_for_its_core(tmp_path, monkeypatch):
+    """Сквозной путь: галочка в GUI → живой сервер → клиент-сосед → ядро."""
+    core = FakeHandler()
+    gui = module.FenixGUI(type("Jarvis", (), {"handler": core})(),
+                          Config(tmp_path / "config.json"))
+    gui.config.set("api_port", free_port())
+    page = type("Page", (), {"update": lambda self: None})()
+    gui._page = page
+    monkeypatch.setattr(api_server, "ensure_token", lambda: (TOKEN, "Токен готов."))
+    try:
+        assert gui.set_api_enabled(True, update=False) is True
+        assert gui._api_server is not None and gui._api_server.running
+        client = PeerClient(gui._api_server.url, TOKEN)
+        assert client.ask("привет")["text"] == "эхо: привет"
+        assert core.calls == ["привет"]
+        assert gui.set_api_enabled(False, update=False) is True
+        assert gui._api_server is None
+    finally:
+        gui.stop()
+        module._apply_palette("dark")
+        profile.unsubscribe(gui._on_profile_switch)
+        mood.unsubscribe(gui._on_mood_change)
+```
+
+### `tests/test_asr_router.py`
+
+```python
+"""Эскалация ASR: табличные тесты роутера на фейковых движках, без моделей и звука."""
+import threading
+import time
+
+import pytest
+
+from jarvis.asr_router import Budget, Cache, CallableEngine, Router, Transcript
+from jarvis.decision import Thresholds
+from jarvis.recognition import Quality
+
+OK = Quality(True, "reliable_words", 0.92)
+WEAK = Quality(True, "uncertain_words", 0.30)
+BAD = Quality(False, "near_silence")
+
+
+def engine(name, text, quality=OK, calls=None, exc=None, latency=0.01):
+    def fn(_pcm, _rate):
+        if calls is not None:
+            calls.append(name)
+        if exc is not None:
+            raise exc
+        return Transcript(text, quality, name, latency)
+    return CallableEngine(name, fn)
+
+
+def router(primary_text="включи музыку", fallback_text=None, *, primary_quality=OK,
+           enabled=True, calls=None, budget=None, cache=None, thresholds=None,
+           semantic=False, fallback_exc=None):
+    primary = engine("vosk", primary_text, primary_quality, calls)
+    fallback = None
+    if enabled and (fallback_text is not None or fallback_exc is not None):
+        fallback = engine("whisper", fallback_text or "", OK, calls, exc=fallback_exc)
+    return Router(primary, fallback, enabled=enabled, budget=budget, cache=cache,
+                  thresholds=thresholds, semantic=semantic)
+
+
+def test_callable_engine_accepts_text_dict_and_transcript():
+    plain = CallableEngine("x", lambda pcm, rate: "привет")
+    assert plain.transcribe(b"", 16000).text == "привет"
+    assert plain.transcribe(b"", 16000).engine == "x"
+    mapping = CallableEngine("y", lambda pcm, rate: {"text": "ок", "quality": OK})
+    result = mapping.transcribe(b"", 16000)
+    assert result.text == "ок" and result.quality is OK and result.engine == "y"
+    ready = CallableEngine("z", lambda pcm, rate: Transcript("да", OK, "z", 0.5))
+    assert ready.transcribe(b"", 16000).latency == 0.5
+    with pytest.raises(TypeError):
+        CallableEngine("w", lambda pcm, rate: 42).transcribe(b"", 16000)
+
+
+def test_escalation_is_off_by_default():
+    calls = []
+    r = router(fallback_text="включи музыку", enabled=False, calls=calls,
+               primary_quality=WEAK)
+    result = r.run(b"pcm", 16000)
+    assert result.escalated is False and result.reason == "no_fallback"
+    assert calls == ["vosk"]
+
+
+def test_confident_primary_does_not_call_the_heavy_engine():
+    calls = []
+    r = router(fallback_text="включи музыку", calls=calls)
+    result = r.run(b"pcm", 16000, candidates=[("включи музыку", "music_on")])
+    assert result.escalated is False and result.reason == "confident"
+    assert calls == ["vosk"] and result.decision_kind == "clear"
+
+
+def test_weak_quality_escalates_and_agreement_adopts_second_text():
+    calls = []
+    r = router("включи музку", "включи музыку", calls=calls, primary_quality=WEAK)
+    result = r.run(b"pcm", 16000)
+    assert result.escalated is True and result.reason == "confident"
+    assert calls == ["vosk", "whisper"]
+    assert result.text == "включи музыку"
+    assert result.transcript.engine == "whisper"
+
+
+def test_disagreement_asks_again_and_never_acts():
+    r = router("открой блокнот", "закрой блокнот")
+    result = r.run(b"pcm", 16000, matched=False)
+    assert result.escalated is True and result.reason == "disagreement"
+    assert result.needs_repeat is True and result.decision_kind == "unclear"
+
+
+def test_number_mismatch_between_engines_is_unclear():
+    r = router("громкость 5", "громкость 7", primary_quality=WEAK)
+    result = r.run(b"pcm", 16000)
+    assert result.reason == "disagreement" and result.needs_repeat is True
+
+
+def test_missing_dictionary_match_escalates_even_with_good_quality():
+    calls = []
+    r = router("вруби музыку", "включи музыку", calls=calls)
+    result = r.run(b"pcm", 16000, matched=False)
+    assert result.escalated is True and calls == ["vosk", "whisper"]
+    assert result.text == "включи музыку"
+
+
+@pytest.mark.parametrize("fallback_kwargs,reason", [
+    ({"fallback_exc": RuntimeError("нет модели")}, "fallback_failed"),
+    ({"fallback_text": "   "}, "fallback_empty"),
+])
+def test_broken_fallback_becomes_ask_again_not_crash(fallback_kwargs, reason):
+    calls = []
+    r = router("включи музку", calls=calls, primary_quality=WEAK, **fallback_kwargs)
+    result = r.run(b"pcm", 16000)
+    assert result.reason == reason
+    assert result.needs_repeat is True
+    assert result.text == "включи музку"  # остаётся текст первого движка
+
+
+def test_broken_primary_is_honest():
+    def boom(_pcm, _rate):
+        raise RuntimeError("vosk умер")
+
+    r = Router(CallableEngine("vosk", boom), engine("whisper", "привет"), enabled=True)
+    result = r.run(b"pcm", 16000)
+    assert result.transcript is None and result.reason == "primary_failed"
+    assert result.needs_repeat is True
+
+
+def test_budget_limits_heavy_engine_and_reports_it():
+    calls = []
+    budget = Budget(limit=1, window_sec=60)
+    r = router("включи музку", "включи музыку", calls=calls, budget=budget,
+               primary_quality=WEAK)
+    first = r.run(b"pcm", 16000)
+    second = r.run(b"pcm", 16000, matched=False)
+    assert first.escalated is True
+    assert second.escalated is False and second.reason == "budget"
+    assert calls == ["vosk", "whisper", "vosk"]
+    assert budget.used == 1
+
+
+def test_budget_window_expires():
+    budget = Budget(limit=1, window_sec=10)
+    assert budget.allow(now=100.0) is True
+    assert budget.allow(now=105.0) is False
+    assert budget.allow(now=111.0) is True
+
+
+def test_cache_avoids_second_heavy_call():
+    calls = []
+    cache = Cache(ttl=60, limit=4)
+    r = router("включи музку", "включи музыку", calls=calls, cache=cache,
+               primary_quality=WEAK)
+    r.run(b"pcm", 16000)
+    second = r.run(b"pcm", 16000)
+    assert second.escalated is True and second.reason == "cache"
+    assert calls == ["vosk", "whisper", "vosk"]
+    assert second.text == "включи музыку"
+
+
+def test_cache_expires_and_respects_rate():
+    cache = Cache(ttl=5, limit=2)
+    value = Transcript("включи музыку", OK, "whisper")
+    cache.put("включи музку", 16000, value, now=100.0)
+    assert cache.get("включи музку", 16000, now=104.0) is value
+    assert cache.get("включи музку", 16000, now=106.0) is None
+    assert cache.get("включи музку", 8000, now=101.0) is None
+
+
+def test_cancel_before_and_during_heavy_call():
+    calls = []
+    cancel = threading.Event()
+    cancel.set()
+    r = router("включи музку", "включи музыку", calls=calls, primary_quality=WEAK)
+    result = r.run(b"pcm", 16000, cancel_event=cancel)
+    assert result.reason == "cancelled" and calls == ["vosk"]
+    assert result.needs_repeat is True
+
+    cancel.clear()
+
+    def slow_fallback(_pcm, _rate):
+        cancel.set()
+        return Transcript("включи музыку", OK, "whisper", 0.2)
+
+    r2 = Router(engine("vosk", "включи музку", WEAK), CallableEngine("whisper", slow_fallback),
+                enabled=True)
+    after = r2.run(b"pcm", 16000, cancel_event=cancel)
+    assert after.reason == "cancelled" and after.escalated is True
+
+
+def test_thresholds_from_config_control_escalation():
+    # Планка уверенности ASR: 0.7 при планке 0.8 — сомнение, при 0.5 — норма.
+    quality = Quality(True, "uncertain_words", 0.70)
+    strict = Thresholds(asr_min=0.80)
+    r = router("включи музыку", "включи музыку", primary_quality=quality,
+               thresholds=strict)
+    assert r.run(b"pcm", 16000).escalated is True
+    loose = Thresholds(asr_min=0.50)
+    r2 = router("включи музыку", "включи музыку", primary_quality=quality,
+                thresholds=loose)
+    assert r2.run(b"pcm", 16000).escalated is False
+
+
+def test_semantic_router_resolves_synonyms_instead_of_escalating():
+    candidates = [("включи музыку", "music_on")]
+    plain = router("вруби музыку", "включи музыку", semantic=False)
+    assert plain.run(b"pcm", 16000, candidates=candidates).escalated is True
+    smart = router("вруби музыку", "включи музыку", semantic=True)
+    result = smart.run(b"pcm", 16000, candidates=candidates)
+    assert result.escalated is False and result.decision_kind == "clear"
+    assert result.text == "вруби музыку"
+```
+
 ### `tests/test_audio_regression.py`
 
 ```python
@@ -37263,6 +41606,110 @@ def test_stt_does_not_retain_sensitive_recognition(caplog):
         gen.close()
     assert not listener.recent_phrases
     assert '1234' not in caplog.text
+```
+
+### `tests/test_barge_policy.py`
+
+```python
+"""Правило очерёдности разговора: таблица вердиктов и один хук в Listener."""
+import time
+
+from jarvis.barge import BargePolicy
+from jarvis.config import Config
+from jarvis.stt import Listener
+
+
+class FakeConfig:
+    def __init__(self, **data):
+        self.data = data
+
+    def get(self, key, default=None):
+        return self.data.get(key, default)
+
+
+def test_defaults_match_previous_behaviour():
+    policy = BargePolicy()
+    assert policy.min_after_tts_sec == 0.35
+    assert policy.min_speech_ms == 150
+    assert policy.evaluate(rms=200, threshold=100, speech_ms=200, tts_elapsed=1.0) == "barge"
+
+
+def test_quiet_echo_does_not_barge():
+    policy = BargePolicy()
+    assert policy.evaluate(rms=110, threshold=100, speech_ms=300, tts_elapsed=1.0) == "quiet"
+    assert policy.evaluate(rms=100, threshold=100, speech_ms=300, tts_elapsed=1.0) == "quiet"
+
+
+def test_own_tail_right_after_tts_start_does_not_barge():
+    policy = BargePolicy()
+    assert policy.evaluate(rms=500, threshold=100, speech_ms=300, tts_elapsed=0.1) == "too_soon"
+    assert policy.evaluate(rms=500, threshold=100, speech_ms=300, tts_elapsed=0.34) == "too_soon"
+
+
+def test_short_click_does_not_barge():
+    policy = BargePolicy()
+    assert policy.evaluate(rms=500, threshold=100, speech_ms=120, tts_elapsed=1.0) == "short"
+
+
+def test_config_overrides_and_invalid_values_fall_back():
+    policy = BargePolicy.from_config(FakeConfig(barge_min_after_tts_sec=0.6,
+                                                barge_min_speech_ms=200,
+                                                barge_level_margin=1.5))
+    assert policy.min_after_tts_sec == 0.6
+    assert policy.min_speech_ms == 200
+    assert policy.level_margin == 1.5
+    fallback = BargePolicy.from_config(FakeConfig(barge_min_after_tts_sec="мусор",
+                                                  barge_min_speech_ms=None,
+                                                  barge_level_margin=float("nan")))
+    assert fallback == BargePolicy()
+
+
+def listener_stub(tmp_path, *, enabled: bool):
+    listener = object.__new__(Listener)
+    listener._config = Config(tmp_path / "config.json")
+    listener._config._data["barge_policy_enabled"] = enabled
+    listener._barge_policy = None
+    listener.barge_enabled = True
+    listener.barge_flag = False
+    listener._speech_active = True
+    listener._speech_started_at = time.time() - 2.0
+    listener._echo_done = True
+    listener._echo_baseline = 100
+    listener._barge_threshold = 100
+    listener._barge_speech_ms = 0
+    listener._block_ms = 128
+    listener._echo_window_samples = []
+    listener._last_barge_log = 0.0
+    return listener
+
+
+def test_policy_off_keeps_previous_barge_behaviour(tmp_path):
+    listener = listener_stub(tmp_path, enabled=False)
+    listener._barge_speech_ms = 150
+    listener._process_barge(1000)
+    assert listener.barge_flag is True
+
+
+def test_policy_on_ignores_quiet_echo(tmp_path):
+    listener = listener_stub(tmp_path, enabled=True)
+    listener._barge_speech_ms = 150
+    listener._process_barge(105)  # выше порога, но без запаса
+    assert listener.barge_flag is False
+
+
+def test_policy_on_accepts_loud_long_speech(tmp_path):
+    listener = listener_stub(tmp_path, enabled=True)
+    listener._barge_speech_ms = 150
+    listener._process_barge(400)
+    assert listener.barge_flag is True
+
+
+def test_policy_on_ignores_own_tail_in_first_ms(tmp_path):
+    listener = listener_stub(tmp_path, enabled=True)
+    listener._speech_started_at = time.time()  # TTS только начался
+    listener._barge_speech_ms = 150
+    listener._process_barge(1000)
+    assert listener.barge_flag is False
 ```
 
 ### `tests/test_bootstrap_ollama_config.py`
@@ -39520,6 +43967,161 @@ def test_delete_profile_stage_refuses_without_password(monkeypatch):
     assert called == [], "профиль удалён без пароля"
 ```
 
+### `tests/test_decision.py`
+
+```python
+"""Решение «чёткая команда / нечёткая / не команда»: таблица, корпус, синонимы."""
+import json
+from pathlib import Path
+
+import pytest
+
+from jarvis import decision
+from jarvis.decision import CLEAR, NOT_A_COMMAND, UNCLEAR, Decision, Thresholds
+from jarvis.intents.fast.custom import find_custom
+from jarvis.recognition import Quality
+
+FIXTURE = Path(__file__).with_name("fixtures") / "decision_cases.json"
+CORPUS = json.loads(FIXTURE.read_text(encoding="utf-8"))
+CANDIDATES = [tuple(pair) for pair in CORPUS["candidates"]]
+
+
+def run(text, **kwargs):
+    kwargs.setdefault("quality", 0.9)
+    kwargs.setdefault("candidates", CANDIDATES)
+    return decision.decide(text, **kwargs)
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("", NOT_A_COMMAND),
+    ("   ", NOT_A_COMMAND),
+    (None, NOT_A_COMMAND),
+    ("...", NOT_A_COMMAND),
+])
+def test_empty_phrases_are_not_commands(text, expected):
+    assert run(text).kind == expected
+
+
+def test_short_alias_and_similar_commands_are_distinguished():
+    assert run("стоп").kind == CLEAR
+    opened = run("открой блокнот")
+    closed = run("закрой блокнот")
+    assert opened.kind == CLEAR and closed.kind == CLEAR
+    assert opened.evidence["intent"] == "open_notepad"
+    assert closed.evidence["intent"] == "close_notepad"
+
+
+def test_negation_never_turns_into_execution():
+    verdict = run("не выключай музыку")
+    assert verdict.kind == UNCLEAR and verdict.reason == "negation"
+    assert verdict.needs_repeat is True
+
+
+def test_missing_asr_confidence_is_not_punished():
+    """Нет данных о качестве — не выдумываем провал, но и «чётко» не обещаем."""
+    assert run("включи музыку", quality=None).kind == CLEAR
+    weak = run("включи музыку", quality=Quality(True, "reliable_words", 0.2))
+    assert weak.kind == UNCLEAR and weak.reason == "asr_weak"
+
+
+def test_rejected_quality_always_asks_again():
+    verdict = run("включи музыку", quality=Quality(False, "near_silence"))
+    assert verdict.kind == UNCLEAR and verdict.reason == "asr_weak"
+
+
+def test_no_match_channel_reacts_to_asr_only():
+    assert decision.decide("включи музыку", quality=0.9).kind == CLEAR
+    assert decision.decide("включи музыку", quality=0.1).kind == UNCLEAR
+
+
+def test_second_transcript_must_agree_on_intent():
+    agree = run("включи музыку", secondary="включи музыку пожалуйста")
+    assert agree.kind == CLEAR and agree.reason == "consensus"
+    disagree = run("открой блокнот", secondary="закрой блокнот")
+    assert disagree.kind == UNCLEAR and disagree.reason == "disagreement"
+    negated = run("выключи музыку", secondary="не выключай музыку")
+    assert negated.kind == UNCLEAR
+
+
+def test_two_hypotheses_of_nonsense_never_become_a_command():
+    verdict = run("расскажи анекдот", secondary="расскажи анекдот про кота")
+    assert verdict.kind != CLEAR
+    assert verdict.kind in (NOT_A_COMMAND, UNCLEAR)
+    assert verdict.evidence["score"] < 0.62
+
+
+def test_match_object_is_accepted():
+    verdict = decision.decide("включи музыку", quality=0.9,
+                              match={"score": 0.95, "intent": "music_on"})
+    assert verdict.kind == CLEAR and verdict.evidence["intent"] == "music_on"
+    low = decision.decide("включи музыку", quality=0.9, match=0.3)
+    assert low.kind == NOT_A_COMMAND
+
+
+def test_thresholds_are_clamped_and_ordered():
+    thresholds = Thresholds(clear_score=3, unclear_score=-2, asr_min="x", agreement=None)
+    fixed = thresholds.validated()
+    assert fixed.clear_score == 1.0 and fixed.unclear_score == 0.0
+    assert fixed.asr_min == 0.55 and fixed.agreement == 0.80
+    config = {"decision_clear_score": 0.4, "decision_unclear_score": 0.9,
+              "decision_asr_min_confidence": 2, "decision_agreement_min": "bad"}
+    from_config = Thresholds.from_config(config)
+    assert from_config.clear_score == 0.4 and from_config.unclear_score == 0.4
+    assert from_config.asr_min == 1.0 and from_config.agreement == 0.80
+    assert Thresholds.from_config(None) == Thresholds()
+
+
+def test_decision_is_immutable_snapshot():
+    verdict = run("включи музыку")
+    assert isinstance(verdict, Decision)
+    assert verdict.is_clear and not verdict.needs_repeat
+    with pytest.raises(Exception):
+        verdict.kind = "clear"
+
+
+def test_semantic_layer_off_keeps_raw_matching():
+    assert run("вруби музыку").kind == UNCLEAR
+    assert run("вруби музыку", semantic=False).kind == UNCLEAR
+    assert decision.semantic_normalize("вруби музыку плиз") == "включи музыку"
+    assert decision.semantic_normalize("Погаси, МУЗЫКУ!") == "выключи музыку"
+
+
+def test_semantic_layer_on_resolves_synonyms():
+    for case in CORPUS["semantic_cases"]:
+        verdict = run(case["text"], semantic=True)
+        assert verdict.kind == case["expected"], (case["text"], verdict.reason, verdict.score)
+
+
+def test_corpus_accuracy_does_not_regress():
+    """Корпус маленький и ручной — это защита от регрессии, а не статистика."""
+    total = len(CORPUS["cases"])
+    correct = 0
+    mistakes = []
+    for case in CORPUS["cases"]:
+        verdict = run(case["text"], quality=case.get("quality", 0.9))
+        if verdict.kind == case["expected"]:
+            correct += 1
+        else:
+            mistakes.append((case["text"], case["expected"], verdict.kind, verdict.reason))
+    accuracy = correct / total
+    assert accuracy >= 0.92, f"точность {accuracy:.2f} на {total} фразах: {mistakes}"
+
+
+def test_semantic_corpus_is_clear_only_with_the_flag():
+    for case in CORPUS["semantic_cases"]:
+        assert run(case["text"], semantic=True).kind == CLEAR
+    unresolved = [case["text"] for case in CORPUS["semantic_cases"]
+                  if run(case["text"], semantic=False).kind != CLEAR]
+    assert unresolved, "часть синонимов обязана требовать семантику, иначе флаг бессмысленен"
+
+
+def test_custom_commands_use_semantics_only_behind_the_flag():
+    custom = [(["включи музыку"], "music.exe", "Включаю.")]
+    assert find_custom(custom, "вруби музыку плиз") is None
+    assert find_custom(custom, "вруби музыку плиз", semantic=True) is not None
+    assert find_custom(custom, "включи музыку") is not None
+```
+
 ### `tests/test_echo.py`
 
 ```python
@@ -40102,6 +44704,151 @@ def test_reference_chunk_boundaries_do_not_create_one_sample_holes():
     far = p._reference(100.5, 5120)
     assert np.all(np.abs(far.astype(int) - 8192) <= 1)
     p.close()
+```
+
+### `tests/test_echo_loopback.py`
+
+```python
+"""Эталон для AEC: проба loopback, буфер задержки и выбор источника."""
+from array import array
+
+from jarvis.echo_loopback import (LoopbackProbe, ReferenceDelay, choose_reference,
+                                  open_loopback_stream, probe_loopback)
+
+
+class FakeSettings:
+    def __init__(self, loopback=False, fail=False):
+        if fail:
+            raise RuntimeError("нет такого режима")
+        self.loopback = loopback
+
+
+class FakeSD:
+    WasapiSettings = FakeSettings
+
+    def __init__(self, devices, hostapis=None):
+        self._devices = devices
+        self._hostapis = hostapis if hostapis is not None else [
+            {"name": "MME"}, {"name": "Windows WASAPI"}]
+
+    def query_hostapis(self):
+        return self._hostapis
+
+    def query_devices(self):
+        return self._devices
+
+
+def test_probe_without_sounddevice_is_honest(monkeypatch):
+    import builtins
+    real_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == "sounddevice":
+            raise ImportError("нет пакета")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+    probe = probe_loopback()
+    assert probe.available is False and "sounddevice" in probe.reason
+
+
+def test_probe_without_wasapi_settings():
+    probe = probe_loopback(sd_module=type("SD", (), {})())
+    assert probe.available is False and "WasapiSettings" in probe.reason
+
+
+def test_probe_with_settings_that_reject_loopback():
+    sd = FakeSD([{"name": "Колонки", "hostapi": 1, "max_output_channels": 2,
+                  "default_samplerate": 48000}])
+    sd.WasapiSettings = lambda **kwargs: FakeSettings(fail=True)
+    probe = probe_loopback(sd_module=sd)
+    assert probe.available is False and "loopback=True" in probe.reason
+
+
+def test_probe_without_wasapi_hostapi():
+    sd = FakeSD([{"name": "Колонки", "hostapi": 0, "max_output_channels": 2,
+                  "default_samplerate": 48000}], hostapis=[{"name": "MME"}])
+    probe = probe_loopback(sd_module=sd)
+    assert probe.available is False and "WASAPI" in probe.reason
+
+
+def test_probe_finds_wasapi_output_device():
+    sd = FakeSD([
+        {"name": "Микрофон", "hostapi": 1, "max_output_channels": 0,
+         "max_input_channels": 2, "default_samplerate": 48000},
+        {"name": "Динамики (Realtek)", "hostapi": 1, "max_output_channels": 2,
+         "default_samplerate": 44100},
+    ])
+    probe = probe_loopback(sd_module=sd)
+    assert probe.available is True
+    assert probe.device == 1 and "Realtek" in probe.device_name
+    assert probe.sample_rate == 44100
+
+
+def test_open_stream_refuses_without_probe():
+    try:
+        open_loopback_stream(LoopbackProbe(False, "WASAPI нет"), lambda *a: None)
+    except RuntimeError as exc:
+        assert "WASAPI нет" in str(exc)
+    else:
+        raise AssertionError("должен был отказать")
+
+
+def test_reference_choice_prefers_our_own_pcm():
+    assert choose_reference(local_active=True, loopback_active=True).source == "local"
+    assert choose_reference(local_active=False, loopback_active=True).source == "loopback"
+    assert choose_reference(local_active=False, loopback_active=False).source == "none"
+
+
+def test_reference_delay_aligns_signal_with_delay():
+    delay = ReferenceDelay(delay_ms=40, rate=16000)
+    assert delay.delay_frames == 640
+    samples = array("h", [i % 30000 for i in range(2000)])
+    delay.push(samples.tobytes())
+    head = array("h")
+    head.frombytes(delay.take(640))
+    assert head.tolist() == [0] * 640  # первые 40 мс — сигнал ещё «в пути»
+    rest = array("h")
+    rest.frombytes(delay.take(160))
+    assert rest.tolist() == samples[:160].tolist()
+
+
+def test_reference_delay_returns_silence_when_not_ready():
+    delay = ReferenceDelay(delay_ms=100, rate=8000)
+    delay.push(b"\x01\x00" * 10)
+    assert delay.take(5) == b"\x00\x00" * 5
+    assert len(delay) == 10
+
+
+def test_reference_delay_pads_missing_frames_with_zeros():
+    delay = ReferenceDelay(delay_ms=0, rate=8000)
+    delay.push(b"\x05\x00\x06\x00")
+    chunk = array("h")
+    chunk.frombytes(delay.take(4))
+    assert chunk.tolist() == [5, 6, 0, 0]
+
+
+def test_reference_delay_handles_odd_bytes_and_reset():
+    delay = ReferenceDelay(delay_ms=0, rate=8000)
+    delay.push(b"\x01\x00\x02")  # непарный байт отбрасывается
+    assert len(delay) == 1
+    delay.reset()
+    assert len(delay) == 0 and delay.take(2) == b"\x00\x00" * 2
+
+
+def test_reference_delay_keeps_buffer_bounded():
+    delay = ReferenceDelay(delay_ms=0, rate=1000)
+    delay.push(b"\x00\x00" * 5000)
+    assert delay.max_frames == 2000 and len(delay) == 2000
+
+
+def test_reference_delay_survives_trim():
+    delay = ReferenceDelay(delay_ms=100, rate=100)  # 10 отсчётов задержки
+    delay.push(b"\x01\x00" * 500)
+    assert len(delay) <= delay.max_frames
+    out = array("h")
+    out.frombytes(delay.take(320))
+    assert len(out) == 320
 ```
 
 ### `tests/test_echo_multibackend.py`
@@ -42478,11 +47225,20 @@ def test_minimal_home_starts_empty_with_only_widget_entry_and_no_composer(gui):
     assert not any(isinstance(c, (ft.TextField, ft.Dropdown, ft.ListView)) for c in controls)
     buttons = [c for c in controls if isinstance(c, ft.Button)]
     assert buttons[:2] == gui._home.theme_buttons
-    assert len(buttons) == 3 and buttons[-1].tooltip == "Настроить Главную"
+    assert len(buttons) == 4 and buttons[-2].tooltip == "Настроить Главную"
+    assert buttons[-1] is gui._home.vertical_btn
+    assert buttons[-1].tooltip == "Перейти в полосу у края экрана"
     assert gui._home.widgets.layout == [] and not gui._home.widgets.visible
     assert not hasattr(gui._home, "on_click") or gui._home.on_click is None
     assert "Модель" not in " ".join(str(getattr(c, "value", "")) for c in controls)
     assert gui._home.status.value == "Ядро ещё не готово"
+
+
+def test_home_strip_button_switches_to_vertical_mode(gui):
+    seen = []
+    gui.set_vertical_mode = lambda enabled, update=True: seen.append(enabled) or True
+    assert gui._home._open_vertical(None) is True
+    assert seen == [True]
 
 
 def test_local_date_labels_include_midnight_and_new_year():
@@ -43955,6 +48711,496 @@ def test_stale_or_shutdown_tray_callback_does_not_show_window(gui):
     env['jarvis'].stop_event.set()
     env['_tray_failed'](env['tray_holder']['icon'])
     assert gui._queue.empty()
+```
+
+### `tests/test_gui_vertical.py`
+
+```python
+"""Вертикальный режим: чистая логика, полоса и переключение без окна и звука."""
+import asyncio
+from types import SimpleNamespace as NS
+from unittest.mock import Mock
+
+import flet as ft
+import pytest
+
+from jarvis import gui as module
+from jarvis import gui_vertical as vertical
+from jarvis import profile, mood
+from jarvis.config import Config
+
+
+@pytest.mark.parametrize("value,expected", [
+    (None, 240), ("", 240), ("abc", 240), (True, 240), (False, 240),
+    (0, 240), (-50, 240), (100, 220), (999, 320), ("260", 260), (250.7, 250),
+])
+def test_width_is_clamped_and_broken_values_fall_back(value, expected):
+    assert vertical.normalize_width(value) == expected
+
+
+@pytest.mark.parametrize("value,expected", [
+    ("notes", "notes"), ("PLAN", "plan"), (" Log ", "log"), ("x", "log"),
+    (None, "log"), (5, "log"), (["log"], "log"),
+])
+def test_panel_accepts_only_known_names(value, expected):
+    assert vertical.normalize_panel(value) == expected
+    assert vertical.normalize_panel(value, default="plan") in (expected, "plan")
+
+
+@pytest.mark.parametrize("value,expected", [
+    (True, True), (False, False), (None, False), ("true", True), ("да", True),
+    ("1", True), ("0", False), ("нет", False), ("выкл", False), (1, True), (0, False),
+    ("maybe", False),
+])
+def test_enabled_flag_never_raises(value, expected):
+    assert vertical.normalize_enabled(value) is expected
+
+
+@pytest.mark.parametrize("state,expected", [
+    ("idle", "idle"), ("listening", "listening"), ("recognizing", "listening"),
+    ("thinking", "thinking"), ("speaking", "speaking"), ("error", "idle"),
+    ("password", "idle"), (None, "idle"), (7, "idle"),
+])
+def test_aura_has_four_modes_and_unknown_state_is_idle(state, expected):
+    assert vertical.aura_mode(state) == expected
+
+
+def test_vertical_spec_without_screen_area_keeps_size_untouched():
+    spec = vertical.vertical_window_spec(250)
+    assert spec["width"] == 250 and spec["frameless"] is True
+    assert spec["always_on_top"] is True and spec["min_width"] == 220
+    assert "height" not in spec and "left" not in spec
+
+
+def test_vertical_spec_fills_work_area_at_right_edge():
+    spec = vertical.vertical_window_spec(240, (0, 0, 1920, 1040))
+    assert spec["height"] == 1040 and spec["left"] == 1680 and spec["top"] == 0
+    assert spec["max_width"] == 320
+
+
+@pytest.mark.parametrize("area", [(10, 10, 5, 5), (0, 0, 0, 0), None, "screen",
+                                  (1, 2, 3), ("a", "b", "c", "d")])
+def test_broken_work_area_does_not_invent_geometry(area):
+    spec = vertical.vertical_window_spec(240, area)
+    assert "height" not in spec and "left" not in spec
+
+
+def test_horizontal_spec_restores_window_and_releases_limits():
+    spec = vertical.horizontal_window_spec()
+    assert spec["width"] == 1100 and spec["height"] == 760
+    assert spec["frameless"] is False and spec["always_on_top"] is False
+    assert spec["min_width"] == 900 and spec["max_width"] is None
+
+
+def test_documents_are_written_atomically_and_missing_file_is_empty(tmp_path):
+    path = tmp_path / "notes.txt"
+    assert vertical.read_doc(path) == ""
+    assert vertical.write_doc(path, "строка один\nстрока два") is True
+    assert vertical.read_doc(path) == "строка один\nстрока два"
+    assert not (tmp_path / "notes.txt.tmp").exists()
+    assert vertical.write_doc(path, "") is True and vertical.read_doc(path) == ""
+
+
+def test_log_lines_trim_dialog_and_skip_empty(tmp_path):
+    messages = [
+        {"role": "user", "text": "  ", "time": "10:00"},
+        {"role": "user", "text": "привет", "time": "10:01"},
+        {"role": "assistant", "text": "здравствуйте", "time": "10:02"},
+    ]
+    rows = vertical.log_lines(messages)
+    assert [r["role"] for r in rows] == ["user", "assistant"]
+    assert rows[1]["text"] == "здравствуйте"
+    assert len(vertical.log_lines(messages, limit=1)) == 1
+    assert vertical.log_lines(None) == []
+
+
+def test_shorten_keeps_text_in_one_line():
+    assert vertical.shorten("  a\n b  ") == "a b"
+    long = vertical.shorten("я" * 400, limit=20)
+    assert len(long) <= 20 and long.endswith("…")
+
+
+@pytest.fixture
+def isolated_docs(tmp_path, monkeypatch):
+    monkeypatch.setattr(vertical, "notes_path", lambda: tmp_path / "notes.txt")
+    monkeypatch.setattr(vertical, "plan_path", lambda: tmp_path / "plan.txt")
+    return tmp_path
+
+
+def fake_gui(tmp_path):
+    return NS(config=Config(tmp_path / "config.json"), _messages=[], _state="idle",
+              _vertical_mode=True, _home_window_visible=True, _page=None, _rail=None)
+
+
+def test_bar_shows_state_and_switches_panels(isolated_docs, tmp_path):
+    bar = vertical.VerticalBar(fake_gui(tmp_path))
+    assert bar.status.value
+    bar.apply_state("thinking")
+    assert bar.aura.mode == "thinking"
+    bar.apply_state("ошибка-не-состояние")
+    assert bar.aura.mode == "idle"
+
+    assert bar.panel == "log"
+    bar.set_panel("notes")
+    assert bar.panel == "notes" and isinstance(bar.body.content, ft.TextField)
+    bar._notes_field.value = "купть молоко"
+    assert bar.save_doc("notes") is True
+    assert vertical.read_doc(isolated_docs / "notes.txt") == "купть молоко"
+    bar.set_panel("plan")
+    assert isinstance(bar.body.content, ft.TextField) and bar.body.content is bar._plan_field
+    assert vertical.read_doc(isolated_docs / "plan.txt") == ""
+
+
+def test_bar_log_follows_messages_and_keeps_newest(isolated_docs, tmp_path):
+    gui = fake_gui(tmp_path)
+    gui._messages = [{"role": "user", "text": f"строка {i}", "time": "10:0%d" % i}
+                     for i in range(vertical.LOG_LIMIT + 5)]
+    bar = vertical.VerticalBar(gui)
+    assert len(bar.log_list.controls) == vertical.LOG_LIMIT
+    bar.set_panel("notes")
+    bar.on_message({"role": "user", "text": "новое", "time": "11:00"})
+    assert bar.panel == "notes"  # лог не перерисовывается вне панели «Лог»
+
+
+@pytest.fixture
+def window(tmp_path, monkeypatch):
+    monkeypatch.setattr(vertical, "notes_path", lambda: tmp_path / "notes.txt")
+    monkeypatch.setattr(vertical, "plan_path", lambda: tmp_path / "plan.txt")
+    monkeypatch.setattr(vertical, "work_area", lambda: (0, 0, 1920, 1040))
+    gui = module.FenixGUI(None, Config(tmp_path / "config.json"))
+    page = NS(add=Mock(), update=Mock(), window=NS(), run_task=Mock())
+    gui._page = page
+    gui._build_ui(page)
+    yield gui
+    gui.stop()
+    gui._rail.dispose()
+    profile.unsubscribe(gui._on_profile_switch)
+    mood.unsubscribe(gui._on_mood_change)
+    module._apply_palette("dark")
+
+
+def test_vertical_mode_is_off_by_default(window):
+    assert window._vertical_mode is False
+    assert window._root.content is window._rail_row
+    assert window.config.get("ui_vertical_enabled") is False
+    assert window._vertical is None
+
+
+def test_live_switch_reschedules_geometry_after_client_window_state(window):
+    """Включение на показанном окне: размеры применяются повторно."""
+    window._page.run_task.reset_mock()
+    assert window.set_vertical_mode(True) is True
+    assert window._page.run_task.called
+    task = window._page.run_task.call_args.args[0]
+    assert task == window._reapply_vertical_geometry_later
+    # Отключение обратно повторных размеров не просит.
+    window._page.run_task.reset_mock()
+    assert window.set_vertical_mode(False) is True
+    assert not window._page.run_task.called
+
+
+def test_reapply_later_stops_when_mode_is_off(window, monkeypatch):
+    calls = []
+    monkeypatch.setattr(window, "_reapply_vertical_geometry",
+                        lambda: calls.append(1))
+    window._vertical_mode = False
+    asyncio.run(window._reapply_vertical_geometry_later())
+    assert calls == []
+
+
+def test_switching_mode_keeps_state_and_restores_window(window):
+    home = window._home
+    tabs = dict(window._tabs)
+    messages = window._messages
+    assert window.set_vertical_mode(True, update=False) is True
+    assert window._vertical_mode is True and window._root.content is window._vertical
+    assert window._page.window.frameless is True
+    assert window._page.window.always_on_top is True
+    assert window._page.window.width == 240 and window._page.window.left == 1680
+    assert window.config.get("ui_vertical_enabled") is True
+
+    window._apply_state("speaking")
+    assert window._vertical.aura.mode == "speaking"
+    window._apply_message("user", "привет")
+    assert window._vertical.log_list.controls
+
+    assert window.set_vertical_mode(False) is True
+    assert window._root.content is window._rail_row
+    assert window._page.window.frameless is False
+    assert window._page.window.width == 1100
+    assert window._home is home and window._content_area.content is home
+    assert window._tabs == tabs and window._messages is messages
+
+
+def test_mode_can_be_enabled_from_saved_config_at_startup(window):
+    window.config.set("ui_vertical_enabled", True)
+    window._page.update.reset_mock()
+    assert window._vertical_snapshot() is True
+    assert window._vertical_mode is True
+    window._page.update.assert_not_called()  # старт не мигает лишней отрисовкой
+
+
+def test_width_and_panel_changes_are_persisted(window):
+    assert window.set_vertical_width(280) is True
+    assert window.config.get("ui_vertical_width") == 280
+    assert window.set_vertical_width("abc") is True
+    assert window.config.get("ui_vertical_width") == 240
+    assert window.set_vertical_panel("notes") is True
+    assert window.config.get("ui_vertical_panel") == "notes"
+    window.set_vertical_mode(True, update=False)
+    assert window._vertical.width == 240
+
+
+def test_vertical_mode_does_not_overwrite_horizontal_position(window):
+    window.config.update({"gui_x": 100, "gui_y": 200})
+    window.set_vertical_mode(True, update=False)
+    event = NS(type=ft.WindowEventType.MOVED)
+    window._on_window_event(event)
+    assert window.config.get("gui_x") == 100 and window.config.get("gui_y") == 200
+
+
+def test_shown_window_reapplies_bar_geometry(window):
+    """Клиент Flet затирает размеры до handshake: после показа применяем снова."""
+    window.set_vertical_mode(True, update=False)
+    window._page.window.width = 1280
+    window._page.update.reset_mock()
+    window._show_window_now()
+    assert window._page.window.width == 240
+    assert window._page.window.frameless is True
+    assert window._page.window.always_on_top is True
+    assert window._page.update.call_count == 2  # показ + повторная геометрия
+
+
+def test_showing_window_in_horizontal_mode_does_not_touch_geometry(window):
+    window._page.update.reset_mock()
+    window._show_window_now()
+    assert window._page.update.call_count == 1
+
+
+# --- шторка: геометрия, кадры, закрепление и наведение -------------------
+
+
+@pytest.mark.parametrize("value,expected", [
+    (True, True), (False, False), (None, False), ("true", True), ("да", True),
+    ("0", False), (1, True), ("maybe", False),
+])
+def test_pinned_flag_never_raises(value, expected):
+    assert vertical.normalize_pinned(value) is expected
+
+
+@pytest.mark.parametrize("value,expected", [
+    (None, vertical.TAB_WIDTH), (0, vertical.TAB_WIDTH), ("abc", vertical.TAB_WIDTH),
+    (4, vertical.TAB_MIN), (99, vertical.TAB_MAX), ("20", 20), (18.6, 18),
+])
+def test_tab_width_is_clamped(value, expected):
+    assert vertical.normalize_tab(value) == expected
+
+
+@pytest.mark.parametrize("value,expected", [
+    (None, vertical.AUTOHIDE_MS), ("abc", vertical.AUTOHIDE_MS),
+    (-5, 0), (99999, 10000), ("1200", 1200),
+])
+def test_autohide_delay_is_clamped(value, expected):
+    assert vertical.normalize_delay(value) == expected
+
+
+def test_curtain_geometry_keeps_full_bar_and_edge_handle():
+    positions = vertical.curtain_geometry(240, (0, 0, 1920, 1040))
+    assert positions == {"shown": 1680, "hidden": 1902, "tab": 18,
+                         "width": 240, "height": 1040, "top": 0}
+
+
+def test_curtain_geometry_without_workarea_does_not_invent_coordinates():
+    positions = vertical.curtain_geometry(240, None)
+    assert positions["shown"] is None and positions["hidden"] is None
+    assert positions["tab"] == 18 and positions["width"] == 240
+
+
+def test_slide_frames_move_one_way_and_end_exactly():
+    frames = vertical.slide_frames(1680, 1902)
+    assert len(frames) == vertical.SLIDE_STEPS
+    assert frames[-1] == 1902
+    assert frames == sorted(frames) and len(set(frames)) == len(frames)
+    assert vertical.slide_frames(1902, 1680)[-1] == 1680
+    assert vertical.slide_frames(7, 7) == [7]
+    assert vertical.slide_frames("abc", 5) == []
+
+
+def test_curtain_state_machine_respects_pin_and_pointer():
+    curtain = vertical.Curtain()
+    assert curtain.open is True
+    assert curtain.leave() is False  # уход курсора сам окно не двигает
+    assert curtain.open is True and curtain.wants_autohide() is True
+    assert curtain.hide() is True and curtain.open is False
+    assert curtain.hide() is False  # уже спрятана
+    assert curtain.enter() is True and curtain.open is True
+    assert curtain.enter() is False
+    assert curtain.hide() is False  # курсор внутри — не прячем
+    assert curtain.open is True
+
+
+def test_curtain_hides_only_after_pointer_left():
+    curtain = vertical.Curtain()
+    curtain.enter()
+    assert curtain.hide() is False and curtain.open is True
+    curtain.leave()
+    assert curtain.wants_autohide() is True
+    curtain.show()
+    assert curtain.wants_autohide() is True
+
+
+def test_curtain_pin_forces_open_and_blocks_autohide():
+    curtain = vertical.Curtain()
+    curtain.leave()
+    assert curtain.open is True and curtain.wants_autohide() is True
+    assert curtain.set_pinned(True) is True
+    assert curtain.open is True and curtain.wants_autohide() is False
+    assert curtain.hide() is False
+    curtain.set_pinned(False)
+    assert curtain.wants_autohide() is True
+
+
+def _finish_slide(window):
+    """Проигрывает запланированную анимацию шторки без настоящего окна."""
+    task = window._page.run_task
+    if not task.called:
+        return
+    fn, frames, gen = task.call_args.args
+    task.reset_mock()
+    asyncio.run(fn(frames, gen))
+
+
+def test_vertical_mode_leaves_only_a_handle_visible(window):
+    assert window.set_vertical_mode(True, update=False) is True
+    assert window._page.window.left == 1680  # включаем открытой, чтобы заметили
+    assert window._page.window.shadow is True
+    assert window._curtain is not None and window._curtain.open is True
+    assert window._vertical.tab.width == vertical.TAB_WIDTH
+    assert window._vertical.tab_icon.name == ft.Icons.CHEVRON_RIGHT
+
+    window._vertical_hover(False)
+    assert window._vertical_hide_if_idle() is True
+    _finish_slide(window)
+    assert window._page.window.left == 1902  # осталась ручка 18 px
+    assert window._vertical.tab_icon.name == ft.Icons.CHEVRON_LEFT
+
+
+def test_hover_deploys_hidden_bar(window):
+    window.set_vertical_mode(True, update=False)
+    window._vertical_hover(False)
+    window._vertical_hide_if_idle()
+    _finish_slide(window)
+    assert window._page.window.left == 1902
+    window._page.run_task.reset_mock()
+    window._vertical_hover(True)
+    assert window._curtain.open is True
+    assert window._vertical.tab_icon.name == ft.Icons.CHEVRON_RIGHT
+    assert window._page.run_task.called  # выезд идёт кадрами, а не рывком
+    _finish_slide(window)
+    assert window._page.window.left == 1680
+
+
+def test_tab_click_toggles_unpinned_bar(window):
+    window.set_vertical_mode(True, update=False)
+    window._vertical_tab_click()
+    assert window._curtain.open is False
+    _finish_slide(window)
+    assert window._page.window.left == 1902
+    window._vertical_tab_click()
+    assert window._curtain.open is True
+    _finish_slide(window)
+    assert window._page.window.left == 1680
+
+
+def test_pinned_bar_ignores_leave_and_tab_click(window):
+    window.config.set("ui_vertical_pinned", True)
+    window.set_vertical_mode(True, update=False)
+    assert window._curtain.pinned is True
+    assert window._vertical.pinned is True
+    assert window._vertical.pin_btn.icon == ft.Icons.PUSH_PIN
+    window._vertical_hover(False)
+    assert window._vertical_hide_if_idle() is False
+    window._vertical_tab_click()
+    assert window._curtain.open is True and window._page.window.left == 1680
+
+
+def test_pin_toggle_is_persisted_and_applied(window):
+    window.set_vertical_mode(True, update=False)
+    assert window.set_vertical_pinned(True) is True
+    assert window.config.get("ui_vertical_pinned") is True
+    assert window._vertical.pinned is True
+    assert window.set_vertical_pinned(False) is True
+    assert window.config.get("ui_vertical_pinned") is False
+    assert window._vertical.pinned is False
+
+
+def test_width_change_keeps_hidden_bar_hidden(window):
+    window.set_vertical_mode(True, update=False)
+    window._vertical_hover(False)
+    window._vertical_hide_if_idle()
+    assert window.set_vertical_width(280) is True
+    assert window._page.window.width == 280
+    assert window._page.window.left == 1902
+    window._vertical_move(True, animate=False)
+    assert window._page.window.left == 1640
+
+
+def test_leaving_vertical_mode_removes_shadow_and_stops_curtain(window):
+    window.set_vertical_mode(True, update=False)
+    assert window._curtain is not None
+    assert window.set_vertical_mode(False, update=False) is True
+    assert window._curtain is None
+    assert window._page.window.shadow is False
+    assert window._page.window.frameless is False
+
+
+def test_bar_uses_card_handle_and_segmented_panels(isolated_docs, tmp_path):
+    bar = vertical.VerticalBar(fake_gui(tmp_path))
+    radius = bar.card.border_radius
+    assert radius.top_left == 16 and radius.bottom_left == 16
+    assert radius.top_right == 0 and radius.bottom_right == 0
+    assert bar.card.shadow.blur_radius == 26
+    assert len(bar.card.gradient.colors) == 2
+    assert bar.card.margin.left == 6
+    assert set(bar.panel_buttons) == set(vertical.PANELS)
+    assert bar.panel_buttons["log"].content.color == module.P.brand
+    bar.set_panel("notes")
+    assert bar.panel_buttons["notes"].content.color == module.P.brand
+    assert bar.panel_buttons["log"].content.color == module.P.text_dim
+
+
+def test_bar_handle_has_grip_and_chevron(isolated_docs, tmp_path):
+    bar = vertical.VerticalBar(fake_gui(tmp_path))
+    assert bar.tab.width == vertical.TAB_WIDTH
+    assert bar.tab_line.height == 46 and bar.tab_line.width == 2
+    assert len(bar.tab_line.gradient.colors) == 3
+    assert isinstance(bar.tab.content, ft.Column)
+    assert bar.tab.content.controls == [bar.tab_line, bar.tab_icon]
+
+
+def test_hover_highlights_handle_and_notifies_gui(isolated_docs, tmp_path):
+    seen = []
+    gui = fake_gui(tmp_path)
+    gui._vertical_hover = lambda entered: seen.append(entered)
+    bar = vertical.VerticalBar(gui)
+    bar._on_hover(NS(data=True))
+    assert seen == [True] and bar.tab.bgcolor != ft.Colors.TRANSPARENT
+    bar._on_hover(NS(data=False))
+    assert seen == [True, False] and bar.tab.bgcolor == ft.Colors.TRANSPARENT
+
+
+def test_bar_pin_button_updates_icon_and_tooltip(isolated_docs, tmp_path):
+    bar = vertical.VerticalBar(fake_gui(tmp_path))
+    assert bar.pinned is False
+    assert bar.tab.tooltip == "Свернуть полосу"
+    assert bar.set_pinned(True) is True
+    assert bar.pin_btn.icon == ft.Icons.PUSH_PIN
+    assert bar.pin_btn.tooltip == "Открепить полосу"
+    assert bar.tab.tooltip == "Полоса закреплена"
+    assert bar.set_pinned(True) is False  # повтор ничего не делает
+    assert bar.set_pinned(False) is True
+    assert bar.pin_btn.tooltip == "Закрепить полосу"
+    assert bar.tab.tooltip == "Свернуть полосу"
 ```
 
 ### `tests/test_gui_widgets.py`
@@ -48289,12 +53535,15 @@ def test_password_never_enters_numeric_language_layer():
 
 
 def load_method(filename, classname, name, namespace):
+    from jarvis.main import _clean_whisper_text
+
     path = Path(__file__).resolve().parents[1] / filename
     tree = ast.parse(path.read_text(encoding="utf-8"))
     cls = next(
         n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == classname
     )
     fn = next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == name)
+    namespace.setdefault("_clean_whisper_text", _clean_whisper_text)
     exec(compile(ast.Module(body=[fn], type_ignores=[]), str(path), "exec"), namespace)
     return namespace[name]
 
@@ -48937,6 +54186,318 @@ def test_describe():
     assert "подстраивается" in desc.lower()
 ```
 
+### `tests/test_plugins.py`
+
+```python
+"""Плагины: манифест, согласие, lifecycle, таймаут, падение и стадия pipeline."""
+import json
+import subprocess
+from pathlib import Path
+
+import pytest
+
+from jarvis import plugins as plugin_module
+from jarvis.intents.stages.plugins import PluginStage
+from jarvis.plugins import (PluginError, PluginHost, PluginManifest, PluginRunner,
+                            PluginSettings)
+
+
+def write_plugin(root: Path, *, name="hello", entry="main.py", capabilities=("command",),
+                 commands=None, timeout=5, code="print('{}')", extra=None):
+    folder = root / name
+    folder.mkdir(parents=True)
+    manifest = {
+        "name": name, "version": "1.0.0", "entry": entry,
+        "capabilities": list(capabilities), "timeout_sec": timeout,
+        "commands": commands if commands is not None else [
+            {"phrases": ["привет от плагина", "проверка плагина"], "action": "hello"}],
+    }
+    if extra:
+        manifest.update(extra)
+    (folder / "plugin.json").write_text(json.dumps(manifest, ensure_ascii=False),
+                                        encoding="utf-8")
+    (folder / entry).write_text(code, encoding="utf-8")
+    return folder
+
+
+class FakeProcess:
+    def __init__(self, stdout=b"", stderr=b"", code=0, hang=None, crash_on_communicate=None):
+        self.stdout = stdout
+        self.stderr = stderr
+        self.returncode = code
+        self.hang = hang
+        self.crash_on_communicate = crash_on_communicate
+        self.killed = False
+
+    def communicate(self, input=None, timeout=None):
+        if self.crash_on_communicate is not None:
+            raise self.crash_on_communicate
+        if self.hang is not None:
+            raise subprocess.TimeoutExpired(cmd="plugin", timeout=self.hang)
+        return self.stdout, self.stderr
+
+    def kill(self):
+        self.killed = True
+
+
+def manifest(root, **kwargs):
+    return PluginManifest.from_json(write_plugin(root, **kwargs) / "plugin.json")
+
+
+# --- манифест ----------------------------------------------------------
+
+
+def test_manifest_is_parsed_and_phrase_map_is_normalized(tmp_path):
+    data = manifest(tmp_path)
+    assert data.name == "hello" and data.entry == "main.py"
+    assert data.capabilities == ("command",)
+    assert data.phrase_map()["привет от плагина"].action == "hello"
+
+
+@pytest.mark.parametrize("kwargs,fragment", [
+    ({"name": "Hello!"}, "name"),
+    ({"extra": {"version": ""}}, "version"),
+    ({"entry": "../evil.py"}, "entry"),
+    ({"capabilities": ("filesystem-write",)}, "вне первого шага"),
+    ({"capabilities": ("command",)}, ""),
+    ({"commands": []}, "commands"),
+    ({"commands": [{"phrases": [], "action": "x"}]}, "phrases"),
+    ({"commands": [{"phrases": ["a"], "action": ""}]}, "action"),
+    ({"timeout": 500}, ""),
+])
+def test_bad_manifests_are_rejected_honestly(tmp_path, kwargs, fragment):
+    folder = tmp_path / "plug"
+    folder.mkdir()
+    entry = "main.py"
+    if kwargs.get("entry") == "../evil.py":
+        (tmp_path / "evil.py").write_text("x", encoding="utf-8")
+    (folder / entry).write_text("print(1)", encoding="utf-8")
+    manifest_data = {"name": "hello", "version": "1", "entry": entry,
+                     "capabilities": ["command"],
+                     "commands": [{"phrases": ["a"], "action": "b"}]}
+    for key, value in kwargs.items():
+        if key == "extra":
+            manifest_data.update(value)
+        elif key in ("name", "entry", "capabilities", "commands"):
+            manifest_data[key] = value
+        elif key == "timeout":
+            manifest_data["timeout_sec"] = value
+    (folder / "plugin.json").write_text(json.dumps(manifest_data), encoding="utf-8")
+    if fragment:
+        with pytest.raises(PluginError) as caught:
+            PluginManifest.from_json(folder / "plugin.json")
+        assert fragment in str(caught.value)
+    else:
+        parsed = PluginManifest.from_json(folder / "plugin.json")
+        assert parsed.name == "hello"
+
+
+def test_broken_json_and_missing_files_are_rejected(tmp_path):
+    folder = tmp_path / "bad"
+    folder.mkdir()
+    (folder / "plugin.json").write_text("{не json", encoding="utf-8")
+    with pytest.raises(PluginError) as caught:
+        PluginManifest.from_json(folder / "plugin.json")
+    assert "JSON" in str(caught.value)
+    with pytest.raises(PluginError):
+        PluginManifest.from_json(tmp_path / "нет.json")
+
+
+# --- раннер ------------------------------------------------------------
+
+
+def test_runner_parses_json_answer(tmp_path):
+    data = manifest(tmp_path)
+    process = FakeProcess(stdout='{"text":"плагин сказал"}'.encode())
+    runner = PluginRunner(popen=lambda argv, cwd: process)
+    result = runner.run(data, {"command": "hello"})
+    assert result.ok and result.text == "плагин сказал"
+
+
+def test_runner_returns_plain_text(tmp_path):
+    data = manifest(tmp_path)
+    runner = PluginRunner(popen=lambda argv, cwd: FakeProcess(stdout="  просто текст ".encode()))
+    assert runner.run(data, {}).text == "просто текст"
+
+
+def test_runner_reports_timeout_and_kills_process(tmp_path):
+    data = manifest(tmp_path, timeout=1)
+    process = FakeProcess(hang=1)
+    result = PluginRunner(popen=lambda argv, cwd: process).run(data, {})
+    assert result.ok is False and "таймаут" in result.error
+    assert process.killed is True
+
+
+def test_runner_reports_crash_without_raising(tmp_path):
+    data = manifest(tmp_path)
+    process = FakeProcess(stderr=b"Traceback: boom", code=3)
+    result = PluginRunner(popen=lambda argv, cwd: process).run(data, {})
+    assert result.ok is False and "код 3" in result.error
+    assert "Traceback" not in result.text
+
+
+def test_runner_reports_error_field(tmp_path):
+    data = manifest(tmp_path)
+    process = FakeProcess(stdout='{"error":"нет такого действия"}'.encode())
+    result = PluginRunner(popen=lambda argv, cwd: process).run(data, {})
+    assert result.ok is False and result.error == "нет такого действия"
+
+
+def test_runner_reports_launch_failure(tmp_path):
+    data = manifest(tmp_path)
+
+    def fail(argv, cwd):
+        raise OSError("нет интерпретатора")
+
+    result = PluginRunner(popen=fail).run(data, {})
+    assert result.ok is False and "не запустился" in result.error
+
+
+# --- хост и lifecycle --------------------------------------------------
+
+
+def host_for(tmp_path, *, allowed=("hello",), runner=None):
+    write_plugin(tmp_path)
+    return PluginHost(tmp_path, runner=runner, allowed=allowed)
+
+
+def test_discover_finds_plugins_and_collects_errors(tmp_path):
+    write_plugin(tmp_path)
+    broken = tmp_path / "broken"
+    broken.mkdir()
+    (broken / "plugin.json").write_text("{", encoding="utf-8")
+    host = PluginHost(tmp_path)
+    found = host.discover()
+    assert [m.name for m in found] == ["hello"]
+    assert host.errors and host.errors[0][0] == "broken"
+
+
+def test_plugin_not_started_without_consent(tmp_path):
+    host = host_for(tmp_path, allowed=())
+    host.discover()
+    ok, message = host.start("hello")
+    assert ok is False and "plugins_allowed" in message
+    assert host.running() == []
+
+
+def test_start_stop_lifecycle(tmp_path):
+    host = host_for(tmp_path)
+    host.discover()
+    ok, _ = host.start("hello")
+    assert ok and [m.name for m in host.running()] == ["hello"]
+    assert host.stop("hello")[0] is True
+    assert host.running() == []
+    assert host.stop("hello")[0] is False
+
+
+def test_unknown_plugin_is_honest(tmp_path):
+    host = host_for(tmp_path)
+    host.discover()
+    ok, message = host.start("нет-такого")
+    assert ok is False and "не найден" in message
+
+
+def test_running_plugin_handles_only_its_phrases(tmp_path):
+    calls = []
+
+    def popen(argv, cwd):
+        calls.append((argv, cwd))
+        return FakeProcess(stdout='{"text":"ответ плагина"}'.encode())
+
+    host = host_for(tmp_path, runner=PluginRunner(popen=popen))
+    host.discover()
+    host.start("hello")
+    assert host.try_handle("открой блокнот") is None
+    assert host.try_handle("  ПРИВЕТ   от   плагина ") == "ответ плагина"
+    assert len(calls) == 1
+    # `-I` глушит PYTHON* переменные, поэтому UTF-8 задаётся явным `-X utf8`.
+    assert calls[0][0][1:4] == ["-I", "-X", "utf8"]
+
+
+def test_default_popen_asks_for_utf8_output(monkeypatch, tmp_path):
+    seen = {}
+
+    def fake_popen(argv, **kwargs):
+        seen["argv"] = argv
+        seen.update(kwargs)
+        return FakeProcess()
+
+    monkeypatch.setattr(subprocess, "Popen", fake_popen)
+    data = manifest(tmp_path)
+    PluginRunner().run(data, {})
+    assert seen["env"]["PYTHONIOENCODING"] == "utf-8"
+    assert "utf8" in seen["argv"]
+
+
+def test_stopped_plugin_does_not_answer(tmp_path):
+    host = host_for(tmp_path, runner=PluginRunner(
+        popen=lambda argv, cwd: FakeProcess(stdout=b'{"text":"x"}')))
+    host.discover()
+    host.start("hello")
+    host.stop("hello")
+    assert host.try_handle("привет от плагина") is None
+
+
+def test_plugin_crash_becomes_reply_not_exception(tmp_path):
+    host = host_for(tmp_path, runner=PluginRunner(
+        popen=lambda argv, cwd: FakeProcess(code=9)))
+    host.discover()
+    host.start("hello")
+    reply = host.try_handle("проверка плагина")
+    assert "не ответил" in reply and "код 9" in reply
+
+
+def test_plugin_settings_are_isolated(tmp_path):
+    data = manifest(tmp_path)
+    settings = PluginSettings(data, tmp_path / "settings")
+    (tmp_path / "settings").mkdir()
+    assert settings.load() == {}
+    settings.set("theme", "dark")
+    settings.set("theme", "light")
+    assert settings.load() == {"theme": "light"}
+    with pytest.raises(ValueError):
+        settings.set("", 1)
+
+
+def test_plugin_stage_is_inert_without_host():
+    class Handler:
+        plugins = None
+
+    class Ctx:
+        handler = Handler()
+        cmd = "привет от плагина"
+
+    assert PluginStage().handle(Ctx()) is None
+
+
+def test_plugin_stage_calls_host_and_survives_errors():
+    class Host:
+        def __init__(self, reply=None, boom=None):
+            self.reply, self.boom = reply, boom
+
+        def try_handle(self, cmd):
+            if self.boom:
+                raise self.boom
+            return self.reply
+
+    class Ctx:
+        def __init__(self, host):
+            self.handler = type("H", (), {"plugins": host})()
+            self.cmd = "привет от плагина"
+
+    assert PluginStage().handle(Ctx(Host(reply="ответ"))) == "ответ"
+    assert PluginStage().handle(Ctx(Host(boom=RuntimeError()))) == \
+        "Плагин не смог обработать команду."
+
+
+def test_example_plugin_manifest_is_valid():
+    root = Path(__file__).resolve().parent.parent / "examples" / "plugins" / "hello"
+    data = PluginManifest.from_json(root / "plugin.json")
+    assert data.name == "hello"
+    assert data.phrase_map()["проверка плагина"].action == "hello"
+    assert plugin_module.READ_ONLY_CAPABILITIES >= set(data.capabilities)
+```
+
 ### `tests/test_profile.py`
 
 ```python
@@ -49150,10 +54711,14 @@ from jarvis.text_utils import normalize
 GOOD = Quality(True, "test")
 BAD = Quality(False, "test")
 PCM = array("h", [500, -500] * 4000).tobytes()
-REJECT, UNCERTAIN = object(), object()
+# Сентинелы берём настоящие: после выноса снятия wake-слова в функцию
+# `_refine` возвращает те же объекты, что и `jarvis.main`.
+from jarvis.main import _REJECT as REJECT, _UNCERTAIN as UNCERTAIN  # noqa: E402
 
 
 def method(filename, classname, name, **extra):
+    from jarvis.main import _clean_whisper_text
+
     path = Path(__file__).resolve().parents[1] / filename
     tree = ast.parse(path.read_text(encoding="utf-8"))
     cls = next(
@@ -49167,6 +54732,7 @@ def method(filename, classname, name, **extra):
         "log": logging.getLogger("test.asr"),
         "_REJECT": REJECT,
         "_UNCERTAIN": UNCERTAIN,
+        "_clean_whisper_text": _clean_whisper_text,
         **extra,
     }
     exec(compile(ast.Module(body=[fn], type_ignores=[]), str(path), "exec"), env)
@@ -55080,6 +60646,35 @@ else:
     print(f"Все {len(files)} файлов в порядке.")
 ```
 
+### `examples/plugins/hello/main.py`
+
+```python
+"""Пример плагина Феникса: читает JSON из stdin, пишет JSON в stdout. ... [4 строк]"""
+
+import json
+import sys
+
+
+def main() -> int:
+    try:
+        payload = json.loads(sys.stdin.read() or "{}")
+    except json.JSONDecodeError:
+        print(json.dumps({"error": "нужен JSON в stdin"}))
+        return 0
+    action = str(payload.get("command") or "")
+    if action != "hello":
+        print(json.dumps({"error": f"неизвестная команда: {action}"}))
+        return 0
+    phrase = str(payload.get("phrase") or "")
+    print(json.dumps({"text": f"Плагин hello на связи (фраза: {phrase})."},
+                     ensure_ascii=False))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+
 ### `launcher.py`
 
 ```python
@@ -58233,6 +63828,24 @@ pause
   "gui_home_shortcuts": [],
   "gui_x": null,
   "gui_y": null,
+  "ui_vertical_enabled": false,
+  "ui_vertical_width": 240,
+  "ui_vertical_panel": "log",
+  "ui_vertical_pinned": false,
+  "ui_vertical_autohide_ms": 900,
+  "api_enabled": false,
+  "api_port": 8765,
+  "asr_escalate_enabled": false,
+  "asr_fallback": "whisper",
+  "asr_escalate_budget_per_min": 3,
+  "asr_escalate_cache_sec": 60,
+  "aec_backend": "native",
+  "barge_policy_enabled": false,
+  "barge_min_after_tts_sec": 0.35,
+  "barge_min_speech_ms": 150,
+  "barge_level_margin": 1.15,
+  "plugins_enabled": false,
+  "plugins_allowed": [],
   "tray_enabled": true,
   "launch_mode": "gui",
   "use_whisper": true,
@@ -58268,7 +63881,13 @@ pause
   "stt_min_word_confidence": 0.65,
   "stt_min_avg_logprob": -1.0,
   "stt_max_no_speech_prob": 0.6,
-  "stt_max_compression_ratio": 2.4
+  "stt_max_compression_ratio": 2.4,
+  "decision_enabled": false,
+  "decision_semantic_enabled": false,
+  "decision_clear_score": 0.85,
+  "decision_unclear_score": 0.62,
+  "decision_asr_min_confidence": 0.55,
+  "decision_agreement_min": 0.8
 }
 ```
 
@@ -58327,6 +63946,26 @@ echo   Ярлык создан на рабочем столе: Феникс.lnk
 echo ============================================================
 echo.
 pause
+```
+
+### `examples/plugins/hello/plugin.json`
+
+```json
+{
+  "name": "hello",
+  "version": "1.0.0",
+  "description": "Пример плагина: отвечает на одну фразу, ничего не меняет в системе.",
+  "entry": "main.py",
+  "capabilities": ["command"],
+  "timeout_sec": 5,
+  "commands": [
+    {
+      "phrases": ["привет от плагина", "проверка плагина"],
+      "action": "hello",
+      "description": "Возвращает короткое приветствие"
+    }
+  ]
+}
 ```
 
 ### `install.bat`
@@ -59688,7 +65327,7 @@ certifi>=2024.8.30
   - Изменения
   - Проверки и передача
 
-#### `ARCHITECTURE.md` — 53 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `ARCHITECTURE.md` — 59 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - 🏗 Архитектура «Феникс»
   - 📑 Содержание
@@ -59702,15 +65341,21 @@ certifi>=2024.8.30
   - 👁 Observer (фоновое извлечение фактов)
   - 🧠 Векторная память фактов (RAG)
   - Язык, ASR quality gate и PCM-реакции
+    - Решение «чёткая / нечёткая / не команда»
   - 🎭 Персона
   - 💗 Mood
   - 🖥 UIA
   - ⚡ Реестр быстрых обработчиков
   - 👤 Универсальный профиль (`set_profile` / `get_profile`)
+  - 🎙 Распознавание: эскалация на второй движок (этап 3)
+  - 🔊 Эхо и перебивание (этап 4)
+  - 🧩 Плагины (этап 6)
+  - 🌐 Локальный стык API (`health` / `capabilities` / `turn`)
   - 🖼 GUI (Flet 1.0.3)
     - Конструктор команд
     - Вкладки «Облако» и «Движки»
     - Главная: состояния, ввод и история
+    - Вертикальный режим: полоса у края экрана
     - Режим запуска
     - Трей
     - Темы GUI
@@ -59724,17 +65369,17 @@ certifi>=2024.8.30
   - 📂 Открытие файлов в редакторе
   - 📦 Пак-команды с аргументами
   - 🚀 Лаунчер (`Феникс.exe`)
-  - 🧩 Ключевые объекты
-  - 💾 Файлы данных
-  - 🌐 Внешние зависимости
-  - 🧪 Тесты
-  - 🏗 Инфраструктура
-    - `.venv311`
 
-#### `CHANGELOG.md` — 137 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 143 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
   - [Не выпущено]
+    - Эскалация распознавания: второй движок только при сомнении
+    - Эхо и перебивание: эталон, backend AEC, очерёдность разговора
+    - Плагины: первый вертикальный срез
+    - Локальный стык API: `health` / `capabilities` / `turn`
+    - Чёткие и нечёткие команды: `decision.py`, семантика и консенсус
+    - Вертикальный режим окна: полоса у края экрана
     - Установка на чистую Windows: кодировка requirements и CA-бандл
     - Свойства Феникс.exe и проверки, которые не зависят от машины
     - Воспроизводимая сборка установщика
@@ -59767,12 +65412,6 @@ certifi>=2024.8.30
     - План надёжности и улучшений
     - Окно подготовки (Tk, без Flet)
   - Стартовый handoff для нового чата (документация)
-  - Опциональные виджеты Главной
-  - Кольцо действий Феникса
-  - Надёжный старт окна и трея
-  - Плавные переходы и более живые волны
-  - Постоянная корона и усиленные активные режимы
-  - Солнечная корона Феникса и тихая диагностика микрофона
 
 #### `CI.md` — 16 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -60083,10 +65722,11 @@ certifi>=2024.8.30
   - Что нужно для выбора
   - Первоисточники
 
-#### `docs/NEXT_STEPS.md` — 12 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `docs/NEXT_STEPS.md` — 13 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Ближайшие действия: R0 / подготовка R1
   - 0. Что подготовлено и что ещё не принято
+  - 0б. Стадии по списку задач от 07.11.2026 (вертикальная полоса, ASR, API, плагины)
   - 1. Когда вернёмся к аудио: диагностика и один подтверждённый дефект
   - 2. Следующий функциональный этап: baseline → ограниченный потоковый TTS
   - 3. Затем — надёжность, исправления, обучение и команды
@@ -60156,7 +65796,7 @@ certifi>=2024.8.30
   - Ручная приёмка Windows
   - Границы проверки
 
-#### `docs/USER_GUIDE.md` — 51 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `docs/USER_GUIDE.md` — 55 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Руководство пользователя · Феникс
   - Навигация
@@ -60173,6 +65813,9 @@ certifi>=2024.8.30
   - 🖥 UIA (управление окнами)
   - ⚠️ Возможные проблемы
   - 🖼 GUI (Flet)
+    - Вертикальный режим («полоса на краю экрана»)
+  - 🌐 Локальный API (для стыков между проектами)
+  - 🧩 Новые возможности за флагами (по умолчанию выключены)
   - ⚙️ Режимы работы
   - 🧠 Настройка LLM (Ollama)
   - ☁️ Облачная LLM (необязательно)
@@ -60188,16 +65831,13 @@ certifi>=2024.8.30
   - Эксперимент: эхо колонок с Piper
   - ✋ Barge-in (перебивание)
   - 🎤 Микрофон
+    - Чёткие и нечёткие команды (по умолчанию выключено)
   - 🎧 Автоматическая проверка голоса
   - 🎨 Темы GUI
   - 🎉 Поздравление с ДР
   - 📝 Логи
   - 🌤 Погода и курс валют
   - 🗣 Команды
-  - 💬 Уточнения команд
-  - 🛠 Свои команды
-    - Конструктор в GUI
-    - Старый формат и паки
 
 #### `docs/WHISPER_STARTUP_DLL_FIX.md` — 6 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -60258,4 +65898,4 @@ certifi>=2024.8.30
 
 ---
 
-_Итого по категориям — code: 245, data: 58, doc: 52, pack: 5. Режим `lean`._
+_Итого по категориям — code: 264, data: 60, doc: 52, pack: 5. Режим `lean`._

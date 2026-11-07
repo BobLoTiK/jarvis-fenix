@@ -41,6 +41,23 @@ _REJECT = object()
 _UNCERTAIN = object()
 
 
+def _clean_whisper_text(text: str, awaiting: bool, *, is_wake, wake_required: bool):
+    """Снимает wake-слово из текста Whisper. `_REJECT` — не обращение.
+
+    Вынесено из `Jarvis._refine`, чтобы эскалация (этап 3) и прежний путь
+    снимали обращение одинаково. Функция без состояния — её удобно проверять
+    отдельно от микрофона и модели.
+    """
+    import re
+    tokens = list(re.finditer(r"\S+", text or ""))
+    for token in tokens:
+        if is_wake(normalize(token.group())):
+            return text[token.end():].lstrip(" ,.!?:;—")
+    if awaiting or not wake_required:
+        return text
+    return _REJECT
+
+
 class Jarvis:
     def __init__(self, config, listener, speaker, handler, base_dir: Path,
                  whisper=None, gui=None):
@@ -53,6 +70,10 @@ class Jarvis:
         self.gui = gui
         self.listening_enabled = True
         self.stop_event = threading.Event()
+        # Этап 3: бюджет и кэш эскалации создаются при первом сомнении,
+        # чтобы выключенный флаг не тратил ничего на старте.
+        self._asr_budget = None
+        self._asr_cache = None
         self._awaiting_until = 0.0
         self._wake_words = [normalize(w) for w in config["wake_words"]]
         self.barge_enabled = bool(config.get("barge_enabled", True))
@@ -295,7 +316,25 @@ class Jarvis:
                 self._request_repeat()
                 return
             primary = getattr(getattr(self, "listener", None), "last_quality", None)
-            if self.whisper is not None and not sensitive:
+            if self.config.get("asr_escalate_enabled", False) and not sensitive:
+                outcome = self._escalate_recognize(audio, cmd, primary, awaiting)
+                if outcome is None:
+                    # Второго движка нет — прежние правила: Vosk только при
+                    # достаточной уверенности.
+                    if primary is None or not primary.accepted:
+                        self._request_repeat()
+                        return
+                else:
+                    status, text = outcome
+                    if status == "repeat":
+                        self._request_repeat()
+                        return
+                    if status == "ignore":
+                        if self.gui is not None:
+                            self.gui.set_state("idle")
+                        return
+                    cmd = text
+            elif self.whisper is not None and not sensitive:
                 refined = self._refine(audio, awaiting)
                 if refined is _REJECT:
                     if self.gui is not None:
@@ -316,6 +355,13 @@ class Jarvis:
             elif primary is None or not primary.accepted:
                 self._request_repeat()
                 return
+            if self.config.get("decision_enabled", False):
+                # Флаг включается явно: решение «чётко/нечётко» поверх прежних
+                # проверок. Переспрос вместо догадки, как и раньше, но пороги
+                # теперь в config.json (decision_*).
+                if self._decision_needs_repeat(cmd, primary):
+                    self._request_repeat()
+                    return
         if cmd == "":
             self.say(Reply(text="Слушаю."))
             self._awaiting_until = time.time() + self.config["command_window_sec"]
@@ -388,6 +434,20 @@ class Jarvis:
                 self._awaiting_until = time.time() + float(
                     self.config.get("dialog_window_sec", 8))
 
+    def _decision_needs_repeat(self, cmd: str, quality=None) -> bool:
+        """Флаг decision_enabled: сомнительный ASR — повтор, не действие."""
+        from jarvis import decision
+
+        verdict = decision.decide(
+            cmd,
+            quality=quality,
+            thresholds=decision.Thresholds.from_config(self.config),
+            semantic=bool(self.config.get("decision_semantic_enabled", False)),
+        )
+        log.debug("Decision: kind=%s reason=%s score=%s",
+                  verdict.kind, verdict.reason, verdict.score)
+        return verdict.needs_repeat
+
     def _request_repeat(self):
         """Уточнение без записи сомнительной расшифровки в историю/память."""
         now = time.monotonic()
@@ -399,6 +459,75 @@ class Jarvis:
             self.gui.add_message("assistant", reply.text)
         self.say(reply)
         self._awaiting_until = time.time() + float(self.config.get("command_window_sec", 6))
+
+    def _escalate_recognize(self, audio: bytes, cmd: str, primary, awaiting: bool):
+        """Этап 3: звать второй движок только при сомнении.
+
+        Возвращает `None`, если эскалации нет (нет Whisper), иначе
+        `(status, text)`: `ok` — итоговый текст, `repeat` — переспросить,
+        `ignore` — это не обращение к ассистенту.
+        """
+        whisper = getattr(self, "whisper", None)
+        if whisper is None:
+            return None
+        from jarvis.asr_router import Budget, Cache, CallableEngine, Router
+        from jarvis.asr_router import Transcript
+        from jarvis.decision import Thresholds
+        from jarvis.recognition import Quality
+
+        if self._asr_budget is None:
+            self._asr_budget = Budget(
+                self.config.get("asr_escalate_budget_per_min", 3), 60.0)
+        if self._asr_cache is None:
+            self._asr_cache = Cache(
+                self.config.get("asr_escalate_cache_sec", 60), 32)
+        rate = int(self.config.get("sample_rate", 16000))
+
+        def primary_text(_pcm, _rate):
+            quality = primary if isinstance(primary, Quality) else None
+            return Transcript(cmd, quality, "vosk")
+
+        def fallback_text(pcm, _rate):
+            text = whisper.transcribe(pcm, sample_rate=_rate).strip()
+            return Transcript(text, getattr(whisper, "last_quality", None), "whisper")
+
+        thresholds = None
+        if self.config.get("decision_enabled", False):
+            thresholds = Thresholds.from_config(self.config)
+        router = Router(
+            CallableEngine("vosk", primary_text),
+            CallableEngine("whisper", fallback_text),
+            enabled=True, budget=self._asr_budget, cache=self._asr_cache,
+            thresholds=thresholds,
+            semantic=bool(self.config.get("decision_semantic_enabled", False)))
+        result = router.run(audio, rate, cancel_event=self.stop_event)
+        if result.reason == "cancelled":
+            # Пользователь перебил/остановил: не переспрашивать и не говорить.
+            return "ignore", ""
+        if result.transcript is None or result.reason == "primary_failed":
+            return "repeat", cmd
+        if result.reason in {"disagreement", "fallback_failed", "fallback_empty",
+                             "unclear"}:
+            log.info("ASR: эскалация не дала уверенности (%s)", result.reason)
+            return "repeat", cmd
+        text = result.text
+        if result.transcript is not None and result.transcript.engine == "whisper":
+            cleaned = self._clean_whisper_text(text, awaiting)
+            if cleaned is _REJECT:
+                log.info("ASR: эскалация без обращения — молчу")
+                return "ignore", text
+            if cleaned is None or not cleaned.strip():
+                return "repeat", cmd
+            text = cleaned
+        if result.escalated:
+            log.info("ASR: эскалация (%s), движок=%s",
+                     result.reason, result.transcript.engine if result.transcript else "?")
+        return "ok", text
+
+    def _clean_whisper_text(self, text: str, awaiting: bool):
+        """Снимает wake-слово из текста Whisper; `_REJECT` — не обращение."""
+        return _clean_whisper_text(text, awaiting, is_wake=self._is_wake,
+                                  wake_required=self._wake_word_required)
 
     def _refine(self, audio: bytes, awaiting: bool):
         try:
@@ -413,14 +542,8 @@ class Jarvis:
             return _UNCERTAIN
         if not text:
             return _UNCERTAIN
-        import re
-        tokens = list(re.finditer(r"\S+", text))
-        for token in tokens:
-            if self._is_wake(normalize(token.group())):
-                return text[token.end():].lstrip(" ,.!?:;—")
-        if awaiting or not self._wake_word_required:
-            return text
-        return _REJECT
+        return _clean_whisper_text(text, awaiting, is_wake=self._is_wake,
+                                   wake_required=getattr(self, "_wake_word_required", True))
 
     def _extract_command(self, text: str) -> str | None:
         """Извлекает команду из текста.
@@ -803,6 +926,23 @@ def main() -> None:
     )
 
     jarvis = Jarvis(config, listener, speaker, handler, BASE_DIR, whisper, gui=gui)
+
+    # Плагины (этап 6): только при явном включении и только имена из
+    # plugins_allowed. Команды идут обычным pipeline, код — отдельным процессом.
+    if config.get("plugins_enabled", False):
+        try:
+            from jarvis.plugins import PluginHost
+            from jarvis.paths import plugins_dir
+            host = PluginHost(plugins_dir(), config=config)
+            loaded = host.discover()
+            log.info("Плагины: найдено %d, ошибок %d", len(loaded), len(host.errors))
+            for name in host.allowed:
+                ok, message = host.start(name)
+                if not ok:
+                    log.info("Плагин %s не запущен: %s", name, message)
+            handler.plugins = host
+        except Exception:
+            log.exception("Плагины не завелись — работают без них")
 
     # Прогрев тяжёлых API — brightness через WMI (~0.5 сек).
     # Иначе первый голосовой запрос «какая яркость» виснет.

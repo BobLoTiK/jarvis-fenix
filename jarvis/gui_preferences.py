@@ -250,6 +250,8 @@ class PreferenceScreens:
         self.probe_label = None
         self.probe_button = None
         self.preview_title = self.preview_quote = self.preview_details = None
+        self._api_status_label = None
+        self._api_token_label = None
 
     def _update(self):
         if self.gui._page is not None:
@@ -564,6 +566,7 @@ class PreferenceScreens:
             label_style=ft.TextStyle(color=_palette().dim))
         appearance = card("Внешний вид", "Тот же Феникс, в комфортном свете.", [
             theme, text("Тема применяется сразу. Черновики других настроек сохраняются.", muted=True)])
+        vertical = self._vertical_card()
         launch = card("Запуск и окно", "Поведение на рабочем столе.", [
             self._toggle("tray_enabled", "Оставаться в трее", "При закрытии окна продолжать работу. Применяется сразу после сохранения."),
             divider(), self._select("settings", "launch_mode", "При запуске приложения",
@@ -574,11 +577,113 @@ class PreferenceScreens:
             button("Открыть «Голос и звук» →", lambda e: self.gui._select_tab(2))])
         content = ft.ResponsiveRow([
             ft.Container(ft.Column([model, cloud, privacy], spacing=18), col={"xs": 12, "lg": 6}),
-            ft.Container(ft.Column([appearance, launch, audio], spacing=18), col={"xs": 12, "lg": 6}),
+            ft.Container(ft.Column([appearance, vertical, launch, audio, self._api_card()],
+                                   spacing=18), col={"xs": 12, "lg": 6}),
         ], spacing=20, run_spacing=20)
         return self._screen("Настройки", "Всё важное — на своих местах.", content, [
             self._notice("settings"), ft.Row([button("Отменить изменения", self.cancel_settings),
                 button("Применить изменения", self.save_settings, primary=True)], wrap=True)])
+
+    def _vertical_card(self):
+        """Карточка вертикального режима: переключается сразу, без «Применить»."""
+        from jarvis.gui_vertical import PANELS, WIDTH_DEFAULT, normalize_panel, normalize_width
+
+        p = _palette()
+        gui = self.gui
+        width = normalize_width(gui.config.get("ui_vertical_width", WIDTH_DEFAULT))
+        panel = normalize_panel(gui.config.get("ui_vertical_panel", "log"))
+        widths = ["220", "240", "260", "280", "300", "320"]
+        if str(width) not in widths:
+            widths.append(str(width))
+            widths.sort(key=int)
+        switch = ft.Switch(value=bool(gui.config.get("ui_vertical_enabled", False)),
+            active_color=p.accent, tooltip="Вертикальная полоса",
+            on_change=lambda e: gui.set_vertical_mode(bool(e.control.value)))
+        width_select = ft.Dropdown(label="Ширина", value=str(width),
+            options=[ft.dropdown.Option(v, f"{v} px") for v in widths],
+            on_select=lambda e: gui.set_vertical_width(int(e.control.value)),
+            color=p.text, bgcolor=p.field, border=input_border(),
+            label_style=ft.TextStyle(color=p.dim))
+        panel_select = ft.Dropdown(label="Под светяшкой", value=panel,
+            options=[ft.dropdown.Option(key, label) for key, label in PANELS.items()],
+            on_select=lambda e: gui.set_vertical_panel(e.control.value),
+            color=p.text, bgcolor=p.field, border=input_border(),
+            label_style=ft.TextStyle(color=p.dim))
+        return card("Полоса на краю экрана", "Ассистент всегда перед глазами.", [
+            ft.Row([ft.Column([text("Вертикальный режим", 15),
+                    text("Узкая полоса без рамки поверх других окон, у правого края.", 13, muted=True)],
+                    spacing=5, expand=True), switch], spacing=16),
+            divider(), width_select, panel_select,
+            text("Переключается сразу, черновик остальных настроек не трогается. "
+                 "Заметки и план лежат в %APPDATA%\\Phoenix и сохраняются при уходе из поля ввода.", muted=True)])
+
+    # --- локальный API -------------------------------------------------
+
+    def _api_card(self):
+        """Карточка локального стыка: галочка, порт, токен, состояние."""
+        from jarvis.api_server import normalize_port
+
+        p = _palette()
+        gui = self.gui
+        enabled = gui.config.get("api_enabled", False) is True
+        port = normalize_port(gui.config.get("api_port", 8765))
+        switch = ft.Switch(value=enabled, active_color=p.accent, tooltip="Локальный API",
+                           on_change=self._on_api_toggle)
+        port_field = ft.TextField(value=str(port), label="Порт", width=110, dense=True,
+                                  text_size=13, on_submit=self._on_api_port,
+                                  on_blur=self._on_api_port, color=p.text,
+                                  bgcolor=p.field, border=input_border(),
+                                  label_style=ft.TextStyle(color=p.dim))
+        self._api_status_label = text(getattr(gui, "_api_status", "API выключен."), 13, muted=True)
+        self._api_token_label = text(self._api_token_text(), 13, muted=True)
+        return card("Локальный API", "Стык с другими проектами: health, capabilities, turn.", [
+            ft.Row([ft.Column([text("Локальный API", 15),
+                    text("Только 127.0.0.1, вход по токену. Для стыков между проектами.",
+                         13, muted=True)], spacing=5, expand=True), switch], spacing=16),
+            divider(), ft.Row([port_field, button("Новый токен", self._on_api_token)],
+                              spacing=12, wrap=True),
+            self._api_token_label, self._api_status_label, divider(),
+            text("Пароль через API запрещён. Профиль, история и память наружу не уходят: "
+                 "только ответ на присланный текст. Токен хранится в зашифрованном "
+                 "хранилище Windows, а не в config.json.", muted=True)])
+
+    def _api_token_text(self):
+        fingerprint = ""
+        try:
+            fingerprint = self.gui._api_fingerprint()
+        except Exception:
+            fingerprint = ""
+        if fingerprint:
+            return f"Токен: {fingerprint}… (отпечаток, не сам токен)"
+        return "Токен ещё не создан — он появится при включении."
+
+    def _api_refresh_labels(self):
+        if self._api_status_label is not None:
+            self._api_status_label.value = getattr(self.gui, "_api_status", "API выключен.")
+        if self._api_token_label is not None:
+            self._api_token_label.value = self._api_token_text()
+        self._update()
+
+    def _on_api_toggle(self, e):
+        self.gui.set_api_enabled(bool(e.control.value))
+        e.control.value = self.gui.config.get("api_enabled", False) is True
+        self._api_refresh_labels()
+
+    def _on_api_port(self, e):
+        from jarvis.api_server import normalize_port
+
+        raw = (e.control.value or "").strip()
+        try:
+            port = int(raw)
+        except (TypeError, ValueError):
+            port = normalize_port(self.gui.config.get("api_port", 8765))
+        self.gui.set_api_port(port)
+        e.control.value = str(normalize_port(self.gui.config.get("api_port", 8765)))
+        self._api_refresh_labels()
+
+    def _on_api_token(self, e=None):
+        self.gui.regenerate_api_token()
+        self._api_refresh_labels()
 
     def cancel_settings(self, e=None):
         self._load_settings()

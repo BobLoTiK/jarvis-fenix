@@ -25,10 +25,14 @@ from jarvis.text_utils import normalize
 GOOD = Quality(True, "test")
 BAD = Quality(False, "test")
 PCM = array("h", [500, -500] * 4000).tobytes()
-REJECT, UNCERTAIN = object(), object()
+# Сентинелы берём настоящие: после выноса снятия wake-слова в функцию
+# `_refine` возвращает те же объекты, что и `jarvis.main`.
+from jarvis.main import _REJECT as REJECT, _UNCERTAIN as UNCERTAIN  # noqa: E402
 
 
 def method(filename, classname, name, **extra):
+    from jarvis.main import _clean_whisper_text
+
     path = Path(__file__).resolve().parents[1] / filename
     tree = ast.parse(path.read_text(encoding="utf-8"))
     cls = next(
@@ -42,6 +46,7 @@ def method(filename, classname, name, **extra):
         "log": logging.getLogger("test.asr"),
         "_REJECT": REJECT,
         "_UNCERTAIN": UNCERTAIN,
+        "_clean_whisper_text": _clean_whisper_text,
         **extra,
     }
     exec(compile(ast.Module(body=[fn], type_ignores=[]), str(path), "exec"), env)

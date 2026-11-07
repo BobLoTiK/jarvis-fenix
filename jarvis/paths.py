@@ -246,6 +246,13 @@ def nonverbal_dir() -> Path:
     return root / "assets" / "nonverbal"
 
 
+def plugins_dir() -> Path:
+    """Каталог плагинов пользователя (манифесты и код), отдельно от конфига."""
+    d = user_dir() / "plugins"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
 @contextmanager
 def temporary_audio_file():
     """Ephemeral mixed speech for winsound fallback; removed when playback stops."""

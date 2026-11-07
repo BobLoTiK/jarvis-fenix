@@ -62,19 +62,27 @@ def reload_custom(handler):
 
 def match_custom(handler, cmd: str) -> str | None:
     """Тот же matcher используется уточнениями, но исполнение только здесь."""
-    matched = find_custom(handler.custom, cmd)
+    semantic = bool(handler.config.get("decision_semantic_enabled", False))
+    matched = find_custom(handler.custom, cmd, semantic=semantic)
     if matched is None:
         # The microphone already removes the address; typed GUI commands may include it.
         from jarvis.command_builder import clean_phrase
         typed = [item for item in handler.custom if len(item) > 3 and item[3].get("exact")]
-        matched = find_custom(typed, clean_phrase(cmd, handler.config.get("wake_words", [])))
+        matched = find_custom(typed, clean_phrase(cmd, handler.config.get("wake_words", [])),
+                              semantic=semantic)
     if matched is not None:
         return execute_custom(handler, *matched)
     return None
 
 
-def find_custom(custom: list, cmd: str) -> tuple | None:
-    """Чистый поиск: точное или нечёткое совпадение, без побочных действий."""
+def find_custom(custom: list, cmd: str, *, semantic: bool = False) -> tuple | None:
+    """Чистый поиск: точное или нечёткое совпадение, без побочных действий.
+
+    ``semantic=True`` включает шаг 1 семантики из ``jarvis.decision``: синонимы
+    («вруби» → «включи») и выброс «плиз/пожалуйста». Флаг приходит из
+    ``decision_semantic_enabled`` и по умолчанию выключен — тогда сравнение
+    байт в байт прежнее, включая порог 0.85 и проверку длины.
+    """
     # Exact matches across the whole list take precedence over legacy fuzzy ones.
     for item in custom:
         phrases, action, reply = item[:3]
@@ -85,8 +93,12 @@ def find_custom(custom: list, cmd: str) -> tuple | None:
         if len(item) > 3 and item[3].get("exact"):
             continue
         for phrase in phrases:
-            if len(cmd) >= 12 and len(phrase) >= 12:
-                if SequenceMatcher(None, cmd, phrase).ratio() >= 0.85:
+            left, right = cmd, phrase
+            if semantic:
+                from jarvis.decision import semantic_normalize
+                left, right = semantic_normalize(cmd), semantic_normalize(phrase)
+            if len(left) >= 12 and len(right) >= 12:
+                if SequenceMatcher(None, left, right).ratio() >= 0.85:
                     return action, reply
     return None
 

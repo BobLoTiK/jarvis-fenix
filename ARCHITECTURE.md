@@ -401,6 +401,32 @@ winsound применяется до вывода первого PCM-блока,
 прозвучавший ответ; временный WAV удаляется после остановки.
 Дефолты/границы и включение — в README/PROJECT, происхождение — в assets/nonverbal.
 
+### Решение «чёткая / нечёткая / не команда»
+
+`jarvis/decision.py` — чистая функция над доказательствами, без GUI/аудио/сети:
+
+~~~~
+decide(text, quality=, match=, secondary=, candidates=) -> Decision
+  kind: clear | unclear | not_a_command
+~~~~
+
+- Каналы: уверенность ASR (`recognition.Quality`), совпадение с известными
+  командами (`match_score`), вторая гипотеза текста (`secondary` — Whisper против
+  Vosk). Согласие двух каналов → `clear`; расхождение или слабый ASR → `unclear`.
+- `unclear` — повтор/уточнение, **никогда** действие. Решения safety (пароль,
+  pending, опасные действия) принимаются раньше и здесь не пересматриваются.
+- Отрицание: «не выключай музыку» похоже на «выключи музыку», поэтому при «не»
+  в фразе и положительном найденном совпадении решение — `unclear`.
+- Семантический слой (шаг 1): `semantic_normalize` — мусор («плиз»), синонимы
+  («вруби» → «включи»). Шага с эмбеддингами нет: без файла модели честный откат
+  к словарю. Включение — `decision_semantic_enabled` (default false).
+- Интеграция: `main._decision_needs_repeat` (флаг `decision_enabled`) и
+  `custom.find_custom(..., semantic=)`; при выключенных флагах путь прежний.
+- Пороги — `decision_clear_score` / `decision_unclear_score` /
+  `decision_asr_min_confidence` / `decision_agreement_min`; `Thresholds.from_config`
+  валидирует (0..1, `unclear <= clear`, битое → дефолт).
+- Корпус `tests/fixtures/decision_cases.json` + `tests/test_decision.py`.
+
 
 ## 🎭 Персона
 
@@ -646,6 +672,79 @@ GUI использует это для обновления подписи на�
 
 ---
 
+## 🎙 Распознавание: эскалация на второй движок (этап 3)
+
+`jarvis/asr_router.py` — тонкий слой над движками, не замена `stt.py`.
+`Transcript(text, quality, engine, latency)`; `CallableEngine` заворачивает
+любой `fn(pcm, rate)`. `Router.run()`: основной движок → если `decision`
+говорит «нечётко» или `matched=False`, то второй (Whisper) → `transcripts_agree`
+→ при расхождении `disagreement` (повтор), иначе итоговый текст. `Budget`
+(сколько эскалаций в минуту) и `Cache` (тот же текст не гоняем дважды)
+экономят тяжёлый движок; отмена (`stop_event`) проверяется до и после вызова.
+
+Включение — `asr_escalate_enabled` (по умолчанию **выключено**): тогда
+`Jarvis._escalate_recognize` идёт через роутер, а Vosk остаётся wake-словом
+и запасным движком. Без флага прежний путь не меняется.
+
+## 🔊 Эхо и перебивание (этап 4)
+
+- `jarvis/echo.py` — прежний native AEC (RenderTap как эталон).
+- `jarvis/echo_loopback.py` — эталон из системы, когда звук идёт мимо нашего
+  PCM: `probe_loopback()` проверяет WASAPI loopback в PortAudio, `ReferenceDelay`
+  сдвигает эталон на задержку, `choose_reference()` выбирает local/loopback/none.
+  На этой машине loopback недоступен — проба это фиксирует, а не притворяется.
+- `jarvis/aec_backend.py` — `aec_backend = "native" | "webrtc"`; WebRTC только
+  при установленном пакете, иначе native и причина в логе (`make_echo_path`).
+- `jarvis/barge.py` — очерёдность разговора: `too_soon` (свой хвост сразу после
+  начала речи), `quiet` (уровень без запаса), `short` (щелчок), `barge`.
+  Флаг `barge_policy_enabled` по умолчанию **выключен**; хук в
+  `Listener._process_barge`, микрофон во время речи не выключается.
+
+## 🧩 Плагины (этап 6)
+
+`jarvis/plugins.py` + `jarvis/intents/stages/plugins.py`:
+
+- манифест `plugin.json` на папку: `name`, `version`, `entry`, `commands`
+  (фразы → action), `capabilities` (только read-only `command`/`status`/
+  `settings`), `timeout_sec`;
+- код — отдельным процессом (`python -I`, без окна), таймаут и убийство;
+  падение — ответ «плагин не ответил», ядро живо;
+- настройки плагина — свой JSON рядом, не общий `config.json`;
+- согласие: `plugins_enabled=false`, `plugins_allowed=[]`;
+- команды — стадией после быстрых правил, до LLM; второго pipeline нет;
+- магазина, денег и лицензирования нет.
+
+## 🌐 Локальный стык API (`health` / `capabilities` / `turn`)
+
+`jarvis/api_server.py` — договор об именах и формате с другими проектами, не
+общее ядро. Сервер только на `127.0.0.1`, за флагом `api_enabled=False`,
+порт `api_port` (8765). Токен — `secrets_store` (DPAPI, имя `api_token`);
+Bearer сравнивается через `hmac.compare_digest`.
+
+~~~~
+GET  /v1/health        {"schema":1,"status":"ok","version":...}
+GET  /v1/capabilities  {"capabilities":["health","capabilities","turn","pending"],...}
+POST /v1/turn          {"session_id":"...","text":"..."}
+     -> {"status":"ok"|"pending"|"error","pending":false|"question"|"password","text":...}
+~~~~
+
+- `session_id` обязателен: `handle()` помнит состояние между вызовами. Формат
+  `[A-Za-z0-9._:-]{1,128}`; иначе 400.
+- `pending` — статус, а не «выполнено». Пароль через API **не принимается**:
+  ответ `{"status":"pending","pending":"password"}` без вызова ядра.
+- Стрим-ответ собирается в текст тем же `safety.guard_stream` и завершается
+  `finalize_stream(answer)` — как в голосовом пути, без второго pipeline.
+- Ходы сериализуются одним lock'ом: параллельные запросы не ломают pending.
+- Приватность: наружу уходит только ответ на присланный текст; профиль, история
+  и память не отдаются. В лог — метод/путь/код, без текста и токена.
+- `allow_reuse_address=False`: занятый порт — ошибка, иначе Windows разрешает
+  второй bind на тот же порт.
+- `jarvis/peer_client.py` — клиент к такому же стыку (`health`, `capabilities`,
+  `ask`), ошибки — `PeerError` с кодом HTTP.
+- GUI: карточка «Локальный API»; сервер поднимается из GUI (у ядра уже есть
+  handler) на старте и по галочке, гасится в `Gui.stop()`.
+- Тесты — `tests/test_api_server.py` (живой localhost, без моков транспорта).
+
 ## 🖼 GUI (Flet 1.0.3)
 
 ~~~~
@@ -712,6 +811,58 @@ GUI и голоса. Состояния/сообщения/ошибки worker �
 сырое исключение с потенциальным паролем не попадает в GUI-ошибку.
 Стоп — только `speaker.stop()`, не отмена handler/HTTP/действий ОС.
 Прямые импорты и worker проверяются `tests/test_gui_chat.py`; это не desktop E2E.
+
+### Вертикальный режим: полоса у края экрана
+
+`jarvis/gui_vertical.py` + карточка «Полоса на краю экрана» в «Настройках».
+Режим меняет **содержимое корня страницы** (`_root.content`: `_rail_row` ↔
+`VerticalBar`), а не окно и не `ft.run`: история, `_messages`, черновик и
+pending-состояние остаются теми же объектами. Настройки:
+`ui_vertical_enabled` (False), `ui_vertical_width` (240, границы 220–320),
+`ui_vertical_panel` (`log` | `notes` | `plan`), `ui_vertical_pinned` (False),
+`ui_vertical_autohide_ms` (900).
+
+- Состояние рисует та же `PhoenixAura` (параметры `size`, `foreground`), поэтому
+  второго аниматора и второго источника состояния нет. `solar_shapes` получила
+  `center`/`scale`: на Главной по-прежнему 300 px, в полосе 140 px.
+- Окно: без рамки, `always_on_top`, `shadow=True` (системная тень вокруг окна),
+  высота — рабочая область (`SPI_GETWORKAREA` через ctypes, без новых
+  зависимостей). Без рабочей области (не Windows/сбой) высоту и позицию не
+  выдумываем.
+- **Геометрия применяется повторно после первого `update`** (`_show_window_now`):
+  клиент Flet задаёт размер окна при подключении и затирает значения, выставленные
+  до handshake. Проверено скрытым прогоном: без повторного применения окно
+  открывалось 1280 px с `always_on_top=False`. Тот же эффект у включения режима
+  на уже показанном окне (на живом прогоне ширина осталась 900 px), поэтому
+  `set_vertical_mode` дополнительно планирует `_reapply_vertical_geometry_later`
+  (0.2 и 0.9 с, пока режим включён).
+- Переход в режим есть и на Главной: `HomeScreen.vertical_btn` → `_open_vertical`
+  → тот же `FenixGUI.set_vertical_mode(True)`; отдельного пути в полосу нет.
+- **Шторка.** `curtain_geometry()` считает две позиции окна: `shown`
+  (`right - width`) и `hidden` (`right - TAB_WIDTH`), `slide_frames()` — кадры
+  анимации с точным последним кадром, `Curtain` — состояние (закреплена, курсор
+  внутри, открыта). Само окно двигает `FenixGUI._vertical_move()`: кадры
+  проигрываются задачей `page.run_task` с `asyncio.sleep`, поколение
+  (`_curtain_gen`) отменяет устаревшую анимацию. `_vertical_hover()` открывает по
+  входу курсора и планирует скрытие по уходу (`_schedule_hide` →
+  `_vertical_hide_if_idle`), `set_vertical_pinned()` пишет `ui_vertical_pinned` и
+  держит полосу открытой. Без рабочей области шторка ничего не двигает.
+- Ручка (18 px) — отдельная кнопка-полоса: фиксированная ширина, риска и шеврон,
+  `on_hover` подсвечивает её и передаёт вход/уход в GUI, `on_click` переключает
+  шторку. Ручка **не** `expand`: иначе она делила ширину с карточкой (найдено
+  живым прогоном: карточка выходила 165 px вместо 236).
+- Оформление: карточка с градиентом, скругление левых углов 16 px, рамка и
+  `BoxShadow`; переключатель панелей — три пилюли с `expand` (без расчёта
+  ширины от `ui_vertical_width`, чтобы раскладка не зависела от DPI), активная —
+  в цвете бренда.
+- Позиция `gui_x`/`gui_y` в режиме полосы не пишется (перетаскивание полосы не
+  должно испортить место обычного окна), при выходе — восстанавливается.
+- Заметки и план — `%APPDATA%\Phoenix\vertical_notes.txt` / `vertical_plan.txt`,
+  атомарная запись через `paths.user_dir()`; ошибка записи не считается успехом.
+- Тесты — `tests/test_gui_vertical.py` (97); проверяются чистые функции,
+  геометрия шторки, кадры, `Curtain`, закрепление/автоскрытие, оформление полосы
+  на фейковом GUI и переключение режима без окна (desktop E2E — отдельный прогон,
+  см. CHANGELOG: живой прогон с показом окна выполнялся вручную).
 
 ### Режим запуска
 

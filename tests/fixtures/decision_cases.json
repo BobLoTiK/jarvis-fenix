@@ -1,0 +1,50 @@
+{
+  "comment": "Ручной корпус этапа 2: 23 фразы, не статистика. Пополнять живыми записями (без аудио в репозитории).",
+  "candidates": [
+    ["включи музыку", "music_on"],
+    ["выключи музыку", "music_off"],
+    ["открой блокнот", "open_notepad"],
+    ["закрой блокнот", "close_notepad"],
+    ["громче", "louder"],
+    ["тише", "quieter"],
+    ["стоп", "stop"],
+    ["какая погода", "weather"],
+    ["который час", "time"],
+    ["сделай скриншот", "screenshot"]
+  ],
+  "cases": [
+    {"text": "включи музыку", "expected": "clear", "note": "точная команда"},
+    {"text": "включи музыку!", "expected": "clear", "note": "пунктуация не мешает"},
+    {"text": "выключи музыку", "expected": "clear", "note": "обратная команда"},
+    {"text": "открой блокнот", "expected": "clear", "note": "открыть"},
+    {"text": "закрой блокнот", "expected": "clear", "note": "закрыть, не спутать с открыть"},
+    {"text": "открой блокнотик", "expected": "clear", "note": "уменьшительное"},
+    {"text": "какая погода", "expected": "clear", "note": "вопрос-команда"},
+    {"text": "который час", "expected": "clear", "note": "вопрос-команда"},
+    {"text": "сделай скриншот", "expected": "clear", "note": "латиница/кириллица не важна"},
+    {"text": "стоп", "expected": "clear", "note": "короткий алиас"},
+    {"text": "громче", "expected": "clear", "note": "одно слово"},
+    {"text": "тише", "expected": "clear", "note": "одно слово"},
+    {"text": "включи музыку пожалуйста", "expected": "clear", "note": "вежливость не мешает"},
+    {"text": "вруби музыку", "expected": "unclear", "note": "синоним без семантики: переспросить"},
+    {"text": "погаси музыку", "expected": "unclear", "note": "синоним без семантики"},
+    {"text": "включи музон", "expected": "unclear", "note": "похоже, но не точно"},
+    {"text": "не выключай музыку", "expected": "unclear", "note": "«не» меняет смысл"},
+    {"text": "включи свет", "expected": "unclear", "note": "команда знакомого вида, цели нет"},
+    {"text": "привет как дела", "expected": "not_a_command", "note": "болтовня"},
+    {"text": "расскажи анекдот", "expected": "not_a_command", "note": "свободный диалог"},
+    {"text": "спасибо", "expected": "not_a_command", "note": "не команда"},
+    {"text": "как тебя зовут", "expected": "not_a_command", "note": "вопрос о себе"},
+    {"text": "мне скучно", "expected": "not_a_command", "note": "не команда"},
+    {"text": "включи музыку", "expected": "unclear", "quality": 0.3, "note": "ASR не уверен — переспросить"},
+    {"text": "", "expected": "not_a_command", "note": "пустая фраза"}
+  ],
+  "semantic_cases": [
+    {"text": "вруби музыку", "expected": "clear", "note": "«вруби» → «включи»"},
+    {"text": "вруби музыку плиз", "expected": "clear", "note": "синоним + мусор"},
+    {"text": "погаси музыку", "expected": "clear", "note": "«погаси» → «выключи»"},
+    {"text": "запусти музыку", "expected": "clear", "note": "«запусти» → «включи»"},
+    {"text": "врубай музыку пожалуйста", "expected": "clear", "note": "синоним + вежливость"},
+    {"text": "хватит", "expected": "clear", "note": "«хватит» → «стоп»"}
+  ]
+}

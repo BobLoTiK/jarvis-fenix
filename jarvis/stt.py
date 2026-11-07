@@ -106,6 +106,7 @@ class Listener:
         self.barge_enabled = True
         self.muted = False
         self.barge_flag = False
+        self._barge_policy = None
         # Блок аудио 128 мс (см. DEFAULT_BLOCK_MS) вместо старых 500 мс.
         self._block_size = max(
             MIN_BLOCK_SAMPLES,
@@ -224,6 +225,16 @@ class Listener:
             log.info("Barge-in: стоп (echo=%d, thr=%d, речь=%d мс)",
                      self._echo_baseline, self._barge_threshold, self._barge_speech_ms)
 
+    def _barge_decision_policy(self):
+        """Правило очерёдности разговора (этап 4). None — прежнее поведение."""
+        if self._barge_policy is None:
+            config = self._config
+            if config is None or not config.get("barge_policy_enabled", False):
+                return None
+            from jarvis.barge import BargePolicy
+            self._barge_policy = BargePolicy.from_config(config)
+        return self._barge_policy
+
     def _process_barge(self, rms):
         if not self._speech_active or not self.barge_enabled:
             return
@@ -255,6 +266,19 @@ class Listener:
         if rms > self._barge_threshold:
             self._barge_speech_ms += self._block_ms
             if self._barge_speech_ms >= 150:
+                policy = self._barge_decision_policy()
+                if policy is not None:
+                    verdict = policy.evaluate(
+                        rms=rms, threshold=self._barge_threshold,
+                        speech_ms=self._barge_speech_ms,
+                        tts_elapsed=now - self._speech_started_at)
+                    if verdict != "barge":
+                        # Свой хвост, фон или короткий всплеск: не перебиваем.
+                        if verdict != getattr(self, "_barge_last_verdict", ""):
+                            self._barge_last_verdict = verdict
+                            log.info("Barge-in: не считается (%s)", verdict)
+                        return
+                    self._barge_last_verdict = "barge"
                 self.barge_flag = True
         else:
             self._barge_speech_ms = 0

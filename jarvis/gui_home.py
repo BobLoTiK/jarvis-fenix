@@ -69,6 +69,10 @@ class HomeScreen(ft.Column):
         ], spacing=4, tight=True, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
             alignment=ft.Alignment.CENTER, expand=True)
         self.widgets = WidgetBoard(gui, self._layout_widgets)
+        self.vertical_btn = ft.Button("Полоса", icon=ft.Icons.SPLITSCREEN, height=32,
+            tooltip="Перейти в полосу у края экрана", color=p.text_dim,
+            on_click=self._open_vertical,
+            style=ft.ButtonStyle(padding=ft.Padding.symmetric(horizontal=8)))
         self.workspace = ft.Column([self.center_region, self.widgets], spacing=20, expand=True)
         self.controls = [self.header, ft.Container(ft.Column([
             ft.Row([ft.Row([ft.Icon(ft.Icons.WB_SUNNY_OUTLINED, size=14, color=p.text_dim), self.date], spacing=8),
@@ -77,7 +81,8 @@ class HomeScreen(ft.Column):
             ft.Row([ft.Text("Просто твоё пространство.", size=10, color=p.text_dim, expand=True),
                 ft.Button("Виджеты",icon=ft.Icons.ADD,tooltip="Настроить Главную",height=32,
                     on_click=self._open_widgets,color=p.text_dim,
-                    style=ft.ButtonStyle(padding=ft.Padding.symmetric(horizontal=8)))],spacing=8),
+                    style=ft.ButtonStyle(padding=ft.Padding.symmetric(horizontal=8))),
+                self.vertical_btn],spacing=8),
         ], expand=True, spacing=20), padding=ft.Padding(left=28, right=28, top=26, bottom=24), expand=True)]
         self._layout_widgets(update=False)
         self.apply_state(gui._state)
@@ -95,6 +100,10 @@ class HomeScreen(ft.Column):
 
     def _theme(self, name):
         self.gui._on_theme_change(SimpleNamespace(control=SimpleNamespace(value=name)))
+
+    def _open_vertical(self, e=None):
+        """«Полоса» на Главной: тот же переход, что из настроек."""
+        return self.gui.set_vertical_mode(True)
 
     def apply_state(self, state):
         from jarvis import gui as ui
