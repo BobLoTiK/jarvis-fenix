@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=79b341c0b1ba26c9` · режим `lean` · файлов `387` · строк `72509` · источник `3430 КБ`
+`sha256=27c7e99715403d30` · режим `lean` · файлов `390` · строк `73155` · источник `3459 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -501,7 +501,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── release.yml  (306 стр)
 │   │   ├── test.yml  (71 стр)
 ├── AGENTS.md  (88 стр)
-├── ARCHITECTURE.md  (1334 стр)
+├── ARCHITECTURE.md  (1352 стр)
 ├── assets/
 │   ├── nonverbal/
 │   │   ├── README.md  (40 стр)
@@ -516,7 +516,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── themes.svg  (19 стр)
 ├── build_nuitka.bat  (12 стр)
 ├── build_nuitka_full.bat  (17 стр)
-├── CHANGELOG.md  (2225 стр)
+├── CHANGELOG.md  (2246 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -525,7 +525,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ├── cmds/
 │   ├── open_terminal.bat  (3 стр)
 │   ├── show_ip.bat  (3 стр)
-├── config.example.json  (123 стр)
+├── config.example.json  (124 стр)
 ├── constraints-nuitka-app.txt  (25 стр)
 ├── CONTRIBUTING.md  (438 стр)
 ├── create_shortcut.bat  (52 стр)
@@ -564,7 +564,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── v2.1.2.md  (112 стр)
 │   ├── REVIEW_FIXES.md  (68 стр)
 │   ├── TTS_LIFECYCLE_FIX.md  (89 стр)
-│   ├── USER_GUIDE.md  (1225 стр)
+│   ├── USER_GUIDE.md  (1231 стр)
 │   ├── WHISPER_STARTUP_DLL_FIX.md  (85 стр)
 │   ├── WINDOWS_STARTUP_RELIABILITY.md  (108 стр)
 │   ├── WINRT_TTS_REMOVAL.md  (43 стр)
@@ -614,7 +614,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── cloud_llm.py  (367 стр)
 │   ├── command_builder.py  (152 стр)
 │   ├── compiled_runtime.py  (267 стр)
-│   ├── config.py  (337 стр)
+│   ├── config.py  (339 стр)
 │   ├── config_manager.py  (156 стр)
 │   ├── decision.py  (307 стр)
 │   ├── echo.py  (512 стр)
@@ -623,18 +623,20 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── engines.py  (533 стр)
 │   ├── files.py  (109 стр)
 │   ├── first_run.py  (26 стр)
-│   ├── gui.py  (2473 стр)
+│   ├── gui.py  (2588 стр)
 │   ├── gui_audio.py  (438 стр)
 │   ├── gui_cloud.py  (541 стр)
 │   ├── gui_commands.py  (305 стр)
 │   ├── gui_dialog.py  (75 стр)
 │   ├── gui_engines.py  (206 стр)
-│   ├── gui_home.py  (279 стр)
+│   ├── gui_home.py  (324 стр)
 │   ├── gui_home_actions.py  (225 стр)
 │   ├── gui_home_fx.py  (242 стр)
-│   ├── gui_palette.py  (208 стр)
-│   ├── gui_preferences.py  (805 стр)
+│   ├── gui_palette.py  (211 стр)
+│   ├── gui_pipette.py  (126 стр)
+│   ├── gui_preferences.py  (809 стр)
 │   ├── gui_sidebar.py  (442 стр)
+│   ├── gui_toast.py  (128 стр)
 │   ├── gui_tokens.py  (97 стр)
 │   ├── gui_vertical.py  (828 стр)
 │   ├── gui_widgets.py  (373 стр)
@@ -848,10 +850,11 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_gui_commands.py  (127 стр)
 │   ├── test_gui_dialog.py  (104 стр)
 │   ├── test_gui_engines.py  (155 стр)
-│   ├── test_gui_home.py  (201 стр)
+│   ├── test_gui_home.py  (222 стр)
 │   ├── test_gui_home_actions.py  (189 стр)
 │   ├── test_gui_home_fx.py  (261 стр)
 │   ├── test_gui_palette.py  (126 стр)
+│   ├── test_gui_pipette.py  (156 стр)
 │   ├── test_gui_preferences.py  (516 стр)
 │   ├── test_gui_sidebar.py  (283 стр)
 │   ├── test_gui_startup.py  (105 стр)
@@ -1388,6 +1391,10 @@ Non-verbal/микрофон/установщик по-прежнему треб�
     def close_palette(self)
     def toggle_focus_mode(self)
     def set_focus_mode(self, enabled)
+    def toggle_pipette_mode(self)
+    def set_pipette_mode(self, enabled, update: bool=True)
+    def toast(self, text: str, kind: str='info')
+    def set_home_hints(self, show)
     def set_vertical_mode(self, enabled, update: bool=True)
     def set_vertical_pinned(self, value)
     def set_vertical_never_hide(self, value)
@@ -1575,6 +1582,24 @@ Non-verbal/микрофон/установщик по-прежнему треб�
     def close(self)
 ```
 
+**`jarvis/gui_pipette.py`**
+
+```
+  # Мини-режим «пипетка»: окно 56×56 с птицей, клик разворачивает обратно.
+  PIP_H = ...
+  PIP_W = ...
+  PIP_SIZE = ...
+  PIP_RING = ...
+  def pipette_window_spec(width=PIP_W, height=PIP_H, workarea=None)
+  def saved_window_spec(window)
+  SPEC_ORDER = ...
+  def apply_window_spec(window, spec: dict)
+  def restore_window_spec(window, saved: dict)
+  class Pipette(ft.Container)
+    def __init__(self, gui)
+    def apply_state(self, state)
+```
+
 **`jarvis/gui_preferences.py`**
 
 ```
@@ -1641,6 +1666,21 @@ Non-verbal/микрофон/установщик по-прежнему треб�
     def selected_index(self, value)
     def refresh_palette(self)
     async def on_key(self, e)
+```
+
+**`jarvis/gui_toast.py`**
+
+```
+  # Короткие тосты вместо модальных SnackBar: стек снизу, сами уходят.
+  LIMIT = ...
+  DURATION_MS = ...
+  ICONS = ...
+  def normalize_kind(kind)
+  def toast_colors(palette, kind)
+  class Toasts
+    def __init__(self, gui, limit: int=LIMIT)
+    def show(self, text: str, kind: str='info')
+    def clear(self)
 ```
 
 **`jarvis/gui_tokens.py`**
@@ -4244,6 +4284,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def gui(tmp_path, monkeypatch)
   def test_startup_is_home_and_chat_ids_do_not_shift(gui)
   def test_minimal_home_starts_empty_with_only_widget_entry_and_no_composer(gui)
+  def test_hints_shown_once_and_dismissed(gui)
+  def test_home_hints_toggle_from_settings(gui)
   def test_home_strip_button_switches_to_vertical_mode(gui)
   def test_local_date_labels_include_midnight_and_new_year()
   def test_greeting_follows_local_hour(hour, phrase)
@@ -4324,6 +4366,29 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_plain_letter_is_not_a_shortcut(window)
   def test_focus_mode_hides_rail_and_home_chrome(window)
   def test_palette_stop_speech_calls_speaker()
+```
+
+**`tests/test_gui_pipette.py`**
+
+```
+  # Мини-режим «пипетка»: свойства окна 56×56, возврат и тосты.
+  class FakeWindow
+    def __init__(self)
+    def as_dict(self)
+  def test_pipette_spec_is_pill_frameless_and_pinned_corner()
+  def test_pipette_spec_without_workarea_does_not_invent_position()
+  def test_saved_window_round_trip_restores_geometry()
+  def test_restore_skips_missing_values()
+  def test_toast_colors_and_kinds()
+  def test_toasts_hide_bottom_center_and_limit_three()
+  def test_toasts_without_page_fall_back()
+  def test_toasts_clear_removes_everything()
+  def window(tmp_path)
+  def test_pipette_mode_shrinks_window_and_restores(window)
+  def test_pipette_click_returns_to_normal(window)
+  def test_ctrl_shift_p_toggles_pipette(window)
+  def test_pipette_disables_home_keys(window)
+  def test_toast_helper_delegates_to_stack(window)
 ```
 
 **`tests/test_gui_preferences.py`**
@@ -5980,7 +6045,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/cloud_llm.py` | 367 | code | Облачная LLM по HTTP: OpenAI-совместимые API и Anthropic. |
 | `jarvis/command_builder.py` | 152 | code | Typed custom commands. No execution, model calls or shell parsing in t |
 | `jarvis/compiled_runtime.py` | 267 | code | Standalone app startup and explicit offline probes; no venv/pip bootst |
-| `jarvis/config.py` | 337 | code | Загрузка конфигурации и объект Config в памяти. |
+| `jarvis/config.py` | 339 | code | Загрузка конфигурации и объект Config в памяти. |
 | `jarvis/config_manager.py` | 156 | code | Единый менеджер записи в config.json. |
 | `jarvis/decision.py` | 307 | code | Решение по распознанной фразе: чёткая команда, нечёткая или не команда |
 | `jarvis/echo.py` | 512 | code | Opt-in Piper AEC prototype. No devices, drivers or downloads. |
@@ -5989,18 +6054,20 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/engines.py` | 533 | code | Каталог движков Феникса: что скачано, что включено и чем доустановить. |
 | `jarvis/files.py` | 109 | code | Файлы и папки: открыть, посмотреть содержимое, создать. |
 | `jarvis/first_run.py` | 26 | code | Первый запуск — знакомство через LLM-диалог. |
-| `jarvis/gui.py` | 2473 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
+| `jarvis/gui.py` | 2588 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
 | `jarvis/gui_audio.py` | 438 | code | Native sound settings. Diagnostics use the existing listener/Speaker,  |
 | `jarvis/gui_cloud.py` | 541 | code | Вкладка «Облако»: провайдер, ключ, приватность и проверка ключа. |
 | `jarvis/gui_commands.py` | 305 | code | Flet editor for the existing custom_commands pipeline. Never executes  |
 | `jarvis/gui_dialog.py` | 75 | code | Детали диалога: разделители дней и черновик записи. Без окна и сети. |
 | `jarvis/gui_engines.py` | 206 | code | Вкладка «Движки»: что скачано, что включено и установка по кнопке. |
-| `jarvis/gui_home.py` | 279 | code | Minimal native Home: local clock, real assistant state and opt-in widg |
+| `jarvis/gui_home.py` | 324 | code | Minimal native Home: local clock, real assistant state and opt-in widg |
 | `jarvis/gui_home_actions.py` | 225 | code | Three real Home actions. Native controls, finite transitions, no extra |
 | `jarvis/gui_home_fx.py` | 242 | code | Bounded native solar aura. Decorative state motion, never a fake wavef |
-| `jarvis/gui_palette.py` | 208 | code | Палитра команд (Ctrl+K): поиск по вкладкам и частым действиям. |
-| `jarvis/gui_preferences.py` | 805 | code | Native persona/settings editors. Drafts are not configuration or a sec |
+| `jarvis/gui_palette.py` | 211 | code | Палитра команд (Ctrl+K): поиск по вкладкам и частым действиям. |
+| `jarvis/gui_pipette.py` | 126 | code | Мини-режим «пипетка»: окно 56×56 с птицей, клик разворачивает обратно. |
+| `jarvis/gui_preferences.py` | 809 | code | Native persona/settings editors. Drafts are not configuration or a sec |
 | `jarvis/gui_sidebar.py` | 442 | code | Native, persistent hover rail. Bounded UI-loop animation; no WebView o |
+| `jarvis/gui_toast.py` | 128 | code | Короткие тосты вместо модальных SnackBar: стек снизу, сами уходят. |
 | `jarvis/gui_tokens.py` | 97 | code | Дизайн-токены GUI: отступы, радиусы, типографика, поверхности, контрас |
 | `jarvis/gui_vertical.py` | 828 | code | Вертикальный режим окна: узкая полоса-шторка у правого края экрана. |
 | `jarvis/gui_widgets.py` | 373 | code | Opt-in Home widgets: responsive order/size editor, real tasks and guar |
@@ -6169,10 +6236,11 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_gui_commands.py` | 127 | code | Imported native builder controls; no OS actions or real passwords. |
 | `tests/test_gui_dialog.py` | 104 | code | Детали диалога: разделители дней, «печатает…», повтор сообщения. |
 | `tests/test_gui_engines.py` | 155 | code | Вкладка «Движки»: каталог, кнопка установки, прогресс и «активно» из к |
-| `tests/test_gui_home.py` | 201 | code | Native minimal Home; no OS/model/mic/network. Old navigation IDs stay  |
+| `tests/test_gui_home.py` | 222 | code | Native minimal Home; no OS/model/mic/network. Old navigation IDs stay  |
 | `tests/test_gui_home_actions.py` | 189 | code | Action orbit: real callbacks, continuous hover zone, keyboard and life |
 | `tests/test_gui_home_fx.py` | 261 | code | Native solar aura lifecycle; no audio device, model or Windows session |
 | `tests/test_gui_palette.py` | 126 | code | Палитра команд (Ctrl+K) и фокус-режим: чистые функции и привязка к GUI |
+| `tests/test_gui_pipette.py` | 156 | code | Мини-режим «пипетка»: свойства окна 56×56, возврат и тосты. |
 | `tests/test_gui_preferences.py` | 516 | code | Real imported Flet controls / real disk writes / explicit network fake |
 | `tests/test_gui_sidebar.py` | 283 | code | Native controls and bounded asyncio tasks; no desktop, microphone or m |
 | `tests/test_gui_startup.py` | 105 | code | Startup ordering, tray failure recovery, old EXE mutex handoff; no des |
@@ -10881,6 +10949,8 @@ DEFAULT_CONFIG = {
     "ui_vertical_pinned": False,
     "ui_vertical_never_hide": False,
     "ui_vertical_autohide_ms": 900,
+    # Подсказки первого запуска на Главной: «Понятно» пишет сюда True.
+    "ui_home_hints_seen": False,
     # Локальный стык health / capabilities / turn (jarvis/api_server.py).
     # Слушает только 127.0.0.1; токен лежит в secrets_store (DPAPI), не здесь.
     # Это не «общее ядро»: договор об именах и формате с другими проектами.
@@ -13213,6 +13283,11 @@ class FenixGUI:
         self._focus_mode = False
         # Плашка «печатает…» и разделители дней в истории.
         self._typing = None
+        # Мини-режим «пипетка» и короткие тосты.
+        self._pipette_mode = False
+        self._pipette = None
+        self._pipette_saved = None
+        self._toasts = None
         # Уровень микрофона на ручке полосы: один тик, пока режим включён.
         self._vertical_level_task = None
         self._vertical_level_gen = 0
@@ -13494,13 +13569,16 @@ class FenixGUI:
         self._root = ft.Container(expand=True, content=self._rail_row)
         page.add(self._root)
         page.on_keyboard_event = self._on_home_key
+        from jarvis.gui_toast import Toasts
+
+        self._toasts = Toasts(self)
 
 
     async def _on_home_key(self, e):
         if self._handle_shortcut(e):
             return
-        if self._vertical_mode:
-            return  # в полосе нет рельса и вкладок: клавиши Главной не работают
+        if self._vertical_mode or self._pipette_mode:
+            return  # в полосе и пипетке нет рельса и вкладок: клавиши Главной не работают
         if self._rail.selected_index == HOME_TAB and self._home is not None:
             if await self._home.actions.on_key(e):
                 return
@@ -13521,6 +13599,9 @@ class FenixGUI:
             return True
         if shift and key.lower() == "f":
             self.toggle_focus_mode()
+            return True
+        if shift and key.lower() == "p":
+            self.toggle_pipette_mode()
             return True
         return False
 
@@ -13589,6 +13670,105 @@ class FenixGUI:
         if speaker is None:
             return False
         speaker.stop()
+        return True
+
+    # ---------------------------------------------------------------
+    # Мини-режим «пипетка»: окно 56×56, клик разворачивает обратно
+    # ---------------------------------------------------------------
+
+    def toggle_pipette_mode(self) -> bool:
+        return self.set_pipette_mode(not self._pipette_mode)
+
+    def set_pipette_mode(self, enabled, update: bool = True) -> bool:
+        """Сворачивает окно в кружок с птицей и возвращает прежний вид."""
+        from jarvis.gui_pipette import (
+            PIP_H, PIP_W, Pipette, apply_window_spec, pipette_window_spec,
+            saved_window_spec,
+        )
+        from jarvis.gui_vertical import work_area
+
+        enabled = bool(enabled)
+        page = self._page
+        if page is None or self._root is None:
+            return False
+        if enabled == self._pipette_mode:
+            return False
+
+        def apply(spec: dict) -> None:
+            apply_window_spec(window, spec)
+            try:
+                page.update()
+            except Exception:
+                pass
+            time.sleep(0.08)
+
+        try:
+            window = page.window
+            if enabled:
+                if self._vertical_mode:
+                    self.set_vertical_mode(False, update=False)
+                self._pipette_saved = saved_window_spec(window)
+                if self._pipette is None:
+                    self._pipette = Pipette(self)
+                # Сначала снимаем «толстую рамку» (resizable=False): у изменяемого
+                # окна Windows держит минимальную ширину ~136 px, и 56 не влезает.
+                apply({"resizable": False, "movable": True, "frameless": True,
+                       "always_on_top": True, "shadow": True,
+                       "max_width": PIP_W, "max_height": PIP_H,
+                       "min_width": PIP_W, "min_height": PIP_H})
+                apply({**pipette_window_spec(workarea=work_area())})
+                self._root.content = self._pipette
+                self._pipette_mode = True
+                self._pipette.apply_state(getattr(self, "_state", "idle"))
+            else:
+                saved = dict(self._pipette_saved or {})
+                # Возврат: сперва расширяем пределы (None клиент не применяет как
+                # «снять предел» — нужен большой запас), включаем рамку, и только
+                # потом размер. Иначе окно так и остаётся 136×56.
+                apply({"max_width": 4000, "max_height": 3000,
+                       "min_width": saved.get("min_width") or 900,
+                       "min_height": saved.get("min_height") or 600,
+                       "resizable": True, "movable": True, "frameless": False,
+                       "always_on_top": False, "shadow": False})
+                apply({"width": saved.get("width") or 1100,
+                       "height": saved.get("height") or 760,
+                       "left": saved.get("left", 10),
+                       "top": saved.get("top", 10)})
+                apply({"max_width": saved.get("max_width"),
+                       "max_height": saved.get("max_height")})
+                self._root.content = self._rail_row
+                self._pipette_mode = False
+        except Exception:
+            log.exception("GUI: не удалось переключить мини-режим")
+            return False
+        if update:
+            try:
+                page.update()
+            except Exception:
+                log.exception("GUI: не удалось отрисовать мини-режим")
+        log.info("GUI: мини-режим %s", "включён" if enabled else "выключен")
+        return True
+
+    def toast(self, text: str, kind: str = "info") -> bool:
+        """Короткое уведомление тостом (для мелких подтверждений)."""
+        toasts = getattr(self, "_toasts", None)
+        return bool(toasts is not None and toasts.show(text, kind))
+
+    def set_home_hints(self, show) -> bool:
+        """«Показывать подсказки на Главной»: обратное ui_home_hints_seen."""
+        show = bool(show)
+        try:
+            self.config.set("ui_home_hints_seen", not show)
+        except Exception:
+            log.exception("GUI: не удалось сохранить настройку подсказок")
+            return False
+        if self._home is not None:
+            self._home.hints.visible = show
+            if self._page is not None:
+                try:
+                    self._page.update()
+                except Exception:
+                    pass
         return True
 
     # ---------------------------------------------------------------
@@ -14791,6 +14971,8 @@ class FenixGUI:
             self._home.apply_state(state)
         if self._vertical is not None:
             self._vertical.apply_state(state)
+        if self._pipette is not None and self._pipette_mode:
+            self._pipette.apply_state(state)
         self._sync_typing(state)
         color, text, sub = STATES[state]
         if P is not None:
@@ -15162,7 +15344,10 @@ class FenixGUI:
             log.exception("Не удалось обновить голоса")
 
     def _show_status(self, text: str) -> None:
-        """Показать уведомление в GUI (SnackBar). Безопасен из главного потока."""
+        """Короткое уведомление: тост внизу, а без окна — прежний SnackBar."""
+        toasts = getattr(self, "_toasts", None)
+        if toasts is not None and toasts.show(text):
+            return
         try:
             if self._page is None:
                 return
@@ -17072,6 +17257,7 @@ class HomeScreen(ft.Column):
             spacing=T.SPACE["md"], tight=True, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
             alignment=ft.Alignment.CENTER, expand=True)
         self.widgets = WidgetBoard(gui, self._layout_widgets)
+        self.hints = self._build_hints()
         self.chips = {}
         self.mic_chip = self._chip("mic", ft.Icons.MIC_NONE)
         self.api_chip = self._chip("api", ft.Icons.LAN_OUTLINED)
@@ -17081,7 +17267,7 @@ class HomeScreen(ft.Column):
                                  spacing=T.SPACE["sm"], alignment=ft.MainAxisAlignment.CENTER)
         self.workspace = ft.Column([self.center_region, self.widgets], spacing=T.SPACE["xl"],
                                    expand=True)
-        self.controls = [self.header, ft.Container(ft.Column([
+        self.controls = [self.header, self.hints, ft.Container(ft.Column([
             self.workspace,
             self.status_bar,
         ], expand=True, spacing=T.SPACE["xl"]),
@@ -17098,6 +17284,50 @@ class HomeScreen(ft.Column):
         self.header.visible = not enabled
         self.status_bar.visible = not enabled
         return enabled
+
+    def _build_hints(self):
+        """Три подсказки первого запуска; «Понятно» больше их не показывает."""
+        from jarvis import gui as ui
+        p = ui.P
+        tips = (
+            (ft.Icons.KEYBOARD_OUTLINED, "Ctrl+K — палитра команд"),
+            (ft.Icons.SPLITSCREEN, "«Полоса» — режим у края экрана"),
+            (ft.Icons.TOUCH_APP, "Наведите на птицу: диалог, микрофон, стоп"),
+        )
+        row = ft.Row(
+            [ft.Row([ft.Icon(icon, size=14, color=p.brand),
+                     T.text("caption", text, color=p.text_dim)], spacing=6, tight=True)
+             for icon, text in tips],
+            spacing=T.SPACE["xl"], wrap=True,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER)
+        button = ft.Button("Понятно", height=28, on_click=self._dismiss_hints,
+                           tooltip="Скрыть подсказки навсегда",
+                           style=ft.ButtonStyle(padding=ft.Padding.symmetric(horizontal=10),
+                                                color=p.text_dim))
+        container = ft.Container(
+            ft.Row([row, button], spacing=T.SPACE["md"],
+                   vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                   alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+            padding=ft.Padding.symmetric(horizontal=T.SPACE["lg"], vertical=T.SPACE["sm"]),
+            margin=ft.Margin(left=T.SPACE["xxl"], right=T.SPACE["xxl"],
+                             top=T.SPACE["md"], bottom=0),
+            border_radius=T.RADIUS["md"],
+            bgcolor=ft.Colors.with_opacity(.55, p.bg_card),
+            border=ft.Border.all(T.STROKE, ft.Colors.with_opacity(.40, p.border)))
+        container.visible = not bool(self.gui.config.get("ui_home_hints_seen", False))
+        return container
+
+    def _dismiss_hints(self, e=None):
+        self.hints.visible = False
+        try:
+            self.gui.config.set("ui_home_hints_seen", True)
+        except Exception:
+            pass
+        if self.gui._page is not None:
+            try:
+                self.gui._page.update()
+            except Exception:
+                pass
 
     def _chip(self, key, icon):
         """Маленькая пилюля статуса внизу Главной: иконка + значение."""
@@ -17756,6 +17986,9 @@ def default_commands():
         {"key": "focus", "group": "Действия", "title": "Фокус-режим: спрятать всё лишнее",
          "icon": ft.Icons.CENTER_FOCUS_STRONG_OUTLINED,
          "run": lambda gui: _call(gui, "toggle_focus_mode")},
+        {"key": "pipette", "group": "Действия", "title": "Пипетка: свернуть в кружок 56 px",
+         "icon": ft.Icons.CIRCLE_OUTLINED,
+         "run": lambda gui: _call(gui, "set_pipette_mode", True)},
         {"key": "stop", "group": "Действия", "title": "Остановить речь",
          "icon": ft.Icons.STOP_ROUNDED,
          "run": lambda gui: _call(gui, "_palette_stop_speech")},
@@ -17916,6 +18149,132 @@ class CommandPalette(ft.Container):
         page.overlay.remove(self)
         self.opened = False
         page.update()
+```
+
+### `jarvis/gui_pipette.py`
+
+```python
+# -*- coding: utf-8 -*-
+"""Мини-режим «пипетка»: окно 56×56 с птицей, клик разворачивает обратно. ... [5 строк]"""
+from __future__ import annotations
+
+import flet as ft
+
+from jarvis import gui_tokens as T
+from jarvis.gui_vertical import _work_area_tuple
+
+PIP_H = 56
+PIP_W = 136  # клиент Flet не даёт окну стать уже ~136 px — делаем пилюлю
+PIP_SIZE = PIP_H
+PIP_RING = 40
+
+
+def pipette_window_spec(width=PIP_W, height=PIP_H, workarea=None) -> dict:
+    """Свойства мини-окна: без рамки, поверх всех, в правом нижнем углу."""
+    w = max(120, min(int(width), 240))
+    h = max(48, min(int(height), 120))
+    spec = {
+        "max_width": w,
+        "max_height": h,
+        "min_width": w,
+        "min_height": h,
+        "width": w,
+        "height": h,
+        "frameless": True,
+        "always_on_top": True,
+        "movable": True,
+        "resizable": False,
+        "shadow": True,
+    }
+    area = _work_area_tuple(workarea)
+    if area is not None:
+        left, top, right, bottom = area
+        spec["left"] = right - w - 12
+        spec["top"] = bottom - h - 12
+    return spec
+
+
+def saved_window_spec(window) -> dict:
+    """Что запомнить из обычного окна, чтобы вернуть его после пипетки."""
+    keys = ("max_width", "max_height", "min_width", "min_height",
+            "width", "height", "left", "top", "resizable", "movable",
+            "frameless", "always_on_top", "shadow")
+    saved = {}
+    for key in keys:
+        try:
+            saved[key] = getattr(window, key, None)
+        except Exception:
+            saved[key] = None
+    return saved
+
+
+# Порядок важен: клиент Flet применяет размер под текущие ограничения, поэтому
+# сначала снимаем/ставим max и min, и только потом width/height. Иначе окно
+# остаётся 900×600 (минимум обычного окна), хотя просили 56×56.
+SPEC_ORDER = ("max_width", "max_height", "min_width", "min_height",
+              "width", "height", "left", "top",
+              "frameless", "always_on_top", "movable", "resizable", "shadow")
+
+
+def apply_window_spec(window, spec: dict) -> dict:
+    """Применяет свойства окна в безопасном порядке; None значит «без предела»."""
+    applied = {}
+    merged = dict(spec or {})
+    for key in SPEC_ORDER:
+        if key not in merged:
+            continue
+        value = merged[key]
+        if value is None and key not in ("max_width", "max_height"):
+            continue
+        try:
+            setattr(window, key, value)
+            applied[key] = value
+        except Exception:
+            continue
+    return applied
+
+
+def restore_window_spec(window, saved: dict) -> dict:
+    """Возвращает сохранённые свойства в правильном порядке."""
+    return apply_window_spec(window, saved)
+
+
+class Pipette(ft.Container):
+    """Пилюля с птицей: клик — обратно в обычное окно."""
+
+    def __init__(self, gui):
+        from jarvis import gui as ui
+        from jarvis.gui_home_fx import PhoenixAura
+
+        super().__init__()
+        p = ui.P
+        self.gui = gui
+        self.ring = ft.Container(
+            ui._brand_image("phoenix", 26, "Феникс"), width=PIP_RING, height=PIP_RING,
+            border_radius=PIP_RING // 2, alignment=ft.Alignment.CENTER,
+            border=ft.Border.all(1, ft.Colors.with_opacity(.35, p.border)),
+            bgcolor=ft.Colors.with_opacity(.14, p.sidebar))
+        self.aura = PhoenixAura(gui, self.ring, size=PIP_RING,
+                                foreground=lambda: bool(getattr(gui, "_pipette_mode", False)))
+        self.dot = ft.Container(width=7, height=7, border_radius=4, bgcolor=p.brand)
+        self.width = PIP_W
+        self.height = PIP_H
+        self.border_radius = PIP_H // 2
+        self.bgcolor = p.bg_card
+        self.border = ft.Border.all(T.STROKE, ft.Colors.with_opacity(.45, p.border))
+        self.shadow = T.shadow(p, raised=True)
+        self.tooltip = "Феникс: нажмите, чтобы развернуть"
+        self.content = ft.Row(
+            [ft.Container(self.aura, alignment=ft.Alignment.CENTER), self.dot],
+            spacing=6, alignment=ft.MainAxisAlignment.CENTER,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER)
+        self.on_click = lambda e: self.gui.set_pipette_mode(False)
+
+    def apply_state(self, state) -> None:
+        try:
+            self.aura.set_mode(state)
+        except Exception:
+            pass
 ```
 
 ### `jarvis/gui_preferences.py`
@@ -18467,8 +18826,12 @@ class PreferenceScreens:
             on_select=self.gui._on_theme_change, color=_palette().text,
             bgcolor=_palette().field, border=input_border(),
             label_style=ft.TextStyle(color=_palette().dim))
+        hints = ft.Switch(label="Показывать подсказки на Главной",
+            value=not bool(self.gui.config.get("ui_home_hints_seen", False)),
+            on_change=lambda e: self.gui.set_home_hints(bool(e.control.value)))
         appearance = card("Внешний вид", "Тот же Феникс, в комфортном свете.", [
-            theme, text("Тема применяется сразу. Черновики других настроек сохраняются.", muted=True)])
+            theme, hints,
+            text("Тема применяется сразу. Черновики других настроек сохраняются.", muted=True)])
         vertical = self._vertical_card()
         launch = card("Запуск и окно", "Поведение на рабочем столе.", [
             self._toggle("tray_enabled", "Оставаться в трее", "При закрытии окна продолжать работу. Применяется сразу после сохранения."),
@@ -19149,6 +19512,134 @@ class Sidebar(ft.Container):
     def _stroke_valid(self, index, epoch):
         return (self._mounted and self.motion_enabled and self._hovered == index
                 and epoch == self._epoch)
+```
+
+### `jarvis/gui_toast.py`
+
+```python
+# -*- coding: utf-8 -*-
+"""Короткие тосты вместо модальных SnackBar: стек снизу, сами уходят. ... [5 строк]"""
+from __future__ import annotations
+
+import asyncio
+
+import flet as ft
+
+from jarvis import gui_tokens as T
+
+LIMIT = 3
+DURATION_MS = {"info": 2800, "success": 2600, "error": 6000}
+ICONS = {"info": ft.Icons.INFO_OUTLINE, "success": ft.Icons.CHECK_CIRCLE_OUTLINE,
+         "error": ft.Icons.ERROR_OUTLINE}
+
+
+def normalize_kind(kind) -> str:
+    return kind if kind in DURATION_MS else "info"
+
+
+def toast_colors(palette, kind) -> dict:
+    """Цвета тоста: рамка/иконка по смыслу, поверхность — карточка."""
+    kind = normalize_kind(kind)
+    accent = {"info": palette.brand, "success": palette.success,
+              "error": palette.error}[kind]
+    return {"accent": accent, "surface": palette.bg_card}
+
+
+class Toasts:
+    """Стек тостов внизу окна; устаревшие убираются сами."""
+
+    def __init__(self, gui, limit: int = LIMIT):
+        self.gui = gui
+        self.limit = max(1, int(limit))
+        self.entries: list[ft.Container] = []
+
+    def _page(self):
+        return getattr(self.gui, "_page", None)
+
+    def show(self, text: str, kind: str = "info") -> bool:
+        """Показать тост. False — если окна/слоя ещё нет (тогда останется _show_status)."""
+        page = self._page()
+        if page is None or not text:
+            return False
+        if getattr(page, "overlay", None) is None:
+            return False
+        from jarvis import gui as ui
+
+        palette = ui.P
+        kind = normalize_kind(kind)
+        colors = toast_colors(palette, kind)
+        entry = ft.Container(
+            ft.Row([
+                ft.Icon(ICONS[kind], size=16, color=colors["accent"]),
+                T.text("label", str(text), color=palette.text),
+            ], spacing=10, tight=True,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER),
+            padding=ft.Padding.symmetric(horizontal=14, vertical=9),
+            border_radius=T.RADIUS["pill"],
+            bgcolor=colors["surface"],
+            border=ft.Border.all(T.STROKE, ft.Colors.with_opacity(.55, colors["accent"])),
+            shadow=T.shadow(palette, raised=True))
+        entry.width = 320
+        self.entries.append(entry)
+        while len(self.entries) > self.limit:
+            old = self.entries.pop(0)
+            self._remove(old)
+        page.overlay.append(entry)
+        self._place()
+        try:
+            page.update()
+        except Exception:
+            pass
+        try:
+            page.run_task(self._later, entry, DURATION_MS[kind] / 1000)
+        except Exception:
+            pass
+        return True
+
+    def _place(self) -> None:
+        """Держит стек по центру снизу, даже если окно поменяло размер."""
+        page = self._page()
+        window = getattr(page, "window", None)
+        width = getattr(window, "width", None) or 1100
+        height = getattr(window, "height", None) or 760
+        for entry in self.entries:
+            entry.left = max(0, (width - (entry.width or 320)) // 2)
+        # Позиция по низу считается от последнего: старые выше новых. Отступ
+        # больше высоты статус-бара Главной, чтобы тост не наезжал на чипы.
+        offset = 84
+        for entry in reversed(self.entries):
+            entry.top = height - offset - 40
+            offset += 52
+
+    def _remove(self, entry) -> None:
+        page = self._page()
+        if page is None:
+            return
+        try:
+            if entry in page.overlay:
+                page.overlay.remove(entry)
+        except Exception:
+            return
+
+    async def _later(self, entry, seconds: float) -> None:
+        try:
+            await asyncio.sleep(seconds)
+        except asyncio.CancelledError:
+            return
+        self.entries = [item for item in self.entries if item is not entry]
+        self._remove(entry)
+        self._place()
+        page = self._page()
+        if page is not None:
+            try:
+                page.update()
+            except Exception:
+                pass
+
+    def clear(self) -> None:
+        for entry in list(self.entries):
+            self._remove(entry)
+        self.entries.clear()
 ```
 
 ### `jarvis/gui_tokens.py`
@@ -48307,13 +48798,34 @@ def test_minimal_home_starts_empty_with_only_widget_entry_and_no_composer(gui):
     assert not any(isinstance(c, (ft.TextField, ft.Dropdown, ft.ListView)) for c in controls)
     buttons = [c for c in controls if isinstance(c, ft.Button)]
     assert buttons[:2] == gui._home.theme_buttons
-    assert len(buttons) == 4 and buttons[-2].tooltip == "Настроить Главную"
-    assert buttons[-1] is gui._home.vertical_btn
-    assert buttons[-1].tooltip == "Перейти в полосу у края экрана"
+    assert len(buttons) == 5 and buttons[2].tooltip == "Настроить Главную"
+    assert buttons[3].tooltip == "Перейти в полосу у края экрана"
+    assert buttons[3] is gui._home.vertical_btn
+    assert buttons[-1].tooltip == "Скрыть подсказки навсегда"
     assert gui._home.widgets.layout == [] and not gui._home.widgets.visible
     assert not hasattr(gui._home, "on_click") or gui._home.on_click is None
     assert "Модель" not in " ".join(str(getattr(c, "value", "")) for c in controls)
     assert gui._home.status.value == "Ядро ещё не готово"
+
+
+def test_hints_shown_once_and_dismissed(gui):
+    assert gui._home.hints.visible is True
+    assert gui.config.get("ui_home_hints_seen") is False
+    gui._home._dismiss_hints(None)
+    assert gui._home.hints.visible is False
+    assert gui.config.get("ui_home_hints_seen") is True
+    again = HomeScreen(gui)
+    assert again.hints.visible is False
+    again.actions.dispose() if hasattr(again.actions, "dispose") else None
+
+
+def test_home_hints_toggle_from_settings(gui):
+    assert gui.set_home_hints(False) is True
+    assert gui._home.hints.visible is False
+    assert gui.config.get("ui_home_hints_seen") is True
+    assert gui.set_home_hints(True) is True
+    assert gui._home.hints.visible is True
+    assert gui.config.get("ui_home_hints_seen") is False
 
 
 def test_home_strip_button_switches_to_vertical_mode(gui):
@@ -48933,7 +49445,7 @@ def test_default_commands_cover_tabs_actions_and_themes():
     assert "Микрофон: пауза или продолжить" in titles
     assert {"Вкладки", "Действия", "Темы"} <= {command["group"] for command in commands}
     keys = [command["key"] for command in commands]
-    assert len(keys) == len(set(keys)) == 15
+    assert len(keys) == len(set(keys)) == 16
 
 
 def test_filter_prefers_title_start_and_falls_back_to_group():
@@ -49040,6 +49552,167 @@ def test_palette_stop_speech_calls_speaker():
     assert module.FenixGUI._palette_stop_speech(gui) is True
     speaker.stop.assert_called_once()
     assert module.FenixGUI._palette_stop_speech(NS(jarvis=None)) is False
+```
+
+### `tests/test_gui_pipette.py`
+
+```python
+# -*- coding: utf-8 -*-
+"""Мини-режим «пипетка»: свойства окна 56×56, возврат и тосты."""
+from types import SimpleNamespace as NS
+from unittest.mock import Mock
+
+import flet as ft
+import pytest
+from jarvis import gui as module, profile, mood
+from jarvis import gui_pipette, gui_toast
+from jarvis.config import Config
+
+
+class FakeWindow:
+    def __init__(self):
+        for key, value in (("width", 1100), ("height", 760), ("left", 100),
+                           ("top", 80), ("min_width", 900), ("min_height", 600),
+                           ("max_width", None), ("max_height", None),
+                           ("resizable", True), ("movable", True),
+                           ("frameless", False), ("always_on_top", False),
+                           ("shadow", False), ("visible", True), ("minimized", False)):
+            setattr(self, key, value)
+
+    def as_dict(self):
+        return dict(self.__dict__)
+
+
+def test_pipette_spec_is_pill_frameless_and_pinned_corner():
+    spec = gui_pipette.pipette_window_spec(workarea=(0, 0, 1920, 1080))
+    assert spec["width"] == gui_pipette.PIP_W == 136
+    assert spec["height"] == gui_pipette.PIP_H == 56
+    assert spec["frameless"] is True and spec["always_on_top"] is True
+    assert spec["resizable"] is False
+    assert spec["left"] == 1920 - 136 - 12 and spec["top"] == 1080 - 56 - 12
+
+
+def test_pipette_spec_without_workarea_does_not_invent_position():
+    spec = gui_pipette.pipette_window_spec(workarea=None)
+    assert "left" not in spec and "top" not in spec
+    assert spec["min_width"] == spec["max_width"] == 136
+    assert spec["min_height"] == spec["max_height"] == 56
+
+
+def test_saved_window_round_trip_restores_geometry():
+    window = FakeWindow()
+    saved = gui_pipette.saved_window_spec(window)
+    assert saved["width"] == 1100 and saved["left"] == 100
+    window.width = window.height = 56
+    window.frameless = True
+    applied = gui_pipette.restore_window_spec(window, saved)
+    assert window.width == 1100 and window.height == 760
+    assert window.frameless is False and window.always_on_top is False
+    assert applied["resizable"] is True
+
+
+def test_restore_skips_missing_values():
+    window = FakeWindow()
+    applied = gui_pipette.restore_window_spec(window, {"width": None, "resizable": False})
+    assert applied == {"resizable": False}
+    assert window.width == 1100
+
+
+def test_toast_colors_and_kinds():
+    palette = NS(brand="#ffcc00", success="#00c853", error="#ff1744",
+                 bg_card="#181823", text="#eaf0f6")
+    assert gui_toast.normalize_kind("unknown") == "info"
+    assert gui_toast.toast_colors(palette, "error")["accent"] == "#ff1744"
+    assert gui_toast.toast_colors(palette, "success")["surface"] == "#181823"
+    assert gui_toast.DURATION_MS["error"] > gui_toast.DURATION_MS["info"]
+
+
+def test_toasts_hide_bottom_center_and_limit_three():
+    page = NS(overlay=[], update=Mock(), run_task=Mock(),
+              window=NS(width=1100, height=760))
+    gui = NS(_page=page)
+    toasts = gui_toast.Toasts(gui, limit=3)
+    for index in range(5):
+        assert toasts.show(f"сообщение {index}") is True
+    assert len(toasts.entries) == 3
+    assert len(page.overlay) == 3
+    newest = toasts.entries[-1]
+    assert newest.left == (1100 - 320) // 2
+    assert newest.top < 760
+    assert page.run_task.call_count == 5
+
+
+def test_toasts_without_page_fall_back():
+    toasts = gui_toast.Toasts(NS(_page=None))
+    assert toasts.show("нет окна") is False
+
+
+def test_toasts_clear_removes_everything():
+    page = NS(overlay=[], update=Mock(), run_task=Mock(),
+              window=NS(width=900, height=700))
+    toasts = gui_toast.Toasts(NS(_page=page))
+    toasts.show("раз")
+    toasts.show("два")
+    toasts.clear()
+    assert toasts.entries == [] and page.overlay == []
+
+
+@pytest.fixture
+def window(tmp_path):
+    gui = module.FenixGUI(None, Config(tmp_path / "config.json"))
+    page = NS(add=Mock(), update=Mock(), window=FakeWindow(),
+              run_task=Mock(), overlay=[])
+    gui._page = page
+    gui._build_ui(page)
+    yield gui
+    gui.close_palette()
+    gui.stop()
+    gui._rail.dispose()
+    profile.unsubscribe(gui._on_profile_switch)
+    mood.unsubscribe(gui._on_mood_change)
+    module._apply_palette("dark")
+
+
+def test_pipette_mode_shrinks_window_and_restores(window):
+    window._show_window_now()
+    before = window._page.window.as_dict()
+    assert window.set_pipette_mode(True) is True
+    assert window._pipette_mode is True
+    assert window._root.content is window._pipette
+    assert window._page.window.width == gui_pipette.PIP_W == 136
+    assert window._page.window.height == gui_pipette.PIP_H == 56
+    assert window._page.window.frameless is True and window._page.window.always_on_top is True
+    assert window.set_pipette_mode(True) is False  # повтор ничего не делает
+    assert window.set_pipette_mode(False) is True
+    assert window._root.content is window._rail_row
+    assert window._page.window.width == before["width"]
+    assert window._page.window.left == before["left"]
+    assert window._page.window.always_on_top is False
+
+
+def test_pipette_click_returns_to_normal(window):
+    window.set_pipette_mode(True)
+    window._pipette.on_click(None)
+    assert window._pipette_mode is False
+
+
+def test_ctrl_shift_p_toggles_pipette(window):
+    assert window._handle_shortcut(NS(key="p", ctrl=True, shift=True)) is True
+    assert window._pipette_mode is True
+    assert window._handle_shortcut(NS(key="P", ctrl=True, shift=True)) is True
+    assert window._pipette_mode is False
+
+
+def test_pipette_disables_home_keys(window):
+    window.set_pipette_mode(True)
+    import asyncio
+    assert asyncio.run(window._on_home_key(NS(key="Tab", ctrl=False, shift=False))) is None
+    window.set_pipette_mode(False)
+
+
+def test_toast_helper_delegates_to_stack(window):
+    assert window.toast("готово", "success") is True
+    assert len(window._toasts.entries) == 1
 ```
 
 ### `tests/test_gui_preferences.py`
@@ -65255,6 +65928,7 @@ pause
   "ui_vertical_panel": "log",
   "ui_vertical_pinned": false,
   "ui_vertical_never_hide": false,
+  "ui_home_hints_seen": false,
   "ui_vertical_autohide_ms": 900,
   "api_enabled": false,
   "api_port": 8765,
@@ -66750,7 +67424,7 @@ certifi>=2024.8.30
   - Изменения
   - Проверки и передача
 
-#### `ARCHITECTURE.md` — 62 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `ARCHITECTURE.md` — 63 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - 🏗 Архитектура «Феникс»
   - 📑 Содержание
@@ -66778,6 +67452,7 @@ certifi>=2024.8.30
     - Конструктор команд
     - Вкладки «Облако» и «Движки»
     - Главная: состояния, ввод и история
+    - Пипетка, тосты и подсказки
     - Диалог: дни, «печатает…», повтор
     - Палитра команд и фокус-режим
     - Дизайн-токены и раскладка Главной
@@ -66791,12 +67466,12 @@ certifi>=2024.8.30
     - Иконка окна
   - 👥 Мультипрофиль
   - ⚙️ Поток конфига
-  - 🌤 Погода и курс валют
 
-#### `CHANGELOG.md` — 147 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 148 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
   - [Не выпущено]
+    - Пипетка, тосты и подсказки первого запуска
     - Диалог: разделители дней, «печатает…» и повтор
     - Палитра команд и фокус-режим
     - Шторка 2.0: уровень, непрочитанное, панели и «не прятать»
@@ -66834,7 +67509,6 @@ certifi>=2024.8.30
     - Необязательный Whisper не блокирует старт при DLL-ошибке
     - Визуальный ритм README
     - Новая страница проекта
-    - Единая подготовка Python и модели Ollama
 
 #### `CI.md` — 16 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -67321,4 +67995,4 @@ certifi>=2024.8.30
 
 ---
 
-_Итого по категориям — code: 270, data: 60, doc: 52, pack: 5. Режим `lean`._
+_Итого по категориям — code: 273, data: 60, doc: 52, pack: 5. Режим `lean`._

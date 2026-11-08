@@ -564,8 +564,12 @@ class PreferenceScreens:
             on_select=self.gui._on_theme_change, color=_palette().text,
             bgcolor=_palette().field, border=input_border(),
             label_style=ft.TextStyle(color=_palette().dim))
+        hints = ft.Switch(label="Показывать подсказки на Главной",
+            value=not bool(self.gui.config.get("ui_home_hints_seen", False)),
+            on_change=lambda e: self.gui.set_home_hints(bool(e.control.value)))
         appearance = card("Внешний вид", "Тот же Феникс, в комфортном свете.", [
-            theme, text("Тема применяется сразу. Черновики других настроек сохраняются.", muted=True)])
+            theme, hints,
+            text("Тема применяется сразу. Черновики других настроек сохраняются.", muted=True)])
         vertical = self._vertical_card()
         launch = card("Запуск и окно", "Поведение на рабочем столе.", [
             self._toggle("tray_enabled", "Оставаться в трее", "При закрытии окна продолжать работу. Применяется сразу после сохранения."),

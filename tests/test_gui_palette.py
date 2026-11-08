@@ -17,7 +17,7 @@ def test_default_commands_cover_tabs_actions_and_themes():
     assert "Микрофон: пауза или продолжить" in titles
     assert {"Вкладки", "Действия", "Темы"} <= {command["group"] for command in commands}
     keys = [command["key"] for command in commands]
-    assert len(keys) == len(set(keys)) == 15
+    assert len(keys) == len(set(keys)) == 16
 
 
 def test_filter_prefers_title_start_and_falls_back_to_group():

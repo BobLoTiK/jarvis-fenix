@@ -812,6 +812,24 @@ GUI и голоса. Состояния/сообщения/ошибки worker �
 Стоп — только `speaker.stop()`, не отмена handler/HTTP/действий ОС.
 Прямые импорты и worker проверяются `tests/test_gui_chat.py`; это не desktop E2E.
 
+### Пипетка, тосты и подсказки
+
+`jarvis/gui_pipette.py`: `pipette_window_spec()` — пилюля 136×56 (клиент Flet не
+даёт окну стать уже ~136 px), `apply_window_spec()` применяет свойства в
+безопасном порядке «max/min → size → флаги», `saved_window_spec()` и
+`restore_window_spec()` возвращают геометрию. `FenixGUI.set_pipette_mode()`
+меняет свойства того же окна и `_root.content` на `Pipette`; клик по пилюле
+возвращает рельс и прежний размер. При возврате пределы сначала расширяются
+большими числами: `max_width=None` клиент не применяет как «снять предел».
+
+`jarvis/gui_toast.py` — стек тостов (до трёх, 320 px, снизу по центру, отступ
+84 px от низа, чтобы не наезжать на статус-бар). `FenixGUI.toast()` и
+`_show_status()` идут через него; без окна остаётся SnackBar.
+
+Подсказки первого запуска — `HomeScreen._build_hints()` (три строки и
+«Понятно»), состояние в `ui_home_hints_seen`; свитч в «Настройках → Внешний вид»
+зовёт `FenixGUI.set_home_hints()`.
+
 ### Диалог: дни, «печатает…», повтор
 
 `jarvis/gui_dialog.py` держит чистые помощники: `day_label` сравнивает дату

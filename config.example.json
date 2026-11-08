@@ -64,6 +64,7 @@
   "ui_vertical_panel": "log",
   "ui_vertical_pinned": false,
   "ui_vertical_never_hide": false,
+  "ui_home_hints_seen": false,
   "ui_vertical_autohide_ms": 900,
   "api_enabled": false,
   "api_port": 8765,

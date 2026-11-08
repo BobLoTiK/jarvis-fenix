@@ -57,13 +57,34 @@ def test_minimal_home_starts_empty_with_only_widget_entry_and_no_composer(gui):
     assert not any(isinstance(c, (ft.TextField, ft.Dropdown, ft.ListView)) for c in controls)
     buttons = [c for c in controls if isinstance(c, ft.Button)]
     assert buttons[:2] == gui._home.theme_buttons
-    assert len(buttons) == 4 and buttons[-2].tooltip == "Настроить Главную"
-    assert buttons[-1] is gui._home.vertical_btn
-    assert buttons[-1].tooltip == "Перейти в полосу у края экрана"
+    assert len(buttons) == 5 and buttons[2].tooltip == "Настроить Главную"
+    assert buttons[3].tooltip == "Перейти в полосу у края экрана"
+    assert buttons[3] is gui._home.vertical_btn
+    assert buttons[-1].tooltip == "Скрыть подсказки навсегда"
     assert gui._home.widgets.layout == [] and not gui._home.widgets.visible
     assert not hasattr(gui._home, "on_click") or gui._home.on_click is None
     assert "Модель" not in " ".join(str(getattr(c, "value", "")) for c in controls)
     assert gui._home.status.value == "Ядро ещё не готово"
+
+
+def test_hints_shown_once_and_dismissed(gui):
+    assert gui._home.hints.visible is True
+    assert gui.config.get("ui_home_hints_seen") is False
+    gui._home._dismiss_hints(None)
+    assert gui._home.hints.visible is False
+    assert gui.config.get("ui_home_hints_seen") is True
+    again = HomeScreen(gui)
+    assert again.hints.visible is False
+    again.actions.dispose() if hasattr(again.actions, "dispose") else None
+
+
+def test_home_hints_toggle_from_settings(gui):
+    assert gui.set_home_hints(False) is True
+    assert gui._home.hints.visible is False
+    assert gui.config.get("ui_home_hints_seen") is True
+    assert gui.set_home_hints(True) is True
+    assert gui._home.hints.visible is True
+    assert gui.config.get("ui_home_hints_seen") is False
 
 
 def test_home_strip_button_switches_to_vertical_mode(gui):

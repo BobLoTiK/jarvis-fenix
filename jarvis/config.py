@@ -188,6 +188,8 @@ DEFAULT_CONFIG = {
     "ui_vertical_pinned": False,
     "ui_vertical_never_hide": False,
     "ui_vertical_autohide_ms": 900,
+    # Подсказки первого запуска на Главной: «Понятно» пишет сюда True.
+    "ui_home_hints_seen": False,
     # Локальный стык health / capabilities / turn (jarvis/api_server.py).
     # Слушает только 127.0.0.1; токен лежит в secrets_store (DPAPI), не здесь.
     # Это не «общее ядро»: договор об именах и формате с другими проектами.

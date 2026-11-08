@@ -234,6 +234,11 @@ class FenixGUI:
         self._focus_mode = False
         # Плашка «печатает…» и разделители дней в истории.
         self._typing = None
+        # Мини-режим «пипетка» и короткие тосты.
+        self._pipette_mode = False
+        self._pipette = None
+        self._pipette_saved = None
+        self._toasts = None
         # Уровень микрофона на ручке полосы: один тик, пока режим включён.
         self._vertical_level_task = None
         self._vertical_level_gen = 0
@@ -546,13 +551,16 @@ class FenixGUI:
         self._root = ft.Container(expand=True, content=self._rail_row)
         page.add(self._root)
         page.on_keyboard_event = self._on_home_key
+        from jarvis.gui_toast import Toasts
+
+        self._toasts = Toasts(self)
 
 
     async def _on_home_key(self, e):
         if self._handle_shortcut(e):
             return
-        if self._vertical_mode:
-            return  # в полосе нет рельса и вкладок: клавиши Главной не работают
+        if self._vertical_mode or self._pipette_mode:
+            return  # в полосе и пипетке нет рельса и вкладок: клавиши Главной не работают
         if self._rail.selected_index == HOME_TAB and self._home is not None:
             if await self._home.actions.on_key(e):
                 return
@@ -573,6 +581,9 @@ class FenixGUI:
             return True
         if shift and key.lower() == "f":
             self.toggle_focus_mode()
+            return True
+        if shift and key.lower() == "p":
+            self.toggle_pipette_mode()
             return True
         return False
 
@@ -641,6 +652,105 @@ class FenixGUI:
         if speaker is None:
             return False
         speaker.stop()
+        return True
+
+    # ---------------------------------------------------------------
+    # Мини-режим «пипетка»: окно 56×56, клик разворачивает обратно
+    # ---------------------------------------------------------------
+
+    def toggle_pipette_mode(self) -> bool:
+        return self.set_pipette_mode(not self._pipette_mode)
+
+    def set_pipette_mode(self, enabled, update: bool = True) -> bool:
+        """Сворачивает окно в кружок с птицей и возвращает прежний вид."""
+        from jarvis.gui_pipette import (
+            PIP_H, PIP_W, Pipette, apply_window_spec, pipette_window_spec,
+            saved_window_spec,
+        )
+        from jarvis.gui_vertical import work_area
+
+        enabled = bool(enabled)
+        page = self._page
+        if page is None or self._root is None:
+            return False
+        if enabled == self._pipette_mode:
+            return False
+
+        def apply(spec: dict) -> None:
+            apply_window_spec(window, spec)
+            try:
+                page.update()
+            except Exception:
+                pass
+            time.sleep(0.08)
+
+        try:
+            window = page.window
+            if enabled:
+                if self._vertical_mode:
+                    self.set_vertical_mode(False, update=False)
+                self._pipette_saved = saved_window_spec(window)
+                if self._pipette is None:
+                    self._pipette = Pipette(self)
+                # Сначала снимаем «толстую рамку» (resizable=False): у изменяемого
+                # окна Windows держит минимальную ширину ~136 px, и 56 не влезает.
+                apply({"resizable": False, "movable": True, "frameless": True,
+                       "always_on_top": True, "shadow": True,
+                       "max_width": PIP_W, "max_height": PIP_H,
+                       "min_width": PIP_W, "min_height": PIP_H})
+                apply({**pipette_window_spec(workarea=work_area())})
+                self._root.content = self._pipette
+                self._pipette_mode = True
+                self._pipette.apply_state(getattr(self, "_state", "idle"))
+            else:
+                saved = dict(self._pipette_saved or {})
+                # Возврат: сперва расширяем пределы (None клиент не применяет как
+                # «снять предел» — нужен большой запас), включаем рамку, и только
+                # потом размер. Иначе окно так и остаётся 136×56.
+                apply({"max_width": 4000, "max_height": 3000,
+                       "min_width": saved.get("min_width") or 900,
+                       "min_height": saved.get("min_height") or 600,
+                       "resizable": True, "movable": True, "frameless": False,
+                       "always_on_top": False, "shadow": False})
+                apply({"width": saved.get("width") or 1100,
+                       "height": saved.get("height") or 760,
+                       "left": saved.get("left", 10),
+                       "top": saved.get("top", 10)})
+                apply({"max_width": saved.get("max_width"),
+                       "max_height": saved.get("max_height")})
+                self._root.content = self._rail_row
+                self._pipette_mode = False
+        except Exception:
+            log.exception("GUI: не удалось переключить мини-режим")
+            return False
+        if update:
+            try:
+                page.update()
+            except Exception:
+                log.exception("GUI: не удалось отрисовать мини-режим")
+        log.info("GUI: мини-режим %s", "включён" if enabled else "выключен")
+        return True
+
+    def toast(self, text: str, kind: str = "info") -> bool:
+        """Короткое уведомление тостом (для мелких подтверждений)."""
+        toasts = getattr(self, "_toasts", None)
+        return bool(toasts is not None and toasts.show(text, kind))
+
+    def set_home_hints(self, show) -> bool:
+        """«Показывать подсказки на Главной»: обратное ui_home_hints_seen."""
+        show = bool(show)
+        try:
+            self.config.set("ui_home_hints_seen", not show)
+        except Exception:
+            log.exception("GUI: не удалось сохранить настройку подсказок")
+            return False
+        if self._home is not None:
+            self._home.hints.visible = show
+            if self._page is not None:
+                try:
+                    self._page.update()
+                except Exception:
+                    pass
         return True
 
     # ---------------------------------------------------------------
@@ -1873,6 +1983,8 @@ class FenixGUI:
             self._home.apply_state(state)
         if self._vertical is not None:
             self._vertical.apply_state(state)
+        if self._pipette is not None and self._pipette_mode:
+            self._pipette.apply_state(state)
         self._sync_typing(state)
         color, text, sub = STATES[state]
         if P is not None:
@@ -2253,7 +2365,10 @@ class FenixGUI:
             log.exception("Не удалось обновить голоса")
 
     def _show_status(self, text: str) -> None:
-        """Показать уведомление в GUI (SnackBar). Безопасен из главного потока."""
+        """Короткое уведомление: тост внизу, а без окна — прежний SnackBar."""
+        toasts = getattr(self, "_toasts", None)
+        if toasts is not None and toasts.show(text):
+            return
         try:
             if self._page is None:
                 return

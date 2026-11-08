@@ -107,6 +107,7 @@ class HomeScreen(ft.Column):
             spacing=T.SPACE["md"], tight=True, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
             alignment=ft.Alignment.CENTER, expand=True)
         self.widgets = WidgetBoard(gui, self._layout_widgets)
+        self.hints = self._build_hints()
         self.chips = {}
         self.mic_chip = self._chip("mic", ft.Icons.MIC_NONE)
         self.api_chip = self._chip("api", ft.Icons.LAN_OUTLINED)
@@ -116,7 +117,7 @@ class HomeScreen(ft.Column):
                                  spacing=T.SPACE["sm"], alignment=ft.MainAxisAlignment.CENTER)
         self.workspace = ft.Column([self.center_region, self.widgets], spacing=T.SPACE["xl"],
                                    expand=True)
-        self.controls = [self.header, ft.Container(ft.Column([
+        self.controls = [self.header, self.hints, ft.Container(ft.Column([
             self.workspace,
             self.status_bar,
         ], expand=True, spacing=T.SPACE["xl"]),
@@ -133,6 +134,50 @@ class HomeScreen(ft.Column):
         self.header.visible = not enabled
         self.status_bar.visible = not enabled
         return enabled
+
+    def _build_hints(self):
+        """Три подсказки первого запуска; «Понятно» больше их не показывает."""
+        from jarvis import gui as ui
+        p = ui.P
+        tips = (
+            (ft.Icons.KEYBOARD_OUTLINED, "Ctrl+K — палитра команд"),
+            (ft.Icons.SPLITSCREEN, "«Полоса» — режим у края экрана"),
+            (ft.Icons.TOUCH_APP, "Наведите на птицу: диалог, микрофон, стоп"),
+        )
+        row = ft.Row(
+            [ft.Row([ft.Icon(icon, size=14, color=p.brand),
+                     T.text("caption", text, color=p.text_dim)], spacing=6, tight=True)
+             for icon, text in tips],
+            spacing=T.SPACE["xl"], wrap=True,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER)
+        button = ft.Button("Понятно", height=28, on_click=self._dismiss_hints,
+                           tooltip="Скрыть подсказки навсегда",
+                           style=ft.ButtonStyle(padding=ft.Padding.symmetric(horizontal=10),
+                                                color=p.text_dim))
+        container = ft.Container(
+            ft.Row([row, button], spacing=T.SPACE["md"],
+                   vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                   alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+            padding=ft.Padding.symmetric(horizontal=T.SPACE["lg"], vertical=T.SPACE["sm"]),
+            margin=ft.Margin(left=T.SPACE["xxl"], right=T.SPACE["xxl"],
+                             top=T.SPACE["md"], bottom=0),
+            border_radius=T.RADIUS["md"],
+            bgcolor=ft.Colors.with_opacity(.55, p.bg_card),
+            border=ft.Border.all(T.STROKE, ft.Colors.with_opacity(.40, p.border)))
+        container.visible = not bool(self.gui.config.get("ui_home_hints_seen", False))
+        return container
+
+    def _dismiss_hints(self, e=None):
+        self.hints.visible = False
+        try:
+            self.gui.config.set("ui_home_hints_seen", True)
+        except Exception:
+            pass
+        if self.gui._page is not None:
+            try:
+                self.gui._page.update()
+            except Exception:
+                pass
 
     def _chip(self, key, icon):
         """Маленькая пилюля статуса внизу Главной: иконка + значение."""
