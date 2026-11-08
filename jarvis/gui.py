@@ -574,9 +574,17 @@ class FenixGUI:
         key = str(getattr(e, "key", "") or "")
         ctrl = bool(getattr(e, "ctrl", False))
         shift = bool(getattr(e, "shift", False))
-        if key == "Escape" and self._palette is not None and self._palette.opened:
-            self.close_palette()
-            return True
+        if key == "Escape":
+            if self._palette is not None and self._palette.opened:
+                self.close_palette()
+                return True
+            if self._pipette_mode:
+                self.set_pipette_mode(False)
+                return True
+            if self._focus_mode:
+                self.set_focus_mode(False)
+                return True
+            return False
         if not ctrl:
             return False
         if key.lower() == "k":

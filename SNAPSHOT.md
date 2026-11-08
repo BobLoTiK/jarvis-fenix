@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=79fdbf5318e5e317` · режим `lean` · файлов `390` · строк `73342` · источник `3469 КБ`
+`sha256=292ac67df35e9aec` · режим `lean` · файлов `391` · строк `73587` · источник `3483 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -511,12 +511,12 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── commands.svg  (23 стр)
 │   │   ├── hero-mobile.svg  (28 стр)
 │   │   ├── hero.svg  (33 стр)
-│   │   ├── README.md  (17 стр)
+│   │   ├── README.md  (24 стр)
 │   │   ├── themes-mobile.svg  (19 стр)
 │   │   ├── themes.svg  (19 стр)
 ├── build_nuitka.bat  (12 стр)
 ├── build_nuitka_full.bat  (17 стр)
-├── CHANGELOG.md  (2281 стр)
+├── CHANGELOG.md  (2296 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -556,6 +556,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── NUITKA_BUILD.md  (123 стр)
 │   ├── PHOENIX_JASTIN_RECONCILIATION.md  (268 стр)
 │   ├── PYTHON_BOOTSTRAP_TLS_FIX.md  (98 стр)
+│   ├── README.md  (67 стр)
 │   ├── reference/
 │   │   ├── README.md  (20 стр)
 │   ├── releases/
@@ -623,7 +624,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── engines.py  (533 стр)
 │   ├── files.py  (109 стр)
 │   ├── first_run.py  (26 стр)
-│   ├── gui.py  (2632 стр)
+│   ├── gui.py  (2640 стр)
 │   ├── gui_audio.py  (438 стр)
 │   ├── gui_cloud.py  (541 стр)
 │   ├── gui_commands.py  (305 стр)
@@ -757,7 +758,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ├── PROJECT.md  (471 стр)
 ├── PROMPT.md  (72 стр)
 ├── pytest.ini  (20 стр)
-├── README.md  (194 стр)
+├── README.md  (332 стр)
 ├── requirements-aec.txt  (3 стр)
 ├── requirements-ci.txt  (40 стр)
 ├── requirements-dev.txt  (20 стр)
@@ -781,7 +782,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── mics.py  (52 стр)
 │   ├── prepare_flet_client.py  (31 стр)
 │   ├── prepare_nuitka_sandbox.py  (75 стр)
-│   ├── release_payload.py  (88 стр)
+│   ├── release_payload.py  (91 стр)
 │   ├── selftest.py  (49 стр)
 │   ├── set_llm_model.py  (52 стр)
 │   ├── startup_probe.py  (196 стр)
@@ -853,7 +854,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_gui_home.py  (222 стр)
 │   ├── test_gui_home_actions.py  (189 стр)
 │   ├── test_gui_home_fx.py  (261 стр)
-│   ├── test_gui_palette.py  (154 стр)
+│   ├── test_gui_palette.py  (161 стр)
 │   ├── test_gui_pipette.py  (192 стр)
 │   ├── test_gui_preferences.py  (516 стр)
 │   ├── test_gui_sidebar.py  (283 стр)
@@ -4369,6 +4370,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_ctrl_k_toggles_palette_and_escape_closes(window)
   def test_plain_letter_is_not_a_shortcut(window)
   def test_focus_mode_hides_rail_and_home_chrome(window)
+  def test_escape_leaves_focus_mode(window)
   def test_focus_mode_hint_toast_and_palette_hints_command(window)
   def test_palette_stop_speech_calls_speaker()
 ```
@@ -6063,7 +6065,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/engines.py` | 533 | code | Каталог движков Феникса: что скачано, что включено и чем доустановить. |
 | `jarvis/files.py` | 109 | code | Файлы и папки: открыть, посмотреть содержимое, создать. |
 | `jarvis/first_run.py` | 26 | code | Первый запуск — знакомство через LLM-диалог. |
-| `jarvis/gui.py` | 2632 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
+| `jarvis/gui.py` | 2640 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
 | `jarvis/gui_audio.py` | 438 | code | Native sound settings. Diagnostics use the existing listener/Speaker,  |
 | `jarvis/gui_cloud.py` | 541 | code | Вкладка «Облако»: провайдер, ключ, приватность и проверка ключа. |
 | `jarvis/gui_commands.py` | 305 | code | Flet editor for the existing custom_commands pipeline. Never executes  |
@@ -6190,7 +6192,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `scripts/mics.py` | 52 | code | Подбор микрофона: показывает устройства ввода и уровень сигнала. |
 | `scripts/prepare_flet_client.py` | 31 | code | Prepare the native Flet client inside the consented bootstrap stage. |
 | `scripts/prepare_nuitka_sandbox.py` | 75 | code | Create a least-scope offline Windows Sandbox test; never enable Window |
-| `scripts/release_payload.py` | 88 | code | Curated installer payload; never recurse over the developer's entire w |
+| `scripts/release_payload.py` | 91 | code | Curated installer payload; never recurse over the developer's entire w |
 | `scripts/selftest.py` | 49 | code | Самопроверка без микрофона: TTS -> Vosk -> разбор команды. |
 | `scripts/set_llm_model.py` | 52 | code | Устанавливает llm_model в config.json. |
 | `scripts/startup_probe.py` | 196 | code | Замер старта Феникса по этапам — что именно тормозит запуск. |
@@ -6248,7 +6250,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_gui_home.py` | 222 | code | Native minimal Home; no OS/model/mic/network. Old navigation IDs stay  |
 | `tests/test_gui_home_actions.py` | 189 | code | Action orbit: real callbacks, continuous hover zone, keyboard and life |
 | `tests/test_gui_home_fx.py` | 261 | code | Native solar aura lifecycle; no audio device, model or Windows session |
-| `tests/test_gui_palette.py` | 154 | code | Палитра команд (Ctrl+K) и фокус-режим: чистые функции и привязка к GUI |
+| `tests/test_gui_palette.py` | 161 | code | Палитра команд (Ctrl+K) и фокус-режим: чистые функции и привязка к GUI |
 | `tests/test_gui_pipette.py` | 192 | code | Мини-режим «пипетка»: свойства окна 56×56, возврат и тосты. |
 | `tests/test_gui_preferences.py` | 516 | code | Real imported Flet controls / real disk writes / explicit network fake |
 | `tests/test_gui_sidebar.py` | 283 | code | Native controls and bounded asyncio tasks; no desktop, microphone or m |
@@ -13601,9 +13603,17 @@ class FenixGUI:
         key = str(getattr(e, "key", "") or "")
         ctrl = bool(getattr(e, "ctrl", False))
         shift = bool(getattr(e, "shift", False))
-        if key == "Escape" and self._palette is not None and self._palette.opened:
-            self.close_palette()
-            return True
+        if key == "Escape":
+            if self._palette is not None and self._palette.opened:
+                self.close_palette()
+                return True
+            if self._pipette_mode:
+                self.set_pipette_mode(False)
+                return True
+            if self._focus_mode:
+                self.set_focus_mode(False)
+                return True
+            return False
         if not ctrl:
             return False
         if key.lower() == "k":
@@ -38846,6 +38856,9 @@ def collect_payload(root, include_exe=True):
     paths.update(('assets/readme/hero.svg', 'assets/readme/hero-mobile.svg', 'docs/USER_GUIDE.md'))
     paths.update(f'assets/readme/{name}.svg' for name in
                  ('commands', 'commands-mobile', 'themes', 'themes-mobile'))
+    # Скриншоты для README (реальные окна приложения, только PNG).
+    paths.update(f'assets/readme/{name}.png' for name in
+                 ('screen-home', 'screen-palette', 'screen-strip', 'screen-dialog'))
     # Only public Markdown documentation, not screenshots, logs or audio recordings.
     paths.update(p.relative_to(root).as_posix() for p in (root/'docs').glob('*.md'))
     paths.update(p.relative_to(root).as_posix() for p in (root/'docs/releases').glob('*.md'))
@@ -49656,6 +49669,13 @@ def test_focus_mode_hides_rail_and_home_chrome(window):
     assert window._home.hints.visible is False  # отключённые подсказки не воскресают
     assert window.toggle_focus_mode() is True
     assert window.set_focus_mode(True) is False  # повтор ничего не делает
+
+
+def test_escape_leaves_focus_mode(window):
+    assert window.set_focus_mode(True) is True
+    assert window._handle_shortcut(NS(key="Escape")) is True
+    assert window._focus_mode is False
+    assert window._handle_shortcut(NS(key="Escape")) is False
 
 
 def test_focus_mode_hint_toast_and_palette_hints_command(window):
@@ -67628,10 +67648,11 @@ certifi>=2024.8.30
   - 👥 Мультипрофиль
   - ⚙️ Поток конфига
 
-#### `CHANGELOG.md` — 150 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 151 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
   - [Не выпущено]
+    - Документация: живой README и карта docs
     - Сборка: консоль cp1251 и локальный установщик
     - Пипетка, тосты и подсказки первого запуска
     - Диалог: разделители дней, «печатает…» и повтор
@@ -67669,7 +67690,6 @@ certifi>=2024.8.30
     - JASTIN принят как целевое видение (только документация)
     - Экспериментальный AEC Piper
     - Надёжность первого запуска Windows
-    - Необязательный Whisper не блокирует старт при DLL-ошибке
 
 #### `CI.md` — 16 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -67747,19 +67767,23 @@ certifi>=2024.8.30
   - Не сломать
   - Как закончить шаг
 
-#### `README.md` — 11 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `README.md` — 15 заголовков, полный текст не включён (дублирует PROJECT.md)
 
-  - Начни с одной фразы
-    - Одна фраза — несколько действий
-  - Главная — не чат
-  - Запустить у себя
-    - Разговор — по желанию
-  - Локальный — не значит «без интернета вообще»
-  - Если что-то пошло не так
+  - Содержание
+  - 60 секунд до первой команды
+  - Что умеет
+  - Скриншоты
+  - Одна фраза — несколько действий
+  - Горячие клавиши
+  - Главная, полоса, пипетка
+  - Режимы: команды / ИИ / комбо
   - Под капотом
 - Синтаксис, pytest, интент-сценарии и стресс-тесты
-- Снимок обновляется после изменений
-- Preflight ресурсов, без сборки EXE
+- Снимок проекта
+- Preflight ресурсов без сборки EXE
+  - Локальный — не значит «без интернета вообще»
+  - Документация
+  - Если что-то пошло не так
 
 #### `START_HERE.md` — 4 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -68036,6 +68060,16 @@ certifi>=2024.8.30
   - Приёмка в Windows Sandbox
   - Проверено при подготовке патча
 
+#### `docs/README.md` — 7 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Документация Феникса
+  - С чего начать
+  - Установка и сборка
+  - Интерфейс
+  - Голос, звук и речь
+  - Модели и сеть
+  - Планы, история и проверки
+
 #### `docs/REVIEW_FIXES.md` — 5 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Исправления после проверки архива
@@ -68156,4 +68190,4 @@ certifi>=2024.8.30
 
 ---
 
-_Итого по категориям — code: 273, data: 60, doc: 52, pack: 5. Режим `lean`._
+_Итого по категориям — code: 273, data: 60, doc: 53, pack: 5. Режим `lean`._

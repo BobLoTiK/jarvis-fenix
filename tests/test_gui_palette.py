@@ -133,6 +133,13 @@ def test_focus_mode_hides_rail_and_home_chrome(window):
     assert window.set_focus_mode(True) is False  # повтор ничего не делает
 
 
+def test_escape_leaves_focus_mode(window):
+    assert window.set_focus_mode(True) is True
+    assert window._handle_shortcut(NS(key="Escape")) is True
+    assert window._focus_mode is False
+    assert window._handle_shortcut(NS(key="Escape")) is False
+
+
 def test_focus_mode_hint_toast_and_palette_hints_command(window):
     assert window.set_focus_mode(True) is True
     assert len(window._toasts.entries) == 1  # подсказка «Esc — вернуть всё»

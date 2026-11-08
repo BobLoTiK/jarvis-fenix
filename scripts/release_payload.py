@@ -39,6 +39,9 @@ def collect_payload(root, include_exe=True):
     paths.update(('assets/readme/hero.svg', 'assets/readme/hero-mobile.svg', 'docs/USER_GUIDE.md'))
     paths.update(f'assets/readme/{name}.svg' for name in
                  ('commands', 'commands-mobile', 'themes', 'themes-mobile'))
+    # Скриншоты для README (реальные окна приложения, только PNG).
+    paths.update(f'assets/readme/{name}.png' for name in
+                 ('screen-home', 'screen-palette', 'screen-strip', 'screen-dialog'))
     # Only public Markdown documentation, not screenshots, logs or audio recordings.
     paths.update(p.relative_to(root).as_posix() for p in (root/'docs').glob('*.md'))
     paths.update(p.relative_to(root).as_posix() for p in (root/'docs/releases').glob('*.md'))
