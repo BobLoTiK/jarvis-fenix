@@ -147,6 +147,9 @@ class CommandPalette(ft.Container):
         self.visible_rows = filter_commands(self.commands, query)
         self.rows.controls = [self._row(command) for command in self.visible_rows] or [
             T.text("label", "Ничего не нашлось", color=p.text_dim)]
+        # Карточка не тащит пустую высоту: список растёт по числу строк
+        # (48 px на строку — сама плашка и её отступы).
+        self.rows.height = min(300, 48 * max(1, len(self.visible_rows)))
         page = self._mounted_page()
         if page is not None:
             try:

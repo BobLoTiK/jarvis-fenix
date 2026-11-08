@@ -63,6 +63,15 @@ def test_palette_submit_runs_first_visible_command(fake_gui):
     assert fake_gui.seen == [("tab", 0)]
 
 
+def test_palette_list_grows_with_results_and_stops_at_limit(fake_gui):
+    widget = palette.CommandPalette(fake_gui)
+    assert widget.rows.height == 48 * palette.TYPE_LIMIT
+    widget._render("Микро")
+    assert widget.rows.height == 48 * len(widget.visible_rows)
+    widget._render("абракадабра")
+    assert widget.rows.height == 48  # одна строка «Ничего не нашлось»
+
+
 def test_palette_has_backdrop_field_and_hint(fake_gui):
     widget = palette.CommandPalette(fake_gui)
     assert isinstance(widget.content, ft.Stack)

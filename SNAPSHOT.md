@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=aa349e4c2b64c168` · режим `lean` · файлов `390` · строк `73171` · источник `3459 КБ`
+`sha256=c485532eb255e3fe` · режим `lean` · файлов `390` · строк `73187` · источник `3461 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -516,7 +516,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── themes.svg  (19 стр)
 ├── build_nuitka.bat  (12 стр)
 ├── build_nuitka_full.bat  (17 стр)
-├── CHANGELOG.md  (2248 стр)
+├── CHANGELOG.md  (2252 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -632,7 +632,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── gui_home.py  (324 стр)
 │   ├── gui_home_actions.py  (225 стр)
 │   ├── gui_home_fx.py  (242 стр)
-│   ├── gui_palette.py  (211 стр)
+│   ├── gui_palette.py  (214 стр)
 │   ├── gui_pipette.py  (126 стр)
 │   ├── gui_preferences.py  (809 стр)
 │   ├── gui_sidebar.py  (442 стр)
@@ -853,7 +853,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_gui_home.py  (222 стр)
 │   ├── test_gui_home_actions.py  (189 стр)
 │   ├── test_gui_home_fx.py  (261 стр)
-│   ├── test_gui_palette.py  (126 стр)
+│   ├── test_gui_palette.py  (135 стр)
 │   ├── test_gui_pipette.py  (166 стр)
 │   ├── test_gui_preferences.py  (516 стр)
 │   ├── test_gui_sidebar.py  (283 стр)
@@ -4360,6 +4360,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def fake_gui()
   def test_palette_rows_render_and_run_selected_command(fake_gui)
   def test_palette_submit_runs_first_visible_command(fake_gui)
+  def test_palette_list_grows_with_results_and_stops_at_limit(fake_gui)
   def test_palette_has_backdrop_field_and_hint(fake_gui)
   def window(tmp_path, monkeypatch)
   def test_ctrl_k_toggles_palette_and_escape_closes(window)
@@ -6064,7 +6065,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/gui_home.py` | 324 | code | Minimal native Home: local clock, real assistant state and opt-in widg |
 | `jarvis/gui_home_actions.py` | 225 | code | Three real Home actions. Native controls, finite transitions, no extra |
 | `jarvis/gui_home_fx.py` | 242 | code | Bounded native solar aura. Decorative state motion, never a fake wavef |
-| `jarvis/gui_palette.py` | 211 | code | Палитра команд (Ctrl+K): поиск по вкладкам и частым действиям. |
+| `jarvis/gui_palette.py` | 214 | code | Палитра команд (Ctrl+K): поиск по вкладкам и частым действиям. |
 | `jarvis/gui_pipette.py` | 126 | code | Мини-режим «пипетка»: окно 56×56 с птицей, клик разворачивает обратно. |
 | `jarvis/gui_preferences.py` | 809 | code | Native persona/settings editors. Drafts are not configuration or a sec |
 | `jarvis/gui_sidebar.py` | 442 | code | Native, persistent hover rail. Bounded UI-loop animation; no WebView o |
@@ -6240,7 +6241,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_gui_home.py` | 222 | code | Native minimal Home; no OS/model/mic/network. Old navigation IDs stay  |
 | `tests/test_gui_home_actions.py` | 189 | code | Action orbit: real callbacks, continuous hover zone, keyboard and life |
 | `tests/test_gui_home_fx.py` | 261 | code | Native solar aura lifecycle; no audio device, model or Windows session |
-| `tests/test_gui_palette.py` | 126 | code | Палитра команд (Ctrl+K) и фокус-режим: чистые функции и привязка к GUI |
+| `tests/test_gui_palette.py` | 135 | code | Палитра команд (Ctrl+K) и фокус-режим: чистые функции и привязка к GUI |
 | `tests/test_gui_pipette.py` | 166 | code | Мини-режим «пипетка»: свойства окна 56×56, возврат и тосты. |
 | `tests/test_gui_preferences.py` | 516 | code | Real imported Flet controls / real disk writes / explicit network fake |
 | `tests/test_gui_sidebar.py` | 283 | code | Native controls and bounded asyncio tasks; no desktop, microphone or m |
@@ -18092,6 +18093,9 @@ class CommandPalette(ft.Container):
         self.visible_rows = filter_commands(self.commands, query)
         self.rows.controls = [self._row(command) for command in self.visible_rows] or [
             T.text("label", "Ничего не нашлось", color=p.text_dim)]
+        # Карточка не тащит пустую высоту: список растёт по числу строк
+        # (48 px на строку — сама плашка и её отступы).
+        self.rows.height = min(300, 48 * max(1, len(self.visible_rows)))
         page = self._mounted_page()
         if page is not None:
             try:
@@ -49494,6 +49498,15 @@ def test_palette_submit_runs_first_visible_command(fake_gui):
     widget._render("Диалог")
     widget._on_submit(None)
     assert fake_gui.seen == [("tab", 0)]
+
+
+def test_palette_list_grows_with_results_and_stops_at_limit(fake_gui):
+    widget = palette.CommandPalette(fake_gui)
+    assert widget.rows.height == 48 * palette.TYPE_LIMIT
+    widget._render("Микро")
+    assert widget.rows.height == 48 * len(widget.visible_rows)
+    widget._render("абракадабра")
+    assert widget.rows.height == 48  # одна строка «Ничего не нашлось»
 
 
 def test_palette_has_backdrop_field_and_hint(fake_gui):
