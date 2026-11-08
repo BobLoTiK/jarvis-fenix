@@ -63,6 +63,7 @@
   "ui_vertical_width": 240,
   "ui_vertical_panel": "log",
   "ui_vertical_pinned": false,
+  "ui_vertical_never_hide": false,
   "ui_vertical_autohide_ms": 900,
   "api_enabled": false,
   "api_port": 8765,

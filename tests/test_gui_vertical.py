@@ -172,9 +172,9 @@ def test_live_switch_reschedules_geometry_after_client_window_state(window):
     """Включение на показанном окне: размеры применяются повторно."""
     window._page.run_task.reset_mock()
     assert window.set_vertical_mode(True) is True
-    assert window._page.run_task.called
-    task = window._page.run_task.call_args.args[0]
-    assert task == window._reapply_vertical_geometry_later
+    tasks = [call.args[0] for call in window._page.run_task.call_args_list]
+    assert window._reapply_vertical_geometry_later in tasks
+    assert window._vertical_level_loop in tasks
     # Отключение обратно повторных размеров не просит.
     window._page.run_task.reset_mock()
     assert window.set_vertical_mode(False) is True
@@ -457,7 +457,13 @@ def test_bar_handle_has_grip_and_chevron(isolated_docs, tmp_path):
     assert bar.tab_line.height == 46 and bar.tab_line.width == 2
     assert len(bar.tab_line.gradient.colors) == 3
     assert isinstance(bar.tab.content, ft.Column)
-    assert bar.tab.content.controls == [bar.tab_line, bar.tab_icon]
+    zones = bar.tab.content.controls
+    assert len(zones) == 3  # бейдж сверху, ручка по центру, точки панелей снизу
+    middle = zones[1].content
+    assert isinstance(middle, ft.Column)
+    assert middle.controls == [bar.tab_line, bar.level, bar.tab_icon]
+    assert zones[2].content is bar.dots_column
+    assert not bar.badge.visible
 
 
 def test_hover_highlights_handle_and_notifies_gui(isolated_docs, tmp_path):
@@ -483,3 +489,101 @@ def test_bar_pin_button_updates_icon_and_tooltip(isolated_docs, tmp_path):
     assert bar.set_pinned(False) is True
     assert bar.pin_btn.tooltip == "Закрепить полосу"
     assert bar.tab.tooltip == "Свернуть полосу"
+
+
+def test_curtain_never_hide_keeps_bar_open():
+    curtain = vertical.Curtain()
+    assert curtain.wants_autohide() is True
+    assert curtain.set_never_hide(True) is True
+    assert curtain.never_hide is True
+    curtain.leave()
+    assert curtain.wants_autohide() is False
+    assert curtain.hide() is False and curtain.open is True
+    assert curtain.set_never_hide(False) is True
+    assert curtain.wants_autohide() is True
+    assert curtain.hide() is True and curtain.open is False
+
+
+def test_bar_level_meter_clamps_and_grows(isolated_docs, tmp_path):
+    bar = vertical.VerticalBar(fake_gui(tmp_path))
+    assert bar.level.height == vertical.LEVEL_TRACK
+    assert bar.set_level(-3) == 0.0 and bar.level_fill.height == 2
+    assert bar.set_level(5) == 1.0 and bar.level_fill.height == vertical.LEVEL_TRACK
+    assert bar.set_level("тишина") == 0.0
+    assert bar.set_level(None) == 0.0
+
+
+def test_bar_unread_badge_marks_and_clears(isolated_docs, tmp_path):
+    bar = vertical.VerticalBar(fake_gui(tmp_path))
+    assert not bar.badge.visible and bar.unread == 0
+    assert bar.set_unread(2) == 2
+    assert bar.badge.visible and bar.badge_zone.visible
+    assert bar.set_unread(-5) == 0
+    assert not bar.badge.visible and not bar.badge_zone.visible
+    assert bar.set_unread("мусор") == 0
+
+
+def test_bar_panel_dots_switch_without_toggling_curtain(isolated_docs, tmp_path):
+    seen, toggled = [], []
+    gui = fake_gui(tmp_path)
+    gui.set_vertical_panel = lambda name: seen.append(name) or True
+    gui._vertical_tab_click = lambda: toggled.append(1)
+    bar = vertical.VerticalBar(gui)
+    assert set(bar.panel_dots) == set(vertical.PANELS)
+    bar._on_dot("notes")
+    assert seen == ["notes"]
+    bar._on_tab_click(None)  # тот же клик дошёл до ручки — шторку не дёргаем
+    assert toggled == []
+    bar._dot_touch -= 1.0  # прошлое нажатие: ручка снова работает
+    bar._on_tab_click(None)
+    assert toggled == [1]
+
+
+def test_hidden_bar_counts_unread_and_clears_on_open(window):
+    window.set_vertical_mode(True, update=False)
+    window._curtain.open = False
+    window._apply_message("assistant", "ответ")
+    assert window._vertical.unread == 1
+    window._apply_message("user", "ещё вопрос")  # свои реплики не считаем
+    assert window._vertical.unread == 1
+    window._apply_message("assistant", "второй ответ")
+    assert window._vertical.unread == 2
+    window._vertical_tab_click()
+    assert window._curtain.open is True and window._vertical.unread == 0
+    assert not window._vertical.badge.visible
+
+
+def test_never_hide_is_persisted_and_blocks_autohide(window):
+    window.set_vertical_mode(True, update=False)
+    assert window.set_vertical_never_hide(True) is True
+    assert window.config.get("ui_vertical_never_hide") is True
+    assert window._curtain.never_hide is True
+    assert window._vertical.never_hide is True
+    assert window._vertical.never_btn.icon == ft.Icons.VISIBILITY
+    window._vertical_hover(False)
+    assert window._vertical_hide_if_idle() is False
+    assert window.set_vertical_never_hide(False) is True
+    assert window.config.get("ui_vertical_never_hide") is False
+    assert window._vertical.never_btn.icon == ft.Icons.VISIBILITY_OFF
+
+
+def test_never_hide_switch_on_bar_calls_gui(isolated_docs, tmp_path):
+    seen = []
+    gui = fake_gui(tmp_path)
+    gui.set_vertical_never_hide = lambda value: seen.append(value) or True
+    bar = vertical.VerticalBar(gui)
+    bar._on_never_hide(None)
+    assert seen == [True]
+    bar.set_never_hide(True)
+    bar._on_never_hide(None)
+    assert seen == [True, False]
+
+
+def test_level_loop_stops_when_mode_is_off(window):
+    window._vertical_mode = False
+    asyncio.run(window._vertical_level_loop(1))
+    assert window._vertical_level_task is None
+    window.set_vertical_mode(True, update=False)
+    assert window._vertical_level_task is not None
+    window.set_vertical_mode(False, update=False)
+    assert window._vertical_level_task is None

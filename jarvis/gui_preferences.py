@@ -609,11 +609,18 @@ class PreferenceScreens:
             on_select=lambda e: gui.set_vertical_panel(e.control.value),
             color=p.text, bgcolor=p.field, border=input_border(),
             label_style=ft.TextStyle(color=p.dim))
+        never_switch = ft.Switch(
+            value=gui.config.get("ui_vertical_never_hide", False) is True,
+            active_color=p.accent, tooltip="Не прятать полосу",
+            on_change=lambda e: gui.set_vertical_never_hide(bool(e.control.value)))
         return card("Полоса на краю экрана", "Ассистент всегда перед глазами.", [
             ft.Row([ft.Column([text("Вертикальный режим", 15),
                     text("Узкая полоса без рамки поверх других окон, у правого края.", 13, muted=True)],
                     spacing=5, expand=True), switch], spacing=16),
             divider(), width_select, panel_select,
+            ft.Row([ft.Column([text("Не прятать полосу", 15),
+                    text("Остаётся открытой, пока режим включён: без автоскрытия.", 13, muted=True)],
+                    spacing=5, expand=True), never_switch], spacing=16),
             text("Переключается сразу, черновик остальных настроек не трогается. "
                  "Заметки и план лежат в %APPDATA%\\Phoenix и сохраняются при уходе из поля ввода.", muted=True)])
 

@@ -229,6 +229,9 @@ class FenixGUI:
         self._curtain = None
         self._curtain_gen = 0
         self._hide_gen = 0
+        # Уровень микрофона на ручке полосы: один тик, пока режим включён.
+        self._vertical_level_task = None
+        self._vertical_level_gen = 0
         self._api_server = None
         self._api_status = "API выключен."
         self._rail = None
@@ -583,12 +586,16 @@ class FenixGUI:
             if enabled:
                 bar = self._ensure_vertical()
                 pinned = normalize_pinned(self.config.get("ui_vertical_pinned", False))
-                self._curtain = Curtain(pinned=pinned)
+                never_hide = normalize_pinned(self.config.get("ui_vertical_never_hide", False))
+                self._curtain = Curtain(pinned=pinned, never_hide=never_hide)
                 bar.set_pinned(pinned)
+                bar.set_never_hide(never_hide)
+                bar.set_unread(0)
                 self._root.content = bar
                 self._vertical_mode = True
                 self._apply_vertical_window(True)
                 bar.apply_state(getattr(self, "_state", "idle"))
+                self._start_vertical_level_loop()
                 # Сразу показываем полосу целиком: иначе включение режима
                 # выглядит как «ничего не произошло». Уедет сама, если не
                 # закреплена и курсор не задержится (REVEAL_MS — не мгновенно,
@@ -597,6 +604,7 @@ class FenixGUI:
                 self._schedule_hide(REVEAL_MS)
             else:
                 self._cancel_hide()
+                self._stop_vertical_level_loop()
                 self._curtain_gen += 1
                 if self._vertical is not None:
                     self._vertical.flush()
@@ -728,6 +736,8 @@ class FenixGUI:
             self._cancel_hide()
             if curtain.enter():
                 self._vertical_move(True)
+            if self._vertical is not None:
+                self._vertical.set_unread(0)
             self._sync_bar_open_state()
             return
         curtain.leave()
@@ -750,6 +760,8 @@ class FenixGUI:
             self._cancel_hide()
             curtain.show()
             self._vertical_move(True)
+            if self._vertical is not None:
+                self._vertical.set_unread(0)
         self._sync_bar_open_state()
 
     def _sync_bar_open_state(self) -> None:
@@ -821,6 +833,86 @@ class FenixGUI:
                 # Открепили: убираем, если курсор не на полосе.
                 self._schedule_hide()
         return True
+
+    def set_vertical_never_hide(self, value) -> bool:
+        """«Не прятать полосу»: сохраняется в конфиг и сразу применяется."""
+        from jarvis.gui_vertical import normalize_pinned
+
+        never = normalize_pinned(value)
+        ok = self.config.set("ui_vertical_never_hide", never)
+        if ok is False:
+            log.warning("GUI: не удалось сохранить «не прятать» для полосы")
+            return False
+        if self._vertical is not None:
+            self._vertical.set_never_hide(never)
+        curtain = self._curtain
+        if curtain is not None:
+            curtain.set_never_hide(never)
+            if never:
+                self._cancel_hide()
+                curtain.show()
+                self._vertical_move(True)
+                self._sync_bar_open_state()
+            elif self._page is not None:
+                self._schedule_hide()
+        return True
+
+    def _vertical_mark_unread(self, role: str) -> None:
+        """Спрятанная полоса копит отметку о новом сообщении на ручке."""
+        bar = self._vertical
+        curtain = self._curtain
+        if bar is None or curtain is None or not self._vertical_mode or curtain.open:
+            return
+        if role == "user":
+            return
+        try:
+            bar.set_unread(bar.unread + 1)
+        except Exception:
+            log.debug("GUI: не удалось отметить непрочитанное в полосе", exc_info=True)
+
+    def _start_vertical_level_loop(self) -> None:
+        page = self._page
+        self._stop_vertical_level_loop()
+        if page is None:
+            return
+        self._vertical_level_gen += 1
+        gen = self._vertical_level_gen
+        try:
+            self._vertical_level_task = page.run_task(self._vertical_level_loop, gen)
+        except Exception:
+            log.debug("GUI: тик уровня полосы не запустился", exc_info=True)
+
+    def _stop_vertical_level_loop(self) -> None:
+        self._vertical_level_gen += 1
+        task = self._vertical_level_task
+        self._vertical_level_task = None
+        if task is not None:
+            try:
+                task.cancel()
+            except Exception:
+                log.debug("GUI: тик уровня полосы не остановился", exc_info=True)
+
+    async def _vertical_level_loop(self, gen) -> None:
+        """Уровень микрофона на ручке: только чтение уже посчитанного RMS."""
+        from jarvis.gui_vertical import LEVEL_MS
+
+        while self._vertical_mode and gen == self._vertical_level_gen:
+            bar = self._vertical
+            if bar is None:
+                break
+            rms, muted = 0.0, True
+            listener = getattr(self.jarvis, "listener", None)
+            try:
+                rms = float(getattr(listener, "current_rms", 0.0) or 0.0)
+                muted = bool(getattr(listener, "muted", True))
+            except (TypeError, ValueError):
+                rms, muted = 0.0, True
+            level = 0.0 if muted else max(0.0, min(1.0, rms / 2000.0))
+            try:
+                bar.set_level(level)
+            except Exception:
+                log.debug("GUI: уровень полосы не применился", exc_info=True)
+            await asyncio.sleep(LEVEL_MS / 1000)
 
     def set_vertical_width(self, value) -> bool:
         """Ширина полосы из настроек: сохраняется и сразу применяется."""
@@ -1766,6 +1858,7 @@ class FenixGUI:
         self._history_list.controls.append(self._message_control(record))
         if self._vertical is not None:
             self._vertical.on_message(record)
+        self._vertical_mark_unread(role)
 
     def _apply_stream_chunk(self, chunk: str) -> None:
         if not chunk:

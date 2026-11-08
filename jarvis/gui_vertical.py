@@ -16,6 +16,7 @@
 import logging
 import os
 import sys
+import time
 from pathlib import Path
 
 import flet as ft
@@ -36,6 +37,8 @@ AURA_RING = 104
 TAB_WIDTH = 18
 TAB_MIN = 12
 TAB_MAX = 28
+LEVEL_TRACK = 44
+LEVEL_MS = 200
 SLIDE_MS = 170
 SLIDE_STEPS = 11
 AUTOHIDE_MS = 900
@@ -233,8 +236,9 @@ class Curtain:
     `hide()` по таймеру, чтобы окно не дёргалось на каждый пиксель.
     """
 
-    def __init__(self, pinned=False):
+    def __init__(self, pinned=False, never_hide=False):
         self.pinned = bool(pinned)
+        self.never_hide = bool(never_hide)
         self.pointer_inside = False
         self.open = True
 
@@ -252,7 +256,7 @@ class Curtain:
 
     def hide(self) -> bool:
         """Закрыть с учётом закрепления и курсора. True — позиция изменилась."""
-        if self.pinned or self.pointer_inside or not self.open:
+        if self.pinned or self.never_hide or self.pointer_inside or not self.open:
             return False
         self.open = False
         return True
@@ -269,9 +273,22 @@ class Curtain:
             self.open = True
         return self.pinned
 
+    def set_never_hide(self, value) -> bool:
+        """«Не прятать»: полоса остаётся открытой, пока режим включён.
+
+        True — состояние действительно изменилось (нужно перерисовать).
+        """
+        value = bool(value)
+        changed = value != self.never_hide
+        self.never_hide = value
+        if self.never_hide:
+            self.open = True
+        return changed
+
     def wants_autohide(self) -> bool:
         """Пора планировать скрытие: открыта, не закреплена, курсора нет."""
-        return self.open and not self.pinned and not self.pointer_inside
+        return self.open and not self.pinned and not self.never_hide \
+            and not self.pointer_inside
 
 
 def _work_area_tuple(value):
@@ -393,6 +410,10 @@ class VerticalBar(ft.Container):
         self.panel = normalize_panel(panel if panel is not None
                                      else gui.config.get("ui_vertical_panel", PANEL_DEFAULT))
         self.pinned = normalize_pinned(gui.config.get("ui_vertical_pinned", False))
+        self.never_hide = normalize_pinned(gui.config.get("ui_vertical_never_hide", False))
+        self.unread = 0
+        self._dot_touch = 0.0
+        self._level_height = 2
         self._docs = {}
         self._notes_field = None
         self._plan_field = None
@@ -409,13 +430,44 @@ class VerticalBar(ft.Container):
                         ft.Colors.with_opacity(.75, p.brand),
                         ft.Colors.with_opacity(.0, p.brand)],
                 stops=[.0, .5, 1.0]))
+        # Бейдж непрочитанного: точка у верха ручки, пока полоса спрятана.
+        self.badge = ft.Container(width=6, height=6, border_radius=3,
+                                  bgcolor=p.error, visible=False)
+        self.badge_zone = ft.Container(self.badge, height=14,
+                                       alignment=ft.Alignment.CENTER, visible=False)
+        # Уровень микрофона: тонкая колонка, растущая снизу вверх.
+        self.level_fill = ft.Container(width=3, height=2, border_radius=2,
+                                       bgcolor=ft.Colors.with_opacity(.85, p.brand))
+        self.level = ft.Container(
+            ft.Container(self.level_fill, width=3, height=LEVEL_TRACK,
+                         alignment=ft.Alignment.BOTTOM_CENTER),
+            height=LEVEL_TRACK, bgcolor=ft.Colors.with_opacity(.14, p.brand),
+            border_radius=2, tooltip="Уровень микрофона")
+        # Три точки панелей: листать без раскрытия шторки.
+        self.panel_dots = {}
+        self.dots_column = ft.Column([], spacing=5, tight=True,
+                                     horizontal_alignment=ft.CrossAxisAlignment.CENTER)
+        for key in PANELS:
+            self.panel_dots[key] = ft.Container(
+                ft.Container(width=4, height=4, border_radius=2,
+                             bgcolor=ft.Colors.with_opacity(.45, p.text_dim)),
+                width=14, height=10, alignment=ft.Alignment.CENTER,
+                on_click=lambda e, name=key: self._on_dot(name),
+                tooltip=PANELS[key])
+            self.dots_column.controls.append(self.panel_dots[key])
         self.tab = ft.Container(
             width=TAB_WIDTH, alignment=ft.Alignment.CENTER,
-            content=ft.Column([self.tab_line, self.tab_icon], spacing=7,
-                              alignment=ft.MainAxisAlignment.CENTER,
-                              horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                              expand=True),
+            content=ft.Column([
+                ft.Container(self.badge_zone, height=18, alignment=ft.Alignment.TOP_CENTER),
+                ft.Container(
+                    ft.Column([self.tab_line, self.level, self.tab_icon], spacing=8,
+                              tight=True, alignment=ft.MainAxisAlignment.CENTER,
+                              horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                    expand=True, alignment=ft.Alignment.CENTER),
+                ft.Container(self.dots_column, height=22, alignment=ft.Alignment.BOTTOM_CENTER),
+            ], spacing=0, horizontal_alignment=ft.CrossAxisAlignment.CENTER, expand=True),
             on_click=self._on_tab_click, bgcolor=ft.Colors.TRANSPARENT,
+            animate=ft.Animation(SLIDE_MS, ft.AnimationCurve.EASE_OUT_CUBIC),
             tooltip="Открыть полосу" if not self.pinned else "Полоса закреплена")
 
         # --- шапка: аура и статус ----------------------------------------
@@ -469,6 +521,11 @@ class VerticalBar(ft.Container):
                                      icon_size=18, on_click=self._on_pin,
                                      icon_color=p.brand if self.pinned else p.text_dim,
                                      tooltip=self._pin_tooltip())
+        self.never_btn = ft.IconButton(
+            icon=ft.Icons.VISIBILITY if self.never_hide else ft.Icons.VISIBILITY_OFF,
+            icon_size=18, on_click=self._on_never_hide,
+            icon_color=p.brand if self.never_hide else p.text_dim,
+            tooltip=self._never_tooltip())
         self.exit_btn = ft.IconButton(
             icon=ft.Icons.CLOSE_FULLSCREEN, tooltip="Вернуть обычное окно",
             icon_color=p.text_dim, icon_size=18, on_click=self._on_exit)
@@ -476,7 +533,7 @@ class VerticalBar(ft.Container):
             ft.Row([
                 ft.Text("Поверх окон", size=10, color=ft.Colors.with_opacity(.75, p.text_dim),
                         no_wrap=True, expand=True),
-                self.pin_btn, self.exit_btn,
+                self.never_btn, self.pin_btn, self.exit_btn,
             ], spacing=0, alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
             padding=ft.Padding.only(left=12, right=4, top=4, bottom=4))
 
@@ -509,6 +566,52 @@ class VerticalBar(ft.Container):
 
     def _pin_tooltip(self) -> str:
         return "Открепить полосу" if self.pinned else "Закрепить полосу"
+
+    def _never_tooltip(self) -> str:
+        return ("Прятать снова, когда курсор ушёл" if self.never_hide
+                else "Не прятать полосу")
+
+    def set_level(self, energy) -> float:
+        """Уровень микрофона 0..1: высота колонки на ручке. Без окна — тихо."""
+        try:
+            value = max(0.0, min(1.0, float(energy)))
+        except (TypeError, ValueError):
+            value = 0.0
+        height = max(2, int(round(LEVEL_TRACK * value)))
+        if height == self._level_height:
+            return value
+        self._level_height = height
+        self.level_fill.height = height
+        self._refresh(self.level_fill)
+        return value
+
+    def set_unread(self, count) -> int:
+        """Непрочитанное: точка на ручке спрятанной полосы."""
+        try:
+            value = max(0, int(count))
+        except (TypeError, ValueError):
+            value = 0
+        self.unread = value
+        visible = value > 0
+        changed = self.badge.visible != visible
+        self.badge.visible = self.badge_zone.visible = visible
+        if changed:
+            self._refresh(self.badge_zone, self.badge)
+        return value
+
+    def set_never_hide(self, value) -> bool:
+        """Опция «не прятать»: состояние кнопки в подвале полосы."""
+        from jarvis import gui as ui
+
+        value = normalize_pinned(value)
+        if value == self.never_hide:
+            return False
+        self.never_hide = value
+        self.never_btn.icon = ft.Icons.VISIBILITY if value else ft.Icons.VISIBILITY_OFF
+        self.never_btn.icon_color = ui.P.brand if value else ui.P.text_dim
+        self.never_btn.tooltip = self._never_tooltip()
+        self._refresh(self.never_btn)
+        return True
 
     def set_open_state(self, open_: bool) -> None:
         """Иконка ручки смотрит туда, куда поедет шторка."""
@@ -552,6 +655,11 @@ class VerticalBar(ft.Container):
                     else ft.Colors.with_opacity(.10, p.border))},
                 shape=ft.RoundedRectangleBorder(radius=9))
             button.tooltip = PANELS[key]
+        for key, dot in getattr(self, "panel_dots", {}).items():
+            dot.content.bgcolor = (ft.Colors.with_opacity(.95, p.brand)
+                                   if key == self.panel
+                                   else ft.Colors.with_opacity(.45, p.text_dim))
+        self._refresh(*getattr(self, "panel_dots", {}).values())
 
     def _refresh(self, *controls) -> None:
         """Обновление без исключений: тесты и закрытое окно — не повод падать."""
@@ -581,6 +689,9 @@ class VerticalBar(ft.Container):
                 log.exception("Полоса: ошибка обработки наведения")
 
     def _on_tab_click(self, e=None) -> None:
+        # Точка панели внутри ручки: её клик уже обработан, шторку не трогаем.
+        if time.monotonic() - self._dot_touch < .35:
+            return
         hook = getattr(self.gui, "_vertical_tab_click", None)
         if hook is not None:
             try:
@@ -588,11 +699,22 @@ class VerticalBar(ft.Container):
             except Exception:
                 log.exception("Полоса: не удалось переключить шторку")
 
+    def _on_dot(self, name) -> None:
+        """Точка панели на ручке: переключить панель, не раскрывая шторку."""
+        self._dot_touch = time.monotonic()
+        self._on_panel_click(name)
+
     def _on_pin(self, e=None) -> None:
         try:
             self.gui.set_vertical_pinned(not self.pinned)
         except Exception:
             log.exception("Полоса: не удалось сохранить закрепление")
+
+    def _on_never_hide(self, e=None) -> None:
+        try:
+            self.gui.set_vertical_never_hide(not self.never_hide)
+        except Exception:
+            log.exception("Полоса: не удалось сохранить «не прятать»")
 
     # --- панели -------------------------------------------------------
 

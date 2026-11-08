@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=eb0b8368af58172c` · режим `lean` · файлов `383` · строк `71383` · источник `3376 КБ`
+`sha256=ea068ab4b883f02d` · режим `lean` · файлов `383` · строк `71750` · источник `3395 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -501,7 +501,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── release.yml  (306 стр)
 │   │   ├── test.yml  (71 стр)
 ├── AGENTS.md  (88 стр)
-├── ARCHITECTURE.md  (1288 стр)
+├── ARCHITECTURE.md  (1301 стр)
 ├── assets/
 │   ├── nonverbal/
 │   │   ├── README.md  (40 стр)
@@ -516,7 +516,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── themes.svg  (19 стр)
 ├── build_nuitka.bat  (12 стр)
 ├── build_nuitka_full.bat  (17 стр)
-├── CHANGELOG.md  (2170 стр)
+├── CHANGELOG.md  (2189 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -525,7 +525,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ├── cmds/
 │   ├── open_terminal.bat  (3 стр)
 │   ├── show_ip.bat  (3 стр)
-├── config.example.json  (122 стр)
+├── config.example.json  (123 стр)
 ├── constraints-nuitka-app.txt  (25 стр)
 ├── CONTRIBUTING.md  (438 стр)
 ├── create_shortcut.bat  (52 стр)
@@ -564,7 +564,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── v2.1.2.md  (112 стр)
 │   ├── REVIEW_FIXES.md  (68 стр)
 │   ├── TTS_LIFECYCLE_FIX.md  (89 стр)
-│   ├── USER_GUIDE.md  (1207 стр)
+│   ├── USER_GUIDE.md  (1214 стр)
 │   ├── WHISPER_STARTUP_DLL_FIX.md  (85 стр)
 │   ├── WINDOWS_STARTUP_RELIABILITY.md  (108 стр)
 │   ├── WINRT_TTS_REMOVAL.md  (43 стр)
@@ -614,7 +614,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── cloud_llm.py  (367 стр)
 │   ├── command_builder.py  (152 стр)
 │   ├── compiled_runtime.py  (267 стр)
-│   ├── config.py  (336 стр)
+│   ├── config.py  (337 стр)
 │   ├── config_manager.py  (156 стр)
 │   ├── decision.py  (307 стр)
 │   ├── echo.py  (512 стр)
@@ -623,7 +623,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── engines.py  (533 стр)
 │   ├── files.py  (109 стр)
 │   ├── first_run.py  (26 стр)
-│   ├── gui.py  (2223 стр)
+│   ├── gui.py  (2316 стр)
 │   ├── gui_audio.py  (438 стр)
 │   ├── gui_cloud.py  (541 стр)
 │   ├── gui_commands.py  (305 стр)
@@ -631,10 +631,10 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── gui_home.py  (272 стр)
 │   ├── gui_home_actions.py  (225 стр)
 │   ├── gui_home_fx.py  (242 стр)
-│   ├── gui_preferences.py  (798 стр)
+│   ├── gui_preferences.py  (805 стр)
 │   ├── gui_sidebar.py  (442 стр)
 │   ├── gui_tokens.py  (97 стр)
-│   ├── gui_vertical.py  (706 стр)
+│   ├── gui_vertical.py  (828 стр)
 │   ├── gui_widgets.py  (373 стр)
 │   ├── history.py  (75 стр)
 │   ├── https_trust.py  (22 стр)
@@ -852,7 +852,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_gui_sidebar.py  (283 стр)
 │   ├── test_gui_startup.py  (105 стр)
 │   ├── test_gui_tokens.py  (68 стр)
-│   ├── test_gui_vertical.py  (485 стр)
+│   ├── test_gui_vertical.py  (589 стр)
 │   ├── test_gui_widgets.py  (259 стр)
 │   ├── test_gui_wiring.py  (591 стр)
 │   ├── test_intents.py  (487 стр)
@@ -1381,6 +1381,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
     def launch_fireworks(self, duration: float=6.0)
     def set_vertical_mode(self, enabled, update: bool=True)
     def set_vertical_pinned(self, value)
+    def set_vertical_never_hide(self, value)
     def set_vertical_width(self, value)
     def set_vertical_panel(self, value)
     def set_api_enabled(self, enabled, update: bool=True)
@@ -1637,6 +1638,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   TAB_WIDTH = ...
   TAB_MIN = ...
   TAB_MAX = ...
+  LEVEL_TRACK = ...
+  LEVEL_MS = ...
   SLIDE_MS = ...
   SLIDE_STEPS = ...
   AUTOHIDE_MS = ...
@@ -1660,12 +1663,13 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def curtain_geometry(width, workarea=None, tab=None)
   def slide_frames(start, end, steps: int=SLIDE_STEPS)
   class Curtain
-    def __init__(self, pinned=False)
+    def __init__(self, pinned=False, never_hide=False)
     def enter(self)
     def leave(self)
     def hide(self)
     def show(self)
     def set_pinned(self, value)
+    def set_never_hide(self, value)
     def wants_autohide(self)
   def work_area()
   def notes_path()
@@ -1676,6 +1680,9 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def log_lines(messages, limit: int=LOG_LIMIT)
   class VerticalBar(ft.Container)
     def __init__(self, gui, width=None, panel=None)
+    def set_level(self, energy)
+    def set_unread(self, count)
+    def set_never_hide(self, value)
     def set_open_state(self, open_: bool)
     def set_pinned(self, pinned)
     def save_doc(self, name)
@@ -4407,6 +4414,14 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_bar_handle_has_grip_and_chevron(isolated_docs, tmp_path)
   def test_hover_highlights_handle_and_notifies_gui(isolated_docs, tmp_path)
   def test_bar_pin_button_updates_icon_and_tooltip(isolated_docs, tmp_path)
+  def test_curtain_never_hide_keeps_bar_open()
+  def test_bar_level_meter_clamps_and_grows(isolated_docs, tmp_path)
+  def test_bar_unread_badge_marks_and_clears(isolated_docs, tmp_path)
+  def test_bar_panel_dots_switch_without_toggling_curtain(isolated_docs, tmp_path)
+  def test_hidden_bar_counts_unread_and_clears_on_open(window)
+  def test_never_hide_is_persisted_and_blocks_autohide(window)
+  def test_never_hide_switch_on_bar_calls_gui(isolated_docs, tmp_path)
+  def test_level_loop_stops_when_mode_is_off(window)
 ```
 
 **`tests/test_gui_widgets.py`**
@@ -5892,7 +5907,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/cloud_llm.py` | 367 | code | Облачная LLM по HTTP: OpenAI-совместимые API и Anthropic. |
 | `jarvis/command_builder.py` | 152 | code | Typed custom commands. No execution, model calls or shell parsing in t |
 | `jarvis/compiled_runtime.py` | 267 | code | Standalone app startup and explicit offline probes; no venv/pip bootst |
-| `jarvis/config.py` | 336 | code | Загрузка конфигурации и объект Config в памяти. |
+| `jarvis/config.py` | 337 | code | Загрузка конфигурации и объект Config в памяти. |
 | `jarvis/config_manager.py` | 156 | code | Единый менеджер записи в config.json. |
 | `jarvis/decision.py` | 307 | code | Решение по распознанной фразе: чёткая команда, нечёткая или не команда |
 | `jarvis/echo.py` | 512 | code | Opt-in Piper AEC prototype. No devices, drivers or downloads. |
@@ -5901,7 +5916,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/engines.py` | 533 | code | Каталог движков Феникса: что скачано, что включено и чем доустановить. |
 | `jarvis/files.py` | 109 | code | Файлы и папки: открыть, посмотреть содержимое, создать. |
 | `jarvis/first_run.py` | 26 | code | Первый запуск — знакомство через LLM-диалог. |
-| `jarvis/gui.py` | 2223 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
+| `jarvis/gui.py` | 2316 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
 | `jarvis/gui_audio.py` | 438 | code | Native sound settings. Diagnostics use the existing listener/Speaker,  |
 | `jarvis/gui_cloud.py` | 541 | code | Вкладка «Облако»: провайдер, ключ, приватность и проверка ключа. |
 | `jarvis/gui_commands.py` | 305 | code | Flet editor for the existing custom_commands pipeline. Never executes  |
@@ -5909,10 +5924,10 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/gui_home.py` | 272 | code | Minimal native Home: local clock, real assistant state and opt-in widg |
 | `jarvis/gui_home_actions.py` | 225 | code | Three real Home actions. Native controls, finite transitions, no extra |
 | `jarvis/gui_home_fx.py` | 242 | code | Bounded native solar aura. Decorative state motion, never a fake wavef |
-| `jarvis/gui_preferences.py` | 798 | code | Native persona/settings editors. Drafts are not configuration or a sec |
+| `jarvis/gui_preferences.py` | 805 | code | Native persona/settings editors. Drafts are not configuration or a sec |
 | `jarvis/gui_sidebar.py` | 442 | code | Native, persistent hover rail. Bounded UI-loop animation; no WebView o |
 | `jarvis/gui_tokens.py` | 97 | code | Дизайн-токены GUI: отступы, радиусы, типографика, поверхности, контрас |
-| `jarvis/gui_vertical.py` | 706 | code | Вертикальный режим окна: узкая полоса-шторка у правого края экрана. |
+| `jarvis/gui_vertical.py` | 828 | code | Вертикальный режим окна: узкая полоса-шторка у правого края экрана. |
 | `jarvis/gui_widgets.py` | 373 | code | Opt-in Home widgets: responsive order/size editor, real tasks and guar |
 | `jarvis/history.py` | 75 | code | История последних действий для отмены («стоп, не то»). |
 | `jarvis/https_trust.py` | 22 | code | Process-scoped CA bundle for urllib/Flet/torch; never disables TLS che |
@@ -6085,7 +6100,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_gui_sidebar.py` | 283 | code | Native controls and bounded asyncio tasks; no desktop, microphone or m |
 | `tests/test_gui_startup.py` | 105 | code | Startup ordering, tray failure recovery, old EXE mutex handoff; no des |
 | `tests/test_gui_tokens.py` | 68 | code | Дизайн-токены: шкала, поверхности и измеряемый контраст палитр. |
-| `tests/test_gui_vertical.py` | 485 | code | Вертикальный режим: чистая логика, полоса и переключение без окна и зв |
+| `tests/test_gui_vertical.py` | 589 | code | Вертикальный режим: чистая логика, полоса и переключение без окна и зв |
 | `tests/test_gui_widgets.py` | 259 | code | Opt-in layouts, exact task IDs, safe command path, atomic saves and li |
 | `tests/test_gui_wiring.py` | 591 | code | GUI → config: каждый элемент окна реально отсылает изменение. |
 | `tests/test_intents.py` | 487 | code | Автотест Феникса без микрофона. |
@@ -10787,6 +10802,7 @@ DEFAULT_CONFIG = {
     "ui_vertical_width": 240,
     "ui_vertical_panel": "log",
     "ui_vertical_pinned": False,
+    "ui_vertical_never_hide": False,
     "ui_vertical_autohide_ms": 900,
     # Локальный стык health / capabilities / turn (jarvis/api_server.py).
     # Слушает только 127.0.0.1; токен лежит в secrets_store (DPAPI), не здесь.
@@ -13115,6 +13131,9 @@ class FenixGUI:
         self._curtain = None
         self._curtain_gen = 0
         self._hide_gen = 0
+        # Уровень микрофона на ручке полосы: один тик, пока режим включён.
+        self._vertical_level_task = None
+        self._vertical_level_gen = 0
         self._api_server = None
         self._api_status = "API выключен."
         self._rail = None
@@ -13433,12 +13452,16 @@ class FenixGUI:
             if enabled:
                 bar = self._ensure_vertical()
                 pinned = normalize_pinned(self.config.get("ui_vertical_pinned", False))
-                self._curtain = Curtain(pinned=pinned)
+                never_hide = normalize_pinned(self.config.get("ui_vertical_never_hide", False))
+                self._curtain = Curtain(pinned=pinned, never_hide=never_hide)
                 bar.set_pinned(pinned)
+                bar.set_never_hide(never_hide)
+                bar.set_unread(0)
                 self._root.content = bar
                 self._vertical_mode = True
                 self._apply_vertical_window(True)
                 bar.apply_state(getattr(self, "_state", "idle"))
+                self._start_vertical_level_loop()
                 # Сразу показываем полосу целиком: иначе включение режима
                 # выглядит как «ничего не произошло». Уедет сама, если не
                 # закреплена и курсор не задержится (REVEAL_MS — не мгновенно,
@@ -13447,6 +13470,7 @@ class FenixGUI:
                 self._schedule_hide(REVEAL_MS)
             else:
                 self._cancel_hide()
+                self._stop_vertical_level_loop()
                 self._curtain_gen += 1
                 if self._vertical is not None:
                     self._vertical.flush()
@@ -13578,6 +13602,8 @@ class FenixGUI:
             self._cancel_hide()
             if curtain.enter():
                 self._vertical_move(True)
+            if self._vertical is not None:
+                self._vertical.set_unread(0)
             self._sync_bar_open_state()
             return
         curtain.leave()
@@ -13600,6 +13626,8 @@ class FenixGUI:
             self._cancel_hide()
             curtain.show()
             self._vertical_move(True)
+            if self._vertical is not None:
+                self._vertical.set_unread(0)
         self._sync_bar_open_state()
 
     def _sync_bar_open_state(self) -> None:
@@ -13671,6 +13699,86 @@ class FenixGUI:
                 # Открепили: убираем, если курсор не на полосе.
                 self._schedule_hide()
         return True
+
+    def set_vertical_never_hide(self, value) -> bool:
+        """«Не прятать полосу»: сохраняется в конфиг и сразу применяется."""
+        from jarvis.gui_vertical import normalize_pinned
+
+        never = normalize_pinned(value)
+        ok = self.config.set("ui_vertical_never_hide", never)
+        if ok is False:
+            log.warning("GUI: не удалось сохранить «не прятать» для полосы")
+            return False
+        if self._vertical is not None:
+            self._vertical.set_never_hide(never)
+        curtain = self._curtain
+        if curtain is not None:
+            curtain.set_never_hide(never)
+            if never:
+                self._cancel_hide()
+                curtain.show()
+                self._vertical_move(True)
+                self._sync_bar_open_state()
+            elif self._page is not None:
+                self._schedule_hide()
+        return True
+
+    def _vertical_mark_unread(self, role: str) -> None:
+        """Спрятанная полоса копит отметку о новом сообщении на ручке."""
+        bar = self._vertical
+        curtain = self._curtain
+        if bar is None or curtain is None or not self._vertical_mode or curtain.open:
+            return
+        if role == "user":
+            return
+        try:
+            bar.set_unread(bar.unread + 1)
+        except Exception:
+            log.debug("GUI: не удалось отметить непрочитанное в полосе", exc_info=True)
+
+    def _start_vertical_level_loop(self) -> None:
+        page = self._page
+        self._stop_vertical_level_loop()
+        if page is None:
+            return
+        self._vertical_level_gen += 1
+        gen = self._vertical_level_gen
+        try:
+            self._vertical_level_task = page.run_task(self._vertical_level_loop, gen)
+        except Exception:
+            log.debug("GUI: тик уровня полосы не запустился", exc_info=True)
+
+    def _stop_vertical_level_loop(self) -> None:
+        self._vertical_level_gen += 1
+        task = self._vertical_level_task
+        self._vertical_level_task = None
+        if task is not None:
+            try:
+                task.cancel()
+            except Exception:
+                log.debug("GUI: тик уровня полосы не остановился", exc_info=True)
+
+    async def _vertical_level_loop(self, gen) -> None:
+        """Уровень микрофона на ручке: только чтение уже посчитанного RMS."""
+        from jarvis.gui_vertical import LEVEL_MS
+
+        while self._vertical_mode and gen == self._vertical_level_gen:
+            bar = self._vertical
+            if bar is None:
+                break
+            rms, muted = 0.0, True
+            listener = getattr(self.jarvis, "listener", None)
+            try:
+                rms = float(getattr(listener, "current_rms", 0.0) or 0.0)
+                muted = bool(getattr(listener, "muted", True))
+            except (TypeError, ValueError):
+                rms, muted = 0.0, True
+            level = 0.0 if muted else max(0.0, min(1.0, rms / 2000.0))
+            try:
+                bar.set_level(level)
+            except Exception:
+                log.debug("GUI: уровень полосы не применился", exc_info=True)
+            await asyncio.sleep(LEVEL_MS / 1000)
 
     def set_vertical_width(self, value) -> bool:
         """Ширина полосы из настроек: сохраняется и сразу применяется."""
@@ -14591,6 +14699,7 @@ class FenixGUI:
         self._history_list.controls.append(self._message_control(record))
         if self._vertical is not None:
             self._vertical.on_message(record)
+        self._vertical_mark_unread(role)
 
     def _apply_stream_chunk(self, chunk: str) -> None:
         if not chunk:
@@ -17875,11 +17984,18 @@ class PreferenceScreens:
             on_select=lambda e: gui.set_vertical_panel(e.control.value),
             color=p.text, bgcolor=p.field, border=input_border(),
             label_style=ft.TextStyle(color=p.dim))
+        never_switch = ft.Switch(
+            value=gui.config.get("ui_vertical_never_hide", False) is True,
+            active_color=p.accent, tooltip="Не прятать полосу",
+            on_change=lambda e: gui.set_vertical_never_hide(bool(e.control.value)))
         return card("Полоса на краю экрана", "Ассистент всегда перед глазами.", [
             ft.Row([ft.Column([text("Вертикальный режим", 15),
                     text("Узкая полоса без рамки поверх других окон, у правого края.", 13, muted=True)],
                     spacing=5, expand=True), switch], spacing=16),
             divider(), width_select, panel_select,
+            ft.Row([ft.Column([text("Не прятать полосу", 15),
+                    text("Остаётся открытой, пока режим включён: без автоскрытия.", 13, muted=True)],
+                    spacing=5, expand=True), never_switch], spacing=16),
             text("Переключается сразу, черновик остальных настроек не трогается. "
                  "Заметки и план лежат в %APPDATA%\\Phoenix и сохраняются при уходе из поля ввода.", muted=True)])
 
@@ -18611,6 +18727,7 @@ def contrast(color_a: str, color_b: str) -> float:
 import logging
 import os
 import sys
+import time
 from pathlib import Path
 
 import flet as ft
@@ -18631,6 +18748,8 @@ AURA_RING = 104
 TAB_WIDTH = 18
 TAB_MIN = 12
 TAB_MAX = 28
+LEVEL_TRACK = 44
+LEVEL_MS = 200
 SLIDE_MS = 170
 SLIDE_STEPS = 11
 AUTOHIDE_MS = 900
@@ -18812,8 +18931,9 @@ def slide_frames(start, end, steps: int = SLIDE_STEPS) -> list:
 class Curtain:
     """Состояние шторки без окна: открыта ли, закреплена ли, где курсор. ... [6 строк]"""
 
-    def __init__(self, pinned=False):
+    def __init__(self, pinned=False, never_hide=False):
         self.pinned = bool(pinned)
+        self.never_hide = bool(never_hide)
         self.pointer_inside = False
         self.open = True
 
@@ -18831,7 +18951,7 @@ class Curtain:
 
     def hide(self) -> bool:
         """Закрыть с учётом закрепления и курсора. True — позиция изменилась."""
-        if self.pinned or self.pointer_inside or not self.open:
+        if self.pinned or self.never_hide or self.pointer_inside or not self.open:
             return False
         self.open = False
         return True
@@ -18848,9 +18968,19 @@ class Curtain:
             self.open = True
         return self.pinned
 
+    def set_never_hide(self, value) -> bool:
+        """«Не прятать»: полоса остаётся открытой, пока режим включён. ... [3 строк]"""
+        value = bool(value)
+        changed = value != self.never_hide
+        self.never_hide = value
+        if self.never_hide:
+            self.open = True
+        return changed
+
     def wants_autohide(self) -> bool:
         """Пора планировать скрытие: открыта, не закреплена, курсора нет."""
-        return self.open and not self.pinned and not self.pointer_inside
+        return self.open and not self.pinned and not self.never_hide \
+            and not self.pointer_inside
 
 
 def _work_area_tuple(value):
@@ -18967,6 +19097,10 @@ class VerticalBar(ft.Container):
         self.panel = normalize_panel(panel if panel is not None
                                      else gui.config.get("ui_vertical_panel", PANEL_DEFAULT))
         self.pinned = normalize_pinned(gui.config.get("ui_vertical_pinned", False))
+        self.never_hide = normalize_pinned(gui.config.get("ui_vertical_never_hide", False))
+        self.unread = 0
+        self._dot_touch = 0.0
+        self._level_height = 2
         self._docs = {}
         self._notes_field = None
         self._plan_field = None
@@ -18983,13 +19117,44 @@ class VerticalBar(ft.Container):
                         ft.Colors.with_opacity(.75, p.brand),
                         ft.Colors.with_opacity(.0, p.brand)],
                 stops=[.0, .5, 1.0]))
+        # Бейдж непрочитанного: точка у верха ручки, пока полоса спрятана.
+        self.badge = ft.Container(width=6, height=6, border_radius=3,
+                                  bgcolor=p.error, visible=False)
+        self.badge_zone = ft.Container(self.badge, height=14,
+                                       alignment=ft.Alignment.CENTER, visible=False)
+        # Уровень микрофона: тонкая колонка, растущая снизу вверх.
+        self.level_fill = ft.Container(width=3, height=2, border_radius=2,
+                                       bgcolor=ft.Colors.with_opacity(.85, p.brand))
+        self.level = ft.Container(
+            ft.Container(self.level_fill, width=3, height=LEVEL_TRACK,
+                         alignment=ft.Alignment.BOTTOM_CENTER),
+            height=LEVEL_TRACK, bgcolor=ft.Colors.with_opacity(.14, p.brand),
+            border_radius=2, tooltip="Уровень микрофона")
+        # Три точки панелей: листать без раскрытия шторки.
+        self.panel_dots = {}
+        self.dots_column = ft.Column([], spacing=5, tight=True,
+                                     horizontal_alignment=ft.CrossAxisAlignment.CENTER)
+        for key in PANELS:
+            self.panel_dots[key] = ft.Container(
+                ft.Container(width=4, height=4, border_radius=2,
+                             bgcolor=ft.Colors.with_opacity(.45, p.text_dim)),
+                width=14, height=10, alignment=ft.Alignment.CENTER,
+                on_click=lambda e, name=key: self._on_dot(name),
+                tooltip=PANELS[key])
+            self.dots_column.controls.append(self.panel_dots[key])
         self.tab = ft.Container(
             width=TAB_WIDTH, alignment=ft.Alignment.CENTER,
-            content=ft.Column([self.tab_line, self.tab_icon], spacing=7,
-                              alignment=ft.MainAxisAlignment.CENTER,
-                              horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                              expand=True),
+            content=ft.Column([
+                ft.Container(self.badge_zone, height=18, alignment=ft.Alignment.TOP_CENTER),
+                ft.Container(
+                    ft.Column([self.tab_line, self.level, self.tab_icon], spacing=8,
+                              tight=True, alignment=ft.MainAxisAlignment.CENTER,
+                              horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                    expand=True, alignment=ft.Alignment.CENTER),
+                ft.Container(self.dots_column, height=22, alignment=ft.Alignment.BOTTOM_CENTER),
+            ], spacing=0, horizontal_alignment=ft.CrossAxisAlignment.CENTER, expand=True),
             on_click=self._on_tab_click, bgcolor=ft.Colors.TRANSPARENT,
+            animate=ft.Animation(SLIDE_MS, ft.AnimationCurve.EASE_OUT_CUBIC),
             tooltip="Открыть полосу" if not self.pinned else "Полоса закреплена")
 
         # --- шапка: аура и статус ----------------------------------------
@@ -19043,6 +19208,11 @@ class VerticalBar(ft.Container):
                                      icon_size=18, on_click=self._on_pin,
                                      icon_color=p.brand if self.pinned else p.text_dim,
                                      tooltip=self._pin_tooltip())
+        self.never_btn = ft.IconButton(
+            icon=ft.Icons.VISIBILITY if self.never_hide else ft.Icons.VISIBILITY_OFF,
+            icon_size=18, on_click=self._on_never_hide,
+            icon_color=p.brand if self.never_hide else p.text_dim,
+            tooltip=self._never_tooltip())
         self.exit_btn = ft.IconButton(
             icon=ft.Icons.CLOSE_FULLSCREEN, tooltip="Вернуть обычное окно",
             icon_color=p.text_dim, icon_size=18, on_click=self._on_exit)
@@ -19050,7 +19220,7 @@ class VerticalBar(ft.Container):
             ft.Row([
                 ft.Text("Поверх окон", size=10, color=ft.Colors.with_opacity(.75, p.text_dim),
                         no_wrap=True, expand=True),
-                self.pin_btn, self.exit_btn,
+                self.never_btn, self.pin_btn, self.exit_btn,
             ], spacing=0, alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
             padding=ft.Padding.only(left=12, right=4, top=4, bottom=4))
 
@@ -19083,6 +19253,52 @@ class VerticalBar(ft.Container):
 
     def _pin_tooltip(self) -> str:
         return "Открепить полосу" if self.pinned else "Закрепить полосу"
+
+    def _never_tooltip(self) -> str:
+        return ("Прятать снова, когда курсор ушёл" if self.never_hide
+                else "Не прятать полосу")
+
+    def set_level(self, energy) -> float:
+        """Уровень микрофона 0..1: высота колонки на ручке. Без окна — тихо."""
+        try:
+            value = max(0.0, min(1.0, float(energy)))
+        except (TypeError, ValueError):
+            value = 0.0
+        height = max(2, int(round(LEVEL_TRACK * value)))
+        if height == self._level_height:
+            return value
+        self._level_height = height
+        self.level_fill.height = height
+        self._refresh(self.level_fill)
+        return value
+
+    def set_unread(self, count) -> int:
+        """Непрочитанное: точка на ручке спрятанной полосы."""
+        try:
+            value = max(0, int(count))
+        except (TypeError, ValueError):
+            value = 0
+        self.unread = value
+        visible = value > 0
+        changed = self.badge.visible != visible
+        self.badge.visible = self.badge_zone.visible = visible
+        if changed:
+            self._refresh(self.badge_zone, self.badge)
+        return value
+
+    def set_never_hide(self, value) -> bool:
+        """Опция «не прятать»: состояние кнопки в подвале полосы."""
+        from jarvis import gui as ui
+
+        value = normalize_pinned(value)
+        if value == self.never_hide:
+            return False
+        self.never_hide = value
+        self.never_btn.icon = ft.Icons.VISIBILITY if value else ft.Icons.VISIBILITY_OFF
+        self.never_btn.icon_color = ui.P.brand if value else ui.P.text_dim
+        self.never_btn.tooltip = self._never_tooltip()
+        self._refresh(self.never_btn)
+        return True
 
     def set_open_state(self, open_: bool) -> None:
         """Иконка ручки смотрит туда, куда поедет шторка."""
@@ -19126,6 +19342,11 @@ class VerticalBar(ft.Container):
                     else ft.Colors.with_opacity(.10, p.border))},
                 shape=ft.RoundedRectangleBorder(radius=9))
             button.tooltip = PANELS[key]
+        for key, dot in getattr(self, "panel_dots", {}).items():
+            dot.content.bgcolor = (ft.Colors.with_opacity(.95, p.brand)
+                                   if key == self.panel
+                                   else ft.Colors.with_opacity(.45, p.text_dim))
+        self._refresh(*getattr(self, "panel_dots", {}).values())
 
     def _refresh(self, *controls) -> None:
         """Обновление без исключений: тесты и закрытое окно — не повод падать."""
@@ -19155,6 +19376,9 @@ class VerticalBar(ft.Container):
                 log.exception("Полоса: ошибка обработки наведения")
 
     def _on_tab_click(self, e=None) -> None:
+        # Точка панели внутри ручки: её клик уже обработан, шторку не трогаем.
+        if time.monotonic() - self._dot_touch < .35:
+            return
         hook = getattr(self.gui, "_vertical_tab_click", None)
         if hook is not None:
             try:
@@ -19162,11 +19386,22 @@ class VerticalBar(ft.Container):
             except Exception:
                 log.exception("Полоса: не удалось переключить шторку")
 
+    def _on_dot(self, name) -> None:
+        """Точка панели на ручке: переключить панель, не раскрывая шторку."""
+        self._dot_touch = time.monotonic()
+        self._on_panel_click(name)
+
     def _on_pin(self, e=None) -> None:
         try:
             self.gui.set_vertical_pinned(not self.pinned)
         except Exception:
             log.exception("Полоса: не удалось сохранить закрепление")
+
+    def _on_never_hide(self, e=None) -> None:
+        try:
+            self.gui.set_vertical_never_hide(not self.never_hide)
+        except Exception:
+            log.exception("Полоса: не удалось сохранить «не прятать»")
 
     # --- панели -------------------------------------------------------
 
@@ -49203,9 +49438,9 @@ def test_live_switch_reschedules_geometry_after_client_window_state(window):
     """Включение на показанном окне: размеры применяются повторно."""
     window._page.run_task.reset_mock()
     assert window.set_vertical_mode(True) is True
-    assert window._page.run_task.called
-    task = window._page.run_task.call_args.args[0]
-    assert task == window._reapply_vertical_geometry_later
+    tasks = [call.args[0] for call in window._page.run_task.call_args_list]
+    assert window._reapply_vertical_geometry_later in tasks
+    assert window._vertical_level_loop in tasks
     # Отключение обратно повторных размеров не просит.
     window._page.run_task.reset_mock()
     assert window.set_vertical_mode(False) is True
@@ -49488,7 +49723,13 @@ def test_bar_handle_has_grip_and_chevron(isolated_docs, tmp_path):
     assert bar.tab_line.height == 46 and bar.tab_line.width == 2
     assert len(bar.tab_line.gradient.colors) == 3
     assert isinstance(bar.tab.content, ft.Column)
-    assert bar.tab.content.controls == [bar.tab_line, bar.tab_icon]
+    zones = bar.tab.content.controls
+    assert len(zones) == 3  # бейдж сверху, ручка по центру, точки панелей снизу
+    middle = zones[1].content
+    assert isinstance(middle, ft.Column)
+    assert middle.controls == [bar.tab_line, bar.level, bar.tab_icon]
+    assert zones[2].content is bar.dots_column
+    assert not bar.badge.visible
 
 
 def test_hover_highlights_handle_and_notifies_gui(isolated_docs, tmp_path):
@@ -49514,6 +49755,104 @@ def test_bar_pin_button_updates_icon_and_tooltip(isolated_docs, tmp_path):
     assert bar.set_pinned(False) is True
     assert bar.pin_btn.tooltip == "Закрепить полосу"
     assert bar.tab.tooltip == "Свернуть полосу"
+
+
+def test_curtain_never_hide_keeps_bar_open():
+    curtain = vertical.Curtain()
+    assert curtain.wants_autohide() is True
+    assert curtain.set_never_hide(True) is True
+    assert curtain.never_hide is True
+    curtain.leave()
+    assert curtain.wants_autohide() is False
+    assert curtain.hide() is False and curtain.open is True
+    assert curtain.set_never_hide(False) is True
+    assert curtain.wants_autohide() is True
+    assert curtain.hide() is True and curtain.open is False
+
+
+def test_bar_level_meter_clamps_and_grows(isolated_docs, tmp_path):
+    bar = vertical.VerticalBar(fake_gui(tmp_path))
+    assert bar.level.height == vertical.LEVEL_TRACK
+    assert bar.set_level(-3) == 0.0 and bar.level_fill.height == 2
+    assert bar.set_level(5) == 1.0 and bar.level_fill.height == vertical.LEVEL_TRACK
+    assert bar.set_level("тишина") == 0.0
+    assert bar.set_level(None) == 0.0
+
+
+def test_bar_unread_badge_marks_and_clears(isolated_docs, tmp_path):
+    bar = vertical.VerticalBar(fake_gui(tmp_path))
+    assert not bar.badge.visible and bar.unread == 0
+    assert bar.set_unread(2) == 2
+    assert bar.badge.visible and bar.badge_zone.visible
+    assert bar.set_unread(-5) == 0
+    assert not bar.badge.visible and not bar.badge_zone.visible
+    assert bar.set_unread("мусор") == 0
+
+
+def test_bar_panel_dots_switch_without_toggling_curtain(isolated_docs, tmp_path):
+    seen, toggled = [], []
+    gui = fake_gui(tmp_path)
+    gui.set_vertical_panel = lambda name: seen.append(name) or True
+    gui._vertical_tab_click = lambda: toggled.append(1)
+    bar = vertical.VerticalBar(gui)
+    assert set(bar.panel_dots) == set(vertical.PANELS)
+    bar._on_dot("notes")
+    assert seen == ["notes"]
+    bar._on_tab_click(None)  # тот же клик дошёл до ручки — шторку не дёргаем
+    assert toggled == []
+    bar._dot_touch -= 1.0  # прошлое нажатие: ручка снова работает
+    bar._on_tab_click(None)
+    assert toggled == [1]
+
+
+def test_hidden_bar_counts_unread_and_clears_on_open(window):
+    window.set_vertical_mode(True, update=False)
+    window._curtain.open = False
+    window._apply_message("assistant", "ответ")
+    assert window._vertical.unread == 1
+    window._apply_message("user", "ещё вопрос")  # свои реплики не считаем
+    assert window._vertical.unread == 1
+    window._apply_message("assistant", "второй ответ")
+    assert window._vertical.unread == 2
+    window._vertical_tab_click()
+    assert window._curtain.open is True and window._vertical.unread == 0
+    assert not window._vertical.badge.visible
+
+
+def test_never_hide_is_persisted_and_blocks_autohide(window):
+    window.set_vertical_mode(True, update=False)
+    assert window.set_vertical_never_hide(True) is True
+    assert window.config.get("ui_vertical_never_hide") is True
+    assert window._curtain.never_hide is True
+    assert window._vertical.never_hide is True
+    assert window._vertical.never_btn.icon == ft.Icons.VISIBILITY
+    window._vertical_hover(False)
+    assert window._vertical_hide_if_idle() is False
+    assert window.set_vertical_never_hide(False) is True
+    assert window.config.get("ui_vertical_never_hide") is False
+    assert window._vertical.never_btn.icon == ft.Icons.VISIBILITY_OFF
+
+
+def test_never_hide_switch_on_bar_calls_gui(isolated_docs, tmp_path):
+    seen = []
+    gui = fake_gui(tmp_path)
+    gui.set_vertical_never_hide = lambda value: seen.append(value) or True
+    bar = vertical.VerticalBar(gui)
+    bar._on_never_hide(None)
+    assert seen == [True]
+    bar.set_never_hide(True)
+    bar._on_never_hide(None)
+    assert seen == [True, False]
+
+
+def test_level_loop_stops_when_mode_is_off(window):
+    window._vertical_mode = False
+    asyncio.run(window._vertical_level_loop(1))
+    assert window._vertical_level_task is None
+    window.set_vertical_mode(True, update=False)
+    assert window._vertical_level_task is not None
+    window.set_vertical_mode(False, update=False)
+    assert window._vertical_level_task is None
 ```
 
 ### `tests/test_gui_widgets.py`
@@ -64145,6 +64484,7 @@ pause
   "ui_vertical_width": 240,
   "ui_vertical_panel": "log",
   "ui_vertical_pinned": false,
+  "ui_vertical_never_hide": false,
   "ui_vertical_autohide_ms": 900,
   "api_enabled": false,
   "api_port": 8765,
@@ -65683,10 +66023,11 @@ certifi>=2024.8.30
   - 📂 Открытие файлов в редакторе
   - 📦 Пак-команды с аргументами
 
-#### `CHANGELOG.md` — 144 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 145 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
   - [Не выпущено]
+    - Шторка 2.0: уровень, непрочитанное, панели и «не прятать»
     - Дизайн-токены и новая Главная
     - Эскалация распознавания: второй движок только при сомнении
     - Эхо и перебивание: эталон, backend AEC, очерёдность разговора
@@ -65724,7 +66065,6 @@ certifi>=2024.8.30
     - Единая подготовка Python и модели Ollama
     - Python bootstrap HTTPS в Windows Sandbox
     - План надёжности и улучшений
-    - Окно подготовки (Tk, без Flet)
 
 #### `CI.md` — 16 заголовков, полный текст не включён (дублирует PROJECT.md)
 
