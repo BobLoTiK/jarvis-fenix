@@ -609,6 +609,9 @@ class FenixGUI:
                 # В окне 136×56 карточка палитры не помещается: сначала
                 # возвращаем обычное окно (с отрисовкой), потом показываем поиск.
                 self.set_pipette_mode(False)
+            elif self._vertical_mode:
+                # В полосе окно шириной 240 px — карточка 520 не влезает.
+                self.set_vertical_mode(False)
             if self._palette is None:
                 self._palette = CommandPalette(self)
             window = getattr(page, "window", None)

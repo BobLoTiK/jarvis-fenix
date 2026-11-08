@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=9418ca61f52b5204` · режим `lean` · файлов `390` · строк `73200` · источник `3462 КБ`
+`sha256=b14e8c21f7d6f380` · режим `lean` · файлов `390` · строк `73230` · источник `3463 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -516,7 +516,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── themes.svg  (19 стр)
 ├── build_nuitka.bat  (12 стр)
 ├── build_nuitka_full.bat  (17 стр)
-├── CHANGELOG.md  (2262 стр)
+├── CHANGELOG.md  (2265 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -623,7 +623,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── engines.py  (533 стр)
 │   ├── files.py  (109 стр)
 │   ├── first_run.py  (26 стр)
-│   ├── gui.py  (2592 стр)
+│   ├── gui.py  (2595 стр)
 │   ├── gui_audio.py  (438 стр)
 │   ├── gui_cloud.py  (541 стр)
 │   ├── gui_commands.py  (305 стр)
@@ -636,7 +636,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── gui_pipette.py  (126 стр)
 │   ├── gui_preferences.py  (809 стр)
 │   ├── gui_sidebar.py  (442 стр)
-│   ├── gui_toast.py  (128 стр)
+│   ├── gui_toast.py  (133 стр)
 │   ├── gui_tokens.py  (97 стр)
 │   ├── gui_vertical.py  (828 стр)
 │   ├── gui_widgets.py  (373 стр)
@@ -854,7 +854,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_gui_home_actions.py  (189 стр)
 │   ├── test_gui_home_fx.py  (261 стр)
 │   ├── test_gui_palette.py  (135 стр)
-│   ├── test_gui_pipette.py  (166 стр)
+│   ├── test_gui_pipette.py  (185 стр)
 │   ├── test_gui_preferences.py  (516 стр)
 │   ├── test_gui_sidebar.py  (283 стр)
 │   ├── test_gui_startup.py  (105 стр)
@@ -4390,6 +4390,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_ctrl_shift_p_toggles_pipette(window)
   def test_pipette_disables_home_keys(window)
   def test_palette_leaves_pipette_before_opening(window)
+  def test_palette_leaves_vertical_strip_before_opening(window)
+  def test_toast_fits_narrow_strip_window(window)
   def test_toast_helper_delegates_to_stack(window)
 ```
 
@@ -6056,7 +6058,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/engines.py` | 533 | code | Каталог движков Феникса: что скачано, что включено и чем доустановить. |
 | `jarvis/files.py` | 109 | code | Файлы и папки: открыть, посмотреть содержимое, создать. |
 | `jarvis/first_run.py` | 26 | code | Первый запуск — знакомство через LLM-диалог. |
-| `jarvis/gui.py` | 2592 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
+| `jarvis/gui.py` | 2595 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
 | `jarvis/gui_audio.py` | 438 | code | Native sound settings. Diagnostics use the existing listener/Speaker,  |
 | `jarvis/gui_cloud.py` | 541 | code | Вкладка «Облако»: провайдер, ключ, приватность и проверка ключа. |
 | `jarvis/gui_commands.py` | 305 | code | Flet editor for the existing custom_commands pipeline. Never executes  |
@@ -6069,7 +6071,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/gui_pipette.py` | 126 | code | Мини-режим «пипетка»: окно 56×56 с птицей, клик разворачивает обратно. |
 | `jarvis/gui_preferences.py` | 809 | code | Native persona/settings editors. Drafts are not configuration or a sec |
 | `jarvis/gui_sidebar.py` | 442 | code | Native, persistent hover rail. Bounded UI-loop animation; no WebView o |
-| `jarvis/gui_toast.py` | 128 | code | Короткие тосты вместо модальных SnackBar: стек снизу, сами уходят. |
+| `jarvis/gui_toast.py` | 133 | code | Короткие тосты вместо модальных SnackBar: стек снизу, сами уходят. |
 | `jarvis/gui_tokens.py` | 97 | code | Дизайн-токены GUI: отступы, радиусы, типографика, поверхности, контрас |
 | `jarvis/gui_vertical.py` | 828 | code | Вертикальный режим окна: узкая полоса-шторка у правого края экрана. |
 | `jarvis/gui_widgets.py` | 373 | code | Opt-in Home widgets: responsive order/size editor, real tasks and guar |
@@ -6242,7 +6244,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_gui_home_actions.py` | 189 | code | Action orbit: real callbacks, continuous hover zone, keyboard and life |
 | `tests/test_gui_home_fx.py` | 261 | code | Native solar aura lifecycle; no audio device, model or Windows session |
 | `tests/test_gui_palette.py` | 135 | code | Палитра команд (Ctrl+K) и фокус-режим: чистые функции и привязка к GUI |
-| `tests/test_gui_pipette.py` | 166 | code | Мини-режим «пипетка»: свойства окна 56×56, возврат и тосты. |
+| `tests/test_gui_pipette.py` | 185 | code | Мини-режим «пипетка»: свойства окна 56×56, возврат и тосты. |
 | `tests/test_gui_preferences.py` | 516 | code | Real imported Flet controls / real disk writes / explicit network fake |
 | `tests/test_gui_sidebar.py` | 283 | code | Native controls and bounded asyncio tasks; no desktop, microphone or m |
 | `tests/test_gui_startup.py` | 105 | code | Startup ordering, tray failure recovery, old EXE mutex handoff; no des |
@@ -13629,6 +13631,9 @@ class FenixGUI:
                 # В окне 136×56 карточка палитры не помещается: сначала
                 # возвращаем обычное окно (с отрисовкой), потом показываем поиск.
                 self.set_pipette_mode(False)
+            elif self._vertical_mode:
+                # В полосе окно шириной 240 px — карточка 520 не влезает.
+                self.set_vertical_mode(False)
             if self._palette is None:
                 self._palette = CommandPalette(self)
             window = getattr(page, "window", None)
@@ -19611,11 +19616,16 @@ class Toasts:
         window = getattr(page, "window", None)
         width = getattr(window, "width", None) or 1100
         height = getattr(window, "height", None) or 760
+        # В полосе у края экрана окно уже 320 px: тост подстраивается, иначе
+        # он вылезал за границу и обрезался.
+        fit = min(320, max(160, int(width) - 16))
+        down = 84
         for entry in self.entries:
-            entry.left = max(0, (width - (entry.width or 320)) // 2)
+            entry.width = fit
+            entry.left = max(0, (int(width) - fit) // 2)
         # Позиция по низу считается от последнего: старые выше новых. Отступ
         # больше высоты статус-бара Главной, чтобы тост не наезжал на чипы.
-        offset = 84
+        offset = down
         for entry in reversed(self.entries):
             entry.top = height - offset - 40
             offset += 52
@@ -49739,6 +49749,25 @@ def test_palette_leaves_pipette_before_opening(window):
     assert window._root.content is window._rail_row
     assert window._page.window.width == 1100
     assert window._palette.opened is True
+
+
+def test_palette_leaves_vertical_strip_before_opening(window):
+    window.set_vertical_mode(True)
+    assert window._vertical_mode is True
+    assert window.open_palette() is True
+    assert window._vertical_mode is False
+    assert window._palette.opened is True
+    window.close_palette()
+
+
+def test_toast_fits_narrow_strip_window(window):
+    window._page.window.width = 240
+    window._page.window.height = 1032
+    assert window.toast("Полоса готова", "info") is True
+    entry = window._toasts.entries[-1]
+    assert entry.width == 224
+    assert entry.left == 8
+    window._toasts.clear()
 
 
 def test_toast_helper_delegates_to_stack(window):

@@ -88,11 +88,16 @@ class Toasts:
         window = getattr(page, "window", None)
         width = getattr(window, "width", None) or 1100
         height = getattr(window, "height", None) or 760
+        # В полосе у края экрана окно уже 320 px: тост подстраивается, иначе
+        # он вылезал за границу и обрезался.
+        fit = min(320, max(160, int(width) - 16))
+        down = 84
         for entry in self.entries:
-            entry.left = max(0, (width - (entry.width or 320)) // 2)
+            entry.width = fit
+            entry.left = max(0, (int(width) - fit) // 2)
         # Позиция по низу считается от последнего: старые выше новых. Отступ
         # больше высоты статус-бара Главной, чтобы тост не наезжал на чипы.
-        offset = 84
+        offset = down
         for entry in reversed(self.entries):
             entry.top = height - offset - 40
             offset += 52

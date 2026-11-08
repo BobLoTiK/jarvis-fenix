@@ -161,6 +161,25 @@ def test_palette_leaves_pipette_before_opening(window):
     assert window._palette.opened is True
 
 
+def test_palette_leaves_vertical_strip_before_opening(window):
+    window.set_vertical_mode(True)
+    assert window._vertical_mode is True
+    assert window.open_palette() is True
+    assert window._vertical_mode is False
+    assert window._palette.opened is True
+    window.close_palette()
+
+
+def test_toast_fits_narrow_strip_window(window):
+    window._page.window.width = 240
+    window._page.window.height = 1032
+    assert window.toast("Полоса готова", "info") is True
+    entry = window._toasts.entries[-1]
+    assert entry.width == 224
+    assert entry.left == 8
+    window._toasts.clear()
+
+
 def test_toast_helper_delegates_to_stack(window):
     assert window.toast("готово", "success") is True
     assert len(window._toasts.entries) == 1
