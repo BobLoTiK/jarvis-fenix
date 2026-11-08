@@ -229,6 +229,9 @@ class FenixGUI:
         self._curtain = None
         self._curtain_gen = 0
         self._hide_gen = 0
+        # Палитра команд (Ctrl+K) и фокус-режим (Ctrl+Shift+F).
+        self._palette = None
+        self._focus_mode = False
         # Уровень микрофона на ручке полосы: один тик, пока режим включён.
         self._vertical_level_task = None
         self._vertical_level_gen = 0
@@ -544,12 +547,99 @@ class FenixGUI:
 
 
     async def _on_home_key(self, e):
+        if self._handle_shortcut(e):
+            return
         if self._vertical_mode:
             return  # в полосе нет рельса и вкладок: клавиши Главной не работают
         if self._rail.selected_index == HOME_TAB and self._home is not None:
             if await self._home.actions.on_key(e):
                 return
         await self._rail.on_key(e)
+
+    def _handle_shortcut(self, e) -> bool:
+        """Ctrl+K — палитра, Ctrl+Shift+F — фокус-режим, Esc — закрыть палитру."""
+        key = str(getattr(e, "key", "") or "")
+        ctrl = bool(getattr(e, "ctrl", False))
+        shift = bool(getattr(e, "shift", False))
+        if key == "Escape" and self._palette is not None and self._palette.opened:
+            self.close_palette()
+            return True
+        if not ctrl:
+            return False
+        if key.lower() == "k":
+            self.toggle_palette()
+            return True
+        if shift and key.lower() == "f":
+            self.toggle_focus_mode()
+            return True
+        return False
+
+    # ---------------------------------------------------------------
+    # Палитра команд и фокус-режим
+    # ---------------------------------------------------------------
+
+    def toggle_palette(self) -> bool:
+        """Ctrl+K: открыть или закрыть палитру команд."""
+        if self._palette is not None and self._palette.opened:
+            self.close_palette()
+            return False
+        return self.open_palette()
+
+    def open_palette(self) -> bool:
+        from jarvis.gui_palette import CommandPalette
+
+        page = self._page
+        if page is None:
+            return False
+        try:
+            if self._palette is None:
+                self._palette = CommandPalette(self)
+            window = getattr(page, "window", None)
+            self._palette.width = getattr(window, "width", None) or 1100
+            self._palette.height = getattr(window, "height", None) or 760
+            self._palette.left, self._palette.top = 0, 0
+            self._palette.open()
+        except Exception:
+            log.exception("GUI: не удалось открыть палитру команд")
+            return False
+        return True
+
+    def close_palette(self) -> bool:
+        if self._palette is None:
+            return False
+        try:
+            self._palette.close()
+        except Exception:
+            log.debug("GUI: палитра уже закрыта", exc_info=True)
+        return True
+
+    def toggle_focus_mode(self) -> bool:
+        return self.set_focus_mode(not self._focus_mode)
+
+    def set_focus_mode(self, enabled) -> bool:
+        """Фокус-режим: рельс и шапка Главной прячутся, остаётся светяшка."""
+        enabled = bool(enabled)
+        if enabled == self._focus_mode:
+            return False
+        self._focus_mode = enabled
+        try:
+            if self._rail is not None:
+                self._rail.visible = not enabled
+            if self._home is not None:
+                self._home.set_focus(enabled)
+            if self._page is not None:
+                self._page.update()
+        except Exception:
+            log.exception("GUI: фокус-режим не применился")
+            return False
+        return True
+
+    def _palette_stop_speech(self) -> bool:
+        speaker = getattr(self.jarvis, "speaker", None)
+        if speaker is None:
+            return False
+        speaker.stop()
+        return True
 
     # ---------------------------------------------------------------
     # Вертикальный режим (полоса у края экрана)

@@ -812,6 +812,24 @@ GUI и голоса. Состояния/сообщения/ошибки worker �
 Стоп — только `speaker.stop()`, не отмена handler/HTTP/действий ОС.
 Прямые импорты и worker проверяются `tests/test_gui_chat.py`; это не desktop E2E.
 
+### Палитра команд и фокус-режим
+
+`jarvis/gui_palette.py` — оверлей `Ctrl+K`, без второй навигации: команды
+палитры вызывают существующие методы `FenixGUI` (`_select_tab`,
+`_on_mic_toggle`, `set_vertical_mode`, `set_focus_mode`, `_on_theme_change`,
+`_palette_stop_speech`). `default_commands()` собирает 9 вкладок из
+`NAV_ITEMS`/`NAV_ORDER`, 4 действия и 2 темы; `filter_commands()` ранжирует
+начало названия выше вхождения, группу — как запасной вариант (лимит 6).
+`CommandPalette` — Stack с подложкой и карточкой 520 px, список строк
+пересобирается на каждый ввод; Enter выполняет первую строку, Esc и клик по
+подложке закрывают, оверлей живёт в `page.overlay` и удаляется при закрытии.
+
+Клавиши ловит `FenixGUI._handle_shortcut` (вызывается первым из
+`_on_home_key`): `Ctrl+K` — палитра, `Ctrl+Shift+F` — фокус-режим, `Esc` —
+закрыть палитру. `set_focus_mode` скрывает рельс (`_rail.visible`) и шапку со
+статус-баром Главной (`HomeScreen.set_focus`), вертикальная полоса при этом не
+трогается. Тесты — `tests/test_gui_palette.py` (10), живой прогон — в CHANGELOG.
+
 ### Дизайн-токены и раскладка Главной
 
 `jarvis/gui_tokens.py` — короткий общий набор: `SPACE` (4/8/12/16/24/32),

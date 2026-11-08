@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=ea068ab4b883f02d` · режим `lean` · файлов `383` · строк `71750` · источник `3395 КБ`
+`sha256=6e43ff79b4072708` · режим `lean` · файлов `385` · строк `72224` · источник `3416 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -501,7 +501,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── release.yml  (306 стр)
 │   │   ├── test.yml  (71 стр)
 ├── AGENTS.md  (88 стр)
-├── ARCHITECTURE.md  (1301 стр)
+├── ARCHITECTURE.md  (1319 стр)
 ├── assets/
 │   ├── nonverbal/
 │   │   ├── README.md  (40 стр)
@@ -516,7 +516,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── themes.svg  (19 стр)
 ├── build_nuitka.bat  (12 стр)
 ├── build_nuitka_full.bat  (17 стр)
-├── CHANGELOG.md  (2189 стр)
+├── CHANGELOG.md  (2207 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -564,7 +564,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── v2.1.2.md  (112 стр)
 │   ├── REVIEW_FIXES.md  (68 стр)
 │   ├── TTS_LIFECYCLE_FIX.md  (89 стр)
-│   ├── USER_GUIDE.md  (1214 стр)
+│   ├── USER_GUIDE.md  (1221 стр)
 │   ├── WHISPER_STARTUP_DLL_FIX.md  (85 стр)
 │   ├── WINDOWS_STARTUP_RELIABILITY.md  (108 стр)
 │   ├── WINRT_TTS_REMOVAL.md  (43 стр)
@@ -623,14 +623,15 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── engines.py  (533 стр)
 │   ├── files.py  (109 стр)
 │   ├── first_run.py  (26 стр)
-│   ├── gui.py  (2316 стр)
+│   ├── gui.py  (2406 стр)
 │   ├── gui_audio.py  (438 стр)
 │   ├── gui_cloud.py  (541 стр)
 │   ├── gui_commands.py  (305 стр)
 │   ├── gui_engines.py  (206 стр)
-│   ├── gui_home.py  (272 стр)
+│   ├── gui_home.py  (279 стр)
 │   ├── gui_home_actions.py  (225 стр)
 │   ├── gui_home_fx.py  (242 стр)
+│   ├── gui_palette.py  (208 стр)
 │   ├── gui_preferences.py  (805 стр)
 │   ├── gui_sidebar.py  (442 стр)
 │   ├── gui_tokens.py  (97 стр)
@@ -848,6 +849,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_gui_home.py  (201 стр)
 │   ├── test_gui_home_actions.py  (189 стр)
 │   ├── test_gui_home_fx.py  (261 стр)
+│   ├── test_gui_palette.py  (126 стр)
 │   ├── test_gui_preferences.py  (516 стр)
 │   ├── test_gui_sidebar.py  (283 стр)
 │   ├── test_gui_startup.py  (105 стр)
@@ -1379,6 +1381,11 @@ Non-verbal/микрофон/установщик по-прежнему треб�
     def set_state(self, state: str)
     def set_mic_test_result(self, text: str, color: str)
     def launch_fireworks(self, duration: float=6.0)
+    def toggle_palette(self)
+    def open_palette(self)
+    def close_palette(self)
+    def toggle_focus_mode(self)
+    def set_focus_mode(self, enabled)
     def set_vertical_mode(self, enabled, update: bool=True)
     def set_vertical_pinned(self, value)
     def set_vertical_never_hide(self, value)
@@ -1490,6 +1497,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def greeting(now)
   class HomeScreen(ft.Column)
     def __init__(self, gui)
+    def set_focus(self, enabled)
     def sync_status_bar(self)
     def apply_state(self, state)
     def poll_signal(self)
@@ -1534,6 +1542,21 @@ Non-verbal/микрофон/установщик по-прежнему треб�
     def did_mount(self)
     def will_unmount(self)
     def dispose(self)
+```
+
+**`jarvis/gui_palette.py`**
+
+```
+  # Палитра команд (Ctrl+K): поиск по вкладкам и частым действиям.
+  TYPE_LIMIT = ...
+  def default_commands()
+  def filter_commands(commands, query, limit: int=TYPE_LIMIT)
+  def describe(command)
+  class CommandPalette(ft.Container)
+    def __init__(self, gui, commands=None)
+    def run(self, command)
+    def open(self)
+    def close(self)
 ```
 
 **`jarvis/gui_preferences.py`**
@@ -4253,6 +4276,24 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_waves_have_more_travel_but_stay_inside_canvas()
 ```
 
+**`tests/test_gui_palette.py`**
+
+```
+  # Палитра команд (Ctrl+K) и фокус-режим: чистые функции и привязка к GUI.
+  def test_default_commands_cover_tabs_actions_and_themes()
+  def test_filter_prefers_title_start_and_falls_back_to_group()
+  def test_describe_joins_group_and_title()
+  def fake_gui()
+  def test_palette_rows_render_and_run_selected_command(fake_gui)
+  def test_palette_submit_runs_first_visible_command(fake_gui)
+  def test_palette_has_backdrop_field_and_hint(fake_gui)
+  def window(tmp_path, monkeypatch)
+  def test_ctrl_k_toggles_palette_and_escape_closes(window)
+  def test_plain_letter_is_not_a_shortcut(window)
+  def test_focus_mode_hides_rail_and_home_chrome(window)
+  def test_palette_stop_speech_calls_speaker()
+```
+
 **`tests/test_gui_preferences.py`**
 
 ```
@@ -5916,14 +5957,15 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/engines.py` | 533 | code | Каталог движков Феникса: что скачано, что включено и чем доустановить. |
 | `jarvis/files.py` | 109 | code | Файлы и папки: открыть, посмотреть содержимое, создать. |
 | `jarvis/first_run.py` | 26 | code | Первый запуск — знакомство через LLM-диалог. |
-| `jarvis/gui.py` | 2316 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
+| `jarvis/gui.py` | 2406 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
 | `jarvis/gui_audio.py` | 438 | code | Native sound settings. Diagnostics use the existing listener/Speaker,  |
 | `jarvis/gui_cloud.py` | 541 | code | Вкладка «Облако»: провайдер, ключ, приватность и проверка ключа. |
 | `jarvis/gui_commands.py` | 305 | code | Flet editor for the existing custom_commands pipeline. Never executes  |
 | `jarvis/gui_engines.py` | 206 | code | Вкладка «Движки»: что скачано, что включено и установка по кнопке. |
-| `jarvis/gui_home.py` | 272 | code | Minimal native Home: local clock, real assistant state and opt-in widg |
+| `jarvis/gui_home.py` | 279 | code | Minimal native Home: local clock, real assistant state and opt-in widg |
 | `jarvis/gui_home_actions.py` | 225 | code | Three real Home actions. Native controls, finite transitions, no extra |
 | `jarvis/gui_home_fx.py` | 242 | code | Bounded native solar aura. Decorative state motion, never a fake wavef |
+| `jarvis/gui_palette.py` | 208 | code | Палитра команд (Ctrl+K): поиск по вкладкам и частым действиям. |
 | `jarvis/gui_preferences.py` | 805 | code | Native persona/settings editors. Drafts are not configuration or a sec |
 | `jarvis/gui_sidebar.py` | 442 | code | Native, persistent hover rail. Bounded UI-loop animation; no WebView o |
 | `jarvis/gui_tokens.py` | 97 | code | Дизайн-токены GUI: отступы, радиусы, типографика, поверхности, контрас |
@@ -6096,6 +6138,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_gui_home.py` | 201 | code | Native minimal Home; no OS/model/mic/network. Old navigation IDs stay  |
 | `tests/test_gui_home_actions.py` | 189 | code | Action orbit: real callbacks, continuous hover zone, keyboard and life |
 | `tests/test_gui_home_fx.py` | 261 | code | Native solar aura lifecycle; no audio device, model or Windows session |
+| `tests/test_gui_palette.py` | 126 | code | Палитра команд (Ctrl+K) и фокус-режим: чистые функции и привязка к GUI |
 | `tests/test_gui_preferences.py` | 516 | code | Real imported Flet controls / real disk writes / explicit network fake |
 | `tests/test_gui_sidebar.py` | 283 | code | Native controls and bounded asyncio tasks; no desktop, microphone or m |
 | `tests/test_gui_startup.py` | 105 | code | Startup ordering, tray failure recovery, old EXE mutex handoff; no des |
@@ -13131,6 +13174,9 @@ class FenixGUI:
         self._curtain = None
         self._curtain_gen = 0
         self._hide_gen = 0
+        # Палитра команд (Ctrl+K) и фокус-режим (Ctrl+Shift+F).
+        self._palette = None
+        self._focus_mode = False
         # Уровень микрофона на ручке полосы: один тик, пока режим включён.
         self._vertical_level_task = None
         self._vertical_level_gen = 0
@@ -13415,12 +13461,99 @@ class FenixGUI:
 
 
     async def _on_home_key(self, e):
+        if self._handle_shortcut(e):
+            return
         if self._vertical_mode:
             return  # в полосе нет рельса и вкладок: клавиши Главной не работают
         if self._rail.selected_index == HOME_TAB and self._home is not None:
             if await self._home.actions.on_key(e):
                 return
         await self._rail.on_key(e)
+
+    def _handle_shortcut(self, e) -> bool:
+        """Ctrl+K — палитра, Ctrl+Shift+F — фокус-режим, Esc — закрыть палитру."""
+        key = str(getattr(e, "key", "") or "")
+        ctrl = bool(getattr(e, "ctrl", False))
+        shift = bool(getattr(e, "shift", False))
+        if key == "Escape" and self._palette is not None and self._palette.opened:
+            self.close_palette()
+            return True
+        if not ctrl:
+            return False
+        if key.lower() == "k":
+            self.toggle_palette()
+            return True
+        if shift and key.lower() == "f":
+            self.toggle_focus_mode()
+            return True
+        return False
+
+    # ---------------------------------------------------------------
+    # Палитра команд и фокус-режим
+    # ---------------------------------------------------------------
+
+    def toggle_palette(self) -> bool:
+        """Ctrl+K: открыть или закрыть палитру команд."""
+        if self._palette is not None and self._palette.opened:
+            self.close_palette()
+            return False
+        return self.open_palette()
+
+    def open_palette(self) -> bool:
+        from jarvis.gui_palette import CommandPalette
+
+        page = self._page
+        if page is None:
+            return False
+        try:
+            if self._palette is None:
+                self._palette = CommandPalette(self)
+            window = getattr(page, "window", None)
+            self._palette.width = getattr(window, "width", None) or 1100
+            self._palette.height = getattr(window, "height", None) or 760
+            self._palette.left, self._palette.top = 0, 0
+            self._palette.open()
+        except Exception:
+            log.exception("GUI: не удалось открыть палитру команд")
+            return False
+        return True
+
+    def close_palette(self) -> bool:
+        if self._palette is None:
+            return False
+        try:
+            self._palette.close()
+        except Exception:
+            log.debug("GUI: палитра уже закрыта", exc_info=True)
+        return True
+
+    def toggle_focus_mode(self) -> bool:
+        return self.set_focus_mode(not self._focus_mode)
+
+    def set_focus_mode(self, enabled) -> bool:
+        """Фокус-режим: рельс и шапка Главной прячутся, остаётся светяшка."""
+        enabled = bool(enabled)
+        if enabled == self._focus_mode:
+            return False
+        self._focus_mode = enabled
+        try:
+            if self._rail is not None:
+                self._rail.visible = not enabled
+            if self._home is not None:
+                self._home.set_focus(enabled)
+            if self._page is not None:
+                self._page.update()
+        except Exception:
+            log.exception("GUI: фокус-режим не применился")
+            return False
+        return True
+
+    def _palette_stop_speech(self) -> bool:
+        speaker = getattr(self.jarvis, "speaker", None)
+        if speaker is None:
+            return False
+        speaker.stop()
+        return True
 
     # ---------------------------------------------------------------
     # Вертикальный режим (полоса у края экрана)
@@ -16778,6 +16911,13 @@ class HomeScreen(ft.Column):
         self.apply_state(gui._state)
         self.sync_status_bar()
 
+    def set_focus(self, enabled) -> bool:
+        """Фокус-режим: прячет шапку и статус-бар, оставляя светяшку."""
+        enabled = bool(enabled)
+        self.header.visible = not enabled
+        self.status_bar.visible = not enabled
+        return enabled
+
     def _chip(self, key, icon):
         """Маленькая пилюля статуса внизу Главной: иконка + значение."""
         from jarvis import gui as ui
@@ -17388,6 +17528,213 @@ class PhoenixAura(ft.Container):
             self._accessibility_future.cancel()
             self._accessibility_future = None
         self._host = None
+```
+
+### `jarvis/gui_palette.py`
+
+```python
+# -*- coding: utf-8 -*-
+"""Палитра команд (Ctrl+K): поиск по вкладкам и частым действиям. ... [6 строк]"""
+from __future__ import annotations
+
+from types import SimpleNamespace
+
+import flet as ft
+
+from jarvis import gui_tokens as T
+
+TYPE_LIMIT = 6
+
+
+def _call(gui, name, *args):
+    method = getattr(gui, name, None)
+    if method is None:
+        return False
+    method(*args)
+    return True
+
+
+def default_commands():
+    """Команды палитры в порядке групп: вкладки, действия, темы."""
+    from jarvis import gui as ui
+
+    commands = []
+    for tab in ui.NAV_ORDER:
+        name, icon = ui.NAV_ITEMS[tab]
+        commands.append({
+            "key": f"tab:{tab}", "group": "Вкладки", "title": name, "icon": icon,
+            "run": lambda gui, t=tab: _call(gui, "_select_tab", t),
+        })
+    commands += [
+        {"key": "mic", "group": "Действия", "title": "Микрофон: пауза или продолжить",
+         "icon": ft.Icons.MIC,
+         "run": lambda gui: _call(gui, "_on_mic_toggle", None)},
+        {"key": "vertical", "group": "Действия", "title": "Полоса у края экрана",
+         "icon": ft.Icons.SPLITSCREEN,
+         "run": lambda gui: _call(gui, "set_vertical_mode", True)},
+        {"key": "focus", "group": "Действия", "title": "Фокус-режим: спрятать всё лишнее",
+         "icon": ft.Icons.CENTER_FOCUS_STRONG_OUTLINED,
+         "run": lambda gui: _call(gui, "toggle_focus_mode")},
+        {"key": "stop", "group": "Действия", "title": "Остановить речь",
+         "icon": ft.Icons.STOP_ROUNDED,
+         "run": lambda gui: _call(gui, "_palette_stop_speech")},
+        {"key": "dark", "group": "Темы", "title": "Тема «Сумерки»",
+         "icon": ft.Icons.DARK_MODE_OUTLINED,
+         "run": lambda gui: _call(gui, "_on_theme_change",
+                                  SimpleNamespace(control=SimpleNamespace(value="Тёмная")))},
+        {"key": "light", "group": "Темы", "title": "Тема «Фарфор»",
+         "icon": ft.Icons.LIGHT_MODE_OUTLINED,
+         "run": lambda gui: _call(gui, "_on_theme_change",
+                                  SimpleNamespace(control=SimpleNamespace(value="Светлая")))},
+    ]
+    return commands
+
+
+def filter_commands(commands, query, limit: int = TYPE_LIMIT):
+    """Отбор по подстроке: начало названия важнее вхождения, группа — запасной."""
+    text = str(query or "").strip().lower()
+    if not text:
+        return list(commands)[:limit]
+    scored = []
+    for order, command in enumerate(commands):
+        title = str(command.get("title", "")).lower()
+        group = str(command.get("group", "")).lower()
+        if title.startswith(text):
+            rank = 0
+        elif text in title:
+            rank = 1
+        elif text in group:
+            rank = 2
+        else:
+            continue
+        scored.append((rank, order, command))
+    scored.sort(key=lambda item: (item[0], item[1]))
+    return [command for _, _, command in scored[:limit]]
+
+
+def describe(command) -> str:
+    """Подпись команды: группа и название — для тестов и подсказки."""
+    return f"{command.get('group', '')} · {command.get('title', '')}"
+
+
+class CommandPalette(ft.Container):
+    """Оверлей Ctrl+K: поле ввода сверху и список подходящих команд."""
+
+    def __init__(self, gui, commands=None):
+        from jarvis import gui as ui
+
+        super().__init__()
+        self.gui = gui
+        self.commands = list(commands) if commands is not None else default_commands()
+        self.visible_rows = []
+        self.opened = False
+        p = ui.P
+        self.field = ft.TextField(
+            value="", autofocus=True, dense=True, text_size=15, color=p.text,
+            bgcolor=ft.Colors.TRANSPARENT, border=ft.NoInputBorder(),
+            hint_text="Вкладка, действие или тема…", on_change=self._on_change,
+            on_submit=self._on_submit, shift_enter=False)
+        self.rows = ft.ListView(spacing=2, height=300)
+        self.hint = T.text("caption", "Enter — выполнить · Esc — закрыть", color=p.text_dim)
+        card = ft.Container(
+            ft.Column([
+                ft.Row([ft.Icon(ft.Icons.SEARCH, size=18, color=p.text_dim), self.field],
+                       spacing=8),
+                ft.Container(height=1, bgcolor=ft.Colors.with_opacity(.35, p.border)),
+                self.rows, self.hint,
+            ], spacing=8, tight=True),
+            width=520, padding=ft.Padding(left=16, right=16, top=12, bottom=12),
+            bgcolor=p.bg_card, border_radius=T.RADIUS["lg"],
+            border=ft.Border.all(T.STROKE, ft.Colors.with_opacity(.5, p.border)),
+            shadow=T.shadow(p, raised=True))
+        # Подложка закрывает окно и ловит клик мимо карточки.
+        self.backdrop = ft.Container(
+            expand=True, bgcolor=ft.Colors.with_opacity(.45, "#000000"),
+            on_click=lambda e: self.close())
+        self.content = ft.Stack(
+            [self.backdrop, ft.Container(card, alignment=ft.Alignment.TOP_CENTER,
+                                         padding=ft.Padding.only(top=90))],
+            expand=True)
+        self._render("")
+
+    def _on_change(self, e) -> None:
+        self._render(e.control.value)
+
+    def _mounted_page(self):
+        try:
+            return self.page
+        except RuntimeError:
+            return None
+
+    def _render(self, query) -> None:
+        from jarvis import gui as ui
+
+        p = ui.P
+        self.visible_rows = filter_commands(self.commands, query)
+        self.rows.controls = [self._row(command) for command in self.visible_rows] or [
+            T.text("label", "Ничего не нашлось", color=p.text_dim)]
+        page = self._mounted_page()
+        if page is not None:
+            try:
+                self.update()
+            except Exception:
+                pass
+
+    def _row(self, command):
+        from jarvis import gui as ui
+
+        p = ui.P
+        return ft.Container(
+            ft.Row([
+                ft.Icon(command.get("icon", ft.Icons.CHEVRON_RIGHT), size=16, color=p.brand),
+                ft.Column([
+                    T.text("label", command.get("title", ""), color=p.text),
+                    T.text("caption", command.get("group", ""), color=p.text_dim),
+                ], spacing=0, tight=True, expand=True),
+            ], spacing=10),
+            padding=ft.Padding.symmetric(horizontal=10, vertical=6),
+            border_radius=T.RADIUS["sm"],
+            on_click=lambda e, c=command: self.run(c),
+            tooltip=describe(command))
+
+    def run(self, command) -> bool:
+        """Выполняет команду и закрывает палитру."""
+        runner = command.get("run")
+        if runner is None:
+            return False
+        try:
+            runner(self.gui)
+        except Exception:
+            import logging
+            logging.getLogger("jarvis.gui_palette").exception(
+                "Палитра: команда %s упала", command.get("key"))
+            return False
+        self.close()
+        return True
+
+    def _on_submit(self, e=None) -> None:
+        if self.visible_rows:
+            self.run(self.visible_rows[0])
+
+    def open(self) -> None:
+        page = self.gui._page
+        if page is None or self in page.overlay:
+            return
+        page.overlay.append(self)
+        self.opened = True
+        self.field.value = ""
+        self.field.autofocus = True
+        self._render("")
+        page.update()
+
+    def close(self) -> None:
+        page = self.gui._page
+        if page is None or self not in page.overlay:
+            self.opened = False
+            return
+        page.overlay.remove(self)
+        self.opened = False
+        page.update()
 ```
 
 ### `jarvis/gui_preferences.py`
@@ -48272,6 +48619,137 @@ def test_waves_have_more_travel_but_stay_inside_canvas():
     assert spreads[2] > spreads[1]
 ```
 
+### `tests/test_gui_palette.py`
+
+```python
+# -*- coding: utf-8 -*-
+"""Палитра команд (Ctrl+K) и фокус-режим: чистые функции и привязка к GUI."""
+from types import SimpleNamespace as NS
+from unittest.mock import Mock
+
+import flet as ft
+import pytest
+from jarvis import gui as module, profile, mood
+from jarvis import gui_palette as palette
+from jarvis.config import Config
+
+
+def test_default_commands_cover_tabs_actions_and_themes():
+    commands = palette.default_commands()
+    titles = [command["title"] for command in commands]
+    assert "Главная" in titles and "Диалог" in titles and "Движки" in titles
+    assert "Микрофон: пауза или продолжить" in titles
+    assert {"Вкладки", "Действия", "Темы"} <= {command["group"] for command in commands}
+    keys = [command["key"] for command in commands]
+    assert len(keys) == len(set(keys)) == 15
+
+
+def test_filter_prefers_title_start_and_falls_back_to_group():
+    commands = palette.default_commands()
+    first = palette.filter_commands(commands, "микро")[0]
+    assert first["title"] == first["title"]  # палитра не меняет команду
+    assert first["key"] in ("tab:1", "mic")
+    assert [c["key"] for c in palette.filter_commands(commands, "тема")]  # группа
+    assert palette.filter_commands(commands, "") == commands[:palette.TYPE_LIMIT]
+    assert palette.filter_commands(commands, "абракадабра") == []
+    assert palette.filter_commands(commands, "ГЛАВНАЯ")[0]["key"] == "tab:6"
+
+
+def test_describe_joins_group_and_title():
+    command = {"group": "Действия", "title": "Микрофон"}
+    assert palette.describe(command) == "Действия · Микрофон"
+
+
+@pytest.fixture
+def fake_gui():
+    seen = []
+    gui = NS(_page=None, _select_tab=lambda index: seen.append(("tab", index)),
+             _on_mic_toggle=lambda e: seen.append("mic"), seen=seen)
+    return gui
+
+
+def test_palette_rows_render_and_run_selected_command(fake_gui):
+    widget = palette.CommandPalette(fake_gui)
+    assert not widget.opened
+    assert len(widget.visible_rows) == palette.TYPE_LIMIT
+    widget._render("Микрофон: пауза")
+    assert [row for row in widget.visible_rows]
+    first = widget.visible_rows[0]
+    assert widget.run(first) is True
+    assert fake_gui.seen == ["mic"]
+    assert not widget.opened
+
+
+def test_palette_submit_runs_first_visible_command(fake_gui):
+    widget = palette.CommandPalette(fake_gui)
+    widget._render("Диалог")
+    widget._on_submit(None)
+    assert fake_gui.seen == [("tab", 0)]
+
+
+def test_palette_has_backdrop_field_and_hint(fake_gui):
+    widget = palette.CommandPalette(fake_gui)
+    assert isinstance(widget.content, ft.Stack)
+    assert widget.field.autofocus is True
+    assert "Enter" in widget.hint.value
+
+
+@pytest.fixture
+def window(tmp_path, monkeypatch):
+    gui = module.FenixGUI(None, Config(tmp_path / "config.json"))
+    page = NS(add=Mock(), update=Mock(), window=NS(width=1100, height=760),
+              run_task=Mock(), overlay=[])
+    gui._page = page
+    gui._build_ui(page)
+    yield gui
+    gui.close_palette()
+    gui.stop()
+    gui._rail.dispose()
+    profile.unsubscribe(gui._on_profile_switch)
+    mood.unsubscribe(gui._on_mood_change)
+    module._apply_palette("dark")
+
+
+def test_ctrl_k_toggles_palette_and_escape_closes(window):
+    assert window._palette is None
+    assert window._handle_shortcut(NS(key="k", ctrl=True, shift=False)) is True
+    assert window._palette is not None and window._palette.opened
+    assert window._palette in window._page.overlay
+    assert window._handle_shortcut(NS(key="K", ctrl=True, shift=False)) is True
+    assert not window._palette.opened and not window._page.overlay
+    window._handle_shortcut(NS(key="k", ctrl=True, shift=False))
+    assert window._handle_shortcut(NS(key="Escape", ctrl=False, shift=False)) is True
+    assert not window._palette.opened
+
+
+def test_plain_letter_is_not_a_shortcut(window):
+    assert window._handle_shortcut(NS(key="k", ctrl=False, shift=False)) is False
+    assert window._handle_shortcut(NS(key="f", ctrl=True, shift=False)) is False
+
+
+def test_focus_mode_hides_rail_and_home_chrome(window):
+    assert window._focus_mode is False
+    assert window._handle_shortcut(NS(key="f", ctrl=True, shift=True)) is True
+    assert window._focus_mode is True
+    assert window._rail.visible is False
+    assert window._home.header.visible is False
+    assert window._home.status_bar.visible is False
+    assert window._handle_shortcut(NS(key="F", ctrl=True, shift=True)) is True
+    assert window._focus_mode is False
+    assert window._rail.visible is True
+    assert window._home.header.visible is True
+    assert window.toggle_focus_mode() is True
+    assert window.set_focus_mode(True) is False  # повтор ничего не делает
+
+
+def test_palette_stop_speech_calls_speaker():
+    speaker = Mock()
+    gui = NS(jarvis=NS(speaker=speaker))
+    assert module.FenixGUI._palette_stop_speech(gui) is True
+    speaker.stop.assert_called_once()
+    assert module.FenixGUI._palette_stop_speech(NS(jarvis=None)) is False
+```
+
 ### `tests/test_gui_preferences.py`
 
 ```python
@@ -65980,7 +66458,7 @@ certifi>=2024.8.30
   - Изменения
   - Проверки и передача
 
-#### `ARCHITECTURE.md` — 60 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `ARCHITECTURE.md` — 61 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - 🏗 Архитектура «Феникс»
   - 📑 Содержание
@@ -66008,6 +66486,7 @@ certifi>=2024.8.30
     - Конструктор команд
     - Вкладки «Облако» и «Движки»
     - Главная: состояния, ввод и история
+    - Палитра команд и фокус-режим
     - Дизайн-токены и раскладка Главной
     - Вертикальный режим: полоса у края экрана
     - Режим запуска
@@ -66021,12 +66500,12 @@ certifi>=2024.8.30
   - ⚙️ Поток конфига
   - 🌤 Погода и курс валют
   - 📂 Открытие файлов в редакторе
-  - 📦 Пак-команды с аргументами
 
-#### `CHANGELOG.md` — 145 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 146 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
   - [Не выпущено]
+    - Палитра команд и фокус-режим
     - Шторка 2.0: уровень, непрочитанное, панели и «не прятать»
     - Дизайн-токены и новая Главная
     - Эскалация распознавания: второй движок только при сомнении
@@ -66064,7 +66543,6 @@ certifi>=2024.8.30
     - Новая страница проекта
     - Единая подготовка Python и модели Ollama
     - Python bootstrap HTTPS в Windows Sandbox
-    - План надёжности и улучшений
 
 #### `CI.md` — 16 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -66551,4 +67029,4 @@ certifi>=2024.8.30
 
 ---
 
-_Итого по категориям — code: 266, data: 60, doc: 52, pack: 5. Режим `lean`._
+_Итого по категориям — code: 268, data: 60, doc: 52, pack: 5. Режим `lean`._

@@ -127,6 +127,13 @@ class HomeScreen(ft.Column):
         self.apply_state(gui._state)
         self.sync_status_bar()
 
+    def set_focus(self, enabled) -> bool:
+        """Фокус-режим: прячет шапку и статус-бар, оставляя светяшку."""
+        enabled = bool(enabled)
+        self.header.visible = not enabled
+        self.status_bar.visible = not enabled
+        return enabled
+
     def _chip(self, key, icon):
         """Маленькая пилюля статуса внизу Главной: иконка + значение."""
         from jarvis import gui as ui
