@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=27c7e99715403d30` · режим `lean` · файлов `390` · строк `73155` · источник `3459 КБ`
+`sha256=aa349e4c2b64c168` · режим `lean` · файлов `390` · строк `73171` · источник `3459 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -516,7 +516,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── themes.svg  (19 стр)
 ├── build_nuitka.bat  (12 стр)
 ├── build_nuitka_full.bat  (17 стр)
-├── CHANGELOG.md  (2246 стр)
+├── CHANGELOG.md  (2248 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -623,7 +623,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── engines.py  (533 стр)
 │   ├── files.py  (109 стр)
 │   ├── first_run.py  (26 стр)
-│   ├── gui.py  (2588 стр)
+│   ├── gui.py  (2592 стр)
 │   ├── gui_audio.py  (438 стр)
 │   ├── gui_cloud.py  (541 стр)
 │   ├── gui_commands.py  (305 стр)
@@ -854,7 +854,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_gui_home_actions.py  (189 стр)
 │   ├── test_gui_home_fx.py  (261 стр)
 │   ├── test_gui_palette.py  (126 стр)
-│   ├── test_gui_pipette.py  (156 стр)
+│   ├── test_gui_pipette.py  (166 стр)
 │   ├── test_gui_preferences.py  (516 стр)
 │   ├── test_gui_sidebar.py  (283 стр)
 │   ├── test_gui_startup.py  (105 стр)
@@ -4388,6 +4388,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_pipette_click_returns_to_normal(window)
   def test_ctrl_shift_p_toggles_pipette(window)
   def test_pipette_disables_home_keys(window)
+  def test_palette_leaves_pipette_before_opening(window)
   def test_toast_helper_delegates_to_stack(window)
 ```
 
@@ -6054,7 +6055,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/engines.py` | 533 | code | Каталог движков Феникса: что скачано, что включено и чем доустановить. |
 | `jarvis/files.py` | 109 | code | Файлы и папки: открыть, посмотреть содержимое, создать. |
 | `jarvis/first_run.py` | 26 | code | Первый запуск — знакомство через LLM-диалог. |
-| `jarvis/gui.py` | 2588 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
+| `jarvis/gui.py` | 2592 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
 | `jarvis/gui_audio.py` | 438 | code | Native sound settings. Diagnostics use the existing listener/Speaker,  |
 | `jarvis/gui_cloud.py` | 541 | code | Вкладка «Облако»: провайдер, ключ, приватность и проверка ключа. |
 | `jarvis/gui_commands.py` | 305 | code | Flet editor for the existing custom_commands pipeline. Never executes  |
@@ -6240,7 +6241,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_gui_home_actions.py` | 189 | code | Action orbit: real callbacks, continuous hover zone, keyboard and life |
 | `tests/test_gui_home_fx.py` | 261 | code | Native solar aura lifecycle; no audio device, model or Windows session |
 | `tests/test_gui_palette.py` | 126 | code | Палитра команд (Ctrl+K) и фокус-режим: чистые функции и привязка к GUI |
-| `tests/test_gui_pipette.py` | 156 | code | Мини-режим «пипетка»: свойства окна 56×56, возврат и тосты. |
+| `tests/test_gui_pipette.py` | 166 | code | Мини-режим «пипетка»: свойства окна 56×56, возврат и тосты. |
 | `tests/test_gui_preferences.py` | 516 | code | Real imported Flet controls / real disk writes / explicit network fake |
 | `tests/test_gui_sidebar.py` | 283 | code | Native controls and bounded asyncio tasks; no desktop, microphone or m |
 | `tests/test_gui_startup.py` | 105 | code | Startup ordering, tray failure recovery, old EXE mutex handoff; no des |
@@ -13623,6 +13624,10 @@ class FenixGUI:
         if page is None:
             return False
         try:
+            if self._pipette_mode:
+                # В окне 136×56 карточка палитры не помещается: сначала
+                # возвращаем обычное окно (с отрисовкой), потом показываем поиск.
+                self.set_pipette_mode(False)
             if self._palette is None:
                 self._palette = CommandPalette(self)
             window = getattr(page, "window", None)
@@ -49708,6 +49713,16 @@ def test_pipette_disables_home_keys(window):
     import asyncio
     assert asyncio.run(window._on_home_key(NS(key="Tab", ctrl=False, shift=False))) is None
     window.set_pipette_mode(False)
+
+
+def test_palette_leaves_pipette_before_opening(window):
+    window.set_pipette_mode(True)
+    assert window._pipette_mode is True
+    assert window.open_palette() is True
+    assert window._pipette_mode is False
+    assert window._root.content is window._rail_row
+    assert window._page.window.width == 1100
+    assert window._palette.opened is True
 
 
 def test_toast_helper_delegates_to_stack(window):

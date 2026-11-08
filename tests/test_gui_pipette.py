@@ -151,6 +151,16 @@ def test_pipette_disables_home_keys(window):
     window.set_pipette_mode(False)
 
 
+def test_palette_leaves_pipette_before_opening(window):
+    window.set_pipette_mode(True)
+    assert window._pipette_mode is True
+    assert window.open_palette() is True
+    assert window._pipette_mode is False
+    assert window._root.content is window._rail_row
+    assert window._page.window.width == 1100
+    assert window._palette.opened is True
+
+
 def test_toast_helper_delegates_to_stack(window):
     assert window.toast("готово", "success") is True
     assert len(window._toasts.entries) == 1

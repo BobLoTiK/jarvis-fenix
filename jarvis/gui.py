@@ -605,6 +605,10 @@ class FenixGUI:
         if page is None:
             return False
         try:
+            if self._pipette_mode:
+                # В окне 136×56 карточка палитры не помещается: сначала
+                # возвращаем обычное окно (с отрисовкой), потом показываем поиск.
+                self.set_pipette_mode(False)
             if self._palette is None:
                 self._palette = CommandPalette(self)
             window = getattr(page, "window", None)
