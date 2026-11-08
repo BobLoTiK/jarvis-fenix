@@ -108,7 +108,10 @@ def build() -> None:
     version_file = BASE / "build" / "version_info.txt"
     version_file.parent.mkdir(parents=True, exist_ok=True)
     version_file.write_text(make_version_file(version), encoding="utf-8")
-    print(f"Ресурс версии: {version} → {version_file}")
+    # Стрелка «→» роняла сборку на консоли cp1251 (UnicodeEncodeError), поэтому
+    # здесь только ASCII-разделитель: локальная сборка должна работать без
+    # PYTHONIOENCODING.
+    print(f"Ресурс версии: {version} -> {version_file}")
 
     cmd = [
         sys.executable, "-m", "PyInstaller",

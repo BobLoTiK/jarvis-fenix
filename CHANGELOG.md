@@ -15,6 +15,16 @@
 
 ## [Не выпущено]
 
+### Сборка: консоль cp1251 и локальный установщик
+
+- `scripts/build_exe.py` больше не падает с `UnicodeEncodeError` на консоли
+  cp1251: стрелка в сообщении заменена ASCII-разделителем (`->`), поэтому
+  локальная сборка установщика идёт без `PYTHONIOENCODING`. Локальная сборка
+  `scripts/build_setup.py` проверена заново: `dist\Феникс_Setup.exe` 13.3 МБ,
+  в payload 268 файлов, включая `gui_pipette.py`, `gui_toast.py`,
+  `gui_palette.py`, `gui_dialog.py`, `gui_tokens.py`; лаунчер `Феникс.exe`
+  пересобран (версия 2.1.2).
+
 ### Пипетка, тосты и подсказки первого запуска
 
 - `jarvis/gui_pipette.py`: мини-режим «пипетка» (`Ctrl+Shift+P` или команда

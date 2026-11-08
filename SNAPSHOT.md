@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=c485532eb255e3fe` · режим `lean` · файлов `390` · строк `73187` · источник `3461 КБ`
+`sha256=9418ca61f52b5204` · режим `lean` · файлов `390` · строк `73200` · источник `3462 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -516,7 +516,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── themes.svg  (19 стр)
 ├── build_nuitka.bat  (12 стр)
 ├── build_nuitka_full.bat  (17 стр)
-├── CHANGELOG.md  (2252 стр)
+├── CHANGELOG.md  (2262 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -768,7 +768,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── __init__.py  (7 стр)
 │   ├── audio_regression.py  (11 стр)
 │   ├── bootstrap_ollama_config.py  (77 стр)
-│   ├── build_exe.py  (144 стр)
+│   ├── build_exe.py  (147 стр)
 │   ├── build_nuitka.py  (142 стр)
 │   ├── build_nuitka_app.py  (460 стр)
 │   ├── build_setup.py  (212 стр)
@@ -6170,7 +6170,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `scripts/__init__.py` | 7 | code | Пакет scripts: утилиты разработчика. |
 | `scripts/audio_regression.py` | 11 | code | Run optional local audio regression tools; ordinary pytest never loads |
 | `scripts/bootstrap_ollama_config.py` | 77 | code | Small config bridge run by installed .venv311, never by frozen bootstr |
-| `scripts/build_exe.py` | 144 | code | Сборка Феникс.exe (лёгкий лаунчер). |
+| `scripts/build_exe.py` | 147 | code | Сборка Феникс.exe (лёгкий лаунчер). |
 | `scripts/build_nuitka.py` | 142 | code | Build the Windows bootstrap launcher with Nuitka, not the complete run |
 | `scripts/build_nuitka_app.py` | 460 | code | Build the complete Windows application and its installer, not launcher |
 | `scripts/build_setup.py` | 212 | code | Полная сборка Феникса: Феникс.exe + Феникс_Setup.exe — одной командой. |
@@ -37111,7 +37111,10 @@ def build() -> None:
     version_file = BASE / "build" / "version_info.txt"
     version_file.parent.mkdir(parents=True, exist_ok=True)
     version_file.write_text(make_version_file(version), encoding="utf-8")
-    print(f"Ресурс версии: {version} → {version_file}")
+    # Стрелка «→» роняла сборку на консоли cp1251 (UnicodeEncodeError), поэтому
+    # здесь только ASCII-разделитель: локальная сборка должна работать без
+    # PYTHONIOENCODING.
+    print(f"Ресурс версии: {version} -> {version_file}")
 
     cmd = [
         sys.executable, "-m", "PyInstaller",
@@ -67495,10 +67498,11 @@ certifi>=2024.8.30
   - 👥 Мультипрофиль
   - ⚙️ Поток конфига
 
-#### `CHANGELOG.md` — 148 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 149 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
   - [Не выпущено]
+    - Сборка: консоль cp1251 и локальный установщик
     - Пипетка, тосты и подсказки первого запуска
     - Диалог: разделители дней, «печатает…» и повтор
     - Палитра команд и фокус-режим
@@ -67536,7 +67540,6 @@ certifi>=2024.8.30
     - Надёжность первого запуска Windows
     - Необязательный Whisper не блокирует старт при DLL-ошибке
     - Визуальный ритм README
-    - Новая страница проекта
 
 #### `CI.md` — 16 заголовков, полный текст не включён (дублирует PROJECT.md)
 
