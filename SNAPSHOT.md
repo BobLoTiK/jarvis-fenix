@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=bbdb47944d0dfe35` · режим `lean` · файлов `390` · строк `73257` · источник `3465 КБ`
+`sha256=79fdbf5318e5e317` · режим `lean` · файлов `390` · строк `73342` · источник `3469 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -516,7 +516,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── themes.svg  (19 стр)
 ├── build_nuitka.bat  (12 стр)
 ├── build_nuitka_full.bat  (17 стр)
-├── CHANGELOG.md  (2269 стр)
+├── CHANGELOG.md  (2281 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -623,7 +623,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── engines.py  (533 стр)
 │   ├── files.py  (109 стр)
 │   ├── first_run.py  (26 стр)
-│   ├── gui.py  (2595 стр)
+│   ├── gui.py  (2632 стр)
 │   ├── gui_audio.py  (438 стр)
 │   ├── gui_cloud.py  (541 стр)
 │   ├── gui_commands.py  (305 стр)
@@ -632,7 +632,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── gui_home.py  (327 стр)
 │   ├── gui_home_actions.py  (225 стр)
 │   ├── gui_home_fx.py  (242 стр)
-│   ├── gui_palette.py  (214 стр)
+│   ├── gui_palette.py  (217 стр)
 │   ├── gui_pipette.py  (126 стр)
 │   ├── gui_preferences.py  (809 стр)
 │   ├── gui_sidebar.py  (442 стр)
@@ -848,12 +848,12 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_gui_chat.py  (289 стр)
 │   ├── test_gui_cloud.py  (225 стр)
 │   ├── test_gui_commands.py  (127 стр)
-│   ├── test_gui_dialog.py  (104 стр)
+│   ├── test_gui_dialog.py  (124 стр)
 │   ├── test_gui_engines.py  (155 стр)
 │   ├── test_gui_home.py  (222 стр)
 │   ├── test_gui_home_actions.py  (189 стр)
 │   ├── test_gui_home_fx.py  (261 стр)
-│   ├── test_gui_palette.py  (141 стр)
+│   ├── test_gui_palette.py  (154 стр)
 │   ├── test_gui_pipette.py  (192 стр)
 │   ├── test_gui_preferences.py  (516 стр)
 │   ├── test_gui_sidebar.py  (283 стр)
@@ -1362,6 +1362,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   ACCENT = ...
   TEXT = ...
   TEXT_DIM = ...
+  CHAT_MEASURE = ...
   STATES = ...
   THEMES = ...
   LLM_MODELS = ...
@@ -4255,6 +4256,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_same_day_messages_do_not_repeat_separator(window)
   def test_typing_bubble_appears_while_thinking_and_goes_on_answer(window)
   def test_typing_bubble_removed_when_state_returns_to_idle(window)
+  def test_chat_measure_keeps_line_length_in_check(window)
+  def test_resize_updates_chat_measure(window)
   def test_user_message_has_repeat_action_that_fills_input(window)
 ```
 
@@ -4366,6 +4369,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_ctrl_k_toggles_palette_and_escape_closes(window)
   def test_plain_letter_is_not_a_shortcut(window)
   def test_focus_mode_hides_rail_and_home_chrome(window)
+  def test_focus_mode_hint_toast_and_palette_hints_command(window)
   def test_palette_stop_speech_calls_speaker()
 ```
 
@@ -6059,7 +6063,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/engines.py` | 533 | code | Каталог движков Феникса: что скачано, что включено и чем доустановить. |
 | `jarvis/files.py` | 109 | code | Файлы и папки: открыть, посмотреть содержимое, создать. |
 | `jarvis/first_run.py` | 26 | code | Первый запуск — знакомство через LLM-диалог. |
-| `jarvis/gui.py` | 2595 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
+| `jarvis/gui.py` | 2632 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
 | `jarvis/gui_audio.py` | 438 | code | Native sound settings. Diagnostics use the existing listener/Speaker,  |
 | `jarvis/gui_cloud.py` | 541 | code | Вкладка «Облако»: провайдер, ключ, приватность и проверка ключа. |
 | `jarvis/gui_commands.py` | 305 | code | Flet editor for the existing custom_commands pipeline. Never executes  |
@@ -6068,7 +6072,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/gui_home.py` | 327 | code | Minimal native Home: local clock, real assistant state and opt-in widg |
 | `jarvis/gui_home_actions.py` | 225 | code | Three real Home actions. Native controls, finite transitions, no extra |
 | `jarvis/gui_home_fx.py` | 242 | code | Bounded native solar aura. Decorative state motion, never a fake wavef |
-| `jarvis/gui_palette.py` | 214 | code | Палитра команд (Ctrl+K): поиск по вкладкам и частым действиям. |
+| `jarvis/gui_palette.py` | 217 | code | Палитра команд (Ctrl+K): поиск по вкладкам и частым действиям. |
 | `jarvis/gui_pipette.py` | 126 | code | Мини-режим «пипетка»: окно 56×56 с птицей, клик разворачивает обратно. |
 | `jarvis/gui_preferences.py` | 809 | code | Native persona/settings editors. Drafts are not configuration or a sec |
 | `jarvis/gui_sidebar.py` | 442 | code | Native, persistent hover rail. Bounded UI-loop animation; no WebView o |
@@ -6239,12 +6243,12 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_gui_chat.py` | 289 | code | Imported Flet controls + real GUI worker threads; no window, ASR or au |
 | `tests/test_gui_cloud.py` | 225 | code | Вкладка «Облако»: черновик, сохранение, ключ и проверка — без сети и D |
 | `tests/test_gui_commands.py` | 127 | code | Imported native builder controls; no OS actions or real passwords. |
-| `tests/test_gui_dialog.py` | 104 | code | Детали диалога: разделители дней, «печатает…», повтор сообщения. |
+| `tests/test_gui_dialog.py` | 124 | code | Детали диалога: разделители дней, «печатает…», повтор сообщения. |
 | `tests/test_gui_engines.py` | 155 | code | Вкладка «Движки»: каталог, кнопка установки, прогресс и «активно» из к |
 | `tests/test_gui_home.py` | 222 | code | Native minimal Home; no OS/model/mic/network. Old navigation IDs stay  |
 | `tests/test_gui_home_actions.py` | 189 | code | Action orbit: real callbacks, continuous hover zone, keyboard and life |
 | `tests/test_gui_home_fx.py` | 261 | code | Native solar aura lifecycle; no audio device, model or Windows session |
-| `tests/test_gui_palette.py` | 141 | code | Палитра команд (Ctrl+K) и фокус-режим: чистые функции и привязка к GUI |
+| `tests/test_gui_palette.py` | 154 | code | Палитра команд (Ctrl+K) и фокус-режим: чистые функции и привязка к GUI |
 | `tests/test_gui_pipette.py` | 192 | code | Мини-режим «пипетка»: свойства окна 56×56, возврат и тосты. |
 | `tests/test_gui_preferences.py` | 516 | code | Real imported Flet controls / real disk writes / explicit network fake |
 | `tests/test_gui_sidebar.py` | 283 | code | Native controls and bounded asyncio tasks; no desktop, microphone or m |
@@ -13168,6 +13172,9 @@ def _apply_palette(name: str) -> None:
     TEXT_DIM = P.text_dim
 
 
+CHAT_MEASURE = 760  # мера строки диалога: шире — уже неудобно читать
+
+
 STATES = {
     "idle": ("#8bb7ee", "Готов", "Скажите «Феникс» или напишите сообщение"),
     "listening": ("#d29922", "Слушаю", "Можно говорить"),
@@ -13675,6 +13682,8 @@ class FenixGUI:
         except Exception:
             log.exception("GUI: фокус-режим не применился")
             return False
+        if enabled:
+            self.toast("Фокус-режим: Esc — вернуть всё", "info")
         return True
 
     def _palette_stop_speech(self) -> bool:
@@ -14338,12 +14347,15 @@ class FenixGUI:
             ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=20),
             padding=ft.Padding(left=8, right=8, top=32, bottom=24), alignment=ft.Alignment.CENTER)
         self._history_list = ft.ListView(spacing=16, auto_scroll=self._follow_chat,
-                                         on_scroll=self._on_chat_scroll, expand=True)
+                                         on_scroll=self._on_chat_scroll, expand=True,
+                                         width=self._chat_measure())
         self._render_history()
         self._latest_btn = ft.Button("К последнему сообщению", height=44, visible=not self._follow_chat,
                                      on_click=self._scroll_latest)
-        body = ft.Container(content=self._history_list, expand=True,
-                            padding=ft.Padding(left=28, right=28, top=12, bottom=8))
+        body = ft.Container(
+            content=ft.Row([self._history_list], alignment=ft.MainAxisAlignment.CENTER,
+                           expand=True),
+            expand=True, padding=ft.Padding(left=28, right=28, top=12, bottom=8))
         view = ft.Column([header, self._error_banner, body,
                           ft.Row([self._latest_btn], alignment=ft.MainAxisAlignment.CENTER),
                           self._build_controls(), self._build_input()], spacing=0, expand=True)
@@ -15202,6 +15214,30 @@ class FenixGUI:
                 return
             self._reapply_vertical_geometry()
 
+    def _chat_measure(self) -> float:
+        """Мера строки диалога: пузыри не растягиваются на всё широкое окно."""
+        width = 1100
+        page = self._page
+        window = getattr(page, "window", None) if page is not None else None
+        if window is not None:
+            try:
+                width = int(getattr(window, "width", None) or 1100)
+            except (TypeError, ValueError):
+                width = 1100
+        return float(max(240, min(CHAT_MEASURE, width - 160)))
+
+    def _apply_chat_measure(self) -> None:
+        if self._history_list is None or self._page is None:
+            return
+        target = self._chat_measure()
+        if getattr(self._history_list, "width", None) == target:
+            return
+        self._history_list.width = target
+        try:
+            self._page.update(self._history_list)
+        except Exception:
+            log.debug("GUI: мера строки чата не применилась", exc_info=True)
+
     def _on_window_event(self, e) -> None:
         """События окна: позиция (MOVED) и «закрыть в трей» (CLOSE). ... [5 строк]"""
         try:
@@ -15210,6 +15246,11 @@ class FenixGUI:
                 self._home_window_visible = e.type in (ft.WindowEventType.SHOW, ft.WindowEventType.RESTORE)
                 if self._home is not None:
                     self._home.aura.sync_motion()
+                if e.type in (ft.WindowEventType.SHOW, ft.WindowEventType.RESTORE):
+                    self._apply_chat_measure()
+                return
+            if e.type in (ft.WindowEventType.RESIZE, ft.WindowEventType.RESIZED):
+                self._apply_chat_measure()
                 return
             if e.type == ft.WindowEventType.CLOSE:
                 self._on_window_close(e)
@@ -18007,6 +18048,9 @@ def default_commands():
         {"key": "stop", "group": "Действия", "title": "Остановить речь",
          "icon": ft.Icons.STOP_ROUNDED,
          "run": lambda gui: _call(gui, "_palette_stop_speech")},
+        {"key": "hints", "group": "Действия", "title": "Показать подсказки на Главной",
+         "icon": ft.Icons.LIGHTBULB_OUTLINE,
+         "run": lambda gui: _call(gui, "set_home_hints", True)},
         {"key": "dark", "group": "Темы", "title": "Тема «Сумерки»",
          "icon": ft.Icons.DARK_MODE_OUTLINED,
          "run": lambda gui: _call(gui, "_on_theme_change",
@@ -48599,6 +48643,26 @@ def test_typing_bubble_removed_when_state_returns_to_idle(window):
     assert window._typing is None
 
 
+def test_chat_measure_keeps_line_length_in_check(window):
+    window._page.window.width = 1600
+    assert window._chat_measure() == module.CHAT_MEASURE
+    window._page.window.width = 800
+    assert window._chat_measure() == 640
+    window._page.window.width = 400
+    assert window._chat_measure() == 240
+    window._page.window.width = 1100
+    assert window._history_list.width == module.CHAT_MEASURE
+
+
+def test_resize_updates_chat_measure(window):
+    window._page.window.width = 900
+    window._on_window_event(NS(type=ft.WindowEventType.RESIZE))
+    assert window._history_list.width == 740
+    window._page.window.width = 1500
+    window._on_window_event(NS(type=ft.WindowEventType.RESIZED))
+    assert window._history_list.width == module.CHAT_MEASURE
+
+
 def test_user_message_has_repeat_action_that_fills_input(window):
     window._apply_message("user", "напомни через час")
     bubble = window._history_list.controls[-1]
@@ -49478,7 +49542,7 @@ def test_default_commands_cover_tabs_actions_and_themes():
     assert "Микрофон: пауза или продолжить" in titles
     assert {"Вкладки", "Действия", "Темы"} <= {command["group"] for command in commands}
     keys = [command["key"] for command in commands]
-    assert len(keys) == len(set(keys)) == 16
+    assert len(keys) == len(set(keys)) == 17
 
 
 def test_filter_prefers_title_start_and_falls_back_to_group():
@@ -49592,6 +49656,19 @@ def test_focus_mode_hides_rail_and_home_chrome(window):
     assert window._home.hints.visible is False  # отключённые подсказки не воскресают
     assert window.toggle_focus_mode() is True
     assert window.set_focus_mode(True) is False  # повтор ничего не делает
+
+
+def test_focus_mode_hint_toast_and_palette_hints_command(window):
+    assert window.set_focus_mode(True) is True
+    assert len(window._toasts.entries) == 1  # подсказка «Esc — вернуть всё»
+    window._toasts.clear()
+    window.set_focus_mode(False)
+    from jarvis import gui_palette
+
+    hints = [c for c in gui_palette.default_commands() if c["key"] == "hints"]
+    assert len(hints) == 1
+    assert hints[0]["run"](window) is True
+    assert window._home.hints.visible is True
 
 
 def test_palette_stop_speech_calls_speaker():
@@ -67551,13 +67628,14 @@ certifi>=2024.8.30
   - 👥 Мультипрофиль
   - ⚙️ Поток конфига
 
-#### `CHANGELOG.md` — 149 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 150 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
   - [Не выпущено]
     - Сборка: консоль cp1251 и локальный установщик
     - Пипетка, тосты и подсказки первого запуска
     - Диалог: разделители дней, «печатает…» и повтор
+    - Полировка: мера строки, подсказка фокуса и команда подсказок
     - Палитра команд и фокус-режим
     - Шторка 2.0: уровень, непрочитанное, панели и «не прятать»
     - Дизайн-токены и новая Главная
@@ -67592,7 +67670,6 @@ certifi>=2024.8.30
     - Экспериментальный AEC Piper
     - Надёжность первого запуска Windows
     - Необязательный Whisper не блокирует старт при DLL-ошибке
-    - Визуальный ритм README
 
 #### `CI.md` — 16 заголовков, полный текст не включён (дублирует PROJECT.md)
 

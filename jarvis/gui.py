@@ -114,6 +114,9 @@ def _apply_palette(name: str) -> None:
     TEXT_DIM = P.text_dim
 
 
+CHAT_MEASURE = 760  # мера строки диалога: шире — уже неудобно читать
+
+
 STATES = {
     "idle": ("#8bb7ee", "Готов", "Скажите «Феникс» или напишите сообщение"),
     "listening": ("#d29922", "Слушаю", "Можно говорить"),
@@ -652,6 +655,8 @@ class FenixGUI:
         except Exception:
             log.exception("GUI: фокус-режим не применился")
             return False
+        if enabled:
+            self.toast("Фокус-режим: Esc — вернуть всё", "info")
         return True
 
     def _palette_stop_speech(self) -> bool:
@@ -1320,12 +1325,15 @@ class FenixGUI:
             ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=20),
             padding=ft.Padding(left=8, right=8, top=32, bottom=24), alignment=ft.Alignment.CENTER)
         self._history_list = ft.ListView(spacing=16, auto_scroll=self._follow_chat,
-                                         on_scroll=self._on_chat_scroll, expand=True)
+                                         on_scroll=self._on_chat_scroll, expand=True,
+                                         width=self._chat_measure())
         self._render_history()
         self._latest_btn = ft.Button("К последнему сообщению", height=44, visible=not self._follow_chat,
                                      on_click=self._scroll_latest)
-        body = ft.Container(content=self._history_list, expand=True,
-                            padding=ft.Padding(left=28, right=28, top=12, bottom=8))
+        body = ft.Container(
+            content=ft.Row([self._history_list], alignment=ft.MainAxisAlignment.CENTER,
+                           expand=True),
+            expand=True, padding=ft.Padding(left=28, right=28, top=12, bottom=8))
         view = ft.Column([header, self._error_banner, body,
                           ft.Row([self._latest_btn], alignment=ft.MainAxisAlignment.CENTER),
                           self._build_controls(), self._build_input()], spacing=0, expand=True)
@@ -2209,6 +2217,30 @@ class FenixGUI:
                 return
             self._reapply_vertical_geometry()
 
+    def _chat_measure(self) -> float:
+        """Мера строки диалога: пузыри не растягиваются на всё широкое окно."""
+        width = 1100
+        page = self._page
+        window = getattr(page, "window", None) if page is not None else None
+        if window is not None:
+            try:
+                width = int(getattr(window, "width", None) or 1100)
+            except (TypeError, ValueError):
+                width = 1100
+        return float(max(240, min(CHAT_MEASURE, width - 160)))
+
+    def _apply_chat_measure(self) -> None:
+        if self._history_list is None or self._page is None:
+            return
+        target = self._chat_measure()
+        if getattr(self._history_list, "width", None) == target:
+            return
+        self._history_list.width = target
+        try:
+            self._page.update(self._history_list)
+        except Exception:
+            log.debug("GUI: мера строки чата не применилась", exc_info=True)
+
     def _on_window_event(self, e) -> None:
         """События окна: позиция (MOVED) и «закрыть в трей» (CLOSE).
 
@@ -2222,6 +2254,11 @@ class FenixGUI:
                 self._home_window_visible = e.type in (ft.WindowEventType.SHOW, ft.WindowEventType.RESTORE)
                 if self._home is not None:
                     self._home.aura.sync_motion()
+                if e.type in (ft.WindowEventType.SHOW, ft.WindowEventType.RESTORE):
+                    self._apply_chat_measure()
+                return
+            if e.type in (ft.WindowEventType.RESIZE, ft.WindowEventType.RESIZED):
+                self._apply_chat_measure()
                 return
             if e.type == ft.WindowEventType.CLOSE:
                 self._on_window_close(e)

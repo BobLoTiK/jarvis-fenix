@@ -94,6 +94,26 @@ def test_typing_bubble_removed_when_state_returns_to_idle(window):
     assert window._typing is None
 
 
+def test_chat_measure_keeps_line_length_in_check(window):
+    window._page.window.width = 1600
+    assert window._chat_measure() == module.CHAT_MEASURE
+    window._page.window.width = 800
+    assert window._chat_measure() == 640
+    window._page.window.width = 400
+    assert window._chat_measure() == 240
+    window._page.window.width = 1100
+    assert window._history_list.width == module.CHAT_MEASURE
+
+
+def test_resize_updates_chat_measure(window):
+    window._page.window.width = 900
+    window._on_window_event(NS(type=ft.WindowEventType.RESIZE))
+    assert window._history_list.width == 740
+    window._page.window.width = 1500
+    window._on_window_event(NS(type=ft.WindowEventType.RESIZED))
+    assert window._history_list.width == module.CHAT_MEASURE
+
+
 def test_user_message_has_repeat_action_that_fills_input(window):
     window._apply_message("user", "напомни через час")
     bubble = window._history_list.controls[-1]

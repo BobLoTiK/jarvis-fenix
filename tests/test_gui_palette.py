@@ -17,7 +17,7 @@ def test_default_commands_cover_tabs_actions_and_themes():
     assert "Микрофон: пауза или продолжить" in titles
     assert {"Вкладки", "Действия", "Темы"} <= {command["group"] for command in commands}
     keys = [command["key"] for command in commands]
-    assert len(keys) == len(set(keys)) == 16
+    assert len(keys) == len(set(keys)) == 17
 
 
 def test_filter_prefers_title_start_and_falls_back_to_group():
@@ -131,6 +131,19 @@ def test_focus_mode_hides_rail_and_home_chrome(window):
     assert window._home.hints.visible is False  # отключённые подсказки не воскресают
     assert window.toggle_focus_mode() is True
     assert window.set_focus_mode(True) is False  # повтор ничего не делает
+
+
+def test_focus_mode_hint_toast_and_palette_hints_command(window):
+    assert window.set_focus_mode(True) is True
+    assert len(window._toasts.entries) == 1  # подсказка «Esc — вернуть всё»
+    window._toasts.clear()
+    window.set_focus_mode(False)
+    from jarvis import gui_palette
+
+    hints = [c for c in gui_palette.default_commands() if c["key"] == "hints"]
+    assert len(hints) == 1
+    assert hints[0]["run"](window) is True
+    assert window._home.hints.visible is True
 
 
 def test_palette_stop_speech_calls_speaker():
