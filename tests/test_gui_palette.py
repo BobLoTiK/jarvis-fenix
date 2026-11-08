@@ -119,10 +119,16 @@ def test_focus_mode_hides_rail_and_home_chrome(window):
     assert window._rail.visible is False
     assert window._home.header.visible is False
     assert window._home.status_bar.visible is False
+    assert window._home.hints.visible is False
     assert window._handle_shortcut(NS(key="F", ctrl=True, shift=True)) is True
     assert window._focus_mode is False
     assert window._rail.visible is True
     assert window._home.header.visible is True
+    assert window._home.hints.visible is True
+    window._home._dismiss_hints()
+    window.set_focus_mode(True)
+    window.set_focus_mode(False)
+    assert window._home.hints.visible is False  # отключённые подсказки не воскресают
     assert window.toggle_focus_mode() is True
     assert window.set_focus_mode(True) is False  # повтор ничего не делает
 

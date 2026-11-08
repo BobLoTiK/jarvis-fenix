@@ -180,6 +180,13 @@ def test_toast_fits_narrow_strip_window(window):
     window._toasts.clear()
 
 
+def test_toast_skipped_in_pipette_window(window):
+    window._page.window.width = 136
+    window._page.window.height = 56
+    assert window.toast("Не влезет", "info") is False
+    assert window._toasts.entries == []
+
+
 def test_toast_helper_delegates_to_stack(window):
     assert window.toast("готово", "success") is True
     assert len(window._toasts.entries) == 1

@@ -49,6 +49,13 @@ class Toasts:
             return False
         if getattr(page, "overlay", None) is None:
             return False
+        # В пипетке (136×56) тост некуда положить — лучше промолчать, чем
+        # показать обрезанную плашку за границей окна.
+        window = getattr(page, "window", None)
+        width = getattr(window, "width", None) or 1100
+        height = getattr(window, "height", None) or 760
+        if int(width) < 200 or int(height) < 200:
+            return False
         from jarvis import gui as ui
 
         palette = ui.P

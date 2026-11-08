@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=b14e8c21f7d6f380` · режим `lean` · файлов `390` · строк `73230` · источник `3463 КБ`
+`sha256=bbdb47944d0dfe35` · режим `lean` · файлов `390` · строк `73257` · источник `3465 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -516,7 +516,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── themes.svg  (19 стр)
 ├── build_nuitka.bat  (12 стр)
 ├── build_nuitka_full.bat  (17 стр)
-├── CHANGELOG.md  (2265 стр)
+├── CHANGELOG.md  (2269 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -629,14 +629,14 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── gui_commands.py  (305 стр)
 │   ├── gui_dialog.py  (75 стр)
 │   ├── gui_engines.py  (206 стр)
-│   ├── gui_home.py  (324 стр)
+│   ├── gui_home.py  (327 стр)
 │   ├── gui_home_actions.py  (225 стр)
 │   ├── gui_home_fx.py  (242 стр)
 │   ├── gui_palette.py  (214 стр)
 │   ├── gui_pipette.py  (126 стр)
 │   ├── gui_preferences.py  (809 стр)
 │   ├── gui_sidebar.py  (442 стр)
-│   ├── gui_toast.py  (133 стр)
+│   ├── gui_toast.py  (140 стр)
 │   ├── gui_tokens.py  (97 стр)
 │   ├── gui_vertical.py  (828 стр)
 │   ├── gui_widgets.py  (373 стр)
@@ -853,8 +853,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_gui_home.py  (222 стр)
 │   ├── test_gui_home_actions.py  (189 стр)
 │   ├── test_gui_home_fx.py  (261 стр)
-│   ├── test_gui_palette.py  (135 стр)
-│   ├── test_gui_pipette.py  (185 стр)
+│   ├── test_gui_palette.py  (141 стр)
+│   ├── test_gui_pipette.py  (192 стр)
 │   ├── test_gui_preferences.py  (516 стр)
 │   ├── test_gui_sidebar.py  (283 стр)
 │   ├── test_gui_startup.py  (105 стр)
@@ -4392,6 +4392,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_palette_leaves_pipette_before_opening(window)
   def test_palette_leaves_vertical_strip_before_opening(window)
   def test_toast_fits_narrow_strip_window(window)
+  def test_toast_skipped_in_pipette_window(window)
   def test_toast_helper_delegates_to_stack(window)
 ```
 
@@ -6064,14 +6065,14 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/gui_commands.py` | 305 | code | Flet editor for the existing custom_commands pipeline. Never executes  |
 | `jarvis/gui_dialog.py` | 75 | code | Детали диалога: разделители дней и черновик записи. Без окна и сети. |
 | `jarvis/gui_engines.py` | 206 | code | Вкладка «Движки»: что скачано, что включено и установка по кнопке. |
-| `jarvis/gui_home.py` | 324 | code | Minimal native Home: local clock, real assistant state and opt-in widg |
+| `jarvis/gui_home.py` | 327 | code | Minimal native Home: local clock, real assistant state and opt-in widg |
 | `jarvis/gui_home_actions.py` | 225 | code | Three real Home actions. Native controls, finite transitions, no extra |
 | `jarvis/gui_home_fx.py` | 242 | code | Bounded native solar aura. Decorative state motion, never a fake wavef |
 | `jarvis/gui_palette.py` | 214 | code | Палитра команд (Ctrl+K): поиск по вкладкам и частым действиям. |
 | `jarvis/gui_pipette.py` | 126 | code | Мини-режим «пипетка»: окно 56×56 с птицей, клик разворачивает обратно. |
 | `jarvis/gui_preferences.py` | 809 | code | Native persona/settings editors. Drafts are not configuration or a sec |
 | `jarvis/gui_sidebar.py` | 442 | code | Native, persistent hover rail. Bounded UI-loop animation; no WebView o |
-| `jarvis/gui_toast.py` | 133 | code | Короткие тосты вместо модальных SnackBar: стек снизу, сами уходят. |
+| `jarvis/gui_toast.py` | 140 | code | Короткие тосты вместо модальных SnackBar: стек снизу, сами уходят. |
 | `jarvis/gui_tokens.py` | 97 | code | Дизайн-токены GUI: отступы, радиусы, типографика, поверхности, контрас |
 | `jarvis/gui_vertical.py` | 828 | code | Вертикальный режим окна: узкая полоса-шторка у правого края экрана. |
 | `jarvis/gui_widgets.py` | 373 | code | Opt-in Home widgets: responsive order/size editor, real tasks and guar |
@@ -6243,8 +6244,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_gui_home.py` | 222 | code | Native minimal Home; no OS/model/mic/network. Old navigation IDs stay  |
 | `tests/test_gui_home_actions.py` | 189 | code | Action orbit: real callbacks, continuous hover zone, keyboard and life |
 | `tests/test_gui_home_fx.py` | 261 | code | Native solar aura lifecycle; no audio device, model or Windows session |
-| `tests/test_gui_palette.py` | 135 | code | Палитра команд (Ctrl+K) и фокус-режим: чистые функции и привязка к GUI |
-| `tests/test_gui_pipette.py` | 185 | code | Мини-режим «пипетка»: свойства окна 56×56, возврат и тосты. |
+| `tests/test_gui_palette.py` | 141 | code | Палитра команд (Ctrl+K) и фокус-режим: чистые функции и привязка к GUI |
+| `tests/test_gui_pipette.py` | 192 | code | Мини-режим «пипетка»: свойства окна 56×56, возврат и тосты. |
 | `tests/test_gui_preferences.py` | 516 | code | Real imported Flet controls / real disk writes / explicit network fake |
 | `tests/test_gui_sidebar.py` | 283 | code | Native controls and bounded asyncio tasks; no desktop, microphone or m |
 | `tests/test_gui_startup.py` | 105 | code | Startup ordering, tray failure recovery, old EXE mutex handoff; no des |
@@ -17290,10 +17291,13 @@ class HomeScreen(ft.Column):
         self.sync_status_bar()
 
     def set_focus(self, enabled) -> bool:
-        """Фокус-режим: прячет шапку и статус-бар, оставляя светяшку."""
+        """Фокус-режим: прячет шапку, подсказки и статус-бар, оставляя светяшку."""
         enabled = bool(enabled)
         self.header.visible = not enabled
         self.status_bar.visible = not enabled
+        if self.hints is not None:
+            seen = bool(self.gui.config.get("ui_home_hints_seen", False))
+            self.hints.visible = (not enabled) and not seen
         return enabled
 
     def _build_hints(self):
@@ -19576,6 +19580,13 @@ class Toasts:
         if page is None or not text:
             return False
         if getattr(page, "overlay", None) is None:
+            return False
+        # В пипетке (136×56) тост некуда положить — лучше промолчать, чем
+        # показать обрезанную плашку за границей окна.
+        window = getattr(page, "window", None)
+        width = getattr(window, "width", None) or 1100
+        height = getattr(window, "height", None) or 760
+        if int(width) < 200 or int(height) < 200:
             return False
         from jarvis import gui as ui
 
@@ -49569,10 +49580,16 @@ def test_focus_mode_hides_rail_and_home_chrome(window):
     assert window._rail.visible is False
     assert window._home.header.visible is False
     assert window._home.status_bar.visible is False
+    assert window._home.hints.visible is False
     assert window._handle_shortcut(NS(key="F", ctrl=True, shift=True)) is True
     assert window._focus_mode is False
     assert window._rail.visible is True
     assert window._home.header.visible is True
+    assert window._home.hints.visible is True
+    window._home._dismiss_hints()
+    window.set_focus_mode(True)
+    window.set_focus_mode(False)
+    assert window._home.hints.visible is False  # отключённые подсказки не воскресают
     assert window.toggle_focus_mode() is True
     assert window.set_focus_mode(True) is False  # повтор ничего не делает
 
@@ -49768,6 +49785,13 @@ def test_toast_fits_narrow_strip_window(window):
     assert entry.width == 224
     assert entry.left == 8
     window._toasts.clear()
+
+
+def test_toast_skipped_in_pipette_window(window):
+    window._page.window.width = 136
+    window._page.window.height = 56
+    assert window.toast("Не влезет", "info") is False
+    assert window._toasts.entries == []
 
 
 def test_toast_helper_delegates_to_stack(window):

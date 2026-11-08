@@ -129,10 +129,13 @@ class HomeScreen(ft.Column):
         self.sync_status_bar()
 
     def set_focus(self, enabled) -> bool:
-        """Фокус-режим: прячет шапку и статус-бар, оставляя светяшку."""
+        """Фокус-режим: прячет шапку, подсказки и статус-бар, оставляя светяшку."""
         enabled = bool(enabled)
         self.header.visible = not enabled
         self.status_bar.visible = not enabled
+        if self.hints is not None:
+            seen = bool(self.gui.config.get("ui_home_hints_seen", False))
+            self.hints.visible = (not enabled) and not seen
         return enabled
 
     def _build_hints(self):
