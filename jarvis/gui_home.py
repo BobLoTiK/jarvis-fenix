@@ -15,6 +15,19 @@ def clock_labels(now):
     return f"{WEEKDAYS[now.weekday()]}, {now.day} {MONTHS[now.month - 1]}", now.strftime("%H:%M")
 
 
+def greeting(now):
+    """Приветствие по местному времени: утро, день, вечер, ночь."""
+    hour = now.hour
+    if 5 <= hour < 12:
+        return "Доброе утро"
+    if 12 <= hour < 17:
+        return "Добрый день"
+    if 17 <= hour < 23:
+        return "Добрый вечер"
+    return "Доброй ночи"
+
+
+from jarvis import gui_tokens as T
 from jarvis.gui_home_fx import PhoenixAura
 from jarvis.gui_home_actions import PhoenixActions
 from jarvis.gui_widgets import WidgetBoard
@@ -31,11 +44,22 @@ class HomeScreen(ft.Column):
         self._mounted = False
         self._epoch = 0
         p = ui.P
-        self.date = ft.Text(size=11, color=p.text_dim)
-        self.clock = ft.Text(size=11, color=p.text_dim)
+        self.date = T.text("caption", "", color=p.text_dim)
+        self.clock = T.text("caption", "", color=p.text_dim, weight=ft.FontWeight.W_500)
         self.refresh_clock()
-        self.status = ft.Text(size=11, color=p.text_dim, text_align=ft.TextAlign.CENTER)
-        self.dot = ft.Container(width=5, height=5, border_radius=3, bgcolor=p.brand)
+        self.status = T.text("label", "Ядро ещё не готово", color=p.text_dim,
+                             text_align=ft.TextAlign.CENTER)
+        self.dot = ft.Container(width=6, height=6, border_radius=3, bgcolor=p.brand)
+        self.greeting = T.text("title", greeting(datetime.now()), color=p.text)
+        self.dot_sep = T.text("caption", "·", color=p.text_dim)
+        self.meta = ft.Row([self.date, self.dot_sep, self.clock], spacing=T.SPACE["sm"],
+                           vertical_alignment=ft.CrossAxisAlignment.CENTER)
+        self.status_pill = ft.Container(
+            ft.Row([self.dot, self.status], spacing=T.SPACE["sm"], tight=True,
+                   alignment=ft.MainAxisAlignment.CENTER),
+            padding=ft.Padding.symmetric(horizontal=T.SPACE["md"], vertical=T.SPACE["sm"]),
+            border_radius=T.RADIUS["pill"], bgcolor=p.bg_card,
+            border=ft.Border.all(T.STROKE, ft.Colors.with_opacity(.45, p.border)))
         self.ring = ft.Container(
             ui._brand_image("phoenix", 112, "Феникс"), width=240, height=240,
             border_radius=120, alignment=ft.Alignment.CENTER,
@@ -58,34 +82,76 @@ class HomeScreen(ft.Column):
                     overlay_color=ft.Colors.TRANSPARENT,
                     color=p.text if active else p.text_dim,
                     shape=ft.RoundedRectangleBorder(radius=8))))
+        self.widgets_btn = ft.Button("Виджеты", icon=ft.Icons.ADD, tooltip="Настроить Главную",
+            height=32, on_click=self._open_widgets, color=p.text_dim,
+            style=ft.ButtonStyle(padding=ft.Padding.symmetric(horizontal=10)))
+        self.vertical_btn = ft.Button("Полоса", icon=ft.Icons.SPLITSCREEN, height=32,
+            tooltip="Перейти в полосу у края экрана", color=p.brand,
+            on_click=self._open_vertical,
+            style=ft.ButtonStyle(padding=ft.Padding.symmetric(horizontal=10),
+                bgcolor={ft.ControlState.DEFAULT: ft.Colors.with_opacity(.10, p.brand),
+                         ft.ControlState.HOVERED: ft.Colors.with_opacity(.18, p.brand)},
+                side=ft.BorderSide(T.STROKE, ft.Colors.with_opacity(.35, p.brand)),
+                overlay_color=ft.Colors.TRANSPARENT))
         self.header = ft.Container(ft.Row([
-            ft.Text("Рабочее пространство  /  Главная", size=12, color=p.text_dim, expand=True),
-            ft.Container(ft.Row(self.theme_buttons, spacing=3), padding=4, border_radius=11,
-                         bgcolor=p.sidebar, border=ft.Border.all(1, ft.Colors.with_opacity(.5, p.border)))
-        ], spacing=12), padding=ft.Padding(left=28, right=28, top=16, bottom=16),
-            border=ft.Border(bottom=ft.BorderSide(1, ft.Colors.with_opacity(.5, p.border))))
-        self.center_region = ft.Container(ft.Column([self.actions,
-            ft.Row([self.dot, self.status], spacing=8, alignment=ft.MainAxisAlignment.CENTER)
-        ], spacing=4, tight=True, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+            ft.Column([self.greeting, self.meta], spacing=2, tight=True, expand=True),
+            ft.Container(ft.Row(self.theme_buttons, spacing=3), padding=4,
+                         border_radius=T.RADIUS["pill"], bgcolor=p.sidebar,
+                         border=ft.Border.all(T.STROKE, ft.Colors.with_opacity(.5, p.border))),
+            self.widgets_btn, self.vertical_btn,
+        ], spacing=T.SPACE["md"], vertical_alignment=ft.CrossAxisAlignment.CENTER),
+            padding=ft.Padding(left=T.SPACE["xxl"], right=T.SPACE["xxl"],
+                               top=T.SPACE["lg"], bottom=T.SPACE["lg"]),
+            border=ft.Border(bottom=ft.BorderSide(T.STROKE, ft.Colors.with_opacity(.45, p.border))))
+        self.center_region = ft.Container(ft.Column([self.actions, self.status_pill],
+            spacing=T.SPACE["md"], tight=True, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
             alignment=ft.Alignment.CENTER, expand=True)
         self.widgets = WidgetBoard(gui, self._layout_widgets)
-        self.vertical_btn = ft.Button("Полоса", icon=ft.Icons.SPLITSCREEN, height=32,
-            tooltip="Перейти в полосу у края экрана", color=p.text_dim,
-            on_click=self._open_vertical,
-            style=ft.ButtonStyle(padding=ft.Padding.symmetric(horizontal=8)))
-        self.workspace = ft.Column([self.center_region, self.widgets], spacing=20, expand=True)
+        self.chips = {}
+        self.mic_chip = self._chip("mic", ft.Icons.MIC_NONE)
+        self.api_chip = self._chip("api", ft.Icons.LAN_OUTLINED)
+        self.model_chip = self._chip("model", ft.Icons.MEMORY)
+        self.version_chip = self._chip("version", ft.Icons.TAG_OUTLINED)
+        self.status_bar = ft.Row([self.mic_chip, self.api_chip, self.model_chip, self.version_chip],
+                                 spacing=T.SPACE["sm"], alignment=ft.MainAxisAlignment.CENTER)
+        self.workspace = ft.Column([self.center_region, self.widgets], spacing=T.SPACE["xl"],
+                                   expand=True)
         self.controls = [self.header, ft.Container(ft.Column([
-            ft.Row([ft.Row([ft.Icon(ft.Icons.WB_SUNNY_OUTLINED, size=14, color=p.text_dim), self.date], spacing=8),
-                    self.clock], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
             self.workspace,
-            ft.Row([ft.Text("Просто твоё пространство.", size=10, color=p.text_dim, expand=True),
-                ft.Button("Виджеты",icon=ft.Icons.ADD,tooltip="Настроить Главную",height=32,
-                    on_click=self._open_widgets,color=p.text_dim,
-                    style=ft.ButtonStyle(padding=ft.Padding.symmetric(horizontal=8))),
-                self.vertical_btn],spacing=8),
-        ], expand=True, spacing=20), padding=ft.Padding(left=28, right=28, top=26, bottom=24), expand=True)]
+            self.status_bar,
+        ], expand=True, spacing=T.SPACE["xl"]),
+            padding=ft.Padding(left=T.SPACE["xxl"], right=T.SPACE["xxl"],
+                               top=T.SPACE["xl"], bottom=T.SPACE["lg"]),
+            expand=True)]
         self._layout_widgets(update=False)
         self.apply_state(gui._state)
+        self.sync_status_bar()
+
+    def _chip(self, key, icon):
+        """Маленькая пилюля статуса внизу Главной: иконка + значение."""
+        from jarvis import gui as ui
+        p = ui.P
+        label = T.text("caption", "", color=p.text_dim)
+        self.chips[key] = label
+        return ft.Container(
+            ft.Row([ft.Icon(icon, size=13, color=p.text_dim), label], spacing=5, tight=True),
+            padding=ft.Padding.symmetric(horizontal=10, vertical=5),
+            border_radius=T.RADIUS["pill"],
+            border=ft.Border.all(T.STROKE, ft.Colors.with_opacity(.3, p.border)))
+
+    def sync_status_bar(self):
+        """Статус-бар Главной: микрофон, локальный API, модель и версия."""
+        from jarvis import __version__
+        config = getattr(self.gui, "config", None)
+        core = self.gui.jarvis
+        listening = core is not None and getattr(core, "listening_enabled", True)
+        self.chips["mic"].value = "Микрофон вкл" if listening else "Микрофон пауза"
+        enabled = bool(config is not None and config.get("api_enabled", False) is True)
+        port = config.get("api_port", 8765) if config is not None else 8765
+        self.chips["api"].value = f"API :{port}" if enabled else "API выкл"
+        model = (config.get("llm_model", "") if config is not None else "") or "модель не выбрана"
+        self.chips["model"].value = model
+        self.chips["version"].value = __version__
 
     def _layout_widgets(self, update=True):
         populated = bool(self.widgets.layout) or self.widgets.editing
@@ -120,6 +186,7 @@ class HomeScreen(ft.Column):
         self.dot.bgcolor = color
         self._sync_aura()
         self.actions.sync_state()
+        self.sync_status_bar()
 
     def _sync_aura(self):
         state = self.gui._state
@@ -164,9 +231,14 @@ class HomeScreen(ft.Column):
         self.actions.sync_state()
 
     def refresh_clock(self, now=None):
-        date, clock = clock_labels(now or datetime.now())
+        moment = now or datetime.now()
+        date, clock = clock_labels(moment)
+        phrase = greeting(moment)
         changed = self.date.value != date or self.clock.value != clock
         self.date.value, self.clock.value = date, clock
+        if getattr(self, "greeting", None) is not None and self.greeting.value != phrase:
+            self.greeting.value = phrase
+            changed = True
         return changed
 
     def did_mount(self):
@@ -194,7 +266,7 @@ class HomeScreen(ft.Column):
             self.widgets.refresh_tasks()
             if self.refresh_clock():
                 try:
-                    self._host.update(self.date, self.clock)
+                    self._host.update(self.greeting, self.date, self.clock)
                 except RuntimeError:
                     return  # Detached renderer: never keep polling an old page.
             await asyncio.sleep(1)

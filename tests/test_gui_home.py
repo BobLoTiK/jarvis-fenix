@@ -6,9 +6,10 @@ from unittest.mock import Mock
 
 import flet as ft
 import pytest
+import jarvis
 from jarvis import gui as module, profile, mood
 from jarvis.config import Config
-from jarvis.gui_home import HomeScreen, clock_labels
+from jarvis.gui_home import HomeScreen, clock_labels, greeting
 
 
 def walk(control):
@@ -75,6 +76,38 @@ def test_home_strip_button_switches_to_vertical_mode(gui):
 def test_local_date_labels_include_midnight_and_new_year():
     assert clock_labels(datetime(2026, 12, 31, 23, 59)) == ("четверг, 31 декабря", "23:59")
     assert clock_labels(datetime(2027, 1, 1, 0, 0)) == ("пятница, 1 января", "00:00")
+
+
+@pytest.mark.parametrize("hour,phrase", [(4, "Доброй ночи"), (5, "Доброе утро"),
+    (11, "Доброе утро"), (12, "Добрый день"), (16, "Добрый день"),
+    (17, "Добрый вечер"), (22, "Добрый вечер"), (23, "Доброй ночи")])
+def test_greeting_follows_local_hour(hour, phrase):
+    assert greeting(datetime(2026, 11, 8, hour, 30)) == phrase
+
+
+def test_greeting_updates_inside_clock_tick(gui):
+    home = gui._home
+    assert home.refresh_clock(datetime(2026, 11, 8, 8, 30))
+    assert home.greeting.value == "Доброе утро"
+    assert home.refresh_clock(datetime(2026, 11, 8, 8, 30)) is False
+    assert home.refresh_clock(datetime(2026, 11, 8, 13, 0))
+    assert home.greeting.value == "Добрый день"
+
+
+def test_home_status_bar_reads_real_settings(gui):
+    home = gui._home
+    gui.jarvis = NS(listening_enabled=True)
+    gui.config.set("api_enabled", False)
+    home.sync_status_bar()
+    assert home.chips["mic"].value == "Микрофон вкл"
+    assert home.chips["api"].value == "API выкл"
+    assert home.chips["version"].value == jarvis.__version__
+    gui.config.set("api_enabled", True)
+    gui.config.set("api_port", 8766)
+    gui.jarvis = NS(listening_enabled=False)
+    home.sync_status_bar()
+    assert home.chips["mic"].value == "Микрофон пауза"
+    assert home.chips["api"].value == "API :8766"
 
 
 def test_clock_only_marks_changes_at_minute_or_date_boundary(gui):
@@ -157,7 +190,7 @@ def test_clock_updates_only_date_controls_and_dispose_cancels_task(gui):
         home.refresh_clock = Mock(return_value=True)
         home._future = asyncio.create_task(home._clock_loop(12))
         await asyncio.sleep(.01)
-        host.update.assert_called_once_with(home.date, home.clock)
+        host.update.assert_called_once_with(home.greeting, home.date, home.clock)
         task = home._future
         home.will_unmount()
         await asyncio.sleep(0)

@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=02f7b563c9870028` · режим `lean` · файлов `381` · строк `71076` · источник `3361 КБ`
+`sha256=eb0b8368af58172c` · режим `lean` · файлов `383` · строк `71383` · источник `3376 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -501,7 +501,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── release.yml  (306 стр)
 │   │   ├── test.yml  (71 стр)
 ├── AGENTS.md  (88 стр)
-├── ARCHITECTURE.md  (1268 стр)
+├── ARCHITECTURE.md  (1288 стр)
 ├── assets/
 │   ├── nonverbal/
 │   │   ├── README.md  (40 стр)
@@ -516,7 +516,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── themes.svg  (19 стр)
 ├── build_nuitka.bat  (12 стр)
 ├── build_nuitka_full.bat  (17 стр)
-├── CHANGELOG.md  (2153 стр)
+├── CHANGELOG.md  (2170 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -628,11 +628,12 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── gui_cloud.py  (541 стр)
 │   ├── gui_commands.py  (305 стр)
 │   ├── gui_engines.py  (206 стр)
-│   ├── gui_home.py  (200 стр)
+│   ├── gui_home.py  (272 стр)
 │   ├── gui_home_actions.py  (225 стр)
 │   ├── gui_home_fx.py  (242 стр)
 │   ├── gui_preferences.py  (798 стр)
 │   ├── gui_sidebar.py  (442 стр)
+│   ├── gui_tokens.py  (97 стр)
 │   ├── gui_vertical.py  (706 стр)
 │   ├── gui_widgets.py  (373 стр)
 │   ├── history.py  (75 стр)
@@ -844,12 +845,13 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_gui_cloud.py  (225 стр)
 │   ├── test_gui_commands.py  (127 стр)
 │   ├── test_gui_engines.py  (155 стр)
-│   ├── test_gui_home.py  (168 стр)
+│   ├── test_gui_home.py  (201 стр)
 │   ├── test_gui_home_actions.py  (189 стр)
 │   ├── test_gui_home_fx.py  (261 стр)
 │   ├── test_gui_preferences.py  (516 стр)
 │   ├── test_gui_sidebar.py  (283 стр)
 │   ├── test_gui_startup.py  (105 стр)
+│   ├── test_gui_tokens.py  (68 стр)
 │   ├── test_gui_vertical.py  (485 стр)
 │   ├── test_gui_widgets.py  (259 стр)
 │   ├── test_gui_wiring.py  (591 стр)
@@ -1484,8 +1486,10 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   WEEKDAYS = ...
   MONTHS = ...
   def clock_labels(now)
+  def greeting(now)
   class HomeScreen(ft.Column)
     def __init__(self, gui)
+    def sync_status_bar(self)
     def apply_state(self, state)
     def poll_signal(self)
     def refresh_clock(self, now=None)
@@ -1597,6 +1601,22 @@ Non-verbal/микрофон/установщик по-прежнему треб�
     def selected_index(self, value)
     def refresh_palette(self)
     async def on_key(self, e)
+```
+
+**`jarvis/gui_tokens.py`**
+
+```
+  # Дизайн-токены GUI: отступы, радиусы, типографика, поверхности, контраст.
+  SPACE = ...
+  RADIUS = ...
+  STROKE = ...
+  TYPE = ...
+  def text(kind: str, value, *, color, **overrides)
+  def shadow(palette, *, raised: bool=False)
+  def card(palette, *, padding=None, radius: int | None=None, raised: bool=False, border: bool=True)
+  def pill(palette, *, padding=None)
+  def relative_luminance(color: str)
+  def contrast(color_a: str, color_b: str)
 ```
 
 **`jarvis/gui_vertical.py`**
@@ -4164,6 +4184,9 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_minimal_home_starts_empty_with_only_widget_entry_and_no_composer(gui)
   def test_home_strip_button_switches_to_vertical_mode(gui)
   def test_local_date_labels_include_midnight_and_new_year()
+  def test_greeting_follows_local_hour(hour, phrase)
+  def test_greeting_updates_inside_clock_tick(gui)
+  def test_home_status_bar_reads_real_settings(gui)
   def test_clock_only_marks_changes_at_minute_or_date_boundary(gui)
   def test_home_mirrors_real_state_without_auto_opening_chat(gui, state, label)
   def test_paused_mic_does_not_claim_listening(gui)
@@ -4320,6 +4343,19 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def tray_callbacks(gui)
   def test_tray_failure_before_page_restores_startup_intent(gui)
   def test_stale_or_shutdown_tray_callback_does_not_show_window(gui)
+```
+
+**`tests/test_gui_tokens.py`**
+
+```
+  # Дизайн-токены: шкала, поверхности и измеряемый контраст палитр.
+  def test_space_scale_is_short_and_ordered()
+  def test_radius_scale_grows_from_sm_to_pill()
+  def test_type_roles_shrink_from_display_to_caption()
+  def test_text_builder_uses_role_and_allows_overrides()
+  def test_card_and_pill_surfaces_use_palette()
+  def test_text_contrast_meets_wcag_on_both_palettes(palette)
+  def test_unknown_color_is_rejected_instead_of_silently_zero()
 ```
 
 **`tests/test_gui_vertical.py`**
@@ -5870,11 +5906,12 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/gui_cloud.py` | 541 | code | Вкладка «Облако»: провайдер, ключ, приватность и проверка ключа. |
 | `jarvis/gui_commands.py` | 305 | code | Flet editor for the existing custom_commands pipeline. Never executes  |
 | `jarvis/gui_engines.py` | 206 | code | Вкладка «Движки»: что скачано, что включено и установка по кнопке. |
-| `jarvis/gui_home.py` | 200 | code | Minimal native Home: local clock, real assistant state and opt-in widg |
+| `jarvis/gui_home.py` | 272 | code | Minimal native Home: local clock, real assistant state and opt-in widg |
 | `jarvis/gui_home_actions.py` | 225 | code | Three real Home actions. Native controls, finite transitions, no extra |
 | `jarvis/gui_home_fx.py` | 242 | code | Bounded native solar aura. Decorative state motion, never a fake wavef |
 | `jarvis/gui_preferences.py` | 798 | code | Native persona/settings editors. Drafts are not configuration or a sec |
 | `jarvis/gui_sidebar.py` | 442 | code | Native, persistent hover rail. Bounded UI-loop animation; no WebView o |
+| `jarvis/gui_tokens.py` | 97 | code | Дизайн-токены GUI: отступы, радиусы, типографика, поверхности, контрас |
 | `jarvis/gui_vertical.py` | 706 | code | Вертикальный режим окна: узкая полоса-шторка у правого края экрана. |
 | `jarvis/gui_widgets.py` | 373 | code | Opt-in Home widgets: responsive order/size editor, real tasks and guar |
 | `jarvis/history.py` | 75 | code | История последних действий для отмены («стоп, не то»). |
@@ -6041,12 +6078,13 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_gui_cloud.py` | 225 | code | Вкладка «Облако»: черновик, сохранение, ключ и проверка — без сети и D |
 | `tests/test_gui_commands.py` | 127 | code | Imported native builder controls; no OS actions or real passwords. |
 | `tests/test_gui_engines.py` | 155 | code | Вкладка «Движки»: каталог, кнопка установки, прогресс и «активно» из к |
-| `tests/test_gui_home.py` | 168 | code | Native minimal Home; no OS/model/mic/network. Old navigation IDs stay  |
+| `tests/test_gui_home.py` | 201 | code | Native minimal Home; no OS/model/mic/network. Old navigation IDs stay  |
 | `tests/test_gui_home_actions.py` | 189 | code | Action orbit: real callbacks, continuous hover zone, keyboard and life |
 | `tests/test_gui_home_fx.py` | 261 | code | Native solar aura lifecycle; no audio device, model or Windows session |
 | `tests/test_gui_preferences.py` | 516 | code | Real imported Flet controls / real disk writes / explicit network fake |
 | `tests/test_gui_sidebar.py` | 283 | code | Native controls and bounded asyncio tasks; no desktop, microphone or m |
 | `tests/test_gui_startup.py` | 105 | code | Startup ordering, tray failure recovery, old EXE mutex handoff; no des |
+| `tests/test_gui_tokens.py` | 68 | code | Дизайн-токены: шкала, поверхности и измеряемый контраст палитр. |
 | `tests/test_gui_vertical.py` | 485 | code | Вертикальный режим: чистая логика, полоса и переключение без окна и зв |
 | `tests/test_gui_widgets.py` | 259 | code | Opt-in layouts, exact task IDs, safe command path, atomic saves and li |
 | `tests/test_gui_wiring.py` | 591 | code | GUI → config: каждый элемент окна реально отсылает изменение. |
@@ -16519,6 +16557,19 @@ def clock_labels(now):
     return f"{WEEKDAYS[now.weekday()]}, {now.day} {MONTHS[now.month - 1]}", now.strftime("%H:%M")
 
 
+def greeting(now):
+    """Приветствие по местному времени: утро, день, вечер, ночь."""
+    hour = now.hour
+    if 5 <= hour < 12:
+        return "Доброе утро"
+    if 12 <= hour < 17:
+        return "Добрый день"
+    if 17 <= hour < 23:
+        return "Добрый вечер"
+    return "Доброй ночи"
+
+
+from jarvis import gui_tokens as T
 from jarvis.gui_home_fx import PhoenixAura
 from jarvis.gui_home_actions import PhoenixActions
 from jarvis.gui_widgets import WidgetBoard
@@ -16535,11 +16586,22 @@ class HomeScreen(ft.Column):
         self._mounted = False
         self._epoch = 0
         p = ui.P
-        self.date = ft.Text(size=11, color=p.text_dim)
-        self.clock = ft.Text(size=11, color=p.text_dim)
+        self.date = T.text("caption", "", color=p.text_dim)
+        self.clock = T.text("caption", "", color=p.text_dim, weight=ft.FontWeight.W_500)
         self.refresh_clock()
-        self.status = ft.Text(size=11, color=p.text_dim, text_align=ft.TextAlign.CENTER)
-        self.dot = ft.Container(width=5, height=5, border_radius=3, bgcolor=p.brand)
+        self.status = T.text("label", "Ядро ещё не готово", color=p.text_dim,
+                             text_align=ft.TextAlign.CENTER)
+        self.dot = ft.Container(width=6, height=6, border_radius=3, bgcolor=p.brand)
+        self.greeting = T.text("title", greeting(datetime.now()), color=p.text)
+        self.dot_sep = T.text("caption", "·", color=p.text_dim)
+        self.meta = ft.Row([self.date, self.dot_sep, self.clock], spacing=T.SPACE["sm"],
+                           vertical_alignment=ft.CrossAxisAlignment.CENTER)
+        self.status_pill = ft.Container(
+            ft.Row([self.dot, self.status], spacing=T.SPACE["sm"], tight=True,
+                   alignment=ft.MainAxisAlignment.CENTER),
+            padding=ft.Padding.symmetric(horizontal=T.SPACE["md"], vertical=T.SPACE["sm"]),
+            border_radius=T.RADIUS["pill"], bgcolor=p.bg_card,
+            border=ft.Border.all(T.STROKE, ft.Colors.with_opacity(.45, p.border)))
         self.ring = ft.Container(
             ui._brand_image("phoenix", 112, "Феникс"), width=240, height=240,
             border_radius=120, alignment=ft.Alignment.CENTER,
@@ -16562,34 +16624,76 @@ class HomeScreen(ft.Column):
                     overlay_color=ft.Colors.TRANSPARENT,
                     color=p.text if active else p.text_dim,
                     shape=ft.RoundedRectangleBorder(radius=8))))
+        self.widgets_btn = ft.Button("Виджеты", icon=ft.Icons.ADD, tooltip="Настроить Главную",
+            height=32, on_click=self._open_widgets, color=p.text_dim,
+            style=ft.ButtonStyle(padding=ft.Padding.symmetric(horizontal=10)))
+        self.vertical_btn = ft.Button("Полоса", icon=ft.Icons.SPLITSCREEN, height=32,
+            tooltip="Перейти в полосу у края экрана", color=p.brand,
+            on_click=self._open_vertical,
+            style=ft.ButtonStyle(padding=ft.Padding.symmetric(horizontal=10),
+                bgcolor={ft.ControlState.DEFAULT: ft.Colors.with_opacity(.10, p.brand),
+                         ft.ControlState.HOVERED: ft.Colors.with_opacity(.18, p.brand)},
+                side=ft.BorderSide(T.STROKE, ft.Colors.with_opacity(.35, p.brand)),
+                overlay_color=ft.Colors.TRANSPARENT))
         self.header = ft.Container(ft.Row([
-            ft.Text("Рабочее пространство  /  Главная", size=12, color=p.text_dim, expand=True),
-            ft.Container(ft.Row(self.theme_buttons, spacing=3), padding=4, border_radius=11,
-                         bgcolor=p.sidebar, border=ft.Border.all(1, ft.Colors.with_opacity(.5, p.border)))
-        ], spacing=12), padding=ft.Padding(left=28, right=28, top=16, bottom=16),
-            border=ft.Border(bottom=ft.BorderSide(1, ft.Colors.with_opacity(.5, p.border))))
-        self.center_region = ft.Container(ft.Column([self.actions,
-            ft.Row([self.dot, self.status], spacing=8, alignment=ft.MainAxisAlignment.CENTER)
-        ], spacing=4, tight=True, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+            ft.Column([self.greeting, self.meta], spacing=2, tight=True, expand=True),
+            ft.Container(ft.Row(self.theme_buttons, spacing=3), padding=4,
+                         border_radius=T.RADIUS["pill"], bgcolor=p.sidebar,
+                         border=ft.Border.all(T.STROKE, ft.Colors.with_opacity(.5, p.border))),
+            self.widgets_btn, self.vertical_btn,
+        ], spacing=T.SPACE["md"], vertical_alignment=ft.CrossAxisAlignment.CENTER),
+            padding=ft.Padding(left=T.SPACE["xxl"], right=T.SPACE["xxl"],
+                               top=T.SPACE["lg"], bottom=T.SPACE["lg"]),
+            border=ft.Border(bottom=ft.BorderSide(T.STROKE, ft.Colors.with_opacity(.45, p.border))))
+        self.center_region = ft.Container(ft.Column([self.actions, self.status_pill],
+            spacing=T.SPACE["md"], tight=True, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
             alignment=ft.Alignment.CENTER, expand=True)
         self.widgets = WidgetBoard(gui, self._layout_widgets)
-        self.vertical_btn = ft.Button("Полоса", icon=ft.Icons.SPLITSCREEN, height=32,
-            tooltip="Перейти в полосу у края экрана", color=p.text_dim,
-            on_click=self._open_vertical,
-            style=ft.ButtonStyle(padding=ft.Padding.symmetric(horizontal=8)))
-        self.workspace = ft.Column([self.center_region, self.widgets], spacing=20, expand=True)
+        self.chips = {}
+        self.mic_chip = self._chip("mic", ft.Icons.MIC_NONE)
+        self.api_chip = self._chip("api", ft.Icons.LAN_OUTLINED)
+        self.model_chip = self._chip("model", ft.Icons.MEMORY)
+        self.version_chip = self._chip("version", ft.Icons.TAG_OUTLINED)
+        self.status_bar = ft.Row([self.mic_chip, self.api_chip, self.model_chip, self.version_chip],
+                                 spacing=T.SPACE["sm"], alignment=ft.MainAxisAlignment.CENTER)
+        self.workspace = ft.Column([self.center_region, self.widgets], spacing=T.SPACE["xl"],
+                                   expand=True)
         self.controls = [self.header, ft.Container(ft.Column([
-            ft.Row([ft.Row([ft.Icon(ft.Icons.WB_SUNNY_OUTLINED, size=14, color=p.text_dim), self.date], spacing=8),
-                    self.clock], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
             self.workspace,
-            ft.Row([ft.Text("Просто твоё пространство.", size=10, color=p.text_dim, expand=True),
-                ft.Button("Виджеты",icon=ft.Icons.ADD,tooltip="Настроить Главную",height=32,
-                    on_click=self._open_widgets,color=p.text_dim,
-                    style=ft.ButtonStyle(padding=ft.Padding.symmetric(horizontal=8))),
-                self.vertical_btn],spacing=8),
-        ], expand=True, spacing=20), padding=ft.Padding(left=28, right=28, top=26, bottom=24), expand=True)]
+            self.status_bar,
+        ], expand=True, spacing=T.SPACE["xl"]),
+            padding=ft.Padding(left=T.SPACE["xxl"], right=T.SPACE["xxl"],
+                               top=T.SPACE["xl"], bottom=T.SPACE["lg"]),
+            expand=True)]
         self._layout_widgets(update=False)
         self.apply_state(gui._state)
+        self.sync_status_bar()
+
+    def _chip(self, key, icon):
+        """Маленькая пилюля статуса внизу Главной: иконка + значение."""
+        from jarvis import gui as ui
+        p = ui.P
+        label = T.text("caption", "", color=p.text_dim)
+        self.chips[key] = label
+        return ft.Container(
+            ft.Row([ft.Icon(icon, size=13, color=p.text_dim), label], spacing=5, tight=True),
+            padding=ft.Padding.symmetric(horizontal=10, vertical=5),
+            border_radius=T.RADIUS["pill"],
+            border=ft.Border.all(T.STROKE, ft.Colors.with_opacity(.3, p.border)))
+
+    def sync_status_bar(self):
+        """Статус-бар Главной: микрофон, локальный API, модель и версия."""
+        from jarvis import __version__
+        config = getattr(self.gui, "config", None)
+        core = self.gui.jarvis
+        listening = core is not None and getattr(core, "listening_enabled", True)
+        self.chips["mic"].value = "Микрофон вкл" if listening else "Микрофон пауза"
+        enabled = bool(config is not None and config.get("api_enabled", False) is True)
+        port = config.get("api_port", 8765) if config is not None else 8765
+        self.chips["api"].value = f"API :{port}" if enabled else "API выкл"
+        model = (config.get("llm_model", "") if config is not None else "") or "модель не выбрана"
+        self.chips["model"].value = model
+        self.chips["version"].value = __version__
 
     def _layout_widgets(self, update=True):
         populated = bool(self.widgets.layout) or self.widgets.editing
@@ -16624,6 +16728,7 @@ class HomeScreen(ft.Column):
         self.dot.bgcolor = color
         self._sync_aura()
         self.actions.sync_state()
+        self.sync_status_bar()
 
     def _sync_aura(self):
         state = self.gui._state
@@ -16668,9 +16773,14 @@ class HomeScreen(ft.Column):
         self.actions.sync_state()
 
     def refresh_clock(self, now=None):
-        date, clock = clock_labels(now or datetime.now())
+        moment = now or datetime.now()
+        date, clock = clock_labels(moment)
+        phrase = greeting(moment)
         changed = self.date.value != date or self.clock.value != clock
         self.date.value, self.clock.value = date, clock
+        if getattr(self, "greeting", None) is not None and self.greeting.value != phrase:
+            self.greeting.value = phrase
+            changed = True
         return changed
 
     def did_mount(self):
@@ -16698,7 +16808,7 @@ class HomeScreen(ft.Column):
             self.widgets.refresh_tasks()
             if self.refresh_clock():
                 try:
-                    self._host.update(self.date, self.clock)
+                    self._host.update(self.greeting, self.date, self.clock)
                 except RuntimeError:
                     return  # Detached renderer: never keep polling an old page.
             await asyncio.sleep(1)
@@ -18395,6 +18505,103 @@ class Sidebar(ft.Container):
     def _stroke_valid(self, index, epoch):
         return (self._mounted and self.motion_enabled and self._hovered == index
                 and epoch == self._epoch)
+```
+
+### `jarvis/gui_tokens.py`
+
+```python
+# -*- coding: utf-8 -*-
+"""Дизайн-токены GUI: отступы, радиусы, типографика, поверхности, контраст. ... [5 строк]"""
+from __future__ import annotations
+
+import flet as ft
+
+# --- шкала -----------------------------------------------------------------
+
+SPACE = {"xs": 4, "sm": 8, "md": 12, "lg": 16, "xl": 24, "xxl": 32}
+RADIUS = {"sm": 8, "md": 12, "lg": 18, "pill": 999}
+STROKE = 1
+
+# Роли текста: размер и вес по роли, а не «на глаз». Межстрочный оставляем
+# рендереру: у ft.Text нет межстрочного интервала, а height — высота виджета.
+TYPE = {
+    "display": {"size": 30, "weight": ft.FontWeight.BOLD},
+    "title": {"size": 21, "weight": ft.FontWeight.W_600},
+    "subtitle": {"size": 15, "weight": ft.FontWeight.W_500},
+    "body": {"size": 14, "weight": ft.FontWeight.NORMAL},
+    "label": {"size": 13, "weight": ft.FontWeight.NORMAL},
+    "caption": {"size": 11, "weight": ft.FontWeight.NORMAL},
+}
+
+
+def text(kind: str, value, *, color, **overrides) -> ft.Text:
+    """Текст нужной роли: `text("title", "Привет", color=P.text)`."""
+    spec = dict(TYPE.get(kind, TYPE["body"]))
+    spec.update(overrides)
+    return ft.Text(value, color=color, **spec)
+
+
+# --- поверхности -----------------------------------------------------------
+
+
+def shadow(palette, *, raised: bool = False) -> ft.BoxShadow:
+    """Тень под поверхностью: обычная и «приподнятая» для акцентов."""
+    if raised:
+        return ft.BoxShadow(blur_radius=32, spread_radius=-4, offset=ft.Offset(0, 10),
+                            color=ft.Colors.with_opacity(.28, "#000000"))
+    return ft.BoxShadow(blur_radius=18, spread_radius=-6, offset=ft.Offset(0, 4),
+                        color=ft.Colors.with_opacity(.16, "#000000"))
+
+
+def card(palette, *, padding=None, radius: int | None = None, raised: bool = False,
+         border: bool = True) -> ft.Container:
+    """Карточка-поверхность: фон, тонкая рамка и тень одного уровня."""
+    space = RADIUS["md"] if radius is None else radius
+    return ft.Container(
+        bgcolor=palette.bg_card,
+        border_radius=space,
+        border=(ft.Border.all(STROKE, ft.Colors.with_opacity(.45, palette.border))
+                if border else None),
+        shadow=shadow(palette, raised=raised),
+        padding=padding)
+
+
+def pill(palette, *, padding=None) -> ft.Container:
+    """Пилюля-контейнер для групп контролов (тема, чипы статуса)."""
+    return ft.Container(
+        content=None,
+        padding=padding if padding is not None else ft.Padding.symmetric(horizontal=6, vertical=4),
+        border_radius=RADIUS["pill"],
+        bgcolor=palette.sidebar,
+        border=ft.Border.all(STROKE, ft.Colors.with_opacity(.5, palette.border)))
+
+
+# --- контраст --------------------------------------------------------------
+
+
+def _channels(color: str) -> tuple[float, float, float]:
+    value = color.lstrip("#")
+    if len(value) == 8:  # ARGB из FtColors.with_opacity
+        value = value[2:]
+    if len(value) != 6:
+        raise ValueError(f"ожидался цвет #rrggbb, получено {color!r}")
+    return tuple(int(value[i:i + 2], 16) / 255 for i in (0, 2, 4))
+
+
+def relative_luminance(color: str) -> float:
+    """Относительная яркость по WCAG 2.1."""
+    def linear(channel: float) -> float:
+        return channel / 12.92 if channel <= .03928 else ((channel + .055) / 1.055) ** 2.4
+
+    r, g, b = (linear(channel) for channel in _channels(color))
+    return .2126 * r + .7152 * g + .0722 * b
+
+
+def contrast(color_a: str, color_b: str) -> float:
+    """Коэффициент контраста текста к фону (WCAG): 4.5 — порог обычного текста."""
+    la, lb = relative_luminance(color_a), relative_luminance(color_b)
+    high, low = max(la, lb), min(la, lb)
+    return (high + .05) / (low + .05)
 ```
 
 ### `jarvis/gui_vertical.py`
@@ -47175,9 +47382,10 @@ from unittest.mock import Mock
 
 import flet as ft
 import pytest
+import jarvis
 from jarvis import gui as module, profile, mood
 from jarvis.config import Config
-from jarvis.gui_home import HomeScreen, clock_labels
+from jarvis.gui_home import HomeScreen, clock_labels, greeting
 
 
 def walk(control):
@@ -47244,6 +47452,38 @@ def test_home_strip_button_switches_to_vertical_mode(gui):
 def test_local_date_labels_include_midnight_and_new_year():
     assert clock_labels(datetime(2026, 12, 31, 23, 59)) == ("четверг, 31 декабря", "23:59")
     assert clock_labels(datetime(2027, 1, 1, 0, 0)) == ("пятница, 1 января", "00:00")
+
+
+@pytest.mark.parametrize("hour,phrase", [(4, "Доброй ночи"), (5, "Доброе утро"),
+    (11, "Доброе утро"), (12, "Добрый день"), (16, "Добрый день"),
+    (17, "Добрый вечер"), (22, "Добрый вечер"), (23, "Доброй ночи")])
+def test_greeting_follows_local_hour(hour, phrase):
+    assert greeting(datetime(2026, 11, 8, hour, 30)) == phrase
+
+
+def test_greeting_updates_inside_clock_tick(gui):
+    home = gui._home
+    assert home.refresh_clock(datetime(2026, 11, 8, 8, 30))
+    assert home.greeting.value == "Доброе утро"
+    assert home.refresh_clock(datetime(2026, 11, 8, 8, 30)) is False
+    assert home.refresh_clock(datetime(2026, 11, 8, 13, 0))
+    assert home.greeting.value == "Добрый день"
+
+
+def test_home_status_bar_reads_real_settings(gui):
+    home = gui._home
+    gui.jarvis = NS(listening_enabled=True)
+    gui.config.set("api_enabled", False)
+    home.sync_status_bar()
+    assert home.chips["mic"].value == "Микрофон вкл"
+    assert home.chips["api"].value == "API выкл"
+    assert home.chips["version"].value == jarvis.__version__
+    gui.config.set("api_enabled", True)
+    gui.config.set("api_port", 8766)
+    gui.jarvis = NS(listening_enabled=False)
+    home.sync_status_bar()
+    assert home.chips["mic"].value == "Микрофон пауза"
+    assert home.chips["api"].value == "API :8766"
 
 
 def test_clock_only_marks_changes_at_minute_or_date_boundary(gui):
@@ -47326,7 +47566,7 @@ def test_clock_updates_only_date_controls_and_dispose_cancels_task(gui):
         home.refresh_clock = Mock(return_value=True)
         home._future = asyncio.create_task(home._clock_loop(12))
         await asyncio.sleep(.01)
-        host.update.assert_called_once_with(home.date, home.clock)
+        host.update.assert_called_once_with(home.greeting, home.date, home.clock)
         task = home._future
         home.will_unmount()
         await asyncio.sleep(0)
@@ -48711,6 +48951,79 @@ def test_stale_or_shutdown_tray_callback_does_not_show_window(gui):
     env['jarvis'].stop_event.set()
     env['_tray_failed'](env['tray_holder']['icon'])
     assert gui._queue.empty()
+```
+
+### `tests/test_gui_tokens.py`
+
+```python
+# -*- coding: utf-8 -*-
+"""Дизайн-токены: шкала, поверхности и измеряемый контраст палитр."""
+import flet as ft
+import pytest
+from jarvis import gui as module
+from jarvis import gui_tokens as T
+
+
+def test_space_scale_is_short_and_ordered():
+    values = list(T.SPACE.values())
+    assert values == sorted(values)
+    assert all(value % 4 == 0 and 0 < value <= 48 for value in values)
+    assert T.SPACE["xs"] < T.SPACE["md"] < T.SPACE["xxl"]
+
+
+def test_radius_scale_grows_from_sm_to_pill():
+    assert T.RADIUS["sm"] < T.RADIUS["md"] < T.RADIUS["lg"] < T.RADIUS["pill"]
+    assert T.RADIUS["sm"] >= 6
+
+
+def test_type_roles_shrink_from_display_to_caption():
+    sizes = [spec["size"] for spec in T.TYPE.values()]
+    assert sizes == sorted(sizes, reverse=True)
+    assert len(set(sizes)) == len(sizes)
+    assert T.TYPE["display"]["size"] <= 34 and T.TYPE["caption"]["size"] >= 10
+    for spec in T.TYPE.values():
+        assert isinstance(spec["weight"], ft.FontWeight)
+
+
+def test_text_builder_uses_role_and_allows_overrides():
+    control = T.text("title", "Привет", color="#123456")
+    assert isinstance(control, ft.Text)
+    assert control.value == "Привет"
+    assert control.size == T.TYPE["title"]["size"]
+    assert control.weight == T.TYPE["title"]["weight"]
+    assert control.color == "#123456"
+    assert T.text("body", "x", color="#000000", italic=True).italic is True
+    assert T.text("неизвестная роль", "x", color="#000000").size == T.TYPE["body"]["size"]
+
+
+def test_card_and_pill_surfaces_use_palette():
+    for name in ("dark", "light"):
+        module._apply_palette(name)
+        card = T.card(module.P)
+        assert card.bgcolor == module.P.bg_card
+        assert card.border_radius == T.RADIUS["md"]
+        assert card.shadow is not None and card.border is not None
+        assert T.card(module.P, border=False).border is None
+        assert T.pill(module.P).border_radius == T.RADIUS["pill"]
+        assert T.pill(module.P).bgcolor == module.P.sidebar
+    module._apply_palette("dark")
+
+
+@pytest.mark.parametrize("palette", ["dark", "light"])
+def test_text_contrast_meets_wcag_on_both_palettes(palette):
+    module._apply_palette(palette)
+    p = module.P
+    for background in (p.bg_main, p.bg_card):
+        assert T.contrast(p.text, background) >= 4.5
+        assert T.contrast(p.text_dim, background) >= 4.5
+    assert T.contrast(p.brand, p.bg_card) >= 3.0
+    assert T.contrast(p.error, p.bg_main) >= 3.0
+    module._apply_palette("dark")
+
+
+def test_unknown_color_is_rejected_instead_of_silently_zero():
+    with pytest.raises(ValueError):
+        T.contrast("не цвет", "#000000")
 ```
 
 ### `tests/test_gui_vertical.py`
@@ -65327,7 +65640,7 @@ certifi>=2024.8.30
   - Изменения
   - Проверки и передача
 
-#### `ARCHITECTURE.md` — 59 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `ARCHITECTURE.md` — 60 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - 🏗 Архитектура «Феникс»
   - 📑 Содержание
@@ -65355,6 +65668,7 @@ certifi>=2024.8.30
     - Конструктор команд
     - Вкладки «Облако» и «Движки»
     - Главная: состояния, ввод и история
+    - Дизайн-токены и раскладка Главной
     - Вертикальный режим: полоса у края экрана
     - Режим запуска
     - Трей
@@ -65368,12 +65682,12 @@ certifi>=2024.8.30
   - 🌤 Погода и курс валют
   - 📂 Открытие файлов в редакторе
   - 📦 Пак-команды с аргументами
-  - 🚀 Лаунчер (`Феникс.exe`)
 
-#### `CHANGELOG.md` — 143 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 144 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
   - [Не выпущено]
+    - Дизайн-токены и новая Главная
     - Эскалация распознавания: второй движок только при сомнении
     - Эхо и перебивание: эталон, backend AEC, очерёдность разговора
     - Плагины: первый вертикальный срез
@@ -65411,7 +65725,6 @@ certifi>=2024.8.30
     - Python bootstrap HTTPS в Windows Sandbox
     - План надёжности и улучшений
     - Окно подготовки (Tk, без Flet)
-  - Стартовый handoff для нового чата (документация)
 
 #### `CI.md` — 16 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -65898,4 +66211,4 @@ certifi>=2024.8.30
 
 ---
 
-_Итого по категориям — code: 264, data: 60, doc: 52, pack: 5. Режим `lean`._
+_Итого по категориям — code: 266, data: 60, doc: 52, pack: 5. Режим `lean`._
