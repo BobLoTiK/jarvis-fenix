@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=6e43ff79b4072708` · режим `lean` · файлов `385` · строк `72224` · источник `3416 КБ`
+`sha256=79b341c0b1ba26c9` · режим `lean` · файлов `387` · строк `72509` · источник `3430 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -501,7 +501,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── release.yml  (306 стр)
 │   │   ├── test.yml  (71 стр)
 ├── AGENTS.md  (88 стр)
-├── ARCHITECTURE.md  (1319 стр)
+├── ARCHITECTURE.md  (1334 стр)
 ├── assets/
 │   ├── nonverbal/
 │   │   ├── README.md  (40 стр)
@@ -516,7 +516,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── themes.svg  (19 стр)
 ├── build_nuitka.bat  (12 стр)
 ├── build_nuitka_full.bat  (17 стр)
-├── CHANGELOG.md  (2207 стр)
+├── CHANGELOG.md  (2225 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -564,7 +564,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── v2.1.2.md  (112 стр)
 │   ├── REVIEW_FIXES.md  (68 стр)
 │   ├── TTS_LIFECYCLE_FIX.md  (89 стр)
-│   ├── USER_GUIDE.md  (1221 стр)
+│   ├── USER_GUIDE.md  (1225 стр)
 │   ├── WHISPER_STARTUP_DLL_FIX.md  (85 стр)
 │   ├── WINDOWS_STARTUP_RELIABILITY.md  (108 стр)
 │   ├── WINRT_TTS_REMOVAL.md  (43 стр)
@@ -623,10 +623,11 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── engines.py  (533 стр)
 │   ├── files.py  (109 стр)
 │   ├── first_run.py  (26 стр)
-│   ├── gui.py  (2406 стр)
+│   ├── gui.py  (2473 стр)
 │   ├── gui_audio.py  (438 стр)
 │   ├── gui_cloud.py  (541 стр)
 │   ├── gui_commands.py  (305 стр)
+│   ├── gui_dialog.py  (75 стр)
 │   ├── gui_engines.py  (206 стр)
 │   ├── gui_home.py  (279 стр)
 │   ├── gui_home_actions.py  (225 стр)
@@ -842,9 +843,10 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_exit_watchdog.py  (35 стр)
 │   ├── test_git_hygiene.py  (348 стр)
 │   ├── test_gui_audio.py  (335 стр)
-│   ├── test_gui_chat.py  (287 стр)
+│   ├── test_gui_chat.py  (289 стр)
 │   ├── test_gui_cloud.py  (225 стр)
 │   ├── test_gui_commands.py  (127 стр)
+│   ├── test_gui_dialog.py  (104 стр)
 │   ├── test_gui_engines.py  (155 стр)
 │   ├── test_gui_home.py  (201 стр)
 │   ├── test_gui_home_actions.py  (189 стр)
@@ -1468,6 +1470,20 @@ Non-verbal/микрофон/установщик по-прежнему треб�
     def check(self, e=None)
     def set_password(self, e=None)
     def build(self)
+```
+
+**`jarvis/gui_dialog.py`**
+
+```
+  # Детали диалога: разделители дней и черновик записи. Без окна и сети.
+  TODAY = ...
+  YESTERDAY = ...
+  MONTHS_GENITIVE = ...
+  def day_label(record, today=None)
+  def needs_separator(previous, current, today=None)
+  def next_day(today=None)
+  def typing_bubble(palette)
+  def day_separator(palette, label: str)
 ```
 
 **`jarvis/gui_engines.py`**
@@ -4186,6 +4202,22 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_theme_rebuild_preserves_unsaved_command_but_not_password(editor, monkeypatch)
 ```
 
+**`tests/test_gui_dialog.py`**
+
+```
+  # Детали диалога: разделители дней, «печатает…», повтор сообщения.
+  def test_day_label_today_yesterday_and_older()
+  def test_needs_separator_only_on_day_change()
+  def test_next_day_is_iso_today()
+  def test_day_separator_and_typing_bubble_build_controls()
+  def window(tmp_path)
+  def test_first_message_gets_day_separator(window)
+  def test_same_day_messages_do_not_repeat_separator(window)
+  def test_typing_bubble_appears_while_thinking_and_goes_on_answer(window)
+  def test_typing_bubble_removed_when_state_returns_to_idle(window)
+  def test_user_message_has_repeat_action_that_fills_input(window)
+```
+
 **`tests/test_gui_engines.py`**
 
 ```
@@ -5957,10 +5989,11 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/engines.py` | 533 | code | Каталог движков Феникса: что скачано, что включено и чем доустановить. |
 | `jarvis/files.py` | 109 | code | Файлы и папки: открыть, посмотреть содержимое, создать. |
 | `jarvis/first_run.py` | 26 | code | Первый запуск — знакомство через LLM-диалог. |
-| `jarvis/gui.py` | 2406 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
+| `jarvis/gui.py` | 2473 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
 | `jarvis/gui_audio.py` | 438 | code | Native sound settings. Diagnostics use the existing listener/Speaker,  |
 | `jarvis/gui_cloud.py` | 541 | code | Вкладка «Облако»: провайдер, ключ, приватность и проверка ключа. |
 | `jarvis/gui_commands.py` | 305 | code | Flet editor for the existing custom_commands pipeline. Never executes  |
+| `jarvis/gui_dialog.py` | 75 | code | Детали диалога: разделители дней и черновик записи. Без окна и сети. |
 | `jarvis/gui_engines.py` | 206 | code | Вкладка «Движки»: что скачано, что включено и установка по кнопке. |
 | `jarvis/gui_home.py` | 279 | code | Minimal native Home: local clock, real assistant state and opt-in widg |
 | `jarvis/gui_home_actions.py` | 225 | code | Three real Home actions. Native controls, finite transitions, no extra |
@@ -6131,9 +6164,10 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_exit_watchdog.py` | 35 | code | «Выход» из трея обязан завершать процесс даже при зависшем Flet. |
 | `tests/test_git_hygiene.py` | 348 | code | Exercise real temporary Git indexes/hooks; never commit or alter the u |
 | `tests/test_gui_audio.py` | 335 | code | Native sound settings + real worker boundaries; no microphone or actua |
-| `tests/test_gui_chat.py` | 287 | code | Imported Flet controls + real GUI worker threads; no window, ASR or au |
+| `tests/test_gui_chat.py` | 289 | code | Imported Flet controls + real GUI worker threads; no window, ASR or au |
 | `tests/test_gui_cloud.py` | 225 | code | Вкладка «Облако»: черновик, сохранение, ключ и проверка — без сети и D |
 | `tests/test_gui_commands.py` | 127 | code | Imported native builder controls; no OS actions or real passwords. |
+| `tests/test_gui_dialog.py` | 104 | code | Детали диалога: разделители дней, «печатает…», повтор сообщения. |
 | `tests/test_gui_engines.py` | 155 | code | Вкладка «Движки»: каталог, кнопка установки, прогресс и «активно» из к |
 | `tests/test_gui_home.py` | 201 | code | Native minimal Home; no OS/model/mic/network. Old navigation IDs stay  |
 | `tests/test_gui_home_actions.py` | 189 | code | Action orbit: real callbacks, continuous hover zone, keyboard and life |
@@ -13177,6 +13211,8 @@ class FenixGUI:
         # Палитра команд (Ctrl+K) и фокус-режим (Ctrl+Shift+F).
         self._palette = None
         self._focus_mode = False
+        # Плашка «печатает…» и разделители дней в истории.
+        self._typing = None
         # Уровень микрофона на ручке полосы: один тик, пока режим включён.
         self._vertical_level_task = None
         self._vertical_level_gen = 0
@@ -14755,6 +14791,7 @@ class FenixGUI:
             self._home.apply_state(state)
         if self._vertical is not None:
             self._vertical.apply_state(state)
+        self._sync_typing(state)
         color, text, sub = STATES[state]
         if P is not None:
             color = {"idle": ACCENT, "thinking": ACCENT, "speaking": P.success,
@@ -14797,15 +14834,25 @@ class FenixGUI:
             self._stream_label = label
         async def copy(e):
             await self._copy_message(record)
+        def repeat(e):
+            self._input_field.value = record["text"]
+            if self._page is not None:
+                self._page.run_task(self._input_field.focus)
+                self._page.update()
+        buttons = [ft.IconButton(icon=ft.Icons.CONTENT_COPY, icon_size=17,
+                                 width=44, height=44, icon_color=TEXT_DIM,
+                                 tooltip="Копировать сообщение", on_click=copy)]
+        if is_user:
+            buttons.append(ft.IconButton(
+                icon=ft.Icons.REPLAY, icon_size=17, width=44, height=44,
+                icon_color=TEXT_DIM, tooltip="Повторить в поле ввода", on_click=repeat))
         header = ft.Row([
             ft.Icon(ft.Icons.PERSON_OUTLINE if is_user else ft.Icons.GRAPHIC_EQ,
                     size=18, color=ACCENT),
             ft.Text("Вы" if is_user else "Феникс", size=14,
                     color=TEXT, weight=ft.FontWeight.W_600),
             ft.Text(record["time"], size=13, color=TEXT_DIM, expand=True),
-            ft.IconButton(icon=ft.Icons.CONTENT_COPY, icon_size=17,
-                          width=44, height=44, icon_color=TEXT_DIM,
-                          tooltip="Копировать сообщение", on_click=copy),
+            *buttons,
         ], spacing=8)
         return ft.Container(
             content=ft.Column([header, label], spacing=4),
@@ -14815,8 +14862,47 @@ class FenixGUI:
             margin=ft.Margin(left=32 if is_user else 0, right=0 if is_user else 32),
         )
 
+    def _history_controls(self, records) -> list:
+        """Сообщения с разделителями дней: контрольные точки — по записям."""
+        from jarvis.gui_dialog import day_label, day_separator, needs_separator
+
+        controls, previous = [], None
+        for record in records:
+            if needs_separator(previous, record):
+                controls.append(day_separator(P, day_label(record)))
+            controls.append(self._message_control(record))
+            previous = record
+        return controls
+
+    def _sync_typing(self, state: str) -> None:
+        """«Феникс печатает…» — только между отправкой и первым куском ответа."""
+        from jarvis.gui_dialog import typing_bubble
+
+        active = state in ("thinking", "recognizing") and self._stream_bubble is None
+        if not active:
+            if self._typing is not None:
+                try:
+                    self._history_list.controls.remove(self._typing)
+                except ValueError:
+                    pass
+                self._typing = None
+                self._update_history()
+            return
+        if self._typing is None:
+            self._typing = typing_bubble(P)
+            self._history_list.controls.append(self._typing)
+            self._update_history()
+
+    def _update_history(self) -> None:
+        if self._page is None or self._history_list is None:
+            return
+        try:
+            self._page.update(self._history_list)
+        except Exception:
+            log.debug("GUI: история не обновилась", exc_info=True)
+
     def _render_history(self) -> None:
-        self._history_list.controls = [self._message_control(m) for m in self._messages]
+        self._history_list.controls = self._history_controls(self._messages)
         if not self._messages:
             self._history_list.controls = [self._empty_chat]
         if getattr(self, "_stream_record", None) is not None:
@@ -14825,9 +14911,15 @@ class FenixGUI:
     def _apply_message(self, role: str, text: str) -> None:
         if not text:
             return
-        record = {"role": role, "text": text, "time": datetime.now().strftime("%H:%M")}
+        from jarvis.gui_dialog import day_label, day_separator, needs_separator, next_day
+
+        record = {"role": role, "text": text, "time": datetime.now().strftime("%H:%M"),
+                  "date": next_day()}
+        previous = self._messages[-1] if self._messages else None
         if not self._messages:
             self._history_list.controls.clear()
+        if needs_separator(previous, record):
+            self._history_list.controls.append(day_separator(P, day_label(record)))
         self._messages.append(record)
         self._history_list.controls.append(self._message_control(record))
         if self._vertical is not None:
@@ -14838,7 +14930,10 @@ class FenixGUI:
         if not chunk:
             return
         if self._stream_bubble is None:
-            self._stream_record = {"role": "assistant", "text": "", "time": datetime.now().strftime("%H:%M")}
+            self._sync_typing("idle")  # ответ пошёл — «печатает…» больше не нужен
+            self._stream_record = {"role": "assistant", "text": "",
+                                   "time": datetime.now().strftime("%H:%M"),
+                                   "date": self._stream_date()}
             if not self._messages:
                 self._history_list.controls.clear()
             self._messages.append(self._stream_record)
@@ -14847,6 +14942,12 @@ class FenixGUI:
         self._stream_record["text"] += chunk
         self._stream_label.value = self._stream_record["text"]
         self._stream_text = self._stream_record["text"]
+
+    @staticmethod
+    def _stream_date() -> str:
+        from jarvis.gui_dialog import next_day
+
+        return next_day()
 
     def _apply_stream_end(self) -> None:
         self._stream_bubble = None
@@ -16572,6 +16673,86 @@ class CommandBuilder:
     def _keep(self):
         self.confirm_delete = None
         self.refresh()
+```
+
+### `jarvis/gui_dialog.py`
+
+```python
+# -*- coding: utf-8 -*-
+"""Детали диалога: разделители дней и черновик записи. Без окна и сети."""
+from __future__ import annotations
+
+import flet as ft
+
+from jarvis import gui_tokens as T
+
+TODAY = "Сегодня"
+YESTERDAY = "Вчера"
+MONTHS_GENITIVE = ("января", "февраля", "марта", "апреля", "мая", "июня", "июля",
+                   "августа", "сентября", "октября", "ноября", "декабря")
+
+
+def day_label(record, today=None) -> str:
+    """Подпись дня сообщения: «Сегодня», «Вчера» или «8 ноября»."""
+    from datetime import date
+
+    raw = (record or {}).get("date")
+    try:
+        day = date.fromisoformat(str(raw))
+    except (TypeError, ValueError):
+        return ""
+    current = today or date.today()
+    if day == current:
+        return TODAY
+    if day == date.fromordinal(current.toordinal() - 1):
+        return YESTERDAY
+    return f"{day.day} {MONTHS_GENITIVE[day.month - 1]}"
+
+
+def needs_separator(previous, current, today=None) -> bool:
+    """Разделитель нужен, когда день у сообщений разный (или это первое)."""
+    now = day_label(current, today)
+    if not now:
+        return False
+    if not previous:
+        return True
+    return day_label(previous, today) != now
+
+
+def next_day(today=None):
+    """ISO-дата для записи сообщения."""
+    from datetime import date
+
+    return (today or date.today()).isoformat()
+
+
+def typing_bubble(palette) -> ft.Control:
+    """Плашка «Феникс печатает…» до первого куска ответа."""
+    return ft.Container(
+        ft.Row([
+            ft.ProgressRing(width=14, height=14, stroke_width=2,
+                            color=palette.brand),
+            T.text("caption", "Феникс печатает…", color=palette.text_dim),
+        ], spacing=8),
+        padding=ft.Padding(left=16, right=16, top=6, bottom=6),
+        border_radius=T.RADIUS["md"],
+        bgcolor=palette.bg_card,
+        border=ft.Border.all(T.STROKE, ft.Colors.with_opacity(.45, palette.border)),
+        margin=ft.Margin(right=32))
+
+
+def day_separator(palette, label: str) -> ft.Control:
+    """Тонкая линия с подписью дня между блоками истории."""
+    def line():
+        return ft.Container(height=1, expand=True,
+                            bgcolor=ft.Colors.with_opacity(.35, palette.border))
+
+    return ft.Row([
+        line(),
+        ft.Container(T.text("caption", label, color=palette.text_dim),
+                     padding=ft.Padding.symmetric(horizontal=10)),
+        line(),
+    ], spacing=0, vertical_alignment=ft.CrossAxisAlignment.CENTER)
 ```
 
 ### `jarvis/gui_engines.py`
@@ -47326,7 +47507,9 @@ def test_theme_rebuild_preserves_draft_stream_and_recolors(gui):
     assert len(gui._messages) == 2
     assert gui._stream_label.value == "Здравствуйте!"
     assert gui._input_field.value == "черновик"
-    assert gui._history_list.controls[0].bgcolor == module.PALETTES["light"]["bg_bubble_user"]
+    bubbles = [c for c in gui._history_list.controls
+               if isinstance(c, ft.Container) and c.bgcolor]
+    assert bubbles[0].bgcolor == module.PALETTES["light"]["bg_bubble_user"]
     gui._apply_stream_end()
     assert gui._messages[-1]["text"] == "Здравствуйте!"
     assert gui._stream_bubble is None
@@ -47791,6 +47974,115 @@ def test_theme_rebuild_preserves_unsaved_command_but_not_password(editor, monkey
     assert editor.fields["name"].value == "Мой черновик"
     assert not editor.password_field.value
     assert "Never-store-42" not in repr(editor.draft)
+```
+
+### `tests/test_gui_dialog.py`
+
+```python
+# -*- coding: utf-8 -*-
+"""Детали диалога: разделители дней, «печатает…», повтор сообщения."""
+from datetime import date, timedelta
+from types import SimpleNamespace as NS
+from unittest.mock import Mock
+
+import flet as ft
+import pytest
+from jarvis import gui as module, profile, mood
+from jarvis import gui_dialog
+from jarvis.config import Config
+
+
+def test_day_label_today_yesterday_and_older():
+    today = date(2026, 11, 8)
+    assert gui_dialog.day_label({"date": "2026-11-08"}, today) == "Сегодня"
+    assert gui_dialog.day_label({"date": "2026-11-07"}, today) == "Вчера"
+    assert gui_dialog.day_label({"date": "2026-11-05"}, today) == "5 ноября"
+    assert gui_dialog.day_label({"date": "2026-01-02"}, today) == "2 января"
+    assert gui_dialog.day_label({}, today) == ""
+    assert gui_dialog.day_label({"date": "вчера"}, today) == ""
+
+
+def test_needs_separator_only_on_day_change():
+    today = date(2026, 11, 8)
+    first = {"date": "2026-11-08"}
+    assert gui_dialog.needs_separator(None, first, today) is True
+    assert gui_dialog.needs_separator(first, {"date": "2026-11-08"}, today) is False
+    assert gui_dialog.needs_separator(first, {"date": "2026-11-07"}, today) is True
+    assert gui_dialog.needs_separator(first, {}, today) is False
+
+
+def test_next_day_is_iso_today():
+    today = date(2026, 11, 8)
+    assert gui_dialog.next_day(today) == "2026-11-08"
+    assert gui_dialog.next_day() == date.today().isoformat()
+
+
+def test_day_separator_and_typing_bubble_build_controls():
+    palette = NS(border="#333333", text_dim="#999999", brand="#ffcc00",
+                 bg_card="#181823")
+    separator = gui_dialog.day_separator(palette, "Сегодня")
+    assert isinstance(separator, ft.Row) and len(separator.controls) == 3
+    typing = gui_dialog.typing_bubble(palette)
+    assert isinstance(typing, ft.Container)
+    assert "печатает" in typing.content.controls[1].value
+
+
+@pytest.fixture
+def window(tmp_path):
+    gui = module.FenixGUI(None, Config(tmp_path / "config.json"))
+    page = NS(add=Mock(), update=Mock(), window=NS(width=1100, height=760),
+              run_task=Mock(), overlay=[])
+    gui._page = page
+    gui._build_ui(page)
+    gui._select_tab(0)
+    yield gui
+    gui.close_palette()
+    gui.stop()
+    gui._rail.dispose()
+    profile.unsubscribe(gui._on_profile_switch)
+    mood.unsubscribe(gui._on_mood_change)
+    module._apply_palette("dark")
+
+
+def test_first_message_gets_day_separator(window):
+    window._apply_message("user", "Привет")
+    controls = window._history_list.controls
+    assert isinstance(controls[0], ft.Row)  # разделитель дня
+    assert controls[-1] is not controls[0]
+    window._apply_message("assistant", "Здравствуйте")
+    assert len(window._history_list.controls) == 3  # разделитель и два сообщения
+
+
+def test_same_day_messages_do_not_repeat_separator(window):
+    window._apply_message("user", "Раз")
+    window._apply_message("assistant", "Два")
+    window._apply_message("user", "Три")
+    assert sum(isinstance(c, ft.Row) for c in window._history_list.controls) == 1
+
+
+def test_typing_bubble_appears_while_thinking_and_goes_on_answer(window):
+    window._apply_state("thinking")
+    assert window._typing in window._history_list.controls
+    window._apply_stream_chunk("ответ")
+    assert window._typing is None
+    assert window._typing not in window._history_list.controls
+
+
+def test_typing_bubble_removed_when_state_returns_to_idle(window):
+    window._apply_state("thinking")
+    assert window._typing is not None
+    window._apply_state("idle")
+    assert window._typing is None
+
+
+def test_user_message_has_repeat_action_that_fills_input(window):
+    window._apply_message("user", "напомни через час")
+    bubble = window._history_list.controls[-1]
+    buttons = [c for c in bubble.content.controls[0].controls
+               if isinstance(c, ft.IconButton)]
+    assert [b.tooltip for b in buttons] == ["Копировать сообщение", "Повторить в поле ввода"]
+    buttons[-1].on_click(NS(control=buttons[-1]))
+    assert window._input_field.value == "напомни через час"
 ```
 
 ### `tests/test_gui_engines.py`
@@ -66458,7 +66750,7 @@ certifi>=2024.8.30
   - Изменения
   - Проверки и передача
 
-#### `ARCHITECTURE.md` — 61 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `ARCHITECTURE.md` — 62 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - 🏗 Архитектура «Феникс»
   - 📑 Содержание
@@ -66486,6 +66778,7 @@ certifi>=2024.8.30
     - Конструктор команд
     - Вкладки «Облако» и «Движки»
     - Главная: состояния, ввод и история
+    - Диалог: дни, «печатает…», повтор
     - Палитра команд и фокус-режим
     - Дизайн-токены и раскладка Главной
     - Вертикальный режим: полоса у края экрана
@@ -66499,12 +66792,12 @@ certifi>=2024.8.30
   - 👥 Мультипрофиль
   - ⚙️ Поток конфига
   - 🌤 Погода и курс валют
-  - 📂 Открытие файлов в редакторе
 
-#### `CHANGELOG.md` — 146 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 147 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
   - [Не выпущено]
+    - Диалог: разделители дней, «печатает…» и повтор
     - Палитра команд и фокус-режим
     - Шторка 2.0: уровень, непрочитанное, панели и «не прятать»
     - Дизайн-токены и новая Главная
@@ -66542,7 +66835,6 @@ certifi>=2024.8.30
     - Визуальный ритм README
     - Новая страница проекта
     - Единая подготовка Python и модели Ollama
-    - Python bootstrap HTTPS в Windows Sandbox
 
 #### `CI.md` — 16 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -67029,4 +67321,4 @@ certifi>=2024.8.30
 
 ---
 
-_Итого по категориям — code: 268, data: 60, doc: 52, pack: 5. Режим `lean`._
+_Итого по категориям — code: 270, data: 60, doc: 52, pack: 5. Режим `lean`._

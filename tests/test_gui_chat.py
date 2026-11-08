@@ -178,7 +178,9 @@ def test_theme_rebuild_preserves_draft_stream_and_recolors(gui):
     assert len(gui._messages) == 2
     assert gui._stream_label.value == "Здравствуйте!"
     assert gui._input_field.value == "черновик"
-    assert gui._history_list.controls[0].bgcolor == module.PALETTES["light"]["bg_bubble_user"]
+    bubbles = [c for c in gui._history_list.controls
+               if isinstance(c, ft.Container) and c.bgcolor]
+    assert bubbles[0].bgcolor == module.PALETTES["light"]["bg_bubble_user"]
     gui._apply_stream_end()
     assert gui._messages[-1]["text"] == "Здравствуйте!"
     assert gui._stream_bubble is None

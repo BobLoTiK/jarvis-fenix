@@ -232,6 +232,8 @@ class FenixGUI:
         # Палитра команд (Ctrl+K) и фокус-режим (Ctrl+Shift+F).
         self._palette = None
         self._focus_mode = False
+        # Плашка «печатает…» и разделители дней в истории.
+        self._typing = None
         # Уровень микрофона на ручке полосы: один тик, пока режим включён.
         self._vertical_level_task = None
         self._vertical_level_gen = 0
@@ -1871,6 +1873,7 @@ class FenixGUI:
             self._home.apply_state(state)
         if self._vertical is not None:
             self._vertical.apply_state(state)
+        self._sync_typing(state)
         color, text, sub = STATES[state]
         if P is not None:
             color = {"idle": ACCENT, "thinking": ACCENT, "speaking": P.success,
@@ -1913,15 +1916,25 @@ class FenixGUI:
             self._stream_label = label
         async def copy(e):
             await self._copy_message(record)
+        def repeat(e):
+            self._input_field.value = record["text"]
+            if self._page is not None:
+                self._page.run_task(self._input_field.focus)
+                self._page.update()
+        buttons = [ft.IconButton(icon=ft.Icons.CONTENT_COPY, icon_size=17,
+                                 width=44, height=44, icon_color=TEXT_DIM,
+                                 tooltip="Копировать сообщение", on_click=copy)]
+        if is_user:
+            buttons.append(ft.IconButton(
+                icon=ft.Icons.REPLAY, icon_size=17, width=44, height=44,
+                icon_color=TEXT_DIM, tooltip="Повторить в поле ввода", on_click=repeat))
         header = ft.Row([
             ft.Icon(ft.Icons.PERSON_OUTLINE if is_user else ft.Icons.GRAPHIC_EQ,
                     size=18, color=ACCENT),
             ft.Text("Вы" if is_user else "Феникс", size=14,
                     color=TEXT, weight=ft.FontWeight.W_600),
             ft.Text(record["time"], size=13, color=TEXT_DIM, expand=True),
-            ft.IconButton(icon=ft.Icons.CONTENT_COPY, icon_size=17,
-                          width=44, height=44, icon_color=TEXT_DIM,
-                          tooltip="Копировать сообщение", on_click=copy),
+            *buttons,
         ], spacing=8)
         return ft.Container(
             content=ft.Column([header, label], spacing=4),
@@ -1931,8 +1944,47 @@ class FenixGUI:
             margin=ft.Margin(left=32 if is_user else 0, right=0 if is_user else 32),
         )
 
+    def _history_controls(self, records) -> list:
+        """Сообщения с разделителями дней: контрольные точки — по записям."""
+        from jarvis.gui_dialog import day_label, day_separator, needs_separator
+
+        controls, previous = [], None
+        for record in records:
+            if needs_separator(previous, record):
+                controls.append(day_separator(P, day_label(record)))
+            controls.append(self._message_control(record))
+            previous = record
+        return controls
+
+    def _sync_typing(self, state: str) -> None:
+        """«Феникс печатает…» — только между отправкой и первым куском ответа."""
+        from jarvis.gui_dialog import typing_bubble
+
+        active = state in ("thinking", "recognizing") and self._stream_bubble is None
+        if not active:
+            if self._typing is not None:
+                try:
+                    self._history_list.controls.remove(self._typing)
+                except ValueError:
+                    pass
+                self._typing = None
+                self._update_history()
+            return
+        if self._typing is None:
+            self._typing = typing_bubble(P)
+            self._history_list.controls.append(self._typing)
+            self._update_history()
+
+    def _update_history(self) -> None:
+        if self._page is None or self._history_list is None:
+            return
+        try:
+            self._page.update(self._history_list)
+        except Exception:
+            log.debug("GUI: история не обновилась", exc_info=True)
+
     def _render_history(self) -> None:
-        self._history_list.controls = [self._message_control(m) for m in self._messages]
+        self._history_list.controls = self._history_controls(self._messages)
         if not self._messages:
             self._history_list.controls = [self._empty_chat]
         if getattr(self, "_stream_record", None) is not None:
@@ -1941,9 +1993,15 @@ class FenixGUI:
     def _apply_message(self, role: str, text: str) -> None:
         if not text:
             return
-        record = {"role": role, "text": text, "time": datetime.now().strftime("%H:%M")}
+        from jarvis.gui_dialog import day_label, day_separator, needs_separator, next_day
+
+        record = {"role": role, "text": text, "time": datetime.now().strftime("%H:%M"),
+                  "date": next_day()}
+        previous = self._messages[-1] if self._messages else None
         if not self._messages:
             self._history_list.controls.clear()
+        if needs_separator(previous, record):
+            self._history_list.controls.append(day_separator(P, day_label(record)))
         self._messages.append(record)
         self._history_list.controls.append(self._message_control(record))
         if self._vertical is not None:
@@ -1954,7 +2012,10 @@ class FenixGUI:
         if not chunk:
             return
         if self._stream_bubble is None:
-            self._stream_record = {"role": "assistant", "text": "", "time": datetime.now().strftime("%H:%M")}
+            self._sync_typing("idle")  # ответ пошёл — «печатает…» больше не нужен
+            self._stream_record = {"role": "assistant", "text": "",
+                                   "time": datetime.now().strftime("%H:%M"),
+                                   "date": self._stream_date()}
             if not self._messages:
                 self._history_list.controls.clear()
             self._messages.append(self._stream_record)
@@ -1963,6 +2024,12 @@ class FenixGUI:
         self._stream_record["text"] += chunk
         self._stream_label.value = self._stream_record["text"]
         self._stream_text = self._stream_record["text"]
+
+    @staticmethod
+    def _stream_date() -> str:
+        from jarvis.gui_dialog import next_day
+
+        return next_day()
 
     def _apply_stream_end(self) -> None:
         self._stream_bubble = None
