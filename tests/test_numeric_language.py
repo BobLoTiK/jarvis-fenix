@@ -449,17 +449,25 @@ def test_all_streaming_engines_use_shared_preparation(engine):
         / (engine + ".py")
     )
     tree = ast.parse(path.read_text(encoding="utf-8"))
-    play = next(
+    # Piper готовит текст в _render (его зовёт и _play, и стрим-конвейер),
+    # остальные движки — прямо в _play; SAPI играет сам, у него _say.
+    targets = {
+        "piper": ("_play", "_render"),
+        "silero": ("_play",),
+        "sapi": ("_say",),
+    }[engine]
+    prepared = [
         n
         for n in ast.walk(tree)
-        if isinstance(n, ast.FunctionDef)
-        and n.name == ("_say" if engine == "sapi" else "_play")
-    )
+        if isinstance(n, ast.FunctionDef) and n.name in targets
+    ]
+    assert prepared
     assert any(
         isinstance(n, ast.Call)
         and isinstance(n.func, ast.Name)
         and n.func.id == "prepare_text"
-        for n in ast.walk(play)
+        for node in prepared
+        for n in ast.walk(node)
     )
 
 

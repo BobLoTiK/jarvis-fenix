@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=fdd91eb8625e918d` · режим `lean` · файлов `400` · строк `72312` · источник `3334 КБ`
+`sha256=e2db0a7a3d6b4891` · режим `lean` · файлов `401` · строк `72471` · источник `3341 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -411,6 +411,17 @@ profile.current; при смене пользователя старый чер�
 новым редактором и не мигрируется молча. Портрет/цитата — явный пример стиля,
 не генерация, не запуск команды и не обучение.
 
+### Стриминг Piper
+
+`PiperEngine.speak_stream` держит проигрывание и синтез внахлёст: нить синтеза
+готовит следующую фразу, пока текущая звучит; очередь ограничена двумя WAV,
+порядок сохраняется. Piper не потокобезопасен, поэтому синтез идёт под
+`_synth_lock`, и нить, оставшаяся после отмены, не мешает новому стриму.
+Первый звук это не ускоряет (его держат постфильтр безопасности и первый чанк
+LLM), но убирает паузы между фразами. Подготовка текста — в `_render`,
+`_play` оставлен совместимости ради. De-click при отмене не сделан: он требует
+fade внутри звучащего блока, а не дополнительного блока после Stop.
+
 ### Характер разговора и шутки
 
 `brain.CHAT_SYSTEM` задаёт голос диалога: одна мысль в 1–2 фразах, без
@@ -588,7 +599,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── IMPROVEMENT_BACKLOG.md  (120 стр)
 │   ├── INSTALLER_UPDATE.md  (47 стр)
 │   ├── LOCAL_VOICE_OPTIONS.md  (67 стр)
-│   ├── NEXT_STEPS.md  (459 стр)
+│   ├── NEXT_STEPS.md  (470 стр)
 │   ├── NUITKA_BUILD.md  (123 стр)
 │   ├── PHOENIX_JASTIN_RECONCILIATION.md  (268 стр)
 │   ├── PYTHON_BOOTSTRAP_TLS_FIX.md  (98 стр)
@@ -770,7 +781,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── __init__.py  (12 стр)
 │   │   ├── base.py  (73 стр)
 │   │   ├── factory.py  (167 стр)
-│   │   ├── piper.py  (190 стр)
+│   │   ├── piper.py  (244 стр)
 │   │   ├── sapi.py  (180 стр)
 │   │   ├── silero.py  (244 стр)
 │   │   ├── winrt.py  (6 стр)
@@ -794,7 +805,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── work.json  (11 стр)
 ├── phoenix_app.py  (11 стр)
 ├── PLAN.md  (101 стр)
-├── PROJECT.md  (508 стр)
+├── PROJECT.md  (519 стр)
 ├── PROMPT.md  (72 стр)
 ├── pytest.ini  (20 стр)
 ├── README.md  (332 стр)
@@ -920,11 +931,12 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_nonverbal.py  (402 стр)
 │   ├── test_nuitka_build.py  (147 стр)
 │   ├── test_nuitka_full.py  (439 стр)
-│   ├── test_numeric_language.py  (521 стр)
+│   ├── test_numeric_language.py  (529 стр)
 │   ├── test_open_results.py  (32 стр)
 │   ├── test_optional_whisper_startup.py  (134 стр)
 │   ├── test_password_imports.py  (109 стр)
 │   ├── test_persona.py  (155 стр)
+│   ├── test_piper_pipeline.py  (75 стр)
 │   ├── test_plugins.py  (307 стр)
 │   ├── test_profile.py  (100 стр)
 │   ├── test_prosody.py  (83 стр)
@@ -5263,6 +5275,16 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_describe()
 ```
 
+**`tests/test_piper_pipeline.py`**
+
+```
+  # Piper-стрим: синтез идёт внахлёст с проигрыванием, отмена честная.
+  TEXT = ...
+  def test_stream_returns_text_and_plays_in_order()
+  def test_second_sentence_is_synthesized_while_first_plays()
+  def test_cancel_stops_playback_and_returns_promptly()
+```
+
 **`tests/test_plugins.py`**
 
 ```
@@ -6340,7 +6362,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/tts_engines/__init__.py` | 12 | code | TTS-движки Феникса — абстракция над Piper, Silero, SAPI. |
 | `jarvis/tts_engines/base.py` | 73 | code | Базовый класс TTS-движка. |
 | `jarvis/tts_engines/factory.py` | 167 | code | Фабрика TTS-движков. |
-| `jarvis/tts_engines/piper.py` | 190 | code | Piper TTS — быстрый, ~60 МБ, 4 голоса для русского. |
+| `jarvis/tts_engines/piper.py` | 244 | code | Piper TTS — быстрый, ~60 МБ, 4 голоса для русского. |
 | `jarvis/tts_engines/sapi.py` | 180 | code | Windows SAPI: all pyttsx3/COM calls belong to one dedicated thread. |
 | `jarvis/tts_engines/silero.py` | 244 | code | Silero TTS v5_5 — русский голос, ~150 МБ, требует PyTorch. |
 | `jarvis/tts_engines/winrt.py` | 6 | code | Retired WinRT speech backend. |
@@ -6450,11 +6472,12 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_nonverbal.py` | 402 | code | Nonverbal policy/mixing: synthetic PCM and fake output, no TTS weights |
 | `tests/test_nuitka_build.py` | 147 | code | Nuitka build plans and staging tests; no compiler, network or Tk displ |
 | `tests/test_nuitka_full.py` | 439 | code | Full application build contracts. No Windows compiler/installers or do |
-| `tests/test_numeric_language.py` | 521 | code | Executable Russian language corpus: understanding, morphology and spee |
+| `tests/test_numeric_language.py` | 529 | code | Executable Russian language corpus: understanding, morphology and spee |
 | `tests/test_open_results.py` | 32 | code | Actual dispatch function isolated from Windows imports; no apps launch |
 | `tests/test_optional_whisper_startup.py` | 134 | code | Execute real startup functions with stub peripherals, no models/mic/Wi |
 | `tests/test_password_imports.py` | 109 | code | Import boundaries must work in a fresh interpreter, before any pytest  |
 | `tests/test_persona.py` | 155 | code | Тесты jarvis.persona — стиль, tone, prompt-блок. |
+| `tests/test_piper_pipeline.py` | 75 | code | Piper-стрим: синтез идёт внахлёст с проигрыванием, отмена честная. |
 | `tests/test_plugins.py` | 307 | code | Плагины: манифест, согласие, lifecycle, таймаут, падение и стадия pipe |
 | `tests/test_profile.py` | 100 | code | Профили: защита активного профиля и границы удаления. |
 | `tests/test_prosody.py` | 83 | code | Тесты jarvis.prosody — эмоции из голоса (эвристика). |
@@ -34321,6 +34344,8 @@ def list_engines() -> list[str]:
 
 import io
 import logging
+import queue
+import threading
 
 from jarvis.tts_engines.base import BaseEngine
 import re
@@ -34360,6 +34385,10 @@ class PiperEngine(BaseEngine):
         self.rate = float(rate)
         self._piper = None
         self._piper_cfg = None
+        # Piper не потокобезопасен: синтез всегда идёт под этим замком.
+        # Он же защищает от «осиротевшей» нити синтеза после отмены: она
+        # доделает свою фразу, но не столкнётся с новым стримом.
+        self._synth_lock = threading.Lock()
         self._load_model()
 
     def _load_model(self):
@@ -34450,48 +34479,91 @@ class PiperEngine(BaseEngine):
                 cfg = self._piper_cfg
 
         buf = io.BytesIO()
-        with wave.open(buf, "wb") as wf:
-            self._piper.synthesize_wav(text, wf, cfg)
+        lock = getattr(self, "_synth_lock", None)
+        if lock is None:
+            with wave.open(buf, "wb") as wf:
+                self._piper.synthesize_wav(text, wf, cfg)
+            return buf.getvalue()
+        with lock:
+            with wave.open(buf, "wb") as wf:
+                self._piper.synthesize_wav(text, wf, cfg)
         return buf.getvalue()
 
     def speak_stream(self, text_iter, voice: str, rate: float,
                      token) -> str:
-        """Стриминг Piper через sounddevice."""
-        buffer = ""
-        full_parts = []
+        """Стриминг Piper: следующая фраза синтезируется, пока звучит текущая. ... [5 строк]"""
+        full_parts: list[str] = []
+        pending: "queue.Queue[bytes | None]" = queue.Queue(maxsize=2)
+        producer_done = threading.Event()
 
-        def _flush(force: bool = False):
-            nonlocal buffer
-            while True:
-                m = _SENTENCE_END.search(buffer)
-                if not m:
+        def _put(wav: bytes) -> bool:
+            while not token.is_set():
+                try:
+                    pending.put(wav, timeout=0.2)
+                    return True
+                except queue.Full:
+                    continue
+            return False
+
+        def _produce() -> None:
+            buffer = ""
+            try:
+                for chunk in text_iter:
+                    if chunk:
+                        full_parts.append(chunk)
+                        buffer += chunk
+                    if token.is_set():
+                        return
+                    while True:
+                        match = _SENTENCE_END.search(buffer)
+                        if match is None:
+                            break
+                        sentence = buffer[:match.end()].strip()
+                        buffer = buffer[match.end():]
+                        if sentence and not _put(self._render(sentence)):
+                            return
+                rest = buffer.strip()
+                if rest and not token.is_set():
+                    _put(self._render(rest))
+            except Exception:
+                log.exception("Piper: ошибка синтеза в стриме")
+            finally:
+                producer_done.set()
+                try:
+                    pending.put_nowait(None)
+                except queue.Full:
+                    pass
+
+        worker = threading.Thread(target=_produce, daemon=True,
+                                  name="tts-synth")
+        worker.start()
+        try:
+            while not token.is_set():
+                try:
+                    wav = pending.get(timeout=0.2)
+                except queue.Empty:
+                    if producer_done.is_set() and pending.empty():
+                        break
+                    continue
+                if wav is None:
                     break
-                sent = buffer[:m.end()].strip()
-                buffer = buffer[m.end():]
-                if sent and not token.is_set():
-                    self._play(sent, token)
-            if force and buffer.strip() and not token.is_set():
-                self._play(buffer.strip(), token)
-                buffer = ""
-
-        for chunk in text_iter:
-            if chunk:
-                full_parts.append(chunk)
-                buffer += chunk
-            if token.is_set():
-                break
-            _flush()
-        if not token.is_set():
-            _flush(force=True)
+                if wav:
+                    self._output_wav(wav, token)
+        finally:
+            worker.join(timeout=2.0)
         return "".join(full_parts).strip()
 
-    def _play(self, sentence: str, token):
+    def _render(self, sentence: str) -> bytes:
+        """Фраза → WAV: подготовка текста и синтез (без проигрывания)."""
         from jarvis.text_utils import prepare_text
 
         text = prepare_text(sentence)
         if not text.strip().strip("\u200b\u200c\u200d\ufeff\u00ad"):
-            return
-        wav = self.synthesize(text)
+            return b""
+        return self.synthesize(text)
+
+    def _play(self, sentence: str, token):
+        wav = self._render(sentence)
         if not wav or token.is_set():
             return
         self._output_wav(wav, token)
@@ -57000,17 +57072,25 @@ def test_all_streaming_engines_use_shared_preparation(engine):
         / (engine + ".py")
     )
     tree = ast.parse(path.read_text(encoding="utf-8"))
-    play = next(
+    # Piper готовит текст в _render (его зовёт и _play, и стрим-конвейер),
+    # остальные движки — прямо в _play; SAPI играет сам, у него _say.
+    targets = {
+        "piper": ("_play", "_render"),
+        "silero": ("_play",),
+        "sapi": ("_say",),
+    }[engine]
+    prepared = [
         n
         for n in ast.walk(tree)
-        if isinstance(n, ast.FunctionDef)
-        and n.name == ("_say" if engine == "sapi" else "_play")
-    )
+        if isinstance(n, ast.FunctionDef) and n.name in targets
+    ]
+    assert prepared
     assert any(
         isinstance(n, ast.Call)
         and isinstance(n.func, ast.Name)
         and n.func.id == "prepare_text"
-        for n in ast.walk(play)
+        for node in prepared
+        for n in ast.walk(node)
     )
 
 
@@ -57511,6 +57591,86 @@ def test_describe():
         desc = persona.describe()
     assert "феникс" in desc.lower()
     assert "подстраивается" in desc.lower()
+```
+
+### `tests/test_piper_pipeline.py`
+
+```python
+"""Piper-стрим: синтез идёт внахлёст с проигрыванием, отмена честная."""
+
+import threading
+import time
+
+from jarvis.tts_engines.piper import PiperEngine
+
+TEXT = "Альфа. Бета. Гамма."
+
+
+def _engine(events, synth_delay=0.15, play_delay=0.30, on_play=None):
+    engine = PiperEngine.__new__(PiperEngine)
+    engine._synth_lock = threading.Lock()
+
+    def synthesize(text, voice=None, rate=None):
+        events.append(("synth_start", text, time.monotonic()))
+        time.sleep(synth_delay)
+        events.append(("synth_end", text, time.monotonic()))
+        return ("wav:" + text).encode("utf-8")
+
+    def play(wav, token):
+        events.append(("play_start", wav, time.monotonic()))
+        if on_play is not None:
+            on_play(token)
+        time.sleep(play_delay)
+        events.append(("play_end", wav, time.monotonic()))
+
+    engine.synthesize = synthesize
+    engine.set_wav_player(play)
+    return engine
+
+
+def test_stream_returns_text_and_plays_in_order():
+    events = []
+    engine = _engine(events)
+    token = threading.Event()
+
+    result = engine.speak_stream(iter([TEXT]), "ruslan", 1.0, token)
+
+    assert result == TEXT
+    played = [payload for kind, payload, _ in events if kind == "play_start"]
+    expected = [("wav:" + sentence).encode("utf-8")
+                for sentence in ("Альфа.", "Бета.", "Гамма.")]
+    assert played == expected
+
+
+def test_second_sentence_is_synthesized_while_first_plays():
+    events = []
+    engine = _engine(events)
+    token = threading.Event()
+
+    engine.speak_stream(iter([TEXT]), "ruslan", 1.0, token)
+
+    first_play_end = next(at for kind, _, at in events if kind == "play_end")
+    starts = [at for kind, payload, at in events
+              if kind == "synth_start" and payload == "Бета."]
+    assert starts and starts[0] < first_play_end
+
+
+def test_cancel_stops_playback_and_returns_promptly():
+    events = []
+    token = threading.Event()
+
+    def cancel(_token):
+        token.set()
+
+    engine = _engine(events, synth_delay=0.02, play_delay=0.2,
+                     on_play=cancel)
+    started = time.monotonic()
+    engine.speak_stream(iter([TEXT]), "ruslan", 1.0, token)
+    elapsed = time.monotonic() - started
+
+    played = [payload for kind, payload, _ in events if kind == "play_start"]
+    assert played == [("wav:Альфа.").encode("utf-8")]
+    assert elapsed < 2.0
 ```
 
 ### `tests/test_plugins.py`
@@ -69275,4 +69435,4 @@ certifi>=2024.8.30
 
 ---
 
-_Итого по категориям — code: 283, data: 60, doc: 52, pack: 5. Режим `lean`._
+_Итого по категориям — code: 284, data: 60, doc: 52, pack: 5. Режим `lean`._
