@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=1588d6660ef581ca` · режим `lean` · файлов `395` · строк `74142` · источник `3507 КБ`
+`sha256=1cb404b466b8cdee` · режим `lean` · файлов `397` · строк `74435` · источник `3519 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -100,6 +100,13 @@ Bearer-токен в `secrets_store`), `jarvis/peer_client.py` и карточк
 открой» находит «открой калькулятор» по отсортированным словам с тем же
 порогом 0.85 и минимумом 12 символов; builder-команды с точным совпадением
 эта сверка не трогает.
+
+Живой замер 11.11.2026 на этой машине (Piper «Руслан», qwen2.5:14b,
+ввод из «Диалога», n=3): первый чанк LLM p50 1.05 с, первый безопасный чанк
+p50 2.09 с (постфильтр держит +0.72 с), первый PCM +0.13 с, звук +0.015 с;
+чистый синтез без LLM p50 112 мс. GUI-команда теперь ставит t0 хода до
+`handler.handle`, поэтому в метриках виден и разбор интента. Это не приёмка R0:
+один прогон, один профиль, речь через микрофон не проверялась.
 
 Снимок исключает локальные .env/.env.*/.envrc; их содержимое не редактируется.
 Текстовые read_text/write_text тестов явно используют UTF-8; кодировка Windows
@@ -530,7 +537,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── themes.svg  (19 стр)
 ├── build_nuitka.bat  (12 стр)
 ├── build_nuitka_full.bat  (17 стр)
-├── CHANGELOG.md  (2316 стр)
+├── CHANGELOG.md  (2329 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -566,7 +573,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── IMPROVEMENT_BACKLOG.md  (120 стр)
 │   ├── INSTALLER_UPDATE.md  (47 стр)
 │   ├── LOCAL_VOICE_OPTIONS.md  (67 стр)
-│   ├── NEXT_STEPS.md  (448 стр)
+│   ├── NEXT_STEPS.md  (459 стр)
 │   ├── NUITKA_BUILD.md  (123 стр)
 │   ├── PHOENIX_JASTIN_RECONCILIATION.md  (268 стр)
 │   ├── PYTHON_BOOTSTRAP_TLS_FIX.md  (98 стр)
@@ -579,7 +586,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── v2.1.2.md  (112 стр)
 │   ├── REVIEW_FIXES.md  (68 стр)
 │   ├── TTS_LIFECYCLE_FIX.md  (89 стр)
-│   ├── USER_GUIDE.md  (1238 стр)
+│   ├── USER_GUIDE.md  (1245 стр)
 │   ├── WHISPER_STARTUP_DLL_FIX.md  (85 стр)
 │   ├── WINDOWS_STARTUP_RELIABILITY.md  (108 стр)
 │   ├── WINRT_TTS_REMOVAL.md  (43 стр)
@@ -639,7 +646,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── engines.py  (533 стр)
 │   ├── files.py  (109 стр)
 │   ├── first_run.py  (26 стр)
-│   ├── gui.py  (2640 стр)
+│   ├── gui.py  (2643 стр)
 │   ├── gui_audio.py  (438 стр)
 │   ├── gui_cloud.py  (541 стр)
 │   ├── gui_commands.py  (305 стр)
@@ -770,7 +777,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── work.json  (11 стр)
 ├── phoenix_app.py  (11 стр)
 ├── PLAN.md  (101 стр)
-├── PROJECT.md  (485 стр)
+├── PROJECT.md  (492 стр)
 ├── PROMPT.md  (72 стр)
 ├── pytest.ini  (20 стр)
 ├── README.md  (332 стр)
@@ -794,6 +801,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── install_git_hooks.py  (82 стр)
 │   ├── make_icon.py  (32 стр)
 │   ├── make_installer_images.py  (125 стр)
+│   ├── metrics_report.py  (168 стр)
 │   ├── mics.py  (52 стр)
 │   ├── prepare_flet_client.py  (31 стр)
 │   ├── prepare_nuitka_sandbox.py  (75 стр)
@@ -887,6 +895,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_launcher_ui.py  (210 стр)
 │   ├── test_main_wiring.py  (202 стр)
 │   ├── test_memory_scope.py  (132 стр)
+│   ├── test_metrics_report.py  (84 стр)
 │   ├── test_mic_watchdog.py  (36 стр)
 │   ├── test_mood.py  (386 стр)
 │   ├── test_nonverbal.py  (402 стр)
@@ -3238,6 +3247,20 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def main()
 ```
 
+**`scripts/metrics_report.py`**
+
+```
+  # Сводка `tts_metrics` из журнала: p50/p95 без запуска приложения.
+  FIELDS = ...
+  _LINE_RE = ...
+  def parse_line(line: str)
+  def parse_lines(text: str)
+  def percentile(values: list[float], share: float)
+  def summarize(records: list[dict])
+  def default_log()
+  def main(argv: list[str] | None=None)
+```
+
 **`scripts/mics.py`**
 
 ```
@@ -4930,6 +4953,21 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_generic_query_never_calls_vector_retriever(monkeypatch)
 ```
 
+**`tests/test_metrics_report.py`**
+
+```
+  # Сводка tts_metrics: разбор строк и проценты, без запуска приложения.
+  LINE = ...
+  SINGLE = ...
+  def test_parse_line_extracts_numbers_and_none()
+  def test_parse_line_ignores_other_log_lines()
+  def test_summary_percentiles_and_derived()
+  def test_percentile_nearest_rank()
+  def test_cli_prints_table(tmp_path, capsys)
+  def test_cli_json(tmp_path, capsys)
+  def test_cli_missing_metrics(tmp_path, capsys)
+```
+
 **`tests/test_mic_watchdog.py`**
 
 ```
@@ -6141,7 +6179,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/engines.py` | 533 | code | Каталог движков Феникса: что скачано, что включено и чем доустановить. |
 | `jarvis/files.py` | 109 | code | Файлы и папки: открыть, посмотреть содержимое, создать. |
 | `jarvis/first_run.py` | 26 | code | Первый запуск — знакомство через LLM-диалог. |
-| `jarvis/gui.py` | 2640 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
+| `jarvis/gui.py` | 2643 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
 | `jarvis/gui_audio.py` | 438 | code | Native sound settings. Diagnostics use the existing listener/Speaker,  |
 | `jarvis/gui_cloud.py` | 541 | code | Вкладка «Облако»: провайдер, ключ, приватность и проверка ключа. |
 | `jarvis/gui_commands.py` | 305 | code | Flet editor for the existing custom_commands pipeline. Never executes  |
@@ -6265,6 +6303,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `scripts/install_git_hooks.py` | 82 | code | Opt-in install of one local pre-commit hook; preserve all existing hoo |
 | `scripts/make_icon.py` | 32 | code | Build the Windows/tray phoenix icon from the project's transparent mas |
 | `scripts/make_installer_images.py` | 125 | code | Генерация картинок для Inno Setup установщика Феникса. |
+| `scripts/metrics_report.py` | 168 | code | Сводка `tts_metrics` из журнала: p50/p95 без запуска приложения. |
 | `scripts/mics.py` | 52 | code | Подбор микрофона: показывает устройства ввода и уровень сигнала. |
 | `scripts/prepare_flet_client.py` | 31 | code | Prepare the native Flet client inside the consented bootstrap stage. |
 | `scripts/prepare_nuitka_sandbox.py` | 75 | code | Create a least-scope offline Windows Sandbox test; never enable Window |
@@ -6344,6 +6383,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_launcher_ui.py` | 210 | code | Bootstrap presentation tests; no Tk display, installation, downloads o |
 | `tests/test_main_wiring.py` | 202 | code | config → живое ядро: подписчик make_config_listener. |
 | `tests/test_memory_scope.py` | 132 | code | Personalization should serve a question, not choose its topic. |
+| `tests/test_metrics_report.py` | 84 | code | Сводка tts_metrics: разбор строк и проценты, без запуска приложения. |
 | `tests/test_mic_watchdog.py` | 36 | code | Execute the real watchdog method without importing Windows/audio backe |
 | `tests/test_mood.py` | 386 | code | Тесты jarvis.mood — состояние, детекция, decay, влияние. |
 | `tests/test_nonverbal.py` | 402 | code | Nonverbal policy/mixing: synthetic PCM and fake output, no TTS weights |
@@ -15867,6 +15907,9 @@ class FenixGUI:
                 with self.jarvis.cmd_lock:
                     sensitive = bool(getattr(self.jarvis.handler, "_pending_password", None))
                     self.add_message("user", "[Ввод пароля скрыт]" if sensitive else cmd)
+                    # t0 хода как у голосового пути: метрики R1 считают задержку
+                    # от запроса к LLM, а не только от момента озвучки.
+                    self.jarvis._turn_t0 = time.perf_counter()
                     reply = self.jarvis.handler.handle(cmd)
                     if not reply.is_stream:
                         self.add_message("assistant", reply.text or "")
@@ -38988,6 +39031,173 @@ if __name__ == "__main__":
     sys.exit(main())
 ```
 
+### `scripts/metrics_report.py`
+
+```python
+"""Сводка `tts_metrics` из журнала: p50/p95 без запуска приложения. ... [6 строк]"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import math
+import os
+import re
+import sys
+from pathlib import Path
+
+FIELDS = ("chunk", "safe", "pcm", "audio", "total")
+
+_LINE_RE = re.compile(
+    r"tts_metrics: chunk=(?P<chunk>[0-9.]+|None) safe=(?P<safe>[0-9.]+|None) "
+    r"pcm=(?P<pcm>[0-9.]+|None) audio=(?P<audio>[0-9.]+|None) "
+    r"total=(?P<total>[0-9.]+|None) ms \| chunks=(?P<chunks>\d+) "
+    r"backend=(?P<backend>\S*)"
+)
+
+
+def _number(value: str):
+    return None if value == "None" else float(value)
+
+
+def parse_line(line: str) -> dict | None:
+    """Одна строка журнала → запись или None, если это не tts_metrics."""
+    match = _LINE_RE.search(line)
+    if match is None:
+        return None
+    record = {field: _number(match.group(field)) for field in FIELDS}
+    record["chunks"] = int(match.group("chunks"))
+    record["backend"] = match.group("backend")
+    return record
+
+
+def parse_lines(text: str) -> list[dict]:
+    records = []
+    for line in text.splitlines():
+        record = parse_line(line)
+        if record is not None:
+            records.append(record)
+    return records
+
+
+def percentile(values: list[float], share: float) -> float:
+    """Ближайший ранг, как в audio_metrics._p95: без интерполяции."""
+    ordered = sorted(values)
+    index = max(0, min(len(ordered) - 1, math.ceil(share * len(ordered)) - 1))
+    return ordered[index]
+
+
+def summarize(records: list[dict]) -> dict:
+    result: dict[str, dict] = {}
+    for field in FIELDS:
+        values = [record[field] for record in records if record[field] is not None]
+        if not values:
+            result[field] = {"n": 0}
+            continue
+        result[field] = {
+            "n": len(values),
+            "p50": round(percentile(values, 0.50), 1),
+            "p95": round(percentile(values, 0.95), 1),
+            "max": round(max(values), 1),
+        }
+    for name, left, right in (
+        ("guard", "chunk", "safe"),
+        ("synth", "safe", "pcm"),
+        ("player", "pcm", "audio"),
+    ):
+        deltas = [
+            record[right] - record[left]
+            for record in records
+            if record[left] is not None and record[right] is not None
+        ]
+        if not deltas:
+            result[name] = {"n": 0}
+            continue
+        result[name] = {
+            "n": len(deltas),
+            "p50": round(percentile(deltas, 0.50), 1),
+            "p95": round(percentile(deltas, 0.95), 1),
+            "max": round(max(deltas), 1),
+        }
+    return result
+
+
+def _format_table(title: str, summary: dict) -> list[str]:
+    lines = [title]
+    for name, stats in summary.items():
+        if not stats.get("n"):
+            lines.append(f"  {name:<8} нет данных")
+            continue
+        lines.append(
+            "  {name:<8} n={n:<3} p50={p50:>8.1f} p95={p95:>8.1f} max={max:>8.1f}".format(
+                name=name, **stats
+            )
+        )
+    return lines
+
+
+def default_log() -> Path:
+    appdata = os.environ.get("APPDATA")
+    if appdata:
+        candidate = Path(appdata) / "Phoenix" / "logs" / "jarvis.log"
+        if candidate.exists():
+            return candidate
+    return Path("logs") / "jarvis.log"
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--log", type=Path, default=None, help="путь к jarvis.log")
+    parser.add_argument("--last", type=int, default=0, help="последние N записей (0 — все)")
+    parser.add_argument("--json", action="store_true", help="вывести JSON")
+    args = parser.parse_args(argv)
+
+    path = args.log or default_log()
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError as error:
+        print(f"не читается журнал {path}: {error}", file=sys.stderr)
+        return 1
+
+    records = parse_lines(text)
+    if args.last > 0:
+        records = records[-args.last:]
+    if not records:
+        print(f"в {path} нет строк tts_metrics (метрики включены? metrics_enabled)")
+        return 1
+
+    streaming = [record for record in records if record["chunks"] > 1]
+    single = [record for record in records if record["chunks"] <= 1]
+    summary = summarize(records)
+
+    if args.json:
+        print(json.dumps(
+            {
+                "log": str(path),
+                "turns": len(records),
+                "all": summary,
+                "streaming": summarize(streaming),
+                "single": summarize(single),
+            },
+            ensure_ascii=False,
+            indent=2,
+        ))
+        return 0
+
+    print(f"журнал: {path}")
+    print(f"записей: {len(records)} (стрим: {len(streaming)}, одна реплика: {len(single)})")
+    for line in _format_table("все записи, мс:", summary):
+        print(line)
+    if streaming:
+        for line in _format_table("только стрим (chunks>1), мс:", summarize(streaming)):
+            print(line)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+```
+
 ### `scripts/mics.py`
 
 ```python
@@ -54567,6 +54777,95 @@ def test_generic_query_never_calls_vector_retriever(monkeypatch):
     assert "Матрица" not in text
 ```
 
+### `tests/test_metrics_report.py`
+
+```python
+"""Сводка tts_metrics: разбор строк и проценты, без запуска приложения."""
+
+import pytest
+
+from scripts import metrics_report as report
+
+LINE = (
+    "2026-11-11 02:28:27,411 jarvis.metrics INFO tts_metrics: chunk=1374.9 "
+    "safe=2090.7 pcm=2209.2 audio=2227.1 total=8938.1 ms | chunks=40 "
+    "backend=piper | cpu_delta=2750.0 ms rss_delta=39.1 MB | cancelled=False"
+)
+SINGLE = (
+    "2026-11-11 02:21:24,432 jarvis.metrics INFO tts_metrics: chunk=None "
+    "safe=None pcm=143.5 audio=220.1 total=2474.6 ms | chunks=0 backend=piper "
+    "| cpu_delta=765.6 ms rss_delta=59.2 MB | cancelled=False"
+)
+
+
+def test_parse_line_extracts_numbers_and_none():
+    record = report.parse_line(LINE)
+    assert record["chunk"] == 1374.9
+    assert record["total"] == 8938.1
+    assert record["chunks"] == 40
+    assert record["backend"] == "piper"
+
+    empty = report.parse_line(SINGLE)
+    assert empty["chunk"] is None
+    assert empty["pcm"] == 143.5
+    assert empty["chunks"] == 0
+
+
+def test_parse_line_ignores_other_log_lines():
+    assert report.parse_line("2026-11-11 jarvis.stt INFO barge: rms=0") is None
+
+
+def test_summary_percentiles_and_derived():
+    records = report.parse_lines("\n".join([LINE, SINGLE]))
+    summary = report.summarize(records)
+
+    assert summary["pcm"]["n"] == 2
+    # Ближайший ранг: для двух значений p50 — нижнее, p95 — верхнее.
+    assert summary["pcm"]["p50"] == pytest.approx(143.5, abs=0.2)
+    assert summary["pcm"]["p95"] == pytest.approx(2209.2, abs=0.2)
+    # Производные считаются только по записям, где обе метки есть.
+    assert summary["guard"] == {"n": 1, "p50": 715.8, "p95": 715.8, "max": 715.8}
+    assert summary["synth"]["n"] == 1
+    assert summary["player"]["n"] == 2
+
+
+def test_percentile_nearest_rank():
+    assert report.percentile([5], 0.95) == 5
+    assert report.percentile([1, 2, 3, 4], 0.5) == 2
+    assert report.percentile([1, 2, 3, 4], 0.95) == 4
+
+
+def test_cli_prints_table(tmp_path, capsys):
+    log = tmp_path / "jarvis.log"
+    log.write_text(
+        LINE + "\n" + SINGLE + "\n",
+        encoding="utf-8",
+    )
+    assert report.main(["--log", str(log)]) == 0
+    out = capsys.readouterr().out
+    assert "записей: 2" in out
+    assert "стрим: 1" in out
+    assert "p50" in out
+
+
+def test_cli_json(tmp_path, capsys):
+    log = tmp_path / "jarvis.log"
+    log.write_text(LINE + "\n", encoding="utf-8")
+    assert report.main(["--log", str(log), "--json"]) == 0
+    import json
+
+    data = json.loads(capsys.readouterr().out)
+    assert data["turns"] == 1
+    assert data["streaming"]["chunk"]["n"] == 1
+
+
+def test_cli_missing_metrics(tmp_path, capsys):
+    log = tmp_path / "jarvis.log"
+    log.write_text("ничего полезного\n", encoding="utf-8")
+    assert report.main(["--log", str(log)]) == 1
+    assert "нет строк tts_metrics" in capsys.readouterr().out
+```
+
 ### `tests/test_mic_watchdog.py`
 
 ```python
@@ -68766,4 +69065,4 @@ certifi>=2024.8.30
 
 ---
 
-_Итого по категориям — code: 277, data: 60, doc: 53, pack: 5. Режим `lean`._
+_Итого по категориям — code: 279, data: 60, doc: 53, pack: 5. Режим `lean`._

@@ -2614,6 +2614,9 @@ class FenixGUI:
                 with self.jarvis.cmd_lock:
                     sensitive = bool(getattr(self.jarvis.handler, "_pending_password", None))
                     self.add_message("user", "[Ввод пароля скрыт]" if sensitive else cmd)
+                    # t0 хода как у голосового пути: метрики R1 считают задержку
+                    # от запроса к LLM, а не только от момента озвучки.
+                    self.jarvis._turn_t0 = time.perf_counter()
                     reply = self.jarvis.handler.handle(cmd)
                     if not reply.is_stream:
                         self.add_message("assistant", reply.text or "")
