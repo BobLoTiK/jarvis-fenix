@@ -63,25 +63,39 @@ def reload_custom(handler):
 def match_custom(handler, cmd: str) -> str | None:
     """Тот же matcher используется уточнениями, но исполнение только здесь."""
     semantic = bool(handler.config.get("decision_semantic_enabled", False))
-    matched = find_custom(handler.custom, cmd, semantic=semantic)
+    reversed_order = bool(handler.config.get("commands_reversed_order", False))
+    matched = find_custom(handler.custom, cmd, semantic=semantic,
+                          reversed_order=reversed_order)
     if matched is None:
         # The microphone already removes the address; typed GUI commands may include it.
         from jarvis.command_builder import clean_phrase
         typed = [item for item in handler.custom if len(item) > 3 and item[3].get("exact")]
         matched = find_custom(typed, clean_phrase(cmd, handler.config.get("wake_words", [])),
-                              semantic=semantic)
+                              semantic=semantic, reversed_order=reversed_order)
     if matched is not None:
         return execute_custom(handler, *matched)
     return None
 
 
-def find_custom(custom: list, cmd: str, *, semantic: bool = False) -> tuple | None:
+def _sorted_words(text: str) -> str:
+    """Слова по алфавиту: так «музыку включи» и «включи музыку» совпадают."""
+    words = [word for word in text.split() if word]
+    return " ".join(sorted(words))
+
+
+def find_custom(custom: list, cmd: str, *, semantic: bool = False,
+                reversed_order: bool = False) -> tuple | None:
     """Чистый поиск: точное или нечёткое совпадение, без побочных действий.
 
     ``semantic=True`` включает шаг 1 семантики из ``jarvis.decision``: синонимы
     («вруби» → «включи») и выброс «плиз/пожалуйста». Флаг приходит из
     ``decision_semantic_enabled`` и по умолчанию выключен — тогда сравнение
     байт в байт прежнее, включая порог 0.85 и проверку длины.
+
+    ``reversed_order=True`` (``commands_reversed_order``) дополнительно сверяет
+    фразы по отсортированным словам: «калькулятор открой» находит «открой
+    калькулятор». Срабатывает только когда порядок действительно другой, иначе
+    это уже обычное нечёткое сравнение.
     """
     # Exact matches across the whole list take precedence over legacy fuzzy ones.
     for item in custom:
@@ -100,7 +114,13 @@ def find_custom(custom: list, cmd: str, *, semantic: bool = False) -> tuple | No
             if len(left) >= 12 and len(right) >= 12:
                 if SequenceMatcher(None, left, right).ratio() >= 0.85:
                     return action, reply
+                if reversed_order:
+                    left_sorted, right_sorted = _sorted_words(left), _sorted_words(right)
+                    if (left_sorted != left or right_sorted != right) and \
+                            SequenceMatcher(None, left_sorted, right_sorted).ratio() >= 0.85:
+                        return action, reply
     return None
+
 
 
 def execute_custom(handler, action, reply: str, *, authorized: bool = False) -> str:

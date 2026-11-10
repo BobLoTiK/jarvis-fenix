@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=292ac67df35e9aec` · режим `lean` · файлов `391` · строк `73587` · источник `3483 КБ`
+`sha256=1588d6660ef581ca` · режим `lean` · файлов `395` · строк `74142` · источник `3507 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -86,6 +86,20 @@ Bearer-токен в `secrets_store`), `jarvis/peer_client.py` и карточк
 отдельным процессом. Проверено тестами и синтетикой; живых замеров задержки,
 реальных колонок и WASAPI loopback на этой машине не было (проба loopback
 честно вернула «недоступно»). Руководства Uvoxus 2.3b в репозитории нет.
+
+Метрики TTS-конвейера (baseline R1) есть в исходниках: `jarvis/audio_metrics.py`
+(`Timeline` с метками `first_chunk`/`first_safe`/`first_pcm`/`first_audio`,
+кольцо последних 50 ходов и p50/p95 в `summary()`), включены через
+`metrics_enabled` (по умолчанию да) — в журнал уходит одна строка `tts_metrics:`
+с длительностями, числом чанков, CPU/RSS-дельтой и флагом отмены, без текста
+команды и ответа. Живой baseline на этом ПК ещё не снимался: нужны реальный
+микрофон и LLM, поэтому числа пока не публикуются.
+
+Свои команды понимают обратный порядок слов только при
+`commands_reversed_order=true` (по умолчанию **выключено**): «калькулятор
+открой» находит «открой калькулятор» по отсортированным словам с тем же
+порогом 0.85 и минимумом 12 символов; builder-команды с точным совпадением
+эта сверка не трогает.
 
 Снимок исключает локальные .env/.env.*/.envrc; их содержимое не редактируется.
 Текстовые read_text/write_text тестов явно используют UTF-8; кодировка Windows
@@ -516,7 +530,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── themes.svg  (19 стр)
 ├── build_nuitka.bat  (12 стр)
 ├── build_nuitka_full.bat  (17 стр)
-├── CHANGELOG.md  (2296 стр)
+├── CHANGELOG.md  (2316 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -552,7 +566,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── IMPROVEMENT_BACKLOG.md  (120 стр)
 │   ├── INSTALLER_UPDATE.md  (47 стр)
 │   ├── LOCAL_VOICE_OPTIONS.md  (67 стр)
-│   ├── NEXT_STEPS.md  (440 стр)
+│   ├── NEXT_STEPS.md  (448 стр)
 │   ├── NUITKA_BUILD.md  (123 стр)
 │   ├── PHOENIX_JASTIN_RECONCILIATION.md  (268 стр)
 │   ├── PYTHON_BOOTSTRAP_TLS_FIX.md  (98 стр)
@@ -565,7 +579,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── v2.1.2.md  (112 стр)
 │   ├── REVIEW_FIXES.md  (68 стр)
 │   ├── TTS_LIFECYCLE_FIX.md  (89 стр)
-│   ├── USER_GUIDE.md  (1231 стр)
+│   ├── USER_GUIDE.md  (1238 стр)
 │   ├── WHISPER_STARTUP_DLL_FIX.md  (85 стр)
 │   ├── WINDOWS_STARTUP_RELIABILITY.md  (108 стр)
 │   ├── WINRT_TTS_REMOVAL.md  (43 стр)
@@ -607,7 +621,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   │   ├── settings-light.svg  (1 стр)
 │   │   │   ├── timer-dark.svg  (1 стр)
 │   │   │   ├── timer-light.svg  (1 стр)
-│   ├── audio_output.py  (156 стр)
+│   ├── audio_metrics.py  (191 стр)
+│   ├── audio_output.py  (160 стр)
 │   ├── barge.py  (56 стр)
 │   ├── brain.py  (971 стр)
 │   ├── cache_maintenance.py  (76 стр)
@@ -615,7 +630,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── cloud_llm.py  (367 стр)
 │   ├── command_builder.py  (152 стр)
 │   ├── compiled_runtime.py  (267 стр)
-│   ├── config.py  (339 стр)
+│   ├── config.py  (347 стр)
 │   ├── config_manager.py  (156 стр)
 │   ├── decision.py  (307 стр)
 │   ├── echo.py  (512 стр)
@@ -652,7 +667,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── fast/
 │   │   │   ├── __init__.py  (54 стр)
 │   │   │   ├── correction.py  (28 стр)
-│   │   │   ├── custom.py  (128 стр)
+│   │   │   ├── custom.py  (148 стр)
 │   │   │   ├── debug.py  (48 стр)
 │   │   │   ├── memory.py  (57 стр)
 │   │   │   ├── music.py  (38 стр)
@@ -699,7 +714,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── time.py  (84 стр)
 │   │   ├── units.py  (85 стр)
 │   ├── learning.py  (178 стр)
-│   ├── main.py  (1132 стр)
+│   ├── main.py  (1185 стр)
 │   ├── matching.py  (118 стр)
 │   ├── memory.py  (147 стр)
 │   ├── memory_context.py  (124 стр)
@@ -726,7 +741,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── text_utils.py  (98 стр)
 │   ├── timers.py  (343 стр)
 │   ├── tray.py  (223 стр)
-│   ├── tts.py  (489 стр)
+│   ├── tts.py  (502 стр)
 │   ├── tts_engines/
 │   │   ├── __init__.py  (12 стр)
 │   │   ├── base.py  (73 стр)
@@ -755,7 +770,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── work.json  (11 стр)
 ├── phoenix_app.py  (11 стр)
 ├── PLAN.md  (101 стр)
-├── PROJECT.md  (471 стр)
+├── PROJECT.md  (485 стр)
 ├── PROMPT.md  (72 стр)
 ├── pytest.ini  (20 стр)
 ├── README.md  (332 стр)
@@ -821,6 +836,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_aec_backend.py  (57 стр)
 │   ├── test_api_server.py  (355 стр)
 │   ├── test_asr_router.py  (203 стр)
+│   ├── test_audio_metrics.py  (100 стр)
 │   ├── test_audio_regression.py  (556 стр)
 │   ├── test_audit_regressions.py  (265 стр)
 │   ├── test_barge_policy.py  (99 стр)
@@ -835,6 +851,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_command_builder.py  (213 стр)
 │   ├── test_compiled_runtime.py  (198 стр)
 │   ├── test_config_manager.py  (47 стр)
+│   ├── test_custom_reversed_order.py  (45 стр)
 │   ├── test_danger_policy.py  (124 стр)
 │   ├── test_decision.py  (150 стр)
 │   ├── test_echo.py  (579 стр)
@@ -898,6 +915,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_tray.py  (249 стр)
 │   ├── test_tts.py  (243 стр)
 │   ├── test_tts_lifecycle.py  (275 стр)
+│   ├── test_tts_metrics_wiring.py  (72 стр)
 │   ├── test_tts_readiness.py  (94 стр)
 │   ├── test_uia.py  (790 стр)
 │   ├── test_uia_fast.py  (240 стр)
@@ -1064,6 +1082,23 @@ Non-verbal/микрофон/установщик по-прежнему треб�
     def run(self, pcm: bytes, rate: int, *, candidates=None, match=None, matched: bool | None=None, cancel_event=None)
 ```
 
+**`jarvis/audio_metrics.py`**
+
+```
+  # Метрики TTS-конвейера: только длительности и ресурсы, без текста.
+  MARK_NAMES = ...
+  MAX_TURNS = ...
+  class Timeline
+    def __init__(self, t0=None, *, enabled=True)
+    def mark(self, name: str)
+    def count_chunk(self)
+    def durations(self)
+    def finish(self, *, cancelled=False, backend='')
+  def summary(limit: int=0)
+  def recent()
+  def reset()
+```
+
 **`jarvis/audio_output.py`**
 
 ```
@@ -1071,7 +1106,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def decode_wav(data)
   def mix_reaction(audio, rate, reaction)
   def encode_wav(audio, rate)
-  def play_wav(wav_bytes, token, reaction=None, *, echo=None)
+  def play_wav(wav_bytes, token, reaction=None, *, echo=None, timeline=None)
 ```
 
 **`jarvis/barge.py`**
@@ -1903,7 +1938,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def load_packs_as_custom(config)
   def reload_custom(handler)
   def match_custom(handler, cmd: str)
-  def find_custom(custom: list, cmd: str, *, semantic: bool=False)
+  def find_custom(custom: list, cmd: str, *, semantic: bool=False, reversed_order: bool=False)
   def execute_custom(handler, action, reply: str, *, authorized: bool=False)
 ```
 
@@ -2779,8 +2814,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
     def set_rate(self, rate: float)
     def set_echo_path(self, path)
     def speak(self, text: str, *, allow_nonverbal=False)
-    def play_async(self, text: str, *, allow_nonverbal=False, cancel_event=None)
-    def speak_stream(self, text_iter: Iterator[str], timeout: float=30.0, *, allow_nonverbal=False)
+    def play_async(self, text: str, *, allow_nonverbal=False, cancel_event=None, timeline=None)
+    def speak_stream(self, text_iter: Iterator[str], timeout: float=30.0, *, allow_nonverbal=False, timeline=None)
     def stop(self)
     def stop_requested(self)
     def is_playing(self)
@@ -3537,6 +3572,19 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_semantic_router_resolves_synonyms_instead_of_escalating()
 ```
 
+**`tests/test_audio_metrics.py`**
+
+```
+  # Метрики TTS-конвейера: чистая логика, без аудиоустройств и сети.
+  def test_marks_keep_first_value()
+  def test_finish_records_durations_without_text()
+  def test_summary_median_and_p95()
+  def test_disabled_timeline_is_noop()
+  def test_marks_from_threads_are_safe()
+  def test_ring_is_capped()
+  def test_p95_nearest_rank()
+```
+
 **`tests/test_audio_regression.py`**
 
 ```
@@ -3881,6 +3929,18 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_atomic_write_valid_json(tmp_path)
   def test_load_nonexistent(tmp_path)
   def test_load_broken(tmp_path)
+```
+
+**`tests/test_custom_reversed_order.py`**
+
+```
+  # Свои команды с обратным порядком слов (commands_reversed_order).
+  def test_reversed_order_matches_when_words_are_rearranged()
+  def test_reversed_order_does_not_match_other_words()
+  def test_reversed_order_requires_all_words()
+  def test_reversed_order_keeps_plain_fuzzy_behavior()
+  def test_reversed_order_ignores_exact_builder_entries()
+  def test_reversed_order_skips_short_phrases()
 ```
 
 **`tests/test_danger_policy.py`**
@@ -5531,6 +5591,21 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_failed_config_rollback_is_visible_in_log(monkeypatch, tmp_path, caplog)
 ```
 
+**`tests/test_tts_metrics_wiring.py`**
+
+```
+  # Связка Speaker→Timeline: метки появляются, поведение озвучки не меняется.
+  class FakeEngine
+    def __init__(self)
+    def set_wav_player(self, player)
+    def set_rate(self, rate)
+    def stop(self)
+    def synthesize(self, text, voice=None, rate=None)
+    def speak_stream(self, text_iter, voice, rate, token)
+  def test_speak_stream_marks_pcm_and_audio(monkeypatch)
+  def test_play_async_marks_pcm(monkeypatch)
+```
+
 **`tests/test_tts_readiness.py`**
 
 ```
@@ -6048,7 +6123,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/api_server.py` | 355 | code | Локальный HTTP-стык Феникса: `health` / `capabilities` / `turn`. |
 | `jarvis/apps.py` | 114 | code | Каталог известных приложений: как их зовут голосом, как открыть и как  |
 | `jarvis/asr_router.py` | 271 | code | Эскалация распознавания: если первому движку не поверили — спросить вт |
-| `jarvis/audio_output.py` | 156 | code | Shared cancellable PCM output for Speaker and the three WAV-based TTS  |
+| `jarvis/audio_metrics.py` | 191 | code | Метрики TTS-конвейера: только длительности и ресурсы, без текста. |
+| `jarvis/audio_output.py` | 160 | code | Shared cancellable PCM output for Speaker and the three WAV-based TTS  |
 | `jarvis/barge.py` | 56 | code | Очерёдность разговора при перебивании: чей это голос и можно ли вклини |
 | `jarvis/brain.py` | 971 | code | LLM-фолбэк: локальная нейронка (Ollama) разбирает команду в структурны |
 | `jarvis/cache_maintenance.py` | 76 | code | Чистка устаревшего байткода после обновления файлов приложения. |
@@ -6056,7 +6132,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/cloud_llm.py` | 367 | code | Облачная LLM по HTTP: OpenAI-совместимые API и Anthropic. |
 | `jarvis/command_builder.py` | 152 | code | Typed custom commands. No execution, model calls or shell parsing in t |
 | `jarvis/compiled_runtime.py` | 267 | code | Standalone app startup and explicit offline probes; no venv/pip bootst |
-| `jarvis/config.py` | 339 | code | Загрузка конфигурации и объект Config в памяти. |
+| `jarvis/config.py` | 347 | code | Загрузка конфигурации и объект Config в памяти. |
 | `jarvis/config_manager.py` | 156 | code | Единый менеджер записи в config.json. |
 | `jarvis/decision.py` | 307 | code | Решение по распознанной фразе: чёткая команда, нечёткая или не команда |
 | `jarvis/echo.py` | 512 | code | Opt-in Piper AEC prototype. No devices, drivers or downloads. |
@@ -6091,7 +6167,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/intents/execute.py` | 1044 | code | Dispatch: action → функция-обработчик. |
 | `jarvis/intents/fast/__init__.py` | 54 | code | Реестр быстрых обработчиков. |
 | `jarvis/intents/fast/correction.py` | 28 | code | Коррекция: «это не то, я сказал логи». |
-| `jarvis/intents/fast/custom.py` | 128 | code | Пользовательские команды: из config.json и из паков. |
+| `jarvis/intents/fast/custom.py` | 148 | code | Пользовательские команды: из config.json и из паков. |
 | `jarvis/intents/fast/debug.py` | 48 | code | Диагностика: «что ты слышал», «почему не понял». |
 | `jarvis/intents/fast/memory.py` | 57 | code | Управление памятью диалога. |
 | `jarvis/intents/fast/music.py` | 38 | code | Музыка — ДО open_fast. |
@@ -6136,7 +6212,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/language/time.py` | 84 | code | Duration grammar with source spans. Uses the shared numeral/unit vocab |
 | `jarvis/language/units.py` | 85 | code | Semantic unit lexicon shared by input and output; spelling is data, no |
 | `jarvis/learning.py` | 178 | code | Самообучение Феникса: факты и коррекции. |
-| `jarvis/main.py` | 1132 | code | Точка входа: связывает распознавание, интенты, синтез речи и GUI. |
+| `jarvis/main.py` | 1185 | code | Точка входа: связывает распознавание, интенты, синтез речи и GUI. |
 | `jarvis/matching.py` | 118 | code | Нечёткое сопоставление речи с названиями: транслитерация + difflib. |
 | `jarvis/memory.py` | 147 | code | Память диалога — на профиль. |
 | `jarvis/memory_context.py` | 124 | code | Query-scoped personal memory. Absence/uncertainty never means 'send ev |
@@ -6163,7 +6239,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/text_utils.py` | 98 | code | Общие текстовые утилиты для Феникса. |
 | `jarvis/timers.py` | 343 | code | Таймеры и напоминания. |
 | `jarvis/tray.py` | 223 | code | Иконка в системном трее (pystray). |
-| `jarvis/tts.py` | 489 | code | Синтез речи — фасад над tts_engines. |
+| `jarvis/tts.py` | 502 | code | Синтез речи — фасад над tts_engines. |
 | `jarvis/tts_engines/__init__.py` | 12 | code | TTS-движки Феникса — абстракция над Piper, Silero, SAPI. |
 | `jarvis/tts_engines/base.py` | 73 | code | Базовый класс TTS-движка. |
 | `jarvis/tts_engines/factory.py` | 167 | code | Фабрика TTS-движков. |
@@ -6217,6 +6293,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_aec_backend.py` | 57 | code | Выбор backend'а AEC: native по умолчанию, честный отказ от webrtc. |
 | `tests/test_api_server.py` | 355 | code | Локальный стык API: живой HTTP на 127.0.0.1, авторизация, pending, при |
 | `tests/test_asr_router.py` | 203 | code | Эскалация ASR: табличные тесты роутера на фейковых движках, без моделе |
+| `tests/test_audio_metrics.py` | 100 | code | Метрики TTS-конвейера: чистая логика, без аудиоустройств и сети. |
 | `tests/test_audio_regression.py` | 556 | code | Fast contracts only: fake decoders are NOT an audio quality measuremen |
 | `tests/test_audit_regressions.py` | 265 | code | Regression tests for the six audited bugs and related edge cases. |
 | `tests/test_barge_policy.py` | 99 | code | Правило очерёдности разговора: таблица вердиктов и один хук в Listener |
@@ -6231,6 +6308,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_command_builder.py` | 213 | code | Builder persistence, exact matching and runtime protection; no real OS |
 | `tests/test_compiled_runtime.py` | 198 | code | Explicit standalone probes and consent contracts without native Window |
 | `tests/test_config_manager.py` | 47 | code | Тесты config_manager: параллельная запись не рвёт файл. |
+| `tests/test_custom_reversed_order.py` | 45 | code | Свои команды с обратным порядком слов (commands_reversed_order). |
 | `tests/test_danger_policy.py` | 124 | code | Политика опасных действий: пароль решает «можно ли», а не «опасно ли». |
 | `tests/test_decision.py` | 150 | code | Решение «чёткая команда / нечёткая / не команда»: таблица, корпус, син |
 | `tests/test_echo.py` | 579 | code | AEC contracts: bounded synthetic PCM and controlled native transport;  |
@@ -6294,6 +6372,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_tray.py` | 249 | code | Трей (jarvis.tray): пункты меню реально дёргают ядро и GUI. |
 | `tests/test_tts.py` | 243 | code | Тесты jarvis.tts_engines — движки и фабрика. С моками. |
 | `tests/test_tts_lifecycle.py` | 275 | code | Loader/preview/stop races with controlled events; no network or audio  |
+| `tests/test_tts_metrics_wiring.py` | 72 | code | Связка Speaker→Timeline: метки появляются, поведение озвучки не меняет |
 | `tests/test_tts_readiness.py` | 94 | code | Bounded voice readiness and command release; no synthesis/audio device |
 | `tests/test_uia.py` | 790 | code | Тесты jarvis.uia — логика обёртки. С моками. |
 | `tests/test_uia_fast.py` | 240 | code | Тесты быстрых UIA-команд — `jarvis/intents/fast/uia.py`. |
@@ -8640,6 +8719,178 @@ class Router:
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="none" stroke="#93572f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="14" r="8"/><path d="M12 14V9M9 2h6M12 2v4M18 5l2 2M6 14h1M17 14h1M12 19v1"/></g></svg>
 ```
 
+### `jarvis/audio_metrics.py`
+
+```python
+"""Метрики TTS-конвейера: только длительности и ресурсы, без текста. ... [24 строк]"""
+
+from __future__ import annotations
+
+import logging
+import statistics
+import threading
+import time
+from collections import deque
+
+log = logging.getLogger("jarvis.metrics")
+
+#: Метки, по которым нужно baseline (порядок = порядок событий).
+MARK_NAMES = ("first_chunk", "first_safe", "first_pcm", "first_audio")
+
+#: Сколько ходов держим для p50/p95.
+MAX_TURNS = 50
+
+_ring: deque[dict] = deque(maxlen=MAX_TURNS)
+_ring_lock = threading.Lock()
+
+_proc = None
+_proc_lock = threading.Lock()
+
+
+def _process():
+    """psutil.Process() ровно один раз; None — psutil недоступен."""
+    global _proc
+    with _proc_lock:
+        if _proc is None:
+            try:
+                import psutil
+
+                _proc = psutil.Process()
+            except Exception:
+                _proc = False
+        return _proc or None
+
+
+def _cpu_ms():
+    proc = _process()
+    if proc is None:
+        return None
+    try:
+        times = proc.cpu_times()
+        return round((times.user + times.system) * 1000.0, 1)
+    except Exception:
+        return None
+
+
+def _rss_mb():
+    proc = _process()
+    if proc is None:
+        return None
+    try:
+        return round(proc.memory_info().rss / (1024.0 * 1024.0), 1)
+    except Exception:
+        return None
+
+
+class Timeline:
+    """Метки одного хода. Потокобезопасен: mark() зовут из tee/энджина."""
+
+    __slots__ = ("enabled", "t0", "_marks", "_lock", "_chunks", "_cpu", "_rss")
+
+    def __init__(self, t0=None, *, enabled=True):
+        self.enabled = bool(enabled)
+        self.t0 = time.perf_counter() if t0 is None else float(t0)
+        self._marks: dict[str, float] = {}
+        self._lock = threading.Lock()
+        self._chunks = 0
+        self._cpu = _cpu_ms() if self.enabled else None
+        self._rss = _rss_mb() if self.enabled else None
+
+    def mark(self, name: str) -> None:
+        """Первое срабатывание метки — остальные игнорируются."""
+        if not self.enabled:
+            return
+        elapsed = round((time.perf_counter() - self.t0) * 1000.0, 1)
+        with self._lock:
+            self._marks.setdefault(name, elapsed)
+
+    def count_chunk(self) -> None:
+        if not self.enabled:
+            return
+        with self._lock:
+            self._chunks += 1
+
+    def durations(self) -> dict:
+        with self._lock:
+            return dict(self._marks)
+
+    def finish(self, *, cancelled=False, backend="") -> dict:
+        """Закрывает ход: считает total/CPU/RSS, кладёт в кольцо и пишет журнал."""
+        if not self.enabled:
+            return {}
+        elapsed = round((time.perf_counter() - self.t0) * 1000.0, 1)
+        with self._lock:
+            marks = dict(self._marks)
+            chunks = self._chunks
+        cpu = _cpu_ms()
+        rss = _rss_mb()
+        record = {
+            "chunk_ms": marks.get("first_chunk"),
+            "safe_ms": marks.get("first_safe"),
+            "pcm_ms": marks.get("first_pcm"),
+            "audio_ms": marks.get("first_audio"),
+            "total_ms": elapsed,
+            "chunks": chunks,
+            "cancelled": bool(cancelled),
+            "backend": backend or "",
+            "cpu_ms": None if cpu is None or self._cpu is None
+            else round(cpu - self._cpu, 1),
+            "rss_delta_mb": None if rss is None or self._rss is None
+            else round(rss - self._rss, 1),
+        }
+        with _ring_lock:
+            _ring.append(record)
+        log.info(
+            "tts_metrics: chunk=%s safe=%s pcm=%s audio=%s total=%s ms | "
+            "chunks=%d backend=%s | cpu_delta=%s ms rss_delta=%s MB | cancelled=%s",
+            record["chunk_ms"], record["safe_ms"], record["pcm_ms"],
+            record["audio_ms"], record["total_ms"], record["chunks"],
+            record["backend"] or "-", record["cpu_ms"],
+            record["rss_delta_mb"], record["cancelled"],
+        )
+        return record
+
+
+def _p95(values: list[float]) -> float:
+    """Ближайший ранг: 95-й перцентиль по отсортированной выборке."""
+    ordered = sorted(values)
+    if len(ordered) == 1:
+        return round(ordered[0], 1)
+    index = int(round(0.95 * (len(ordered) - 1)))
+    return round(ordered[max(0, min(index, len(ordered) - 1))], 1)
+
+
+def summary(limit: int = 0) -> dict:
+    """Сводка по последним ходам: p50/p95 на каждую метку, число отмен."""
+    with _ring_lock:
+        items = list(_ring)
+    if limit and limit > 0:
+        items = items[-int(limit):]
+    result: dict = {"turns": len(items)}
+    for key in ("chunk_ms", "safe_ms", "pcm_ms", "audio_ms", "total_ms"):
+        values = [float(item[key]) for item in items if item.get(key) is not None]
+        if values:
+            result[key] = {
+                "n": len(values),
+                "p50": round(statistics.median(values), 1),
+                "p95": _p95(values),
+            }
+    result["cancelled"] = sum(1 for item in items if item.get("cancelled"))
+    return result
+
+
+def recent() -> list[dict]:
+    """Копия кольца для тестов и диагностики (без текста — его тут нет)."""
+    with _ring_lock:
+        return [dict(item) for item in _ring]
+
+
+def reset() -> None:
+    """Очистить кольцо (тесты, ручной сброс baseline)."""
+    with _ring_lock:
+        _ring.clear()
+```
+
 ### `jarvis/audio_output.py`
 
 ```python
@@ -8728,7 +8979,7 @@ def encode_wav(audio, rate):
     return buf.getvalue()
 
 
-def play_wav(wav_bytes, token, reaction=None, *, echo=None):
+def play_wav(wav_bytes, token, reaction=None, *, echo=None, timeline=None):
     if token.is_set() or not wav_bytes:
         return
     audio, rate = decode_wav(wav_bytes)
@@ -8766,6 +9017,8 @@ def play_wav(wav_bytes, token, reaction=None, *, echo=None):
                         echo.suspend_render()
                         tap = None
                 played = True
+                if timeline is not None:
+                    timeline.mark("first_audio")
                 stream.write(block)
     except (ImportError, OSError):
         if token.is_set():
@@ -8774,13 +9027,13 @@ def play_wav(wav_bytes, token, reaction=None, *, echo=None):
             raise
         if echo is not None:
             echo.suspend_render()  # winsound has no timed render reference
-        _play_windows(audio, rate, token)
+        _play_windows(audio, rate, token, timeline=timeline)
     finally:
         if tap is not None:
             tap.finish(time.monotonic())
 
 
-def _play_windows(audio, rate, token):
+def _play_windows(audio, rate, token, *, timeline=None):
     """Windows fallback only before any PCM was written; shares cancellation token."""
     from jarvis import paths
     import winsound
@@ -8793,6 +9046,8 @@ def _play_windows(audio, rate, token):
             str(path),
             winsound.SND_FILENAME | winsound.SND_ASYNC | winsound.SND_NODEFAULT,
         )
+        if timeline is not None:
+            timeline.mark("first_audio")
         try:
             end = time.monotonic() + len(audio) / rate
             while time.monotonic() < end and not token.wait(0.05):
@@ -10833,6 +11088,9 @@ DEFAULT_CONFIG = {
     "decision_unclear_score": 0.62,      # ниже — «не команда», между — «переспросить»
     "decision_asr_min_confidence": 0.55,  # уверенность ASR для чёткого решения
     "decision_agreement_min": 0.80,      # согласие двух гипотез текста
+    # Метрики TTS-конвейера (jarvis/audio_metrics.py): только длительности и
+    # ресурсы, без текста команды. Нужны для baseline R1 (median/p95).
+    "metrics_enabled": True,
     # Правильная рабочая модель — как в config.example.json.
     # Раньше тут был "coriollon/..." — сломанная репа на HF.
     "whisper_model": "deepdml/faster-whisper-large-v3-turbo-ct2",
@@ -10909,6 +11167,11 @@ DEFAULT_CONFIG = {
     "active_packs": [],
     "app_paths": {},
     "custom_commands": [],
+    # Понимать свои команды с обратным порядком слов:
+    # «калькулятор открой» = «открой калькулятор». Выключено по умолчанию —
+    # порог 0.85 по отсортированным словам может сработать на «похожей»
+    # фразе, поэтому включается явно, как и decision_*.
+    "commands_reversed_order": False,
     "timers_file": "timers.json",
     "tasks_file": "tasks.json",
     "memory_file": "dialog.json",
@@ -22592,20 +22855,29 @@ def reload_custom(handler):
 def match_custom(handler, cmd: str) -> str | None:
     """Тот же matcher используется уточнениями, но исполнение только здесь."""
     semantic = bool(handler.config.get("decision_semantic_enabled", False))
-    matched = find_custom(handler.custom, cmd, semantic=semantic)
+    reversed_order = bool(handler.config.get("commands_reversed_order", False))
+    matched = find_custom(handler.custom, cmd, semantic=semantic,
+                          reversed_order=reversed_order)
     if matched is None:
         # The microphone already removes the address; typed GUI commands may include it.
         from jarvis.command_builder import clean_phrase
         typed = [item for item in handler.custom if len(item) > 3 and item[3].get("exact")]
         matched = find_custom(typed, clean_phrase(cmd, handler.config.get("wake_words", [])),
-                              semantic=semantic)
+                              semantic=semantic, reversed_order=reversed_order)
     if matched is not None:
         return execute_custom(handler, *matched)
     return None
 
 
-def find_custom(custom: list, cmd: str, *, semantic: bool = False) -> tuple | None:
-    """Чистый поиск: точное или нечёткое совпадение, без побочных действий. ... [6 строк]"""
+def _sorted_words(text: str) -> str:
+    """Слова по алфавиту: так «музыку включи» и «включи музыку» совпадают."""
+    words = [word for word in text.split() if word]
+    return " ".join(sorted(words))
+
+
+def find_custom(custom: list, cmd: str, *, semantic: bool = False,
+                reversed_order: bool = False) -> tuple | None:
+    """Чистый поиск: точное или нечёткое совпадение, без побочных действий. ... [11 строк]"""
     # Exact matches across the whole list take precedence over legacy fuzzy ones.
     for item in custom:
         phrases, action, reply = item[:3]
@@ -22623,7 +22895,13 @@ def find_custom(custom: list, cmd: str, *, semantic: bool = False) -> tuple | No
             if len(left) >= 12 and len(right) >= 12:
                 if SequenceMatcher(None, left, right).ratio() >= 0.85:
                     return action, reply
+                if reversed_order:
+                    left_sorted, right_sorted = _sorted_words(left), _sorted_words(right)
+                    if (left_sorted != left or right_sorted != right) and \
+                            SequenceMatcher(None, left_sorted, right_sorted).ratio() >= 0.85:
+                        return action, reply
     return None
+
 
 
 def execute_custom(handler, action, reply: str, *, authorized: bool = False) -> str:
@@ -26541,6 +26819,7 @@ from pathlib import Path
 from jarvis.matching import wake_score
 
 from jarvis import APP_NAME, __version__
+from jarvis import audio_metrics
 from jarvis.apps import build_apps
 from jarvis.cache_maintenance import purge_stale_bytecode
 from jarvis.config import Config, load_config
@@ -26667,9 +26946,14 @@ class Jarvis:
                 self.listener.muted = False
             if self.gui is not None:
                 self.gui.set_state("idle")
+            # Ход закончился: следующий say() не должен переиспользовать t0.
+            self._turn_t0 = None
         return barge_happened
 
+
     def _say_text(self, text: str, *, allow_nonverbal=False, cancel_event=None) -> None:
+        make_timeline = getattr(self, "_make_timeline", None)
+        timeline = make_timeline() if callable(make_timeline) else None
         # Постфильтр «красной черты»: промпт в brain.py её только просит.
         ok, reason = safety.check_response(text)
         if not ok:
@@ -26678,63 +26962,102 @@ class Jarvis:
                 reason,
             )
             text = safety.SAFE_REPLY
+        if timeline is not None:
+            timeline.mark("first_chunk")
+            timeline.mark("first_safe")
+            timeline.count_chunk()
         kwargs = {"allow_nonverbal": allow_nonverbal and ok}
         if cancel_event is not None:
             kwargs["cancel_event"] = cancel_event
+        if timeline is not None:
+            kwargs["timeline"] = timeline
         started = self.speaker.play_async(text, **kwargs)
         if started is False:
             # Text is already visible in Dialog. Pending voice preparation must
             # not hold cmd_lock/_say_lock or replay an obsolete reply later.
+            if timeline is not None:
+                timeline.finish(cancelled=True,
+                                backend=str(getattr(self.speaker, "_engine_name", "") or ""))
             return
         deadline = time.monotonic() + 120.0
         stop_requested = getattr(self.speaker, "stop_requested", None)
+        cancelled = False
         while self.speaker.is_playing():
             if (stop_requested is not None and stop_requested() is True):
+                cancelled = True
                 break
             if time.monotonic() >= deadline:
                 log.error("TTS: превышен предел ожидания одной реплики; отменяю озвучку")
                 self.speaker.stop()
+                cancelled = True
                 break
             if self.barge_enabled and self.listener is not None and self.listener.barge_flag:
                 log.info("Barge-in сработал — прерываю TTS")
                 self.speaker.stop()
+                cancelled = True
                 break
             time.sleep(0.05)
         self.speaker.wait_end(timeout=2.0)
+        if timeline is not None:
+            timeline.finish(cancelled=cancelled,
+                            backend=str(getattr(self.speaker, "_engine_name", "") or ""))
+
+    def _make_timeline(self):
+        """Метрики хода: только длительности. Выключение — metrics_enabled."""
+        try:
+            enabled = bool(self.config.get("metrics_enabled", True))
+        except Exception:
+            enabled = True
+        return audio_metrics.Timeline(getattr(self, "_turn_t0", None), enabled=enabled)
 
     def _say_stream(self, gen, *, allow_nonverbal=False) -> None:
         """Озвучивает стрим и показывает чанки в GUI. ... [7 строк]"""
         result = {"text": ""}
         # Состояние постфильтра: safety кладёт сюда весь текст и факт блокировки.
         guard: dict = {}
+        make_timeline = getattr(self, "_make_timeline", None)
+        timeline = make_timeline() if callable(make_timeline) else None
+        backend = str(getattr(getattr(self, "speaker", None), "_engine_name", "") or "")
 
         def _tee(iterator):
             """Пропускает чанки и в TTS, и в GUI."""
             for chunk in iterator:
                 result["text"] += chunk
+                if timeline is not None:
+                    timeline.count_chunk()
+                    timeline.mark("first_chunk")
                 if self.gui is not None:
                     self.gui.add_stream_chunk(chunk)
                 yield chunk
 
+        def _guarded(iterator):
+            """Постфильтр; first_safe — первый чанк, который можно произносить."""
+            for chunk in safety.guard_stream(iterator, guard):
+                if timeline is not None:
+                    timeline.mark("first_safe")
+                yield chunk
+
         def _run():
+            kwargs = {"allow_nonverbal": allow_nonverbal}
+            if timeline is not None:
+                kwargs["timeline"] = timeline
             try:
                 # Постфильтр: начало стрима придерживается до проверки.
-                self.speaker.speak_stream(
-                    _tee(safety.guard_stream(gen, guard)),
-                    allow_nonverbal=allow_nonverbal,
-                )
+                self.speaker.speak_stream(_guarded(_tee(gen)), **kwargs)
             except Exception:
                 log.exception("Ошибка в speak_stream")
 
         t = threading.Thread(target=_run, daemon=True, name="tts-stream")
         t.start()
 
+        cancelled = False
         try:
             while t.is_alive():
                 if self.barge_enabled and self.listener is not None and self.listener.barge_flag:
                     log.info("Barge-in сработал — прерываю стриминг")
                     self.speaker.stop()
                     t.join(timeout=1.0)
+                    cancelled = True
                     break
                 time.sleep(0.05)
             t.join(timeout=5.0)
@@ -26744,6 +27067,7 @@ class Jarvis:
                 self.gui.end_stream()
 
             if guard.get("blocked"):
+                cancelled = True
                 log.error(
                     "Safety: ответ заблокирован (категория=%s) — стрим прерван",
                     guard.get("reason"),
@@ -26754,6 +27078,11 @@ class Jarvis:
             if (result["text"] and not guard.get("blocked")
                     and hasattr(self.handler, "finalize_stream")):
                 self.handler.finalize_stream(result["text"])
+
+            if timeline is not None:
+                timeline.finish(cancelled=cancelled, backend=backend)
+
+
 
     def shutdown(self) -> None:
         self.stop_event.set()
@@ -26906,6 +27235,8 @@ class Jarvis:
 
             if self.gui is not None:
                 self.gui.set_state("thinking")
+            # t0 хода: от запроса к LLM до конца озвучки (метрики R1).
+            self._turn_t0 = time.perf_counter()
             reply = self.handler.handle(cmd)
 
             if self.gui is not None and not reply.is_stream:
@@ -33104,6 +33435,9 @@ class Speaker:
         self._play_thread = None
         self._playing = False
         self._play_lock = threading.Lock()
+        # Метрики текущего вызова (jarvis.audio_metrics.Timeline) или None:
+        # нужны только для замера, поведение озвучки не меняют.
+        self._call_timeline = None
 
         # Per-call stop-token
         self._current_token = threading.Event()
@@ -33351,7 +33685,8 @@ class Speaker:
                 self.stop()
                 self.wait_end(timeout=2.0)
 
-    def play_async(self, text: str, *, allow_nonverbal=False, cancel_event=None) -> bool:
+    def play_async(self, text: str, *, allow_nonverbal=False, cancel_event=None,
+                   timeline=None) -> bool:
         """Асинхронная озвучка одного текста."""
         if not text:
             return False
@@ -33381,6 +33716,7 @@ class Speaker:
         engine, engine_name, voice, rate = self._engine, self._engine_name, self.voice, self.rate
         with self._play_lock:
             self._playing = True
+            self._call_timeline = timeline
 
         def _run():
             try:
@@ -33400,6 +33736,7 @@ class Speaker:
             finally:
                 with self._play_lock:
                     self._playing = False
+                    self._call_timeline = None
 
         self._play_thread = threading.Thread(target=_run, daemon=True,
                                              name="tts-play")
@@ -33408,7 +33745,8 @@ class Speaker:
         return True
 
     def speak_stream(self, text_iter: Iterator[str],
-                     timeout: float = 30.0, *, allow_nonverbal=False) -> str:
+                     timeout: float = 30.0, *, allow_nonverbal=False,
+                     timeline=None) -> str:
         """Стриминг: озвучивает по предложениям. ... [3 строк]"""
         serial = getattr(self, "_stop_serial", None)
         if not self._ensure_engine():
@@ -33428,6 +33766,7 @@ class Speaker:
         engine, voice, rate = self._engine, self.voice, self.rate
         with self._play_lock:
             self._playing = True
+            self._call_timeline = timeline
             # Публикуем поток: иначе is_playing()/wait_end() во время
             # стрима отвечали «не играю» и напоминание могло озвучиться
             # поверх ответа.
@@ -33443,6 +33782,7 @@ class Speaker:
         finally:
             with self._play_lock:
                 self._playing = False
+                self._call_timeline = None
 
     def stop(self) -> None:
         """Взводит текущий токен. Старые — не трогает."""
@@ -33496,6 +33836,9 @@ class Speaker:
     def _play_wav(self, wav_bytes: bytes, token: threading.Event) -> None:
         """Единый микшер для прямой и потоковой PCM-озвучки."""
         from jarvis.audio_output import play_wav
+        timeline = getattr(self, "_call_timeline", None)
+        if timeline is not None:
+            timeline.mark("first_pcm")
         policy = getattr(self, "_nonverbal", None)
         reaction = None
         if policy is not None:
@@ -33504,12 +33847,13 @@ class Speaker:
             except Exception:
                 log.exception("Non-verbal: ошибка необязательной реакции; продолжаю речь")
         path = self._pcm_echo_path()
+        extra = {"timeline": timeline} if timeline is not None else {}
         if path is not None:
             if getattr(path, "diagnostic_mode", False) is True:
                 path.set_trace_backend(self._engine_name, getattr(self, "voice", None))
-            play_wav(wav_bytes, token, reaction, echo=path)
+            play_wav(wav_bytes, token, reaction, echo=path, **extra)
         else:
-            play_wav(wav_bytes, token, reaction)
+            play_wav(wav_bytes, token, reaction, **extra)
 
 
 # Список доступных движков — для GUI/CLI
@@ -42328,6 +42672,111 @@ def test_semantic_router_resolves_synonyms_instead_of_escalating():
     assert result.text == "вруби музыку"
 ```
 
+### `tests/test_audio_metrics.py`
+
+```python
+"""Метрики TTS-конвейера: чистая логика, без аудиоустройств и сети."""
+
+import threading
+import time
+
+import pytest
+
+from jarvis import audio_metrics
+
+
+def test_marks_keep_first_value():
+    audio_metrics.reset()
+    tl = audio_metrics.Timeline()
+    tl.mark("first_chunk")
+    first = tl.durations()["first_chunk"]
+    time.sleep(0.02)
+    tl.mark("first_chunk")
+    assert tl.durations()["first_chunk"] == first
+    assert first >= 0
+
+
+def test_finish_records_durations_without_text():
+    audio_metrics.reset()
+    tl = audio_metrics.Timeline()
+    for name in audio_metrics.MARK_NAMES:
+        tl.mark(name)
+    tl.count_chunk()
+    tl.count_chunk()
+    record = tl.finish(cancelled=False, backend="piper")
+
+    assert record["chunks"] == 2
+    assert record["backend"] == "piper"
+    assert record["cancelled"] is False
+    assert record["total_ms"] >= 0
+    for key in ("chunk_ms", "safe_ms", "pcm_ms", "audio_ms"):
+        assert record[key] is not None
+    # Никакого текста в метриках: ключи — только числа/флаги/имя движка.
+    assert all("text" not in key for key in record)
+    assert all(isinstance(value, (int, float, bool, str, type(None)))
+               for value in record.values())
+
+
+def test_summary_median_and_p95():
+    audio_metrics.reset()
+    for total in (1.0, 2.0, 3.0, 4.0):
+        tl = audio_metrics.Timeline(t0=time.perf_counter() - total)
+        tl.mark("first_chunk")
+        tl.finish()
+    summary = audio_metrics.summary()
+    assert summary["turns"] == 4
+    assert summary["chunk_ms"]["n"] == 4
+    # p50 — медиана, p95 — ближайший ранг: 4 значения → последнее.
+    assert summary["chunk_ms"]["p50"] == pytest.approx(2500.0, rel=0.2)
+    assert summary["chunk_ms"]["p95"] >= summary["chunk_ms"]["p50"]
+
+
+def test_disabled_timeline_is_noop():
+    audio_metrics.reset()
+    tl = audio_metrics.Timeline(enabled=False)
+    tl.mark("first_chunk")
+    tl.count_chunk()
+    assert tl.durations() == {}
+    assert tl.finish() == {}
+    assert audio_metrics.summary()["turns"] == 0
+
+
+def test_marks_from_threads_are_safe():
+    audio_metrics.reset()
+    tl = audio_metrics.Timeline()
+    errors = []
+
+    def worker():
+        try:
+            tl.mark("first_chunk")
+            tl.count_chunk()
+        except Exception as exc:  # pragma: no cover — сообщаем, а не глотаем
+            errors.append(exc)
+
+    threads = [threading.Thread(target=worker) for _ in range(16)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(5)
+    assert not errors
+    assert set(tl.durations()) == {"first_chunk"}
+    record = tl.finish()
+    assert record["chunks"] == 16
+
+
+def test_ring_is_capped():
+    audio_metrics.reset()
+    for _ in range(audio_metrics.MAX_TURNS + 5):
+        audio_metrics.Timeline().finish()
+    assert len(audio_metrics.recent()) == audio_metrics.MAX_TURNS
+
+
+def test_p95_nearest_rank():
+    assert audio_metrics._p95([5]) == 5.0
+    assert audio_metrics._p95([1, 2, 3, 4]) == 4.0
+    assert audio_metrics._p95([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) == 10.0
+```
+
 ### `tests/test_audio_regression.py`
 
 ```python
@@ -45399,6 +45848,56 @@ def test_load_broken(tmp_path):
     bad = tmp_path / "bad.json"
     bad.write_text("{это не json", encoding="utf-8")
     assert config_manager.load(path=bad) == {}
+```
+
+### `tests/test_custom_reversed_order.py`
+
+```python
+"""Свои команды с обратным порядком слов (commands_reversed_order)."""
+
+from jarvis.intents.fast.custom import find_custom
+
+
+def _entry(phrase: str):
+    return ([phrase], "открыть", "Выполняю.")
+
+
+def test_reversed_order_matches_when_words_are_rearranged():
+    custom = [_entry("включи ночной режим сети")]
+    # Перестановка четырёх слов: обычная нечёткая сверка ниже порога 0.85.
+    heard = "сети режим ночной включи"
+    assert find_custom(custom, heard) is None
+    assert find_custom(custom, heard, reversed_order=True) is not None
+
+
+def test_reversed_order_does_not_match_other_words():
+    custom = [_entry("включи ночной режим сети")]
+    # Другой набор слов: совпадения нет даже при сравнении по сортировке.
+    assert find_custom(custom, "открой корзину и папку", reversed_order=True) is None
+
+
+def test_reversed_order_requires_all_words():
+    custom = [_entry("включи ночной режим сети")]
+    # Пропущено слово — отсортированные фразы слишком разные для порога 0.85.
+    assert find_custom(custom, "сети режим включи", reversed_order=True) is None
+
+
+def test_reversed_order_keeps_plain_fuzzy_behavior():
+    custom = [_entry("открой калькулятор сейчас")]
+    # Обычное нечёткое совпадение работает и без флага.
+    assert find_custom(custom, "открой калькулятор сейчаc") is not None
+
+
+def test_reversed_order_ignores_exact_builder_entries():
+    exact = (["включи ночной режим сети"], ["открыть"], "", {"exact": True})
+    assert find_custom([exact], "сети режим ночной включи",
+                       reversed_order=True) is None
+
+
+def test_reversed_order_skips_short_phrases():
+    custom = [_entry("открой свет")]
+    # Меньше 12 символов — нечёткие пороги не применяются вовсе.
+    assert find_custom(custom, "свет открой", reversed_order=True) is None
 ```
 
 ### `tests/test_danger_policy.py`
@@ -59932,6 +60431,83 @@ def test_failed_config_rollback_is_visible_in_log(monkeypatch, tmp_path, caplog)
     assert "не удалось вернуть настройки" in caplog.text
 ```
 
+### `tests/test_tts_metrics_wiring.py`
+
+```python
+"""Связка Speaker→Timeline: метки появляются, поведение озвучки не меняется."""
+
+from jarvis import audio_metrics, audio_output, tts
+
+
+class FakeEngine:
+    name = "piper"
+    voice = "ruslan"
+
+    def __init__(self):
+        self._wav_player = None
+
+    def set_wav_player(self, player):
+        self._wav_player = player
+
+    def set_rate(self, rate):
+        pass
+
+    def stop(self):
+        pass
+
+    def synthesize(self, text, voice=None, rate=None):
+        return b"wav"
+
+    def speak_stream(self, text_iter, voice, rate, token):
+        parts = []
+        for chunk in text_iter:
+            parts.append(chunk)
+        self._wav_player(b"wav", token)
+        return "".join(parts).strip()
+
+
+def _speaker(monkeypatch, engine):
+    monkeypatch.setattr(tts, "get_engine", lambda *args, **kwargs: engine)
+    return tts.Speaker({"tts_backend": "piper", "tts_voice": "ruslan"})
+
+
+def test_speak_stream_marks_pcm_and_audio(monkeypatch):
+    audio_metrics.reset()
+    engine = FakeEngine()
+    calls = []
+
+    def fake_play_wav(wav, token, reaction=None, *, echo=None, timeline=None):
+        calls.append(echo)
+        if timeline is not None:
+            timeline.mark("first_audio")
+
+    monkeypatch.setattr(audio_output, "play_wav", fake_play_wav)
+    speaker = _speaker(monkeypatch, engine)
+    timeline = audio_metrics.Timeline()
+
+    text = speaker.speak_stream(iter(["Один.", " Два."]), timeline=timeline)
+
+    assert text == "Один. Два."
+    assert calls
+    marks = timeline.durations()
+    assert "first_pcm" in marks
+    assert "first_audio" in marks
+    record = timeline.finish()
+    assert record["pcm_ms"] is not None
+    assert record["audio_ms"] is not None
+
+
+def test_play_async_marks_pcm(monkeypatch):
+    audio_metrics.reset()
+    monkeypatch.setattr(audio_output, "play_wav", lambda *args, **kwargs: None)
+    speaker = _speaker(monkeypatch, FakeEngine())
+    timeline = audio_metrics.Timeline()
+
+    assert speaker.play_async("Привет", timeline=timeline)
+    assert speaker.wait_end(3.0)
+    assert "first_pcm" in timeline.durations()
+```
+
 ### `tests/test_tts_readiness.py`
 
 ```python
@@ -67648,10 +68224,11 @@ certifi>=2024.8.30
   - 👥 Мультипрофиль
   - ⚙️ Поток конфига
 
-#### `CHANGELOG.md` — 151 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `CHANGELOG.md` — 152 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Changelog
   - [Не выпущено]
+    - Baseline TTS-конвейера и свои команды «наоборот»
     - Документация: живой README и карта docs
     - Сборка: консоль cp1251 и локальный установщик
     - Пипетка, тосты и подсказки первого запуска
@@ -67689,7 +68266,6 @@ certifi>=2024.8.30
     - Чистый комплект разработки и передачи в новый чат
     - JASTIN принят как целевое видение (только документация)
     - Экспериментальный AEC Piper
-    - Надёжность первого запуска Windows
 
 #### `CI.md` — 16 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -68190,4 +68766,4 @@ certifi>=2024.8.30
 
 ---
 
-_Итого по категориям — code: 273, data: 60, doc: 53, pack: 5. Режим `lean`._
+_Итого по категориям — code: 277, data: 60, doc: 53, pack: 5. Режим `lean`._

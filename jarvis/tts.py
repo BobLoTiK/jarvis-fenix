@@ -60,6 +60,9 @@ class Speaker:
         self._play_thread = None
         self._playing = False
         self._play_lock = threading.Lock()
+        # Метрики текущего вызова (jarvis.audio_metrics.Timeline) или None:
+        # нужны только для замера, поведение озвучки не меняют.
+        self._call_timeline = None
 
         # Per-call stop-token
         self._current_token = threading.Event()
@@ -312,7 +315,8 @@ class Speaker:
                 self.stop()
                 self.wait_end(timeout=2.0)
 
-    def play_async(self, text: str, *, allow_nonverbal=False, cancel_event=None) -> bool:
+    def play_async(self, text: str, *, allow_nonverbal=False, cancel_event=None,
+                   timeline=None) -> bool:
         """Асинхронная озвучка одного текста."""
         if not text:
             return False
@@ -342,6 +346,7 @@ class Speaker:
         engine, engine_name, voice, rate = self._engine, self._engine_name, self.voice, self.rate
         with self._play_lock:
             self._playing = True
+            self._call_timeline = timeline
 
         def _run():
             try:
@@ -361,6 +366,7 @@ class Speaker:
             finally:
                 with self._play_lock:
                     self._playing = False
+                    self._call_timeline = None
 
         self._play_thread = threading.Thread(target=_run, daemon=True,
                                              name="tts-play")
@@ -369,7 +375,8 @@ class Speaker:
         return True
 
     def speak_stream(self, text_iter: Iterator[str],
-                     timeout: float = 30.0, *, allow_nonverbal=False) -> str:
+                     timeout: float = 30.0, *, allow_nonverbal=False,
+                     timeline=None) -> str:
         """Стриминг: озвучивает по предложениям.
 
         Возвращает полный озвученный текст.
@@ -392,6 +399,7 @@ class Speaker:
         engine, voice, rate = self._engine, self.voice, self.rate
         with self._play_lock:
             self._playing = True
+            self._call_timeline = timeline
             # Публикуем поток: иначе is_playing()/wait_end() во время
             # стрима отвечали «не играю» и напоминание могло озвучиться
             # поверх ответа.
@@ -407,6 +415,7 @@ class Speaker:
         finally:
             with self._play_lock:
                 self._playing = False
+                self._call_timeline = None
 
     def stop(self) -> None:
         """Взводит текущий токен. Старые — не трогает."""
@@ -460,6 +469,9 @@ class Speaker:
     def _play_wav(self, wav_bytes: bytes, token: threading.Event) -> None:
         """Единый микшер для прямой и потоковой PCM-озвучки."""
         from jarvis.audio_output import play_wav
+        timeline = getattr(self, "_call_timeline", None)
+        if timeline is not None:
+            timeline.mark("first_pcm")
         policy = getattr(self, "_nonverbal", None)
         reaction = None
         if policy is not None:
@@ -468,12 +480,13 @@ class Speaker:
             except Exception:
                 log.exception("Non-verbal: ошибка необязательной реакции; продолжаю речь")
         path = self._pcm_echo_path()
+        extra = {"timeline": timeline} if timeline is not None else {}
         if path is not None:
             if getattr(path, "diagnostic_mode", False) is True:
                 path.set_trace_backend(self._engine_name, getattr(self, "voice", None))
-            play_wav(wav_bytes, token, reaction, echo=path)
+            play_wav(wav_bytes, token, reaction, echo=path, **extra)
         else:
-            play_wav(wav_bytes, token, reaction)
+            play_wav(wav_bytes, token, reaction, **extra)
 
 
 # Список доступных движков — для GUI/CLI

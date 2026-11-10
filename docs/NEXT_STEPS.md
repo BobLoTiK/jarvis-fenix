@@ -138,6 +138,14 @@ Synthetic/portable тесты не заменяют живую Windows-приё�
    готового PCM и начала звука; паузы, CPU/RAM, cold/warm median/p95.
    Связать запрос/реплику/ответ с профилем, отменой и deadline в существующих
    владельцах. Не строить новый event bus ради меток; не писать секреты в логи.
+   **Сделано в исходниках:** `jarvis/audio_metrics.py` (`Timeline` с метками
+   `first_chunk`/`first_safe`/`first_pcm`/`first_audio`, кольцо последних
+   50 ходов, `summary()` с p50/p95), проводка в `main._say_text/_say_stream`,
+   `Speaker.play_async/speak_stream` и `audio_output.play_wav`; флаг
+   `metrics_enabled` включён, в журнале строка `tts_metrics:` без текста.
+   Тесты: `tests/test_audio_metrics.py`, `tests/test_tts_metrics_wiring.py`.
+   **Осталось:** снять живой baseline на этом ПК (микрофон + LLM), записать
+   медианы/p95 в документацию и только потом задавать бюджеты.
 2. **Лёгкий пакет Piper:** явная установка, размер/лицензия, один активный голос,
    CPU-потоки и понятный fallback; не требовать системного голоса или GPU.
    Выбор пользователя и параметры Ollama не менять молча.

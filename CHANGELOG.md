@@ -15,6 +15,26 @@
 
 ## [Не выпущено]
 
+### Baseline TTS-конвейера и свои команды «наоборот»
+
+- `jarvis/audio_metrics.py` — метрики R1: `Timeline` с метками
+  `first_chunk` (первый чанк LLM), `first_safe` (первый чанк после постфильтра
+  безопасности), `first_pcm` (синтез готов), `first_audio` (плеер начал писать
+  звук); кольцо последних 50 ходов, `summary()` с p50/p95, счётчик чанков,
+  CPU/RSS-дельта и флаг отмены. В журнал уходит одна строка `tts_metrics:`;
+  текст команды и ответа не пишется. Выключение — `metrics_enabled: false`.
+- Проводка: `Jarvis._say_stream`/`_say_text` (t0 хода — от запроса к LLM до
+  конца озвучки), `Speaker.play_async`/`speak_stream`, `audio_output.play_wav`
+  (метка начала звука и для sounddevice, и для winsound-fallback). Поведение
+  озвучки не меняется; при `timeline=None` вызовы идут прежними аргументами.
+- Свои команды понимают обратный порядок слов при
+  `commands_reversed_order: true` (по умолчанию **выключено**): фразы
+  сравниваются по отсортированным словам с тем же порогом 0.85 и минимумом
+  12 символов, builder-команды с точным совпадением не затрагиваются.
+- Тесты: `tests/test_audio_metrics.py` (7), `tests/test_tts_metrics_wiring.py`
+  (2), `tests/test_custom_reversed_order.py` (6). Полный прогон: 2223 passed,
+  3 skipped.
+
 ### Документация: живой README и карта docs
 
 - `README.md` переписан как витрина: бейджи релиза/CI/платформы, содержание со

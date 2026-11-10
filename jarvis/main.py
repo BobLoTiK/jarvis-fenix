@@ -21,6 +21,7 @@ from pathlib import Path
 from jarvis.matching import wake_score
 
 from jarvis import APP_NAME, __version__
+from jarvis import audio_metrics
 from jarvis.apps import build_apps
 from jarvis.cache_maintenance import purge_stale_bytecode
 from jarvis.config import Config, load_config
@@ -152,9 +153,14 @@ class Jarvis:
                 self.listener.muted = False
             if self.gui is not None:
                 self.gui.set_state("idle")
+            # Ход закончился: следующий say() не должен переиспользовать t0.
+            self._turn_t0 = None
         return barge_happened
 
+
     def _say_text(self, text: str, *, allow_nonverbal=False, cancel_event=None) -> None:
+        make_timeline = getattr(self, "_make_timeline", None)
+        timeline = make_timeline() if callable(make_timeline) else None
         # Постфильтр «красной черты»: промпт в brain.py её только просит.
         ok, reason = safety.check_response(text)
         if not ok:
@@ -163,29 +169,53 @@ class Jarvis:
                 reason,
             )
             text = safety.SAFE_REPLY
+        if timeline is not None:
+            timeline.mark("first_chunk")
+            timeline.mark("first_safe")
+            timeline.count_chunk()
         kwargs = {"allow_nonverbal": allow_nonverbal and ok}
         if cancel_event is not None:
             kwargs["cancel_event"] = cancel_event
+        if timeline is not None:
+            kwargs["timeline"] = timeline
         started = self.speaker.play_async(text, **kwargs)
         if started is False:
             # Text is already visible in Dialog. Pending voice preparation must
             # not hold cmd_lock/_say_lock or replay an obsolete reply later.
+            if timeline is not None:
+                timeline.finish(cancelled=True,
+                                backend=str(getattr(self.speaker, "_engine_name", "") or ""))
             return
         deadline = time.monotonic() + 120.0
         stop_requested = getattr(self.speaker, "stop_requested", None)
+        cancelled = False
         while self.speaker.is_playing():
             if (stop_requested is not None and stop_requested() is True):
+                cancelled = True
                 break
             if time.monotonic() >= deadline:
                 log.error("TTS: превышен предел ожидания одной реплики; отменяю озвучку")
                 self.speaker.stop()
+                cancelled = True
                 break
             if self.barge_enabled and self.listener is not None and self.listener.barge_flag:
                 log.info("Barge-in сработал — прерываю TTS")
                 self.speaker.stop()
+                cancelled = True
                 break
             time.sleep(0.05)
         self.speaker.wait_end(timeout=2.0)
+        if timeline is not None:
+            timeline.finish(cancelled=cancelled,
+                            backend=str(getattr(self.speaker, "_engine_name", "") or ""))
+
+    def _make_timeline(self):
+        """Метрики хода: только длительности. Выключение — metrics_enabled."""
+        try:
+            enabled = bool(self.config.get("metrics_enabled", True))
+        except Exception:
+            enabled = True
+        return audio_metrics.Timeline(getattr(self, "_turn_t0", None), enabled=enabled)
 
     def _say_stream(self, gen, *, allow_nonverbal=False) -> None:
         """Озвучивает стрим и показывает чанки в GUI.
@@ -199,34 +229,49 @@ class Jarvis:
         result = {"text": ""}
         # Состояние постфильтра: safety кладёт сюда весь текст и факт блокировки.
         guard: dict = {}
+        make_timeline = getattr(self, "_make_timeline", None)
+        timeline = make_timeline() if callable(make_timeline) else None
+        backend = str(getattr(getattr(self, "speaker", None), "_engine_name", "") or "")
 
         def _tee(iterator):
             """Пропускает чанки и в TTS, и в GUI."""
             for chunk in iterator:
                 result["text"] += chunk
+                if timeline is not None:
+                    timeline.count_chunk()
+                    timeline.mark("first_chunk")
                 if self.gui is not None:
                     self.gui.add_stream_chunk(chunk)
                 yield chunk
 
+        def _guarded(iterator):
+            """Постфильтр; first_safe — первый чанк, который можно произносить."""
+            for chunk in safety.guard_stream(iterator, guard):
+                if timeline is not None:
+                    timeline.mark("first_safe")
+                yield chunk
+
         def _run():
+            kwargs = {"allow_nonverbal": allow_nonverbal}
+            if timeline is not None:
+                kwargs["timeline"] = timeline
             try:
                 # Постфильтр: начало стрима придерживается до проверки.
-                self.speaker.speak_stream(
-                    _tee(safety.guard_stream(gen, guard)),
-                    allow_nonverbal=allow_nonverbal,
-                )
+                self.speaker.speak_stream(_guarded(_tee(gen)), **kwargs)
             except Exception:
                 log.exception("Ошибка в speak_stream")
 
         t = threading.Thread(target=_run, daemon=True, name="tts-stream")
         t.start()
 
+        cancelled = False
         try:
             while t.is_alive():
                 if self.barge_enabled and self.listener is not None and self.listener.barge_flag:
                     log.info("Barge-in сработал — прерываю стриминг")
                     self.speaker.stop()
                     t.join(timeout=1.0)
+                    cancelled = True
                     break
                 time.sleep(0.05)
             t.join(timeout=5.0)
@@ -236,6 +281,7 @@ class Jarvis:
                 self.gui.end_stream()
 
             if guard.get("blocked"):
+                cancelled = True
                 log.error(
                     "Safety: ответ заблокирован (категория=%s) — стрим прерван",
                     guard.get("reason"),
@@ -246,6 +292,11 @@ class Jarvis:
             if (result["text"] and not guard.get("blocked")
                     and hasattr(self.handler, "finalize_stream")):
                 self.handler.finalize_stream(result["text"])
+
+            if timeline is not None:
+                timeline.finish(cancelled=cancelled, backend=backend)
+
+
 
     def shutdown(self) -> None:
         self.stop_event.set()
@@ -402,6 +453,8 @@ class Jarvis:
 
             if self.gui is not None:
                 self.gui.set_state("thinking")
+            # t0 хода: от запроса к LLM до конца озвучки (метрики R1).
+            self._turn_t0 = time.perf_counter()
             reply = self.handler.handle(cmd)
 
             if self.gui is not None and not reply.is_stream:

@@ -61,6 +61,9 @@ DEFAULT_CONFIG = {
     "decision_unclear_score": 0.62,      # ниже — «не команда», между — «переспросить»
     "decision_asr_min_confidence": 0.55,  # уверенность ASR для чёткого решения
     "decision_agreement_min": 0.80,      # согласие двух гипотез текста
+    # Метрики TTS-конвейера (jarvis/audio_metrics.py): только длительности и
+    # ресурсы, без текста команды. Нужны для baseline R1 (median/p95).
+    "metrics_enabled": True,
     # Правильная рабочая модель — как в config.example.json.
     # Раньше тут был "coriollon/..." — сломанная репа на HF.
     "whisper_model": "deepdml/faster-whisper-large-v3-turbo-ct2",
@@ -137,6 +140,11 @@ DEFAULT_CONFIG = {
     "active_packs": [],
     "app_paths": {},
     "custom_commands": [],
+    # Понимать свои команды с обратным порядком слов:
+    # «калькулятор открой» = «открой калькулятор». Выключено по умолчанию —
+    # порог 0.85 по отсортированным словам может сработать на «похожей»
+    # фразе, поэтому включается явно, как и decision_*.
+    "commands_reversed_order": False,
     "timers_file": "timers.json",
     "tasks_file": "tasks.json",
     "memory_file": "dialog.json",

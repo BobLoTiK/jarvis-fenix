@@ -83,7 +83,7 @@ def encode_wav(audio, rate):
     return buf.getvalue()
 
 
-def play_wav(wav_bytes, token, reaction=None, *, echo=None):
+def play_wav(wav_bytes, token, reaction=None, *, echo=None, timeline=None):
     if token.is_set() or not wav_bytes:
         return
     audio, rate = decode_wav(wav_bytes)
@@ -121,6 +121,8 @@ def play_wav(wav_bytes, token, reaction=None, *, echo=None):
                         echo.suspend_render()
                         tap = None
                 played = True
+                if timeline is not None:
+                    timeline.mark("first_audio")
                 stream.write(block)
     except (ImportError, OSError):
         if token.is_set():
@@ -129,13 +131,13 @@ def play_wav(wav_bytes, token, reaction=None, *, echo=None):
             raise
         if echo is not None:
             echo.suspend_render()  # winsound has no timed render reference
-        _play_windows(audio, rate, token)
+        _play_windows(audio, rate, token, timeline=timeline)
     finally:
         if tap is not None:
             tap.finish(time.monotonic())
 
 
-def _play_windows(audio, rate, token):
+def _play_windows(audio, rate, token, *, timeline=None):
     """Windows fallback only before any PCM was written; shares cancellation token."""
     from jarvis import paths
     import winsound
@@ -148,6 +150,8 @@ def _play_windows(audio, rate, token):
             str(path),
             winsound.SND_FILENAME | winsound.SND_ASYNC | winsound.SND_NODEFAULT,
         )
+        if timeline is not None:
+            timeline.mark("first_audio")
         try:
             end = time.monotonic() + len(audio) / rate
             while time.monotonic() < end and not token.wait(0.05):
