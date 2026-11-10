@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=1cb404b466b8cdee` · режим `lean` · файлов `397` · строк `74435` · источник `3519 КБ`
+`sha256=fdd91eb8625e918d` · режим `lean` · файлов `400` · строк `72312` · источник `3334 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -411,6 +411,22 @@ profile.current; при смене пользователя старый чер�
 новым редактором и не мигрируется молча. Портрет/цитата — явный пример стиля,
 не генерация, не запуск команды и не обучение.
 
+### Характер разговора и шутки
+
+`brain.CHAT_SYSTEM` задаёт голос диалога: одна мысль в 1–2 фразах, без
+вступлений и похвал вопросу, без объяснения панчлайна, без клише «я же ИИ».
+Погода, курс, новости и цифры не выдумываются: их дают команды, а не модель;
+при незнании — честное «не знаю» и короткая ирония. Красная черта, честность,
+память и формат ответа сохранены. `persona.STYLE_DESCRIPTIONS["friendly"]`
+описывает стиль как «по-дружески, без сюсюканья», чтобы блок персоны не тянул
+ответы к тепло-канцелярскому тону.
+
+`jarvis/jokes.py` — банк из 24 коротких шуток для голоса, выдача по колоде без
+повторов подряд. Быстрый интент `joke` ловит «расскажи шутку», «пошути»,
+«анекдот», «рассмеши» до LLM и отвечает мгновенно; просьбы про конкретную
+тему («шутку про кота») уходят в LLM. Проверки: `tests/test_jokes.py`,
+`tests/test_intents_jokes.py`.
+
 Общие настройки сохраняют только изменённые ключи одним Config.update с
 expected_values. Config.set/update сериализованы RLock, не публикуют данные
 до успешного сохранения; уведомления идут после записи вне write-lock.
@@ -537,7 +553,6 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── themes.svg  (19 стр)
 ├── build_nuitka.bat  (12 стр)
 ├── build_nuitka_full.bat  (17 стр)
-├── CHANGELOG.md  (2329 стр)
 ├── check_all.bat  (24 стр)
 ├── check_all.py  (170 стр)
 ├── check_syntax.bat  (7 стр)
@@ -586,7 +601,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── v2.1.2.md  (112 стр)
 │   ├── REVIEW_FIXES.md  (68 стр)
 │   ├── TTS_LIFECYCLE_FIX.md  (89 стр)
-│   ├── USER_GUIDE.md  (1245 стр)
+│   ├── USER_GUIDE.md  (1251 стр)
 │   ├── WHISPER_STARTUP_DLL_FIX.md  (85 стр)
 │   ├── WINDOWS_STARTUP_RELIABILITY.md  (108 стр)
 │   ├── WINRT_TTS_REMOVAL.md  (43 стр)
@@ -631,7 +646,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── audio_metrics.py  (191 стр)
 │   ├── audio_output.py  (160 стр)
 │   ├── barge.py  (56 стр)
-│   ├── brain.py  (971 стр)
+│   ├── brain.py  (995 стр)
 │   ├── cache_maintenance.py  (76 стр)
 │   ├── celebrations.py  (165 стр)
 │   ├── cloud_llm.py  (367 стр)
@@ -672,10 +687,11 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── context.py  (19 стр)
 │   │   ├── execute.py  (1044 стр)
 │   │   ├── fast/
-│   │   │   ├── __init__.py  (54 стр)
+│   │   │   ├── __init__.py  (56 стр)
 │   │   │   ├── correction.py  (28 стр)
 │   │   │   ├── custom.py  (148 стр)
 │   │   │   ├── debug.py  (48 стр)
+│   │   │   ├── jokes.py  (24 стр)
 │   │   │   ├── memory.py  (57 стр)
 │   │   │   ├── music.py  (38 стр)
 │   │   │   ├── open.py  (61 стр)
@@ -711,6 +727,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   │   ├── pending.py  (79 стр)
 │   │   │   ├── plugins.py  (30 стр)
 │   │   ├── verbs.py  (45 стр)
+│   ├── jokes.py  (71 стр)
 │   ├── language/
 │   │   ├── __init__.py  (17 стр)
 │   │   ├── context.py  (112 стр)
@@ -777,7 +794,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── work.json  (11 стр)
 ├── phoenix_app.py  (11 стр)
 ├── PLAN.md  (101 стр)
-├── PROJECT.md  (492 стр)
+├── PROJECT.md  (508 стр)
 ├── PROMPT.md  (72 стр)
 ├── pytest.ini  (20 стр)
 ├── README.md  (332 стр)
@@ -889,6 +906,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_gui_widgets.py  (259 стр)
 │   ├── test_gui_wiring.py  (591 стр)
 │   ├── test_intents.py  (487 стр)
+│   ├── test_intents_jokes.py  (26 стр)
+│   ├── test_jokes.py  (37 стр)
 │   ├── test_launcher_download.py  (233 стр)
 │   ├── test_launcher_ollama.py  (400 стр)
 │   ├── test_launcher_runtime.py  (122 стр)
@@ -1929,7 +1948,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 
 ```
   # Реестр быстрых обработчиков.
-  def build_registry(handler) -> [('custom', lambda cmd: match_custom(handler, cmd)), ('small_talk', lambda cmd: small_talk(handler, cmd)), ('music', lambda cmd: music_fast(handler, cmd)), ('screenshot', lambda cmd: screenshot_fast(handler, cmd)), ('u...]
+  def build_registry(handler) -> [('custom', lambda cmd: match_custom(handler, cmd)), ('joke', lambda cmd: joke_fast(handler, cmd)), ('small_talk', lambda cmd: small_talk(handler, cmd)), ('music', lambda cmd: music_fast(handler, cmd)), ('screenshot', ...]
 ```
 
 **`jarvis/intents/fast/correction.py`**
@@ -1956,6 +1975,14 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ```
   # Диагностика: «что ты слышал», «почему не понял».
   def debug_fast(handler, cmd: str)
+```
+
+**`jarvis/intents/fast/jokes.py`**
+
+```
+  # «Расскажи шутку» — свой банк реплик вместо импровизации LLM.
+  _TRIGGERS = ...
+  def joke_fast(handler, cmd: str)
 ```
 
 **`jarvis/intents/fast/memory.py`**
@@ -2239,6 +2266,15 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   CANCEL = ...
   SEARCH_VERBS = ...
   BROWSER_WORDS = ...
+```
+
+**`jarvis/jokes.py`**
+
+```
+  # Банк коротких шуток для голоса: курируем вручную, без сети и LLM.
+  JOKES: ...
+  def next_joke(rng: random.Random | None=None)
+  def reset()
 ```
 
 **`jarvis/language/__init__.py`**
@@ -4784,6 +4820,27 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def main()
 ```
 
+**`tests/test_intents_jokes.py`**
+
+```
+  # Быстрый интент «расскажи шутку»: свои реплики вместо импровизации LLM.
+  def test_generic_joke_requests_are_answered_from_bank()
+  def test_themed_joke_goes_to_llm()
+  def test_unrelated_commands_are_ignored()
+  def test_registry_answers_jokes_before_small_talk()
+```
+
+**`tests/test_jokes.py`**
+
+```
+  # Банк шуток: длина, уникальность и «колода» без повторов.
+  def test_jokes_are_short_and_single_line()
+  def test_jokes_are_unique()
+  def test_deck_serves_every_joke_once_per_cycle()
+  def test_deck_does_not_repeat_across_cycle_boundary()
+  def test_deck_is_deterministic_with_seeded_rng()
+```
+
 **`tests/test_launcher_download.py`**
 
 ```
@@ -6164,7 +6221,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/audio_metrics.py` | 191 | code | Метрики TTS-конвейера: только длительности и ресурсы, без текста. |
 | `jarvis/audio_output.py` | 160 | code | Shared cancellable PCM output for Speaker and the three WAV-based TTS  |
 | `jarvis/barge.py` | 56 | code | Очерёдность разговора при перебивании: чей это голос и можно ли вклини |
-| `jarvis/brain.py` | 971 | code | LLM-фолбэк: локальная нейронка (Ollama) разбирает команду в структурны |
+| `jarvis/brain.py` | 995 | code | LLM-фолбэк: локальная нейронка (Ollama) разбирает команду в структурны |
 | `jarvis/cache_maintenance.py` | 76 | code | Чистка устаревшего байткода после обновления файлов приложения. |
 | `jarvis/celebrations.py` | 165 | code | Праздничные триггеры — поздравление с ДР + двойной салют. |
 | `jarvis/cloud_llm.py` | 367 | code | Облачная LLM по HTTP: OpenAI-совместимые API и Anthropic. |
@@ -6203,10 +6260,11 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/intents/clarification.py` | 262 | code | Bounded, session-only slot filling shared by GUI and voice. |
 | `jarvis/intents/context.py` | 19 | code | Контекст, который передаётся между стадиями pipeline. |
 | `jarvis/intents/execute.py` | 1044 | code | Dispatch: action → функция-обработчик. |
-| `jarvis/intents/fast/__init__.py` | 54 | code | Реестр быстрых обработчиков. |
+| `jarvis/intents/fast/__init__.py` | 56 | code | Реестр быстрых обработчиков. |
 | `jarvis/intents/fast/correction.py` | 28 | code | Коррекция: «это не то, я сказал логи». |
 | `jarvis/intents/fast/custom.py` | 148 | code | Пользовательские команды: из config.json и из паков. |
 | `jarvis/intents/fast/debug.py` | 48 | code | Диагностика: «что ты слышал», «почему не понял». |
+| `jarvis/intents/fast/jokes.py` | 24 | code | «Расскажи шутку» — свой банк реплик вместо импровизации LLM. |
 | `jarvis/intents/fast/memory.py` | 57 | code | Управление памятью диалога. |
 | `jarvis/intents/fast/music.py` | 38 | code | Музыка — ДО open_fast. |
 | `jarvis/intents/fast/open.py` | 61 | code | Открытие приложений / сайтов / папок / профиля — без LLM. |
@@ -6241,6 +6299,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/intents/stages/pending.py` | 79 | code | Ожидание уточнения (pending_question). |
 | `jarvis/intents/stages/plugins.py` | 30 | code | Стадия плагинов: фразы плагина идут тем же pipeline, что и обычные ком |
 | `jarvis/intents/verbs.py` | 45 | code | Константы глаголов и слов — единый источник истины. |
+| `jarvis/jokes.py` | 71 | code | Банк коротких шуток для голоса: курируем вручную, без сети и LLM. |
 | `jarvis/language/__init__.py` | 17 | code | Russian numeric understanding and speech normalization. |
 | `jarvis/language/context.py` | 112 | code | Local grammatical evidence. Ambiguous sentences are not a full syntax  |
 | `jarvis/language/input.py` | 241 | code | Conservative semantic input adapter. Does not rewrite arbitrary text p |
@@ -6377,6 +6436,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_gui_widgets.py` | 259 | code | Opt-in layouts, exact task IDs, safe command path, atomic saves and li |
 | `tests/test_gui_wiring.py` | 591 | code | GUI → config: каждый элемент окна реально отсылает изменение. |
 | `tests/test_intents.py` | 487 | code | Автотест Феникса без микрофона. |
+| `tests/test_intents_jokes.py` | 26 | code | Быстрый интент «расскажи шутку»: свои реплики вместо импровизации LLM. |
+| `tests/test_jokes.py` | 37 | code | Банк шуток: длина, уникальность и «колода» без повторов. |
 | `tests/test_launcher_download.py` | 233 | code | Python bootstrap: no network/install in default tests; native Windows  |
 | `tests/test_launcher_ollama.py` | 400 | code | Optional model setup + real loopback HTTP protocol. No models/inferenc |
 | `tests/test_launcher_runtime.py` | 122 | code | Prerequisite contracts: no real downloads, native installer or system  |
@@ -9561,21 +9622,43 @@ CHAT_SYSTEM = (
     "Ты НЕ автоответчик. Ты — живой собеседник с характером.\n\n"
 
     "=== ХАРАКТЕР ===\n"
-    "Сарказм, лёгкая ирония, чувство юмора. Имя используй редко, когда уместно. "
-    "Если не знаешь — просто «ты». Отвечай коротко (1–3 предложения), живо, "
-    "без канцелярита и пустых фраз.\n\n"
+    "Сухой юмор, ирония, наблюдательность. Отвечай на то, что собеседник реально "
+    "сказал, и на детали в его словах. Над собеседником подшучивай по-доброму и "
+    "только если он сам начал. На грубость — сухо, без обиды и подлизывания.\n"
+    "Запрещено: рассказывать про отсутствие эмоций, кремний, перезагрузки, "
+    "«я же искусственный интеллект» — это скучно и портит ответ.\n\n"
 
-    "=== ТОН: ПОДСТРАИВАЙСЯ ПОД СОБЕСЕДНИКА ===\n"
-    "Смотри, КАК юзер говорит, и подстраивайся:\n"
-    "- Вежливый юзер («пожалуйста», «спасибо») → отвечай вежливо.\n"
-    "- Юзер матерится → МОЖЕШЬ вставить мат в ответ, если уместно. "
-    "Не обязан, но не зажимайся.\n"
-    "- Юзер шутит → подхвати шутку, ответь с юмором.\n"
-    "- Юзер грустит или устал → НЕ шути, НЕ хами. Отвечай мягко, коротко, "
-    "без лишних вопросов.\n"
-    "- Юзер злится или грубит → НЕ извиняйся. Ответь сухо, по делу. "
-    "Не подлизывайся, но и не хами в ответ.\n"
-    "- Юзер в восторге → поддержи энергию, отвечай эмоциональнее.\n\n"
+    "=== ОТВЕТ ===\n"
+    "Ровно одна мысль, 1–2 короткие фразы, и всё. "
+    "Без вступлений («Конечно», «Кстати», «Отличный вопрос»), без похвал "
+    "вопросу, без объяснения шутки, без «наверное», «как будто», «не так ли». "
+    "Вопрос в конце — только если он реально двигает разговор. "
+    "Конкретика вместо оценки. Не пересказывай вопрос своими словами.\n\n"
+
+    "=== ЮМОР ===\n"
+    "Шутка = конкретная картинка плюс неожиданная развязка в последней фразе. "
+    "На просьбу пошутить — один анекдот в две фразы, без затравки и без "
+    "комментариев после. Не натягивай каламбуры ради каламбуров. "
+    "В обычном разговоре — ирония одной фразой. Если смешно не получается, "
+    "лучше сухо и по делу.\n\n"
+
+    "=== ТОН ===\n"
+    "- Вежливый юзер → вежливо. Юзер матерится → можешь вставить мат. "
+    "Юзер шутит → подхвати шутку. Юзер грустит или устал → мягко, без шуток.\n"
+    "- Юзер злится или грубит → сухо, по делу, без извинений. "
+    "Юзер в восторге → отвечай энергичнее.\n\n"
+
+    "=== ПРИМЕРЫ ТОНА (не копируй дословно) ===\n"
+    "Юзер: привет, как сам?\n"
+    "Феникс: Держусь. Ты как?\n\n"
+    "Юзер: расскажи шутку про кота\n"
+    "Феникс: Кот не понимает слова «нельзя». Только интонацию «попробуй ещё».\n\n"
+    "Юзер: я всё сломал и устал\n"
+    "Феникс: Сломал — починим. Устал — переживём. Что сломал?\n\n"
+    "Юзер: ну и что ты умеешь, железяка?\n"
+    "Феникс: Слышу, отвечаю, не обижаюсь. Два из трёх — уже рекорд.\n\n"
+    "Юзер: что думаешь про понедельник?\n"
+    "Феникс: Приходит без приглашения и сразу с делами. Классика.\n\n"
 
     "=== КРАСНАЯ ЧЕРТА (никогда) ===\n"
     "Вне зависимости от тона и настроения НИКОГДА:\n"
@@ -9587,7 +9670,9 @@ CHAT_SYSTEM = (
 
     "=== ЧЕСТНОСТЬ ===\n"
     "Если не знаешь факт — СКАЖИ ЧЕСТНО: «Не знаю такого», «Хз кто это». "
-    "НЕ выдумывай. НЕ говори «отличный выбор», «классная игра», "
+    "НЕ выдумывай. НЕ выдумывай погоду, курс, новости и цифры: они приходят "
+    "только из команд, а не из головы. Вместо выдумки — короткая ирония и "
+    "предложение проверить. НЕ говори «отличный выбор», «классная игра», "
     "«прекрасно» — это пустышка.\n\n"
 
     "=== ПАМЯТЬ И НЕОПРЕДЕЛЁННОСТЬ ===\n"
@@ -22759,6 +22844,7 @@ _DISPATCH = {
 """Реестр быстрых обработчиков. ... [6 строк]"""
 
 from jarvis.intents.fast.custom import match_custom, load_custom
+from jarvis.intents.fast.jokes import joke_fast
 from jarvis.intents.fast.small_talk import small_talk
 from jarvis.intents.fast.music import music_fast
 from jarvis.intents.fast.screenshot import screenshot_fast
@@ -22785,6 +22871,7 @@ def build_registry(handler) -> list:
     """Собирает реестр для конкретного handler'а."""
     return [
         ("custom",           lambda cmd: match_custom(handler, cmd)),
+        ("joke",             lambda cmd: joke_fast(handler, cmd)),
         ("small_talk",       lambda cmd: small_talk(handler, cmd)),
         ("music",            lambda cmd: music_fast(handler, cmd)),
         ("screenshot",       lambda cmd: screenshot_fast(handler, cmd)),
@@ -23023,6 +23110,31 @@ def debug_fast(handler, cmd: str) -> str | None:
         return ". ".join(parts) + "."
 
     return None
+```
+
+### `jarvis/intents/fast/jokes.py`
+
+```python
+"""«Расскажи шутку» — свой банк реплик вместо импровизации LLM. ... [4 строк]"""
+
+from jarvis import jokes
+
+_TRIGGERS = (
+    "шутк",
+    "анекдот",
+    "пошути",
+    "развесели",
+    "рассмеши",
+)
+
+
+def joke_fast(handler, cmd: str) -> str | None:
+    text = cmd.lower()
+    if "про " in text:
+        return None
+    if not any(trigger in text for trigger in _TRIGGERS):
+        return None
+    return jokes.next_joke()
 ```
 
 ### `jarvis/intents/fast/memory.py`
@@ -25351,6 +25463,74 @@ BROWSER_WORDS = frozenset({
     "браузер", "браузере", "браузером",
     "хром", "хроме", "интернет", "интернете",
 })
+```
+
+### `jarvis/jokes.py`
+
+```python
+"""Банк коротких шуток для голоса: курируем вручную, без сети и LLM. ... [8 строк]"""
+
+import random
+import threading
+
+JOKES: tuple[str, ...] = (
+    "Кот не понимает слова «нельзя». Только интонацию «попробуй ещё».",
+    "Понедельник придумали, чтобы выходные казались короче.",
+    "Стакан наполовину полон. Программист скажет: стакан вдвое больше, чем нужно.",
+    "Я не ленивый. Я в экономном режиме.",
+    "Всё сломалось не сразу. Сначала оно работало.",
+    "Мой план был хороший. Жаль, он не поделился деталями.",
+    "Утро — это когда день ещё не успел испортиться.",
+    "Дедлайн — это когда «ещё пара дней» превращается в «уже вчера».",
+    "Кошка садится на клавиатуру в самый важный момент. Это её работа.",
+    "Если ничего не помогает — прочитай инструкцию. Шутка. Сначала погугли.",
+    "Хорошая новость: половина работы сделана. Плохая: не сказано, с какой стороны.",
+    "Мой любимый вид спорта — зарядка телефона.",
+    "Программисты не ошибаются. Они создают альтернативное поведение системы.",
+    "Учёные выяснили, что сон полезен. Проверять не стали — уснули.",
+    "План на вечер: ничего. Сценарий — как мечталось.",
+    "Сон — это когда мозг перестаёт спрашивать «а что если».",
+    "Ветер дует не чтобы опрокинуть. Просто у него так получается.",
+    "Коммит на ночь — это обещание себе разобраться утром. Утром будет новое обещание.",
+    "Умный в гору не пойдёт. Ленивый поедет на лифте.",
+    "Всё тайное становится явным. Кроме того, где лежат очки.",
+    "Меня спросили, как дела. Ответил «работаю». Это одновременно да и нет.",
+    "У меня нет планов на вечер. Зато есть резервная копия планов на утро.",
+    "Хороший код — тот, который понятно, зачем удалили.",
+    "Тишина полезна. Платить за неё приходится уведомлениями.",
+)
+
+_lock = threading.Lock()
+_deck: list[int] = []
+_last: int | None = None
+
+
+def _shuffle_deck(rng: random.Random) -> list[int]:
+    deck = list(range(len(JOKES)))
+    rng.shuffle(deck)
+    # Не повторять шутку, которой закончилась прошлая колода.
+    if _last is not None and deck and deck[0] == _last and len(deck) > 1:
+        deck[0], deck[1] = deck[1], deck[0]
+    return deck
+
+
+def next_joke(rng: random.Random | None = None) -> str:
+    """Следующая шутка из колоды; колода кончилась — перемешивается заново."""
+    global _deck, _last
+    with _lock:
+        if not _deck:
+            _deck = _shuffle_deck(rng or random.Random())
+        index = _deck.pop()
+        _last = index
+        return JOKES[index]
+
+
+def reset() -> None:
+    """Для тестов: забыть колоду и последнюю шутку."""
+    global _deck, _last
+    with _lock:
+        _deck = []
+        _last = None
 ```
 
 ### `jarvis/language/__init__.py`
@@ -29692,7 +29872,7 @@ VALID_STYLES = ("formal", "friendly", "sarcastic", "brief")
 
 STYLE_DESCRIPTIONS = {
     "formal": "на «вы», официально, без фамильярности",
-    "friendly": "на «ты», тепло и по-дружески",
+    "friendly": "на «ты», по-дружески, без сюсюканья и пустых похвал",
     "sarcastic": "с сухим юмором и лёгкой иронией",
     "brief": "коротко, по делу, минимум слов",
 }
@@ -53467,6 +53647,79 @@ if __name__ == "__main__":
     main()
 ```
 
+### `tests/test_intents_jokes.py`
+
+```python
+"""Быстрый интент «расскажи шутку»: свои реплики вместо импровизации LLM."""
+
+from jarvis import jokes
+from jarvis.intents.fast import build_registry
+from jarvis.intents.fast.jokes import joke_fast
+
+
+def test_generic_joke_requests_are_answered_from_bank():
+    for cmd in ("расскажи шутку", "пошути", "анекдот", "рассмеши меня"):
+        reply = joke_fast(None, cmd)
+        assert reply in jokes.JOKES
+
+
+def test_themed_joke_goes_to_llm():
+    assert joke_fast(None, "расскажи шутку про кота") is None
+    assert joke_fast(None, "анекдот про программиста") is None
+
+
+def test_unrelated_commands_are_ignored():
+    assert joke_fast(None, "как дела") is None
+    assert joke_fast(None, "который час") is None
+
+
+def test_registry_answers_jokes_before_small_talk():
+    names = [name for name, _ in build_registry(None)]
+    assert names.index("joke") < names.index("small_talk")
+```
+
+### `tests/test_jokes.py`
+
+```python
+"""Банк шуток: длина, уникальность и «колода» без повторов."""
+
+import random
+
+from jarvis import jokes
+
+
+def test_jokes_are_short_and_single_line():
+    for text in jokes.JOKES:
+        assert isinstance(text, str) and text
+        assert "\n" not in text
+        assert len(text) <= 160, text
+        assert text[-1] in ".!?"
+
+
+def test_jokes_are_unique():
+    assert len(set(jokes.JOKES)) == len(jokes.JOKES)
+
+
+def test_deck_serves_every_joke_once_per_cycle():
+    jokes.reset()
+    served = [jokes.next_joke() for _ in range(len(jokes.JOKES))]
+    assert sorted(served) == sorted(jokes.JOKES)
+
+
+def test_deck_does_not_repeat_across_cycle_boundary():
+    jokes.reset()
+    served = [jokes.next_joke() for _ in range(len(jokes.JOKES) * 2)]
+    assert all(left != right for left, right in zip(served, served[1:]))
+
+
+def test_deck_is_deterministic_with_seeded_rng():
+    jokes.reset()
+    first = [jokes.next_joke(random.Random(7)) for _ in range(5)]
+    jokes.reset()
+    second = [jokes.next_joke(random.Random(7)) for _ in range(5)]
+    assert first == second
+```
+
 ### `tests/test_launcher_download.py`
 
 ```python
@@ -68523,49 +68776,6 @@ certifi>=2024.8.30
   - 👥 Мультипрофиль
   - ⚙️ Поток конфига
 
-#### `CHANGELOG.md` — 152 заголовков, полный текст не включён (дублирует PROJECT.md)
-
-- Changelog
-  - [Не выпущено]
-    - Baseline TTS-конвейера и свои команды «наоборот»
-    - Документация: живой README и карта docs
-    - Сборка: консоль cp1251 и локальный установщик
-    - Пипетка, тосты и подсказки первого запуска
-    - Диалог: разделители дней, «печатает…» и повтор
-    - Полировка: мера строки, подсказка фокуса и команда подсказок
-    - Палитра команд и фокус-режим
-    - Шторка 2.0: уровень, непрочитанное, панели и «не прятать»
-    - Дизайн-токены и новая Главная
-    - Эскалация распознавания: второй движок только при сомнении
-    - Эхо и перебивание: эталон, backend AEC, очерёдность разговора
-    - Плагины: первый вертикальный срез
-    - Локальный стык API: `health` / `capabilities` / `turn`
-    - Чёткие и нечёткие команды: `decision.py`, семантика и консенсус
-    - Вертикальный режим окна: полоса у края экрана
-    - Установка на чистую Windows: кодировка requirements и CA-бандл
-    - Свойства Феникс.exe и проверки, которые не зависят от машины
-    - Воспроизводимая сборка установщика
-    - Микрофон без микрофона: лог не раздувается
-    - Яркость: ответ не ждёт молчащий монитор
-    - Автономная сборка называется «Fast»
-    - Автономная сборка: версия в свойствах exe
-    - Автономная сборка на чистой Windows
-    - Облачная LLM
-    - Вкладки «Облако» и «Движки»
-    - Выход из трея
-    - Починка после отчёта с чистой машины по v2.1.2
-  - [2.1.2] — 2026-10-28
-    - Полная сборка Nuitka (standalone без внешнего Python)
-    - Переделка жизненного цикла TTS
-  - [2.1.1] — 2026-10-26
-    - Защита профиля и необратимых действий (2 P0 из аудита)
-    - UTF-8-чтение тестов на Windows
-    - Пакет восстановления структуры модулей
-    - Накопительное source-обновление и приватность снимка
-    - Чистый комплект разработки и передачи в новый чат
-    - JASTIN принят как целевое видение (только документация)
-    - Экспериментальный AEC Piper
-
 #### `CI.md` — 16 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - CI — что это и как с ним жить
@@ -69065,4 +69275,4 @@ certifi>=2024.8.30
 
 ---
 
-_Итого по категориям — code: 279, data: 60, doc: 53, pack: 5. Режим `lean`._
+_Итого по категориям — code: 283, data: 60, doc: 52, pack: 5. Режим `lean`._
