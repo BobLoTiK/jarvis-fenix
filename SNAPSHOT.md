@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=4ae10f808de9bda6` · режим `lean` · файлов `398` · строк `72504` · источник `3341 КБ`
+`sha256=4cd93b7f4197b036` · режим `lean` · файлов `399` · строк `72676` · источник `3349 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -172,6 +172,12 @@ Pipeline, порядок важен:
 `mood.apply_from_text()` в `handle()` вызывается после разбора результата; просодия
 применяется в голосовом `_process()` до обработчика. Не выдавать эвристику эмоций
 или ASR-confidence за измеренную точность понимания.
+
+Сбой LLM объясняется словами, а не молчанием: `brain.describe_llm_failure`
+различает «Ollama не запущена», «модели нет в Ollama», «не ответила вовремя» и
+HTTP 5xx; текст кладётся в `Brain.failure_hint`, и `chat_stream` при падении до
+первого слова отдаёт его как единственный фрагмент. Прежде пользователь слышал
+«Я не понял команду» при выключенном сервере, то есть искал проблему в микрофоне.
 
 ## 4. Числа и неопределённость
 
@@ -603,7 +609,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── IMPROVEMENT_BACKLOG.md  (120 стр)
 │   ├── INSTALLER_UPDATE.md  (47 стр)
 │   ├── LOCAL_VOICE_OPTIONS.md  (67 стр)
-│   ├── NEXT_STEPS.md  (474 стр)
+│   ├── NEXT_STEPS.md  (482 стр)
 │   ├── NUITKA_BUILD.md  (123 стр)
 │   ├── PHOENIX_JASTIN_RECONCILIATION.md  (270 стр)
 │   ├── PYTHON_BOOTSTRAP_TLS_FIX.md  (98 стр)
@@ -661,7 +667,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── audio_metrics.py  (191 стр)
 │   ├── audio_output.py  (160 стр)
 │   ├── barge.py  (56 стр)
-│   ├── brain.py  (983 стр)
+│   ├── brain.py  (1032 стр)
 │   ├── cache_maintenance.py  (76 стр)
 │   ├── celebrations.py  (165 стр)
 │   ├── cloud_llm.py  (367 стр)
@@ -733,7 +739,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   │   ├── compound.py  (75 стр)
 │   │   │   ├── correction.py  (27 стр)
 │   │   │   ├── fast.py  (29 стр)
-│   │   │   ├── llm.py  (102 стр)
+│   │   │   ├── llm.py  (105 стр)
 │   │   │   ├── memory.py  (21 стр)
 │   │   │   ├── modes.py  (30 стр)
 │   │   │   ├── onboarding.py  (75 стр)
@@ -807,7 +813,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── work.json  (11 стр)
 ├── phoenix_app.py  (11 стр)
 ├── PLAN.md  (101 стр)
-├── PROJECT.md  (523 стр)
+├── PROJECT.md  (529 стр)
 ├── PROMPT.md  (72 стр)
 ├── pytest.ini  (20 стр)
 ├── README.md  (332 стр)
@@ -923,6 +929,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_launcher_ollama.py  (400 стр)
 │   ├── test_launcher_runtime.py  (122 стр)
 │   ├── test_launcher_ui.py  (210 стр)
+│   ├── test_llm_failures.py  (106 стр)
 │   ├── test_main_wiring.py  (202 стр)
 │   ├── test_memory_scope.py  (132 стр)
 │   ├── test_metrics_report.py  (84 стр)
@@ -1163,6 +1170,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 
 ```
   # LLM-фолбэк: локальная нейронка (Ollama) разбирает команду в структурный интент.
+  def describe_llm_failure(error, model: str='')
   SYSTEM_SMALL = ...
   SYSTEM_MEDIUM = ...
   SYSTEM_LARGE = ...
@@ -4944,6 +4952,22 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_python_installer_is_still_interactive_and_verified(tmp_path, monkeypatch)
 ```
 
+**`tests/test_llm_failures.py`**
+
+```
+  # Честные ошибки LLM: человек понимает, что чинить.
+  def test_connection_refused_says_ollama_is_not_running()
+  def test_missing_model_tells_what_to_do()
+  def test_server_error_suggests_retry()
+  def test_timeout_is_named_honestly()
+  def test_url_timeout_reason_is_understood()
+  def test_unknown_error_is_not_silent()
+  def test_stream_yields_one_honest_message_before_first_chunk(monkeypatch)
+  def test_chat_returns_none_and_keeps_hint(monkeypatch)
+  def test_stage_mentions_how_to_start_llm()
+  def test_other_http_codes_are_reported(code)
+```
+
 **`tests/test_main_wiring.py`**
 
 ```
@@ -6232,7 +6256,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/audio_metrics.py` | 191 | code | Метрики TTS-конвейера: только длительности и ресурсы, без текста. |
 | `jarvis/audio_output.py` | 160 | code | Shared cancellable PCM output for Speaker and the three WAV-based TTS  |
 | `jarvis/barge.py` | 56 | code | Очерёдность разговора при перебивании: чей это голос и можно ли вклини |
-| `jarvis/brain.py` | 983 | code | LLM-фолбэк: локальная нейронка (Ollama) разбирает команду в структурны |
+| `jarvis/brain.py` | 1032 | code | LLM-фолбэк: локальная нейронка (Ollama) разбирает команду в структурны |
 | `jarvis/cache_maintenance.py` | 76 | code | Чистка устаревшего байткода после обновления файлов приложения. |
 | `jarvis/celebrations.py` | 165 | code | Праздничные триггеры — поздравление с ДР + двойной салют. |
 | `jarvis/cloud_llm.py` | 367 | code | Облачная LLM по HTTP: OpenAI-совместимые API и Anthropic. |
@@ -6301,7 +6325,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/intents/stages/compound.py` | 75 | code | Многослойные команды: «открой стим и запусти доту». |
 | `jarvis/intents/stages/correction.py` | 27 | code | Применение коррекции «это не то» перед разбором команды. |
 | `jarvis/intents/stages/fast.py` | 29 | code | Вызов реестра быстрых обработчиков. |
-| `jarvis/intents/stages/llm.py` | 102 | code | LLM — последний шанс разобрать команду. |
+| `jarvis/intents/stages/llm.py` | 105 | code | LLM — последний шанс разобрать команду. |
 | `jarvis/intents/stages/memory.py` | 21 | code | Команды памяти диалога. |
 | `jarvis/intents/stages/modes.py` | 30 | code | Режимы работы: commands / llm / combo. |
 | `jarvis/intents/stages/onboarding.py` | 75 | code | Первый запуск — знакомство через LLM-диалог. |
@@ -6449,6 +6473,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_launcher_ollama.py` | 400 | code | Optional model setup + real loopback HTTP protocol. No models/inferenc |
 | `tests/test_launcher_runtime.py` | 122 | code | Prerequisite contracts: no real downloads, native installer or system  |
 | `tests/test_launcher_ui.py` | 210 | code | Bootstrap presentation tests; no Tk display, installation, downloads o |
+| `tests/test_llm_failures.py` | 106 | code | Честные ошибки LLM: человек понимает, что чинить. |
 | `tests/test_main_wiring.py` | 202 | code | config → живое ядро: подписчик make_config_listener. |
 | `tests/test_memory_scope.py` | 132 | code | Personalization should serve a question, not choose its topic. |
 | `tests/test_metrics_report.py` | 84 | code | Сводка tts_metrics: разбор строк и проценты, без запуска приложения. |
@@ -9219,15 +9244,41 @@ def _clamp_or(value, default: float, low: float, high: float) -> float:
 
 import json
 import logging
+import socket
 import subprocess
 import threading
 import time
+import urllib.error
 import urllib.request
 
 from jarvis import learning
 from jarvis.text_utils import strip_cjk, strip_cjk_chunk
 
 log = logging.getLogger("jarvis.brain")
+
+
+def describe_llm_failure(error, model: str = "") -> str:
+    """Короткое человеческое объяснение сбоя LLM — для озвучки и журнала. ... [5 строк]"""
+    model_part = model or "модель"
+    if isinstance(error, urllib.error.HTTPError):
+        if error.code == 404:
+            return (f"Модели {model_part} нет в Ollama. "
+                    "Скачай её или выбери другую в Настройках → LLM.")
+        if error.code in (500, 502, 503, 504):
+            return "Ollama отвечает ошибкой сервера. Попробуй ещё раз или выбери другую модель."
+        return f"Ollama вернула ошибку HTTP {error.code}."
+    if isinstance(error, urllib.error.URLError):
+        reason = getattr(error, "reason", None)
+        if isinstance(reason, (ConnectionRefusedError, FileNotFoundError)):
+            return "Ollama не запущена. Запусти `ollama serve` или переключись в режим команд."
+        if isinstance(reason, (socket.timeout, TimeoutError)):
+            return "Ollama не ответила вовремя — сервер занят или завис."
+        return "Нет связи с Ollama: проверь адрес и что сервер запущен."
+    if isinstance(error, (socket.timeout, TimeoutError)):
+        return f"{model_part} не ответила вовремя. Попробуй короче вопрос или другую модель."
+    if isinstance(error, json.JSONDecodeError):
+        return "Модель вернула не JSON — попробуй переформулировать."
+    return f"LLM не ответила ({type(error).__name__}). Попробуй ещё раз."
 
 
 # =================================================================
@@ -9697,6 +9748,7 @@ class Brain:
         self.temperature = float(temperature)
         self._prompt_level_override = prompt_level
         self._config = config
+        self.failure_hint = ""
 
         # Конфиг главнее аргумента: main.py передаёт дефолт 20.0,
         # и без этой строки llm_timeout из config.json игнорировался.
@@ -9917,9 +9969,11 @@ class Brain:
                                  num_predict=600).strip()
             text = strip_cjk(text)
             log.info("LLM-диалог (%.2f с): %r -> %r", time.time() - t0, cmd, text[:120])
+            self.failure_hint = ""
             return text or None
-        except Exception:
-            log.exception("LLM-диалог не удался")
+        except Exception as error:
+            self.failure_hint = describe_llm_failure(error, self.model)
+            log.exception("LLM-диалог не удался: %s", self.failure_hint)
             return None
 
     def chat_stream(self, cmd, history=None):
@@ -9931,6 +9985,7 @@ class Brain:
                 + [{"role": "user", "content": cmd}])
         cloud = getattr(self, "cloud", None)
         if cloud is not None:
+            emitted = 0
             try:
                 t0 = time.time()
                 first = None
@@ -9942,10 +9997,15 @@ class Brain:
                     if first is None:
                         first = time.time() - t0
                         log.info("LLM-стриминг (облако): первый чанк %.2f с", first)
+                    emitted += 1
                     yield chunk
                 log.info("LLM-стриминг (облако): полный ответ %.2f с", time.time() - t0)
-            except Exception:
-                log.exception("Облачный стриминг не удался")
+                self.failure_hint = ""
+            except Exception as error:
+                self.failure_hint = describe_llm_failure(error, self.model)
+                log.exception("Облачный стриминг не удался: %s", self.failure_hint)
+                if not emitted:
+                    yield self.failure_hint
             return
         payload = {
             "model": self.model,
@@ -9957,6 +10017,7 @@ class Brain:
         req = urllib.request.Request(self.url + "/api/chat",
                                      json.dumps(payload).encode(),
                                      {"Content-Type": "application/json"})
+        emitted = 0
         try:
             t0 = time.time()
             first = None
@@ -9976,12 +10037,18 @@ class Brain:
                             if first is None:
                                 first = time.time() - t0
                                 log.info("LLM-стриминг: первый чанк %.2f с", first)
+                            emitted += 1
                             yield chunk
                     if data.get("done"):
                         break
             log.info("LLM-стриминг: полный ответ %.2f с", time.time() - t0)
-        except Exception:
-            log.exception("LLM-стриминг не удался")
+            self.failure_hint = ""
+        except Exception as error:
+            self.failure_hint = describe_llm_failure(error, self.model)
+            log.exception("LLM-стриминг не удался: %s", self.failure_hint)
+            # Ни одного слова не прозвучало — честно объясняем сбой, а не молчим.
+            if not emitted:
+                yield self.failure_hint
 
     def _warmup(self):
         if getattr(self, "cloud", None) is not None:
@@ -10102,13 +10169,15 @@ class Brain:
             t0 = time.time()
             raw = self._chat(cmd, timeout=self.timeout)
             intent = json.loads(raw)
+            self.failure_hint = ""
             log.info("LLM (%.2f с): %r -> %s", time.time() - t0, cmd,
                      json.dumps(intent, ensure_ascii=False))
         except json.JSONDecodeError:
             log.debug("LLM не вернула JSON на %r", cmd)
             return None
-        except Exception:
-            log.exception("LLM не справилась с %r", cmd)
+        except Exception as error:
+            self.failure_hint = describe_llm_failure(error, self.model)
+            log.exception("LLM не справилась с %r: %s", cmd, self.failure_hint)
             return None
         if not isinstance(intent, dict):
             return None
@@ -25033,7 +25102,10 @@ class LLMStage(Stage):
                 "cmd": cmd, "reason": "LLM недоступна",
                 "mode": h.mode, "llm": False,
             }
-            return "LLM недоступна. Скажите «режим команды»."
+            return (
+                "LLM недоступна: Ollama не запущена. "
+                "Скажи «режим команды» или запусти `ollama serve`."
+            )
 
         # Мусорный ввод (№70): LLM галлюцинирует на «ааа» или «эээ».
         # Исключения «да», «нет», «ок» — это ответы на pending.
@@ -54646,6 +54718,117 @@ def test_python_installer_is_still_interactive_and_verified(tmp_path, monkeypatc
     assert calls[1] == [str(installer)]
 ```
 
+### `tests/test_llm_failures.py`
+
+```python
+"""Честные ошибки LLM: человек понимает, что чинить."""
+
+import socket
+import urllib.error
+
+import pytest
+
+from jarvis.brain import Brain, describe_llm_failure
+
+
+def _http_error(code: int) -> urllib.error.HTTPError:
+    return urllib.error.HTTPError("http://127.0.0.1:11434/api/chat", code, "err", {}, None)
+
+
+def test_connection_refused_says_ollama_is_not_running():
+    error = urllib.error.URLError(ConnectionRefusedError(10061, "refused"))
+    text = describe_llm_failure(error, "qwen2.5:14b-instruct")
+    assert "Ollama не запущена" in text
+    assert "ollama serve" in text
+
+
+def test_missing_model_tells_what_to_do():
+    text = describe_llm_failure(_http_error(404), "qwen2.5:14b-instruct")
+    assert "qwen2.5:14b-instruct" in text
+    assert "Настройках" in text
+
+
+def test_server_error_suggests_retry():
+    text = describe_llm_failure(_http_error(503), "qwen2.5:14b-instruct")
+    assert "HTTP 503" in text or "ошибкой сервера" in text
+
+
+def test_timeout_is_named_honestly():
+    text = describe_llm_failure(socket.timeout("timed out"), "qwen2.5:14b-instruct")
+    assert "вовремя" in text
+
+
+def test_url_timeout_reason_is_understood():
+    error = urllib.error.URLError(socket.timeout("timed out"))
+    assert "вовремя" in describe_llm_failure(error)
+
+
+def test_unknown_error_is_not_silent():
+    text = describe_llm_failure(ValueError("bad url"), "model")
+    assert "LLM не ответила" in text
+
+
+def _bare_brain(monkeypatch, error):
+    brain = Brain.__new__(Brain)
+    brain.model = "qwen2.5:14b-instruct"
+    brain.url = "http://127.0.0.1:11434"
+    brain.timeout = 1.0
+    brain.temperature = 0.7
+    brain.available = True
+    brain.cloud = None
+    brain.failure_hint = ""
+    brain.system_prompt = "тест"
+    brain.prompt_level = "medium"
+    brain._config = None
+    brain._last_facts = ""
+
+    def boom(*args, **kwargs):
+        raise error
+
+    monkeypatch.setattr("jarvis.brain.urllib.request.urlopen", boom)
+    monkeypatch.setattr(Brain, "_system_with_context", lambda self, base, cmd: base)
+    return brain
+
+
+def test_stream_yields_one_honest_message_before_first_chunk(monkeypatch):
+    brain = _bare_brain(monkeypatch, urllib.error.URLError(ConnectionRefusedError(10061, "refused")))
+    chunks = list(brain.chat_stream("привет"))
+    assert len(chunks) == 1
+    assert "Ollama не запущена" in chunks[0]
+    assert brain.failure_hint == chunks[0]
+
+
+def test_chat_returns_none_and_keeps_hint(monkeypatch):
+    brain = _bare_brain(monkeypatch, urllib.error.URLError(ConnectionRefusedError(10061, "refused")))
+    monkeypatch.setattr(Brain, "_request", lambda *a, **k: (_ for _ in ()).throw(
+        urllib.error.URLError(ConnectionRefusedError(10061, "refused"))))
+    assert brain.chat("привет") is None
+    assert "Ollama не запущена" in brain.failure_hint
+
+
+def test_stage_mentions_how_to_start_llm():
+    from jarvis.intents.stages.llm import LLMStage
+
+    class FakeHandler:
+        mode = "combo"
+        brain = None
+        _last_debug = None
+
+    class Ctx:
+        cmd = "привет"
+        handler = FakeHandler()
+
+    reply = LLMStage().handle(Ctx())
+    assert "LLM недоступна" in reply
+    assert "ollama serve" in reply
+
+
+@pytest.mark.parametrize("code", [401, 429])
+def test_other_http_codes_are_reported(code):
+    text = describe_llm_failure(_http_error(code), "model")
+    assert str(code) in text
+```
+
 ### `tests/test_main_wiring.py`
 
 ```python
@@ -69426,4 +69609,4 @@ certifi>=2024.8.30
 
 ---
 
-_Итого по категориям — code: 281, data: 60, doc: 52, pack: 5. Режим `lean`._
+_Итого по категориям — code: 282, data: 60, doc: 52, pack: 5. Режим `lean`._

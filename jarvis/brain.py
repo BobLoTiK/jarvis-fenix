@@ -11,15 +11,46 @@
 
 import json
 import logging
+import socket
 import subprocess
 import threading
 import time
+import urllib.error
 import urllib.request
 
 from jarvis import learning
 from jarvis.text_utils import strip_cjk, strip_cjk_chunk
 
 log = logging.getLogger("jarvis.brain")
+
+
+def describe_llm_failure(error, model: str = "") -> str:
+    """Короткое человеческое объяснение сбоя LLM — для озвучки и журнала.
+
+    Пользователь должен понять, что чинить: сервер не запущен, модель не
+    скачана, провайдер тормозит или ответ пустой. Тот же текст пишется в
+    `Brain.failure_hint`, чтобы стадия llm могла его озвучить.
+    """
+    model_part = model or "модель"
+    if isinstance(error, urllib.error.HTTPError):
+        if error.code == 404:
+            return (f"Модели {model_part} нет в Ollama. "
+                    "Скачай её или выбери другую в Настройках → LLM.")
+        if error.code in (500, 502, 503, 504):
+            return "Ollama отвечает ошибкой сервера. Попробуй ещё раз или выбери другую модель."
+        return f"Ollama вернула ошибку HTTP {error.code}."
+    if isinstance(error, urllib.error.URLError):
+        reason = getattr(error, "reason", None)
+        if isinstance(reason, (ConnectionRefusedError, FileNotFoundError)):
+            return "Ollama не запущена. Запусти `ollama serve` или переключись в режим команд."
+        if isinstance(reason, (socket.timeout, TimeoutError)):
+            return "Ollama не ответила вовремя — сервер занят или завис."
+        return "Нет связи с Ollama: проверь адрес и что сервер запущен."
+    if isinstance(error, (socket.timeout, TimeoutError)):
+        return f"{model_part} не ответила вовремя. Попробуй короче вопрос или другую модель."
+    if isinstance(error, json.JSONDecodeError):
+        return "Модель вернула не JSON — попробуй переформулировать."
+    return f"LLM не ответила ({type(error).__name__}). Попробуй ещё раз."
 
 
 # =================================================================
@@ -492,6 +523,7 @@ class Brain:
         self.temperature = float(temperature)
         self._prompt_level_override = prompt_level
         self._config = config
+        self.failure_hint = ""
 
         # Конфиг главнее аргумента: main.py передаёт дефолт 20.0,
         # и без этой строки llm_timeout из config.json игнорировался.
@@ -728,9 +760,11 @@ class Brain:
                                  num_predict=600).strip()
             text = strip_cjk(text)
             log.info("LLM-диалог (%.2f с): %r -> %r", time.time() - t0, cmd, text[:120])
+            self.failure_hint = ""
             return text or None
-        except Exception:
-            log.exception("LLM-диалог не удался")
+        except Exception as error:
+            self.failure_hint = describe_llm_failure(error, self.model)
+            log.exception("LLM-диалог не удался: %s", self.failure_hint)
             return None
 
     def chat_stream(self, cmd, history=None):
@@ -742,6 +776,7 @@ class Brain:
                 + [{"role": "user", "content": cmd}])
         cloud = getattr(self, "cloud", None)
         if cloud is not None:
+            emitted = 0
             try:
                 t0 = time.time()
                 first = None
@@ -753,10 +788,15 @@ class Brain:
                     if first is None:
                         first = time.time() - t0
                         log.info("LLM-стриминг (облако): первый чанк %.2f с", first)
+                    emitted += 1
                     yield chunk
                 log.info("LLM-стриминг (облако): полный ответ %.2f с", time.time() - t0)
-            except Exception:
-                log.exception("Облачный стриминг не удался")
+                self.failure_hint = ""
+            except Exception as error:
+                self.failure_hint = describe_llm_failure(error, self.model)
+                log.exception("Облачный стриминг не удался: %s", self.failure_hint)
+                if not emitted:
+                    yield self.failure_hint
             return
         payload = {
             "model": self.model,
@@ -768,6 +808,7 @@ class Brain:
         req = urllib.request.Request(self.url + "/api/chat",
                                      json.dumps(payload).encode(),
                                      {"Content-Type": "application/json"})
+        emitted = 0
         try:
             t0 = time.time()
             first = None
@@ -787,12 +828,18 @@ class Brain:
                             if first is None:
                                 first = time.time() - t0
                                 log.info("LLM-стриминг: первый чанк %.2f с", first)
+                            emitted += 1
                             yield chunk
                     if data.get("done"):
                         break
             log.info("LLM-стриминг: полный ответ %.2f с", time.time() - t0)
-        except Exception:
-            log.exception("LLM-стриминг не удался")
+            self.failure_hint = ""
+        except Exception as error:
+            self.failure_hint = describe_llm_failure(error, self.model)
+            log.exception("LLM-стриминг не удался: %s", self.failure_hint)
+            # Ни одного слова не прозвучало — честно объясняем сбой, а не молчим.
+            if not emitted:
+                yield self.failure_hint
 
     def _warmup(self):
         if getattr(self, "cloud", None) is not None:
@@ -913,13 +960,15 @@ class Brain:
             t0 = time.time()
             raw = self._chat(cmd, timeout=self.timeout)
             intent = json.loads(raw)
+            self.failure_hint = ""
             log.info("LLM (%.2f с): %r -> %s", time.time() - t0, cmd,
                      json.dumps(intent, ensure_ascii=False))
         except json.JSONDecodeError:
             log.debug("LLM не вернула JSON на %r", cmd)
             return None
-        except Exception:
-            log.exception("LLM не справилась с %r", cmd)
+        except Exception as error:
+            self.failure_hint = describe_llm_failure(error, self.model)
+            log.exception("LLM не справилась с %r: %s", cmd, self.failure_hint)
             return None
         if not isinstance(intent, dict):
             return None
