@@ -106,6 +106,44 @@ def test_conflicts_block_apply_button(editor):
         and str(getattr(control, "content", "")) == "Применить импорт"
     ]
     assert apply_buttons and apply_buttons[0].disabled
+    # Недоступная кнопка не должна выглядеть активной: раньше фон #e9ad79
+    # оставался и у disabled-кнопки (живая проверка 11.11.2026).
+    assert apply_buttons[0].bgcolor != "#e9ad79"
+
+
+def test_apply_button_is_highlighted_only_when_there_is_something_to_apply(editor):
+    editor.prepare_import(_payload([_entry(name="Новая", entry_id="io3")]))
+    preview = editor._import_preview()
+    apply_buttons = [
+        control for control in _walk(preview)
+        if isinstance(control, ft.Button)
+        and str(getattr(control, "content", "")) == "Применить импорт"
+    ]
+    assert apply_buttons and not apply_buttons[0].disabled
+    assert apply_buttons[0].bgcolor == "#e9ad79"
+
+
+def test_no_expand_inside_wrapped_rows(editor):
+    """В Row(wrap=True) нельзя expand: Flutter рисует серый прямоугольник.
+
+    Регрессия 11.11.2026: вопрос «Удалить без возможности восстановления?»
+    строился как Row(wrap=True) с Text(expand=True), и вместо строки
+    подтверждения на экране был пустой серый блок — ни подтвердить, ни отменить
+    удаление было нельзя.
+    """
+    editor.gui.config.set("custom_commands", [_entry()])
+    editor.confirm_delete = "io1"
+    tree = editor.build()
+    offenders = []
+    for control in _walk(tree):
+        if isinstance(control, ft.Row) and control.wrap:
+            for child in control.controls:
+                if getattr(child, "expand", None):
+                    offenders.append(type(child).__name__)
+    assert offenders == []
+    # Сам вопрос и обе кнопки на месте.
+    texts = [str(getattr(control, "value", "")) for control in _walk(tree)]
+    assert any("без возможности восстановления" in text for text in texts)
 
 
 def test_dialog_unavailable_is_honest(editor):

@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=b912c3eebedcd469` · режим `lean` · файлов `403` · строк `73520` · источник `3390 КБ`
+`sha256=d43ff491f51a3538` · режим `lean` · файлов `403` · строк `73570` · источник `3393 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -699,7 +699,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── gui.py  (2648 стр)
 │   ├── gui_audio.py  (438 стр)
 │   ├── gui_cloud.py  (541 стр)
-│   ├── gui_commands.py  (480 стр)
+│   ├── gui_commands.py  (492 стр)
 │   ├── gui_dialog.py  (75 стр)
 │   ├── gui_engines.py  (206 стр)
 │   ├── gui_home.py  (327 стр)
@@ -925,7 +925,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_gui_chat.py  (289 стр)
 │   ├── test_gui_cloud.py  (225 стр)
 │   ├── test_gui_commands.py  (131 стр)
-│   ├── test_gui_commands_io.py  (114 стр)
+│   ├── test_gui_commands_io.py  (152 стр)
 │   ├── test_gui_dialog.py  (141 стр)
 │   ├── test_gui_engines.py  (155 стр)
 │   ├── test_gui_home.py  (222 стр)
@@ -4443,6 +4443,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_cancel_import_keeps_config(editor)
   def test_bad_file_is_explained_and_not_planned(editor)
   def test_conflicts_block_apply_button(editor)
+  def test_apply_button_is_highlighted_only_when_there_is_something_to_apply(editor)
+  def test_no_expand_inside_wrapped_rows(editor)
   def test_dialog_unavailable_is_honest(editor)
 ```
 
@@ -6353,7 +6355,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/gui.py` | 2648 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
 | `jarvis/gui_audio.py` | 438 | code | Native sound settings. Diagnostics use the existing listener/Speaker,  |
 | `jarvis/gui_cloud.py` | 541 | code | Вкладка «Облако»: провайдер, ключ, приватность и проверка ключа. |
-| `jarvis/gui_commands.py` | 480 | code | Flet editor for the existing custom_commands pipeline. Never executes  |
+| `jarvis/gui_commands.py` | 492 | code | Flet editor for the existing custom_commands pipeline. Never executes  |
 | `jarvis/gui_dialog.py` | 75 | code | Детали диалога: разделители дней и черновик записи. Без окна и сети. |
 | `jarvis/gui_engines.py` | 206 | code | Вкладка «Движки»: что скачано, что включено и установка по кнопке. |
 | `jarvis/gui_home.py` | 327 | code | Minimal native Home: local clock, real assistant state and opt-in widg |
@@ -6534,7 +6536,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_gui_chat.py` | 289 | code | Imported Flet controls + real GUI worker threads; no window, ASR or au |
 | `tests/test_gui_cloud.py` | 225 | code | Вкладка «Облако»: черновик, сохранение, ключ и проверка — без сети и D |
 | `tests/test_gui_commands.py` | 131 | code | Imported native builder controls; no OS actions or real passwords. |
-| `tests/test_gui_commands_io.py` | 114 | code | Импорт/экспорт команд через GUI-редактор: превью, применение, отмена. |
+| `tests/test_gui_commands_io.py` | 152 | code | Импорт/экспорт команд через GUI-редактор: превью, применение, отмена. |
 | `tests/test_gui_dialog.py` | 141 | code | Детали диалога: разделители дней, «печатает…», повтор сообщения. |
 | `tests/test_gui_engines.py` | 155 | code | Вкладка «Движки»: каталог, кнопка установки, прогресс и «активно» из к |
 | `tests/test_gui_home.py` | 222 | code | Native minimal Home; no OS/model/mic/network. Old navigation IDs stay  |
@@ -17580,9 +17582,15 @@ class CommandBuilder:
                                           on_click=lambda e, i=entry.get("id"): self.delete(i))]
                 content = [ft.Row(row, spacing=8)]
                 if self.confirm_delete == entry.get("id") and managed:
-                    content.append(ft.Row([ft.Text("Удалить без возможности восстановления?", color=P.warning, expand=True),
-                                           _button("Удалить", on_click=lambda e, i=entry["id"]: self.delete(i, True)),
-                                           _button("Оставить", on_click=lambda e: self._keep())], wrap=True))
+                    # Текст подтверждения — отдельной строкой: внутри Row(wrap=True)
+                    # нельзя expand (Flutter падает, и вместо вопроса виден серый
+                    # прямоугольник — поймано живой проверкой 11.11.2026).
+                    content.append(ft.Column([
+                        ft.Text("Удалить без возможности восстановления?", color=P.warning),
+                        ft.Row([_button("Удалить", on_click=lambda e, i=entry["id"]: self.delete(i, True)),
+                                _button("Оставить", on_click=lambda e: self._keep())],
+                               spacing=8, wrap=True),
+                    ], spacing=8))
                 controls.append(ft.Container(ft.Column(content), padding=16, bgcolor=BG_CARD,
                                              border=ft.Border.all(1, P.border), border_radius=12))
         else:
@@ -17665,9 +17673,15 @@ class CommandBuilder:
             lines.append(f"ошибка строки {item.get('index')}: {item.get('error')}")
         body = ft.Column([ft.Text(line, size=13, color=TEXT_DIM, selectable=True) for line in lines],
                          spacing=4)
+        # Нечего применять — кнопка не только недоступна, но и выглядит
+        # недоступной: раньше фон #e9ad79 оставался и у disabled-кнопки, и
+        # пользователь жал её без реакции (живая проверка 11.11.2026).
+        active = bool(plan.get("add") or plan.get("update"))
+        apply_kwargs = ({"bgcolor": "#e9ad79", "color": "#241b14"} if active
+                        else {"bgcolor": P.selected, "color": TEXT_DIM})
         buttons = ft.Row([
-            _button("Применить импорт", icon=ft.Icons.CHECK, bgcolor="#e9ad79", color="#241b14",
-                    disabled=not (plan.get("add") or plan.get("update")), on_click=self.apply_import),
+            _button("Применить импорт", icon=ft.Icons.CHECK, disabled=not active,
+                    on_click=self.apply_import, **apply_kwargs),
             _button("Отменить импорт", on_click=self.cancel_import),
         ], wrap=True)
         return ft.Container(ft.Column([ft.Text("ИМПОРТ КОМАНД", size=12, color=P.brand), body, buttons],
@@ -50267,6 +50281,38 @@ def test_conflicts_block_apply_button(editor):
         and str(getattr(control, "content", "")) == "Применить импорт"
     ]
     assert apply_buttons and apply_buttons[0].disabled
+    # Недоступная кнопка не должна выглядеть активной: раньше фон #e9ad79
+    # оставался и у disabled-кнопки (живая проверка 11.11.2026).
+    assert apply_buttons[0].bgcolor != "#e9ad79"
+
+
+def test_apply_button_is_highlighted_only_when_there_is_something_to_apply(editor):
+    editor.prepare_import(_payload([_entry(name="Новая", entry_id="io3")]))
+    preview = editor._import_preview()
+    apply_buttons = [
+        control for control in _walk(preview)
+        if isinstance(control, ft.Button)
+        and str(getattr(control, "content", "")) == "Применить импорт"
+    ]
+    assert apply_buttons and not apply_buttons[0].disabled
+    assert apply_buttons[0].bgcolor == "#e9ad79"
+
+
+def test_no_expand_inside_wrapped_rows(editor):
+    """В Row(wrap=True) нельзя expand: Flutter рисует серый прямоугольник. ... [6 строк]"""
+    editor.gui.config.set("custom_commands", [_entry()])
+    editor.confirm_delete = "io1"
+    tree = editor.build()
+    offenders = []
+    for control in _walk(tree):
+        if isinstance(control, ft.Row) and control.wrap:
+            for child in control.controls:
+                if getattr(child, "expand", None):
+                    offenders.append(type(child).__name__)
+    assert offenders == []
+    # Сам вопрос и обе кнопки на месте.
+    texts = [str(getattr(control, "value", "")) for control in _walk(tree)]
+    assert any("без возможности восстановления" in text for text in texts)
 
 
 def test_dialog_unavailable_is_honest(editor):

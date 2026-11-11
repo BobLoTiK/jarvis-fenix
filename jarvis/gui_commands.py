@@ -238,9 +238,15 @@ class CommandBuilder:
                                           on_click=lambda e, i=entry.get("id"): self.delete(i))]
                 content = [ft.Row(row, spacing=8)]
                 if self.confirm_delete == entry.get("id") and managed:
-                    content.append(ft.Row([ft.Text("Удалить без возможности восстановления?", color=P.warning, expand=True),
-                                           _button("Удалить", on_click=lambda e, i=entry["id"]: self.delete(i, True)),
-                                           _button("Оставить", on_click=lambda e: self._keep())], wrap=True))
+                    # Текст подтверждения — отдельной строкой: внутри Row(wrap=True)
+                    # нельзя expand (Flutter падает, и вместо вопроса виден серый
+                    # прямоугольник — поймано живой проверкой 11.11.2026).
+                    content.append(ft.Column([
+                        ft.Text("Удалить без возможности восстановления?", color=P.warning),
+                        ft.Row([_button("Удалить", on_click=lambda e, i=entry["id"]: self.delete(i, True)),
+                                _button("Оставить", on_click=lambda e: self._keep())],
+                               spacing=8, wrap=True),
+                    ], spacing=8))
                 controls.append(ft.Container(ft.Column(content), padding=16, bgcolor=BG_CARD,
                                              border=ft.Border.all(1, P.border), border_radius=12))
         else:
@@ -323,9 +329,15 @@ class CommandBuilder:
             lines.append(f"ошибка строки {item.get('index')}: {item.get('error')}")
         body = ft.Column([ft.Text(line, size=13, color=TEXT_DIM, selectable=True) for line in lines],
                          spacing=4)
+        # Нечего применять — кнопка не только недоступна, но и выглядит
+        # недоступной: раньше фон #e9ad79 оставался и у disabled-кнопки, и
+        # пользователь жал её без реакции (живая проверка 11.11.2026).
+        active = bool(plan.get("add") or plan.get("update"))
+        apply_kwargs = ({"bgcolor": "#e9ad79", "color": "#241b14"} if active
+                        else {"bgcolor": P.selected, "color": TEXT_DIM})
         buttons = ft.Row([
-            _button("Применить импорт", icon=ft.Icons.CHECK, bgcolor="#e9ad79", color="#241b14",
-                    disabled=not (plan.get("add") or plan.get("update")), on_click=self.apply_import),
+            _button("Применить импорт", icon=ft.Icons.CHECK, disabled=not active,
+                    on_click=self.apply_import, **apply_kwargs),
             _button("Отменить импорт", on_click=self.cancel_import),
         ], wrap=True)
         return ft.Container(ft.Column([ft.Text("ИМПОРТ КОМАНД", size=12, color=P.brand), body, buttons],
