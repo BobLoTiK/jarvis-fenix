@@ -91,7 +91,7 @@ def args_for(argv=None):
     p.add_argument("--compiler", choices=("auto", "msvc", "mingw64"), default="auto")
     p.add_argument("--jobs", type=int, default=2)
     p.add_argument("--low-memory", action="store_true", help="Use Nuitka low-memory compilation options")
-    p.add_argument("--version", default="2.1.2")
+    p.add_argument("--version", default="2.1.3")
     p.add_argument("--no-setup", action="store_true")
     p.add_argument("--skip-compile", action="store_true",
                    help="Reuse the existing standalone output; only verify, publish and install")

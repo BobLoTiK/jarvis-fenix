@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=495507ebd18b49c7` · режим `lean` · файлов `402` · строк `73377` · источник `3379 КБ`
+`sha256=f1a09275d99bcfff` · режим `lean` · файлов `403` · строк `73464` · источник `3386 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -632,6 +632,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── v2.1.0.md  (34 стр)
 │   │   ├── v2.1.1.md  (80 стр)
 │   │   ├── v2.1.2.md  (112 стр)
+│   │   ├── v2.1.3.md  (87 стр)
 │   ├── REVIEW_FIXES.md  (68 стр)
 │   ├── TTS_LIFECYCLE_FIX.md  (89 стр)
 │   ├── USER_GUIDE.md  (1271 стр)
@@ -6615,7 +6616,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ```python
 """Феникс — локальный голосовой ассистент для Windows. ... [4 строк]"""
 
-__version__ = "2.1.2"
+__version__ = "2.1.3"
 APP_NAME = "Феникс"
 ```
 
@@ -38550,7 +38551,7 @@ def args_for(argv=None):
     p.add_argument("--compiler", choices=("auto", "msvc", "mingw64"), default="auto")
     p.add_argument("--jobs", type=int, default=2)
     p.add_argument("--low-memory", action="store_true", help="Use Nuitka low-memory compilation options")
-    p.add_argument("--version", default="2.1.2")
+    p.add_argument("--version", default="2.1.3")
     p.add_argument("--no-setup", action="store_true")
     p.add_argument("--skip-compile", action="store_true",
                    help="Reuse the existing standalone output; only verify, publish and install")
@@ -68865,7 +68866,7 @@ pause
 ;   ISCC.exe /DMyAppVersion=1.0.2 installer.iss
 ; (CI передаёт версию из тега: scripts\build_setup.py --version 1.0.2)
 #ifndef MyAppVersion
-  #define MyAppVersion "2.1.2"
+  #define MyAppVersion "2.1.3"
 #endif
 #define MyAppPublisher "Phoenix Project"
 #define MyAppURL "https://github.com/BobLoTiK/jarvis-fenix"
@@ -68949,7 +68950,7 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 ; Full compiled application. No Python installer, pip, venv or launcher.py.
 #define MyAppName "Феникс"
 #ifndef MyAppVersion
-  #define MyAppVersion "2.1.2"
+  #define MyAppVersion "2.1.3"
 #endif
 #ifndef PayloadDir
   #define PayloadDir "dist\nuitka-app"
@@ -70352,6 +70353,18 @@ certifi>=2024.8.30
   - Собранные артефакты
   - Проверки и ограничения
 
+#### `docs/releases/v2.1.3.md` — 9 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Феникс 2.1.3
+  - Главное
+  - Диалог и голос
+  - Команды, память, профиль
+  - GUI
+  - Безопасность и данные
+  - Установка и обновление
+  - Что не проверено
+  - Проверки
+
 ---
 
-_Итого по категориям — code: 285, data: 60, doc: 52, pack: 5. Режим `lean`._
+_Итого по категориям — code: 285, data: 60, doc: 53, pack: 5. Режим `lean`._
