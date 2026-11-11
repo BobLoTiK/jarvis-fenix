@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=f1a09275d99bcfff` · режим `lean` · файлов `403` · строк `73464` · источник `3386 КБ`
+`sha256=85a6f8c628060d72` · режим `lean` · файлов `403` · строк `73503` · источник `3389 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -705,7 +705,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── gui_home.py  (327 стр)
 │   ├── gui_home_actions.py  (225 стр)
 │   ├── gui_home_fx.py  (242 стр)
-│   ├── gui_palette.py  (217 стр)
+│   ├── gui_palette.py  (228 стр)
 │   ├── gui_pipette.py  (126 стр)
 │   ├── gui_preferences.py  (809 стр)
 │   ├── gui_sidebar.py  (442 стр)
@@ -931,7 +931,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_gui_home.py  (222 стр)
 │   ├── test_gui_home_actions.py  (189 стр)
 │   ├── test_gui_home_fx.py  (261 стр)
-│   ├── test_gui_palette.py  (161 стр)
+│   ├── test_gui_palette.py  (189 стр)
 │   ├── test_gui_pipette.py  (192 стр)
 │   ├── test_gui_preferences.py  (516 стр)
 │   ├── test_gui_sidebar.py  (283 стр)
@@ -1697,6 +1697,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ```
   # Палитра команд (Ctrl+K): поиск по вкладкам и частым действиям.
   TYPE_LIMIT = ...
+  ROW_HEIGHT = ...
   def default_commands()
   def filter_commands(commands, query, limit: int=TYPE_LIMIT)
   def describe(command)
@@ -4567,7 +4568,9 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_palette_rows_render_and_run_selected_command(fake_gui)
   def test_palette_submit_runs_first_visible_command(fake_gui)
   def test_palette_list_grows_with_results_and_stops_at_limit(fake_gui)
+  def test_palette_list_height_never_clips_the_last_row(fake_gui)
   def test_palette_has_backdrop_field_and_hint(fake_gui)
+  def test_backdrop_click_closes_and_card_does_not_swallow_it(fake_gui)
   def window(tmp_path, monkeypatch)
   def test_ctrl_k_toggles_palette_and_escape_closes(window)
   def test_plain_letter_is_not_a_shortcut(window)
@@ -6356,7 +6359,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/gui_home.py` | 327 | code | Minimal native Home: local clock, real assistant state and opt-in widg |
 | `jarvis/gui_home_actions.py` | 225 | code | Three real Home actions. Native controls, finite transitions, no extra |
 | `jarvis/gui_home_fx.py` | 242 | code | Bounded native solar aura. Decorative state motion, never a fake wavef |
-| `jarvis/gui_palette.py` | 217 | code | Палитра команд (Ctrl+K): поиск по вкладкам и частым действиям. |
+| `jarvis/gui_palette.py` | 228 | code | Палитра команд (Ctrl+K): поиск по вкладкам и частым действиям. |
 | `jarvis/gui_pipette.py` | 126 | code | Мини-режим «пипетка»: окно 56×56 с птицей, клик разворачивает обратно. |
 | `jarvis/gui_preferences.py` | 809 | code | Native persona/settings editors. Drafts are not configuration or a sec |
 | `jarvis/gui_sidebar.py` | 442 | code | Native, persistent hover rail. Bounded UI-loop animation; no WebView o |
@@ -6537,7 +6540,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_gui_home.py` | 222 | code | Native minimal Home; no OS/model/mic/network. Old navigation IDs stay  |
 | `tests/test_gui_home_actions.py` | 189 | code | Action orbit: real callbacks, continuous hover zone, keyboard and life |
 | `tests/test_gui_home_fx.py` | 261 | code | Native solar aura lifecycle; no audio device, model or Windows session |
-| `tests/test_gui_palette.py` | 161 | code | Палитра команд (Ctrl+K) и фокус-режим: чистые функции и привязка к GUI |
+| `tests/test_gui_palette.py` | 189 | code | Палитра команд (Ctrl+K) и фокус-режим: чистые функции и привязка к GUI |
 | `tests/test_gui_pipette.py` | 192 | code | Мини-режим «пипетка»: свойства окна 56×56, возврат и тосты. |
 | `tests/test_gui_preferences.py` | 516 | code | Real imported Flet controls / real disk writes / explicit network fake |
 | `tests/test_gui_sidebar.py` | 283 | code | Native controls and bounded asyncio tasks; no desktop, microphone or m |
@@ -18917,6 +18920,11 @@ import flet as ft
 from jarvis import gui_tokens as T
 
 TYPE_LIMIT = 6
+# Высота одной строки списка: две строки текста (название и группа), внутренние
+# отступы 6+6 и запас на межстрочный интервал ListView. Раньше здесь стоял
+# общий потолок 300 px, который меньше 6 строк, и шестая строка обрезалась
+# пополам — увидел только живой снимок.
+ROW_HEIGHT = 52
 
 
 def _call(gui, name, *args):
@@ -19013,7 +19021,7 @@ class CommandPalette(ft.Container):
             bgcolor=ft.Colors.TRANSPARENT, border=ft.NoInputBorder(),
             hint_text="Вкладка, действие или тема…", on_change=self._on_change,
             on_submit=self._on_submit, shift_enter=False)
-        self.rows = ft.ListView(spacing=2, height=300)
+        self.rows = ft.ListView(spacing=2, height=ROW_HEIGHT * TYPE_LIMIT)
         self.hint = T.text("caption", "Enter — выполнить · Esc — закрыть", color=p.text_dim)
         card = ft.Container(
             ft.Column([
@@ -19030,10 +19038,15 @@ class CommandPalette(ft.Container):
         self.backdrop = ft.Container(
             expand=True, bgcolor=ft.Colors.with_opacity(.45, "#000000"),
             on_click=lambda e: self.close())
+        # Карточка позиционируется Stack'ом, а не выравниванием внутри
+        # Container: Container с alignment растягивается на весь Stack и
+        # перехватывает клики, из-за чего клик мимо карточки не закрывал
+        # палитру (поймано живой проверкой 11.11.2026).
+        self.card = card
+        self.card_holder = ft.Container(card, margin=ft.Margin.only(top=90))
         self.content = ft.Stack(
-            [self.backdrop, ft.Container(card, alignment=ft.Alignment.TOP_CENTER,
-                                         padding=ft.Padding.only(top=90))],
-            expand=True)
+            [self.backdrop, self.card_holder],
+            expand=True, alignment=ft.Alignment.TOP_CENTER)
         self._render("")
 
     def _on_change(self, e) -> None:
@@ -19053,8 +19066,9 @@ class CommandPalette(ft.Container):
         self.rows.controls = [self._row(command) for command in self.visible_rows] or [
             T.text("label", "Ничего не нашлось", color=p.text_dim)]
         # Карточка не тащит пустую высоту: список растёт по числу строк
-        # (48 px на строку — сама плашка и её отступы).
-        self.rows.height = min(300, 48 * max(1, len(self.visible_rows)))
+        # (ROW_HEIGHT на строку — плашка, подписи и отступы), но не выше
+        # TYPE_LIMIT строк, иначе последняя строка обрезается.
+        self.rows.height = ROW_HEIGHT * min(TYPE_LIMIT, max(1, len(self.visible_rows)))
         page = self._mounted_page()
         if page is not None:
             try:
@@ -51324,11 +51338,20 @@ def test_palette_submit_runs_first_visible_command(fake_gui):
 
 def test_palette_list_grows_with_results_and_stops_at_limit(fake_gui):
     widget = palette.CommandPalette(fake_gui)
-    assert widget.rows.height == 48 * palette.TYPE_LIMIT
+    assert widget.rows.height == palette.ROW_HEIGHT * palette.TYPE_LIMIT
     widget._render("Микро")
-    assert widget.rows.height == 48 * len(widget.visible_rows)
+    assert widget.rows.height == palette.ROW_HEIGHT * len(widget.visible_rows)
     widget._render("абракадабра")
-    assert widget.rows.height == 48  # одна строка «Ничего не нашлось»
+    assert widget.rows.height == palette.ROW_HEIGHT  # одна строка «Ничего не нашлось»
+
+
+def test_palette_list_height_never_clips_the_last_row(fake_gui):
+    """Потолок списка кратен высоте строки, иначе шестая строка режется."""
+    widget = palette.CommandPalette(fake_gui)
+    assert widget.rows.height % palette.ROW_HEIGHT == 0
+    assert widget.rows.height == palette.ROW_HEIGHT * palette.TYPE_LIMIT
+    # Ровно TYPE_LIMIT строк — ровно столько же места в списке.
+    assert palette.TYPE_LIMIT == len(palette.filter_commands(palette.default_commands(), ""))
 
 
 def test_palette_has_backdrop_field_and_hint(fake_gui):
@@ -51336,6 +51359,20 @@ def test_palette_has_backdrop_field_and_hint(fake_gui):
     assert isinstance(widget.content, ft.Stack)
     assert widget.field.autofocus is True
     assert "Enter" in widget.hint.value
+
+
+def test_backdrop_click_closes_and_card_does_not_swallow_it(fake_gui):
+    """Клик мимо карточки закрывает палитру. ... [5 строк]"""
+    widget = palette.CommandPalette(fake_gui)
+    assert widget.backdrop.on_click is not None
+    # Карточка позиционируется Stack'ом: у держателя нет alignment/expand,
+    # иначе он занимает всю площадь и закрывает подложку.
+    holder = widget.card_holder
+    assert holder.alignment is None
+    assert holder.expand in (None, False)
+    assert list(widget.content.controls)[0] is widget.backdrop
+    assert list(widget.content.controls)[1] is holder
+    assert widget.content.alignment is not None
 
 
 @pytest.fixture

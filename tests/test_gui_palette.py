@@ -65,11 +65,20 @@ def test_palette_submit_runs_first_visible_command(fake_gui):
 
 def test_palette_list_grows_with_results_and_stops_at_limit(fake_gui):
     widget = palette.CommandPalette(fake_gui)
-    assert widget.rows.height == 48 * palette.TYPE_LIMIT
+    assert widget.rows.height == palette.ROW_HEIGHT * palette.TYPE_LIMIT
     widget._render("Микро")
-    assert widget.rows.height == 48 * len(widget.visible_rows)
+    assert widget.rows.height == palette.ROW_HEIGHT * len(widget.visible_rows)
     widget._render("абракадабра")
-    assert widget.rows.height == 48  # одна строка «Ничего не нашлось»
+    assert widget.rows.height == palette.ROW_HEIGHT  # одна строка «Ничего не нашлось»
+
+
+def test_palette_list_height_never_clips_the_last_row(fake_gui):
+    """Потолок списка кратен высоте строки, иначе шестая строка режется."""
+    widget = palette.CommandPalette(fake_gui)
+    assert widget.rows.height % palette.ROW_HEIGHT == 0
+    assert widget.rows.height == palette.ROW_HEIGHT * palette.TYPE_LIMIT
+    # Ровно TYPE_LIMIT строк — ровно столько же места в списке.
+    assert palette.TYPE_LIMIT == len(palette.filter_commands(palette.default_commands(), ""))
 
 
 def test_palette_has_backdrop_field_and_hint(fake_gui):
@@ -77,6 +86,25 @@ def test_palette_has_backdrop_field_and_hint(fake_gui):
     assert isinstance(widget.content, ft.Stack)
     assert widget.field.autofocus is True
     assert "Enter" in widget.hint.value
+
+
+def test_backdrop_click_closes_and_card_does_not_swallow_it(fake_gui):
+    """Клик мимо карточки закрывает палитру.
+
+    Регрессия 11.11.2026: карточку держал `Container(alignment=...)`, который
+    растягивается на весь Stack и перехватывает клики — подложка их не
+    получала, и палитра не закрывалась кликом (только Esc).
+    """
+    widget = palette.CommandPalette(fake_gui)
+    assert widget.backdrop.on_click is not None
+    # Карточка позиционируется Stack'ом: у держателя нет alignment/expand,
+    # иначе он занимает всю площадь и закрывает подложку.
+    holder = widget.card_holder
+    assert holder.alignment is None
+    assert holder.expand in (None, False)
+    assert list(widget.content.controls)[0] is widget.backdrop
+    assert list(widget.content.controls)[1] is holder
+    assert widget.content.alignment is not None
 
 
 @pytest.fixture

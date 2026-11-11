@@ -15,6 +15,11 @@ import flet as ft
 from jarvis import gui_tokens as T
 
 TYPE_LIMIT = 6
+# Высота одной строки списка: две строки текста (название и группа), внутренние
+# отступы 6+6 и запас на межстрочный интервал ListView. Раньше здесь стоял
+# общий потолок 300 px, который меньше 6 строк, и шестая строка обрезалась
+# пополам — увидел только живой снимок.
+ROW_HEIGHT = 52
 
 
 def _call(gui, name, *args):
@@ -111,7 +116,7 @@ class CommandPalette(ft.Container):
             bgcolor=ft.Colors.TRANSPARENT, border=ft.NoInputBorder(),
             hint_text="Вкладка, действие или тема…", on_change=self._on_change,
             on_submit=self._on_submit, shift_enter=False)
-        self.rows = ft.ListView(spacing=2, height=300)
+        self.rows = ft.ListView(spacing=2, height=ROW_HEIGHT * TYPE_LIMIT)
         self.hint = T.text("caption", "Enter — выполнить · Esc — закрыть", color=p.text_dim)
         card = ft.Container(
             ft.Column([
@@ -128,10 +133,15 @@ class CommandPalette(ft.Container):
         self.backdrop = ft.Container(
             expand=True, bgcolor=ft.Colors.with_opacity(.45, "#000000"),
             on_click=lambda e: self.close())
+        # Карточка позиционируется Stack'ом, а не выравниванием внутри
+        # Container: Container с alignment растягивается на весь Stack и
+        # перехватывает клики, из-за чего клик мимо карточки не закрывал
+        # палитру (поймано живой проверкой 11.11.2026).
+        self.card = card
+        self.card_holder = ft.Container(card, margin=ft.Margin.only(top=90))
         self.content = ft.Stack(
-            [self.backdrop, ft.Container(card, alignment=ft.Alignment.TOP_CENTER,
-                                         padding=ft.Padding.only(top=90))],
-            expand=True)
+            [self.backdrop, self.card_holder],
+            expand=True, alignment=ft.Alignment.TOP_CENTER)
         self._render("")
 
     def _on_change(self, e) -> None:
@@ -151,8 +161,9 @@ class CommandPalette(ft.Container):
         self.rows.controls = [self._row(command) for command in self.visible_rows] or [
             T.text("label", "Ничего не нашлось", color=p.text_dim)]
         # Карточка не тащит пустую высоту: список растёт по числу строк
-        # (48 px на строку — сама плашка и её отступы).
-        self.rows.height = min(300, 48 * max(1, len(self.visible_rows)))
+        # (ROW_HEIGHT на строку — плашка, подписи и отступы), но не выше
+        # TYPE_LIMIT строк, иначе последняя строка обрезается.
+        self.rows.height = ROW_HEIGHT * min(TYPE_LIMIT, max(1, len(self.visible_rows)))
         page = self._mounted_page()
         if page is not None:
             try:
