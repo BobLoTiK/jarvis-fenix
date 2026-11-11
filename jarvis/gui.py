@@ -815,7 +815,7 @@ class FenixGUI:
                 bar.set_unread(0)
                 self._root.content = bar
                 self._vertical_mode = True
-                self._apply_vertical_window(True)
+                self._apply_vertical_window(True, flush=bool(update))
                 bar.apply_state(getattr(self, "_state", "idle"))
                 self._start_vertical_level_loop()
                 # Сразу показываем полосу целиком: иначе включение режима
@@ -833,7 +833,7 @@ class FenixGUI:
                 self._vertical_mode = False
                 self._curtain = None
                 self._root.content = self._rail_row
-                self._apply_vertical_window(False)
+                self._apply_vertical_window(False, flush=bool(update))
         except Exception:
             log.exception("GUI: не удалось переключить вертикальный режим")
             return False
@@ -856,8 +856,12 @@ class FenixGUI:
         log.info("GUI: вертикальный режим %s", "включён" if enabled else "выключен")
         return True
 
-    def _apply_vertical_window(self, enabled: bool) -> None:
-        """Свойства окна для режима: полоса без рамки поверх всех или как раньше."""
+    def _apply_vertical_window(self, enabled: bool, flush: bool = False) -> None:
+        """Свойства окна для режима: полоса без рамки поверх всех или как раньше.
+
+        `flush=True` — окно уже показано, и ограничения нужно отдать клиенту
+        отдельной посылкой, иначе новый размер обрежется прежними (см. ниже).
+        """
         from jarvis.gui_vertical import (
             horizontal_window_spec,
             normalize_width,
@@ -873,11 +877,26 @@ class FenixGUI:
             spec = vertical_window_spec(width, work_area())
         else:
             spec = horizontal_window_spec()
-        for key, value in spec.items():
-            try:
-                setattr(window, key, value)
-            except Exception:
-                log.warning("GUI: окно не приняло %s=%r", key, value, exc_info=True)
+        # Порядок важен: клиент применяет свойства окна в порядке полей
+        # (width раньше min_width), поэтому новый размер обрезался старыми
+        # ограничениями — включение полосы оставляло окно 900 px вместо 220, а
+        # выход из неё мог упереться в max_width полосы. Сначала ограничения,
+        # затем размер и позиция (живая проверка 11.11.2026).
+        constraints = {key: value for key, value in spec.items()
+                       if key in ("min_width", "max_width", "min_height", "max_height")}
+        sizes = {key: value for key, value in spec.items() if key not in constraints}
+        for chunk in (constraints, sizes):
+            for key, value in chunk.items():
+                try:
+                    setattr(window, key, value)
+                except Exception:
+                    log.warning("GUI: окно не приняло %s=%r", key, value, exc_info=True)
+            if chunk is constraints and flush:
+                try:
+                    self._page.update()
+                except Exception:
+                    log.warning("GUI: не удалось применить ограничения окна",
+                                exc_info=True)
         if enabled:
             # Позиция окна — забота шторки: открытая или спрятанная за край.
             open_ = self._curtain.open if self._curtain is not None else True
@@ -1146,7 +1165,7 @@ class FenixGUI:
             self._vertical.width = width
             self._vertical._sync_panel_tabs()
         if self._vertical_mode:
-            self._apply_vertical_window(True)
+            self._apply_vertical_window(True, flush=True)
             if self._page is not None:
                 try:
                     self._page.update()
@@ -2216,7 +2235,7 @@ class FenixGUI:
     def _reapply_vertical_geometry(self) -> None:
         if not self._vertical_mode or self._page is None:
             return
-        self._apply_vertical_window(True)
+        self._apply_vertical_window(True, flush=True)
         try:
             self._page.update()
         except Exception:

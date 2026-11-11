@@ -168,6 +168,39 @@ def test_vertical_mode_is_off_by_default(window):
     assert window._vertical is None
 
 
+class _Recorder:
+    """Окно, которое запоминает порядок присвоений свойств."""
+
+    def __init__(self):
+        object.__setattr__(self, "_log", [])
+        object.__setattr__(self, "left", 1700)
+
+    def __setattr__(self, name, value):
+        self._log.append((name, value))
+        object.__setattr__(self, name, value)
+
+
+def test_strip_limits_are_applied_before_size(window):
+    """Ограничения окна идут до размера, иначе новый размер обрезается старым.
+
+    Клиент применяет свойства окна в порядке полей (width раньше min_width),
+    поэтому включение полосы оставляло окно 900 px вместо 220, а выход мог
+    упереться в max_width полосы (живая проверка 11.11.2026).
+    """
+    recorder = _Recorder()
+    window._page.window = recorder
+    window._page.update = Mock()
+    assert window.set_vertical_mode(True) is True
+    keys = [name for name, _ in recorder._log]
+    assert keys.index("min_width") < keys.index("width")
+    assert ("min_width", 220) in recorder._log or ("min_width", 240) in recorder._log
+
+    recorder._log.clear()
+    assert window.set_vertical_mode(False) is True
+    keys = [name for name, _ in recorder._log]
+    assert keys.index("max_width") < keys.index("width")
+
+
 def test_live_switch_reschedules_geometry_after_client_window_state(window):
     """Включение на показанном окне: размеры применяются повторно."""
     window._page.run_task.reset_mock()
@@ -250,7 +283,9 @@ def test_shown_window_reapplies_bar_geometry(window):
     assert window._page.window.width == 240
     assert window._page.window.frameless is True
     assert window._page.window.always_on_top is True
-    assert window._page.update.call_count == 2  # показ + повторная геометрия
+    # показ + ограничения окна + повторная геометрия: ограничения уходят
+    # отдельной посылкой, иначе новый размер обрезается прежним min_width.
+    assert window._page.update.call_count == 3
 
 
 def test_showing_window_in_horizontal_mode_does_not_touch_geometry(window):

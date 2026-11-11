@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=d43ff491f51a3538` · режим `lean` · файлов `403` · строк `73570` · источник `3393 КБ`
+`sha256=6ae63c273596b398` · режим `lean` · файлов `403` · строк `73631` · источник `3397 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -621,7 +621,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── IMPROVEMENT_BACKLOG.md  (120 стр)
 │   ├── INSTALLER_UPDATE.md  (47 стр)
 │   ├── LOCAL_VOICE_OPTIONS.md  (67 стр)
-│   ├── NEXT_STEPS.md  (501 стр)
+│   ├── NEXT_STEPS.md  (508 стр)
 │   ├── NUITKA_BUILD.md  (123 стр)
 │   ├── PHOENIX_JASTIN_RECONCILIATION.md  (270 стр)
 │   ├── PYTHON_BOOTSTRAP_TLS_FIX.md  (98 стр)
@@ -696,7 +696,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── engines.py  (533 стр)
 │   ├── files.py  (109 стр)
 │   ├── first_run.py  (26 стр)
-│   ├── gui.py  (2648 стр)
+│   ├── gui.py  (2667 стр)
 │   ├── gui_audio.py  (438 стр)
 │   ├── gui_cloud.py  (541 стр)
 │   ├── gui_commands.py  (492 стр)
@@ -937,7 +937,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_gui_sidebar.py  (283 стр)
 │   ├── test_gui_startup.py  (105 стр)
 │   ├── test_gui_tokens.py  (68 стр)
-│   ├── test_gui_vertical.py  (589 стр)
+│   ├── test_gui_vertical.py  (624 стр)
 │   ├── test_gui_widgets.py  (259 стр)
 │   ├── test_gui_wiring.py  (591 стр)
 │   ├── test_intents.py  (487 стр)
@@ -4742,6 +4742,9 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_bar_log_follows_messages_and_keeps_newest(isolated_docs, tmp_path)
   def window(tmp_path, monkeypatch)
   def test_vertical_mode_is_off_by_default(window)
+  class _Recorder
+    def __init__(self)
+  def test_strip_limits_are_applied_before_size(window)
   def test_live_switch_reschedules_geometry_after_client_window_state(window)
   def test_reapply_later_stops_when_mode_is_off(window, monkeypatch)
   def test_switching_mode_keeps_state_and_restores_window(window)
@@ -6352,7 +6355,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/engines.py` | 533 | code | Каталог движков Феникса: что скачано, что включено и чем доустановить. |
 | `jarvis/files.py` | 109 | code | Файлы и папки: открыть, посмотреть содержимое, создать. |
 | `jarvis/first_run.py` | 26 | code | Первый запуск — знакомство через LLM-диалог. |
-| `jarvis/gui.py` | 2648 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
+| `jarvis/gui.py` | 2667 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
 | `jarvis/gui_audio.py` | 438 | code | Native sound settings. Diagnostics use the existing listener/Speaker,  |
 | `jarvis/gui_cloud.py` | 541 | code | Вкладка «Облако»: провайдер, ключ, приватность и проверка ключа. |
 | `jarvis/gui_commands.py` | 492 | code | Flet editor for the existing custom_commands pipeline. Never executes  |
@@ -6548,7 +6551,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_gui_sidebar.py` | 283 | code | Native controls and bounded asyncio tasks; no desktop, microphone or m |
 | `tests/test_gui_startup.py` | 105 | code | Startup ordering, tray failure recovery, old EXE mutex handoff; no des |
 | `tests/test_gui_tokens.py` | 68 | code | Дизайн-токены: шкала, поверхности и измеряемый контраст палитр. |
-| `tests/test_gui_vertical.py` | 589 | code | Вертикальный режим: чистая логика, полоса и переключение без окна и зв |
+| `tests/test_gui_vertical.py` | 624 | code | Вертикальный режим: чистая логика, полоса и переключение без окна и зв |
 | `tests/test_gui_widgets.py` | 259 | code | Opt-in layouts, exact task IDs, safe command path, atomic saves and li |
 | `tests/test_gui_wiring.py` | 591 | code | GUI → config: каждый элемент окна реально отсылает изменение. |
 | `tests/test_intents.py` | 487 | code | Автотест Феникса без микрофона. |
@@ -14557,7 +14560,7 @@ class FenixGUI:
                 bar.set_unread(0)
                 self._root.content = bar
                 self._vertical_mode = True
-                self._apply_vertical_window(True)
+                self._apply_vertical_window(True, flush=bool(update))
                 bar.apply_state(getattr(self, "_state", "idle"))
                 self._start_vertical_level_loop()
                 # Сразу показываем полосу целиком: иначе включение режима
@@ -14575,7 +14578,7 @@ class FenixGUI:
                 self._vertical_mode = False
                 self._curtain = None
                 self._root.content = self._rail_row
-                self._apply_vertical_window(False)
+                self._apply_vertical_window(False, flush=bool(update))
         except Exception:
             log.exception("GUI: не удалось переключить вертикальный режим")
             return False
@@ -14598,8 +14601,8 @@ class FenixGUI:
         log.info("GUI: вертикальный режим %s", "включён" if enabled else "выключен")
         return True
 
-    def _apply_vertical_window(self, enabled: bool) -> None:
-        """Свойства окна для режима: полоса без рамки поверх всех или как раньше."""
+    def _apply_vertical_window(self, enabled: bool, flush: bool = False) -> None:
+        """Свойства окна для режима: полоса без рамки поверх всех или как раньше. ... [4 строк]"""
         from jarvis.gui_vertical import (
             horizontal_window_spec,
             normalize_width,
@@ -14615,11 +14618,26 @@ class FenixGUI:
             spec = vertical_window_spec(width, work_area())
         else:
             spec = horizontal_window_spec()
-        for key, value in spec.items():
-            try:
-                setattr(window, key, value)
-            except Exception:
-                log.warning("GUI: окно не приняло %s=%r", key, value, exc_info=True)
+        # Порядок важен: клиент применяет свойства окна в порядке полей
+        # (width раньше min_width), поэтому новый размер обрезался старыми
+        # ограничениями — включение полосы оставляло окно 900 px вместо 220, а
+        # выход из неё мог упереться в max_width полосы. Сначала ограничения,
+        # затем размер и позиция (живая проверка 11.11.2026).
+        constraints = {key: value for key, value in spec.items()
+                       if key in ("min_width", "max_width", "min_height", "max_height")}
+        sizes = {key: value for key, value in spec.items() if key not in constraints}
+        for chunk in (constraints, sizes):
+            for key, value in chunk.items():
+                try:
+                    setattr(window, key, value)
+                except Exception:
+                    log.warning("GUI: окно не приняло %s=%r", key, value, exc_info=True)
+            if chunk is constraints and flush:
+                try:
+                    self._page.update()
+                except Exception:
+                    log.warning("GUI: не удалось применить ограничения окна",
+                                exc_info=True)
         if enabled:
             # Позиция окна — забота шторки: открытая или спрятанная за край.
             open_ = self._curtain.open if self._curtain is not None else True
@@ -14888,7 +14906,7 @@ class FenixGUI:
             self._vertical.width = width
             self._vertical._sync_panel_tabs()
         if self._vertical_mode:
-            self._apply_vertical_window(True)
+            self._apply_vertical_window(True, flush=True)
             if self._page is not None:
                 try:
                     self._page.update()
@@ -15933,7 +15951,7 @@ class FenixGUI:
     def _reapply_vertical_geometry(self) -> None:
         if not self._vertical_mode or self._page is None:
             return
-        self._apply_vertical_window(True)
+        self._apply_vertical_window(True, flush=True)
         try:
             self._page.update()
         except Exception:
@@ -52862,6 +52880,34 @@ def test_vertical_mode_is_off_by_default(window):
     assert window._vertical is None
 
 
+class _Recorder:
+    """Окно, которое запоминает порядок присвоений свойств."""
+
+    def __init__(self):
+        object.__setattr__(self, "_log", [])
+        object.__setattr__(self, "left", 1700)
+
+    def __setattr__(self, name, value):
+        self._log.append((name, value))
+        object.__setattr__(self, name, value)
+
+
+def test_strip_limits_are_applied_before_size(window):
+    """Ограничения окна идут до размера, иначе новый размер обрезается старым. ... [5 строк]"""
+    recorder = _Recorder()
+    window._page.window = recorder
+    window._page.update = Mock()
+    assert window.set_vertical_mode(True) is True
+    keys = [name for name, _ in recorder._log]
+    assert keys.index("min_width") < keys.index("width")
+    assert ("min_width", 220) in recorder._log or ("min_width", 240) in recorder._log
+
+    recorder._log.clear()
+    assert window.set_vertical_mode(False) is True
+    keys = [name for name, _ in recorder._log]
+    assert keys.index("max_width") < keys.index("width")
+
+
 def test_live_switch_reschedules_geometry_after_client_window_state(window):
     """Включение на показанном окне: размеры применяются повторно."""
     window._page.run_task.reset_mock()
@@ -52944,7 +52990,9 @@ def test_shown_window_reapplies_bar_geometry(window):
     assert window._page.window.width == 240
     assert window._page.window.frameless is True
     assert window._page.window.always_on_top is True
-    assert window._page.update.call_count == 2  # показ + повторная геометрия
+    # показ + ограничения окна + повторная геометрия: ограничения уходят
+    # отдельной посылкой, иначе новый размер обрезается прежним min_width.
+    assert window._page.update.call_count == 3
 
 
 def test_showing_window_in_horizontal_mode_does_not_touch_geometry(window):
