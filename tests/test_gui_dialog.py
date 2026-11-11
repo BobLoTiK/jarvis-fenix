@@ -105,6 +105,17 @@ def test_chat_measure_keeps_line_length_in_check(window):
     assert window._history_list.width == module.CHAT_MEASURE
 
 
+def test_history_list_width_is_not_overridden_by_expand(window):
+    """expand=True на ListView в Row перебивает width: живое окно растягивало
+    пузыри на 1280 px при заданной мере 760. Мера должна оставаться мерой."""
+    assert not getattr(window._history_list, "expand", False)
+    assert window._history_list.width == module.CHAT_MEASURE
+    window._page.window.width = 1600
+    window._on_window_event(NS(type=ft.WindowEventType.RESIZED))
+    assert window._history_list.width == module.CHAT_MEASURE
+    assert not getattr(window._history_list, "expand", False)
+
+
 def test_resize_updates_chat_measure(window):
     window._page.window.width = 900
     window._on_window_event(NS(type=ft.WindowEventType.RESIZE))

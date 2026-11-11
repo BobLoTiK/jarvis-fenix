@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=fcac99dd30ea3219` · режим `lean` · файлов `402` · строк `73365` · источник `3378 КБ`
+`sha256=495507ebd18b49c7` · режим `lean` · файлов `402` · строк `73377` · источник `3379 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -695,7 +695,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── engines.py  (533 стр)
 │   ├── files.py  (109 стр)
 │   ├── first_run.py  (26 стр)
-│   ├── gui.py  (2647 стр)
+│   ├── gui.py  (2648 стр)
 │   ├── gui_audio.py  (438 стр)
 │   ├── gui_cloud.py  (541 стр)
 │   ├── gui_commands.py  (480 стр)
@@ -925,7 +925,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_gui_cloud.py  (225 стр)
 │   ├── test_gui_commands.py  (131 стр)
 │   ├── test_gui_commands_io.py  (114 стр)
-│   ├── test_gui_dialog.py  (130 стр)
+│   ├── test_gui_dialog.py  (141 стр)
 │   ├── test_gui_engines.py  (155 стр)
 │   ├── test_gui_home.py  (222 стр)
 │   ├── test_gui_home_actions.py  (189 стр)
@@ -4458,6 +4458,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_typing_bubble_appears_while_thinking_and_goes_on_answer(window)
   def test_typing_bubble_removed_when_state_returns_to_idle(window)
   def test_chat_measure_keeps_line_length_in_check(window)
+  def test_history_list_width_is_not_overridden_by_expand(window)
   def test_resize_updates_chat_measure(window)
   def test_user_message_has_repeat_action_that_fills_input(window)
 ```
@@ -6345,7 +6346,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/engines.py` | 533 | code | Каталог движков Феникса: что скачано, что включено и чем доустановить. |
 | `jarvis/files.py` | 109 | code | Файлы и папки: открыть, посмотреть содержимое, создать. |
 | `jarvis/first_run.py` | 26 | code | Первый запуск — знакомство через LLM-диалог. |
-| `jarvis/gui.py` | 2647 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
+| `jarvis/gui.py` | 2648 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
 | `jarvis/gui_audio.py` | 438 | code | Native sound settings. Diagnostics use the existing listener/Speaker,  |
 | `jarvis/gui_cloud.py` | 541 | code | Вкладка «Облако»: провайдер, ключ, приватность и проверка ключа. |
 | `jarvis/gui_commands.py` | 480 | code | Flet editor for the existing custom_commands pipeline. Never executes  |
@@ -6530,7 +6531,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_gui_cloud.py` | 225 | code | Вкладка «Облако»: черновик, сохранение, ключ и проверка — без сети и D |
 | `tests/test_gui_commands.py` | 131 | code | Imported native builder controls; no OS actions or real passwords. |
 | `tests/test_gui_commands_io.py` | 114 | code | Импорт/экспорт команд через GUI-редактор: превью, применение, отмена. |
-| `tests/test_gui_dialog.py` | 130 | code | Детали диалога: разделители дней, «печатает…», повтор сообщения. |
+| `tests/test_gui_dialog.py` | 141 | code | Детали диалога: разделители дней, «печатает…», повтор сообщения. |
 | `tests/test_gui_engines.py` | 155 | code | Вкладка «Движки»: каталог, кнопка установки, прогресс и «активно» из к |
 | `tests/test_gui_home.py` | 222 | code | Native minimal Home; no OS/model/mic/network. Old navigation IDs stay  |
 | `tests/test_gui_home_actions.py` | 189 | code | Action orbit: real callbacks, continuous hover zone, keyboard and life |
@@ -15068,13 +15069,14 @@ class FenixGUI:
             ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=20),
             padding=ft.Padding(left=8, right=8, top=32, bottom=24), alignment=ft.Alignment.CENTER)
         self._history_list = ft.ListView(spacing=16, auto_scroll=self._follow_chat,
-                                         on_scroll=self._on_chat_scroll, expand=True,
+                                         on_scroll=self._on_chat_scroll,
                                          width=self._chat_measure())
         self._render_history()
         self._latest_btn = ft.Button("К последнему сообщению", height=44, visible=not self._follow_chat,
                                      on_click=self._scroll_latest)
         body = ft.Container(
             content=ft.Row([self._history_list], alignment=ft.MainAxisAlignment.CENTER,
+                           vertical_alignment=ft.CrossAxisAlignment.STRETCH,
                            expand=True),
             expand=True, padding=ft.Padding(left=28, right=28, top=12, bottom=8))
         view = ft.Column([header, self._error_banner, body,
@@ -50366,6 +50368,17 @@ def test_chat_measure_keeps_line_length_in_check(window):
     assert window._chat_measure() == 240
     window._page.window.width = 1100
     assert window._history_list.width == module.CHAT_MEASURE
+
+
+def test_history_list_width_is_not_overridden_by_expand(window):
+    """expand=True на ListView в Row перебивает width: живое окно растягивало
+    пузыри на 1280 px при заданной мере 760. Мера должна оставаться мерой."""
+    assert not getattr(window._history_list, "expand", False)
+    assert window._history_list.width == module.CHAT_MEASURE
+    window._page.window.width = 1600
+    window._on_window_event(NS(type=ft.WindowEventType.RESIZED))
+    assert window._history_list.width == module.CHAT_MEASURE
+    assert not getattr(window._history_list, "expand", False)
 
 
 def test_resize_updates_chat_measure(window):

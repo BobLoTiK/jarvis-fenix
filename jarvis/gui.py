@@ -1333,13 +1333,14 @@ class FenixGUI:
             ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=20),
             padding=ft.Padding(left=8, right=8, top=32, bottom=24), alignment=ft.Alignment.CENTER)
         self._history_list = ft.ListView(spacing=16, auto_scroll=self._follow_chat,
-                                         on_scroll=self._on_chat_scroll, expand=True,
+                                         on_scroll=self._on_chat_scroll,
                                          width=self._chat_measure())
         self._render_history()
         self._latest_btn = ft.Button("К последнему сообщению", height=44, visible=not self._follow_chat,
                                      on_click=self._scroll_latest)
         body = ft.Container(
             content=ft.Row([self._history_list], alignment=ft.MainAxisAlignment.CENTER,
+                           vertical_alignment=ft.CrossAxisAlignment.STRETCH,
                            expand=True),
             expand=True, padding=ft.Padding(left=28, right=28, top=12, bottom=8))
         view = ft.Column([header, self._error_banner, body,
