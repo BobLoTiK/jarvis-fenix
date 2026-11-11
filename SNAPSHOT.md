@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=85a6f8c628060d72` · режим `lean` · файлов `403` · строк `73503` · источник `3389 КБ`
+`sha256=b912c3eebedcd469` · режим `lean` · файлов `403` · строк `73520` · источник `3390 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -621,7 +621,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── IMPROVEMENT_BACKLOG.md  (120 стр)
 │   ├── INSTALLER_UPDATE.md  (47 стр)
 │   ├── LOCAL_VOICE_OPTIONS.md  (67 стр)
-│   ├── NEXT_STEPS.md  (487 стр)
+│   ├── NEXT_STEPS.md  (501 стр)
 │   ├── NUITKA_BUILD.md  (123 стр)
 │   ├── PHOENIX_JASTIN_RECONCILIATION.md  (270 стр)
 │   ├── PYTHON_BOOTSTRAP_TLS_FIX.md  (98 стр)
@@ -632,7 +632,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── v2.1.0.md  (34 стр)
 │   │   ├── v2.1.1.md  (80 стр)
 │   │   ├── v2.1.2.md  (112 стр)
-│   │   ├── v2.1.3.md  (87 стр)
+│   │   ├── v2.1.3.md  (90 стр)
 │   ├── REVIEW_FIXES.md  (68 стр)
 │   ├── TTS_LIFECYCLE_FIX.md  (89 стр)
 │   ├── USER_GUIDE.md  (1271 стр)
