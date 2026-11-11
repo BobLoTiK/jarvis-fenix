@@ -287,7 +287,7 @@ class CommandBuilder:
             subtitle=ft.Text("Пароль задан" if self.gui.config.get("danger_password") else "Пароль не задан · выключение недоступно", color=TEXT_DIM),
             controls=[ft.Container(ft.Column([self.password_field, self.password_confirm,
                 _button("Сохранить пароль", on_click=self.set_password),
-                ft.Text("Хранится SHA-256, как в существующем механизме. В сценарий и историю пароль не попадает.", size=12, color=TEXT_DIM)], spacing=12), padding=16)]))
+                ft.Text("Хранится хеш PBKDF2-HMAC-SHA256 со случайной солью. В сценарий и историю пароль не попадает.", size=12, color=TEXT_DIM)], spacing=12), padding=16)]))
         scroll = ft.Column(controls, spacing=20, scroll=ft.ScrollMode.AUTO, expand=True)
         body = scroll
         if self.draft is not None:

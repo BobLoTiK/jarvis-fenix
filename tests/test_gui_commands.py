@@ -84,7 +84,11 @@ def test_password_never_becomes_editor_draft(editor):
     editor.password_field.value = "Test-42!"
     editor.password_confirm.value = "Test-42!"
     editor.set_password()
-    assert editor.gui.config.get("danger_password").startswith("sha256:")
+    from jarvis.intents.password import is_hashed, verify_password
+    stored = editor.gui.config.get("danger_password")
+    assert is_hashed(stored)
+    assert stored.startswith("pbkdf2_sha256:")
+    assert verify_password("Test-42!", stored)
     assert "Test-42!" not in repr(editor.draft)
     assert not editor.password_field.value
     assert not editor.password_confirm.value

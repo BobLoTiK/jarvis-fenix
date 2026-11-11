@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=258481f875c04293` · режим `lean` · файлов `397` · строк `72301` · источник `3333 КБ`
+`sha256=4ae10f808de9bda6` · режим `lean` · файлов `398` · строк `72504` · источник `3341 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -268,7 +268,9 @@ Observer выключен без согласия (`observer_enabled=false`); и
 8. UIA — STA/COM и общий lock. Браузеры определяются через единый список и PID в `uia.py`.
    Ctrl+W fallback допустим только при непрочитанных вкладках, не при не найденном имени.
 9. Опасность проверять до custom/pack-исполнения, включая все шаги макроса.
-   Пароль — SHA-256 с префиксом + `hmac.compare_digest`; не логировать/запоминать ввод.
+   Пароль — PBKDF2-HMAC-SHA256 (600 000 итераций, случайная соль) + `hmac.compare_digest`;
+   legacy `sha256:` и plaintext читаются и перезаписываются новым форматом при первом
+   верном вводе; не логировать/запоминать ввод.
 10. Ошибка записи задачи не превращается в «готово». ZIP — защита от Zip Slip.
 11. Системные команды с аргументами — `_looks_like_cmd`/shlex/subprocess, не os.startfile.
 12. Flet 1.x: `ft.Button`, не удалённые ElevatedButton/TextButton; COM/GUI/аудио проверять
@@ -601,9 +603,9 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── IMPROVEMENT_BACKLOG.md  (120 стр)
 │   ├── INSTALLER_UPDATE.md  (47 стр)
 │   ├── LOCAL_VOICE_OPTIONS.md  (67 стр)
-│   ├── NEXT_STEPS.md  (470 стр)
+│   ├── NEXT_STEPS.md  (474 стр)
 │   ├── NUITKA_BUILD.md  (123 стр)
-│   ├── PHOENIX_JASTIN_RECONCILIATION.md  (268 стр)
+│   ├── PHOENIX_JASTIN_RECONCILIATION.md  (270 стр)
 │   ├── PYTHON_BOOTSTRAP_TLS_FIX.md  (98 стр)
 │   ├── README.md  (67 стр)
 │   ├── reference/
@@ -614,7 +616,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── v2.1.2.md  (112 стр)
 │   ├── REVIEW_FIXES.md  (68 стр)
 │   ├── TTS_LIFECYCLE_FIX.md  (89 стр)
-│   ├── USER_GUIDE.md  (1251 стр)
+│   ├── USER_GUIDE.md  (1254 стр)
 │   ├── WHISPER_STARTUP_DLL_FIX.md  (85 стр)
 │   ├── WINDOWS_STARTUP_RELIABILITY.md  (108 стр)
 │   ├── WINRT_TTS_REMOVAL.md  (43 стр)
@@ -720,7 +722,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   │   ├── voices.py  (10 стр)
 │   │   │   ├── weather.py  (113 стр)
 │   │   ├── handler.py  (310 стр)
-│   │   ├── password.py  (153 стр)
+│   │   ├── password.py  (224 стр)
 │   │   ├── sites.py  (62 стр)
 │   │   ├── stages/
 │   │   │   ├── __init__.py  (50 стр)
@@ -805,7 +807,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── work.json  (11 стр)
 ├── phoenix_app.py  (11 стр)
 ├── PLAN.md  (101 стр)
-├── PROJECT.md  (521 стр)
+├── PROJECT.md  (523 стр)
 ├── PROMPT.md  (72 стр)
 ├── pytest.ini  (20 стр)
 ├── README.md  (332 стр)
@@ -901,7 +903,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_gui_audio.py  (335 стр)
 │   ├── test_gui_chat.py  (289 стр)
 │   ├── test_gui_cloud.py  (225 стр)
-│   ├── test_gui_commands.py  (127 стр)
+│   ├── test_gui_commands.py  (131 стр)
 │   ├── test_gui_dialog.py  (124 стр)
 │   ├── test_gui_engines.py  (155 стр)
 │   ├── test_gui_home.py  (222 стр)
@@ -933,6 +935,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_open_results.py  (32 стр)
 │   ├── test_optional_whisper_startup.py  (134 стр)
 │   ├── test_password_imports.py  (109 стр)
+│   ├── test_password_kdf.py  (117 стр)
 │   ├── test_persona.py  (155 стр)
 │   ├── test_piper_pipeline.py  (75 стр)
 │   ├── test_plugins.py  (307 стр)
@@ -2116,9 +2119,13 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ```
   # Парольные примитивы: jarvis.intents.password (не стадия pipeline).
   _PASSWORD_PREFIX = ...
-  def hash_password(password: str)
+  _LEGACY_PREFIX = ...
+  KDF_ITERATIONS = ...
+  _SALT_BYTES = ...
+  def hash_password(password: str, iterations: int=KDF_ITERATIONS)
   def is_hashed(value: str)
-  def verify_password(candidate: str, stored: str)
+  def needs_rehash(stored: str)
+  def verify_password(candidate: str, stored: str, config=None)
   def migrate_password_if_needed(config)
   DANGER_ACTIONS = ...
   IRREVERSIBLE_ACTIONS = ...
@@ -5215,6 +5222,28 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_password_and_handler_import_in_fresh_process(first, tmp_path)
 ```
 
+**`tests/test_password_kdf.py`**
+
+```
+  # Пароль: PBKDF2 со солью, чтение legacy-форматов и миграция при входе.
+  class FakeConfig(dict)
+    def set(self, key, value)
+  def test_new_hash_has_prefix_iterations_and_salt()
+  def test_salt_makes_equal_passwords_differ()
+  def test_verify_accepts_current_and_rejects_wrong()
+  def test_legacy_sha256_still_verifies()
+  def test_legacy_plaintext_still_verifies()
+  def test_verify_upgrades_legacy_hash_when_config_given()
+  def test_verify_upgrades_plaintext_when_config_given()
+  def test_verify_does_not_upgrade_on_wrong_password()
+  def test_verify_without_config_never_touches_legacy()
+  def test_broken_entries_do_not_raise()
+  def test_needs_rehash_matrix()
+  def test_migration_hashes_plaintext_and_keeps_current()
+  def test_migration_leaves_legacy_sha256_for_next_login()
+  def test_kdf_iterations_meet_floor()
+```
+
 **`tests/test_persona.py`**
 
 ```
@@ -6262,7 +6291,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/intents/fast/voices.py` | 10 | code | Голоса Piper — обёртка над модулем `voices`. |
 | `jarvis/intents/fast/weather.py` | 113 | code | Простые правила для погоды и курса — без LLM. |
 | `jarvis/intents/handler.py` | 310 | code | IntentHandler — оркестрация. |
-| `jarvis/intents/password.py` | 153 | code | Парольные примитивы: jarvis.intents.password (не стадия pipeline). |
+| `jarvis/intents/password.py` | 224 | code | Парольные примитивы: jarvis.intents.password (не стадия pipeline). |
 | `jarvis/intents/sites.py` | 62 | code | Сайты для открытия голосом — ленивая загрузка из packs/sites.json. |
 | `jarvis/intents/stages/__init__.py` | 50 | code | Стадии обработки команды. Порядок = приоритет. |
 | `jarvis/intents/stages/base.py` | 19 | code | Базовая стадия pipeline. |
@@ -6400,7 +6429,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_gui_audio.py` | 335 | code | Native sound settings + real worker boundaries; no microphone or actua |
 | `tests/test_gui_chat.py` | 289 | code | Imported Flet controls + real GUI worker threads; no window, ASR or au |
 | `tests/test_gui_cloud.py` | 225 | code | Вкладка «Облако»: черновик, сохранение, ключ и проверка — без сети и D |
-| `tests/test_gui_commands.py` | 127 | code | Imported native builder controls; no OS actions or real passwords. |
+| `tests/test_gui_commands.py` | 131 | code | Imported native builder controls; no OS actions or real passwords. |
 | `tests/test_gui_dialog.py` | 124 | code | Детали диалога: разделители дней, «печатает…», повтор сообщения. |
 | `tests/test_gui_engines.py` | 155 | code | Вкладка «Движки»: каталог, кнопка установки, прогресс и «активно» из к |
 | `tests/test_gui_home.py` | 222 | code | Native minimal Home; no OS/model/mic/network. Old navigation IDs stay  |
@@ -6432,6 +6461,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_open_results.py` | 32 | code | Actual dispatch function isolated from Windows imports; no apps launch |
 | `tests/test_optional_whisper_startup.py` | 134 | code | Execute real startup functions with stub peripherals, no models/mic/Wi |
 | `tests/test_password_imports.py` | 109 | code | Import boundaries must work in a fresh interpreter, before any pytest  |
+| `tests/test_password_kdf.py` | 117 | code | Пароль: PBKDF2 со солью, чтение legacy-форматов и миграция при входе. |
 | `tests/test_persona.py` | 155 | code | Тесты jarvis.persona — стиль, tone, prompt-блок. |
 | `tests/test_piper_pipeline.py` | 75 | code | Piper-стрим: синтез идёт внахлёст с проигрыванием, отмена честная. |
 | `tests/test_plugins.py` | 307 | code | Плагины: манифест, согласие, lifecycle, таймаут, падение и стадия pipe |
@@ -17263,7 +17293,7 @@ class CommandBuilder:
             subtitle=ft.Text("Пароль задан" if self.gui.config.get("danger_password") else "Пароль не задан · выключение недоступно", color=TEXT_DIM),
             controls=[ft.Container(ft.Column([self.password_field, self.password_confirm,
                 _button("Сохранить пароль", on_click=self.set_password),
-                ft.Text("Хранится SHA-256, как в существующем механизме. В сценарий и историю пароль не попадает.", size=12, color=TEXT_DIM)], spacing=12), padding=16)]))
+                ft.Text("Хранится хеш PBKDF2-HMAC-SHA256 со случайной солью. В сценарий и историю пароль не попадает.", size=12, color=TEXT_DIM)], spacing=12), padding=16)]))
         scroll = ft.Column(controls, spacing=20, scroll=ft.ScrollMode.AUTO, expand=True)
         body = scroll
         if self.draft is not None:
@@ -24432,48 +24462,107 @@ class IntentHandler:
 ### `jarvis/intents/password.py`
 
 ```python
-"""Парольные примитивы: jarvis.intents.password (не стадия pipeline). ... [6 строк]"""
+"""Парольные примитивы: jarvis.intents.password (не стадия pipeline). ... [9 строк]"""
 
 import hashlib
 import hmac
 import logging
+import secrets
 
 log = logging.getLogger("jarvis.intents")
 
+_PASSWORD_PREFIX = "pbkdf2_sha256:"
+_LEGACY_PREFIX = "sha256:"
+KDF_ITERATIONS = 600_000
+_SALT_BYTES = 16
 
-_PASSWORD_PREFIX = "sha256:"
+
+def _hash_legacy_sha256(password: str) -> str:
+    return "sha256:" + hashlib.sha256(password.encode("utf-8")).hexdigest()
 
 
-def hash_password(password: str) -> str:
-    """SHA-256 с префиксом. Префикс отличает хеш от legacy-plaintext."""
-    digest = hashlib.sha256(password.encode("utf-8")).hexdigest()
-    return f"{_PASSWORD_PREFIX}{digest}"
+def hash_password(password: str, iterations: int = KDF_ITERATIONS) -> str:
+    """PBKDF2-HMAC-SHA256 со случайной солью. ... [4 строк]"""
+    salt = secrets.token_hex(_SALT_BYTES)
+    digest = hashlib.pbkdf2_hmac(
+        "sha256", password.encode("utf-8"), bytes.fromhex(salt), iterations
+    ).hex()
+    return f"{_PASSWORD_PREFIX}{iterations}:{salt}:{digest}"
 
 
 def is_hashed(value: str) -> bool:
-    """Уже захеширован?"""
-    return bool(value) and value.startswith(_PASSWORD_PREFIX)
+    """Уже захеширован (текущий формат или legacy `sha256:`)."""
+    return bool(value) and value.startswith((_PASSWORD_PREFIX, _LEGACY_PREFIX))
 
 
-def verify_password(candidate: str, stored: str) -> bool:
-    """Сравнивает введённый пароль с сохранённым. ... [4 строк]"""
+def needs_rehash(stored: str) -> bool:
+    """Слабый формат: plaintext, legacy без соли или меньше итераций, чем сейчас."""
     if not stored:
         return False
-    if is_hashed(stored):
-        # compare_digest — постоянное по времени сравнение.
-        # Обычный == утекает длиной совпавшего префикса.
-        return hmac.compare_digest(hash_password(candidate), stored)
-    # Legacy plaintext — мигрируется в sha256 при старте.
-    return hmac.compare_digest(candidate.encode("utf-8"), stored.encode("utf-8"))
+    if stored.startswith(_LEGACY_PREFIX):
+        return True
+    if not stored.startswith(_PASSWORD_PREFIX):
+        return True
+    rest = stored[len(_PASSWORD_PREFIX):]
+    try:
+        iterations = int(rest.split(":", 1)[0])
+    except (ValueError, IndexError):
+        return True
+    return iterations < KDF_ITERATIONS
+
+
+def _parse_pbkdf2(stored: str) -> tuple[int, str, str] | None:
+    rest = stored[len(_PASSWORD_PREFIX):]
+    parts = rest.split(":")
+    if len(parts) != 3:
+        return None
+    try:
+        iterations = int(parts[0])
+    except ValueError:
+        return None
+    salt_hex, digest = parts[1], parts[2]
+    try:
+        bytes.fromhex(salt_hex)
+    except ValueError:
+        return None
+    return iterations, salt_hex, digest
+
+
+def verify_password(candidate: str, stored: str, config=None) -> bool:
+    """Сравнивает введённый пароль с сохранённым. ... [5 строк]"""
+    if not stored:
+        return False
+    stored = str(stored).strip()
+    ok = False
+    if stored.startswith(_PASSWORD_PREFIX):
+        parsed = _parse_pbkdf2(stored)
+        if parsed is None:
+            return False
+        iterations, salt_hex, digest = parsed
+        computed = hashlib.pbkdf2_hmac(
+            "sha256", candidate.encode("utf-8"), bytes.fromhex(salt_hex), iterations
+        ).hex()
+        ok = hmac.compare_digest(computed, digest)
+    elif stored.startswith(_LEGACY_PREFIX):
+        ok = hmac.compare_digest(_hash_legacy_sha256(candidate), stored)
+    else:
+        ok = hmac.compare_digest(candidate.encode("utf-8"), stored.encode("utf-8"))
+    if ok and config is not None and needs_rehash(stored) and hasattr(config, "set"):
+        try:
+            config.set("danger_password", hash_password(candidate))
+            log.info("Парольной записи назначен PBKDF2 с солью")
+        except Exception:
+            log.exception("Не удалось обновить формат парольной записи")
+    return ok
 
 
 def migrate_password_if_needed(config) -> None:
-    """Если danger_password в plaintext — захешировать (№81)."""
+    """Если danger_password в plaintext — захешировать (№81). ... [4 строк]"""
     raw = str(config.get("danger_password") or "").strip()
     if not raw or is_hashed(raw):
         return
     config.set("danger_password", hash_password(raw))
-    log.info("Пароль миграции: plaintext → sha256")
+    log.info("Пароль миграции: plaintext → pbkdf2_sha256")
 
 
 # Действия, требующие пароля (если danger_password задан).
@@ -25224,7 +25313,7 @@ class PasswordStage(Stage):
                            count=1, flags=re.IGNORECASE).strip()
 
         stored = str(h.config.get("danger_password") or "").strip()
-        if not verify_password(candidate, stored):
+        if not verify_password(candidate, stored, config=h.config):
             log.warning("Пароль неверный")
             return "Пароль неверный. Действие отменено."
 
@@ -49324,7 +49413,11 @@ def test_password_never_becomes_editor_draft(editor):
     editor.password_field.value = "Test-42!"
     editor.password_confirm.value = "Test-42!"
     editor.set_password()
-    assert editor.gui.config.get("danger_password").startswith("sha256:")
+    from jarvis.intents.password import is_hashed, verify_password
+    stored = editor.gui.config.get("danger_password")
+    assert is_hashed(stored)
+    assert stored.startswith("pbkdf2_sha256:")
+    assert verify_password("Test-42!", stored)
     assert "Test-42!" not in repr(editor.draft)
     assert not editor.password_field.value
     assert not editor.password_confirm.value
@@ -57207,6 +57300,128 @@ print('Password primitives, stage and handler: OK')
     )
     assert result.returncode == 0, f"{first}:\n{result.stdout}\n{result.stderr}"
     assert "handler: OK" in result.stdout
+```
+
+### `tests/test_password_kdf.py`
+
+```python
+"""Пароль: PBKDF2 со солью, чтение legacy-форматов и миграция при входе."""
+
+import hashlib
+
+from jarvis.intents.password import (
+    KDF_ITERATIONS,
+    hash_password,
+    is_hashed,
+    migrate_password_if_needed,
+    needs_rehash,
+    verify_password,
+)
+
+
+class FakeConfig(dict):
+    def set(self, key, value):
+        self[key] = value
+        return True
+
+
+def test_new_hash_has_prefix_iterations_and_salt():
+    stored = hash_password("AbC-42!")
+    assert stored.startswith("pbkdf2_sha256:")
+    iterations, salt, digest = stored.split(":")[1:]
+    assert int(iterations) == KDF_ITERATIONS
+    assert len(bytes.fromhex(salt)) == 16
+    assert len(digest) == 64
+    assert "AbC-42!" not in stored
+
+
+def test_salt_makes_equal_passwords_differ():
+    first = hash_password("same-password")
+    second = hash_password("same-password")
+    assert first != second
+    assert verify_password("same-password", first)
+    assert verify_password("same-password", second)
+
+
+def test_verify_accepts_current_and_rejects_wrong():
+    stored = hash_password("correct horse")
+    assert verify_password("correct horse", stored)
+    assert not verify_password("correct hors", stored)
+    assert not verify_password("", stored)
+
+
+def test_legacy_sha256_still_verifies():
+    legacy = "sha256:" + hashlib.sha256(b"old-pass").hexdigest()
+    assert is_hashed(legacy)
+    assert verify_password("old-pass", legacy)
+    assert not verify_password("new-pass", legacy)
+
+
+def test_legacy_plaintext_still_verifies():
+    assert not is_hashed("plain-pass")
+    assert verify_password("plain-pass", "plain-pass")
+    assert not verify_password("other", "plain-pass")
+
+
+def test_verify_upgrades_legacy_hash_when_config_given():
+    config = FakeConfig(danger_password="sha256:" + hashlib.sha256(b"old-pass").hexdigest())
+    assert verify_password("old-pass", config["danger_password"], config=config)
+    upgraded = config["danger_password"]
+    assert upgraded.startswith("pbkdf2_sha256:")
+    assert verify_password("old-pass", upgraded)
+
+
+def test_verify_upgrades_plaintext_when_config_given():
+    config = FakeConfig(danger_password="plain-pass")
+    assert verify_password("plain-pass", "plain-pass", config=config)
+    assert config["danger_password"].startswith("pbkdf2_sha256:")
+
+
+def test_verify_does_not_upgrade_on_wrong_password():
+    config = FakeConfig(danger_password="sha256:" + hashlib.sha256(b"right").hexdigest())
+    assert not verify_password("wrong", config["danger_password"], config=config)
+    assert config["danger_password"].startswith("sha256:")
+
+
+def test_verify_without_config_never_touches_legacy():
+    stored = "sha256:" + hashlib.sha256(b"pass").hexdigest()
+    assert verify_password("pass", stored)
+    assert stored.startswith("sha256:")
+
+
+def test_broken_entries_do_not_raise():
+    for stored in ("pbkdf2_sha256:", "pbkdf2_sha256:abc:zz:zz", "pbkdf2_sha256:1:zz:zz"):
+        assert verify_password("any", stored) is False
+
+
+def test_needs_rehash_matrix():
+    assert not needs_rehash("")
+    assert needs_rehash("plain")
+    assert needs_rehash("sha256:" + "0" * 64)
+    assert needs_rehash(hash_password("x", iterations=1000))
+    assert not needs_rehash(hash_password("x"))
+
+
+def test_migration_hashes_plaintext_and_keeps_current():
+    config = FakeConfig(danger_password="plain")
+    migrate_password_if_needed(config)
+    assert config["danger_password"].startswith("pbkdf2_sha256:")
+    assert verify_password("plain", config["danger_password"])
+
+    current = config["danger_password"]
+    migrate_password_if_needed(config)
+    assert config["danger_password"] == current
+
+
+def test_migration_leaves_legacy_sha256_for_next_login():
+    stored = "sha256:" + hashlib.sha256(b"pass").hexdigest()
+    config = FakeConfig(danger_password=stored)
+    migrate_password_if_needed(config)
+    assert config["danger_password"] == stored
+
+
+def test_kdf_iterations_meet_floor():
+    assert KDF_ITERATIONS >= 600_000
 ```
 
 ### `tests/test_persona.py`
@@ -69211,4 +69426,4 @@ certifi>=2024.8.30
 
 ---
 
-_Итого по категориям — code: 280, data: 60, doc: 52, pack: 5. Режим `lean`._
+_Итого по категориям — code: 281, data: 60, doc: 52, pack: 5. Режим `lean`._

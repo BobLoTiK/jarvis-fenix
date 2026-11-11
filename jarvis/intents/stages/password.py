@@ -95,7 +95,7 @@ class PasswordStage(Stage):
                            count=1, flags=re.IGNORECASE).strip()
 
         stored = str(h.config.get("danger_password") or "").strip()
-        if not verify_password(candidate, stored):
+        if not verify_password(candidate, stored, config=h.config):
             log.warning("Пароль неверный")
             return "Пароль неверный. Действие отменено."
 

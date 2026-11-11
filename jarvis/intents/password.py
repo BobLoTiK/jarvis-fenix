@@ -2,54 +2,125 @@
 
 Хеширование пароля и действия, требующие пароля.
 
-Пароль хранится как `sha256:<hex>`. Legacy-plaintext поддерживается,
-но мигрируется в sha256 при старте.
+Пароль хранится как `pbkdf2_sha256:<iterations>:<salt_hex>:<hash_hex>` —
+PBKDF2-HMAC-SHA256 с солью (600 000 итераций). Legacy-форматы читаются и
+мигрируют: `sha256:<hex>` (без соли, до 2.1.3) и plaintext — оба принимаются
+при проверке, но при первом успешном вводе пароля запись перезаписывается
+на текущий формат (`verify_password(..., config=...)`).
 """
 
 import hashlib
 import hmac
 import logging
+import secrets
 
 log = logging.getLogger("jarvis.intents")
 
+_PASSWORD_PREFIX = "pbkdf2_sha256:"
+_LEGACY_PREFIX = "sha256:"
+KDF_ITERATIONS = 600_000
+_SALT_BYTES = 16
 
-_PASSWORD_PREFIX = "sha256:"
+
+def _hash_legacy_sha256(password: str) -> str:
+    return "sha256:" + hashlib.sha256(password.encode("utf-8")).hexdigest()
 
 
-def hash_password(password: str) -> str:
-    """SHA-256 с префиксом. Префикс отличает хеш от legacy-plaintext."""
-    digest = hashlib.sha256(password.encode("utf-8")).hexdigest()
-    return f"{_PASSWORD_PREFIX}{digest}"
+def hash_password(password: str, iterations: int = KDF_ITERATIONS) -> str:
+    """PBKDF2-HMAC-SHA256 со случайной солью.
+
+    Итерации пишутся в саму запись: старые хеши не нужно пересчитывать вслепую,
+    а `needs_rehash` видит, когда формат устарел.
+    """
+    salt = secrets.token_hex(_SALT_BYTES)
+    digest = hashlib.pbkdf2_hmac(
+        "sha256", password.encode("utf-8"), bytes.fromhex(salt), iterations
+    ).hex()
+    return f"{_PASSWORD_PREFIX}{iterations}:{salt}:{digest}"
 
 
 def is_hashed(value: str) -> bool:
-    """Уже захеширован?"""
-    return bool(value) and value.startswith(_PASSWORD_PREFIX)
+    """Уже захеширован (текущий формат или legacy `sha256:`)."""
+    return bool(value) and value.startswith((_PASSWORD_PREFIX, _LEGACY_PREFIX))
 
 
-def verify_password(candidate: str, stored: str) -> bool:
+def needs_rehash(stored: str) -> bool:
+    """Слабый формат: plaintext, legacy без соли или меньше итераций, чем сейчас."""
+    if not stored:
+        return False
+    if stored.startswith(_LEGACY_PREFIX):
+        return True
+    if not stored.startswith(_PASSWORD_PREFIX):
+        return True
+    rest = stored[len(_PASSWORD_PREFIX):]
+    try:
+        iterations = int(rest.split(":", 1)[0])
+    except (ValueError, IndexError):
+        return True
+    return iterations < KDF_ITERATIONS
+
+
+def _parse_pbkdf2(stored: str) -> tuple[int, str, str] | None:
+    rest = stored[len(_PASSWORD_PREFIX):]
+    parts = rest.split(":")
+    if len(parts) != 3:
+        return None
+    try:
+        iterations = int(parts[0])
+    except ValueError:
+        return None
+    salt_hex, digest = parts[1], parts[2]
+    try:
+        bytes.fromhex(salt_hex)
+    except ValueError:
+        return None
+    return iterations, salt_hex, digest
+
+
+def verify_password(candidate: str, stored: str, config=None) -> bool:
     """Сравнивает введённый пароль с сохранённым.
 
-    Если stored ещё legacy (plaintext) — сравнивает напрямую.
-    Миграция происходит при старте через `migrate_password_if_needed`.
+    Принимает текущий формат, legacy `sha256:` и legacy plaintext. Если передан
+    `config` и хеш устарел, после успешной проверки запись перезаписывается
+    на PBKDF2 с солью — так legacy уходит без сброса пароля.
     """
     if not stored:
         return False
-    if is_hashed(stored):
-        # compare_digest — постоянное по времени сравнение.
-        # Обычный == утекает длиной совпавшего префикса.
-        return hmac.compare_digest(hash_password(candidate), stored)
-    # Legacy plaintext — мигрируется в sha256 при старте.
-    return hmac.compare_digest(candidate.encode("utf-8"), stored.encode("utf-8"))
+    stored = str(stored).strip()
+    ok = False
+    if stored.startswith(_PASSWORD_PREFIX):
+        parsed = _parse_pbkdf2(stored)
+        if parsed is None:
+            return False
+        iterations, salt_hex, digest = parsed
+        computed = hashlib.pbkdf2_hmac(
+            "sha256", candidate.encode("utf-8"), bytes.fromhex(salt_hex), iterations
+        ).hex()
+        ok = hmac.compare_digest(computed, digest)
+    elif stored.startswith(_LEGACY_PREFIX):
+        ok = hmac.compare_digest(_hash_legacy_sha256(candidate), stored)
+    else:
+        ok = hmac.compare_digest(candidate.encode("utf-8"), stored.encode("utf-8"))
+    if ok and config is not None and needs_rehash(stored) and hasattr(config, "set"):
+        try:
+            config.set("danger_password", hash_password(candidate))
+            log.info("Парольной записи назначен PBKDF2 с солью")
+        except Exception:
+            log.exception("Не удалось обновить формат парольной записи")
+    return ok
 
 
 def migrate_password_if_needed(config) -> None:
-    """Если danger_password в plaintext — захешировать (№81)."""
+    """Если danger_password в plaintext — захешировать (№81).
+
+    Legacy `sha256:` без пароля не пересчитать: он обновится при первом
+    успешном вводе через `verify_password(..., config=...)`.
+    """
     raw = str(config.get("danger_password") or "").strip()
     if not raw or is_hashed(raw):
         return
     config.set("danger_password", hash_password(raw))
-    log.info("Пароль миграции: plaintext → sha256")
+    log.info("Пароль миграции: plaintext → pbkdf2_sha256")
 
 
 # Действия, требующие пароля (если danger_password задан).
