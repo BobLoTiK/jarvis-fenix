@@ -1417,7 +1417,7 @@ class FenixGUI:
         ], spacing=4), padding=12, bgcolor=P.composer, border_radius=16,
             border=ft.Border.all(1, P.border))
         return ft.Container(content=ft.Column([
-            composer, ft.Row([self._input_hint, ft.Text("Подсказки не запускают действия", size=11, color=TEXT_DIM)],
+            composer, ft.Row([self._input_hint, ft.Text("Подсказки не запускают действия", size=12, color=TEXT_DIM)],
                              alignment=ft.MainAxisAlignment.SPACE_BETWEEN, wrap=True),
         ], spacing=8), padding=ft.Padding(left=28, right=28, top=0, bottom=16))
 
@@ -1730,7 +1730,7 @@ class FenixGUI:
         hint = ft.Text(
             f"Рекомендация по CPU: {recommended}. "
             f"Для русских голосов high пока недоступен — используется medium.",
-            size=11,
+            size=12,
             color=TEXT_DIM,
         )
 
@@ -2056,13 +2056,17 @@ class FenixGUI:
             if self._page is not None:
                 self._page.run_task(self._input_field.focus)
                 self._page.update()
-        buttons = [ft.IconButton(icon=ft.Icons.CONTENT_COPY, icon_size=17,
-                                 width=44, height=44, icon_color=TEXT_DIM,
-                                 tooltip="Копировать сообщение", on_click=copy)]
+        buttons = [ft.Semantics(
+            label="Копировать сообщение", button=True,
+            content=ft.IconButton(icon=ft.Icons.CONTENT_COPY, icon_size=17,
+                                  width=44, height=44, icon_color=TEXT_DIM,
+                                  tooltip="Копировать сообщение", on_click=copy))]
         if is_user:
-            buttons.append(ft.IconButton(
-                icon=ft.Icons.REPLAY, icon_size=17, width=44, height=44,
-                icon_color=TEXT_DIM, tooltip="Повторить в поле ввода", on_click=repeat))
+            buttons.append(ft.Semantics(
+                label="Повторить в поле ввода", button=True,
+                content=ft.IconButton(
+                    icon=ft.Icons.REPLAY, icon_size=17, width=44, height=44,
+                    icon_color=TEXT_DIM, tooltip="Повторить в поле ввода", on_click=repeat)))
         header = ft.Row([
             ft.Icon(ft.Icons.PERSON_OUTLINE if is_user else ft.Icons.GRAPHIC_EQ,
                     size=18, color=ACCENT),

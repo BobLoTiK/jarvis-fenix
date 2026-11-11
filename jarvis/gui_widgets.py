@@ -266,7 +266,7 @@ class WidgetBoard(ft.Column):
     def _tasks_card(self, widget):
         p = self._palette()
         self.task_rows = ft.Column(spacing=2,scroll=ft.ScrollMode.AUTO)
-        self.task_summary = ft.Text(size=11,color=p.text_dim)
+        self.task_summary = ft.Text(size=12,color=p.text_dim)
         self.task_input = ft.TextField(value=self._task_draft,hint_text="Добавить задачу…",max_length=300,dense=True,
             expand=True,color=p.text,disabled=self.editing,on_submit=self.add_task,on_change=self._text_changed,
             border_color=p.border,text_size=13)
@@ -283,7 +283,7 @@ class WidgetBoard(ft.Column):
         for i, action in enumerate(self.shortcuts):
             if self.editing:
                 rows.append(ft.Row([ft.Column([ft.Text(action["label"],size=13,color=p.text),
-                    ft.Text(action["command"],size=11,color=p.text_dim,max_lines=2)],expand=True),
+                    ft.Text(action["command"],size=12,color=p.text_dim,max_lines=2)],expand=True),
                     ft.IconButton(icon=ft.Icons.CLOSE,tooltip="Убрать действие",icon_color=p.text_dim,
                                   on_click=partial(self.remove_shortcut,i))]))
             else:
@@ -298,7 +298,7 @@ class WidgetBoard(ft.Column):
             rows.extend([self.shortcut_label,self.shortcut_command,
                 ft.Button("Добавить действие",icon=ft.Icons.ADD,on_click=self.add_shortcut,
                           color=p.brand,disabled=len(self.shortcuts)>=6),
-                ft.Text("Запуск — через Диалог с обычными проверками безопасности.",size=11,color=p.text_dim)])
+                ft.Text("Запуск — через Диалог с обычными проверками безопасности.",size=12,color=p.text_dim)])
         return ft.Column(rows,spacing=10)
 
     def capture(self):

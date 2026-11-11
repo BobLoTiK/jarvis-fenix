@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=c1844ef0beaa4808` · режим `lean` · файлов `402` · строк `73355` · источник `3378 КБ`
+`sha256=fcac99dd30ea3219` · режим `lean` · файлов `402` · строк `73365` · источник `3378 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -695,7 +695,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── engines.py  (533 стр)
 │   ├── files.py  (109 стр)
 │   ├── first_run.py  (26 стр)
-│   ├── gui.py  (2643 стр)
+│   ├── gui.py  (2647 стр)
 │   ├── gui_audio.py  (438 стр)
 │   ├── gui_cloud.py  (541 стр)
 │   ├── gui_commands.py  (480 стр)
@@ -925,7 +925,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_gui_cloud.py  (225 стр)
 │   ├── test_gui_commands.py  (131 стр)
 │   ├── test_gui_commands_io.py  (114 стр)
-│   ├── test_gui_dialog.py  (124 стр)
+│   ├── test_gui_dialog.py  (130 стр)
 │   ├── test_gui_engines.py  (155 стр)
 │   ├── test_gui_home.py  (222 стр)
 │   ├── test_gui_home_actions.py  (189 стр)
@@ -6345,7 +6345,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/engines.py` | 533 | code | Каталог движков Феникса: что скачано, что включено и чем доустановить. |
 | `jarvis/files.py` | 109 | code | Файлы и папки: открыть, посмотреть содержимое, создать. |
 | `jarvis/first_run.py` | 26 | code | Первый запуск — знакомство через LLM-диалог. |
-| `jarvis/gui.py` | 2643 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
+| `jarvis/gui.py` | 2647 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
 | `jarvis/gui_audio.py` | 438 | code | Native sound settings. Diagnostics use the existing listener/Speaker,  |
 | `jarvis/gui_cloud.py` | 541 | code | Вкладка «Облако»: провайдер, ключ, приватность и проверка ключа. |
 | `jarvis/gui_commands.py` | 480 | code | Flet editor for the existing custom_commands pipeline. Never executes  |
@@ -6530,7 +6530,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_gui_cloud.py` | 225 | code | Вкладка «Облако»: черновик, сохранение, ключ и проверка — без сети и D |
 | `tests/test_gui_commands.py` | 131 | code | Imported native builder controls; no OS actions or real passwords. |
 | `tests/test_gui_commands_io.py` | 114 | code | Импорт/экспорт команд через GUI-редактор: превью, применение, отмена. |
-| `tests/test_gui_dialog.py` | 124 | code | Детали диалога: разделители дней, «печатает…», повтор сообщения. |
+| `tests/test_gui_dialog.py` | 130 | code | Детали диалога: разделители дней, «печатает…», повтор сообщения. |
 | `tests/test_gui_engines.py` | 155 | code | Вкладка «Движки»: каталог, кнопка установки, прогресс и «активно» из к |
 | `tests/test_gui_home.py` | 222 | code | Native minimal Home; no OS/model/mic/network. Old navigation IDs stay  |
 | `tests/test_gui_home_actions.py` | 189 | code | Action orbit: real callbacks, continuous hover zone, keyboard and life |
@@ -15152,7 +15152,7 @@ class FenixGUI:
         ], spacing=4), padding=12, bgcolor=P.composer, border_radius=16,
             border=ft.Border.all(1, P.border))
         return ft.Container(content=ft.Column([
-            composer, ft.Row([self._input_hint, ft.Text("Подсказки не запускают действия", size=11, color=TEXT_DIM)],
+            composer, ft.Row([self._input_hint, ft.Text("Подсказки не запускают действия", size=12, color=TEXT_DIM)],
                              alignment=ft.MainAxisAlignment.SPACE_BETWEEN, wrap=True),
         ], spacing=8), padding=ft.Padding(left=28, right=28, top=0, bottom=16))
 
@@ -15450,7 +15450,7 @@ class FenixGUI:
         hint = ft.Text(
             f"Рекомендация по CPU: {recommended}. "
             f"Для русских голосов high пока недоступен — используется medium.",
-            size=11,
+            size=12,
             color=TEXT_DIM,
         )
 
@@ -15766,13 +15766,17 @@ class FenixGUI:
             if self._page is not None:
                 self._page.run_task(self._input_field.focus)
                 self._page.update()
-        buttons = [ft.IconButton(icon=ft.Icons.CONTENT_COPY, icon_size=17,
-                                 width=44, height=44, icon_color=TEXT_DIM,
-                                 tooltip="Копировать сообщение", on_click=copy)]
+        buttons = [ft.Semantics(
+            label="Копировать сообщение", button=True,
+            content=ft.IconButton(icon=ft.Icons.CONTENT_COPY, icon_size=17,
+                                  width=44, height=44, icon_color=TEXT_DIM,
+                                  tooltip="Копировать сообщение", on_click=copy))]
         if is_user:
-            buttons.append(ft.IconButton(
-                icon=ft.Icons.REPLAY, icon_size=17, width=44, height=44,
-                icon_color=TEXT_DIM, tooltip="Повторить в поле ввода", on_click=repeat))
+            buttons.append(ft.Semantics(
+                label="Повторить в поле ввода", button=True,
+                content=ft.IconButton(
+                    icon=ft.Icons.REPLAY, icon_size=17, width=44, height=44,
+                    icon_color=TEXT_DIM, tooltip="Повторить в поле ввода", on_click=repeat)))
         header = ft.Row([
             ft.Icon(ft.Icons.PERSON_OUTLINE if is_user else ft.Icons.GRAPHIC_EQ,
                     size=18, color=ACCENT),
@@ -21778,7 +21782,7 @@ class WidgetBoard(ft.Column):
     def _tasks_card(self, widget):
         p = self._palette()
         self.task_rows = ft.Column(spacing=2,scroll=ft.ScrollMode.AUTO)
-        self.task_summary = ft.Text(size=11,color=p.text_dim)
+        self.task_summary = ft.Text(size=12,color=p.text_dim)
         self.task_input = ft.TextField(value=self._task_draft,hint_text="Добавить задачу…",max_length=300,dense=True,
             expand=True,color=p.text,disabled=self.editing,on_submit=self.add_task,on_change=self._text_changed,
             border_color=p.border,text_size=13)
@@ -21795,7 +21799,7 @@ class WidgetBoard(ft.Column):
         for i, action in enumerate(self.shortcuts):
             if self.editing:
                 rows.append(ft.Row([ft.Column([ft.Text(action["label"],size=13,color=p.text),
-                    ft.Text(action["command"],size=11,color=p.text_dim,max_lines=2)],expand=True),
+                    ft.Text(action["command"],size=12,color=p.text_dim,max_lines=2)],expand=True),
                     ft.IconButton(icon=ft.Icons.CLOSE,tooltip="Убрать действие",icon_color=p.text_dim,
                                   on_click=partial(self.remove_shortcut,i))]))
             else:
@@ -21810,7 +21814,7 @@ class WidgetBoard(ft.Column):
             rows.extend([self.shortcut_label,self.shortcut_command,
                 ft.Button("Добавить действие",icon=ft.Icons.ADD,on_click=self.add_shortcut,
                           color=p.brand,disabled=len(self.shortcuts)>=6),
-                ft.Text("Запуск — через Диалог с обычными проверками безопасности.",size=11,color=p.text_dim)])
+                ft.Text("Запуск — через Диалог с обычными проверками безопасности.",size=12,color=p.text_dim)])
         return ft.Column(rows,spacing=10)
 
     def capture(self):
@@ -50376,9 +50380,15 @@ def test_resize_updates_chat_measure(window):
 def test_user_message_has_repeat_action_that_fills_input(window):
     window._apply_message("user", "напомни через час")
     bubble = window._history_list.controls[-1]
-    buttons = [c for c in bubble.content.controls[0].controls
-               if isinstance(c, ft.IconButton)]
+    header = bubble.content.controls[0].controls
+    # Кнопки обёрнуты в Semantics: скринридеру нужна метка, не только tooltip.
+    wrappers = [c for c in header if isinstance(c, ft.Semantics)]
+    assert [w.label for w in wrappers] == ["Копировать сообщение", "Повторить в поле ввода"]
+    assert all(w.button for w in wrappers)
+    buttons = [w.content for w in wrappers]
+    assert all(isinstance(b, ft.IconButton) for b in buttons)
     assert [b.tooltip for b in buttons] == ["Копировать сообщение", "Повторить в поле ввода"]
+    assert all(b.width == 44 and b.height == 44 for b in buttons)
     buttons[-1].on_click(NS(control=buttons[-1]))
     assert window._input_field.value == "напомни через час"
 ```

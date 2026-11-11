@@ -117,8 +117,14 @@ def test_resize_updates_chat_measure(window):
 def test_user_message_has_repeat_action_that_fills_input(window):
     window._apply_message("user", "напомни через час")
     bubble = window._history_list.controls[-1]
-    buttons = [c for c in bubble.content.controls[0].controls
-               if isinstance(c, ft.IconButton)]
+    header = bubble.content.controls[0].controls
+    # Кнопки обёрнуты в Semantics: скринридеру нужна метка, не только tooltip.
+    wrappers = [c for c in header if isinstance(c, ft.Semantics)]
+    assert [w.label for w in wrappers] == ["Копировать сообщение", "Повторить в поле ввода"]
+    assert all(w.button for w in wrappers)
+    buttons = [w.content for w in wrappers]
+    assert all(isinstance(b, ft.IconButton) for b in buttons)
     assert [b.tooltip for b in buttons] == ["Копировать сообщение", "Повторить в поле ввода"]
+    assert all(b.width == 44 and b.height == 44 for b in buttons)
     buttons[-1].on_click(NS(control=buttons[-1]))
     assert window._input_field.value == "напомни через час"
