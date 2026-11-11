@@ -7,7 +7,6 @@ open_profile ВЫШЕ open — иначе open_fast съест «открой п
 """
 
 from jarvis.intents.fast.custom import match_custom, load_custom
-from jarvis.intents.fast.jokes import joke_fast
 from jarvis.intents.fast.small_talk import small_talk
 from jarvis.intents.fast.music import music_fast
 from jarvis.intents.fast.screenshot import screenshot_fast
@@ -34,7 +33,6 @@ def build_registry(handler) -> list:
     """Собирает реестр для конкретного handler'а."""
     return [
         ("custom",           lambda cmd: match_custom(handler, cmd)),
-        ("joke",             lambda cmd: joke_fast(handler, cmd)),
         ("small_talk",       lambda cmd: small_talk(handler, cmd)),
         ("music",            lambda cmd: music_fast(handler, cmd)),
         ("screenshot",       lambda cmd: screenshot_fast(handler, cmd)),
