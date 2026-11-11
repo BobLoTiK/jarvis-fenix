@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=6ae63c273596b398` · режим `lean` · файлов `403` · строк `73631` · источник `3397 КБ`
+`sha256=6c4d1021db1d00b0` · режим `lean` · файлов `404` · строк `73794` · источник `3404 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -621,7 +621,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── IMPROVEMENT_BACKLOG.md  (120 стр)
 │   ├── INSTALLER_UPDATE.md  (47 стр)
 │   ├── LOCAL_VOICE_OPTIONS.md  (67 стр)
-│   ├── NEXT_STEPS.md  (508 стр)
+│   ├── NEXT_STEPS.md  (513 стр)
 │   ├── NUITKA_BUILD.md  (123 стр)
 │   ├── PHOENIX_JASTIN_RECONCILIATION.md  (270 стр)
 │   ├── PYTHON_BOOTSTRAP_TLS_FIX.md  (98 стр)
@@ -696,7 +696,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── engines.py  (533 стр)
 │   ├── files.py  (109 стр)
 │   ├── first_run.py  (26 стр)
-│   ├── gui.py  (2667 стр)
+│   ├── gui.py  (2674 стр)
 │   ├── gui_audio.py  (438 стр)
 │   ├── gui_cloud.py  (541 стр)
 │   ├── gui_commands.py  (492 стр)
@@ -926,11 +926,12 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_gui_cloud.py  (225 стр)
 │   ├── test_gui_commands.py  (131 стр)
 │   ├── test_gui_commands_io.py  (152 стр)
-│   ├── test_gui_dialog.py  (141 стр)
+│   ├── test_gui_dialog.py  (194 стр)
 │   ├── test_gui_engines.py  (155 стр)
 │   ├── test_gui_home.py  (222 стр)
 │   ├── test_gui_home_actions.py  (189 стр)
 │   ├── test_gui_home_fx.py  (261 стр)
+│   ├── test_gui_layout_guards.py  (98 стр)
 │   ├── test_gui_palette.py  (189 стр)
 │   ├── test_gui_pipette.py  (192 стр)
 │   ├── test_gui_preferences.py  (516 стр)
@@ -4465,6 +4466,11 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_history_list_width_is_not_overridden_by_expand(window)
   def test_resize_updates_chat_measure(window)
   def test_user_message_has_repeat_action_that_fills_input(window)
+  class _ComposerRecorder
+    def __init__(self)
+  def test_state_refresh_keeps_composer_intact(window)
+  def test_password_state_still_reconfigures_composer(window)
+  def test_leaving_password_mode_restores_multiline_composer(window)
 ```
 
 **`tests/test_gui_engines.py`**
@@ -4557,6 +4563,16 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_mounted_target_change_does_not_pop_or_restart_phase(gui)
   def test_energy_is_smoothed_not_applied_as_a_step(gui)
   def test_waves_have_more_travel_but_stay_inside_canvas()
+```
+
+**`tests/test_gui_layout_guards.py`**
+
+```
+  # Стражи раскладки GUI: правила, которые не видно в юнит-тестах.
+  def window(tmp_path)
+  def test_no_expand_inside_wrapped_rows(window)
+  def test_controls_are_not_shared_between_parents(window)
+  def test_composer_field_is_single_and_focusable(window)
 ```
 
 **`tests/test_gui_palette.py`**
@@ -6355,7 +6371,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/engines.py` | 533 | code | Каталог движков Феникса: что скачано, что включено и чем доустановить. |
 | `jarvis/files.py` | 109 | code | Файлы и папки: открыть, посмотреть содержимое, создать. |
 | `jarvis/first_run.py` | 26 | code | Первый запуск — знакомство через LLM-диалог. |
-| `jarvis/gui.py` | 2667 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
+| `jarvis/gui.py` | 2674 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
 | `jarvis/gui_audio.py` | 438 | code | Native sound settings. Diagnostics use the existing listener/Speaker,  |
 | `jarvis/gui_cloud.py` | 541 | code | Вкладка «Облако»: провайдер, ключ, приватность и проверка ключа. |
 | `jarvis/gui_commands.py` | 492 | code | Flet editor for the existing custom_commands pipeline. Never executes  |
@@ -6540,11 +6556,12 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_gui_cloud.py` | 225 | code | Вкладка «Облако»: черновик, сохранение, ключ и проверка — без сети и D |
 | `tests/test_gui_commands.py` | 131 | code | Imported native builder controls; no OS actions or real passwords. |
 | `tests/test_gui_commands_io.py` | 152 | code | Импорт/экспорт команд через GUI-редактор: превью, применение, отмена. |
-| `tests/test_gui_dialog.py` | 141 | code | Детали диалога: разделители дней, «печатает…», повтор сообщения. |
+| `tests/test_gui_dialog.py` | 194 | code | Детали диалога: разделители дней, «печатает…», повтор сообщения. |
 | `tests/test_gui_engines.py` | 155 | code | Вкладка «Движки»: каталог, кнопка установки, прогресс и «активно» из к |
 | `tests/test_gui_home.py` | 222 | code | Native minimal Home; no OS/model/mic/network. Old navigation IDs stay  |
 | `tests/test_gui_home_actions.py` | 189 | code | Action orbit: real callbacks, continuous hover zone, keyboard and life |
 | `tests/test_gui_home_fx.py` | 261 | code | Native solar aura lifecycle; no audio device, model or Windows session |
+| `tests/test_gui_layout_guards.py` | 98 | code | Стражи раскладки GUI: правила, которые не видно в юнит-тестах. |
 | `tests/test_gui_palette.py` | 189 | code | Палитра команд (Ctrl+K) и фокус-режим: чистые функции и привязка к GUI |
 | `tests/test_gui_pipette.py` | 192 | code | Мини-режим «пипетка»: свойства окна 56×56, возврат и тосты. |
 | `tests/test_gui_preferences.py` | 516 | code | Real imported Flet controls / real disk writes / explicit network fake |
@@ -15759,12 +15776,19 @@ class FenixGUI:
             self._status_sub.value = sub
         if self._input_field is not None:
             sensitive = bool(getattr(getattr(self.jarvis, "handler", None), "_pending_password", None))
-            self._input_field.password = sensitive or state == "password"
-            self._input_field.multiline = not self._input_field.password
-            self._input_field.max_lines = 1 if self._input_field.password else 4
-            self._input_field.autocorrect = not self._input_field.password
-            self._input_field.enable_suggestions = not self._input_field.password
-            self._input_field.hint_text = "Пароль (скрыт)" if self._input_field.password else "Напиши, что нужно сделать…"
+            # Поля ввода касаемся только при смене режима «пароль/обычный»:
+            # каждая запись multiline/max_lines заставляет клиента Flet
+            # пересоздать поле, и фокус теряется (живая проверка 11.11.2026 —
+            # после первой же смены состояния поле перестало принимать клик).
+            want_password = sensitive or state == "password"
+            if self._input_field.password != want_password:
+                self._input_field.password = want_password
+                self._input_field.multiline = not want_password
+                self._input_field.max_lines = 1 if want_password else 4
+                self._input_field.autocorrect = not want_password
+                self._input_field.enable_suggestions = not want_password
+                self._input_field.hint_text = ("Пароль (скрыт)" if want_password
+                                               else "Напиши, что нужно сделать…")
             if self._input_hint is not None:
                 self._input_hint.value = ("Пароль скрыт · Enter — подтвердить" if self._input_field.password
                                           else "Enter — отправить · Shift+Enter — новая строка")
@@ -50483,6 +50507,54 @@ def test_user_message_has_repeat_action_that_fills_input(window):
     assert all(b.width == 44 and b.height == 44 for b in buttons)
     buttons[-1].on_click(NS(control=buttons[-1]))
     assert window._input_field.value == "напомни через час"
+
+
+class _ComposerRecorder:
+    """Поле ввода, которое запоминает каждую запись свойства."""
+
+    password = False
+    multiline = True
+    max_lines = 4
+    autocorrect = True
+    enable_suggestions = True
+    hint_text = ""
+
+    def __init__(self):
+        object.__setattr__(self, "writes", [])
+
+    def __setattr__(self, name, value):
+        self.writes.append((name, value))
+        object.__setattr__(self, name, value)
+
+
+def test_state_refresh_keeps_composer_intact(window):
+    """Смена состояния не трогает поле ввода. ... [5 строк]"""
+    window._input_field = _ComposerRecorder()
+    window._apply_state("idle")
+    window._apply_state("speaking")
+    assert window._input_field.writes == []
+
+
+def test_password_state_still_reconfigures_composer(window):
+    window._input_field = _ComposerRecorder()
+    window._apply_state("password")
+    assert window._input_field.password is True
+    assert window._input_field.multiline is False
+    assert window._input_field.max_lines == 1
+    assert window._input_field.autocorrect is False
+    assert window._input_field.enable_suggestions is False
+    assert window._input_field.hint_text == "Пароль (скрыт)"
+
+
+def test_leaving_password_mode_restores_multiline_composer(window):
+    window._input_field = _ComposerRecorder()
+    window._apply_state("password")
+    window._input_field.writes.clear()
+    window._apply_state("idle")
+    assert window._input_field.password is False
+    assert window._input_field.multiline is True
+    assert window._input_field.max_lines == 4
+    assert window._input_field.hint_text.startswith("Напиши")
 ```
 
 ### `tests/test_gui_engines.py`
@@ -51330,6 +51402,101 @@ def test_waves_have_more_travel_but_stay_inside_canvas():
         spreads.append(max(radii)-min(radii))
     assert spreads[1] > 2*spreads[0]
     assert spreads[2] > spreads[1]
+```
+
+### `tests/test_gui_layout_guards.py`
+
+```python
+"""Стражи раскладки GUI: правила, которые не видно в юнит-тестах. ... [8 строк]"""
+
+import importlib.util
+from types import SimpleNamespace as NS
+
+import pytest
+
+if importlib.util.find_spec("flet") is None:
+    pytest.skip("flet не установлен — тесты GUI пропущены", allow_module_level=True)
+
+import flet as ft  # noqa: E402
+
+from jarvis import gui as module  # noqa: E402
+from jarvis import mood, profile  # noqa: E402
+from jarvis.config import Config  # noqa: E402
+
+
+def _walk(control, seen=None):
+    if control is None:
+        return
+    if seen is None:
+        seen = set()
+    key = id(control)
+    if key in seen:
+        return
+    seen.add(key)
+    yield control
+    yield from _walk(getattr(control, "content", None), seen)
+    for child in getattr(control, "controls", None) or []:
+        yield from _walk(child, seen)
+
+
+@pytest.fixture()
+def window(tmp_path):
+    gui = module.FenixGUI(None, Config(tmp_path / "config.json"))
+    page = NS(add=lambda *a, **k: None, update=lambda *a, **k: None,
+              window=NS(width=1100, height=760), run_task=lambda *a, **k: None,
+              overlay=[])
+    gui._page = page
+    gui._build_ui(page)
+    yield gui
+    gui.close_palette()
+    gui.stop()
+    gui._rail.dispose()
+    profile.unsubscribe(gui._on_profile_switch)
+    mood.unsubscribe(gui._on_mood_change)
+    module._apply_palette("dark")
+
+
+def test_no_expand_inside_wrapped_rows(window):
+    offenders = []
+    for tab, control in window._tabs.items():
+        for node in _walk(control):
+            if isinstance(node, ft.Row) and node.wrap:
+                for child in node.controls:
+                    if getattr(child, "expand", None):
+                        offenders.append((tab, type(child).__name__,
+                                          str(getattr(child, "value", ""))[:40]))
+    assert offenders == []
+
+
+def test_controls_are_not_shared_between_parents(window):
+    visited = set()
+    repeated = []
+
+    def visit(control):
+        if control is None or not isinstance(control, ft.Control):
+            return
+        key = id(control)
+        if key in visited:
+            repeated.append(type(control).__name__)
+            return
+        visited.add(key)
+        visit(getattr(control, "content", None))
+        for child in getattr(control, "controls", None) or []:
+            visit(child)
+
+    for control in window._tabs.values():
+        visit(control)
+    assert repeated == []
+
+
+def test_composer_field_is_single_and_focusable(window):
+    """Поле ввода одно, не disabled и не read_only: иначе в него не попасть."""
+    roots = [window._root, *window._tabs.values()]
+    found = [node for root in roots for node in _walk(root)
+             if isinstance(node, ft.TextField)]
+    assert found.count(window._input_field) == 1
+    assert window._input_field.disabled is False
+    assert window._input_field.read_only is False
 ```
 
 ### `tests/test_gui_palette.py`
@@ -70498,4 +70665,4 @@ certifi>=2024.8.30
 
 ---
 
-_Итого по категориям — code: 285, data: 60, doc: 53, pack: 5. Режим `lean`._
+_Итого по категориям — code: 286, data: 60, doc: 53, pack: 5. Режим `lean`._

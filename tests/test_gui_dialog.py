@@ -139,3 +139,56 @@ def test_user_message_has_repeat_action_that_fills_input(window):
     assert all(b.width == 44 and b.height == 44 for b in buttons)
     buttons[-1].on_click(NS(control=buttons[-1]))
     assert window._input_field.value == "напомни через час"
+
+
+class _ComposerRecorder:
+    """Поле ввода, которое запоминает каждую запись свойства."""
+
+    password = False
+    multiline = True
+    max_lines = 4
+    autocorrect = True
+    enable_suggestions = True
+    hint_text = ""
+
+    def __init__(self):
+        object.__setattr__(self, "writes", [])
+
+    def __setattr__(self, name, value):
+        self.writes.append((name, value))
+        object.__setattr__(self, name, value)
+
+
+def test_state_refresh_keeps_composer_intact(window):
+    """Смена состояния не трогает поле ввода.
+
+    Каждая запись multiline/max_lines заставляет клиента Flet пересоздать
+    поле и терять фокус: после первой же смены состояния поле «Напиши, что
+    нужно сделать…» переставало принимать клик (живая проверка 11.11.2026).
+    """
+    window._input_field = _ComposerRecorder()
+    window._apply_state("idle")
+    window._apply_state("speaking")
+    assert window._input_field.writes == []
+
+
+def test_password_state_still_reconfigures_composer(window):
+    window._input_field = _ComposerRecorder()
+    window._apply_state("password")
+    assert window._input_field.password is True
+    assert window._input_field.multiline is False
+    assert window._input_field.max_lines == 1
+    assert window._input_field.autocorrect is False
+    assert window._input_field.enable_suggestions is False
+    assert window._input_field.hint_text == "Пароль (скрыт)"
+
+
+def test_leaving_password_mode_restores_multiline_composer(window):
+    window._input_field = _ComposerRecorder()
+    window._apply_state("password")
+    window._input_field.writes.clear()
+    window._apply_state("idle")
+    assert window._input_field.password is False
+    assert window._input_field.multiline is True
+    assert window._input_field.max_lines == 4
+    assert window._input_field.hint_text.startswith("Напиши")

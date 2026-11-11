@@ -2043,12 +2043,19 @@ class FenixGUI:
             self._status_sub.value = sub
         if self._input_field is not None:
             sensitive = bool(getattr(getattr(self.jarvis, "handler", None), "_pending_password", None))
-            self._input_field.password = sensitive or state == "password"
-            self._input_field.multiline = not self._input_field.password
-            self._input_field.max_lines = 1 if self._input_field.password else 4
-            self._input_field.autocorrect = not self._input_field.password
-            self._input_field.enable_suggestions = not self._input_field.password
-            self._input_field.hint_text = "Пароль (скрыт)" if self._input_field.password else "Напиши, что нужно сделать…"
+            # Поля ввода касаемся только при смене режима «пароль/обычный»:
+            # каждая запись multiline/max_lines заставляет клиента Flet
+            # пересоздать поле, и фокус теряется (живая проверка 11.11.2026 —
+            # после первой же смены состояния поле перестало принимать клик).
+            want_password = sensitive or state == "password"
+            if self._input_field.password != want_password:
+                self._input_field.password = want_password
+                self._input_field.multiline = not want_password
+                self._input_field.max_lines = 1 if want_password else 4
+                self._input_field.autocorrect = not want_password
+                self._input_field.enable_suggestions = not want_password
+                self._input_field.hint_text = ("Пароль (скрыт)" if want_password
+                                               else "Напиши, что нужно сделать…")
             if self._input_hint is not None:
                 self._input_hint.value = ("Пароль скрыт · Enter — подтвердить" if self._input_field.password
                                           else "Enter — отправить · Shift+Enter — новая строка")
