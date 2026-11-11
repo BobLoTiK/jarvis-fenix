@@ -818,10 +818,10 @@ def _do_open(handler, target: str) -> str:
         actions.open_path(lnk)
         return f"Открываю {name}."
 
-    return _open_site(target)
+    return _open_site(target, from_app=True)
 
 
-def _open_site(name: str) -> str:
+def _open_site(name: str, from_app: bool = False) -> str:
     from jarvis.intents.sites import get_sites
 
     if not name:
@@ -834,6 +834,11 @@ def _open_site(name: str) -> str:
     if url:
         actions.open_url(url)
         return f"Открываю сайт {name}."
+    if from_app:
+        # Пришли сюда после поиска приложения: «Сайт X не нашёл» сбивает с толку,
+        # когда человек просил открыть программу (живая проверка 11.11.2026).
+        return (f"Не нашёл «{name}» ни среди приложений, ни как сайт. "
+                f"Скажите «найди {name}», и я поищу.")
     return f"Сайт {name} не нашёл. Скажите «найди {name}», и я поищу."
 
 

@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=6c4d1021db1d00b0` · режим `lean` · файлов `404` · строк `73794` · источник `3404 КБ`
+`sha256=1bba5879c6da1c14` · режим `lean` · файлов `404` · строк `73834` · источник `3406 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -720,7 +720,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── __init__.py  (10 стр)
 │   │   ├── clarification.py  (262 стр)
 │   │   ├── context.py  (19 стр)
-│   │   ├── execute.py  (1044 стр)
+│   │   ├── execute.py  (1049 стр)
 │   │   ├── fast/
 │   │   │   ├── __init__.py  (54 стр)
 │   │   │   ├── correction.py  (28 стр)
@@ -956,7 +956,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_nuitka_build.py  (147 стр)
 │   ├── test_nuitka_full.py  (439 стр)
 │   ├── test_numeric_language.py  (529 стр)
-│   ├── test_open_results.py  (32 стр)
+│   ├── test_open_results.py  (67 стр)
 │   ├── test_optional_whisper_startup.py  (134 стр)
 │   ├── test_password_imports.py  (109 стр)
 │   ├── test_password_kdf.py  (117 стр)
@@ -5319,6 +5319,10 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   ROOT = ...
   def dispatch(monkeypatch, ok=True, kind='app')
   def test_run_spec_result_controls_confirmation(monkeypatch, target, kind, ok)
+  def site_fn(monkeypatch, sites=None)
+  def test_unknown_app_target_is_not_reported_as_a_site(monkeypatch)
+  def test_unknown_site_keeps_site_wording(monkeypatch)
+  def test_known_site_still_opens(monkeypatch)
 ```
 
 **`tests/test_optional_whisper_startup.py`**
@@ -6394,7 +6398,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/intents/__init__.py` | 10 | code | Разбор команд Феникса — пакет. |
 | `jarvis/intents/clarification.py` | 262 | code | Bounded, session-only slot filling shared by GUI and voice. |
 | `jarvis/intents/context.py` | 19 | code | Контекст, который передаётся между стадиями pipeline. |
-| `jarvis/intents/execute.py` | 1044 | code | Dispatch: action → функция-обработчик. |
+| `jarvis/intents/execute.py` | 1049 | code | Dispatch: action → функция-обработчик. |
 | `jarvis/intents/fast/__init__.py` | 54 | code | Реестр быстрых обработчиков. |
 | `jarvis/intents/fast/correction.py` | 28 | code | Коррекция: «это не то, я сказал логи». |
 | `jarvis/intents/fast/custom.py` | 148 | code | Пользовательские команды: из config.json и из паков. |
@@ -6586,7 +6590,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_nuitka_build.py` | 147 | code | Nuitka build plans and staging tests; no compiler, network or Tk displ |
 | `tests/test_nuitka_full.py` | 439 | code | Full application build contracts. No Windows compiler/installers or do |
 | `tests/test_numeric_language.py` | 529 | code | Executable Russian language corpus: understanding, morphology and spee |
-| `tests/test_open_results.py` | 32 | code | Actual dispatch function isolated from Windows imports; no apps launch |
+| `tests/test_open_results.py` | 67 | code | Actual dispatch function isolated from Windows imports; no apps launch |
 | `tests/test_optional_whisper_startup.py` | 134 | code | Execute real startup functions with stub peripherals, no models/mic/Wi |
 | `tests/test_password_imports.py` | 109 | code | Import boundaries must work in a fresh interpreter, before any pytest  |
 | `tests/test_password_kdf.py` | 117 | code | Пароль: PBKDF2 со солью, чтение legacy-форматов и миграция при входе. |
@@ -23187,10 +23191,10 @@ def _do_open(handler, target: str) -> str:
         actions.open_path(lnk)
         return f"Открываю {name}."
 
-    return _open_site(target)
+    return _open_site(target, from_app=True)
 
 
-def _open_site(name: str) -> str:
+def _open_site(name: str, from_app: bool = False) -> str:
     from jarvis.intents.sites import get_sites
 
     if not name:
@@ -23203,6 +23207,11 @@ def _open_site(name: str) -> str:
     if url:
         actions.open_url(url)
         return f"Открываю сайт {name}."
+    if from_app:
+        # Пришли сюда после поиска приложения: «Сайт X не нашёл» сбивает с толку,
+        # когда человек просил открыть программу (живая проверка 11.11.2026).
+        return (f"Не нашёл «{name}» ни среди приложений, ни как сайт. "
+                f"Скажите «найди {name}», и я поищу.")
     return f"Сайт {name} не нашёл. Скажите «найди {name}», и я поищу."
 
 
@@ -58283,6 +58292,41 @@ def test_run_spec_result_controls_confirmation(monkeypatch,target,kind,ok):
     assert ('Не удалось' in response) is (not ok)
     if not ok: assert not response.startswith(('Открываю','Запускаю'))
     actions.run_spec.assert_called_once()
+
+
+def site_fn(monkeypatch, sites=None):
+    """_open_site отдельно от Windows-импортов: только действия-открывашки."""
+    monkeypatch.setitem(sys.modules, 'jarvis.intents.sites',
+                        NS(get_sites=lambda: sites or {}))
+    actions = NS(spoken_domain=lambda n: None, guess_site=lambda n: None,
+                 open_url=Mock())
+    env = dict(actions=actions)
+    tree = ast.parse((ROOT / 'jarvis/intents/execute.py').read_text(encoding='utf-8'))
+    fns = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
+    exec(compile(ast.Module(body=[fns['_open_site']], type_ignores=[]),
+                 'execute.py', 'exec'), env)
+    return env['_open_site'], actions
+
+
+def test_unknown_app_target_is_not_reported_as_a_site(monkeypatch):
+    """«Открыть приложение» с неизвестной целью не врёт про сайт."""
+    fn, _ = site_fn(monkeypatch)
+    text = fn('нотепад', from_app=True)
+    assert 'ни среди приложений, ни как сайт' in text
+    assert not text.startswith('Сайт')
+
+
+def test_unknown_site_keeps_site_wording(monkeypatch):
+    fn, _ = site_fn(monkeypatch)
+    text = fn('нотепад')
+    assert text.startswith('Сайт нотепад')
+
+
+def test_known_site_still_opens(monkeypatch):
+    fn, actions = site_fn(monkeypatch, {'ютуб': ('YouTube', 'https://youtube.com')})
+    text = fn('ютуб', from_app=True)
+    assert text == 'Открываю YouTube.'
+    actions.open_url.assert_called_once_with('https://youtube.com')
 ```
 
 ### `tests/test_optional_whisper_startup.py`
