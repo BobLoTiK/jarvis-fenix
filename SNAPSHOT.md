@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=4cd93b7f4197b036` · режим `lean` · файлов `399` · строк `72676` · источник `3349 КБ`
+`sha256=c1844ef0beaa4808` · режим `lean` · файлов `402` · строк `73355` · источник `3378 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -430,6 +430,18 @@ LLM), но убирает паузы между фразами. Подготов
 `_play` оставлен совместимости ради. De-click при отмене не сделан: он требует
 fade внутри звучащего блока, а не дополнительного блока после Stop.
 
+### Мои команды: импорт и экспорт
+
+`jarvis/commands_io.py` — обмен пользовательскими командами. Экспорт пишет формат
+`fenix-commands` версии 1; импорт проверяет размер (256 КБ), число записей (200) и
+каждую команду через `command_builder.validate_entry`, строит план (добавить /
+обновить по ID / конфликты / ошибки) и применяет его одним `config.set`. Файл —
+данные: pickle, eval и запуск шагов не используются, пароль опасных действий в
+файл не попадает. Конфликты решает человек: занятая фраза, дубль ID в файле и
+старая версия команды просто отклоняются с причиной. GUI: кнопки «Импорт» и
+«Экспорт» с системным диалогом файлов и карточка превью перед применением.
+Проверки: `tests/test_commands_io.py`, `tests/test_gui_commands_io.py`.
+
 ### Характер разговора
 
 `brain.CHAT_SYSTEM` задаёт голос диалога: одна мысль в 1–2 фразах, без
@@ -609,7 +621,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── IMPROVEMENT_BACKLOG.md  (120 стр)
 │   ├── INSTALLER_UPDATE.md  (47 стр)
 │   ├── LOCAL_VOICE_OPTIONS.md  (67 стр)
-│   ├── NEXT_STEPS.md  (482 стр)
+│   ├── NEXT_STEPS.md  (487 стр)
 │   ├── NUITKA_BUILD.md  (123 стр)
 │   ├── PHOENIX_JASTIN_RECONCILIATION.md  (270 стр)
 │   ├── PYTHON_BOOTSTRAP_TLS_FIX.md  (98 стр)
@@ -622,7 +634,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── v2.1.2.md  (112 стр)
 │   ├── REVIEW_FIXES.md  (68 стр)
 │   ├── TTS_LIFECYCLE_FIX.md  (89 стр)
-│   ├── USER_GUIDE.md  (1254 стр)
+│   ├── USER_GUIDE.md  (1271 стр)
 │   ├── WHISPER_STARTUP_DLL_FIX.md  (85 стр)
 │   ├── WINDOWS_STARTUP_RELIABILITY.md  (108 стр)
 │   ├── WINRT_TTS_REMOVAL.md  (43 стр)
@@ -672,6 +684,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── celebrations.py  (165 стр)
 │   ├── cloud_llm.py  (367 стр)
 │   ├── command_builder.py  (152 стр)
+│   ├── commands_io.py  (190 стр)
 │   ├── compiled_runtime.py  (267 стр)
 │   ├── config.py  (347 стр)
 │   ├── config_manager.py  (156 стр)
@@ -685,7 +698,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── gui.py  (2643 стр)
 │   ├── gui_audio.py  (438 стр)
 │   ├── gui_cloud.py  (541 стр)
-│   ├── gui_commands.py  (305 стр)
+│   ├── gui_commands.py  (480 стр)
 │   ├── gui_dialog.py  (75 стр)
 │   ├── gui_engines.py  (206 стр)
 │   ├── gui_home.py  (327 стр)
@@ -813,7 +826,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── work.json  (11 стр)
 ├── phoenix_app.py  (11 стр)
 ├── PLAN.md  (101 стр)
-├── PROJECT.md  (529 стр)
+├── PROJECT.md  (541 стр)
 ├── PROMPT.md  (72 стр)
 ├── pytest.ini  (20 стр)
 ├── README.md  (332 стр)
@@ -893,6 +906,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_clarification_imports.py  (110 стр)
 │   ├── test_cloud_llm.py  (463 стр)
 │   ├── test_command_builder.py  (213 стр)
+│   ├── test_commands_io.py  (166 стр)
 │   ├── test_compiled_runtime.py  (198 стр)
 │   ├── test_config_manager.py  (47 стр)
 │   ├── test_custom_reversed_order.py  (45 стр)
@@ -910,6 +924,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_gui_chat.py  (289 стр)
 │   ├── test_gui_cloud.py  (225 стр)
 │   ├── test_gui_commands.py  (131 стр)
+│   ├── test_gui_commands_io.py  (114 стр)
 │   ├── test_gui_dialog.py  (124 стр)
 │   ├── test_gui_engines.py  (155 стр)
 │   ├── test_gui_home.py  (222 стр)
@@ -1243,6 +1258,21 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def describe_steps(steps)
 ```
 
+**`jarvis/commands_io.py`**
+
+```
+  # Импорт и экспорт пользовательских команд: только данные, без исполнения.
+  FORMAT = ...
+  VERSION = ...
+  MAX_BYTES = ...
+  MAX_ENTRIES = ...
+  def export_payload(config, *, now=None)
+  def dumps(payload)
+  def plan_import(config, text)
+  def apply_plan(config, plan)
+  def describe_plan(plan)
+```
+
 **`jarvis/compiled_runtime.py`**
 
 ```
@@ -1563,6 +1593,14 @@ Non-verbal/микрофон/установщик по-прежнему треб�
     def check(self, e=None)
     def set_password(self, e=None)
     def build(self)
+    def export_text(self)
+    def prepare_import(self, text)
+    def apply_import(self, e=None)
+    def cancel_import(self, e=None)
+    def start_export(self, e=None)
+    def start_import(self, e=None)
+    async def export_commands(self)
+    async def import_commands(self)
 ```
 
 **`jarvis/gui_dialog.py`**
@@ -3964,6 +4002,27 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_power_timeout_is_not_reported_as_success(monkeypatch)
 ```
 
+**`tests/test_commands_io.py`**
+
+```
+  # Импорт/экспорт пользовательских команд: данные, превью и атомарное применение.
+  class FakeConfig(dict)
+    def __init__(self, *args, **kwargs)
+    def set(self, key, value)
+  def test_export_has_format_version_and_commands()
+  def test_roundtrip_export_then_import_adds_entries()
+  def test_import_updates_command_with_same_id()
+  def test_conflict_with_existing_phrase_is_reported_not_applied()
+  def test_duplicate_id_inside_file_is_conflict()
+  def test_old_builder_version_is_not_overwritten()
+  def test_invalid_entries_are_collected_with_index()
+  def test_bad_payloads_are_rejected_with_clear_text(text, needle)
+  def test_oversized_file_is_rejected()
+  def test_too_many_entries_are_rejected()
+  def test_apply_is_atomic_when_config_rejects()
+  def test_imported_data_is_not_executed()
+```
+
 **`tests/test_compiled_runtime.py`**
 
 ```
@@ -4369,6 +4428,20 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_password_never_becomes_editor_draft(editor)
   def test_brand_assets_and_app_icon_have_no_letter_fallback(editor)
   def test_theme_rebuild_preserves_unsaved_command_but_not_password(editor, monkeypatch)
+```
+
+**`tests/test_gui_commands_io.py`**
+
+```
+  # Импорт/экспорт команд через GUI-редактор: превью, применение, отмена.
+  def editor(tmp_path)
+  def test_export_text_contains_saved_commands(editor)
+  def test_prepare_import_does_not_touch_config(editor)
+  def test_apply_import_writes_once_and_clears_plan(editor)
+  def test_cancel_import_keeps_config(editor)
+  def test_bad_file_is_explained_and_not_planned(editor)
+  def test_conflicts_block_apply_button(editor)
+  def test_dialog_unavailable_is_honest(editor)
 ```
 
 **`tests/test_gui_dialog.py`**
@@ -6261,6 +6334,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/celebrations.py` | 165 | code | Праздничные триггеры — поздравление с ДР + двойной салют. |
 | `jarvis/cloud_llm.py` | 367 | code | Облачная LLM по HTTP: OpenAI-совместимые API и Anthropic. |
 | `jarvis/command_builder.py` | 152 | code | Typed custom commands. No execution, model calls or shell parsing in t |
+| `jarvis/commands_io.py` | 190 | code | Импорт и экспорт пользовательских команд: только данные, без исполнени |
 | `jarvis/compiled_runtime.py` | 267 | code | Standalone app startup and explicit offline probes; no venv/pip bootst |
 | `jarvis/config.py` | 347 | code | Загрузка конфигурации и объект Config в памяти. |
 | `jarvis/config_manager.py` | 156 | code | Единый менеджер записи в config.json. |
@@ -6274,7 +6348,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/gui.py` | 2643 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
 | `jarvis/gui_audio.py` | 438 | code | Native sound settings. Diagnostics use the existing listener/Speaker,  |
 | `jarvis/gui_cloud.py` | 541 | code | Вкладка «Облако»: провайдер, ключ, приватность и проверка ключа. |
-| `jarvis/gui_commands.py` | 305 | code | Flet editor for the existing custom_commands pipeline. Never executes  |
+| `jarvis/gui_commands.py` | 480 | code | Flet editor for the existing custom_commands pipeline. Never executes  |
 | `jarvis/gui_dialog.py` | 75 | code | Детали диалога: разделители дней и черновик записи. Без окна и сети. |
 | `jarvis/gui_engines.py` | 206 | code | Вкладка «Движки»: что скачано, что включено и установка по кнопке. |
 | `jarvis/gui_home.py` | 327 | code | Minimal native Home: local clock, real assistant state and opt-in widg |
@@ -6437,6 +6511,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_clarification_imports.py` | 110 | code | The slot engine and pipeline stage share a basename, not their content |
 | `tests/test_cloud_llm.py` | 463 | code | Стражи облачной LLM: ключ не утекает, личное не уходит без согласия. |
 | `tests/test_command_builder.py` | 213 | code | Builder persistence, exact matching and runtime protection; no real OS |
+| `tests/test_commands_io.py` | 166 | code | Импорт/экспорт пользовательских команд: данные, превью и атомарное при |
 | `tests/test_compiled_runtime.py` | 198 | code | Explicit standalone probes and consent contracts without native Window |
 | `tests/test_config_manager.py` | 47 | code | Тесты config_manager: параллельная запись не рвёт файл. |
 | `tests/test_custom_reversed_order.py` | 45 | code | Свои команды с обратным порядком слов (commands_reversed_order). |
@@ -6454,6 +6529,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_gui_chat.py` | 289 | code | Imported Flet controls + real GUI worker threads; no window, ASR or au |
 | `tests/test_gui_cloud.py` | 225 | code | Вкладка «Облако»: черновик, сохранение, ключ и проверка — без сети и D |
 | `tests/test_gui_commands.py` | 131 | code | Imported native builder controls; no OS actions or real passwords. |
+| `tests/test_gui_commands_io.py` | 114 | code | Импорт/экспорт команд через GUI-редактор: превью, применение, отмена. |
 | `tests/test_gui_dialog.py` | 124 | code | Детали диалога: разделители дней, «печатает…», повтор сообщения. |
 | `tests/test_gui_engines.py` | 155 | code | Вкладка «Движки»: каталог, кнопка установки, прогресс и «активно» из к |
 | `tests/test_gui_home.py` | 222 | code | Native minimal Home; no OS/model/mic/network. Old navigation IDs stay  |
@@ -10947,6 +11023,187 @@ def delete_entry(config, entry_id):
 def describe_steps(steps):
     return " → ".join(ACTIONS.get(s.get("action"), ("Неизвестное действие",))[0]
                       for s in steps if isinstance(s, dict))
+```
+
+### `jarvis/commands_io.py`
+
+```python
+"""Импорт и экспорт пользовательских команд: только данные, без исполнения. ... [10 строк]"""
+
+import json
+import logging
+from datetime import datetime, timezone
+
+from jarvis import command_builder, packs
+from jarvis.text_utils import normalize
+
+log = logging.getLogger("jarvis.commands_io")
+
+FORMAT = "fenix-commands"
+VERSION = 1
+MAX_BYTES = 256 * 1024
+MAX_ENTRIES = 200
+
+
+def export_payload(config, *, now=None) -> dict:
+    """Снимок пользовательских команд для файла."""
+    commands = command_builder.entries(config)
+    stamp = (now or datetime.now(timezone.utc)).astimezone().isoformat(timespec="seconds")
+    return {
+        "format": FORMAT,
+        "version": VERSION,
+        "exported_at": stamp,
+        "commands": commands,
+    }
+
+
+def dumps(payload) -> str:
+    return json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+
+
+def _load(text) -> list:
+    if not isinstance(text, str) or not text.strip():
+        raise ValueError("Файл пустой.")
+    size = len(text.encode("utf-8"))
+    if size > MAX_BYTES:
+        raise ValueError(f"Файл слишком большой: {size} байт (максимум {MAX_BYTES}).")
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError as error:
+        raise ValueError(f"Это не JSON: {error.msg} в строке {error.lineno}.") from None
+    if not isinstance(data, dict):
+        raise ValueError("Ожидался JSON-объект с полем commands.")
+    if data.get("format") != FORMAT:
+        raise ValueError("Это не файл команд Феникса: поле format не совпало.")
+    if data.get("version") != VERSION:
+        raise ValueError(
+            f"Версия файла {data.get('version')!r} не поддерживается (нужна {VERSION})."
+        )
+    commands = data.get("commands")
+    if not isinstance(commands, list):
+        raise ValueError("Поле commands должно быть списком.")
+    if len(commands) > MAX_ENTRIES:
+        raise ValueError(f"Слишком много команд: {len(commands)} (максимум {MAX_ENTRIES}).")
+    return commands
+
+
+def _phrase_owner_map(entries):
+    owners = {}
+    for entry in entries:
+        if not entry.get("enabled", True):
+            continue
+        for phrase in entry.get("phrases", []):
+            if isinstance(phrase, str):
+                owners.setdefault(normalize(phrase), entry.get("id"))
+    return owners
+
+
+def plan_import(config, text) -> dict:
+    """Разбирает файл и строит план: add / update / conflicts / errors. ... [4 строк]"""
+    raw_commands = _load(text)
+    wake_words = config.get("wake_words", [])
+    current = command_builder.entries(config)
+
+    try:
+        active_packs = packs.load_active(config)
+    except Exception:
+        log.exception("Пакеты не прочитались, конфликты с ними не проверялись")
+        active_packs = []
+
+    owners = _phrase_owner_map(current + list(active_packs))
+    current_ids = {entry.get("id"): entry for entry in current}
+    seen_ids = set()
+    plan = {"add": [], "update": [], "conflicts": [], "errors": []}
+
+    for index, raw in enumerate(raw_commands):
+        name = str(raw.get("name", "")) if isinstance(raw, dict) else ""
+        try:
+            entry = command_builder.validate_entry(raw, wake_words)
+        except ValueError as error:
+            plan["errors"].append({"index": index, "name": name, "error": str(error)})
+            continue
+
+        entry_id = entry["id"]
+        if entry_id in seen_ids:
+            plan["conflicts"].append(
+                {"index": index, "name": entry["name"],
+                 "reason": "Такой ID уже есть в файле."}
+            )
+            continue
+        seen_ids.add(entry_id)
+
+        existing = current_ids.get(entry_id)
+        if existing is not None and existing.get("builder_version") != 1:
+            plan["conflicts"].append(
+                {"index": index, "name": entry["name"],
+                 "reason": "Старую команду нельзя перезаписывать конструктором."}
+            )
+            continue
+
+        clash = None
+        for phrase in entry["phrases"]:
+            owner = owners.get(normalize(phrase))
+            if owner and owner != entry_id:
+                clash = phrase
+                break
+        if clash and entry.get("enabled", True):
+            plan["conflicts"].append(
+                {"index": index, "name": entry["name"],
+                 "reason": f"Фраза «{clash}» уже занята другой командой или паком."}
+            )
+            continue
+
+        if entry.get("enabled", True):
+            for phrase in entry["phrases"]:
+                owners.setdefault(normalize(phrase), entry_id)
+        if existing is not None:
+            plan["update"].append(entry)
+        else:
+            plan["add"].append(entry)
+
+    return plan
+
+
+def apply_plan(config, plan) -> dict:
+    """Применяет план одним `config.set`. Возвращает счётчики."""
+    current = command_builder.entries(config)
+    updates = {entry["id"]: entry for entry in plan.get("update", [])}
+    merged = []
+    for entry in current:
+        merged.append(updates.pop(entry.get("id"), entry))
+    merged.extend(plan.get("add", []))
+    merged.extend(updates.values())
+    if not config.set("custom_commands", merged):
+        raise OSError("Не удалось сохранить config.json. Изменения не применены.")
+    return {
+        "added": len(plan.get("add", [])),
+        "updated": len(plan.get("update", [])),
+        "conflicts": len(plan.get("conflicts", [])),
+        "errors": len(plan.get("errors", [])),
+        "total": len(merged),
+    }
+
+
+def describe_plan(plan) -> str:
+    """Одна фраза для человека: что произойдёт при импорте."""
+    added = len(plan.get("add", []))
+    updated = len(plan.get("update", []))
+    conflicts = len(plan.get("conflicts", []))
+    errors = len(plan.get("errors", []))
+    if not (added or updated):
+        tail = []
+        if conflicts:
+            tail.append(f"конфликтов: {conflicts}")
+        if errors:
+            tail.append(f"ошибок: {errors}")
+        reason = ", ".join(tail) if tail else "нечего импортировать"
+        return f"Импорт ничего не добавит ({reason})."
+    parts = [f"добавить: {added}", f"обновить: {updated}"]
+    if conflicts:
+        parts.append(f"конфликтов: {conflicts}")
+    if errors:
+        parts.append(f"ошибок: {errors}")
+    return "Импорт: " + ", ".join(parts) + "."
 ```
 
 ### `jarvis/compiled_runtime.py`
@@ -17104,6 +17361,8 @@ class CommandBuilder:
         self.step_fields = []
         self.notice = ""
         self.confirm_delete = None
+        self._file_picker = None
+        self._import_plan = None
 
     def capture(self):
         if self.draft is not None and self.fields:
@@ -17256,6 +17515,10 @@ class CommandBuilder:
             ft.Column([ft.Text("Мои команды", size=28, weight=ft.FontWeight.BOLD, color=TEXT),
                        ft.Text("Своя фраза. Свои действия. Без кода и LLM.", size=14, color=TEXT_DIM)],
                       expand=True, spacing=6),
+            _button("Импорт", icon=ft.Icons.UPLOAD_FILE_OUTLINED, height=44,
+                    tooltip="Загрузить команды из JSON-файла", on_click=self.start_import),
+            _button("Экспорт", icon=ft.Icons.DOWNLOAD_OUTLINED, height=44,
+                    tooltip="Сохранить команды в JSON-файл", on_click=self.start_export),
             _button("Новая команда", icon=ft.Icons.ADD, height=44,
                       on_click=lambda e: self.new()),
         ], spacing=16)
@@ -17268,6 +17531,8 @@ class CommandBuilder:
             except ValueError as error:
                 entries = []
                 controls.append(ft.Text(str(error), color=P.error))
+            if self._import_plan is not None:
+                controls.append(self._import_preview())
             controls.append(ft.Text("НАЧАТЬ С ПРИМЕРА", size=12, color=P.brand))
             templates = [
                 ("Фокус · 25 минут", {"name": "Сосредоточиться", "phrases": ["время сосредоточиться"],
@@ -17375,9 +17640,176 @@ class CommandBuilder:
                         _button("Отменить правки", on_click=self.back)], wrap=True)], spacing=12, expand=True)
         return ft.Container(body, padding=28, bgcolor=BG_DARK, expand=True)
 
+    def _import_preview(self):
+        """Карточка «что изменится»: применяется только по кнопке."""
+        from jarvis import commands_io
+        from jarvis.gui import P, TEXT, TEXT_DIM, BG_CARD
+
+        plan = self._import_plan or {}
+        lines = [commands_io.describe_plan(plan)]
+        for item in plan.get("update", [])[:5]:
+            lines.append(f"обновится: {item.get('name')}")
+        for item in plan.get("conflicts", [])[:5]:
+            lines.append(f"конфликт: {item.get('name')} — {item.get('reason')}")
+        for item in plan.get("errors", [])[:5]:
+            lines.append(f"ошибка строки {item.get('index')}: {item.get('error')}")
+        body = ft.Column([ft.Text(line, size=13, color=TEXT_DIM, selectable=True) for line in lines],
+                         spacing=4)
+        buttons = ft.Row([
+            _button("Применить импорт", icon=ft.Icons.CHECK, bgcolor="#e9ad79", color="#241b14",
+                    disabled=not (plan.get("add") or plan.get("update")), on_click=self.apply_import),
+            _button("Отменить импорт", on_click=self.cancel_import),
+        ], wrap=True)
+        return ft.Container(ft.Column([ft.Text("ИМПОРТ КОМАНД", size=12, color=P.brand), body, buttons],
+                                      spacing=10),
+                            padding=16, bgcolor=BG_CARD, border_radius=12,
+                            border=ft.Border.all(1, P.border))
+
     def _keep(self):
         self.confirm_delete = None
         self.refresh()
+
+    # ---------------------------------------------------------------
+    # Импорт и экспорт команд (только данные, без исполнения)
+    # ---------------------------------------------------------------
+
+    def export_text(self) -> str:
+        """Снимок команд для файла. Ничего не пишет на диск."""
+        from jarvis import commands_io
+
+        return commands_io.dumps(commands_io.export_payload(self.gui.config))
+
+    def prepare_import(self, text):
+        """Разбирает файл и запоминает план; конфиг не меняется."""
+        from jarvis import commands_io
+
+        try:
+            plan = commands_io.plan_import(self.gui.config, text)
+        except ValueError as error:
+            self._import_plan = None
+            self.notice = f"Импорт не выполнен: {error}"
+            self.fields = None
+            self.refresh()
+            return None
+        self._import_plan = plan
+        self.notice = commands_io.describe_plan(plan) + " Применение — отдельной кнопкой."
+        self.fields = None
+        self.refresh()
+        return plan
+
+    def apply_import(self, e=None):
+        if self._import_plan is None:
+            return
+        from jarvis import commands_io
+
+        try:
+            counts = commands_io.apply_plan(self.gui.config, self._import_plan)
+        except (ValueError, OSError) as error:
+            self.notice = f"Импорт не применён: {error}"
+        else:
+            self.notice = (
+                f"Импорт применён: добавлено {counts['added']}, "
+                f"обновлено {counts['updated']}; всего команд {counts['total']}."
+            )
+        self._import_plan = None
+        self.refresh()
+
+    def cancel_import(self, e=None):
+        self._import_plan = None
+        self.notice = "Импорт отменён. Команды не изменены."
+        self.refresh()
+
+    def _picker(self):
+        if self._file_picker is None:
+            page = getattr(self.gui, "_page", None)
+            services = getattr(page, "services", None)
+            if services is None:
+                raise RuntimeError("Диалог файлов недоступен.")
+            self._file_picker = ft.FilePicker()
+            services.append(self._file_picker)
+        return self._file_picker
+
+    def start_export(self, e=None):
+        page = getattr(self.gui, "_page", None)
+        if page is None:
+            self.notice = "Экспорт доступен только в открытом окне."
+            self.refresh()
+            return
+        page.run_task(self.export_commands)
+
+    def start_import(self, e=None):
+        page = getattr(self.gui, "_page", None)
+        if page is None:
+            self.notice = "Импорт доступен только в открытом окне."
+            self.refresh()
+            return
+        page.run_task(self.import_commands)
+
+    async def export_commands(self):
+        from pathlib import Path
+
+        try:
+            text = self.export_text()
+            picker = self._picker()
+        except (ValueError, RuntimeError) as error:
+            self.notice = f"Экспорт не выполнен: {error}"
+            self.refresh()
+            return
+        try:
+            path = await picker.save_file(
+                dialog_title="Экспорт команд Феникса",
+                file_name="fenix-commands.json",
+                allowed_extensions=["json"],
+                file_type=ft.FilePickerFileType.CUSTOM,
+            )
+        except Exception:
+            self.notice = "Экспорт не выполнен: диалог файлов не открылся."
+            self.refresh()
+            return
+        if not path:
+            self.notice = "Экспорт отменён."
+            self.refresh()
+            return
+        target = path if str(path).lower().endswith(".json") else str(path) + ".json"
+        try:
+            Path(target).write_text(text, encoding="utf-8")
+        except OSError as error:
+            self.notice = f"Не удалось записать файл: {error.strerror or error}."
+        else:
+            self.notice = f"Экспортировано в {Path(target).name}."
+        self.refresh()
+
+    async def import_commands(self):
+        try:
+            picker = self._picker()
+        except RuntimeError as error:
+            self.notice = f"Импорт не выполнен: {error}"
+            self.refresh()
+            return
+        try:
+            files = await picker.pick_files(
+                dialog_title="Импорт команд Феникса",
+                allowed_extensions=["json"],
+                allow_multiple=False,
+                with_data=True,
+            )
+        except Exception:
+            self.notice = "Импорт не выполнен: диалог файлов не открылся."
+            self.refresh()
+            return
+        if not files:
+            self.notice = "Импорт отменён."
+            self.refresh()
+            return
+        file = files[0]
+        data = getattr(file, "bytes", None) or b""
+        try:
+            text = data.decode("utf-8")
+        except UnicodeDecodeError:
+            self.notice = "Файл не в UTF-8: пересохрани его как UTF-8 JSON."
+            self.refresh()
+            return
+        self.prepare_import(text)
 ```
 
 ### `jarvis/gui_dialog.py`
@@ -46067,6 +46499,177 @@ def test_power_timeout_is_not_reported_as_success(monkeypatch):
     assert not actions.run_power_action("/r", 30)
 ```
 
+### `tests/test_commands_io.py`
+
+```python
+"""Импорт/экспорт пользовательских команд: данные, превью и атомарное применение."""
+
+import json
+
+import pytest
+
+from jarvis import commands_io
+
+
+class FakeConfig(dict):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fail_set = False
+
+    def set(self, key, value):
+        if self.fail_set:
+            return False
+        self[key] = value
+        return True
+
+
+def _entry(name="Начать день", phrase="начни день", command="screenshot",
+           target=None, entry_id="a1", enabled=True):
+    return {
+        "builder_version": 1,
+        "id": entry_id,
+        "name": name,
+        "enabled": enabled,
+        "phrases": [phrase],
+        "steps": (
+            [{"action": command}]
+            if target is None
+            else [{"action": command, "target": target}]
+        ),
+        "reply": "",
+    }
+
+
+def _payload(commands):
+    return commands_io.dumps({
+        "format": commands_io.FORMAT,
+        "version": commands_io.VERSION,
+        "commands": commands,
+    })
+
+
+def test_export_has_format_version_and_commands():
+    config = FakeConfig(custom_commands=[_entry()], wake_words=[])
+    payload = commands_io.export_payload(config)
+    assert payload["format"] == commands_io.FORMAT
+    assert payload["version"] == commands_io.VERSION
+    assert payload["commands"][0]["id"] == "a1"
+    assert "exported_at" in payload
+
+
+def test_roundtrip_export_then_import_adds_entries():
+    source = FakeConfig(custom_commands=[_entry()], wake_words=[])
+    text = commands_io.dumps(commands_io.export_payload(source))
+    target = FakeConfig(custom_commands=[], wake_words=[])
+    plan = commands_io.plan_import(target, text)
+    assert len(plan["add"]) == 1
+    counts = commands_io.apply_plan(target, plan)
+    assert counts["added"] == 1
+    assert target["custom_commands"][0]["phrases"] == ["начни день"]
+
+
+def test_import_updates_command_with_same_id():
+    existing = _entry(phrase="начни день")
+    config = FakeConfig(custom_commands=[existing], wake_words=[])
+    text = _payload([_entry(phrase="начинай день", entry_id="a1")])
+    plan = commands_io.plan_import(config, text)
+    assert len(plan["update"]) == 1
+    commands_io.apply_plan(config, plan)
+    assert config["custom_commands"][0]["phrases"] == ["начинай день"]
+    assert len(config["custom_commands"]) == 1
+
+
+def test_conflict_with_existing_phrase_is_reported_not_applied():
+    config = FakeConfig(custom_commands=[_entry()], wake_words=[])
+    text = _payload([_entry(name="Другое", phrase="начни день", entry_id="b2")])
+    plan = commands_io.plan_import(config, text)
+    assert not plan["add"]
+    assert len(plan["conflicts"]) == 1
+    assert "занята" in plan["conflicts"][0]["reason"]
+    assert "конфликтов: 1" in commands_io.describe_plan(plan)
+
+
+def test_duplicate_id_inside_file_is_conflict():
+    config = FakeConfig(custom_commands=[], wake_words=[])
+    text = _payload([_entry(entry_id="same"), _entry(name="Второй", phrase="второй", entry_id="same")])
+    plan = commands_io.plan_import(config, text)
+    assert len(plan["add"]) == 1
+    assert len(plan["conflicts"]) == 1
+    assert "ID" in plan["conflicts"][0]["reason"]
+
+
+def test_old_builder_version_is_not_overwritten():
+    old = {"id": "old", "name": "Старая", "phrases": ["старая"], "steps": []}
+    config = FakeConfig(custom_commands=[old], wake_words=[])
+    text = _payload([_entry(entry_id="old", phrase="новая")])
+    plan = commands_io.plan_import(config, text)
+    assert not plan["update"]
+    assert plan["conflicts"]
+
+
+def test_invalid_entries_are_collected_with_index():
+    config = FakeConfig(custom_commands=[], wake_words=[])
+    bad = _entry(phrase="")
+    text = _payload([bad, _entry(entry_id="ok", phrase="ок команда")])
+    plan = commands_io.plan_import(config, text)
+    assert plan["errors"][0]["index"] == 0
+    assert len(plan["add"]) == 1
+
+
+@pytest.mark.parametrize(
+    "text,needle",
+    [
+        ("", "пустой"),
+        ("не json", "не JSON"),
+        (json.dumps({"format": "other", "version": 1, "commands": []}), "format"),
+        (json.dumps({"format": "fenix-commands", "version": 99, "commands": []}), "Версия"),
+        (json.dumps({"format": "fenix-commands", "version": 1, "commands": {}}), "списком"),
+        (json.dumps([1, 2, 3]), "JSON-объект"),
+    ],
+)
+def test_bad_payloads_are_rejected_with_clear_text(text, needle):
+    config = FakeConfig(custom_commands=[], wake_words=[])
+    with pytest.raises(ValueError) as error:
+        commands_io.plan_import(config, text)
+    assert needle in str(error.value)
+
+
+def test_oversized_file_is_rejected():
+    config = FakeConfig(custom_commands=[], wake_words=[])
+    huge = "{" + " " * (commands_io.MAX_BYTES + 10) + "}"
+    with pytest.raises(ValueError) as error:
+        commands_io.plan_import(config, huge)
+    assert "слишком большой" in str(error.value).lower()
+
+
+def test_too_many_entries_are_rejected():
+    config = FakeConfig(custom_commands=[], wake_words=[])
+    commands = [_entry(entry_id=f"id{i}", phrase=f"фраза {i}") for i in range(commands_io.MAX_ENTRIES + 1)]
+    with pytest.raises(ValueError) as error:
+        commands_io.plan_import(config, _payload(commands))
+    assert "Слишком много" in str(error.value)
+
+
+def test_apply_is_atomic_when_config_rejects():
+    config = FakeConfig(custom_commands=[], wake_words=[])
+    text = _payload([_entry()])
+    plan = commands_io.plan_import(config, text)
+    config.fail_set = True
+    with pytest.raises(OSError):
+        commands_io.apply_plan(config, plan)
+    assert config["custom_commands"] == []
+
+
+def test_imported_data_is_not_executed():
+    config = FakeConfig(custom_commands=[], wake_words=[])
+    payload = _payload([_entry(command="open_app", target="calc")])
+    plan = commands_io.plan_import(config, payload)
+    commands_io.apply_plan(config, plan)
+    steps = config["custom_commands"][0]["steps"]
+    assert steps == [{"action": "open_app", "target": "calc"}]
+    assert all(isinstance(value, str) for step in steps for value in step.values())
+```
+
 ### `tests/test_compiled_runtime.py`
 
 ```python
@@ -49530,6 +50133,125 @@ def test_theme_rebuild_preserves_unsaved_command_but_not_password(editor, monkey
     assert editor.fields["name"].value == "Мой черновик"
     assert not editor.password_field.value
     assert "Never-store-42" not in repr(editor.draft)
+```
+
+### `tests/test_gui_commands_io.py`
+
+```python
+"""Импорт/экспорт команд через GUI-редактор: превью, применение, отмена."""
+
+import json
+from types import SimpleNamespace
+
+import pytest
+
+ft = pytest.importorskip("flet")
+
+from jarvis import commands_io, gui as module, mood, profile  # noqa: E402
+from jarvis.config import Config  # noqa: E402
+from jarvis.gui_commands import CommandBuilder  # noqa: E402
+
+
+@pytest.fixture
+def editor(tmp_path):
+    cfg = Config(tmp_path / "config.json")
+    gui = module.FenixGUI(None, cfg)
+    gui._rail = module._Sidebar(gui._select_tab)
+    gui._content_area = ft.Container()
+    gui._tabs = {i: ft.Text(str(i)) for i in range(5)}
+    gui._command_builder = CommandBuilder(gui)
+    gui._tabs[5] = gui._build_commands_tab()
+    gui._select_tab(5)
+    yield gui._command_builder
+    profile.unsubscribe(gui._on_profile_switch)
+    mood.unsubscribe(gui._on_mood_change)
+    module._apply_palette("dark")
+
+
+def _payload(commands):
+    return commands_io.dumps({
+        "format": commands_io.FORMAT,
+        "version": commands_io.VERSION,
+        "commands": commands,
+    })
+
+
+def _entry(name="Проверка", phrase="проверка импорта", entry_id="io1"):
+    return {
+        "builder_version": 1,
+        "id": entry_id,
+        "name": name,
+        "enabled": True,
+        "phrases": [phrase],
+        "steps": [{"action": "screenshot"}],
+    }
+
+
+def test_export_text_contains_saved_commands(editor):
+    editor.gui.config.set("custom_commands", [_entry()])
+    data = json.loads(editor.export_text())
+    assert data["format"] == commands_io.FORMAT
+    assert data["commands"][0]["id"] == "io1"
+
+
+def test_prepare_import_does_not_touch_config(editor):
+    plan = editor.prepare_import(_payload([_entry()]))
+    assert plan["add"]
+    assert editor._import_plan is not None
+    assert editor.gui.config.get("custom_commands") == []
+    assert "Импорт:" in editor.notice
+
+
+def test_apply_import_writes_once_and_clears_plan(editor):
+    editor.prepare_import(_payload([_entry()]))
+    editor.apply_import()
+    assert editor.gui.config.get("custom_commands")[0]["id"] == "io1"
+    assert editor._import_plan is None
+    assert "добавлено 1" in editor.notice
+
+
+def test_cancel_import_keeps_config(editor):
+    editor.prepare_import(_payload([_entry()]))
+    editor.cancel_import()
+    assert editor.gui.config.get("custom_commands") == []
+    assert editor._import_plan is None
+    assert "отменён" in editor.notice
+
+
+def test_bad_file_is_explained_and_not_planned(editor):
+    plan = editor.prepare_import("не json")
+    assert plan is None
+    assert editor._import_plan is None
+    assert "Импорт не выполнен" in editor.notice
+    assert "JSON" in editor.notice
+
+
+def _walk(control):
+    """Все вложенные контролы: content и controls, без Flet-специфики."""
+    if control is None:
+        return
+    yield control
+    yield from _walk(getattr(control, "content", None))
+    for child in getattr(control, "controls", None) or []:
+        yield from _walk(child)
+
+
+def test_conflicts_block_apply_button(editor):
+    editor.gui.config.set("custom_commands", [_entry()])
+    editor.prepare_import(_payload([_entry(name="Дубль", entry_id="io2")]))
+    preview = editor._import_preview()
+    apply_buttons = [
+        control for control in _walk(preview)
+        if isinstance(control, ft.Button)
+        and str(getattr(control, "content", "")) == "Применить импорт"
+    ]
+    assert apply_buttons and apply_buttons[0].disabled
+
+
+def test_dialog_unavailable_is_honest(editor):
+    editor.gui._page = None
+    editor.start_import()
+    assert "только в открытом окне" in editor.notice
 ```
 
 ### `tests/test_gui_dialog.py`
@@ -69507,7 +70229,7 @@ certifi>=2024.8.30
   - Ручная приёмка Windows
   - Границы проверки
 
-#### `docs/USER_GUIDE.md` — 55 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `docs/USER_GUIDE.md` — 56 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Руководство пользователя · Феникс
   - Навигация
@@ -69609,4 +70331,4 @@ certifi>=2024.8.30
 
 ---
 
-_Итого по категориям — code: 282, data: 60, doc: 52, pack: 5. Режим `lean`._
+_Итого по категориям — code: 285, data: 60, doc: 52, pack: 5. Режим `lean`._

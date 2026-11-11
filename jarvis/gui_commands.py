@@ -29,6 +29,8 @@ class CommandBuilder:
         self.step_fields = []
         self.notice = ""
         self.confirm_delete = None
+        self._file_picker = None
+        self._import_plan = None
 
     def capture(self):
         if self.draft is not None and self.fields:
@@ -181,6 +183,10 @@ class CommandBuilder:
             ft.Column([ft.Text("Мои команды", size=28, weight=ft.FontWeight.BOLD, color=TEXT),
                        ft.Text("Своя фраза. Свои действия. Без кода и LLM.", size=14, color=TEXT_DIM)],
                       expand=True, spacing=6),
+            _button("Импорт", icon=ft.Icons.UPLOAD_FILE_OUTLINED, height=44,
+                    tooltip="Загрузить команды из JSON-файла", on_click=self.start_import),
+            _button("Экспорт", icon=ft.Icons.DOWNLOAD_OUTLINED, height=44,
+                    tooltip="Сохранить команды в JSON-файл", on_click=self.start_export),
             _button("Новая команда", icon=ft.Icons.ADD, height=44,
                       on_click=lambda e: self.new()),
         ], spacing=16)
@@ -193,6 +199,8 @@ class CommandBuilder:
             except ValueError as error:
                 entries = []
                 controls.append(ft.Text(str(error), color=P.error))
+            if self._import_plan is not None:
+                controls.append(self._import_preview())
             controls.append(ft.Text("НАЧАТЬ С ПРИМЕРА", size=12, color=P.brand))
             templates = [
                 ("Фокус · 25 минут", {"name": "Сосредоточиться", "phrases": ["время сосредоточиться"],
@@ -300,6 +308,173 @@ class CommandBuilder:
                         _button("Отменить правки", on_click=self.back)], wrap=True)], spacing=12, expand=True)
         return ft.Container(body, padding=28, bgcolor=BG_DARK, expand=True)
 
+    def _import_preview(self):
+        """Карточка «что изменится»: применяется только по кнопке."""
+        from jarvis import commands_io
+        from jarvis.gui import P, TEXT, TEXT_DIM, BG_CARD
+
+        plan = self._import_plan or {}
+        lines = [commands_io.describe_plan(plan)]
+        for item in plan.get("update", [])[:5]:
+            lines.append(f"обновится: {item.get('name')}")
+        for item in plan.get("conflicts", [])[:5]:
+            lines.append(f"конфликт: {item.get('name')} — {item.get('reason')}")
+        for item in plan.get("errors", [])[:5]:
+            lines.append(f"ошибка строки {item.get('index')}: {item.get('error')}")
+        body = ft.Column([ft.Text(line, size=13, color=TEXT_DIM, selectable=True) for line in lines],
+                         spacing=4)
+        buttons = ft.Row([
+            _button("Применить импорт", icon=ft.Icons.CHECK, bgcolor="#e9ad79", color="#241b14",
+                    disabled=not (plan.get("add") or plan.get("update")), on_click=self.apply_import),
+            _button("Отменить импорт", on_click=self.cancel_import),
+        ], wrap=True)
+        return ft.Container(ft.Column([ft.Text("ИМПОРТ КОМАНД", size=12, color=P.brand), body, buttons],
+                                      spacing=10),
+                            padding=16, bgcolor=BG_CARD, border_radius=12,
+                            border=ft.Border.all(1, P.border))
+
     def _keep(self):
         self.confirm_delete = None
         self.refresh()
+
+    # ---------------------------------------------------------------
+    # Импорт и экспорт команд (только данные, без исполнения)
+    # ---------------------------------------------------------------
+
+    def export_text(self) -> str:
+        """Снимок команд для файла. Ничего не пишет на диск."""
+        from jarvis import commands_io
+
+        return commands_io.dumps(commands_io.export_payload(self.gui.config))
+
+    def prepare_import(self, text):
+        """Разбирает файл и запоминает план; конфиг не меняется."""
+        from jarvis import commands_io
+
+        try:
+            plan = commands_io.plan_import(self.gui.config, text)
+        except ValueError as error:
+            self._import_plan = None
+            self.notice = f"Импорт не выполнен: {error}"
+            self.fields = None
+            self.refresh()
+            return None
+        self._import_plan = plan
+        self.notice = commands_io.describe_plan(plan) + " Применение — отдельной кнопкой."
+        self.fields = None
+        self.refresh()
+        return plan
+
+    def apply_import(self, e=None):
+        if self._import_plan is None:
+            return
+        from jarvis import commands_io
+
+        try:
+            counts = commands_io.apply_plan(self.gui.config, self._import_plan)
+        except (ValueError, OSError) as error:
+            self.notice = f"Импорт не применён: {error}"
+        else:
+            self.notice = (
+                f"Импорт применён: добавлено {counts['added']}, "
+                f"обновлено {counts['updated']}; всего команд {counts['total']}."
+            )
+        self._import_plan = None
+        self.refresh()
+
+    def cancel_import(self, e=None):
+        self._import_plan = None
+        self.notice = "Импорт отменён. Команды не изменены."
+        self.refresh()
+
+    def _picker(self):
+        if self._file_picker is None:
+            page = getattr(self.gui, "_page", None)
+            services = getattr(page, "services", None)
+            if services is None:
+                raise RuntimeError("Диалог файлов недоступен.")
+            self._file_picker = ft.FilePicker()
+            services.append(self._file_picker)
+        return self._file_picker
+
+    def start_export(self, e=None):
+        page = getattr(self.gui, "_page", None)
+        if page is None:
+            self.notice = "Экспорт доступен только в открытом окне."
+            self.refresh()
+            return
+        page.run_task(self.export_commands)
+
+    def start_import(self, e=None):
+        page = getattr(self.gui, "_page", None)
+        if page is None:
+            self.notice = "Импорт доступен только в открытом окне."
+            self.refresh()
+            return
+        page.run_task(self.import_commands)
+
+    async def export_commands(self):
+        from pathlib import Path
+
+        try:
+            text = self.export_text()
+            picker = self._picker()
+        except (ValueError, RuntimeError) as error:
+            self.notice = f"Экспорт не выполнен: {error}"
+            self.refresh()
+            return
+        try:
+            path = await picker.save_file(
+                dialog_title="Экспорт команд Феникса",
+                file_name="fenix-commands.json",
+                allowed_extensions=["json"],
+                file_type=ft.FilePickerFileType.CUSTOM,
+            )
+        except Exception:
+            self.notice = "Экспорт не выполнен: диалог файлов не открылся."
+            self.refresh()
+            return
+        if not path:
+            self.notice = "Экспорт отменён."
+            self.refresh()
+            return
+        target = path if str(path).lower().endswith(".json") else str(path) + ".json"
+        try:
+            Path(target).write_text(text, encoding="utf-8")
+        except OSError as error:
+            self.notice = f"Не удалось записать файл: {error.strerror or error}."
+        else:
+            self.notice = f"Экспортировано в {Path(target).name}."
+        self.refresh()
+
+    async def import_commands(self):
+        try:
+            picker = self._picker()
+        except RuntimeError as error:
+            self.notice = f"Импорт не выполнен: {error}"
+            self.refresh()
+            return
+        try:
+            files = await picker.pick_files(
+                dialog_title="Импорт команд Феникса",
+                allowed_extensions=["json"],
+                allow_multiple=False,
+                with_data=True,
+            )
+        except Exception:
+            self.notice = "Импорт не выполнен: диалог файлов не открылся."
+            self.refresh()
+            return
+        if not files:
+            self.notice = "Импорт отменён."
+            self.refresh()
+            return
+        file = files[0]
+        data = getattr(file, "bytes", None) or b""
+        try:
+            text = data.decode("utf-8")
+        except UnicodeDecodeError:
+            self.notice = "Файл не в UTF-8: пересохрани его как UTF-8 JSON."
+            self.refresh()
+            return
+        self.prepare_import(text)
