@@ -524,6 +524,9 @@ class FenixGUI:
             self._show_window_now()
         page.run_task(self._process_queue)
         page.run_task(self._mic_level_loop)
+        # Обновления стартуют после окна: сначала отчёт прошлой установки,
+        # потом фоновая проверка (только если галочка включена).
+        page.run_task(self._startup_updates)
 
     def _build_ui(self, page: ft.Page) -> None:
         self._rail = _Sidebar(self._select_tab, self.config)
@@ -755,6 +758,62 @@ class FenixGUI:
         """Короткое уведомление тостом (для мелких подтверждений)."""
         toasts = getattr(self, "_toasts", None)
         return bool(toasts is not None and toasts.show(text, kind))
+
+    def set_update_check(self, enabled) -> bool:
+        """«Проверять обновления при запуске»: единственный фоновый запрос в сеть."""
+        try:
+            self.config.set("update_check_enabled", bool(enabled))
+        except Exception:
+            log.exception("GUI: не удалось сохранить настройку проверки обновлений")
+            return False
+        return True
+
+    async def _startup_updates(self) -> None:
+        """Отчёт прошлой установки и одна фоновая проверка обновлений."""
+        try:
+            await asyncio.sleep(6)
+        except Exception:
+            return
+        if self._quitting or self._page is None:
+            return
+        from jarvis import updater
+
+        try:
+            result = updater.read_last_result()
+        except Exception:
+            log.exception("GUI: не удалось прочитать результат обновления")
+            result = None
+        if result:
+            version = result.get("version") or ""
+            if result.get("status") == "ok":
+                text = "Обновление установлено" + (f": {version}" if version else "")
+                self.toast(text, "success")
+            else:
+                self.toast("Обновление не установлено — Феникс остался на прежней версии", "error")
+        if self._quitting or self.config.get("update_check_enabled", True) is not True:
+            return
+        try:
+            self._preferences().start_update_check(background=True)
+        except Exception:
+            log.exception("GUI: не удалось запустить проверку обновлений")
+
+    def _quit_for_update(self) -> None:
+        """Выход под обновление: помощник уже ждёт завершения процесса."""
+        jarvis = self.jarvis
+        self.toast("Устанавливаю обновление — Феникс перезапустится.", "info")
+
+        def run():
+            try:
+                if jarvis is not None:
+                    jarvis.shutdown()
+            except Exception:
+                log.exception("Обновление: shutdown упал")
+            try:
+                self.quit()
+            except Exception:
+                log.exception("Обновление: не удалось закрыть окно")
+
+        threading.Thread(target=run, daemon=True, name="update-exit").start()
 
     def set_home_hints(self, show) -> bool:
         """«Показывать подсказки на Главной»: обратное ui_home_hints_seen."""
@@ -1835,6 +1894,12 @@ class FenixGUI:
                     screen = getattr(self, "_cloud_screen", None)
                     if screen is not None:
                         screen.on_probe(value)
+                    continue
+                elif kind == "update_result":
+                    self._preferences().apply_update_result(value)
+                    continue
+                elif kind == "update_quit":
+                    self._quit_for_update()
                     continue
 
                 try:

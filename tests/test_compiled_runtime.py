@@ -54,6 +54,37 @@ def test_probe_checks_embedded_modules_resources_and_dictionaries(tmp_path, monk
     assert report["checks"]["faster_whisper_assets"] is True
 
 
+def test_probe_confirms_standalone_install_kind_when_exe_is_present(tmp_path, monkeypatch):
+    """В автономной сборке нет jarvis/__init__.py: детект обязан дать standalone.
+
+    Без этого помощник обновления у скомпилированной копии не запускается, и
+    узнаётся об этом только у пользователя (живой сборки в тестах нет).
+    """
+    resources(tmp_path)
+    fake_imports(monkeypatch, tmp_path)
+    (tmp_path / "Феникс.exe").write_bytes(b"MZ")
+    from jarvis import paths
+    monkeypatch.setattr(paths, "updates_dir", lambda: tmp_path / "updates")
+    report = runtime.self_test(tmp_path, compiled=True)
+    assert report["checks"]["updater_install_kind"] is True
+    assert (tmp_path / "updates").is_dir()
+    assert report["ok"] is True
+
+
+def test_probe_fails_when_compiled_copy_still_looks_like_source(tmp_path, monkeypatch):
+    """Оставленные маркеры исходников сбивают install_kind — это провал сборки."""
+    resources(tmp_path)
+    fake_imports(monkeypatch, tmp_path)
+    (tmp_path / "Феникс.exe").write_bytes(b"MZ")
+    (tmp_path / "jarvis" / "__init__.py").write_text('__version__ = "9.9.9"\n',
+                                                    encoding="utf-8")
+    from jarvis import paths
+    monkeypatch.setattr(paths, "updates_dir", lambda: tmp_path / "updates")
+    report = runtime.self_test(tmp_path, compiled=True)
+    assert report["checks"]["updater_install_kind"]["ok"] is False
+    assert report["ok"] is False
+
+
 def test_probe_fails_when_vad_asset_is_absent(tmp_path, monkeypatch):
     """Импорт есть, файла нет — сборка не готова (дефект v2.1.2)."""
     resources(tmp_path)

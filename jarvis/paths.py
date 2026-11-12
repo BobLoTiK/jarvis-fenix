@@ -253,6 +253,18 @@ def plugins_dir() -> Path:
     return d
 
 
+def updates_dir() -> Path:
+    """Установщики и помощник обновления: вне каталога программы.
+
+    Nuitka-сборка при обновлении заменяет все файлы рядом с Феникс.exe,
+    поэтому скачанный установщик и скрипт-помощник лежат в профиле
+    пользователя и переживают установку.
+    """
+    d = user_dir() / "updates"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
 @contextmanager
 def temporary_audio_file():
     """Ephemeral mixed speech for winsound fallback; removed when playback stops."""

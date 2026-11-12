@@ -1,9 +1,11 @@
 """Native persona/settings editors. Drafts are not configuration or a second memory.
 
-UI callbacks and completion application run on Flet's GUI path. One worker lives
-here: an explicit, user-triggered Ollama model inventory. It sends plain data to
-FenixGUI's existing queue, and no request is made while a screen is built or on
-import; no inference, downloads, microphone or TTS here. Облачная модель и ключ —
+UI callbacks and completion application run on Flet's GUI path. Two workers live
+here: an explicit, user-triggered Ollama model inventory and the updater (проверка
+релиза и скачивание установщика). Both send plain data to FenixGUI's existing
+queue, and no request is made while a screen is built or on import; no inference,
+microphone or TTS here. Установка обновления — не из GUI-потока: помощник
+запускается и приложение выходит (jarvis/updater.py). Облачная модель и ключ —
 на отдельной вкладке (jarvis/gui_cloud.py): общий модуль cloud_llm, отдельный
 черновик, ключ только в DPAPI-хранилище.
 """
@@ -252,6 +254,21 @@ class PreferenceScreens:
         self.preview_title = self.preview_quote = self.preview_details = None
         self._api_status_label = None
         self._api_token_label = None
+        self.update_status = "Обновления ещё не проверялись."
+        self.update_notes = ""
+        self.update_release = None
+        self.update_file = None
+        self.update_busy = False
+        self.update_generation = 0
+        self.update_progress = None
+        self.update_phase = ""
+        self.update_cancel = None
+        self.update_label = None
+        self.update_notes_label = None
+        self.update_button = None
+        self.update_check_button = None
+        self.update_cancel_button = None
+        self.update_bar = None
 
     def _update(self):
         if self.gui._page is not None:
@@ -581,7 +598,8 @@ class PreferenceScreens:
             button("Открыть «Голос и звук» →", lambda e: self.gui._select_tab(2))])
         content = ft.ResponsiveRow([
             ft.Container(ft.Column([model, cloud, privacy], spacing=18), col={"xs": 12, "lg": 6}),
-            ft.Container(ft.Column([appearance, vertical, launch, audio, self._api_card()],
+            ft.Container(ft.Column([appearance, vertical, launch, audio, self._api_card(),
+                                    self._update_card()],
                                    spacing=18), col={"xs": 12, "lg": 6}),
         ], spacing=20, run_spacing=20)
         return self._screen("Настройки", "Всё важное — на своих местах.", content, [
@@ -695,6 +713,303 @@ class PreferenceScreens:
     def _on_api_token(self, e=None):
         self.gui.regenerate_api_token()
         self._api_refresh_labels()
+
+    # --- обновления ----------------------------------------------------
+
+    def _update_card(self):
+        """Обновления: галочка стартовой проверки, статус, скачивание, установка."""
+        from jarvis import updater
+
+        p = _palette()
+        gui = self.gui
+        kind = updater.install_kind()
+        enabled = gui.config.get("update_check_enabled", True) is True
+        switch = ft.Switch(value=enabled, active_color=p.accent, tooltip="Проверять обновления",
+                           on_change=self._on_update_toggle)
+        self.update_label = text(self.update_status, 13, muted=True)
+        self.update_notes_label = text(self.update_notes, 12, muted=True,
+                                       visible=bool(self.update_notes))
+        self.update_bar = ft.ProgressBar(value=0, height=6, color=p.accent, visible=False)
+        self.update_check_button = button("Проверить обновления", self.start_update_check)
+        self.update_button = button("Скачать обновление", self.start_update_download,
+                                    primary=True, visible=False)
+        self.update_cancel_button = button("Отменить скачивание", self.cancel_update_download,
+                                           visible=False)
+        if kind == "source":
+            note = ("Это запуск из папки проекта: обновление ставится только у "
+                    "установленной копии Феникса.")
+        else:
+            note = ("Установщики не подписаны — UAC спросит про неизвестного издателя. "
+                    "SHA-256 сверяется с SHA256SUMS.txt релиза: это защита от битого или "
+                    "подменённого при скачивании файла, а не подпись автора.")
+            if kind == "standalone":
+                note += " Автономная сборка ставится с повышением прав."
+            note += (" Феникс закроется, помощник обновления поставит версию поверх "
+                     "текущей и запустит Феникс снова.")
+        return card("Обновления", f"GitHub Releases · {updater.KIND_TITLES.get(kind, kind)}.", [
+            ft.Row([ft.Column([text("Проверять при запуске", 15),
+                    text("Один фоновый запрос к api.github.com. Установка — только по кнопке.",
+                         13, muted=True)], spacing=5, expand=True), switch], spacing=16),
+            divider(), self.update_label, self.update_notes_label, self.update_bar,
+            ft.Row([self.update_check_button, self.update_button,
+                    self.update_cancel_button,
+                    button("Страница релизов →", self._open_releases)], spacing=12, wrap=True),
+            text(note, muted=True)])
+
+    def _sync_update(self):
+        if self.update_label is not None:
+            self.update_label.value = self.update_status
+        if self.update_notes_label is not None:
+            self.update_notes_label.value = self.update_notes
+            self.update_notes_label.visible = bool(self.update_notes)
+        if self.update_check_button is not None:
+            self.update_check_button.disabled = self.update_busy
+            busy_check = self.update_busy and self.update_phase == "check"
+            self.update_check_button.content = "Проверяю…" if busy_check else "Проверить обновления"
+        if self.update_bar is not None:
+            value = self.update_progress
+            self.update_bar.visible = value is not None
+            self.update_bar.value = 0 if value is None else max(0.0, min(1.0, float(value)))
+        if self.update_button is not None:
+            from jarvis import updater
+
+            installable = (self.update_release is not None
+                           and updater.install_kind() != "source")
+            self.update_button.visible = installable
+            self.update_button.disabled = self.update_busy or not installable
+            if self.update_file is not None:
+                label = "Установить и перезапустить"
+            elif self.update_busy and self.update_phase == "download":
+                label = "Скачиваю…"
+            else:
+                label = "Скачать обновление"
+            self.update_button.content = label
+        if self.update_cancel_button is not None:
+            downloading = self.update_busy and self.update_phase == "download"
+            self.update_cancel_button.visible = downloading
+            # После нажатия кнопка гаснет: повторное нажатие всё равно не нужно.
+            self.update_cancel_button.disabled = not downloading or self.update_cancel is None
+
+    def _on_update_toggle(self, e):
+        self.gui.set_update_check(bool(e.control.value))
+        e.control.value = self.gui.config.get("update_check_enabled", True) is True
+        self._update()
+
+    def _open_releases(self, e=None):
+        import os
+
+        from jarvis import updater
+
+        url = self.update_release.page if self.update_release is not None else updater.RELEASE_PAGE
+        try:
+            os.startfile(url)
+            return True
+        except Exception:
+            log.exception("Обновление: не удалось открыть страницу релизов")
+            self.update_status = f"Откройте страницу вручную: {url}"
+            self._sync_update()
+            self._update()
+            return False
+
+    def start_update_check(self, e=None, background=False):
+        """Фоновая проверка релиза; результат приходит через очередь GUI."""
+        from jarvis import updater
+
+        if self.update_busy:
+            # Молчаливый отказ выглядел как «кнопка не работает»: говорим, что идёт.
+            phase = {"check": "проверка", "download": "скачивание"}.get(self.update_phase, "действие")
+            self.update_status = f"Уже идёт {phase} — дождитесь конца или отмените скачивание."
+            self._sync_update()
+            self._update()
+            return False
+        self.update_generation += 1
+        token = self.update_generation
+        self.update_busy = True
+        self.update_phase = "check"
+        self.update_status = "Проверяю GitHub…"
+        self.update_progress = None
+        self._sync_update()
+        self._update()
+
+        def run():
+            try:
+                value = updater.check()
+            except Exception:
+                log.exception("Обновление: проверка упала вне ожидаемых ошибок")
+                value = None
+            self.gui._queue.put(("update_result", ("check", token, value)))
+
+        try:
+            threading.Thread(target=run, daemon=True, name="gui-update-check").start()
+        except Exception:
+            log.exception("Обновление: не удалось запустить поток проверки")
+            self.update_busy = False
+            self.update_phase = ""
+            self.update_status = "Не удалось запустить проверку обновлений."
+            self._sync_update()
+            self._update()
+            return False
+        return True
+
+    def start_update_download(self, e=None):
+        """Скачать установщик (или перейти к установке, если он уже скачан)."""
+        from jarvis import updater
+
+        if self.update_busy or self.update_release is None:
+            return False
+        if self.update_file is not None:
+            return self.start_update_apply()
+        kind = updater.install_kind()
+        if kind == "source":
+            self.update_status = "Обновление ставится только у установленной копии Феникса."
+            self._sync_update()
+            self._update()
+            return False
+        release = self.update_release
+        asset = release.installer(kind)
+        if asset is None:
+            self.update_status = ("В релизе нет установщика для этой сборки — скачайте его "
+                                  "вручную со страницы релизов.")
+            self._sync_update()
+            self._update()
+            return False
+        sums_asset = release.sums()
+        self.update_generation += 1
+        token = self.update_generation
+        cancel = threading.Event()
+        self.update_cancel = cancel
+        self.update_busy = True
+        self.update_phase = "download"
+        self.update_progress = 0
+        self.update_status = f"Скачиваю {asset.name}…"
+        self._sync_update()
+        self._update()
+
+        def progress(done, total):
+            self.gui._queue.put(("update_result", ("progress", token, (done, int(total or 0)))))
+
+        def run():
+            error = ""
+            path = None
+            try:
+                # Прошлые установщики не копим: папка обновления живёт между версиями.
+                updater.cleanup_installers()
+                sums = updater.fetch_sums(sums_asset) if sums_asset is not None else {}
+                path = updater.download(asset, sums=sums, progress=progress, cancel=cancel)
+            except updater.UpdateError as failure:
+                error = str(failure)
+            except Exception:
+                # Никаких путей и трейсбеков в интерфейс — только понятный текст.
+                log.exception("Обновление: скачивание упало")
+                error = "Скачивание не удалось. Повторите позже."
+            self.gui._queue.put(("update_result", ("download", token, (path, error))))
+
+        try:
+            threading.Thread(target=run, daemon=True, name="gui-update-download").start()
+        except Exception:
+            log.exception("Обновление: не удалось запустить поток скачивания")
+            self.update_busy = False
+            self.update_phase = ""
+            self.update_progress = None
+            self.update_status = "Не удалось начать скачивание обновления."
+            self._sync_update()
+            self._update()
+            return False
+        return True
+
+    def cancel_update_download(self, e=None):
+        """Попросить поток скачивания остановиться: файл .part будет убран."""
+        if not self.update_busy or self.update_phase != "download":
+            return False
+        event = self.update_cancel
+        if event is not None:
+            event.set()
+            self.update_cancel = None
+        self.update_status = "Отменяю скачивание…"
+        self._sync_update()
+        self._update()
+        return True
+
+    def start_update_apply(self):
+        """Запустить помощника и попросить приложение выйти — Феникс вернётся сам."""
+        from jarvis import updater
+
+        if self.update_busy or self.update_file is None or self.update_release is None:
+            return False
+        try:
+            updater.spawn_installer(self.update_file, self.update_release.version)
+        except updater.UpdateError as failure:
+            self.update_status = str(failure)
+            self._sync_update()
+            self._update()
+            return False
+        except Exception:
+            log.exception("Обновление: не удалось запустить помощника")
+            self.update_status = "Не удалось запустить установку обновления."
+            self._sync_update()
+            self._update()
+            return False
+        self.update_status = ("Устанавливаю. Феникс закроется и вернётся сам. "
+                              "Если UAC спросит — разрешите установку.")
+        self._sync_update()
+        self._update()
+        self.gui._queue.put(("update_quit", None))
+        return True
+
+    def apply_update_result(self, payload):
+        """Единственное место, где результат работника попадает в контролы."""
+        from jarvis import updater
+
+        try:
+            kind, token, value = payload
+        except (TypeError, ValueError):
+            return
+        if not isinstance(token, int) or token != self.update_generation:
+            return
+        if kind == "progress":
+            done, total = value if isinstance(value, tuple) else (0, 0)
+            self.update_progress = (done / total) if total else None
+            if self.update_bar is not None and self.gui._page is not None:
+                self.update_bar.visible = self.update_progress is not None
+                self.update_bar.value = self.update_progress or 0
+                try:
+                    self.gui._page.update(self.update_bar)
+                except Exception:
+                    pass
+            return
+        if kind == "check":
+            self.update_busy = False
+            self.update_phase = ""
+            self.update_progress = None
+            self.update_release = None
+            self.update_file = None
+            self.update_notes = ""
+            if value is not None and getattr(value, "status", "") == "update":
+                self.update_release = value.release
+                self.update_notes = value.release.notes if value.release else ""
+            self.update_status = (updater.describe(value) if value is not None
+                                  else "Проверка обновлений не удалась.")
+            self._sync_update()
+            self._update()
+            if self.update_release is not None:
+                self.gui.toast(f"Доступно обновление {self.update_release.version}", "info")
+            return
+        if kind == "download":
+            path, error = value if isinstance(value, tuple) else (None, "Скачивание не удалось.")
+            self.update_busy = False
+            self.update_phase = ""
+            self.update_progress = None
+            self.update_cancel = None
+            if error or path is None:
+                self.update_file = None
+                self.update_status = error or "Скачивание не удалось."
+            else:
+                self.update_file = path
+                self.update_status = (f"Установщик {path.name} скачан. Кнопка ниже поставит "
+                                      "версию и перезапустит Феникс.")
+                self.gui.toast("Обновление скачано — можно устанавливать", "success")
+            self._sync_update()
+            self._update()
 
     def cancel_settings(self, e=None):
         self._load_settings()

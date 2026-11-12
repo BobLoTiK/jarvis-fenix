@@ -91,6 +91,34 @@ jobs:
           echo "value=$v" >> "$GITHUB_OUTPUT"
           echo "Версия установщика: $v"
 
+      - uses: actions/checkout@v4
+
+      # Версия exe берётся из jarvis/__init__.py (build_exe.py), а тег — из ref.
+      # Если их рассинхронизировать, обновление встанет, но помощник увидит
+      # старую ProductVersion и напишет «не установлено», а приложение будет
+      # предлагать тот же релиз по кругу. Падаем ДО сборки, а не после.
+      - name: Сверить тег с jarvis/__init__.py
+        shell: bash
+        env:
+          DECLARED_REF_TYPE: ${{ github.ref_type }}
+        run: |
+          set -euo pipefail
+          declared=$(sed -n 's/^__version__ = "\(.*\)"$/\1/p' jarvis/__init__.py | head -1)
+          if [ -z "$declared" ]; then
+            echo "::error::Не нашёл __version__ в jarvis/__init__.py" >&2
+            exit 1
+          fi
+          tagged="${{ steps.ver.outputs.value }}"
+          if [ "$declared" = "$tagged" ]; then
+            echo "Версия совпадает: $declared"
+            exit 0
+          fi
+          if [ "$DECLARED_REF_TYPE" = "tag" ]; then
+            echo "::error::Тег даёт версию $tagged, а в jarvis/__init__.py __version__ = $declared. Поднимите версию и перенесите тег." >&2
+            exit 1
+          fi
+          echo "::warning::Ручной прогон: версия сборки $tagged, __version__ = $declared"
+
   bootstrap:
     name: лёгкий установщик (bootstrap)
     needs: version

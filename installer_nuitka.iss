@@ -1,7 +1,7 @@
 ; Full compiled application. No Python installer, pip, venv or launcher.py.
 #define MyAppName "Феникс"
 #ifndef MyAppVersion
-  #define MyAppVersion "2.1.3"
+  #define MyAppVersion "2.2.0"
 #endif
 #ifndef PayloadDir
   #define PayloadDir "dist\nuitka-app"

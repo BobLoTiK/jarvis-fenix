@@ -39,7 +39,10 @@ def test_brand_and_first_layout_precede_show(gui, hidden):
     if not hidden:
         assert page.window.minimized is False
         page.update.assert_called_once()
-    assert page.run_task.call_count == 2
+    assert page.run_task.call_count == 3
+    # Очередь, уровень микрофона и проверка обновлений — три стартовые задачи.
+    assert [getattr(call.args[0], "__name__", "") for call in page.run_task.call_args_list] == [
+        "_process_queue", "_mic_level_loop", "_startup_updates"]
 
 
 def test_tray_state_is_applied_by_gui_worker(gui):

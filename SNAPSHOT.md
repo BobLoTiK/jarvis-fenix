@@ -1,6 +1,6 @@
 # SNAPSHOT проекта «Феникс»
 
-`sha256=1bba5879c6da1c14` · режим `lean` · файлов `404` · строк `73834` · источник `3406 КБ`
+`sha256=3c399912809816ed` · режим `lean` · файлов `407` · строк `75814` · источник `3508 КБ`
 
 > Генерируется `snapshot.py`. Вывод детерминированный: содержимое меняется только когда меняются файлы.
 >
@@ -76,6 +76,20 @@ Bearer-токен в `secrets_store`), `jarvis/peer_client.py` и карточк
 `tests/test_api_server.py`. Наружу не отдаются профиль/история/память, пароль
 через API запрещён. Реальный сторонний проект-сосед ещё не подключался:
 проверен только свой клиент против своего сервера.
+
+Автообновление есть в исходниках: `jarvis/updater.py` читает
+`releases/latest` на GitHub (`BobLoTiK/jarvis-fenix`), сравнивает версии по
+числовым частям и по кнопке скачивает установщик в `%APPDATA%\Phoenix\updates`
+со сверкой SHA-256, затем помощник `apply_update.ps1` ставит его тихо поверх
+текущего каталога и запускает Феникс снова. Флаг `update_check_enabled` по
+умолчанию **включён** — это один фоновый запрос за запуск и ничего больше; сам
+апгрейд без нажатия кнопки не начинается. Оба установщика не подписаны, поэтому
+SHA-256 из того же релиза — защита от битого файла, а не подпись автора (сказано
+в карточке). Опубликованный релиз 2.1.2 старше этой сборки, поэтому публичный путь
+«новый релиз → обновление» ещё не проходил. Локальная цепочка проверена 12.11.2026
+сквозным e2e с настоящим Inno-установщиком (в том числе на каталоге с пробелом в
+пути); непроверенными остаются публичный релиз новее сборки и автономная
+Nuitka-сборка через UAC.
 
 Этапы 3–4 и 6 тоже есть в исходниках, всё за выключенными по умолчанию
 флагами: `jarvis/asr_router.py` (`asr_escalate_enabled`) — второй движок при
@@ -568,10 +582,10 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ├── .github/
 │   ├── workflows/
 │   │   ├── README.md  (74 стр)
-│   │   ├── release.yml  (306 стр)
+│   │   ├── release.yml  (334 стр)
 │   │   ├── test.yml  (71 стр)
 ├── AGENTS.md  (88 стр)
-├── ARCHITECTURE.md  (1352 стр)
+├── ARCHITECTURE.md  (1386 стр)
 ├── assets/
 │   ├── nonverbal/
 │   │   ├── README.md  (40 стр)
@@ -594,7 +608,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ├── cmds/
 │   ├── open_terminal.bat  (3 стр)
 │   ├── show_ip.bat  (3 стр)
-├── config.example.json  (124 стр)
+├── config.example.json  (125 стр)
 ├── constraints-nuitka-app.txt  (25 стр)
 ├── CONTRIBUTING.md  (438 стр)
 ├── create_shortcut.bat  (52 стр)
@@ -621,7 +635,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── IMPROVEMENT_BACKLOG.md  (120 стр)
 │   ├── INSTALLER_UPDATE.md  (47 стр)
 │   ├── LOCAL_VOICE_OPTIONS.md  (67 стр)
-│   ├── NEXT_STEPS.md  (513 стр)
+│   ├── NEXT_STEPS.md  (526 стр)
 │   ├── NUITKA_BUILD.md  (123 стр)
 │   ├── PHOENIX_JASTIN_RECONCILIATION.md  (270 стр)
 │   ├── PYTHON_BOOTSTRAP_TLS_FIX.md  (98 стр)
@@ -633,9 +647,10 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── v2.1.1.md  (80 стр)
 │   │   ├── v2.1.2.md  (112 стр)
 │   │   ├── v2.1.3.md  (90 стр)
+│   │   ├── v2.2.0.md  (88 стр)
 │   ├── REVIEW_FIXES.md  (68 стр)
 │   ├── TTS_LIFECYCLE_FIX.md  (89 стр)
-│   ├── USER_GUIDE.md  (1271 стр)
+│   ├── USER_GUIDE.md  (1315 стр)
 │   ├── WHISPER_STARTUP_DLL_FIX.md  (85 стр)
 │   ├── WINDOWS_STARTUP_RELIABILITY.md  (108 стр)
 │   ├── WINRT_TTS_REMOVAL.md  (43 стр)
@@ -686,8 +701,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── cloud_llm.py  (367 стр)
 │   ├── command_builder.py  (152 стр)
 │   ├── commands_io.py  (190 стр)
-│   ├── compiled_runtime.py  (267 стр)
-│   ├── config.py  (347 стр)
+│   ├── compiled_runtime.py  (284 стр)
+│   ├── config.py  (351 стр)
 │   ├── config_manager.py  (156 стр)
 │   ├── decision.py  (307 стр)
 │   ├── echo.py  (512 стр)
@@ -696,7 +711,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── engines.py  (533 стр)
 │   ├── files.py  (109 стр)
 │   ├── first_run.py  (26 стр)
-│   ├── gui.py  (2674 стр)
+│   ├── gui.py  (2739 стр)
 │   ├── gui_audio.py  (438 стр)
 │   ├── gui_cloud.py  (541 стр)
 │   ├── gui_commands.py  (492 стр)
@@ -707,7 +722,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── gui_home_fx.py  (242 стр)
 │   ├── gui_palette.py  (228 стр)
 │   ├── gui_pipette.py  (126 стр)
-│   ├── gui_preferences.py  (809 стр)
+│   ├── gui_preferences.py  (1124 стр)
 │   ├── gui_sidebar.py  (442 стр)
 │   ├── gui_toast.py  (140 стр)
 │   ├── gui_tokens.py  (97 стр)
@@ -781,7 +796,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── nonverbal.py  (93 стр)
 │   ├── observer.py  (211 стр)
 │   ├── packs.py  (117 стр)
-│   ├── paths.py  (260 стр)
+│   ├── paths.py  (272 стр)
 │   ├── peer_client.py  (108 стр)
 │   ├── persona.py  (226 стр)
 │   ├── plugins.py  (341 стр)
@@ -808,6 +823,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── silero.py  (244 стр)
 │   │   ├── winrt.py  (6 стр)
 │   ├── uia.py  (1027 стр)
+│   ├── updater.py  (765 стр)
 │   ├── vad.py  (584 стр)
 │   ├── vectormem.py  (788 стр)
 │   ├── voices.py  (215 стр)
@@ -827,7 +843,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── work.json  (11 стр)
 ├── phoenix_app.py  (11 стр)
 ├── PLAN.md  (101 стр)
-├── PROJECT.md  (541 стр)
+├── PROJECT.md  (555 стр)
 ├── PROMPT.md  (72 стр)
 ├── pytest.ini  (20 стр)
 ├── README.md  (332 стр)
@@ -888,7 +904,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   │   ├── uia_manual.py  (61 стр)
 │   │   ├── vad_debug.py  (61 стр)
 │   │   ├── vad_live.py  (41 стр)
-│   ├── README.md  (567 стр)
+│   ├── README.md  (596 стр)
 │   ├── stress_intents.py  (552 стр)
 │   ├── test_actions_brightness.py  (61 стр)
 │   ├── test_aec_backend.py  (57 стр)
@@ -908,7 +924,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_cloud_llm.py  (463 стр)
 │   ├── test_command_builder.py  (213 стр)
 │   ├── test_commands_io.py  (166 стр)
-│   ├── test_compiled_runtime.py  (198 стр)
+│   ├── test_compiled_runtime.py  (229 стр)
 │   ├── test_config_manager.py  (47 стр)
 │   ├── test_custom_reversed_order.py  (45 стр)
 │   ├── test_danger_policy.py  (124 стр)
@@ -936,7 +952,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_gui_pipette.py  (192 стр)
 │   ├── test_gui_preferences.py  (516 стр)
 │   ├── test_gui_sidebar.py  (283 стр)
-│   ├── test_gui_startup.py  (105 стр)
+│   ├── test_gui_startup.py  (108 стр)
 │   ├── test_gui_tokens.py  (68 стр)
 │   ├── test_gui_vertical.py  (624 стр)
 │   ├── test_gui_widgets.py  (259 стр)
@@ -984,6 +1000,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 │   ├── test_tts_readiness.py  (94 стр)
 │   ├── test_uia.py  (790 стр)
 │   ├── test_uia_fast.py  (240 стр)
+│   ├── test_updater.py  (517 стр)
 │   ├── test_vad.py  (333 стр)
 │   ├── test_vad_model.py  (314 стр)
 │   ├── test_vectormem.py  (405 стр)
@@ -1512,6 +1529,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
     def toggle_pipette_mode(self)
     def set_pipette_mode(self, enabled, update: bool=True)
     def toast(self, text: str, kind: str='info')
+    def set_update_check(self, enabled)
     def set_home_hints(self, show)
     def set_vertical_mode(self, enabled, update: bool=True)
     def set_vertical_pinned(self, value)
@@ -1764,6 +1782,11 @@ Non-verbal/микрофон/установщик по-прежнему треб�
     def ask_reset(self, e=None)
     def confirm_reset(self, confirm)
     def build_settings(self)
+    def start_update_check(self, e=None, background=False)
+    def start_update_download(self, e=None)
+    def cancel_update_download(self, e=None)
+    def start_update_apply(self)
+    def apply_update_result(self, payload)
     def cancel_settings(self, e=None)
     def start_probe(self, e=None)
     def apply_probe(self, result)
@@ -2613,6 +2636,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def secrets_dir()
   def nonverbal_dir()
   def plugins_dir()
+  def updates_dir()
   def temporary_audio_file()
 ```
 
@@ -3045,6 +3069,64 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def is_available()
   def describe_active_window()
   def describe_browsers()
+```
+
+**`jarvis/updater.py`**
+
+```
+  # Обновление Феникса с GitHub Releases: проверка, скачивание, помощник установки.
+  REPO = ...
+  API_URL = ...
+  RELEASE_PAGE = ...
+  ALLOWED_HOSTS = ...
+  ASSET_NAMES = ...
+  SUMS_NAME = ...
+  APP_EXE = ...
+  INSTALL_KINDS = ...
+  KIND_TITLES = ...
+  HELPER_NAME = ...
+  RESULT_NAME = ...
+  LOG_NAME = ...
+  SETUP_LOG_NAME = ...
+  TIMEOUT = ...
+  MAX_JSON = ...
+  MAX_SUMS = ...
+  CHUNK = ...
+  PROGRESS_STEP = ...
+  NOTES_LIMIT = ...
+  SHA256_RE = ...
+  INSTALLER_RE = ...
+  CREATE_NO_WINDOW = ...
+  class UpdateError(Exception)
+    def __init__(self, kind: str, message: str)
+  def user_agent()
+  def parse_version(text)
+  def is_newer(candidate, current)
+  class Asset
+  class Release
+    def asset(self, name)
+    def installer(self, kind)
+    def sums(self)
+  class CheckResult
+  class _SafeRedirect(HTTPRedirectHandler)
+    def redirect_request(self, req, fp, code, msg, headers, newurl)
+  ERROR_TEXTS = ...
+  def parse_release(data: dict)
+  def fetch_release(loader=None)
+  def check(current=None, loader=None)
+  def parse_sums(text: str)
+  def fetch_sums(asset)
+  def sha256_file(path, cancel=None)
+  def download(asset: Asset, dest_dir=None, *, sums=None, progress=None, cancel=None)
+  def cleanup_installers(dest_dir=None, keep=None)
+  def install_root()
+  def install_kind(root=None)
+  HELPER_SCRIPT = ...
+  def helper_path(folder=None)
+  def write_helper(folder=None)
+  def spawn_installer(installer, version, *, kind=None, root=None, pid=None, folder=None)
+  def read_last_result(folder=None)
+  def describe(result: CheckResult)
 ```
 
 **`jarvis/vad.py`**
@@ -4034,6 +4116,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def fake_imports(monkeypatch, root)
   def test_source_python_cannot_report_a_passed_compiled_probe(tmp_path, monkeypatch)
   def test_probe_checks_embedded_modules_resources_and_dictionaries(tmp_path, monkeypatch)
+  def test_probe_confirms_standalone_install_kind_when_exe_is_present(tmp_path, monkeypatch)
+  def test_probe_fails_when_compiled_copy_still_looks_like_source(tmp_path, monkeypatch)
   def test_probe_fails_when_vad_asset_is_absent(tmp_path, monkeypatch)
   def test_probe_fails_when_msvc_runtime_is_absent(tmp_path, monkeypatch)
   def test_probe_rejects_module_imported_from_external_environment(tmp_path, monkeypatch)
@@ -5940,6 +6024,61 @@ Non-verbal/микрофон/установщик по-прежнему треб�
   def test_close_named_tab_goes_through_shared_fallback()
 ```
 
+**`tests/test_updater.py`**
+
+```
+  # Обновления: версии, строгий разбор релиза, SHA-256, помощник, карточка GUI.
+  REPO_URL = ...
+  LIGHT = ...
+  FAST = ...
+  SUMS = ...
+  def release_payload(tag='v2.2.0', version='2.2.0')
+  class FakeResponse
+    def __init__(self, url, data=b'', headers=None)
+    def read(self, size=-1)
+    def geturl(self)
+  class FakeOpener
+    def __init__(self, data, url, headers=None)
+    def open(self, request, timeout=None)
+  def updates_dir(tmp_path)
+  def test_parse_version_accepts_plain_numbers(text, expected)
+  def test_parse_version_rejects_suffixes_and_noise(text)
+  def test_is_newer_pads_short_versions()
+  def test_parse_release_keeps_only_expected_assets()
+  def test_parse_release_drops_assets_from_foreign_hosts()
+  def test_parse_release_refuses_prerelease_tags()
+  def test_check_reports_update_current_and_error()
+  def test_describe_is_honest_for_each_status()
+  def test_foreign_url_is_rejected()
+  def test_parse_sums_reads_published_format()
+  def test_download_verifies_hash_and_keeps_only_final_file(tmp_path, monkeypatch)
+  def test_download_refuses_wrong_hash_and_leaves_nothing(tmp_path, monkeypatch)
+  def test_download_without_any_hash_is_refused(tmp_path)
+  def test_download_rejects_unexpected_asset_name(tmp_path)
+  def test_download_stops_on_size_mismatch(tmp_path, monkeypatch)
+  def test_fetch_sums_uses_published_asset(monkeypatch)
+  def test_cleanup_keeps_requested_installer(updates_dir)
+  def test_install_kind_from_files(tmp_path)
+  def test_helper_script_is_ascii_safe_bom_and_covers_the_flow(updates_dir)
+  def test_helper_script_quotes_installer_paths(updates_dir)
+  def test_spawn_installer_passes_values_through_environment(tmp_path, monkeypatch)
+  def test_spawn_installer_refuses_missing_app(tmp_path, monkeypatch)
+  def test_spawn_installer_requires_windows(tmp_path, monkeypatch)
+  def test_last_result_roundtrip_and_cleanup(updates_dir)
+  def test_last_result_ignores_junk(updates_dir, payload)
+  def walk(control)
+  def gui(tmp_path, monkeypatch)
+  def take(gui, kind, timeout=5.0)
+  def test_settings_card_has_updates_block_without_network(gui)
+  def test_check_result_lands_in_card_and_shows_install_button(gui, monkeypatch)
+  def test_source_run_never_offers_install(gui, monkeypatch)
+  def test_download_worker_reports_file_and_install_uses_it(gui, monkeypatch, updates_dir)
+  def test_cancel_button_stops_download_and_clears_state(gui, monkeypatch)
+  def test_check_click_while_busy_explains_what_is_running(gui)
+  def test_stale_result_from_previous_generation_is_ignored(gui)
+  def test_update_toggle_persists_flag(gui)
+```
+
 **`tests/test_vad.py`**
 
 ```
@@ -6365,8 +6504,8 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/cloud_llm.py` | 367 | code | Облачная LLM по HTTP: OpenAI-совместимые API и Anthropic. |
 | `jarvis/command_builder.py` | 152 | code | Typed custom commands. No execution, model calls or shell parsing in t |
 | `jarvis/commands_io.py` | 190 | code | Импорт и экспорт пользовательских команд: только данные, без исполнени |
-| `jarvis/compiled_runtime.py` | 267 | code | Standalone app startup and explicit offline probes; no venv/pip bootst |
-| `jarvis/config.py` | 347 | code | Загрузка конфигурации и объект Config в памяти. |
+| `jarvis/compiled_runtime.py` | 284 | code | Standalone app startup and explicit offline probes; no venv/pip bootst |
+| `jarvis/config.py` | 351 | code | Загрузка конфигурации и объект Config в памяти. |
 | `jarvis/config_manager.py` | 156 | code | Единый менеджер записи в config.json. |
 | `jarvis/decision.py` | 307 | code | Решение по распознанной фразе: чёткая команда, нечёткая или не команда |
 | `jarvis/echo.py` | 512 | code | Opt-in Piper AEC prototype. No devices, drivers or downloads. |
@@ -6375,7 +6514,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/engines.py` | 533 | code | Каталог движков Феникса: что скачано, что включено и чем доустановить. |
 | `jarvis/files.py` | 109 | code | Файлы и папки: открыть, посмотреть содержимое, создать. |
 | `jarvis/first_run.py` | 26 | code | Первый запуск — знакомство через LLM-диалог. |
-| `jarvis/gui.py` | 2674 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
+| `jarvis/gui.py` | 2739 | code | GUI Феникса — интерактивное окно на Flet 1.0.3. |
 | `jarvis/gui_audio.py` | 438 | code | Native sound settings. Diagnostics use the existing listener/Speaker,  |
 | `jarvis/gui_cloud.py` | 541 | code | Вкладка «Облако»: провайдер, ключ, приватность и проверка ключа. |
 | `jarvis/gui_commands.py` | 492 | code | Flet editor for the existing custom_commands pipeline. Never executes  |
@@ -6386,7 +6525,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/gui_home_fx.py` | 242 | code | Bounded native solar aura. Decorative state motion, never a fake wavef |
 | `jarvis/gui_palette.py` | 228 | code | Палитра команд (Ctrl+K): поиск по вкладкам и частым действиям. |
 | `jarvis/gui_pipette.py` | 126 | code | Мини-режим «пипетка»: окно 56×56 с птицей, клик разворачивает обратно. |
-| `jarvis/gui_preferences.py` | 809 | code | Native persona/settings editors. Drafts are not configuration or a sec |
+| `jarvis/gui_preferences.py` | 1124 | code | Native persona/settings editors. Drafts are not configuration or a sec |
 | `jarvis/gui_sidebar.py` | 442 | code | Native, persistent hover rail. Bounded UI-loop animation; no WebView o |
 | `jarvis/gui_toast.py` | 140 | code | Короткие тосты вместо модальных SnackBar: стек снизу, сами уходят. |
 | `jarvis/gui_tokens.py` | 97 | code | Дизайн-токены GUI: отступы, радиусы, типографика, поверхности, контрас |
@@ -6456,7 +6595,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/nonverbal.py` | 93 | code | Optional, bounded reaction policy. No LLM tags, text rewriting or extr |
 | `jarvis/observer.py` | 211 | code | Observer — фоновое наблюдение за диалогом. |
 | `jarvis/packs.py` | 117 | code | Загрузка и выгрузка паков команд из папки packs/. |
-| `jarvis/paths.py` | 260 | code | Централизованное определение путей Феникса. |
+| `jarvis/paths.py` | 272 | code | Централизованное определение путей Феникса. |
 | `jarvis/peer_client.py` | 108 | code | Клиент к стыку `health` / `capabilities` / `turn` — своему или соседне |
 | `jarvis/persona.py` | 226 | code | Персона ассистента — стиль общения, черты, backstory, tone. |
 | `jarvis/plugins.py` | 341 | code | Плагины: манифест, запуск в отдельном процессе, свои настройки. |
@@ -6482,6 +6621,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `jarvis/tts_engines/silero.py` | 244 | code | Silero TTS v5_5 — русский голос, ~150 МБ, требует PyTorch. |
 | `jarvis/tts_engines/winrt.py` | 6 | code | Retired WinRT speech backend. |
 | `jarvis/uia.py` | 1027 | code | UI Automation — видим окна и элементы интерфейса. |
+| `jarvis/updater.py` | 765 | code | Обновление Феникса с GitHub Releases: проверка, скачивание, помощник у |
 | `jarvis/vad.py` | 584 | code | Silero VAD — детекция речи в аудио-потоке с адаптивным порогом. |
 | `jarvis/vectormem.py` | 788 | code | Векторная память фактов (RAG) — на профиль. |
 | `jarvis/voices.py` | 215 | code | Управление голосами TTS — работает через tts_engines. |
@@ -6542,7 +6682,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_cloud_llm.py` | 463 | code | Стражи облачной LLM: ключ не утекает, личное не уходит без согласия. |
 | `tests/test_command_builder.py` | 213 | code | Builder persistence, exact matching and runtime protection; no real OS |
 | `tests/test_commands_io.py` | 166 | code | Импорт/экспорт пользовательских команд: данные, превью и атомарное при |
-| `tests/test_compiled_runtime.py` | 198 | code | Explicit standalone probes and consent contracts without native Window |
+| `tests/test_compiled_runtime.py` | 229 | code | Explicit standalone probes and consent contracts without native Window |
 | `tests/test_config_manager.py` | 47 | code | Тесты config_manager: параллельная запись не рвёт файл. |
 | `tests/test_custom_reversed_order.py` | 45 | code | Свои команды с обратным порядком слов (commands_reversed_order). |
 | `tests/test_danger_policy.py` | 124 | code | Политика опасных действий: пароль решает «можно ли», а не «опасно ли». |
@@ -6570,7 +6710,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_gui_pipette.py` | 192 | code | Мини-режим «пипетка»: свойства окна 56×56, возврат и тосты. |
 | `tests/test_gui_preferences.py` | 516 | code | Real imported Flet controls / real disk writes / explicit network fake |
 | `tests/test_gui_sidebar.py` | 283 | code | Native controls and bounded asyncio tasks; no desktop, microphone or m |
-| `tests/test_gui_startup.py` | 105 | code | Startup ordering, tray failure recovery, old EXE mutex handoff; no des |
+| `tests/test_gui_startup.py` | 108 | code | Startup ordering, tray failure recovery, old EXE mutex handoff; no des |
 | `tests/test_gui_tokens.py` | 68 | code | Дизайн-токены: шкала, поверхности и измеряемый контраст палитр. |
 | `tests/test_gui_vertical.py` | 624 | code | Вертикальный режим: чистая логика, полоса и переключение без окна и зв |
 | `tests/test_gui_widgets.py` | 259 | code | Opt-in layouts, exact task IDs, safe command path, atomic saves and li |
@@ -6618,6 +6758,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 | `tests/test_tts_readiness.py` | 94 | code | Bounded voice readiness and command release; no synthesis/audio device |
 | `tests/test_uia.py` | 790 | code | Тесты jarvis.uia — логика обёртки. С моками. |
 | `tests/test_uia_fast.py` | 240 | code | Тесты быстрых UIA-команд — `jarvis/intents/fast/uia.py`. |
+| `tests/test_updater.py` | 517 | code | Обновления: версии, строгий разбор релиза, SHA-256, помощник, карточка |
 | `tests/test_vad.py` | 333 | code | Тесты jarvis.vad — Silero VAD ONNX. |
 | `tests/test_vad_model.py` | 314 | code | Авто-скачивание модели Silero VAD (jarvis.vad). |
 | `tests/test_vectormem.py` | 405 | code | Векторная память фактов (jarvis.vectormem, №51–53). |
@@ -6645,7 +6786,7 @@ Non-verbal/микрофон/установщик по-прежнему треб�
 ```python
 """Феникс — локальный голосовой ассистент для Windows. ... [4 строк]"""
 
-__version__ = "2.1.3"
+__version__ = "2.2.0"
 APP_NAME = "Феникс"
 ```
 
@@ -11385,6 +11526,23 @@ def self_test(root, *, compiled):
     # не попали, и Whisper падал уже на машине пользователя.
     checks["faster_whisper_assets"] = (
         root / "faster_whisper/assets/silero_vad_v6.onnx").is_file()
+    # updater в собранной копии не имеет jarvis/__init__.py на диске, поэтому
+    # install_kind() узнаёт standalone по Феникс.exe. Проверка нужна только там,
+    # где exe действительно лежит: иначе ошибка детекта всплывёт у пользователя,
+    # когда помощник обновления откажется ставить версию.
+    from jarvis import paths, updater
+    if (root / updater.APP_EXE).is_file():
+        try:
+            kind = updater.install_kind(root)
+            updates = Path(paths.updates_dir())
+            updates.mkdir(parents=True, exist_ok=True)
+            probe = updates / ".self-test-write"
+            probe.write_bytes(b"ok")
+            probe.unlink()
+            checks["updater_install_kind"] = True if kind == "standalone" else {
+                "ok": False, "error": f"install_kind={kind!r}, ожидалось 'standalone'"}
+        except Exception as exc:
+            checks["updater_install_kind"] = {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
     report["ok"] = all(value is True for value in checks.values())
     return report
 
@@ -11709,6 +11867,10 @@ DEFAULT_CONFIG = {
     # Это не «общее ядро»: договор об именах и формате с другими проектами.
     "api_enabled": False,
     "api_port": 8765,
+    # Обновления с GitHub Releases (jarvis/updater.py). True — один фоновый
+    # запрос к api.github.com при старте. Установка только с согласия
+    # пользователя, в тихом режиме, поверх текущей версии.
+    "update_check_enabled": True,
     # Эскалация распознавания (этап 3): основной движок → второй при сомнении.
     # ВЫКЛЮЧЕНО по умолчанию: основной ASR-путь не меняется, Vosk остаётся
     # wake-словом и запасным движком. Бюджет — сколько раз в минуту можно
@@ -14295,6 +14457,9 @@ class FenixGUI:
             self._show_window_now()
         page.run_task(self._process_queue)
         page.run_task(self._mic_level_loop)
+        # Обновления стартуют после окна: сначала отчёт прошлой установки,
+        # потом фоновая проверка (только если галочка включена).
+        page.run_task(self._startup_updates)
 
     def _build_ui(self, page: ft.Page) -> None:
         self._rail = _Sidebar(self._select_tab, self.config)
@@ -14526,6 +14691,62 @@ class FenixGUI:
         """Короткое уведомление тостом (для мелких подтверждений)."""
         toasts = getattr(self, "_toasts", None)
         return bool(toasts is not None and toasts.show(text, kind))
+
+    def set_update_check(self, enabled) -> bool:
+        """«Проверять обновления при запуске»: единственный фоновый запрос в сеть."""
+        try:
+            self.config.set("update_check_enabled", bool(enabled))
+        except Exception:
+            log.exception("GUI: не удалось сохранить настройку проверки обновлений")
+            return False
+        return True
+
+    async def _startup_updates(self) -> None:
+        """Отчёт прошлой установки и одна фоновая проверка обновлений."""
+        try:
+            await asyncio.sleep(6)
+        except Exception:
+            return
+        if self._quitting or self._page is None:
+            return
+        from jarvis import updater
+
+        try:
+            result = updater.read_last_result()
+        except Exception:
+            log.exception("GUI: не удалось прочитать результат обновления")
+            result = None
+        if result:
+            version = result.get("version") or ""
+            if result.get("status") == "ok":
+                text = "Обновление установлено" + (f": {version}" if version else "")
+                self.toast(text, "success")
+            else:
+                self.toast("Обновление не установлено — Феникс остался на прежней версии", "error")
+        if self._quitting or self.config.get("update_check_enabled", True) is not True:
+            return
+        try:
+            self._preferences().start_update_check(background=True)
+        except Exception:
+            log.exception("GUI: не удалось запустить проверку обновлений")
+
+    def _quit_for_update(self) -> None:
+        """Выход под обновление: помощник уже ждёт завершения процесса."""
+        jarvis = self.jarvis
+        self.toast("Устанавливаю обновление — Феникс перезапустится.", "info")
+
+        def run():
+            try:
+                if jarvis is not None:
+                    jarvis.shutdown()
+            except Exception:
+                log.exception("Обновление: shutdown упал")
+            try:
+                self.quit()
+            except Exception:
+                log.exception("Обновление: не удалось закрыть окно")
+
+        threading.Thread(target=run, daemon=True, name="update-exit").start()
 
     def set_home_hints(self, show) -> bool:
         """«Показывать подсказки на Главной»: обратное ui_home_hints_seen."""
@@ -15582,6 +15803,12 @@ class FenixGUI:
                     screen = getattr(self, "_cloud_screen", None)
                     if screen is not None:
                         screen.on_probe(value)
+                    continue
+                elif kind == "update_result":
+                    self._preferences().apply_update_result(value)
+                    continue
+                elif kind == "update_quit":
+                    self._quit_for_update()
                     continue
 
                 try:
@@ -19322,7 +19549,7 @@ class Pipette(ft.Container):
 ### `jarvis/gui_preferences.py`
 
 ```python
-"""Native persona/settings editors. Drafts are not configuration or a second memory. ... [8 строк]"""
+"""Native persona/settings editors. Drafts are not configuration or a second memory. ... [10 строк]"""
 import json
 import logging
 import threading
@@ -19556,6 +19783,21 @@ class PreferenceScreens:
         self.preview_title = self.preview_quote = self.preview_details = None
         self._api_status_label = None
         self._api_token_label = None
+        self.update_status = "Обновления ещё не проверялись."
+        self.update_notes = ""
+        self.update_release = None
+        self.update_file = None
+        self.update_busy = False
+        self.update_generation = 0
+        self.update_progress = None
+        self.update_phase = ""
+        self.update_cancel = None
+        self.update_label = None
+        self.update_notes_label = None
+        self.update_button = None
+        self.update_check_button = None
+        self.update_cancel_button = None
+        self.update_bar = None
 
     def _update(self):
         if self.gui._page is not None:
@@ -19885,7 +20127,8 @@ class PreferenceScreens:
             button("Открыть «Голос и звук» →", lambda e: self.gui._select_tab(2))])
         content = ft.ResponsiveRow([
             ft.Container(ft.Column([model, cloud, privacy], spacing=18), col={"xs": 12, "lg": 6}),
-            ft.Container(ft.Column([appearance, vertical, launch, audio, self._api_card()],
+            ft.Container(ft.Column([appearance, vertical, launch, audio, self._api_card(),
+                                    self._update_card()],
                                    spacing=18), col={"xs": 12, "lg": 6}),
         ], spacing=20, run_spacing=20)
         return self._screen("Настройки", "Всё важное — на своих местах.", content, [
@@ -19999,6 +20242,303 @@ class PreferenceScreens:
     def _on_api_token(self, e=None):
         self.gui.regenerate_api_token()
         self._api_refresh_labels()
+
+    # --- обновления ----------------------------------------------------
+
+    def _update_card(self):
+        """Обновления: галочка стартовой проверки, статус, скачивание, установка."""
+        from jarvis import updater
+
+        p = _palette()
+        gui = self.gui
+        kind = updater.install_kind()
+        enabled = gui.config.get("update_check_enabled", True) is True
+        switch = ft.Switch(value=enabled, active_color=p.accent, tooltip="Проверять обновления",
+                           on_change=self._on_update_toggle)
+        self.update_label = text(self.update_status, 13, muted=True)
+        self.update_notes_label = text(self.update_notes, 12, muted=True,
+                                       visible=bool(self.update_notes))
+        self.update_bar = ft.ProgressBar(value=0, height=6, color=p.accent, visible=False)
+        self.update_check_button = button("Проверить обновления", self.start_update_check)
+        self.update_button = button("Скачать обновление", self.start_update_download,
+                                    primary=True, visible=False)
+        self.update_cancel_button = button("Отменить скачивание", self.cancel_update_download,
+                                           visible=False)
+        if kind == "source":
+            note = ("Это запуск из папки проекта: обновление ставится только у "
+                    "установленной копии Феникса.")
+        else:
+            note = ("Установщики не подписаны — UAC спросит про неизвестного издателя. "
+                    "SHA-256 сверяется с SHA256SUMS.txt релиза: это защита от битого или "
+                    "подменённого при скачивании файла, а не подпись автора.")
+            if kind == "standalone":
+                note += " Автономная сборка ставится с повышением прав."
+            note += (" Феникс закроется, помощник обновления поставит версию поверх "
+                     "текущей и запустит Феникс снова.")
+        return card("Обновления", f"GitHub Releases · {updater.KIND_TITLES.get(kind, kind)}.", [
+            ft.Row([ft.Column([text("Проверять при запуске", 15),
+                    text("Один фоновый запрос к api.github.com. Установка — только по кнопке.",
+                         13, muted=True)], spacing=5, expand=True), switch], spacing=16),
+            divider(), self.update_label, self.update_notes_label, self.update_bar,
+            ft.Row([self.update_check_button, self.update_button,
+                    self.update_cancel_button,
+                    button("Страница релизов →", self._open_releases)], spacing=12, wrap=True),
+            text(note, muted=True)])
+
+    def _sync_update(self):
+        if self.update_label is not None:
+            self.update_label.value = self.update_status
+        if self.update_notes_label is not None:
+            self.update_notes_label.value = self.update_notes
+            self.update_notes_label.visible = bool(self.update_notes)
+        if self.update_check_button is not None:
+            self.update_check_button.disabled = self.update_busy
+            busy_check = self.update_busy and self.update_phase == "check"
+            self.update_check_button.content = "Проверяю…" if busy_check else "Проверить обновления"
+        if self.update_bar is not None:
+            value = self.update_progress
+            self.update_bar.visible = value is not None
+            self.update_bar.value = 0 if value is None else max(0.0, min(1.0, float(value)))
+        if self.update_button is not None:
+            from jarvis import updater
+
+            installable = (self.update_release is not None
+                           and updater.install_kind() != "source")
+            self.update_button.visible = installable
+            self.update_button.disabled = self.update_busy or not installable
+            if self.update_file is not None:
+                label = "Установить и перезапустить"
+            elif self.update_busy and self.update_phase == "download":
+                label = "Скачиваю…"
+            else:
+                label = "Скачать обновление"
+            self.update_button.content = label
+        if self.update_cancel_button is not None:
+            downloading = self.update_busy and self.update_phase == "download"
+            self.update_cancel_button.visible = downloading
+            # После нажатия кнопка гаснет: повторное нажатие всё равно не нужно.
+            self.update_cancel_button.disabled = not downloading or self.update_cancel is None
+
+    def _on_update_toggle(self, e):
+        self.gui.set_update_check(bool(e.control.value))
+        e.control.value = self.gui.config.get("update_check_enabled", True) is True
+        self._update()
+
+    def _open_releases(self, e=None):
+        import os
+
+        from jarvis import updater
+
+        url = self.update_release.page if self.update_release is not None else updater.RELEASE_PAGE
+        try:
+            os.startfile(url)
+            return True
+        except Exception:
+            log.exception("Обновление: не удалось открыть страницу релизов")
+            self.update_status = f"Откройте страницу вручную: {url}"
+            self._sync_update()
+            self._update()
+            return False
+
+    def start_update_check(self, e=None, background=False):
+        """Фоновая проверка релиза; результат приходит через очередь GUI."""
+        from jarvis import updater
+
+        if self.update_busy:
+            # Молчаливый отказ выглядел как «кнопка не работает»: говорим, что идёт.
+            phase = {"check": "проверка", "download": "скачивание"}.get(self.update_phase, "действие")
+            self.update_status = f"Уже идёт {phase} — дождитесь конца или отмените скачивание."
+            self._sync_update()
+            self._update()
+            return False
+        self.update_generation += 1
+        token = self.update_generation
+        self.update_busy = True
+        self.update_phase = "check"
+        self.update_status = "Проверяю GitHub…"
+        self.update_progress = None
+        self._sync_update()
+        self._update()
+
+        def run():
+            try:
+                value = updater.check()
+            except Exception:
+                log.exception("Обновление: проверка упала вне ожидаемых ошибок")
+                value = None
+            self.gui._queue.put(("update_result", ("check", token, value)))
+
+        try:
+            threading.Thread(target=run, daemon=True, name="gui-update-check").start()
+        except Exception:
+            log.exception("Обновление: не удалось запустить поток проверки")
+            self.update_busy = False
+            self.update_phase = ""
+            self.update_status = "Не удалось запустить проверку обновлений."
+            self._sync_update()
+            self._update()
+            return False
+        return True
+
+    def start_update_download(self, e=None):
+        """Скачать установщик (или перейти к установке, если он уже скачан)."""
+        from jarvis import updater
+
+        if self.update_busy or self.update_release is None:
+            return False
+        if self.update_file is not None:
+            return self.start_update_apply()
+        kind = updater.install_kind()
+        if kind == "source":
+            self.update_status = "Обновление ставится только у установленной копии Феникса."
+            self._sync_update()
+            self._update()
+            return False
+        release = self.update_release
+        asset = release.installer(kind)
+        if asset is None:
+            self.update_status = ("В релизе нет установщика для этой сборки — скачайте его "
+                                  "вручную со страницы релизов.")
+            self._sync_update()
+            self._update()
+            return False
+        sums_asset = release.sums()
+        self.update_generation += 1
+        token = self.update_generation
+        cancel = threading.Event()
+        self.update_cancel = cancel
+        self.update_busy = True
+        self.update_phase = "download"
+        self.update_progress = 0
+        self.update_status = f"Скачиваю {asset.name}…"
+        self._sync_update()
+        self._update()
+
+        def progress(done, total):
+            self.gui._queue.put(("update_result", ("progress", token, (done, int(total or 0)))))
+
+        def run():
+            error = ""
+            path = None
+            try:
+                # Прошлые установщики не копим: папка обновления живёт между версиями.
+                updater.cleanup_installers()
+                sums = updater.fetch_sums(sums_asset) if sums_asset is not None else {}
+                path = updater.download(asset, sums=sums, progress=progress, cancel=cancel)
+            except updater.UpdateError as failure:
+                error = str(failure)
+            except Exception:
+                # Никаких путей и трейсбеков в интерфейс — только понятный текст.
+                log.exception("Обновление: скачивание упало")
+                error = "Скачивание не удалось. Повторите позже."
+            self.gui._queue.put(("update_result", ("download", token, (path, error))))
+
+        try:
+            threading.Thread(target=run, daemon=True, name="gui-update-download").start()
+        except Exception:
+            log.exception("Обновление: не удалось запустить поток скачивания")
+            self.update_busy = False
+            self.update_phase = ""
+            self.update_progress = None
+            self.update_status = "Не удалось начать скачивание обновления."
+            self._sync_update()
+            self._update()
+            return False
+        return True
+
+    def cancel_update_download(self, e=None):
+        """Попросить поток скачивания остановиться: файл .part будет убран."""
+        if not self.update_busy or self.update_phase != "download":
+            return False
+        event = self.update_cancel
+        if event is not None:
+            event.set()
+            self.update_cancel = None
+        self.update_status = "Отменяю скачивание…"
+        self._sync_update()
+        self._update()
+        return True
+
+    def start_update_apply(self):
+        """Запустить помощника и попросить приложение выйти — Феникс вернётся сам."""
+        from jarvis import updater
+
+        if self.update_busy or self.update_file is None or self.update_release is None:
+            return False
+        try:
+            updater.spawn_installer(self.update_file, self.update_release.version)
+        except updater.UpdateError as failure:
+            self.update_status = str(failure)
+            self._sync_update()
+            self._update()
+            return False
+        except Exception:
+            log.exception("Обновление: не удалось запустить помощника")
+            self.update_status = "Не удалось запустить установку обновления."
+            self._sync_update()
+            self._update()
+            return False
+        self.update_status = ("Устанавливаю. Феникс закроется и вернётся сам. "
+                              "Если UAC спросит — разрешите установку.")
+        self._sync_update()
+        self._update()
+        self.gui._queue.put(("update_quit", None))
+        return True
+
+    def apply_update_result(self, payload):
+        """Единственное место, где результат работника попадает в контролы."""
+        from jarvis import updater
+
+        try:
+            kind, token, value = payload
+        except (TypeError, ValueError):
+            return
+        if not isinstance(token, int) or token != self.update_generation:
+            return
+        if kind == "progress":
+            done, total = value if isinstance(value, tuple) else (0, 0)
+            self.update_progress = (done / total) if total else None
+            if self.update_bar is not None and self.gui._page is not None:
+                self.update_bar.visible = self.update_progress is not None
+                self.update_bar.value = self.update_progress or 0
+                try:
+                    self.gui._page.update(self.update_bar)
+                except Exception:
+                    pass
+            return
+        if kind == "check":
+            self.update_busy = False
+            self.update_phase = ""
+            self.update_progress = None
+            self.update_release = None
+            self.update_file = None
+            self.update_notes = ""
+            if value is not None and getattr(value, "status", "") == "update":
+                self.update_release = value.release
+                self.update_notes = value.release.notes if value.release else ""
+            self.update_status = (updater.describe(value) if value is not None
+                                  else "Проверка обновлений не удалась.")
+            self._sync_update()
+            self._update()
+            if self.update_release is not None:
+                self.gui.toast(f"Доступно обновление {self.update_release.version}", "info")
+            return
+        if kind == "download":
+            path, error = value if isinstance(value, tuple) else (None, "Скачивание не удалось.")
+            self.update_busy = False
+            self.update_phase = ""
+            self.update_progress = None
+            self.update_cancel = None
+            if error or path is None:
+                self.update_file = None
+                self.update_status = error or "Скачивание не удалось."
+            else:
+                self.update_file = path
+                self.update_status = (f"Установщик {path.name} скачан. Кнопка ниже поставит "
+                                      "версию и перезапустит Феникс.")
+                self.gui.toast("Обновление скачано — можно устанавливать", "success")
+            self._sync_update()
+            self._update()
 
     def cancel_settings(self, e=None):
         self._load_settings()
@@ -30282,6 +30822,13 @@ def plugins_dir() -> Path:
     return d
 
 
+def updates_dir() -> Path:
+    """Установщики и помощник обновления: вне каталога программы. ... [5 строк]"""
+    d = user_dir() / "updates"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
 @contextmanager
 def temporary_audio_file():
     """Ephemeral mixed speech for winsound fallback; removed when playback stops."""
@@ -36424,6 +36971,753 @@ def describe_browsers() -> str:
     return "Запущены браузеры: " + ", ".join(names) + "."
 ```
 
+### `jarvis/updater.py`
+
+```python
+# -*- coding: utf-8 -*-
+"""Обновление Феникса с GitHub Releases: проверка, скачивание, помощник установки. ... [17 строк]"""
+from __future__ import annotations
+
+import hashlib
+import json
+import logging
+import os
+import re
+import shutil
+import subprocess
+from dataclasses import dataclass, field
+from pathlib import Path
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlsplit
+from urllib.request import HTTPRedirectHandler, Request, build_opener
+
+from jarvis import __version__, paths
+
+log = logging.getLogger(__name__)
+
+REPO = "BobLoTiK/jarvis-fenix"
+API_URL = f"https://api.github.com/repos/{REPO}/releases/latest"
+RELEASE_PAGE = f"https://github.com/{REPO}/releases"
+ALLOWED_HOSTS = {"api.github.com", "github.com", "objects.githubusercontent.com",
+                 "release-assets.githubusercontent.com"}
+ASSET_NAMES = {"light": "Feniks_Setup_{version}.exe",
+               "standalone": "Feniks_Fast_Setup_{version}.exe"}
+SUMS_NAME = "SHA256SUMS.txt"
+APP_EXE = "Феникс.exe"
+INSTALL_KINDS = ("light", "standalone", "source")
+KIND_TITLES = {"light": "обычный установщик", "standalone": "автономный (Nuitka)",
+               "source": "запуск из папки проекта"}
+HELPER_NAME = "apply_update.ps1"
+RESULT_NAME = "last_update.json"
+LOG_NAME = "update.log"
+SETUP_LOG_NAME = "setup.log"
+TIMEOUT = 20.0
+MAX_JSON = 2 * 1024 * 1024
+MAX_SUMS = 64 * 1024
+CHUNK = 256 * 1024
+PROGRESS_STEP = 2 * 1024 * 1024
+NOTES_LIMIT = 1500
+SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+INSTALLER_RE = re.compile(r"^Feniks_(Fast_)?Setup_[0-9]+(\.[0-9]+){1,3}\.exe$")
+# Окно помощника не показываем. Именно CREATE_NO_WINDOW, а не DETACHED_PROCESS:
+# с DETACHED_PROCESS powershell.exe стартует и молча завершается, ничего не сделав
+# (проверено на этой машине). Задания (job object), которое убило бы помощника
+# вместе с Фениксом, ни лаунчер, ни установщик не создают.
+CREATE_NO_WINDOW = 0x08000000
+
+
+class UpdateError(Exception):
+    """Ошибка обновления с понятным текстом; kind — для честного статуса."""
+
+    def __init__(self, kind: str, message: str):
+        super().__init__(message)
+        self.kind = kind
+        self.message = message
+
+    def __str__(self) -> str:  # никаких внутренних деталей в интерфейсе
+        return self.message
+
+
+def user_agent() -> str:
+    return f"Phoenix/{__version__}"
+
+
+# ---------------------------------------------------------------- версии
+
+def parse_version(text) -> tuple | None:
+    """'v2.1.3' -> (2, 1, 3); с суффиксом (-beta) -> None: их не предлагаем."""
+    if not isinstance(text, str):
+        return None
+    value = text.strip()
+    if value[:1] in ("v", "V"):
+        value = value[1:]
+    if not value or "-" in value or "+" in value:
+        return None
+    parts = value.split(".")
+    if not 1 <= len(parts) <= 4:
+        return None
+    if not all(part.isdigit() and part.isascii() for part in parts):
+        return None
+    return tuple(int(part) for part in parts)
+
+
+def is_newer(candidate, current) -> bool:
+    """Сравнение по числовым частям; короткая версия добивается нулями."""
+    first, second = tuple(candidate), tuple(current)
+    size = max(len(first), len(second))
+    return (first + (0,) * (size - len(first))) > (second + (0,) * (size - len(second)))
+
+
+# ---------------------------------------------------------------- релиз
+
+@dataclass(frozen=True)
+class Asset:
+    name: str
+    url: str
+    size: int = 0
+    digest: str = ""
+
+
+@dataclass(frozen=True)
+class Release:
+    version: str
+    tag: str
+    page: str
+    notes: str = ""
+    assets: tuple = field(default=())
+
+    def asset(self, name):
+        for item in self.assets:
+            if item.name == name:
+                return item
+        return None
+
+    def installer(self, kind):
+        template = ASSET_NAMES.get(kind)
+        return self.asset(template.format(version=self.version)) if template else None
+
+    def sums(self):
+        return self.asset(SUMS_NAME)
+
+
+@dataclass(frozen=True)
+class CheckResult:
+    status: str                 # update / current / error
+    current: str
+    release: "Release | None" = None
+    error: str = ""
+
+
+def _check_url(url) -> str:
+    """Только https и только наши хосты: редирект в сторону не пускаем."""
+    if not isinstance(url, str) or not url or any(c.isspace() or ord(c) < 32 for c in url):
+        raise UpdateError("unavailable", "Некорректная ссылка на обновление.")
+    try:
+        parts = urlsplit(url)
+    except ValueError:
+        raise UpdateError("unavailable", "Некорректная ссылка на обновление.") from None
+    if (parts.scheme != "https" or parts.hostname not in ALLOWED_HOSTS
+            or parts.username is not None or parts.password is not None
+            or parts.port not in (None, 443)):
+        raise UpdateError("unavailable", "Ссылка на обновление ведёт не на GitHub — не использую.")
+    return url
+
+
+class _SafeRedirect(HTTPRedirectHandler):
+    """GitHub отдаёт ассеты с редиректом: проверяем каждый шаг."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        _check_url(newurl)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def _opener():
+    return build_opener(_SafeRedirect())
+
+
+def _error_kind(error) -> str:
+    reason = getattr(error, "reason", error)
+    text = str(reason).lower()
+    if "certificate" in text or "ssl" in text:
+        return "certificate"
+    if "name or service" in text or "getaddrinfo" in text or "dns" in text:
+        return "dns"
+    if "timed out" in text or "timeout" in text:
+        return "timeout"
+    return "network"
+
+
+ERROR_TEXTS = {
+    "network": "Нет связи с GitHub. Проверьте интернет и повторите.",
+    "dns": "Не удалось найти api.github.com: проверьте интернет и DNS.",
+    "certificate": "Проверка сертификата GitHub не прошла. Обновление не скачиваю.",
+    "timeout": "GitHub не ответил вовремя. Повторите позже.",
+    "unavailable": "Обновление сейчас недоступно.",
+    "verification": "Файл обновления не прошёл проверку.",
+    "cancelled": "Скачивание отменено.",
+}
+
+
+def _read_json(url) -> dict:
+    _check_url(url)
+    request = Request(url, headers={"Accept": "application/vnd.github+json",
+                                    "User-Agent": user_agent()})
+    try:
+        with _opener().open(request, timeout=TIMEOUT) as response:
+            _check_url(response.geturl())
+            raw = response.read(MAX_JSON + 1)
+    except HTTPError as error:
+        if error.code == 404:
+            raise UpdateError("unavailable", "На GitHub пока нет ни одного релиза.") from None
+        if error.code == 403:
+            raise UpdateError("unavailable", "GitHub временно ограничил запросы. Повторите позже.") from None
+        raise UpdateError(_error_kind(error), ERROR_TEXTS[_error_kind(error)]) from None
+    except URLError as error:
+        kind = _error_kind(error)
+        raise UpdateError(kind, ERROR_TEXTS[kind]) from None
+    except (OSError, ValueError):
+        raise UpdateError("network", ERROR_TEXTS["network"]) from None
+    if len(raw) > MAX_JSON:
+        raise UpdateError("unavailable", "Ответ GitHub подозрительно большой.")
+    try:
+        data = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, ValueError):
+        raise UpdateError("unavailable", "GitHub вернул не JSON.") from None
+    if not isinstance(data, dict):
+        raise UpdateError("unavailable", "GitHub вернул неожиданный ответ.")
+    return data
+
+
+def _clean_text(value, limit=NOTES_LIMIT) -> str:
+    if not isinstance(value, str):
+        return ""
+    text = value.replace("\r\n", "\n").replace("\r", "\n").strip()
+    text = "".join(ch for ch in text if ch == "\n" or ord(ch) >= 32)
+    return text[:limit]
+
+
+def parse_release(data: dict) -> Release:
+    """Строгая проверка ответа: имя, тег, страница и ассеты ожидаемой формы."""
+    version = parse_version(data.get("tag_name"))
+    if version is None:
+        raise UpdateError("unavailable", "Последний релиз без простой версии (например, тестовая) — не предлагаю.")
+    text = ".".join(str(part) for part in version)
+    tag = data.get("tag_name") if isinstance(data.get("tag_name"), str) else "v" + text
+    page = data.get("html_url")
+    if not isinstance(page, str) or not page.startswith(f"https://github.com/{REPO}/releases"):
+        page = f"{RELEASE_PAGE}/tag/{tag}"
+    assets = []
+    for item in data.get("assets") or ():
+        if not isinstance(item, dict):
+            continue
+        name = item.get("name")
+        url = item.get("browser_download_url")
+        if not isinstance(name, str) or name not in (
+                ASSET_NAMES["light"].format(version=text),
+                ASSET_NAMES["standalone"].format(version=text), SUMS_NAME):
+            continue
+        try:
+            url = _check_url(url)
+        except UpdateError:
+            continue
+        size = item.get("size")
+        digest = ""
+        raw_digest = item.get("digest")
+        if isinstance(raw_digest, str):
+            candidate = raw_digest.split(":", 1)[-1].strip().lower()
+            digest = candidate if SHA256_RE.match(candidate) else ""
+        assets.append(Asset(name=name, url=url,
+                            size=size if isinstance(size, int) and size > 0 else 0,
+                            digest=digest))
+    return Release(version=text, tag=tag, page=page, notes=_clean_text(data.get("body")),
+                   assets=tuple(assets))
+
+
+def fetch_release(loader=None) -> Release:
+    return parse_release((loader or _read_json)(API_URL))
+
+
+def check(current=None, loader=None) -> CheckResult:
+    """Проверка без исключений наружу: у любой ошибки есть честный текст."""
+    current = current or __version__
+    try:
+        release = fetch_release(loader)
+    except UpdateError as error:
+        return CheckResult("error", current, None, str(error))
+    except Exception:
+        log.exception("Обновление: проверка упала")
+        return CheckResult("error", current, None, ERROR_TEXTS["network"])
+    now = parse_version(current)
+    newer = parse_version(release.version)
+    if now is None:
+        return CheckResult("error", current, None, "Текущая версия записана необычно — обновление не предлагаю.")
+    if newer is not None and is_newer(newer, now):
+        return CheckResult("update", current, release)
+    return CheckResult("current", current, release)
+
+
+# ---------------------------------------------------------------- скачивание
+
+def parse_sums(text: str) -> dict:
+    """'<sha256>  <имя>' построчно -> {имя в нижнем регистре: sha256}."""
+    result = {}
+    for line in (text or "").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        parts = line.split()
+        if len(parts) < 2:
+            continue
+        digest, name = parts[0].lower(), parts[-1].lstrip("*").strip()
+        if SHA256_RE.match(digest) and name and "/" not in name and "\\" not in name:
+            result[name.lower()] = digest
+    return result
+
+
+def fetch_sums(asset) -> dict:
+    _check_url(asset.url)
+    request = Request(asset.url, headers={"Accept": "application/octet-stream",
+                                          "User-Agent": user_agent(),
+                                          "Accept-Encoding": "identity"})
+    try:
+        with _opener().open(request, timeout=TIMEOUT) as response:
+            _check_url(response.geturl())
+            raw = response.read(MAX_SUMS + 1)
+    except HTTPError as error:
+        raise UpdateError(_error_kind(error), ERROR_TEXTS[_error_kind(error)]) from None
+    except URLError as error:
+        kind = _error_kind(error)
+        raise UpdateError(kind, ERROR_TEXTS[kind]) from None
+    except (OSError, ValueError):
+        raise UpdateError("network", ERROR_TEXTS["network"]) from None
+    if len(raw) > MAX_SUMS:
+        raise UpdateError("verification", "Файл контрольных сумм подозрительно большой.")
+    return parse_sums(raw.decode("utf-8", "replace"))
+
+
+def sha256_file(path, cancel=None) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        while True:
+            if cancel is not None and cancel.is_set():
+                raise UpdateError("cancelled", ERROR_TEXTS["cancelled"])
+            chunk = handle.read(CHUNK)
+            if not chunk:
+                break
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def download(asset: Asset, dest_dir=None, *, sums=None, progress=None, cancel=None) -> Path:
+    """Скачать установщик во временный .part и переименовать только после SHA-256."""
+    _check_url(asset.url)
+    if not INSTALLER_RE.match(asset.name or ""):
+        raise UpdateError("verification", "Неожиданное имя установщика — не скачиваю.")
+    want = asset.digest or (sums or {}).get(asset.name.lower(), "")
+    if not want:
+        raise UpdateError("verification", "В релизе нет контрольной суммы — установщик не скачиваю.")
+    expected = int(asset.size or 0)
+    folder = Path(dest_dir or paths.updates_dir())
+    try:
+        folder.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        raise UpdateError("unavailable", "Не удалось создать папку обновления.") from None
+    final = folder / asset.name
+    part = folder / (asset.name + ".part")
+    if expected:
+        try:
+            free = shutil.disk_usage(folder).free
+        except OSError:
+            free = 0
+        if free and free < expected + 64 * 1024 * 1024:
+            raise UpdateError("unavailable", "Мало места на диске для установщика.")
+    request = Request(asset.url, headers={"Accept": "application/octet-stream",
+                                          "User-Agent": user_agent(),
+                                          "Accept-Encoding": "identity"})
+    digest = hashlib.sha256()
+    done = 0
+    last = 0
+    try:
+        try:
+            response = _opener().open(request, timeout=TIMEOUT)
+        except HTTPError as error:
+            raise UpdateError(_error_kind(error), ERROR_TEXTS[_error_kind(error)]) from None
+        except URLError as error:
+            kind = _error_kind(error)
+            raise UpdateError(kind, ERROR_TEXTS[kind]) from None
+        except (OSError, ValueError):
+            raise UpdateError("network", ERROR_TEXTS["network"]) from None
+        with response:
+            _check_url(response.geturl())
+            length = response.headers.get("Content-Length")
+            total = expected
+            if isinstance(length, str) and length.isdigit():
+                total = total or int(length)
+            if expected and length is not None and str(length).isdigit() and int(length) != expected:
+                raise UpdateError("verification", "Размер установщика не совпал с релизом.")
+            with open(part, "wb") as handle:
+                while True:
+                    if cancel is not None and cancel.is_set():
+                        raise UpdateError("cancelled", ERROR_TEXTS["cancelled"])
+                    chunk = response.read(CHUNK)
+                    if not chunk:
+                        break
+                    done += len(chunk)
+                    if expected and done > expected:
+                        raise UpdateError("verification", "Установщик больше заявленного размера.")
+                    handle.write(chunk)
+                    digest.update(chunk)
+                    if progress is not None and done - last >= PROGRESS_STEP:
+                        last = done
+                        try:
+                            progress(done, total or expected)
+                        except Exception:
+                            log.debug("Обновление: обработчик прогресса упал", exc_info=True)
+            if progress is not None and done and done != last:
+                try:
+                    progress(done, total or expected or done)
+                except Exception:
+                    log.debug("Обновление: обработчик прогресса упал", exc_info=True)
+        if expected and done != expected:
+            raise UpdateError("verification", "Файл скачался не целиком — повторите.")
+        actual = digest.hexdigest()
+        if actual != want.lower():
+            raise UpdateError("verification", "SHA-256 установщика не совпал — файл не запускаю.")
+        os.replace(part, final)
+    except BaseException:
+        try:
+            part.unlink()
+        except OSError:
+            pass
+        raise
+    log.info("Обновление: установщик скачан (%s, %s байт)", final.name, done)
+    return final
+
+
+def cleanup_installers(dest_dir=None, keep=None) -> int:
+    """Убрать прошлые установщики и недокачанные .part, чтобы не копить гигабайты."""
+    folder = Path(dest_dir or paths.updates_dir())
+    removed = 0
+    try:
+        entries = list(folder.iterdir())
+    except OSError:
+        return 0
+    for item in entries:
+        try:
+            if not item.is_file():
+                continue
+            name = item.name
+            if item == keep:
+                continue
+            if not (name.startswith("Feniks_Setup_") or name.startswith("Feniks_Fast_Setup_")
+                    or name.endswith(".exe.part")):
+                continue
+            item.unlink()
+            removed += 1
+        except OSError:
+            continue
+    return removed
+
+
+# ---------------------------------------------------------------- установка
+
+def install_root() -> Path:
+    return Path(__file__).resolve().parent.parent
+
+
+def install_kind(root=None) -> str:
+    """light / standalone / source — по файлам, а не по догадкам о сборке. ... [6 строк]"""
+    root = Path(root or install_root())
+    if (root / ".git").exists():
+        return "source"
+    if ((root / "launcher.py").is_file() or (root / "jarvis" / "__init__.py").is_file()
+            or (root / ".venv311").is_dir()):
+        return "light"
+    if (root / APP_EXE).is_file():
+        return "standalone"
+    return "source"
+
+
+def _powershell() -> str:
+    system = os.environ.get("SystemRoot") or r"C:\Windows"
+    candidate = Path(system) / "System32" / "WindowsPowerShell" / "v1.0" / "powershell.exe"
+    return str(candidate) if candidate.is_file() else "powershell.exe"
+
+
+HELPER_SCRIPT = r"""# Феникс — помощник обновления. Запускается из %APPDATA%\Phoenix\updates,
+# ждёт выхода приложения, ставит установщик тихо и возвращает Феникс.
+# Все значения приходят переменными окружения PHOENIX_UPDATE_*: в скрипте нет
+# пользовательских путей, поэтому кириллица не ломается.
+$ErrorActionPreference = 'Stop'
+
+function Write-Log([string]$Message) {
+    try {
+        $stamp = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
+        Add-Content -LiteralPath $env:PHOENIX_UPDATE_LOG -Value "$stamp $Message" -Encoding UTF8
+    } catch { }
+}
+
+function Save-Result([string]$Status, [int]$Code, [string]$Version, [string]$Message) {
+    try {
+        $data = [ordered]@{
+            status = $Status
+            exit_code = $Code
+            version = $Version
+            message = $Message
+            at = (Get-Date).ToString('o')
+        }
+        Set-Content -LiteralPath $env:PHOENIX_UPDATE_RESULT -Encoding UTF8 -Value ($data | ConvertTo-Json -Compress)
+    } catch { }
+}
+
+function Show-Problem([string]$Text) {
+    try {
+        Add-Type -AssemblyName System.Windows.Forms | Out-Null
+        [System.Windows.Forms.MessageBox]::Show($Text, 'Феникс - обновление', 'OK', 'Warning') | Out-Null
+    } catch { }
+}
+
+function Wait-OldProcess([int]$Id2, [int]$Seconds) {
+    if ($Id2 -le 0) { return $true }
+    $deadline = (Get-Date).AddSeconds($Seconds)
+    while ((Get-Date) -lt $deadline) {
+        if (-not (Get-Process -Id $Id2 -ErrorAction SilentlyContinue)) { return $true }
+        Start-Sleep -Milliseconds 300
+    }
+    return $false
+}
+
+function Wait-Mutex([string]$Name, [int]$Seconds) {
+    $deadline = (Get-Date).AddSeconds($Seconds)
+    while ((Get-Date) -lt $deadline) {
+        $owned = $false
+        try {
+            $mutex = New-Object System.Threading.Mutex($false, $Name)
+            try { $owned = $mutex.WaitOne(0) } finally {
+                if ($owned) { $mutex.ReleaseMutex() }
+                $mutex.Dispose()
+            }
+        } catch { $owned = $false }
+        if ($owned) { return $true }
+        Start-Sleep -Milliseconds 400
+    }
+    return $false
+}
+
+$installer = $env:PHOENIX_UPDATE_INSTALLER
+$root = $env:PHOENIX_UPDATE_ROOT
+$exe = $env:PHOENIX_UPDATE_EXE
+$target = $env:PHOENIX_UPDATE_VERSION
+$want = $env:PHOENIX_UPDATE_SHA
+$oldPid = 0
+[int]::TryParse($env:PHOENIX_UPDATE_PID, [ref]$oldPid) | Out-Null
+$elevate = ($env:PHOENIX_UPDATE_ELEVATE -eq '1')
+
+Write-Log "старт: версия $target, повышение прав $elevate, установщик $installer"
+
+function Restart-Phoenix {
+    try {
+        if (Test-Path -LiteralPath $exe) {
+            Start-Process -FilePath $exe -WorkingDirectory (Split-Path -Parent $exe) | Out-Null
+            Write-Log 'Феникс запущен снова'
+        } else {
+            Write-Log 'Файл Феникс.exe не найден - запустить нечего'
+        }
+    } catch {
+        Write-Log "не удалось запустить Феникс: $($_.Exception.Message)"
+    }
+}
+
+try {
+    if (-not (Test-Path -LiteralPath $installer)) {
+        throw [System.IO.FileNotFoundException]::new('Установщик исчез из папки обновления.')
+    }
+    if (-not (Wait-OldProcess $oldPid 180)) {
+        Save-Result 'failed' -1 $target 'Феникс не завершился за три минуты - установщик не запускал.'
+        Write-Log 'Феникс не завершился, выход'
+        Show-Problem 'Феникс не завершился за три минуты. Обновление не установлено, закройте его и повторите.'
+        exit 1
+    }
+    Write-Log 'Феникс завершился'
+
+    if (-not (Wait-Mutex 'Local\JarvisPhoenixSingleInstance' 90)) {
+        Save-Result 'failed' -1 $target 'Приложение всё ещё занято - установщик не запускал.'
+        Write-Log 'мьютекс приложения занят, выход'
+        Show-Problem 'Феникс всё ещё занят. Обновление не установлено, закройте его и повторите.'
+        exit 1
+    }
+    if (-not (Wait-Mutex 'Local\JarvisPhoenixLauncherSetup' 60)) {
+        Save-Result 'failed' -1 $target 'Установщик уже работает - второй раз не запускал.'
+        Write-Log 'мьютекс установщика занят, выход'
+        exit 1
+    }
+
+    $actual = (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash.ToLower()
+    if ($want -and ($actual -ne $want.ToLower())) {
+        Save-Result 'failed' -1 $target 'SHA-256 установщика не совпал перед запуском - файл не запускал.'
+        Write-Log 'SHA-256 не совпал перед запуском, выход'
+        # Сначала возвращаем приложение, потом показываем окно с ошибкой: иначе
+        # модальное окно держит пользователя без Феникса до нажатия «OK».
+        Restart-Phoenix
+        Show-Problem 'Файл обновления изменился после проверки. Установка отменена, повторите скачивание.'
+        exit 1
+    }
+    Write-Log 'SHA-256 подтверждён перед запуском'
+
+    # Start-Process -ArgumentList склеивает массив пробелами и кавычек вокруг
+    # значений не ставит, поэтому путь с пробелом рвался на два аргумента и
+    # установщик ставил копию в мусорный каталог (проверено живьём:
+    # "C:\...\Temp\phx e2e b" -> создавался "...\Temp\phx"). Строку команды
+    # собираем сами и передаём одним аргументом: /DIR="путь с пробелом".
+    $setupLog = $env:PHOENIX_UPDATE_SETUP_LOG
+    $argumentLine = '/VERYSILENT /SUPPRESSMSGBOXES /NOCANCEL /CLOSEAPPLICATIONS ' +
+                    '/NORESTART /SP- /DIR="' + $root + '" /LOG="' + $setupLog + '"'
+    $process = $null
+    if ($elevate) {
+        $process = Start-Process -FilePath $installer -ArgumentList $argumentLine -Verb RunAs -PassThru -Wait
+    } else {
+        $process = Start-Process -FilePath $installer -ArgumentList $argumentLine -PassThru -Wait
+    }
+    $code = -1
+    try { $code = [int]$process.ExitCode } catch { $code = -1 }
+    Write-Log "установщик завершён с кодом $code"
+
+    $installed = ''
+    try { $installed = (Get-Item -LiteralPath $exe).VersionInfo.ProductVersion } catch { $installed = '' }
+    Write-Log "версия файла после установки: $installed"
+
+    if ($installed -and $installed.StartsWith($target)) {
+        Save-Result 'ok' $code $installed 'Обновление установлено.'
+        Write-Log 'успех'
+    } elseif (-not $installed -and $code -eq 0) {
+        Save-Result 'ok' $code $target 'Установщик завершён с кодом 0, версия файла не читается.'
+        Write-Log 'успех по коду выхода'
+    } else {
+        Save-Result 'failed' $code $installed "Установщик вернул $code, версия файла '$installed'."
+        Write-Log 'неудача'
+        Restart-Phoenix
+        Show-Problem "Обновление не установлено (код $code). Феникс запущен как был. Подробности: $env:PHOENIX_UPDATE_SETUP_LOG"
+        exit 1
+    }
+    # Дальше только успех: установщик (14 МБ лёгкой сборки или 310 МБ
+    # автономной) больше не нужен и не должен копиться в папке обновления.
+    try {
+        Remove-Item -LiteralPath $installer -Force -ErrorAction Stop
+        Write-Log 'установщик удалён после успешной установки'
+    } catch {
+        Write-Log "установщик удалить не удалось: $($_.Exception.Message)"
+    }
+    Restart-Phoenix
+    exit 0
+} catch {
+    Save-Result 'failed' -1 $target "Помощник обновления упал: $($_.Exception.Message)"
+    Write-Log "ошибка помощника: $($_.Exception.Message)"
+    Restart-Phoenix
+    Show-Problem "Обновление не установлено. Феникс запущен как был. Подробности: $env:PHOENIX_UPDATE_LOG"
+    exit 1
+}
+"""
+
+
+def helper_path(folder=None) -> Path:
+    return Path(folder or paths.updates_dir()) / HELPER_NAME
+
+
+def write_helper(folder=None) -> Path:
+    """Скрипт пишем UTF-8 с BOM: иначе PowerShell 5.1 спотыкается на кириллице."""
+    target = helper_path(folder)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with open(target, "w", encoding="utf-8-sig", newline="\r\n") as handle:
+        handle.write(HELPER_SCRIPT)
+    return target
+
+
+def spawn_installer(installer, version, *, kind=None, root=None, pid=None, folder=None) -> subprocess.Popen:
+    """Запустить помощника и вернуть процесс. Дальше приложение обязано выйти."""
+    if os.name != "nt":
+        raise UpdateError("unavailable", "Обновление на месте ставится только в Windows.")
+    installer = Path(installer)
+    if not installer.is_file() or installer.suffix.lower() != ".exe":
+        raise UpdateError("verification", "Установщик не найден — скачайте заново.")
+    target_root = Path(root or install_root())
+    exe = target_root / APP_EXE
+    if not exe.is_file():
+        raise UpdateError("unavailable",
+                          "Не нашёл Феникс.exe: обновление ставится только у установленной копии.")
+    kind = kind or install_kind(target_root)
+    if kind not in INSTALL_KINDS:
+        raise UpdateError("unavailable", "Неизвестный тип установки.")
+    folder = Path(folder or paths.updates_dir())
+    try:
+        digest = sha256_file(installer)
+    except (OSError, UpdateError) as error:
+        raise UpdateError("verification", f"Не удалось перечитать установщик: {error}") from None
+    helper = write_helper(folder)
+    result = folder / RESULT_NAME
+    try:
+        result.unlink()
+    except OSError:
+        pass
+    env = os.environ.copy()
+    env.update({
+        "PHOENIX_UPDATE_INSTALLER": str(installer),
+        "PHOENIX_UPDATE_ROOT": str(target_root),
+        "PHOENIX_UPDATE_EXE": str(exe),
+        "PHOENIX_UPDATE_VERSION": str(version),
+        "PHOENIX_UPDATE_SHA": digest,
+        "PHOENIX_UPDATE_PID": str(pid if pid is not None else os.getpid()),
+        "PHOENIX_UPDATE_ELEVATE": "1" if kind == "standalone" else "0",
+        "PHOENIX_UPDATE_RESULT": str(result),
+        "PHOENIX_UPDATE_LOG": str(folder / LOG_NAME),
+        "PHOENIX_UPDATE_SETUP_LOG": str(folder / SETUP_LOG_NAME),
+    })
+    command = [_powershell(), "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+               "-File", str(helper)]
+    try:
+        process = subprocess.Popen(command, cwd=str(folder), env=env, close_fds=True,
+                                   stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                                   stderr=subprocess.DEVNULL,
+                                   creationflags=CREATE_NO_WINDOW)
+    except OSError:
+        log.exception("Обновление: не удалось запустить помощника")
+        raise UpdateError("unavailable", "Не удалось запустить помощника обновления.") from None
+    log.info("Обновление: помощник запущен (pid %s), версия %s, тип %s", process.pid, version, kind)
+    return process
+
+
+def read_last_result(folder=None):
+    """Результат прошлой установки для честного тоста при следующем старте."""
+    path = Path(folder or paths.updates_dir()) / RESULT_NAME
+    if not path.is_file():
+        return None
+    data = None
+    try:
+        with open(path, "r", encoding="utf-8-sig") as handle:
+            data = json.load(handle)
+    except (OSError, ValueError):
+        data = None
+    try:
+        path.unlink()
+    except OSError:
+        pass
+    if not isinstance(data, dict) or data.get("status") not in ("ok", "failed"):
+        return None
+    code = data.get("exit_code")
+    return {"status": data["status"],
+            "version": data.get("version") if isinstance(data.get("version"), str) else "",
+            "exit_code": code if isinstance(code, int) else None,
+            "message": data.get("message") if isinstance(data.get("message"), str) else ""}
+
+
+def describe(result: CheckResult) -> str:
+    """Короткий статус для карточки настроек."""
+    if result.status == "update" and result.release is not None:
+        return f"Есть новая версия {result.release.version} (у вас {result.current})."
+    if result.status == "current":
+        return f"Установлена последняя версия: {result.current}."
+    return result.error or "Проверка не удалась."
+```
+
 ### `jarvis/vad.py`
 
 ```python
@@ -38630,7 +39924,7 @@ def args_for(argv=None):
     p.add_argument("--compiler", choices=("auto", "msvc", "mingw64"), default="auto")
     p.add_argument("--jobs", type=int, default=2)
     p.add_argument("--low-memory", action="store_true", help="Use Nuitka low-memory compilation options")
-    p.add_argument("--version", default="2.1.3")
+    p.add_argument("--version", default="2.2.0")
     p.add_argument("--no-setup", action="store_true")
     p.add_argument("--skip-compile", action="store_true",
                    help="Reuse the existing standalone output; only verify, publish and install")
@@ -46815,6 +48109,33 @@ def test_probe_checks_embedded_modules_resources_and_dictionaries(tmp_path, monk
     assert report["checks"]["faster_whisper_assets"] is True
 
 
+def test_probe_confirms_standalone_install_kind_when_exe_is_present(tmp_path, monkeypatch):
+    """В автономной сборке нет jarvis/__init__.py: детект обязан дать standalone. ... [4 строк]"""
+    resources(tmp_path)
+    fake_imports(monkeypatch, tmp_path)
+    (tmp_path / "Феникс.exe").write_bytes(b"MZ")
+    from jarvis import paths
+    monkeypatch.setattr(paths, "updates_dir", lambda: tmp_path / "updates")
+    report = runtime.self_test(tmp_path, compiled=True)
+    assert report["checks"]["updater_install_kind"] is True
+    assert (tmp_path / "updates").is_dir()
+    assert report["ok"] is True
+
+
+def test_probe_fails_when_compiled_copy_still_looks_like_source(tmp_path, monkeypatch):
+    """Оставленные маркеры исходников сбивают install_kind — это провал сборки."""
+    resources(tmp_path)
+    fake_imports(monkeypatch, tmp_path)
+    (tmp_path / "Феникс.exe").write_bytes(b"MZ")
+    (tmp_path / "jarvis" / "__init__.py").write_text('__version__ = "9.9.9"\n',
+                                                    encoding="utf-8")
+    from jarvis import paths
+    monkeypatch.setattr(paths, "updates_dir", lambda: tmp_path / "updates")
+    report = runtime.self_test(tmp_path, compiled=True)
+    assert report["checks"]["updater_install_kind"]["ok"] is False
+    assert report["ok"] is False
+
+
 def test_probe_fails_when_vad_asset_is_absent(tmp_path, monkeypatch):
     """Импорт есть, файла нет — сборка не готова (дефект v2.1.2)."""
     resources(tmp_path)
@@ -52744,7 +54065,10 @@ def test_brand_and_first_layout_precede_show(gui, hidden):
     if not hidden:
         assert page.window.minimized is False
         page.update.assert_called_once()
-    assert page.run_task.call_count == 2
+    assert page.run_task.call_count == 3
+    # Очередь, уровень микрофона и проверка обновлений — три стартовые задачи.
+    assert [getattr(call.args[0], "__name__", "") for call in page.run_task.call_args_list] == [
+        "_process_queue", "_mic_level_loop", "_startup_updates"]
 
 
 def test_tray_state_is_applied_by_gui_worker(gui):
@@ -63521,6 +64845,520 @@ def test_close_named_tab_goes_through_shared_fallback():
     close.assert_called_once_with("ютуб")
 ```
 
+### `tests/test_updater.py`
+
+```python
+# -*- coding: utf-8 -*-
+"""Обновления: версии, строгий разбор релиза, SHA-256, помощник, карточка GUI. ... [4 строк]"""
+import queue
+import threading
+import time
+from pathlib import Path
+from types import SimpleNamespace as NS
+from unittest.mock import Mock
+
+import flet as ft
+import pytest
+
+from jarvis import gui as gui_module
+from jarvis import updater
+from jarvis.config import Config
+
+REPO_URL = "https://github.com/BobLoTiK/jarvis-fenix"
+LIGHT = f"{REPO_URL}/releases/download/v2.2.0/Feniks_Setup_2.2.0.exe"
+FAST = f"{REPO_URL}/releases/download/v2.2.0/Feniks_Fast_Setup_2.2.0.exe"
+SUMS = f"{REPO_URL}/releases/download/v2.2.0/SHA256SUMS.txt"
+
+
+def release_payload(tag="v2.2.0", version="2.2.0"):
+    return {
+        "tag_name": tag,
+        "html_url": f"{REPO_URL}/releases/tag/{tag}",
+        "body": "Что нового:\r\n- автообновление\r\n",
+        "assets": [
+            {"name": f"Feniks_Setup_{version}.exe", "browser_download_url": LIGHT,
+             "size": 14_000_000, "digest": "sha256:" + "a" * 64},
+            {"name": f"Feniks_Fast_Setup_{version}.exe", "browser_download_url": FAST,
+             "size": 310_000_000},
+            {"name": "SHA256SUMS.txt", "browser_download_url": SUMS, "size": 128},
+            {"name": "notes.zip", "browser_download_url": f"{REPO_URL}/releases/download/v2.2.0/notes.zip"},
+        ],
+    }
+
+
+class FakeResponse:
+    def __init__(self, url, data=b"", headers=None):
+        self._url = url
+        self._data = data
+        self._pos = 0
+        self.headers = headers if headers is not None else {"Content-Length": str(len(data))}
+
+    def read(self, size=-1):
+        if size is None or size < 0:
+            size = len(self._data) - self._pos
+        chunk = self._data[self._pos:self._pos + size]
+        self._pos += len(chunk)
+        return chunk
+
+    def geturl(self):
+        return self._url
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+class FakeOpener:
+    def __init__(self, data, url, headers=None):
+        self.response = FakeResponse(url, data, headers)
+        self.requests = []
+
+    def open(self, request, timeout=None):
+        self.requests.append(request)
+        return self.response
+
+
+@pytest.fixture
+def updates_dir(tmp_path):
+    folder = tmp_path / "updates"
+    folder.mkdir()
+    return folder
+
+
+# ---------------------------------------------------------------- версии
+
+@pytest.mark.parametrize("text,expected", [
+    ("v2.1.3", (2, 1, 3)), ("2.1.3", (2, 1, 3)), ("V2.2", (2, 2)),
+    ("2", (2,)), ("2.1.3.4", (2, 1, 3, 4)),
+])
+def test_parse_version_accepts_plain_numbers(text, expected):
+    assert updater.parse_version(text) == expected
+
+
+@pytest.mark.parametrize("text", [None, "", "v", "2.1.3-beta", "2.1.3+build",
+                                  "latest", "2..3", "2.1.3.4.5", [2, 1]])
+def test_parse_version_rejects_suffixes_and_noise(text):
+    assert updater.parse_version(text) is None
+
+
+def test_is_newer_pads_short_versions():
+    assert updater.is_newer((2, 2), (2, 1, 3)) is True
+    assert updater.is_newer((2, 1, 3), (2, 1, 3)) is False
+    assert updater.is_newer((2, 1, 2), (2, 1, 3)) is False
+    assert updater.is_newer((2, 2, 0, 0), (2, 2)) is False
+
+
+# ---------------------------------------------------------------- релиз
+
+def test_parse_release_keeps_only_expected_assets():
+    release = updater.parse_release(release_payload())
+    assert release.version == "2.2.0" and release.tag == "v2.2.0"
+    assert [asset.name for asset in release.assets] == [
+        "Feniks_Setup_2.2.0.exe", "Feniks_Fast_Setup_2.2.0.exe", "SHA256SUMS.txt"]
+    assert release.installer("light").size == 14_000_000
+    assert release.installer("standalone").url == FAST
+    assert release.sums().name == "SHA256SUMS.txt"
+    assert release.notes == "Что нового:\n- автообновление"
+    assert release.page.endswith("/tag/v2.2.0")
+
+
+def test_parse_release_drops_assets_from_foreign_hosts():
+    payload = release_payload()
+    payload["assets"][0]["browser_download_url"] = "https://evil.example/Feniks_Setup_2.2.0.exe"
+    page = updater.parse_release(payload)
+    assert page.installer("light") is None
+    assert page.installer("standalone") is not None
+
+
+def test_parse_release_refuses_prerelease_tags():
+    with pytest.raises(updater.UpdateError) as error:
+        updater.parse_release(release_payload(tag="v2.2.0-rc1"))
+    assert error.value.kind == "unavailable"
+
+
+def test_check_reports_update_current_and_error():
+    newer = updater.check("2.1.3", loader=lambda url: release_payload())
+    assert newer.status == "update" and newer.release.version == "2.2.0"
+    same = updater.check("2.2.0", loader=lambda url: release_payload())
+    assert same.status == "current" and same.release is not None
+
+    def broken(url):
+        raise updater.UpdateError("dns", updater.ERROR_TEXTS["dns"])
+
+    failed = updater.check("2.1.3", loader=broken)
+    assert failed.status == "error" and failed.release is None
+    assert "DNS" in failed.error
+
+
+def test_describe_is_honest_for_each_status():
+    update = updater.check("2.1.3", loader=lambda url: release_payload())
+    assert "2.2.0" in updater.describe(update) and "2.1.3" in updater.describe(update)
+    assert "последняя" in updater.describe(
+        updater.check("2.2.0", loader=lambda url: release_payload())).lower()
+    assert "нет связи" in updater.describe(
+        updater.CheckResult("error", "2.1.3", None, "Нет связи с GitHub.")).lower()
+
+
+def test_foreign_url_is_rejected():
+    with pytest.raises(updater.UpdateError):
+        updater._check_url("http://github.com/x")
+    with pytest.raises(updater.UpdateError):
+        updater._check_url("https://github.com.evil.example/x")
+    with pytest.raises(updater.UpdateError):
+        updater._check_url("https://user:pw@github.com/x")
+    assert updater._check_url(LIGHT) == LIGHT
+
+
+# ---------------------------------------------------------------- скачивание
+
+def test_parse_sums_reads_published_format():
+    text = ("  " + "a" * 64 + "  Feniks_Setup_2.2.0.exe\r\n"
+            + "B" * 64 + " *Feniks_Fast_Setup_2.2.0.exe\r\n"
+            + "# comment\nbroken line\n")
+    sums = updater.parse_sums(text)
+    assert sums["feniks_setup_2.2.0.exe"] == "a" * 64
+    assert sums["feniks_fast_setup_2.2.0.exe"] == "b" * 64
+    assert len(sums) == 2
+
+
+def test_download_verifies_hash_and_keeps_only_final_file(tmp_path, monkeypatch):
+    data = b"MZ" + b"x" * 5000
+    digest = __import__("hashlib").sha256(data).hexdigest()
+    asset = updater.Asset(name="Feniks_Setup_2.2.0.exe", url=LIGHT,
+                          size=len(data), digest=digest)
+    monkeypatch.setattr(updater, "_opener", lambda: FakeOpener(data, LIGHT))
+    seen = []
+    path = updater.download(asset, tmp_path, progress=lambda d, t: seen.append((d, t)))
+    assert path == tmp_path / "Feniks_Setup_2.2.0.exe" and path.read_bytes() == data
+    assert not (tmp_path / "Feniks_Setup_2.2.0.exe.part").exists()
+    assert seen[-1] == (len(data), len(data))
+
+
+def test_download_refuses_wrong_hash_and_leaves_nothing(tmp_path, monkeypatch):
+    data = b"MZ" + b"x" * 100
+    asset = updater.Asset(name="Feniks_Setup_2.2.0.exe", url=LIGHT,
+                          size=len(data), digest="b" * 64)
+    monkeypatch.setattr(updater, "_opener", lambda: FakeOpener(data, LIGHT))
+    with pytest.raises(updater.UpdateError):
+        updater.download(asset, tmp_path)
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_download_without_any_hash_is_refused(tmp_path):
+    asset = updater.Asset(name="Feniks_Setup_2.2.0.exe", url=LIGHT, size=10)
+    with pytest.raises(updater.UpdateError) as error:
+        updater.download(asset, tmp_path)
+    assert "контрольной суммы" in str(error.value)
+
+
+def test_download_rejects_unexpected_asset_name(tmp_path):
+    asset = updater.Asset(name="setup.exe", url=LIGHT, size=10, digest="a" * 64)
+    with pytest.raises(updater.UpdateError):
+        updater.download(asset, tmp_path)
+
+
+def test_download_stops_on_size_mismatch(tmp_path, monkeypatch):
+    data = b"x" * 100
+    asset = updater.Asset(name="Feniks_Setup_2.2.0.exe", url=LIGHT, size=90, digest="a" * 64)
+    monkeypatch.setattr(updater, "_opener", lambda: FakeOpener(data, LIGHT,
+                                                              {"Content-Length": "100"}))
+    with pytest.raises(updater.UpdateError) as error:
+        updater.download(asset, tmp_path)
+    assert "размер" in str(error.value).lower()
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_fetch_sums_uses_published_asset(monkeypatch):
+    text = ("a" * 64 + "  Feniks_Setup_2.2.0.exe\n").encode("utf-8")
+    monkeypatch.setattr(updater, "_opener", lambda: FakeOpener(text, SUMS))
+    sums = updater.fetch_sums(updater.Asset(name="SHA256SUMS.txt", url=SUMS))
+    assert sums == {"feniks_setup_2.2.0.exe": "a" * 64}
+
+
+def test_cleanup_keeps_requested_installer(updates_dir):
+    keep = updates_dir / "Feniks_Setup_2.2.0.exe"
+    keep.write_bytes(b"MZ")
+    (updates_dir / "Feniks_Fast_Setup_2.1.2.exe").write_bytes(b"MZ")
+    (updates_dir / "Feniks_Setup_2.2.0.exe.part").write_bytes(b"MZ")
+    (updates_dir / "apply_update.ps1").write_text("x", encoding="utf-8")
+    assert updater.cleanup_installers(updates_dir, keep=keep) == 2
+    assert [item.name for item in updates_dir.iterdir()] == [
+        "Feniks_Setup_2.2.0.exe", "apply_update.ps1"] or keep.is_file()
+
+
+# ---------------------------------------------------------------- тип сборки
+
+def test_install_kind_from_files(tmp_path):
+    source = tmp_path / "src"
+    (source / ".git").mkdir(parents=True)
+    (source / "launcher.py").write_text("# app", encoding="utf-8")
+    assert updater.install_kind(source) == "source"
+
+    light = tmp_path / "light"
+    (light / "jarvis").mkdir(parents=True)
+    (light / "launcher.py").write_text("# launcher", encoding="utf-8")
+    (light / "jarvis" / "__init__.py").write_text("", encoding="utf-8")
+    (light / updater.APP_EXE).write_bytes(b"MZ")
+    assert updater.install_kind(light) == "light"
+
+    # Свежая установка до первого запуска: launcher.py есть, .venv311 ещё нет.
+    fresh = tmp_path / "fresh"
+    fresh.mkdir()
+    (fresh / "launcher.py").write_text("# launcher", encoding="utf-8")
+    (fresh / updater.APP_EXE).write_bytes(b"MZ")
+    assert updater.install_kind(fresh) == "light"
+
+    # Автономная сборка: exe есть, исходников и launcher.py нет по построению.
+    standalone = tmp_path / "fast"
+    (standalone / "jarvis" / "assets").mkdir(parents=True)
+    (standalone / updater.APP_EXE).write_bytes(b"MZ")
+    assert updater.install_kind(standalone) == "standalone"
+
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    assert updater.install_kind(empty) == "source"
+
+
+# ---------------------------------------------------------------- помощник
+
+def test_helper_script_is_ascii_safe_bom_and_covers_the_flow(updates_dir):
+    path = updater.write_helper(updates_dir)
+    raw = path.read_bytes()
+    assert raw.startswith(b"\xef\xbb\xbf")  # PowerShell 5.1 читает BOM корректно
+    text = raw.decode("utf-8-sig")
+    for marker in ("PHOENIX_UPDATE_INSTALLER", "PHOENIX_UPDATE_SHA", "PHOENIX_UPDATE_PID",
+                   "/VERYSILENT", "/DIR=", "SHA256", "Start-Process", "Save-Result",
+                   "JarvisPhoenixSingleInstance", "Restart-Phoenix"):
+        assert marker in text, marker
+    assert "{0}" not in text and "{version}" not in text
+
+
+def test_helper_script_quotes_installer_paths(updates_dir):
+    """Путь с пробелом обязан приезжать в установщик одной строкой в кавычках. ... [4 строк]"""
+    text = updater.write_helper(updates_dir).read_text(encoding="utf-8-sig")
+    assert '/DIR="' in text
+    assert '" /LOG="' in text
+    assert '"/DIR=$root"' not in text
+    assert '"/LOG=$env:PHOENIX_UPDATE_SETUP_LOG"' not in text
+    # одним аргументом: массив PowerShell 5.1 склеивает пробелами без кавычек
+    assert text.count("-ArgumentList $argumentLine") == 2
+    assert "-ArgumentList $arguments" not in text
+
+
+def test_spawn_installer_passes_values_through_environment(tmp_path, monkeypatch):
+    root = tmp_path / "Phoenix"
+    root.mkdir()
+    (root / updater.APP_EXE).write_bytes(b"MZ")
+    installer = tmp_path / "updates" / "Feniks_Setup_2.2.0.exe"
+    installer.parent.mkdir()
+    installer.write_bytes(b"MZ")
+    seen = {}
+
+    class FakeProcess:
+        pid = 4321
+
+    def fake_popen(command, **kwargs):
+        seen["command"] = command
+        seen.update(kwargs)
+        return FakeProcess()
+
+    monkeypatch.setattr(updater.os, "name", "nt")
+    monkeypatch.setattr(updater.subprocess, "Popen", fake_popen)
+    process = updater.spawn_installer(installer, "2.2.0", root=root, pid=999)
+    assert process.pid == 4321
+    assert seen["command"][-1].endswith(updater.HELPER_NAME)
+    assert seen["env"]["PHOENIX_UPDATE_ROOT"] == str(root)
+    assert seen["env"]["PHOENIX_UPDATE_VERSION"] == "2.2.0"
+    assert seen["env"]["PHOENIX_UPDATE_ELEVATE"] == "1"  # standalone требует прав
+    assert seen["env"]["PHOENIX_UPDATE_PID"] == "999"
+    assert len(seen["env"]["PHOENIX_UPDATE_SHA"]) == 64
+    assert seen["creationflags"] == updater.CREATE_NO_WINDOW
+    assert seen["stdin"] is updater.subprocess.DEVNULL
+
+
+def test_spawn_installer_refuses_missing_app(tmp_path, monkeypatch):
+    installer = tmp_path / "Feniks_Setup_2.2.0.exe"
+    installer.write_bytes(b"MZ")
+    monkeypatch.setattr(updater.os, "name", "nt")
+    with pytest.raises(updater.UpdateError):
+        updater.spawn_installer(installer, "2.2.0", root=tmp_path / "nowhere")
+
+
+def test_spawn_installer_requires_windows(tmp_path, monkeypatch):
+    installer = tmp_path / "Feniks_Setup_2.2.0.exe"
+    installer.write_bytes(b"MZ")
+    monkeypatch.setattr(updater.os, "name", "posix")
+    with pytest.raises(updater.UpdateError):
+        updater.spawn_installer(installer, "2.2.0", root=tmp_path)
+
+
+def test_last_result_roundtrip_and_cleanup(updates_dir):
+    target = updates_dir / updater.RESULT_NAME
+    target.write_text('{"status": "ok", "version": "2.2.0", "exit_code": 0, '
+                      '"message": "ok", "at": "2026-11-11T10:00:00"}',
+                      encoding="utf-8-sig")
+    result = updater.read_last_result(updates_dir)
+    assert result == {"status": "ok", "version": "2.2.0", "exit_code": 0, "message": "ok"}
+    assert updater.read_last_result(updates_dir) is None  # файл удалён
+    assert not target.exists()
+
+
+@pytest.mark.parametrize("payload", ["", "не json", "[]", '{"status": "wat"}'])
+def test_last_result_ignores_junk(updates_dir, payload):
+    (updates_dir / updater.RESULT_NAME).write_text(payload, encoding="utf-8")
+    assert updater.read_last_result(updates_dir) is None
+
+
+# ---------------------------------------------------------------- карточка GUI
+
+def walk(control):
+    yield control
+    content = getattr(control, "content", None)
+    if isinstance(content, ft.Control):
+        yield from walk(content)
+    for child in getattr(control, "controls", []) or []:
+        yield from walk(child)
+
+
+@pytest.fixture
+def gui(tmp_path, monkeypatch):
+    window = gui_module.FenixGUI(None, Config(tmp_path / "config.json"))
+    window._page = NS(add=Mock(), update=Mock(), window=NS(), overlay=None)
+    monkeypatch.setattr(window, "_get_voice_options", lambda: [ft.dropdown.Option("ruslan")])
+    window._build_ui(window._page)
+    yield window
+    window.stop()
+
+
+def take(gui, kind, timeout=5.0):
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            item = gui._queue.get(timeout=0.05)
+        except queue.Empty:
+            continue
+        if item and item[0] == kind:
+            return item[1]
+    raise AssertionError(f"нет сообщения {kind}")
+
+
+def test_settings_card_has_updates_block_without_network(gui):
+    screen = gui._preferences()
+    card = screen.build_settings()
+    texts = [getattr(control, "value", "") for control in walk(card)]
+    assert any("Обновления" in str(value) for value in texts)
+    assert screen.update_check_button is not None
+    assert screen.update_button is not None and screen.update_button.visible is False
+    assert screen.update_label.value == "Обновления ещё не проверялись."
+
+
+def test_check_result_lands_in_card_and_shows_install_button(gui, monkeypatch):
+    screen = gui._preferences()
+    screen.build_settings()
+    monkeypatch.setattr(updater, "install_kind", lambda root=None: "light")
+    monkeypatch.setattr(updater, "check", lambda current=None, loader=None: updater.CheckResult(
+        "update", "2.1.3", updater.parse_release(release_payload())))
+    assert screen.start_update_check() is True
+    screen.apply_update_result(take(gui, "update_result"))
+    assert "2.2.0" in screen.update_label.value
+    assert screen.update_notes_label.visible is True and "автообновление" in screen.update_notes
+    assert screen.update_button.visible is True
+    assert screen.update_button.content == "Скачать обновление"
+    assert screen.update_busy is False
+
+
+def test_source_run_never_offers_install(gui, monkeypatch):
+    screen = gui._preferences()
+    screen.build_settings()
+    monkeypatch.setattr(updater, "check", lambda current=None, loader=None: updater.CheckResult(
+        "update", "2.1.3", updater.parse_release(release_payload())))
+    screen.start_update_check()
+    screen.apply_update_result(take(gui, "update_result"))
+    assert screen.update_button.visible is False
+    assert screen.start_update_download() is False
+    assert "установленной копии" in screen.update_status
+
+
+def test_download_worker_reports_file_and_install_uses_it(gui, monkeypatch, updates_dir):
+    screen = gui._preferences()
+    screen.build_settings()
+    monkeypatch.setattr(updater, "install_kind", lambda root=None: "light")
+    screen.update_generation = 7
+    screen.update_release = updater.parse_release(release_payload())
+    installer = updates_dir / "Feniks_Setup_2.2.0.exe"
+    installer.write_bytes(b"MZ")
+    screen.apply_update_result(("download", 7, (installer, "")))
+    assert screen.update_file == installer
+    assert screen.update_button.content == "Установить и перезапустить"
+    spawned = {}
+    monkeypatch.setattr(updater, "spawn_installer",
+                        lambda path, version, **kwargs: spawned.update(path=path, version=version))
+    assert screen.start_update_apply() is True
+    assert spawned == {"path": installer, "version": "2.2.0"}
+    assert take(gui, "update_quit") is None
+
+
+def test_cancel_button_stops_download_and_clears_state(gui, monkeypatch):
+    """Отмена обрывает поток, недокачанный файл не остаётся, кнопки гаснут."""
+    screen = gui._preferences()
+    screen.build_settings()
+    monkeypatch.setattr(updater, "install_kind", lambda root=None: "light")
+    monkeypatch.setattr(updater, "cleanup_installers", lambda *a, **k: 0)
+    monkeypatch.setattr(updater, "fetch_sums", lambda asset: {})
+    screen.update_release = updater.parse_release(release_payload())
+    started = threading.Event()
+    seen = {}
+
+    def fake_download(asset, dest_dir=None, *, sums=None, progress=None, cancel=None):
+        seen["cancel"] = cancel
+        started.set()
+        if not cancel.wait(5):
+            raise AssertionError("поток скачивания не получил сигнал отмены")
+        raise updater.UpdateError("cancelled", updater.ERROR_TEXTS["cancelled"])
+
+    monkeypatch.setattr(updater, "download", fake_download)
+    assert screen.start_update_download() is True
+    assert started.wait(5)
+    assert screen.update_cancel_button.visible is True
+    assert screen.cancel_update_download() is True
+    screen.apply_update_result(take(gui, "update_result"))
+    assert seen["cancel"].is_set()
+    assert screen.update_busy is False and screen.update_file is None
+    assert "отменено" in screen.update_status.lower()
+    assert screen.update_cancel_button.visible is False
+
+
+def test_check_click_while_busy_explains_what_is_running(gui):
+    """Раньше кнопка молча ничего не делала и это выглядело как поломка."""
+    screen = gui._preferences()
+    screen.build_settings()
+    screen.update_busy = True
+    screen.update_phase = "download"
+    assert screen.start_update_check() is False
+    assert "скачивание" in screen.update_status.lower()
+
+
+def test_stale_result_from_previous_generation_is_ignored(gui):
+    screen = gui._preferences()
+    screen.build_settings()
+    screen.update_generation = 3
+    screen.update_status = "Проверяю GitHub…"
+    screen.apply_update_result(("check", 2, updater.CheckResult("current", "2.1.3")))
+    assert screen.update_status == "Проверяю GitHub…"
+
+
+def test_update_toggle_persists_flag(gui):
+    screen = gui._preferences()
+    screen.build_settings()
+    assert gui.config.get("update_check_enabled", True) is True
+    control = NS(control=NS(value=False))
+    screen._on_update_toggle(control)
+    assert gui.config.get("update_check_enabled") is False
+    assert control.control.value is False
+```
+
 ### `tests/test_vad.py`
 
 ```python
@@ -68145,6 +69983,34 @@ jobs:
           echo "value=$v" >> "$GITHUB_OUTPUT"
           echo "Версия установщика: $v"
 
+      - uses: actions/checkout@v4
+
+      # Версия exe берётся из jarvis/__init__.py (build_exe.py), а тег — из ref.
+      # Если их рассинхронизировать, обновление встанет, но помощник увидит
+      # старую ProductVersion и напишет «не установлено», а приложение будет
+      # предлагать тот же релиз по кругу. Падаем ДО сборки, а не после.
+      - name: Сверить тег с jarvis/__init__.py
+        shell: bash
+        env:
+          DECLARED_REF_TYPE: ${{ github.ref_type }}
+        run: |
+          set -euo pipefail
+          declared=$(sed -n 's/^__version__ = "\(.*\)"$/\1/p' jarvis/__init__.py | head -1)
+          if [ -z "$declared" ]; then
+            echo "::error::Не нашёл __version__ в jarvis/__init__.py" >&2
+            exit 1
+          fi
+          tagged="${{ steps.ver.outputs.value }}"
+          if [ "$declared" = "$tagged" ]; then
+            echo "Версия совпадает: $declared"
+            exit 0
+          fi
+          if [ "$DECLARED_REF_TYPE" = "tag" ]; then
+            echo "::error::Тег даёт версию $tagged, а в jarvis/__init__.py __version__ = $declared. Поднимите версию и перенесите тег." >&2
+            exit 1
+          fi
+          echo "::warning::Ручной прогон: версия сборки $tagged, __version__ = $declared"
+
   bootstrap:
     name: лёгкий установщик (bootstrap)
     needs: version
@@ -68663,6 +70529,7 @@ pause
   "ui_vertical_autohide_ms": 900,
   "api_enabled": false,
   "api_port": 8765,
+  "update_check_enabled": true,
   "asr_escalate_enabled": false,
   "asr_fallback": "whisper",
   "asr_escalate_budget_per_min": 3,
@@ -69208,7 +71075,7 @@ pause
 ;   ISCC.exe /DMyAppVersion=1.0.2 installer.iss
 ; (CI передаёт версию из тега: scripts\build_setup.py --version 1.0.2)
 #ifndef MyAppVersion
-  #define MyAppVersion "2.1.3"
+  #define MyAppVersion "2.2.0"
 #endif
 #define MyAppPublisher "Phoenix Project"
 #define MyAppURL "https://github.com/BobLoTiK/jarvis-fenix"
@@ -69292,7 +71159,7 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 ; Full compiled application. No Python installer, pip, venv or launcher.py.
 #define MyAppName "Феникс"
 #ifndef MyAppVersion
-  #define MyAppVersion "2.1.3"
+  #define MyAppVersion "2.2.0"
 #endif
 #ifndef PayloadDir
   #define PayloadDir "dist\nuitka-app"
@@ -70094,7 +71961,7 @@ certifi>=2024.8.30
 
 - Фирменные ресурсы Феникса
 
-#### `tests/README.md` — 31 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `tests/README.md` — 32 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Тесты Феникса
   - Экспериментальный AEC Piper — текущая проверка
@@ -70127,6 +71994,7 @@ certifi>=2024.8.30
     - Опциональные виджеты Главной — текущая проверка
   - Аудит установщика
   - Окно подготовки (после 2.1.0)
+  - Обновления (2.2.0)
 
 #### `tests/audio/README.md` — 7 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -70155,7 +72023,7 @@ certifi>=2024.8.30
   - Изменения
   - Проверки и передача
 
-#### `ARCHITECTURE.md` — 63 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `ARCHITECTURE.md` — 64 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - 🏗 Архитектура «Феникс»
   - 📑 Содержание
@@ -70178,6 +72046,7 @@ certifi>=2024.8.30
   - 🎙 Распознавание: эскалация на второй движок (этап 3)
   - 🔊 Эхо и перебивание (этап 4)
   - 🧩 Плагины (этап 6)
+  - ⬆️ Обновления (`jarvis/updater.py`)
   - 🌐 Локальный стык API (`health` / `capabilities` / `turn`)
   - 🖼 GUI (Flet 1.0.3)
     - Конструктор команд
@@ -70196,7 +72065,6 @@ certifi>=2024.8.30
     - Салют (праздничный)
     - Иконка окна
   - 👥 Мультипрофиль
-  - ⚙️ Поток конфига
 
 #### `CI.md` — 16 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -70595,7 +72463,7 @@ certifi>=2024.8.30
   - Ручная приёмка Windows
   - Границы проверки
 
-#### `docs/USER_GUIDE.md` — 56 заголовков, полный текст не включён (дублирует PROJECT.md)
+#### `docs/USER_GUIDE.md` — 57 заголовков, полный текст не включён (дублирует PROJECT.md)
 
 - Руководство пользователя · Феникс
   - Навигация
@@ -70614,6 +72482,7 @@ certifi>=2024.8.30
   - 🖼 GUI (Flet)
     - Вертикальный режим («полоса на краю экрана»)
   - 🌐 Локальный API (для стыков между проектами)
+  - ⬆️ Обновления
   - 🧩 Новые возможности за флагами (по умолчанию выключены)
   - ⚙️ Режимы работы
   - 🧠 Настройка LLM (Ollama)
@@ -70636,7 +72505,6 @@ certifi>=2024.8.30
   - 🎉 Поздравление с ДР
   - 📝 Логи
   - 🌤 Погода и курс валют
-  - 🗣 Команды
 
 #### `docs/WHISPER_STARTUP_DLL_FIX.md` — 6 заголовков, полный текст не включён (дублирует PROJECT.md)
 
@@ -70707,6 +72575,15 @@ certifi>=2024.8.30
   - Что не проверено
   - Проверки
 
+#### `docs/releases/v2.2.0.md` — 6 заголовков, полный текст не включён (дублирует PROJECT.md)
+
+- Феникс 2.2.0
+  - Главное
+  - Как это устроено
+  - Что сохраняется
+  - Честные границы
+  - Установка и обновление
+
 ---
 
-_Итого по категориям — code: 286, data: 60, doc: 53, pack: 5. Режим `lean`._
+_Итого по категориям — code: 288, data: 60, doc: 54, pack: 5. Режим `lean`._

@@ -68,6 +68,7 @@
   "ui_vertical_autohide_ms": 900,
   "api_enabled": false,
   "api_port": 8765,
+  "update_check_enabled": true,
   "asr_escalate_enabled": false,
   "asr_fallback": "whisper",
   "asr_escalate_budget_per_min": 3,

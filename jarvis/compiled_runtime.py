@@ -143,6 +143,23 @@ def self_test(root, *, compiled):
     # не попали, и Whisper падал уже на машине пользователя.
     checks["faster_whisper_assets"] = (
         root / "faster_whisper/assets/silero_vad_v6.onnx").is_file()
+    # updater в собранной копии не имеет jarvis/__init__.py на диске, поэтому
+    # install_kind() узнаёт standalone по Феникс.exe. Проверка нужна только там,
+    # где exe действительно лежит: иначе ошибка детекта всплывёт у пользователя,
+    # когда помощник обновления откажется ставить версию.
+    from jarvis import paths, updater
+    if (root / updater.APP_EXE).is_file():
+        try:
+            kind = updater.install_kind(root)
+            updates = Path(paths.updates_dir())
+            updates.mkdir(parents=True, exist_ok=True)
+            probe = updates / ".self-test-write"
+            probe.write_bytes(b"ok")
+            probe.unlink()
+            checks["updater_install_kind"] = True if kind == "standalone" else {
+                "ok": False, "error": f"install_kind={kind!r}, ожидалось 'standalone'"}
+        except Exception as exc:
+            checks["updater_install_kind"] = {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
     report["ok"] = all(value is True for value in checks.values())
     return report
 
